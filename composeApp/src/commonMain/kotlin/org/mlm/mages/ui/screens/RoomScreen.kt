@@ -614,7 +614,6 @@ private fun MessageItem(
     val shouldGroup = prevEvent != null &&
             prevEvent.sender == event.sender &&
             prevDate == eventDate
-//            && (event.timestamp - prevEvent.timestamp) < 300_000
 
     val isMine = event.sender == state.myUserId
 
@@ -638,9 +637,9 @@ private fun MessageItem(
         sendState = event.sendState
     )
 
-    // Thread count
-    val threadCount = state.threadCount[event.eventId] ?: 0
-    if (threadCount > 0) {
+    val threadCount = state.threadCount[event.eventId]
+
+    if (event.eventId.isNotBlank() && threadCount != null && threadCount > 0) {
         Row(
             horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
             modifier = Modifier
@@ -648,7 +647,16 @@ private fun MessageItem(
                 .padding(horizontal = 24.dp)
         ) {
             TextButton(onClick = onOpenThread) {
-                Text("View thread ($threadCount)")
+                Icon(
+                    imageVector = Icons.Default.Forum,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    text = if (threadCount == 1) "1 reply" else "$threadCount replies",
+                    style = MaterialTheme.typography.labelMedium
+                )
             }
         }
     }

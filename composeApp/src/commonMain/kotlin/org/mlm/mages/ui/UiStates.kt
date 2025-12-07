@@ -192,18 +192,32 @@ data class SpaceSettingsUiState(
     val inviteUserId: String = "",
 )
 
-data class ThreadUi(
-    val roomId: String,
-    val rootEventId: String,
-    val messages: List<MessageEvent> = emptyList(),
+data class ThreadUiState(
+    val roomId: String = "",
+    val rootEventId: String = "",
+    val roomName: String = "",
+
+    val rootMessage: MessageEvent? = null,
+    val replies: List<MessageEvent> = emptyList(),
+
     val nextBatch: String? = null,
+    val hasInitialLoad: Boolean = false,
+
     val isLoading: Boolean = false,
     val error: String? = null,
-    val reactionChips: Map<String, List<ReactionChip>> = emptyMap(),
+
+    val input: String = "",
+    val replyingTo: MessageEvent? = null,
 
     val editingEvent: MessageEvent? = null,
-    val editInput: String = ""
-)
+    val editInput: String = "",
+
+    val reactionChips: Map<String, List<ReactionChip>> = emptyMap()
+) {
+    val messageCount: Int get() = (if (rootMessage != null) 1 else 0) + replies.size
+
+    val allMessages: List<MessageEvent> get() = listOfNotNull(rootMessage) + replies
+}
 
 enum class LastMessageType {
     Text,

@@ -6,7 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,6 +15,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
@@ -22,13 +24,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.ReactionChip
-import org.mlm.mages.matrix.SendState
-import org.mlm.mages.ui.ThreadUi
+import org.mlm.mages.ui.ThreadUiState
 import org.mlm.mages.ui.base.SnackbarController
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.formatDisplayName
@@ -62,12 +64,21 @@ fun ThreadRoute(
         onReact = viewModel::react,
         onBack = onBack,
         onLoadMore = viewModel::loadMore,
-        onSendThread = { text, replyToId ->
-            viewModel.sendMessage(text, replyToId)
+        onSend = {
+            scope.launch {
+                if (state.editingEvent != null) {
+                    viewModel.confirmEdit()
+                } else {
+                    viewModel.sendMessage(state.input)
+                }
+            }
         },
-        onEdit = viewModel::startEdit,
+        onInputChange = viewModel::setInput,
+        onStartReply = viewModel::startReply,
+        onCancelReply = viewModel::cancelReply,
+        onStartEdit = viewModel::startEdit,
+        onCancelEdit = viewModel::cancelEdit,
         onDelete = { ev -> viewModel.delete(ev) },
-        onRetry = { ev -> viewModel.retry(ev) },
         snackbarController = snackbarController
     )
 }
@@ -75,105 +86,79 @@ fun ThreadRoute(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThreadScreen(
-    state: ThreadUi,
+    state: ThreadUiState,
     myUserId: String?,
     onReact: (MessageEvent, String) -> Unit,
     onBack: () -> Unit,
     onLoadMore: () -> Unit,
-    onSendThread: suspend (String, String?) -> Boolean,
-    onEdit: (MessageEvent) -> Unit,
-    onDelete: suspend (MessageEvent) -> Unit,
-    onRetry: suspend (MessageEvent) -> Unit,
+    onSend: () -> Unit,
+    onInputChange: (String) -> Unit,
+    onStartReply: (MessageEvent) -> Unit,
+    onCancelReply: () -> Unit,
+    onStartEdit: (MessageEvent) -> Unit,
+    onCancelEdit: () -> Unit,
+    onDelete: suspend (MessageEvent) -> Boolean,
     snackbarController: SnackbarController
 ) {
     val scope = rememberCoroutineScope()
-    var input by remember { mutableStateOf("") }
-    var replyTo: MessageEvent? by remember { mutableStateOf(null) }
     var sheetEvent by remember { mutableStateOf<MessageEvent?>(null) }
     val listState = rememberLazyListState()
 
-    val isNearBottom by remember(listState, state.messages) {
+    // Calculate total items: load more button (optional) + root (optional) + divider (optional) + replies
+    val totalItems = remember(state.nextBatch, state.rootMessage, state.replies) {
+        var count = 0
+        if (state.nextBatch != null) count++ // load more
+        if (state.rootMessage != null) count++ // root
+        if (state.rootMessage != null && state.replies.isNotEmpty()) count++ // divider
+        count += state.replies.size
+        count
+    }
+
+    val isNearBottom by remember(listState, totalItems) {
         derivedStateOf {
             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-            state.messages.isNotEmpty() && lastVisible >= state.messages.lastIndex - 2
+            totalItems == 0 || lastVisible >= totalItems - 1
         }
     }
 
-    val rootMessage = state.messages.firstOrNull()
-    val threadReplies = if (state.messages.size > 1) state.messages.drop(1) else emptyList()
+    // Auto-scroll when new message appears at bottom (if already near bottom)
+    LaunchedEffect(state.replies.lastOrNull()?.itemId, isNearBottom) {
+        if (isNearBottom && totalItems > 0) {
+            listState.animateScrollToItem(totalItems - 1)
+        }
+    }
 
     Scaffold(
         topBar = {
-            Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 2.dp) {
-                TopAppBar(
-                    title = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = CircleShape,
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        Icons.Default.Forum,
-                                        null,
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.width(Spacing.md))
-                            Column {
-                                Text("Thread", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                                Text(
-                                    "${state.messages.size} ${if (state.messages.size == 1) "message" else "messages"}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
-                )
-            }
+            ThreadTopBar(
+                messageCount = state.messageCount,
+                roomName = state.roomName,
+                onBack = onBack
+            )
         },
         bottomBar = {
             ThreadComposer(
-                input = input,
-                onInputChange = { input = it },
-                replyTo = replyTo,
-                onCancelReply = { replyTo = null },
-                onSend = {
-                    scope.launch {
-                        val ok = onSendThread(input.trim(), replyTo?.eventId)
-                        if (ok) {
-                            input = ""
-                            replyTo = null
-                            if (state.messages.isNotEmpty()) {
-                                listState.animateScrollToItem(state.messages.lastIndex + 1)
-                            }
-                        } else {
-                            snackbarController.showError("Failed to send message")
-                        }
-                    }
-                }
+                input = state.input,
+                onInputChange = onInputChange,
+                replyTo = state.replyingTo,
+                editingEvent = state.editingEvent,
+                onCancelReply = onCancelReply,
+                onCancelEdit = onCancelEdit,
+                onSend = onSend
             )
         },
         floatingActionButton = {
             AnimatedVisibility(
-                visible = !isNearBottom && state.messages.size > 5,
+                visible = !isNearBottom && state.replies.size > 5,
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
                 ExtendedFloatingActionButton(
                     onClick = {
                         scope.launch {
-                            listState.animateScrollToItem(state.messages.lastIndex.coerceAtLeast(0) + 1)
+                            if (totalItems > 0) {
+                                listState.animateScrollToItem(totalItems - 1)
+                            }
                         }
                     },
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer,
@@ -186,8 +171,12 @@ fun ThreadScreen(
             }
         }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            AnimatedVisibility(visible = state.isLoading) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            AnimatedVisibility(visible = state.isLoading && !state.hasInitialLoad) {
                 LinearProgressIndicator(
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.primary
@@ -199,109 +188,217 @@ fun ThreadScreen(
                     color = MaterialTheme.colorScheme.errorContainer,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        error,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(Spacing.lg),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Spacing.lg),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.ErrorOutline,
+                            null,
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(Spacing.md))
+                        Text(
+                            error,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
-            if (state.messages.isEmpty() && !state.isLoading) {
-                EmptyThreadView()
-            } else {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = Spacing.sm)
-                ) {
-                    if (state.nextBatch != null) {
-                        item(key = "load_more") {
-                            Box(
-                                Modifier.fillMaxWidth().padding(Spacing.lg),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                OutlinedButton(onClick = onLoadMore, enabled = !state.isLoading) {
-                                    if (state.isLoading) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(16.dp),
-                                            strokeWidth = 2.dp
-                                        )
-                                        Spacer(Modifier.width(Spacing.sm))
+            when {
+                !state.hasInitialLoad && state.isLoading -> {
+                    // initial loading
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator()
+                            Spacer(Modifier.height(Spacing.lg))
+                            Text(
+                                "Loading thread...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                state.rootMessage == null && state.hasInitialLoad -> {
+                    EmptyThreadView()
+                }
+
+                else -> {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = Spacing.sm)
+                    ) {
+                        if (state.nextBatch != null) {
+                            item(key = "load_more") {
+                                Box(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(Spacing.lg),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    OutlinedButton(
+                                        onClick = onLoadMore,
+                                        enabled = !state.isLoading
+                                    ) {
+                                        if (state.isLoading) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(16.dp),
+                                                strokeWidth = 2.dp
+                                            )
+                                            Spacer(Modifier.width(Spacing.sm))
+                                        }
+                                        Text("Load earlier messages")
                                     }
-                                    Text("Load earlier messages")
                                 }
                             }
                         }
-                    }
 
-                    rootMessage?.let { root ->
-                        item(key = "root_${root.itemId}") {
-                            ThreadRootMessage(
-                                event = root,
-                                isMine = root.sender == myUserId,
-                                reactionChips = state.reactionChips[root.eventId] ?: emptyList(),
-                                onReact = { emoji -> onReact(root, emoji) },
-                                onReply = { replyTo = root },
-                                onLongPress = { sheetEvent = root }
-                            )
-                        }
-                        if (threadReplies.isNotEmpty()) {
-                            item(key = "divider") {
-                                ThreadDivider(replyCount = threadReplies.size)
+                        state.rootMessage?.let { root ->
+                            item(key = "root_${root.itemId}") {
+                                ThreadRootMessage(
+                                    event = root,
+                                    isMine = root.sender == myUserId,
+                                    reactionChips = state.reactionChips[root.eventId]
+                                        ?: emptyList(),
+                                    onReact = { emoji -> onReact(root, emoji) },
+                                    onReply = { onStartReply(root) },
+                                    onLongPress = { sheetEvent = root }
+                                )
+                            }
+
+                            
+                            if (state.replies.isNotEmpty()) {
+                                item(key = "divider") {
+                                    ThreadDivider(replyCount = state.replies.size)
+                                }
                             }
                         }
-                    }
 
-                    items(items = threadReplies, key = { it.itemId }) { event ->
-                        val prevEvent = threadReplies.getOrNull(threadReplies.indexOf(event) - 1)
-                        val shouldGroup = prevEvent != null &&
-                                prevEvent.sender == event.sender &&
-                                (event.timestamp - prevEvent.timestamp) < 300_000
+                        
+                        itemsIndexed(
+                            items = state.replies,
+                            key = { _, ev -> "reply_${ev.itemId}" }
+                        ) { index, event ->
+                            val prevEvent = state.replies.getOrNull(index - 1)
+                            val shouldGroup = prevEvent != null &&
+                                    prevEvent.sender == event.sender &&
+                                    (event.timestamp - prevEvent.timestamp) < 300_000
 
-                        ThreadReplyMessage(
-                            event = event,
-                            isMine = event.sender == myUserId,
-                            reactionChips = state.reactionChips[event.eventId] ?: emptyList(),
-                            onReact = { emoji -> onReact(event, emoji) },
-                            onLongPress = { sheetEvent = event },
-                            grouped = shouldGroup
-                        )
+                            ThreadReplyMessage(
+                                event = event,
+                                isMine = event.sender == myUserId,
+                                reactionChips = state.reactionChips[event.eventId]
+                                    ?: emptyList(),
+                                onReact = { emoji -> onReact(event, emoji) },
+                                onLongPress = { sheetEvent = event },
+                                grouped = shouldGroup
+                            )
+                        }
                     }
                 }
             }
         }
     }
 
-    if (sheetEvent != null) {
-        val ev = sheetEvent!!
+    
+    sheetEvent?.let { ev ->
         val isMine = ev.sender == myUserId
         MessageActionSheet(
             event = ev,
             isMine = isMine,
             onDismiss = { sheetEvent = null },
-            onReply = { replyTo = ev; sheetEvent = null },
-            onEdit = {
-                onEdit(ev)
+            onReply = {
+                onStartReply(ev)
                 sheetEvent = null
             },
-            onDelete = {
-                scope.launch {
-                    onDelete(ev)
-                    sheetEvent = null
-                }
-            },
-            onReact = { emoji -> onReact(ev, emoji) },
-            onMarkReadHere = { sheetEvent = null },
-            onRetry = if (isMine && ev.sendState == SendState.Failed) {
-                {
-                    scope.launch {
-                        onRetry(ev)
+            onEdit = {
+                if (isMine) {
+                    run {
+                        onStartEdit(ev)
                         sheetEvent = null
                     }
+                } else null
+            },
+            onDelete = {
+                if (isMine) {
+                    run {
+                        scope.launch {
+                            onDelete(ev)
+                            sheetEvent = null
+                        }
+                    }
+                } else null
+            },
+            onReact = { emoji -> onReact(ev, emoji) },
+            onMarkReadHere = { sheetEvent = null }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ThreadTopBar(
+    messageCount: Int,
+    roomName: String,
+    onBack: () -> Unit
+) {
+    Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 2.dp) {
+        TopAppBar(
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = CircleShape,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.Forum,
+                                null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                    Spacer(Modifier.width(Spacing.md))
+                    Column {
+                        Text(
+                            "Thread",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            buildString {
+                                append("$messageCount ${if (messageCount == 1) "message" else "messages"}")
+                                if (roomName.isNotBlank()) {
+                                    append(" • $roomName")
+                                }
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
-            } else null
+            },
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
         )
     }
 }
@@ -316,7 +413,9 @@ private fun ThreadRootMessage(
     onLongPress: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(Spacing.md),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(Spacing.md),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ),
@@ -324,7 +423,11 @@ private fun ThreadRootMessage(
         onClick = onLongPress
     ) {
         Column(modifier = Modifier.padding(Spacing.lg)) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Surface(
                     color = MaterialTheme.colorScheme.primary,
                     shape = CircleShape,
@@ -428,10 +531,15 @@ private fun ThreadRootMessage(
 @Composable
 private fun ThreadDivider(replyCount: Int) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.xl, vertical = Spacing.sm),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.xl, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.outlineVariant
+        )
         Surface(
             color = MaterialTheme.colorScheme.secondaryContainer,
             shape = RoundedCornerShape(12.dp),
@@ -444,7 +552,10 @@ private fun ThreadDivider(replyCount: Int) {
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
             )
         }
-        HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.outlineVariant
+        )
     }
 }
 
@@ -462,13 +573,20 @@ private fun ThreadReplyMessage(
             .fillMaxWidth()
             .padding(horizontal = Spacing.md, vertical = if (grouped) 2.dp else 4.dp)
     ) {
-        Box(modifier = Modifier.width(24.dp).padding(top = if (grouped) 4.dp else Spacing.lg)) {
+        Box(
+            modifier = Modifier
+                .width(24.dp)
+                .padding(top = if (grouped) 4.dp else Spacing.lg)
+        ) {
             Box(
                 modifier = Modifier
                     .width(2.dp)
                     .height(if (grouped) 24.dp else 40.dp)
                     .align(Alignment.TopCenter)
-                    .background(MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(1.dp))
+                    .background(
+                        MaterialTheme.colorScheme.outlineVariant,
+                        RoundedCornerShape(1.dp)
+                    )
             )
         }
 
@@ -496,7 +614,10 @@ private fun ThreadReactionChipsRow(
     chips: List<ReactionChip>,
     onReact: (String) -> Unit
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         chips.take(6).forEach { chip ->
             Surface(
                 onClick = { onReact(chip.key) },
@@ -530,53 +651,87 @@ private fun ThreadComposer(
     input: String,
     onInputChange: (String) -> Unit,
     replyTo: MessageEvent?,
+    editingEvent: MessageEvent?,
     onCancelReply: () -> Unit,
+    onCancelEdit: () -> Unit,
     onSend: () -> Unit
 ) {
+    val isEditing = editingEvent != null
+    val hasAction = replyTo != null || isEditing
+
     Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 8.dp) {
         Column {
-            AnimatedVisibility(visible = replyTo != null) {
-                replyTo?.let { event ->
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.fillMaxWidth()
+            // Reply/Edit preview banner
+            AnimatedVisibility(visible = hasAction) {
+                Surface(
+                    color = if (isEditing)
+                        MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                    else
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
+                        // Accent
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .width(3.dp)
-                                    .height(32.dp)
-                                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
+                                .width(3.dp)
+                                .height(32.dp)
+                                .background(
+                                    if (isEditing)
+                                        MaterialTheme.colorScheme.tertiary
+                                    else
+                                        MaterialTheme.colorScheme.primary,
+                                    RoundedCornerShape(2.dp)
+                                )
+                        )
+                        Spacer(Modifier.width(Spacing.md))
+
+                        Icon(
+                            if (isEditing) Icons.Default.Edit else Icons.AutoMirrored.Filled.Reply,
+                            null,
+                            modifier = Modifier.size(16.dp),
+                            tint = if (isEditing)
+                                MaterialTheme.colorScheme.tertiary
+                            else
+                                MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.width(Spacing.sm))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                if (isEditing) "Editing message"
+                                else "Replying to ${formatDisplayName(replyTo?.sender ?: "")}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isEditing)
+                                    MaterialTheme.colorScheme.tertiary
+                                else
+                                    MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium
                             )
-                            Spacer(Modifier.width(Spacing.md))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    "Replying to ${formatDisplayName(event.sender)}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    event.body,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                            IconButton(onClick = onCancelReply, modifier = Modifier.size(32.dp)) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    "Cancel reply",
-                                    modifier = Modifier.size(18.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                            Text(
+                                (if (isEditing) editingEvent?.body else replyTo?.body) ?: "",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        IconButton(
+                            onClick = if (isEditing) onCancelEdit else onCancelReply,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                if (isEditing) "Cancel edit" else "Cancel reply",
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
@@ -593,28 +748,48 @@ private fun ThreadComposer(
                     onValueChange = onInputChange,
                     modifier = Modifier.weight(1f),
                     placeholder = {
-                        Text(if (replyTo != null) "Reply in thread…" else "Add to thread…")
+                        Text(
+                            when {
+                                isEditing -> "Edit message…"
+                                replyTo != null -> "Reply in thread…"
+                                else -> "Add to thread…"
+                            }
+                        )
                     },
                     maxLines = 5,
                     shape = RoundedCornerShape(24.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedBorderColor = if (isEditing)
+                            MaterialTheme.colorScheme.tertiary
+                        else
+                            MaterialTheme.colorScheme.primary,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                     )
                 )
+
                 Spacer(Modifier.width(Spacing.sm))
+
                 FilledIconButton(
                     onClick = onSend,
                     enabled = input.isNotBlank(),
                     modifier = Modifier.size(48.dp),
                     colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = if (isEditing)
+                            MaterialTheme.colorScheme.tertiary
+                        else
+                            MaterialTheme.colorScheme.primary,
+                        contentColor = if (isEditing)
+                            MaterialTheme.colorScheme.onTertiary
+                        else
+                            MaterialTheme.colorScheme.onPrimary,
                         disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                         disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.Send, "Send")
+                    Icon(
+                        if (isEditing) Icons.Default.Edit else Icons.AutoMirrored.Filled.Send,
+                        if (isEditing) "Save" else "Send"
+                    )
                 }
             }
         }
@@ -645,15 +820,16 @@ private fun EmptyThreadView() {
             }
             Spacer(Modifier.height(Spacing.xl))
             Text(
-                "No messages in thread",
+                "Thread not found",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(Modifier.height(Spacing.sm))
             Text(
-                "Start the conversation by sending a message",
+                "The thread may have been deleted or is still loading",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
             )
         }
     }

@@ -4,6 +4,7 @@ use matrix_sdk::{
     PredecessorRoom, SuccessorRoom,
     notification_settings::NotificationSettings,
     ruma::{
+        api::client::relations::get_relating_events_with_rel_type_and_event_type::v1::Request,
         events::{
             ignored_user_list::IgnoredUserListEventContent,
             room::{
@@ -3584,6 +3585,79 @@ impl Client {
             }
 
             out
+        })
+    }
+
+    pub fn reactions_batch(
+        &self,
+        room_id: String,
+        event_ids: Vec<String>,
+    ) -> HashMap<String, Vec<ReactionSummary>> {
+        RT.block_on(async {
+            let mut results: HashMap<String, Vec<ReactionSummary>> = HashMap::new();
+
+            // Process in parallel with limited concurrency
+            let semaphore = Arc::new(tokio::sync::Semaphore::new(5));
+            let mut handles = Vec::new();
+
+            for event_id in event_ids {
+                if event_id.is_empty() {
+                    continue;
+                }
+
+                let rid = room_id.clone();
+                let eid = event_id.clone();
+                let sem = semaphore.clone();
+                let client = self.inner.clone();
+
+                let handle = tokio::spawn(async move {
+                    let _permit = sem.acquire().await.ok()?;
+
+                    let Ok(room_id) = OwnedRoomId::try_from(rid) else {
+                        return None;
+                    };
+
+                    let tl = get_timeline_for(&client, &room_id).await?;
+                    let Ok(event_id_parsed) = ruma::OwnedEventId::try_from(eid.clone()) else {
+                        return None;
+                    };
+
+                    let item = tl.item_by_event_id(&event_id_parsed).await?;
+                    let my_user_id = client.user_id();
+
+                    let mut summaries = Vec::new();
+                    if let Some(reactions) = item.content().reactions() {
+                        for (key, senders) in reactions.iter() {
+                            let count = senders.len() as u32;
+                            let me = my_user_id
+                                .map(|me| senders.keys().any(|sender| sender == me))
+                                .unwrap_or(false);
+
+                            summaries.push(ReactionSummary {
+                                key: key.clone(),
+                                count,
+                                me,
+                            });
+                        }
+                    }
+
+                    if summaries.is_empty() {
+                        None
+                    } else {
+                        Some((eid, summaries))
+                    }
+                });
+
+                handles.push(handle);
+            }
+
+            for handle in handles {
+                if let Ok(Some((event_id, summaries))) = handle.await {
+                    results.insert(event_id, summaries);
+                }
+            }
+
+            results
         })
     }
 

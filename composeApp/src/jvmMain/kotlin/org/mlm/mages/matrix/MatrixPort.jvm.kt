@@ -827,6 +827,18 @@ class RustMatrixPort(hs: String) : MatrixPort {
                 .map { ReactionChip(it.key, it.count.toInt(), it.me) }
         }
 
+    override suspend fun reactionsBatch(
+        roomId: String,
+        eventIds: List<String>
+    ): Map<String, List<ReactionChip>> = withContext(Dispatchers.IO) {
+        runCatching {
+            client.reactionsBatch(roomId, eventIds)
+                .mapValues { (_, chips) ->
+                    chips.map { ReactionChip(it.key, it.count.toInt(), it.me) }
+                }
+        }.getOrElse { emptyMap() }
+    }
+
     override suspend fun threadSummary(
         roomId: String,
         rootEventId: String,

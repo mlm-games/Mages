@@ -61,6 +61,10 @@ class RoomViewModel(
     private var typingJob: Job? = null
     private var hasTimelineSnapshot = false
 
+    // Track which event IDs we've checked via API for additional thread replies
+    // (beyond what's visible in timeline)
+    private val checkedThreadRootsViaApi = mutableSetOf<String>()
+
     init {
         initialize()
     }
@@ -84,7 +88,7 @@ class RoomViewModel(
         }
     }
 
-    //  UI Sheet Toggles 
+    //  UI Sheet Toggles
 
     fun showAttachmentPicker() = updateState { copy(showAttachmentPicker = true) }
     fun hideAttachmentPicker() = updateState { copy(showAttachmentPicker = false) }
@@ -110,7 +114,7 @@ class RoomViewModel(
     fun showInviteDialog() = updateState { copy(showInviteDialog = true) }
     fun hideInviteDialog() = updateState { copy(showInviteDialog = false) }
 
-    //  Message Input 
+    //  Message Input
 
     fun setInput(value: String) {
         updateState { copy(input = value) }
@@ -148,7 +152,7 @@ class RoomViewModel(
         }
     }
 
-    //  Reply/Edit 
+    //  Reply/Edit
 
     fun startReply(event: MessageEvent) = updateState { copy(replyingTo = event) }
     fun cancelReply() = updateState { copy(replyingTo = null) }
@@ -186,7 +190,7 @@ class RoomViewModel(
         }
     }
 
-    //  Reactions 
+    //  Reactions
 
     fun react(event: MessageEvent, emoji: String) {
         if (event.eventId.isBlank()) return
@@ -196,7 +200,7 @@ class RoomViewModel(
         }
     }
 
-    //  Delete/Retry 
+    //  Delete/Retry
 
     fun delete(event: MessageEvent) {
         if (event.eventId.isBlank()) return
@@ -222,7 +226,7 @@ class RoomViewModel(
         }
     }
 
-    //  Pagination 
+    //  Pagination
 
     fun paginateBack() {
         val s = currentState
@@ -234,23 +238,23 @@ class RoomViewModel(
                 val hitStart = runSafe { service.paginateBack(s.roomId, 50) } ?: false
                 updateState { copy(hitStart = hitStart || this.hitStart) }
 
-                withTimeoutOrNull(1500) {
-                    state.first { it.events.size > s.events.size || it.hitStart }
-                }
+                // After pagination, recompute thread counts from timeline
+                delay(500) // Give time for timeline diffs to arrive
+                recomputeThreadCountsFromTimeline()
             } finally {
                 updateState { copy(isPaginatingBack = false) }
             }
         }
     }
 
-    //  Read Receipts 
+    //  Read Receipts
 
     fun markReadHere(event: MessageEvent) {
         if (event.eventId.isBlank()) return
         launch { service.markReadAt(event.roomId, event.eventId) }
     }
 
-    //  Attachments 
+    //  Attachments
 
     fun sendAttachment(data: AttachmentData) {
         if (currentState.isUploadingAttachment) return
@@ -369,7 +373,7 @@ class RoomViewModel(
         }
     }
 
-    //  Live Location 
+    //  Live Location
 
     fun startLiveLocation(durationMinutes: Int) {
         launch {
@@ -399,7 +403,7 @@ class RoomViewModel(
     val isCurrentlyShareingLocation: Boolean
         get() = currentState.liveLocationShares[currentState.myUserId]?.isLive == true
 
-    //  Polls 
+    //  Polls
 
     fun sendPoll(question: String, answers: List<String>) {
         val q = question.trim()
@@ -416,7 +420,7 @@ class RoomViewModel(
         }
     }
 
-    //  Notification Settings 
+    //  Notification Settings
 
     fun setNotificationMode(mode: RoomNotificationMode) {
         launch {
@@ -443,7 +447,7 @@ class RoomViewModel(
         }
     }
 
-    //  Room Upgrade 
+    //  Room Upgrade
 
     private fun loadUpgradeInfo() {
         launch {
@@ -467,7 +471,7 @@ class RoomViewModel(
         }
     }
 
-    //  Members & Moderation 
+    //  Members & Moderation
 
     private fun loadMembers() {
         launch {
@@ -603,7 +607,6 @@ class RoomViewModel(
 
             if (success) {
                 _events.send(Event.ShowSuccess("Message forwarded"))
-                // Optionally navigate to the target room
                 val targetName = currentState.forwardableRooms
                     .find { it.roomId == targetRoomId }?.name ?: "Room"
                 _events.send(Event.NavigateToRoom(targetRoomId, targetName))
@@ -615,12 +618,104 @@ class RoomViewModel(
         }
     }
 
+    fun onReturnFromThread(rootEventId: String) {
+        // Refresh thread count for this specific root when returning from thread view
+        launch {
+            fetchThreadCountFromApi(rootEventId)
+        }
+    }
+
+    private fun postProcessNewEvents(newEvents: List<MessageEvent>) {
+        val visible = newEvents.filter { it.threadRootEventId == null }
+
+        // Fetch reactions for recent events
+        visible.takeLast(10).forEach { ev ->
+            if (ev.eventId.isNotBlank()) {
+                launch { refreshReactionsFor(ev.eventId) }
+            }
+        }
+
+        // Recompute thread counts from all events in timeline
+        recomputeThreadCountsFromTimeline()
+
+        prefetchThumbnailsForEvents(visible.takeLast(8))
+        visible.forEach { notifyIfNeeded(it) }
+    }
+
+    /**
+     * Compute thread counts by looking at threadRootEventId in allEvents.
+     * This counts how many events in the timeline reference each root event.
+     */
+    private fun recomputeThreadCountsFromTimeline() {
+        val threadRootCounts = mutableMapOf<String, Int>()
+
+        // Count all events that have a threadRootEventId
+        currentState.allEvents.forEach { event ->
+            val rootId = event.threadRootEventId
+            if (!rootId.isNullOrBlank()) {
+                threadRootCounts[rootId] = (threadRootCounts[rootId] ?: 0) + 1
+            }
+        }
+
+        if (threadRootCounts.isNotEmpty()) {
+            updateState {
+                // Merge with existing counts, preferring higher counts
+                // (API might have found more than timeline has loaded)
+                val merged = threadCount.toMutableMap()
+                threadRootCounts.forEach { (eventId, count) ->
+                    val existing = merged[eventId] ?: 0
+                    merged[eventId] = maxOf(existing, count)
+                }
+                copy(threadCount = merged)
+            }
+
+            // For roots we haven't checked via API yet, fetch to get accurate count
+            val uncheckedRoots = threadRootCounts.keys.filter { it !in checkedThreadRootsViaApi }
+            if (uncheckedRoots.isNotEmpty()) {
+                launch {
+                    uncheckedRoots.forEach { rootId ->
+                        fetchThreadCountFromApi(rootId)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Fetch accurate thread count from API for a specific root event.
+     */
+    private suspend fun fetchThreadCountFromApi(rootEventId: String) {
+        if (rootEventId.isBlank()) return
+        if (rootEventId in checkedThreadRootsViaApi) return
+
+        checkedThreadRootsViaApi.add(rootEventId)
+
+        val summary = runSafe {
+            service.port.threadSummary(
+                roomId = currentState.roomId,
+                rootEventId = rootEventId,
+                perPage = 100,
+                maxPages = 5
+            )
+        }
+
+        if (summary != null && summary.count > 0) {
+            updateState {
+                copy(
+                    threadCount = threadCount.toMutableMap().apply {
+                        // Use API count as it's more accurate
+                        put(rootEventId, summary.count.toInt())
+                    }
+                )
+            }
+        }
+    }
+
     private suspend fun forwardMessage(event: MessageEvent, targetRoomId: String): Boolean {
         return try {
             val attachment = event.attachment
 
             if (attachment != null) {
-                // no download/re-upload
                 service.port.sendExistingAttachment(
                     roomId = targetRoomId,
                     attachment = attachment,
@@ -640,14 +735,14 @@ class RoomViewModel(
             val rooms = runSafe {
                 service.port.listRooms()
             }?.filter {
-                it.id != currentState.roomId // Exclude current room
+                it.id != currentState.roomId
             }?.map { room ->
                 ForwardableRoom(
                     roomId = room.id,
                     name = room.name,
                     avatarUrl = room.avatarUrl,
                     isDm = room.isDm,
-                    lastActivity = 0L //TODO
+                    lastActivity = 0L
                 )
             }?.sortedByDescending { it.lastActivity } ?: emptyList()
 
@@ -657,19 +752,19 @@ class RoomViewModel(
         }
     }
 
-    //  Thread Navigation 
+    //  Thread Navigation
 
     fun openThread(event: MessageEvent) {
+        if (event.eventId.isBlank()) {
+            launch { _events.send(Event.ShowError("Cannot open thread for unsent message")) }
+            return
+        }
         launch {
             _events.send(Event.NavigateToThread(currentState.roomId, event.eventId, currentState.roomName))
         }
     }
 
-    //  Private Helpers 
-
-    private fun filterOutThreadReplies(events: List<MessageEvent>): List<MessageEvent> {
-        return events.filter { it.threadRootEventId == null }
-    }
+    //  Private Helpers
 
     private fun observeTimeline() {
         Notifier.setCurrentRoom(currentState.roomId)
@@ -679,22 +774,6 @@ class RoomViewModel(
                 .buffer(capacity = Channel.BUFFERED)
                 .collect { diff -> processDiff(diff) }
         }
-    }
-
-    private fun postProcessNewEvents(newEvents: List<MessageEvent>) {
-        val visible = newEvents.filter { it.threadRootEventId == null }
-
-        visible.takeLast(10).forEach { ev ->
-            if (ev.eventId.isNotBlank()) {
-                launch { refreshReactionsFor(ev.eventId) }
-                launch { refreshThreadSummaryFor(ev.eventId) }
-            }
-        }
-
-        prefetchThumbnailsForEvents(visible.takeLast(8))
-
-        // send notifications only for visible events
-        visible.forEach { notifyIfNeeded(it) }
     }
 
     private fun processDiff(diff: TimelineDiff<MessageEvent>) {
@@ -738,7 +817,6 @@ class RoomViewModel(
                 updateState {
                     val index = allEvents.indexOfFirst { it.itemId == diff.itemId }
                     if (index == -1) {
-                        // reset will handle
                         this
                     } else {
                         val mutable = allEvents.toMutableList()
@@ -758,7 +836,6 @@ class RoomViewModel(
                 updateState {
                     val newAll = allEvents.filter { it.itemId != diff.itemId }
                     if (newAll.size == allEvents.size) {
-                        // Item not found - already removed or never existed
                         this
                     } else {
                         copy(
@@ -774,16 +851,13 @@ class RoomViewModel(
                 updateState {
                     val index = allEvents.indexOfFirst { it.itemId == diff.itemId }
                     val newAll = if (index == -1) {
-                        // Not found - insert at correct position (sorted by timestamp)
                         val insertIndex = allEvents.indexOfFirst { it.timestamp > diff.item.timestamp }
                         if (insertIndex == -1) {
-                            // Append at end
                             allEvents + diff.item
                         } else {
                             allEvents.toMutableList().apply { add(insertIndex, diff.item) }
                         }
                     } else {
-                        // Found - update in place
                         allEvents.toMutableList().apply { this[index] = diff.item }
                     }
                     copy(
@@ -909,20 +983,9 @@ class RoomViewModel(
         if (eventId.isBlank()) return
         val chips = runSafe { service.port.reactions(currentState.roomId, eventId) } ?: emptyList()
         updateState {
-           copy(reactionChips =reactionChips.toMutableMap().apply {
+            copy(reactionChips = reactionChips.toMutableMap().apply {
                 if (chips.isNotEmpty()) put(eventId, chips) else remove(eventId)
             })
-        }
-    }
-
-    private suspend fun refreshThreadSummaryFor(eventId: String) {
-        if (eventId.isBlank()) return
-        val s = runSafe { service.port.threadSummary(currentState.roomId, eventId, perPage = 50, maxPages = 3) }
-        val cnt = s?.count?.toInt() ?: 0
-        if (cnt > 0) {
-            updateState {
-               copy(threadCount =threadCount.toMutableMap().apply { put(eventId, cnt) })
-            }
         }
     }
 
@@ -934,6 +997,7 @@ class RoomViewModel(
 
     override fun onCleared() {
         super.onCleared()
+        checkedThreadRootsViaApi.clear()
         Notifier.setCurrentRoom(null)
         typingToken?.let { service.stopTypingObserver(it) }
         receiptsToken?.let { service.port.stopReceiptsObserver(it) }
