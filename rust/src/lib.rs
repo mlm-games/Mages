@@ -20,7 +20,7 @@ use matrix_sdk::{
 use matrix_sdk_base::notification_settings::RoomNotificationMode as RsMode;
 use matrix_sdk_ui::{
     eyeball_im::Vector,
-    timeline::{AttachmentConfig, AttachmentSource, TimelineEventItemId},
+    timeline::{AttachmentConfig, AttachmentSource, TimelineDetails, TimelineEventItemId},
 };
 use mime::Mime;
 use once_cell::sync::Lazy;
@@ -495,17 +495,37 @@ pub struct SpaceHierarchyPage {
 
 #[derive(Clone, Enum)]
 pub enum TimelineDiffKind {
-    Append { values: Vec<MessageEvent> },
-    PushBack { value: MessageEvent },
-    PushFront { value: MessageEvent },
+    Append {
+        values: Vec<MessageEvent>,
+    },
+    PushBack {
+        value: MessageEvent,
+    },
+    PushFront {
+        value: MessageEvent,
+    },
+
     PopBack,
     PopFront,
-    Insert { index: u32, value: MessageEvent },
-    Remove { index: u32 },
-    Set { index: u32, value: MessageEvent },
-    Truncate { length: u32 },
-    Reset { values: Vec<MessageEvent> },
+    Truncate {
+        length: u32,
+    },
     Clear,
+    Reset {
+        values: Vec<MessageEvent>,
+    },
+
+    UpdateByItemId {
+        item_id: String,
+        value: MessageEvent,
+    },
+    RemoveByItemId {
+        item_id: String,
+    },
+    UpsertByItemId {
+        item_id: String,
+        value: MessageEvent,
+    }, // Insert if not found, update if found
 }
 
 #[uniffi::export(callback_interface)]
@@ -4806,18 +4826,37 @@ fn map_timeline_event(
     item_id: Option<&str>,
 ) -> Option<MessageEvent> {
     let ts: u64 = ev.timestamp().0.into();
-    let event_id = ev.event_id().map(|e| e.to_string()).unwrap_or_default();
-    let txn_id = ev.transaction_id().map(|t| t.to_string());
-    let send_state = match ev.send_state() {
-        Some(EventSendState::NotSentYet { .. }) => Some(SendState::Sending),
-        Some(EventSendState::SendingFailed { .. }) => Some(SendState::Failed),
-        Some(EventSendState::Sent { .. }) => Some(SendState::Sent),
-        None => None,
+
+    let direct_event_id = ev.event_id().map(|e| e.to_string());
+
+    let sdk_send_state = ev.send_state();
+    let (send_state, event_id_from_send_state) = match sdk_send_state {
+        Some(EventSendState::NotSentYet { .. }) => (Some(SendState::Sending), None),
+        Some(EventSendState::SendingFailed { .. }) => (Some(SendState::Failed), None),
+        Some(EventSendState::Sent { event_id }) => {
+            (Some(SendState::Sent), Some(event_id.to_string()))
+        }
+        None => {
+            if direct_event_id.is_some() {
+                (Some(SendState::Sent), None)
+            } else {
+                (Some(SendState::Sending), None)
+            }
+        }
     };
+
+    let event_id = direct_event_id
+        .or(event_id_from_send_state)
+        .unwrap_or_default();
+
+    let txn_id = ev.transaction_id().map(|t| t.to_string());
 
     let item_id_str = item_id
         .map(|s| s.to_string())
-        .unwrap_or_else(|| format!("{:?}", ev.identifier()));
+        .unwrap_or_else(|| match ev.identifier() {
+            TimelineEventItemId::EventId(e) => e.to_string(),
+            TimelineEventItemId::TransactionId(t) => t.to_string(),
+        });
 
     let mut reply_to_event_id: Option<String> = None;
     let mut reply_to_sender: Option<String> = None;
@@ -4830,7 +4869,7 @@ fn map_timeline_event(
         TimelineItemContent::MsgLike(ml) => {
             if let Some(details) = &ml.in_reply_to {
                 reply_to_event_id = Some(details.event_id.to_string());
-                if let matrix_sdk_ui::timeline::TimelineDetails::Ready(embed) = &details.event {
+                if let TimelineDetails::Ready(embed) = &details.event {
                     reply_to_sender = Some(embed.sender.to_string());
                     if let Some(m) = embed.content.as_message() {
                         reply_to_body = Some(m.body().to_owned());
@@ -5375,8 +5414,14 @@ fn map_vec_diff(
                     })
                 })
                 .collect();
-            Some(TimelineDiffKind::Append { values: vals })
+
+            if vals.is_empty() {
+                None
+            } else {
+                Some(TimelineDiffKind::Append { values: vals })
+            }
         }
+
         VectorDiff::PushBack { value } => value
             .as_event()
             .and_then(|ei| {
@@ -5384,6 +5429,7 @@ fn map_vec_diff(
                 map_timeline_event(ei, room_id.as_str(), Some(&value.unique_id().0.to_string()))
             })
             .map(|v| TimelineDiffKind::PushBack { value: v }),
+
         VectorDiff::PushFront { value } => value
             .as_event()
             .and_then(|ei| {
@@ -5391,35 +5437,43 @@ fn map_vec_diff(
                 map_timeline_event(ei, room_id.as_str(), Some(&value.unique_id().0.to_string()))
             })
             .map(|v| TimelineDiffKind::PushFront { value: v }),
-        VectorDiff::Insert { index, value } => value
-            .as_event()
-            .and_then(|ei| {
-                fetch_reply_if_needed(ei, tl);
-                map_timeline_event(ei, room_id.as_str(), Some(&value.unique_id().0.to_string()))
-            })
-            .map(|v| TimelineDiffKind::Insert {
-                index: index as u32,
-                value: v,
-            }),
-        VectorDiff::Set { index, value } => value
-            .as_event()
-            .and_then(|ei| {
-                fetch_reply_if_needed(ei, tl);
-                map_timeline_event(ei, room_id.as_str(), Some(&value.unique_id().0.to_string()))
-            })
-            .map(|v| TimelineDiffKind::Set {
-                index: index as u32,
-                value: v,
-            }),
-        VectorDiff::Remove { index } => Some(TimelineDiffKind::Remove {
-            index: index as u32,
-        }),
+
+        VectorDiff::Set { index: _, value } => {
+            let item_id = value.unique_id().0.to_string();
+            value
+                .as_event()
+                .and_then(|ei| {
+                    fetch_reply_if_needed(ei, tl);
+                    map_timeline_event(ei, room_id.as_str(), Some(&item_id))
+                })
+                .map(|v| TimelineDiffKind::UpdateByItemId { item_id, value: v })
+        }
+
+        VectorDiff::Insert { index: _, value } => {
+            let item_id = value.unique_id().0.to_string();
+            value
+                .as_event()
+                .and_then(|ei| {
+                    fetch_reply_if_needed(ei, tl);
+                    map_timeline_event(ei, room_id.as_str(), Some(&item_id))
+                })
+                .map(|v| TimelineDiffKind::UpsertByItemId { item_id, value: v })
+        }
+
+        VectorDiff::Remove { index: _ } => {
+            // Cannot safely map - return None and let Reset handle consistency
+            None
+        }
+
         VectorDiff::PopBack => Some(TimelineDiffKind::PopBack),
         VectorDiff::PopFront => Some(TimelineDiffKind::PopFront),
+
         VectorDiff::Truncate { length } => Some(TimelineDiffKind::Truncate {
             length: length as u32,
         }),
+
         VectorDiff::Clear => Some(TimelineDiffKind::Clear),
+
         VectorDiff::Reset { values } => {
             let vals: Vec<_> = values
                 .iter()

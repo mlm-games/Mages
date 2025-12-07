@@ -701,14 +701,13 @@ class RoomViewModel(
         when (diff) {
             is TimelineDiff.Reset -> {
                 hasTimelineSnapshot = true
-
                 val all = diff.items
                 updateState {
                     copy(
                         allEvents = all,
                         events = all.withoutThreadReplies().dedupByItemId(),
                         hasTimelineSnapshot = true,
-                        )
+                    )
                 }
                 postProcessNewEvents(diff.items)
             }
@@ -735,12 +734,58 @@ class RoomViewModel(
                 postProcessNewEvents(diff.items)
             }
 
-            is TimelineDiff.InsertAt -> {
+            is TimelineDiff.UpdateByItemId -> {
                 updateState {
-                    val idx = diff.index.coerceIn(0, allEvents.size)
-                    val mutable = allEvents.toMutableList()
-                    mutable.add(idx, diff.item)
-                    val newAll = mutable.toList()
+                    val index = allEvents.indexOfFirst { it.itemId == diff.itemId }
+                    if (index == -1) {
+                        // reset will handle
+                        this
+                    } else {
+                        val mutable = allEvents.toMutableList()
+                        mutable[index] = diff.item
+                        val newAll = mutable.toList()
+                        copy(
+                            allEvents = newAll,
+                            events = newAll.withoutThreadReplies().dedupByItemId(),
+                            hasTimelineSnapshot = hasTimelineSnapshot,
+                        )
+                    }
+                }
+                postProcessNewEvents(listOf(diff.item))
+            }
+
+            is TimelineDiff.RemoveByItemId -> {
+                updateState {
+                    val newAll = allEvents.filter { it.itemId != diff.itemId }
+                    if (newAll.size == allEvents.size) {
+                        // Item not found - already removed or never existed
+                        this
+                    } else {
+                        copy(
+                            allEvents = newAll,
+                            events = newAll.withoutThreadReplies().dedupByItemId(),
+                            hasTimelineSnapshot = hasTimelineSnapshot,
+                        )
+                    }
+                }
+            }
+
+            is TimelineDiff.UpsertByItemId -> {
+                updateState {
+                    val index = allEvents.indexOfFirst { it.itemId == diff.itemId }
+                    val newAll = if (index == -1) {
+                        // Not found - insert at correct position (sorted by timestamp)
+                        val insertIndex = allEvents.indexOfFirst { it.timestamp > diff.item.timestamp }
+                        if (insertIndex == -1) {
+                            // Append at end
+                            allEvents + diff.item
+                        } else {
+                            allEvents.toMutableList().apply { add(insertIndex, diff.item) }
+                        }
+                    } else {
+                        // Found - update in place
+                        allEvents.toMutableList().apply { this[index] = diff.item }
+                    }
                     copy(
                         allEvents = newAll,
                         events = newAll.withoutThreadReplies().dedupByItemId(),
@@ -748,71 +793,6 @@ class RoomViewModel(
                     )
                 }
                 postProcessNewEvents(listOf(diff.item))
-            }
-
-            is TimelineDiff.UpdateAt -> {
-                updateState {
-                    if (diff.index !in allEvents.indices) return@updateState this
-                    val mutable = allEvents.toMutableList()
-                    mutable[diff.index] = diff.item
-                    val newAll = mutable.toList()
-                    copy(
-                        allEvents = newAll,
-                        events = newAll.withoutThreadReplies().dedupByItemId(),
-                        hasTimelineSnapshot = hasTimelineSnapshot,
-                    )
-                }
-                postProcessNewEvents(listOf(diff.item))
-            }
-
-            is TimelineDiff.RemoveAt -> {
-                updateState {
-                    if (diff.index !in allEvents.indices) return@updateState this
-                    val mutable = allEvents.toMutableList()
-                    mutable.removeAt(diff.index)
-                    val newAll = mutable.toList()
-                    copy(
-                        allEvents = newAll,
-                        events = newAll.withoutThreadReplies().dedupByItemId(),
-                        hasTimelineSnapshot = hasTimelineSnapshot,
-                    )
-                }
-            }
-
-            is TimelineDiff.Truncate -> {
-                updateState {
-                    val len = diff.length.coerceAtMost(allEvents.size)
-                    val newAll = allEvents.take(len)
-                    copy(
-                        allEvents = newAll,
-                        events = newAll.withoutThreadReplies().dedupByItemId(),
-                        hasTimelineSnapshot = hasTimelineSnapshot,
-                    )
-                }
-            }
-
-            TimelineDiff.PopFront -> {
-                updateState {
-                    if (allEvents.isEmpty()) return@updateState this
-                    val newAll = allEvents.drop(1)
-                    copy(
-                        allEvents = newAll,
-                        events = newAll.withoutThreadReplies().dedupByItemId(),
-                        hasTimelineSnapshot = hasTimelineSnapshot,
-                    )
-                }
-            }
-
-            TimelineDiff.PopBack -> {
-                updateState {
-                    if (allEvents.isEmpty()) return@updateState this
-                    val newAll = allEvents.dropLast(1)
-                    copy(
-                        allEvents = newAll,
-                        events = newAll.withoutThreadReplies().dedupByItemId(),
-                        hasTimelineSnapshot = hasTimelineSnapshot,
-                    )
-                }
             }
         }
 

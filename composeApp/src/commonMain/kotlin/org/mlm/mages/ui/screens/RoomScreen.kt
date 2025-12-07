@@ -655,30 +655,36 @@ private fun MessageItem(
 
     Spacer(Modifier.height(2.dp))
 
-    // Read status for last outgoing message
-    if (index == lastOutgoingIndex) {
-        if (state.isDm) {
-            val lastOutgoing = events.getOrNull(lastOutgoingIndex)
-            val statusText = when {
-                lastOutgoing == null -> ""
-                lastOutgoing.sendState == SendState.Sending ||
-                        lastOutgoing.sendState == SendState.Retrying ||
-                        (lastOutgoing.sendState == null && lastOutgoing.eventId.isBlank()) ->
-                    "Sending…"
-
-                lastOutgoing.sendState == SendState.Failed ->
-                    "Failed to send"
-
-                state.lastOutgoingRead ->
-                    "Seen ${formatTime(lastOutgoing.timestamp)}"
-
-                else -> "Delivered"
+    // Read / send status for last outgoing message
+    if (index == lastOutgoingIndex && lastOutgoingIndex >= 0) {
+        val lastOutgoing = events.getOrNull(lastOutgoingIndex)
+        if (lastOutgoing != null) {
+            val statusText = when (lastOutgoing.sendState) {
+                SendState.Sending, SendState.Retrying -> "Sending…"
+                SendState.Enqueued -> "Queued"
+                SendState.Failed -> "Failed to send"
+                SendState.Sent -> {
+                    if (state.lastOutgoingRead) {
+                        "Seen ${formatTime(lastOutgoing.timestamp)}"
+                    } else {
+                        "Delivered"
+                    }
+                }
+                null -> {
+                    // sendState is null - check if we have an eventId
+                    if (lastOutgoing.eventId.isBlank()) {
+                        "Sending…"
+                    } else if (state.lastOutgoingRead) {
+                        "Seen ${formatTime(lastOutgoing.timestamp)}"
+                    } else {
+                        "Delivered"
+                    }
+                }
             }
             MessageStatusLine(text = statusText, isMine = true)
-        } else {
-            if (seenByNames.isNotEmpty()) {
-                SeenByChip(names = seenByNames)
-            }
+        }
+        if (!state.isDm && seenByNames.isNotEmpty()) {
+            SeenByChip(names = seenByNames)
         }
     }
 }

@@ -17,15 +17,12 @@ sealed class TimelineDiff<out T> {
     data class Reset<T>(val items: List<T>) : TimelineDiff<T>()
     class Clear<T> : TimelineDiff<T>()
 
-    data class InsertAt<T>(val index: Int, val item: T) : TimelineDiff<T>()
-    data class UpdateAt<T>(val index: Int, val item: T) : TimelineDiff<T>()
-    data class RemoveAt<T>(val index: Int) : TimelineDiff<T>()
-    data class Truncate<T>(val length: Int) : TimelineDiff<T>()
     data class Append<T>(val items: List<T>) : TimelineDiff<T>()
-    object PopFront : TimelineDiff<Nothing>()
-    object PopBack : TimelineDiff<Nothing>()
-}
 
+    data class UpdateByItemId<T>(val itemId: String, val item: T) : TimelineDiff<T>()
+    data class RemoveByItemId<T>(val itemId: String) : TimelineDiff<T>()
+    data class UpsertByItemId<T>(val itemId: String, val item: T) : TimelineDiff<T>()
+}
 enum class SasPhase { Requested, Ready, Emojis, Confirmed, Cancelled, Failed, Done }
 
 enum class SendState { Enqueued, Sending, Sent, Retrying, Failed }

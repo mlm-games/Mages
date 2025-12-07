@@ -66,58 +66,47 @@ class RustMatrixPort(hs: String) : MatrixPort {
     override fun timelineDiffs(roomId: String): Flow<TimelineDiff<MessageEvent>> = callbackFlow {
         val obs = object : mages.TimelineObserver {
             override fun onDiff(diff: TimelineDiffKind) {
-                val mapped: TimelineDiff<MessageEvent> = when (diff) {
+                val mapped: TimelineDiff<MessageEvent>? = when (diff) {
                     is TimelineDiffKind.Reset -> {
                         TimelineDiff.Reset(diff.values.map { it.toModel() })
                     }
-
                     is TimelineDiffKind.Clear -> {
                         TimelineDiff.Clear()
                     }
 
                     is TimelineDiffKind.Append -> {
-                        // semantics: values appended at the end in order
-                        TimelineDiff.Append(diff.values.map { it.toModel() })
+                        val items = diff.values.map { it.toModel() }
+                        if (items.isNotEmpty()) TimelineDiff.Append(items) else null
                     }
-
                     is TimelineDiffKind.PushBack -> {
-                        // append a single element at end
                         TimelineDiff.Append(listOf(diff.value.toModel()))
                     }
-
                     is TimelineDiffKind.PushFront -> {
-                        // equivalent to insert at index 0
-                        TimelineDiff.InsertAt(0, diff.value.toModel())
+                        val item = diff.value.toModel()
+                        TimelineDiff.UpsertByItemId(item.itemId, item)
                     }
 
-                    is TimelineDiffKind.Insert -> {
-                        TimelineDiff.InsertAt(diff.index.toInt(), diff.value.toModel())
+                    is TimelineDiffKind.UpdateByItemId -> {
+                        TimelineDiff.UpdateByItemId(diff.itemId, diff.value.toModel())
+                    }
+                    is TimelineDiffKind.RemoveByItemId -> {
+                        TimelineDiff.RemoveByItemId(diff.itemId)
+                    }
+                    is TimelineDiffKind.UpsertByItemId -> {
+                        TimelineDiff.UpsertByItemId(diff.itemId, diff.value.toModel())
                     }
 
-                    is TimelineDiffKind.Set -> {
-                        TimelineDiff.UpdateAt(diff.index.toInt(), diff.value.toModel())
-                    }
-
-                    is TimelineDiffKind.Remove -> {
-                        TimelineDiff.RemoveAt(diff.index.toInt())
-                    }
-
-                    is TimelineDiffKind.PopFront -> {
-                        TimelineDiff.PopFront
-                    }
-
-                    is TimelineDiffKind.PopBack -> {
-                        TimelineDiff.PopBack
-                    }
-
-                    is TimelineDiffKind.Truncate -> {
-                        TimelineDiff.Truncate(diff.length.toInt())
-                    }
+                    is TimelineDiffKind.PopBack,
+                    is TimelineDiffKind.PopFront,
+                    is TimelineDiffKind.Truncate -> null
                 }
 
-                trySendBlocking(mapped)
+                mapped?.let { trySendBlocking(it) }
             }
-            override fun onError(message: String) { /* log */ }
+
+            override fun onError(message: String) {
+                println("Err: $message")
+            }
         }
 
         val token = client.observeTimeline(roomId, obs)
