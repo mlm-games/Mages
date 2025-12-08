@@ -1,9 +1,11 @@
 name: Publish to AUR
 
 on:
-  release:
-    types: [published]
-  workflow_dispatch:  # Manual trigger uses latest release
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Version name (e.g., 0.7.0)'
+        required: true
 
 jobs:
   update-aur:
@@ -11,30 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get version from release
-        id: version
-        shell: bash
-        run: |
-          set -euo pipefail
-          
-          if [[ "${{ github.event_name }}" == "release" ]]; then
-            VERSION="${{ github.event.release.tag_name }}"
-          else
-            # workflow_dispatch
-            VERSION=$(curl -sf "https://api.github.com/repos/${{ github.repository }}/releases/latest" | jq -r '.tag_name')
-          fi
-          
-          # Remove 'v' prefix if present
-          VERSION="${VERSION#v}"
-          
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Detected version: $VERSION"
-
       - name: Download AppImages from release
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="${{ steps.version.outputs.version }}"
+          VERSION="${{ inputs.version_name }}"
           mkdir -p downloads
           
           # Try both with and without 'v' prefix for release tag
@@ -60,7 +43,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="${{ steps.version.outputs.version }}"
+          VERSION="${{ inputs.version_name }}"
           X64_HASH=$(sha256sum "downloads/mages-${VERSION}-x86_64.AppImage" | cut -d ' ' -f 1)
           ARM64_HASH=$(sha256sum "downloads/mages-${VERSION}-aarch64.AppImage" | cut -d ' ' -f 1)
           echo "x64_hash=$X64_HASH" >> "$GITHUB_OUTPUT"
@@ -72,12 +55,13 @@ jobs:
         run: |
           set -euo pipefail
           
-          NEW_VERSION="${{ steps.version.outputs.version }}"
+          NEW_VERSION="${{ inputs.version_name }}"
           
           # Fetch current PKGBUILD from AUR (don't fail if package doesn't exist yet)
           PKGBUILD=$(curl -sf "https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=mages-bin" 2>/dev/null || echo "")
           
           if [[ -n "$PKGBUILD" ]]; then
+            # Extract version and pkgrel, removing any quotes
             CURRENT_VER=$(echo "$PKGBUILD" | grep "^pkgver=" | head -1 | cut -d= -f2 | tr -d "'" | tr -d '"' | tr -d ' ')
             CURRENT_PKGREL=$(echo "$PKGBUILD" | grep "^pkgrel=" | head -1 | cut -d= -f2 | tr -d "'" | tr -d '"' | tr -d ' ')
             echo "Found existing AUR package: version=$CURRENT_VER, pkgrel=$CURRENT_PKGREL"
@@ -86,7 +70,7 @@ jobs:
             CURRENT_PKGREL="0"
             echo "No existing AUR package found"
           fi
-
+          
           if ! [[ "$CURRENT_PKGREL" =~ ^[0-9]+$ ]]; then
             CURRENT_PKGREL=0
           fi
@@ -104,7 +88,7 @@ jobs:
       - name: Create PKGBUILD
         shell: bash
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
+          VERSION="${{ inputs.version_name }}"
           PKGREL="${{ steps.pkgrel.outputs.pkgrel }}"
           X64_HASH="${{ steps.checksums.outputs.x64_hash }}"
           ARM64_HASH="${{ steps.checksums.outputs.arm64_hash }}"
@@ -181,4 +165,4 @@ jobs:
           commit_username: MLM-stuff
           commit_email: gfxoxinzh@mozmail.com
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          commit_message: "Update to v${{ steps.version.outputs.version }}-${{ steps.pkgrel.outputs.pkgrel }}"
+          commit_message: "Update to v${{ inputs.version_name }}-${{ steps.pkgrel.outputs.pkgrel }}"
