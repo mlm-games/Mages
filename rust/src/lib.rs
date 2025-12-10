@@ -834,26 +834,27 @@ fn init_tracing() {
 #[export]
 impl Client {
     #[uniffi::constructor]
-    pub fn new(homeserver_url: String, store_dir: String) -> Self {
+    pub fn new(homeserver_url: String, store_dir: String) -> Result<Self, FfiError> {
         init_tracing();
 
         let store_dir_path = std::path::PathBuf::from(&store_dir);
         let _ = std::fs::create_dir_all(&store_dir_path);
 
-        let inner = RT.block_on(async {
-            SdkClient::builder()
-                .homeserver_url(&homeserver_url)
-                .sqlite_store(&store_dir_path, None)
-                .with_encryption_settings(EncryptionSettings {
-                    auto_enable_cross_signing: true,
-                    auto_enable_backups: true,
-                    backup_download_strategy: BackupDownloadStrategy::OneShot,
-                    ..Default::default()
-                })
-                .build()
-                .await
-                .expect("client")
-        });
+        let inner = RT
+            .block_on(async {
+                SdkClient::builder()
+                    .homeserver_url(&homeserver_url)
+                    .sqlite_store(&store_dir_path, None)
+                    .with_encryption_settings(EncryptionSettings {
+                        auto_enable_cross_signing: true,
+                        auto_enable_backups: true,
+                        backup_download_strategy: BackupDownloadStrategy::OneShot,
+                        ..Default::default()
+                    })
+                    .build()
+                    .await
+            })
+            .map_err(|e| FfiError::Msg(format!("failed to build client: {e}")))?; // now OK
 
         let (send_tx, mut send_rx) = tokio::sync::mpsc::unbounded_channel::<SendUpdate>();
         let this = Self {
@@ -1022,7 +1023,7 @@ impl Client {
             this.guards.lock().unwrap().push(h);
         }
 
-        this
+        Ok(this)
     }
 
     pub fn whoami(&self) -> Option<String> {

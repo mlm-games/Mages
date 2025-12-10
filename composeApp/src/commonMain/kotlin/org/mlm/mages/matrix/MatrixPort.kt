@@ -432,4 +432,4 @@ interface MatrixPort {
     suspend fun sendPoll(roomId: String, question: String, answers: List<String>): Boolean
 }
 
-expect fun createMatrixPort(hs: String): MatrixPort
+expect fun createMatrixPort(): MatrixPort

@@ -48,8 +48,7 @@ fun main() = application {
         return synchronized(serviceLock) {
             service?.let { return it }
 
-            val hs = runBlocking { loadString(dataStore, "homeserver") } ?: "https://matrix.org"
-            MatrixService(createMatrixPort(hs)).also { created ->
+            MatrixService(createMatrixPort()).also { created ->
                 service = created
             }
         }

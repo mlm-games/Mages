@@ -16,10 +16,7 @@ object MatrixProvider {
             service?.let { return it }
             // Ensure store paths
             MagesPaths.init(context)
-            // Use saved homeserver or sensible default
-            val ds = provideAppDataStore(context)
-            val hs = runBlocking { loadString(ds, "homeserver") } ?: "https://matrix.org"
-            val s = MatrixService(createMatrixPort(hs))
+            val s = MatrixService(createMatrixPort())
             service = s
             return s
         }

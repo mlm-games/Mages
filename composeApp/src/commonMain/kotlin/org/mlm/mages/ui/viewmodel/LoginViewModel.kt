@@ -7,6 +7,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.withContext
 import org.mlm.mages.MatrixService
+import org.mlm.mages.storage.loadString
 import org.mlm.mages.storage.saveLong
 import org.mlm.mages.storage.saveString
 import org.mlm.mages.ui.LoginUiState
@@ -27,12 +28,13 @@ class LoginViewModel(
     val events = _events.receiveAsFlow()
 
     init {
-        // Initialize Matrix service with default homeserver
         launch {
-            runSafe { service.init(currentState.homeserver) }
+            val savedHs = loadString(dataStore, "homeserver")
+            if (savedHs != null) {
+                updateState { copy(homeserver = savedHs) }
+            }
         }
     }
-
     //  Public Actions 
 
     fun setHomeserver(value: String) {
@@ -52,6 +54,12 @@ class LoginViewModel(
         val s = currentState
         if (s.isBusy || s.user.isBlank() || s.pass.isBlank()) return
 
+        val hs = s.homeserver.trim()
+        if (!hs.startsWith("https://") && !hs.startsWith("http://")) {
+            updateState { copy(error = "Homeserver must start with https://") }
+            return
+        }
+
         launch(
             onError = { t ->
                 updateState { copy(isBusy = false, error = t.message ?: "Login failed") }
@@ -59,10 +67,7 @@ class LoginViewModel(
         ) {
             updateState { copy(isBusy = true, error = null) }
 
-            // Initialize with homeserver
-            service.init(s.homeserver)
-
-            // Perform login
+            service.init(hs)
             service.login(s.user, s.pass, "Mages")
 
             // Persist homeserver for receivers/services

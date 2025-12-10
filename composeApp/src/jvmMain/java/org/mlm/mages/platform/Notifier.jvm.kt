@@ -50,7 +50,7 @@ actual fun BindNotifications(service: MatrixService, dataStore: DataStore<Prefer
             saveLong(dataStore, "desktop:notif_baseline_ms", baseline)
         }
 
-        val me = service.port.whoami()
+        val me = if (service.isLoggedIn()) { service.port.whoami() } else null
 
         while (true) {
             delay(15_000L) // poll every ... secs

@@ -62,6 +62,18 @@ private fun AppContent(
         BindLifecycle(service)
         BindNotifications(service, dataStore)
 
+        LaunchedEffect(Unit) {
+            val hs = org.mlm.mages.storage.loadString(dataStore, "homeserver")
+            if (hs != null) {
+                runCatching { service.init(hs) }
+            }
+
+            if (service.isLoggedIn()) {
+                sessionEpoch++
+                backStack.replaceTop(Route.Rooms)
+            }
+        }
+
         LaunchedEffect(sessionEpoch) {
             if (service.isLoggedIn()) {
                 service.startSupervisedSync()

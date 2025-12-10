@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.mlm.mages.RoomSummary
 import org.mlm.mages.ui.components.common.RoomListItem
@@ -45,6 +46,11 @@ fun RoomsScreen(
     // Scroll to top when first room changes (new unread activity)
     val firstFavouriteId = state.favouriteItems.firstOrNull()?.roomId
     val firstNormalId = state.normalItems.firstOrNull()?.roomId
+
+    LaunchedEffect(Unit) {
+        delay(500)
+        viewModel.refresh()
+    }
 
     LaunchedEffect(firstFavouriteId, firstNormalId) {
         if ((firstFavouriteId != null || firstNormalId != null) && listState.firstVisibleItemIndex > 0) {
