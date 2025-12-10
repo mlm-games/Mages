@@ -35,6 +35,7 @@ use std::{
     },
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
+use std::{mem::ManuallyDrop, ops::Deref};
 use tokio::runtime::Runtime;
 use tracing::{debug, error, info, warn};
 use tracing_subscriber::{EnvFilter, fmt};
@@ -710,7 +711,7 @@ type VerifMap = Arc<Mutex<HashMap<String, VerifFlow>>>;
 
 #[derive(Object)]
 pub struct Client {
-    inner: SdkClient,
+    inner: ManuallyDrop<SdkClient>,
     store_dir: PathBuf,
     guards: Mutex<Vec<tokio::task::JoinHandle<()>>>,
     verifs: VerifMap,
@@ -860,7 +861,7 @@ impl Client {
 
         let (send_tx, mut send_rx) = tokio::sync::mpsc::unbounded_channel::<SendUpdate>();
         let this = Self {
-            inner,
+            inner: ManuallyDrop::new(inner),
             store_dir: store_dir_path,
             guards: Mutex::new(vec![]),
             verifs: Arc::new(Mutex::new(HashMap::new())),
@@ -1118,7 +1119,7 @@ impl Client {
     }
 
     pub fn observe_timeline(&self, room_id: String, observer: Box<dyn TimelineObserver>) -> u64 {
-        let client = self.inner.clone();
+        let client = self.inner_clone();
         let Ok(room_id) = OwnedRoomId::try_from(room_id) else {
             return 0;
         };
@@ -1173,7 +1174,7 @@ impl Client {
     }
 
     pub fn start_verification_inbox(&self, observer: Box<dyn VerificationInboxObserver>) -> u64 {
-        let client = self.inner.clone();
+        let client = self.inner_clone();
         let obs: Arc<dyn VerificationInboxObserver> = Arc::from(observer);
         let inbox = self.inbox.clone();
 
@@ -1268,7 +1269,7 @@ impl Client {
     }
 
     pub fn monitor_connection(&self, observer: Box<dyn ConnectionObserver>) -> u64 {
-        let client = self.inner.clone();
+        let client = self.inner_clone();
         let obs: Arc<dyn ConnectionObserver> = Arc::from(observer);
 
         let id = self.next_sub_id();
@@ -1676,7 +1677,7 @@ impl Client {
     }
 
     pub fn observe_typing(&self, room_id: String, observer: Box<dyn TypingObserver>) -> u64 {
-        let client = self.inner.clone();
+        let client = self.inner_clone();
         let Ok(rid) = OwnedRoomId::try_from(room_id) else {
             return 0;
         };
@@ -1727,7 +1728,7 @@ impl Client {
         unsub!(self, typing_subs, sub_id)
     }
     pub fn observe_receipts(&self, room_id: String, observer: Box<dyn ReceiptsObserver>) -> u64 {
-        let client = self.inner.clone();
+        let client = self.inner_clone();
         let Ok(rid) = ruma::OwnedRoomId::try_from(room_id) else {
             return 0;
         };
@@ -1819,7 +1820,7 @@ impl Client {
     }
 
     pub fn start_call_inbox(&self, observer: Box<dyn CallObserver>) -> u64 {
-        let client = self.inner.clone();
+        let client = self.inner_clone();
         let obs: Arc<dyn CallObserver> = Arc::from(observer);
         let id = self.next_sub_id();
         let h = RT.spawn(async move {
@@ -2310,7 +2311,7 @@ impl Client {
         let client_txn = txn_id.unwrap_or_else(|| format!("mages-{}", now_ms()));
 
         let tx = self.send_tx.clone();
-        let client = self.inner.clone();
+        let client = self.inner_clone();
         let mut handles = self.send_handles_by_txn.lock().unwrap().clone();
         let txn_id = client_txn.clone();
         RT.spawn(async move {
@@ -2773,7 +2774,7 @@ impl Client {
     pub fn observe_own_receipt(&self, room_id: String, observer: Box<dyn ReceiptsObserver>) -> u64 {
         // Reuse the existing callback interface to notify "changed";
         // when it fires, Kotlin can call own_last_read() to pull details.
-        let client = self.inner.clone();
+        let client = self.inner_clone();
         let Ok(rid) = ruma::OwnedRoomId::try_from(room_id) else {
             return 0;
         };
@@ -2821,7 +2822,7 @@ impl Client {
             let Some(permit) = svc.try_get_encryption_sync_permit() else {
                 return false;
             };
-            match EncryptionSyncService::new(self.inner.clone(), None, WithLocking::Yes).await {
+            match EncryptionSyncService::new(self.inner_clone(), None, WithLocking::Yes).await {
                 Ok(enc) => enc.run_fixed_iterations(100, permit).await.is_ok(),
                 Err(_) => false,
             }
@@ -2831,7 +2832,7 @@ impl Client {
     pub fn observe_room_list(&self, observer: Box<dyn RoomListObserver>) -> u64 {
         let obs: std::sync::Arc<dyn RoomListObserver> = std::sync::Arc::from(observer);
         let svc_slot = self.sync_service.clone();
-        let client = self.inner.clone();
+        let client = self.inner_clone();
         let id = self.next_sub_id();
 
         let (cmd_tx, mut cmd_rx) = tokio::sync::mpsc::unbounded_channel::<RoomListCmd>();
@@ -3326,7 +3327,7 @@ impl Client {
         let nc = RT
             .block_on(async {
                 NotificationClient::new(
-                    self.inner.clone(),
+                    self.inner_clone(),
                     NotificationProcessSetup::SingleProcess { sync_service: sync },
                 )
                 .await
@@ -3407,7 +3408,7 @@ impl Client {
             };
 
             let nc = NotificationClient::new(
-                self.inner.clone(),
+                self.inner_clone(),
                 NotificationProcessSetup::SingleProcess { sync_service: sync },
             )
             .await
@@ -3595,7 +3596,7 @@ impl Client {
                 let rid = room_id.clone();
                 let eid = event_id.clone();
                 let sem = semaphore.clone();
-                let client = self.inner.clone();
+                let client = self.inner_clone();
 
                 let handle = tokio::spawn(async move {
                     let _permit = sem.acquire().await.ok()?;
@@ -4253,7 +4254,7 @@ impl Client {
         room_id: String,
         observer: Box<dyn LiveLocationObserver>,
     ) -> u64 {
-        let client = self.inner.clone();
+        let client = self.inner_clone();
         let Ok(rid) = OwnedRoomId::try_from(room_id) else {
             return 0;
         };
@@ -4840,12 +4841,16 @@ impl Client {
             return;
         }
 
-        if let Ok(service) = SyncService::builder(self.inner.clone()).build().await {
+        if let Ok(service) = SyncService::builder(self.inner_clone()).build().await {
             let mut guard = self.sync_service.lock().unwrap();
             if guard.is_none() {
                 guard.replace(service.into());
             }
         }
+    }
+
+    fn inner_clone(&self) -> SdkClient {
+        (*self.inner).clone()
     }
 }
 
@@ -5582,4 +5587,14 @@ fn fetch_reply_if_needed(ei: &EventTimelineItem, tl: &Arc<Timeline>) {
 #[export(callback_interface)]
 pub trait UrlOpener: Send + Sync {
     fn open(&self, url: String) -> bool;
+}
+
+impl Drop for Client {
+    fn drop(&mut self) {
+        self.shutdown();
+        let _guard = RT.enter();
+        unsafe {
+            ManuallyDrop::drop(&mut self.inner);
+        }
+    }
 }
