@@ -814,6 +814,8 @@ macro_rules! with_timeline_async {
     }};
 }
 
+const INITIAL_BACK_PAGINATION: u16 = 20;
+
 static TRACING_INIT: Lazy<()> = Lazy::new(|| {
     let filter = EnvFilter::from_default_env()
         .add_directive("mages_ffi=debug".parse().unwrap())
@@ -854,7 +856,7 @@ impl Client {
                     .build()
                     .await
             })
-            .map_err(|e| FfiError::Msg(format!("failed to build client: {e}")))?; // now OK
+            .map_err(|e| FfiError::Msg(format!("failed to build client: {e}")))?;
 
         let (send_tx, mut send_rx) = tokio::sync::mpsc::unbounded_channel::<SendUpdate>();
         let this = Self {
@@ -4880,14 +4882,17 @@ static TIMELINES: Lazy<Mutex<HashMap<OwnedRoomId, Arc<Timeline>>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
 async fn get_timeline_for(client: &SdkClient, room_id: &OwnedRoomId) -> Option<Arc<Timeline>> {
-    // reuse
+    // reuse existing timeline for this room
     if let Some(tl) = TIMELINES.lock().unwrap().get(room_id).cloned() {
         return Some(tl);
     }
 
-    // Slow path – ask the SDK for a Timeline for this room and cache it.
+    // Slow path: create a new timeline
     let room = client.get_room(room_id)?;
     let tl = Arc::new(room.timeline().await.ok()?);
+
+    let _ = tl.paginate_backwards(INITIAL_BACK_PAGINATION).await;
+
     TIMELINES
         .lock()
         .unwrap()

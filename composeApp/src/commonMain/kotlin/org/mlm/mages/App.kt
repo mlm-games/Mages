@@ -1,13 +1,23 @@
 package org.mlm.mages
 
-import androidx.compose.animation.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
-import androidx.navigation3.runtime.*
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -15,15 +25,44 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import org.mlm.mages.di.KoinApp
-import org.mlm.mages.matrix.MatrixPort
-import org.mlm.mages.nav.*
-import org.mlm.mages.platform.*
-import org.mlm.mages.ui.animation.*
-import org.mlm.mages.ui.base.*
+import org.mlm.mages.nav.BindDeepLinks
+import org.mlm.mages.nav.Route
+import org.mlm.mages.nav.loginEntryFadeMetadata
+import org.mlm.mages.nav.navSavedStateConfiguration
+import org.mlm.mages.nav.popUntil
+import org.mlm.mages.nav.replaceTop
+import org.mlm.mages.platform.BindLifecycle
+import org.mlm.mages.platform.BindNotifications
+import org.mlm.mages.platform.rememberOpenBrowser
+import org.mlm.mages.platform.rememberQuitApp
+import org.mlm.mages.storage.loadString
+import org.mlm.mages.ui.animation.forwardTransition
+import org.mlm.mages.ui.animation.popTransition
+import org.mlm.mages.ui.base.rememberSnackbarController
 import org.mlm.mages.ui.components.sheets.CreateRoomSheet
-import org.mlm.mages.ui.screens.*
+import org.mlm.mages.ui.screens.DiscoverRoute
+import org.mlm.mages.ui.screens.InvitesRoute
+import org.mlm.mages.ui.screens.LoginScreen
+import org.mlm.mages.ui.screens.RoomInfoRoute
+import org.mlm.mages.ui.screens.RoomScreen
+import org.mlm.mages.ui.screens.RoomsScreen
+import org.mlm.mages.ui.screens.SecurityScreen
+import org.mlm.mages.ui.screens.SpaceDetailScreen
+import org.mlm.mages.ui.screens.SpaceSettingsScreen
+import org.mlm.mages.ui.screens.SpacesScreen
+import org.mlm.mages.ui.screens.ThreadRoute
 import org.mlm.mages.ui.theme.MainTheme
-import org.mlm.mages.ui.viewmodel.*
+import org.mlm.mages.ui.viewmodel.DiscoverViewModel
+import org.mlm.mages.ui.viewmodel.InvitesViewModel
+import org.mlm.mages.ui.viewmodel.LoginViewModel
+import org.mlm.mages.ui.viewmodel.RoomInfoViewModel
+import org.mlm.mages.ui.viewmodel.RoomViewModel
+import org.mlm.mages.ui.viewmodel.RoomsViewModel
+import org.mlm.mages.ui.viewmodel.SecurityViewModel
+import org.mlm.mages.ui.viewmodel.SpaceDetailViewModel
+import org.mlm.mages.ui.viewmodel.SpaceSettingsViewModel
+import org.mlm.mages.ui.viewmodel.SpacesViewModel
+import org.mlm.mages.ui.viewmodel.ThreadViewModel
 
 @Composable
 fun App(
@@ -63,7 +102,7 @@ private fun AppContent(
         BindNotifications(service, dataStore)
 
         LaunchedEffect(Unit) {
-            val hs = org.mlm.mages.storage.loadString(dataStore, "homeserver")
+            val hs = loadString(dataStore, "homeserver")
             if (hs != null) {
                 runCatching { service.init(hs) }
             }
