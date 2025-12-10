@@ -112,7 +112,7 @@ fun RoomsScreen(
                     icon = Icons.Default.MeetingRoom,
                     title = "No rooms found",
                     subtitle = if (state.roomSearchQuery.isBlank())
-                        "Join a room to start chatting (or reopen if just logged in)"
+                        "Join a room to start chatting"
                     else
                         "No rooms match \"${state.roomSearchQuery}\"",
                     modifier = Modifier.padding(innerPadding),

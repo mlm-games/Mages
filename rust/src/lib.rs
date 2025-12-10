@@ -927,46 +927,26 @@ impl Client {
         }
 
         RT.block_on(async {
-            match this.inner.whoami().await {
-                Ok(_) => {
-                    if this.sync_service.lock().unwrap().is_none() {
-                        if let Ok(service) = SyncService::builder(this.inner.clone()).build().await
-                        {
-                            this.sync_service.lock().unwrap().replace(service.into());
-                        }
-                    }
-                }
-                Err(_) => {
-                    let path = session_file(&this.store_dir);
-                    if let Ok(txt) = tokio::fs::read_to_string(&path).await {
-                        if let Ok(info) = serde_json::from_str::<SessionInfo>(&txt) {
-                            if let Ok(user_id) = info.user_id.parse::<OwnedUserId>() {
-                                let session = MatrixSession {
-                                    meta: matrix_sdk::SessionMeta {
-                                        user_id,
-                                        device_id: info.device_id.clone().into(),
-                                    },
-                                    tokens: SessionTokens {
-                                        access_token: info.access_token.clone(),
-                                        refresh_token: info.refresh_token.clone(),
-                                    },
-                                };
-                                if this.inner.restore_session(session).await.is_ok() {
-                                    if this.sync_service.lock().unwrap().is_none() {
-                                        if let Ok(service) =
-                                            SyncService::builder(this.inner.clone()).build().await
-                                        {
-                                            this.sync_service
-                                                .lock()
-                                                .unwrap()
-                                                .replace(service.into());
-                                        }
-                                    }
-                                } else {
-                                    let _ = tokio::fs::remove_file(&path).await;
-                                    reset_store_dir(&this.store_dir);
-                                }
-                            }
+            // Restore session from session.json if present
+            let path = session_file(&this.store_dir);
+            if let Ok(txt) = tokio::fs::read_to_string(&path).await {
+                if let Ok(info) = serde_json::from_str::<SessionInfo>(&txt) {
+                    if let Ok(user_id) = info.user_id.parse::<OwnedUserId>() {
+                        let session = MatrixSession {
+                            meta: matrix_sdk::SessionMeta {
+                                user_id,
+                                device_id: info.device_id.clone().into(),
+                            },
+                            tokens: SessionTokens {
+                                access_token: info.access_token.clone(),
+                                refresh_token: info.refresh_token.clone(),
+                            },
+                        };
+                        if this.inner.restore_session(session).await.is_ok() {
+                            this.ensure_sync_service().await;
+                        } else {
+                            let _ = tokio::fs::remove_file(&path).await;
+                            reset_store_dir(&this.store_dir);
                         }
                     }
                 }
@@ -1063,6 +1043,8 @@ impl Client {
                 serde_json::to_string(&info).unwrap(),
             )
             .await?;
+
+            self.ensure_sync_service().await;
 
             Ok(())
         })
@@ -3549,6 +3531,8 @@ impl Client {
                 .await?;
             }
 
+            self.ensure_sync_service().await;
+
             Ok(())
         })
     }
@@ -4845,6 +4829,23 @@ impl Client {
             }
         });
         self.guards.lock().unwrap().push(h);
+    }
+
+    async fn ensure_sync_service(&self) {
+        if self.sync_service.lock().unwrap().is_some() {
+            return;
+        }
+
+        if self.inner.session_meta().is_none() {
+            return;
+        }
+
+        if let Ok(service) = SyncService::builder(self.inner.clone()).build().await {
+            let mut guard = self.sync_service.lock().unwrap();
+            if guard.is_none() {
+                guard.replace(service.into());
+            }
+        }
     }
 }
 
