@@ -13,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -71,6 +72,21 @@ fun RoomScreen(
     }
 
     var sheetEvent by remember { mutableStateOf<MessageEvent?>(null) }
+
+    var didInitialScroll by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(state.hasTimelineSnapshot, state.events.size) {
+        if (!state.hasTimelineSnapshot || state.events.isEmpty()) return@LaunchedEffect
+
+        // Only do this once, and only if the user hasn't scrolled yet
+        if (!didInitialScroll &&
+            listState.firstVisibleItemIndex == 0 &&
+            listState.firstVisibleItemScrollOffset == 0
+        ) {
+            listState.scrollToItem(state.events.lastIndex)
+            didInitialScroll = true
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->

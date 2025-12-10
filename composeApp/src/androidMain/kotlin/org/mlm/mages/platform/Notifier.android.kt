@@ -3,6 +3,7 @@ package org.mlm.mages.platform
 import android.app.Activity
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalContext
@@ -10,6 +11,9 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.getSystemService
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import org.mlm.mages.MatrixService
 import org.mlm.mages.R
 
@@ -20,10 +24,13 @@ actual object Notifier {
     actual fun notifyRoom(title: String, body: String) {
         val ctx = AppCtx.get() ?: return
         val mgr = ctx.getSystemService<NotificationManager>() ?: return
-        if (mgr.getNotificationChannel(CHANNEL_ID) == null) {
-            mgr.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "Messages", NotificationManager.IMPORTANCE_HIGH)
-            )
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (mgr.getNotificationChannel(CHANNEL_ID) == null) {
+                mgr.createNotificationChannel(
+                    NotificationChannel(CHANNEL_ID, "Messages", NotificationManager.IMPORTANCE_HIGH)
+                )
+            }
         }
         val n = NotificationCompat.Builder(ctx, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_monochrome)
@@ -52,18 +59,21 @@ actual object Notifier {
 
 @Composable
 actual fun BindLifecycle(service: MatrixService)  {
-    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val obs = object : androidx.lifecycle.DefaultLifecycleObserver {
-            override fun onStart(owner: androidx.lifecycle.LifecycleOwner) {
-                service.port.enterForeground()
+    if (service.isLoggedIn()) {
+        val lifecycleOwner = LocalLifecycleOwner.current
+        DisposableEffect(lifecycleOwner) {
+            val obs = object : DefaultLifecycleObserver {
+                override fun onStart(owner: LifecycleOwner) {
+                    service.port.enterForeground()
+                }
+
+                override fun onStop(owner: LifecycleOwner) {
+                    service.port.enterBackground()
+                }
             }
-            override fun onStop(owner: androidx.lifecycle.LifecycleOwner) {
-                service.port.enterBackground()
-            }
+            lifecycleOwner.lifecycle.addObserver(obs)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
         }
-        lifecycleOwner.lifecycle.addObserver(obs)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
     }
 }
 
