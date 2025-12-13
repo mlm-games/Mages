@@ -116,7 +116,7 @@ jobs:
           cat aur-package/PKGBUILD
 
       - name: Publish to AUR
-        uses: KSXGitHub/github-actions-deploy-aur@master
+        uses: mlm-games/aur-deploy-action@master
         with:
           pkgname: mages-bin
           pkgbuild: aur-package/PKGBUILD
