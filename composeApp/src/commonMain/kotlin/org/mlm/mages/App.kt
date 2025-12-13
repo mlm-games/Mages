@@ -1,15 +1,22 @@
 package org.mlm.mages
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -84,32 +91,42 @@ private fun AppContent(
     val dataStore: DataStore<Preferences> = koinInject()
 
     MainTheme {
-        val initialRoute = remember {
-            if (service.isLoggedIn()) Route.Rooms else Route.Login
-        }
-
-        val backStack: NavBackStack<NavKey> =
-            rememberNavBackStack(navSavedStateConfiguration, initialRoute)
-
         val snackbar = rememberSnackbarController()
         val scope = rememberCoroutineScope()
 
         var showCreateRoom by remember { mutableStateOf(false) }
         var sessionEpoch by remember { mutableIntStateOf(0) }
 
-        BindDeepLinks(backStack, deepLinks)
-        BindLifecycle(service)
-        BindNotifications(service, dataStore)
-
-        LaunchedEffect(Unit) {
+        val initialRoute by produceState<Route?>(initialValue = null, service, dataStore) {
             val hs = loadString(dataStore, "homeserver")
             if (hs != null) {
                 runCatching { service.init(hs) }
             }
+            value = if (service.isLoggedIn()) Route.Rooms else Route.Login
+        }
 
-            if (service.isLoggedIn()) {
+        if (initialRoute == null) {
+            Surface {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            return@MainTheme
+        }
+
+        val backStack: NavBackStack<NavKey> =
+            rememberNavBackStack(navSavedStateConfiguration, initialRoute!!)
+
+        BindDeepLinks(backStack, deepLinks)
+        BindLifecycle(service)
+        BindNotifications(service, dataStore)
+
+        LaunchedEffect(initialRoute) {
+            if (initialRoute == Route.Rooms && service.isLoggedIn()) {
                 sessionEpoch++
-                backStack.replaceTop(Route.Rooms)
             }
         }
 
