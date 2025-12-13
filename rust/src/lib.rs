@@ -1,10 +1,6 @@
-#![allow(unused_imports)]
 use js_int::UInt;
 use matrix_sdk::{
-    PredecessorRoom, SuccessorRoom,
-    notification_settings::NotificationSettings,
-    ruma::{
-        api::client::relations::get_relating_events_with_rel_type_and_event_type::v1::Request,
+    PredecessorRoom, RoomDisplayName, SuccessorRoom, ruma::{
         events::{
             ignored_user_list::IgnoredUserListEventContent,
             room::{
@@ -16,7 +12,7 @@ use matrix_sdk::{
             },
         },
         room::Restricted,
-    },
+    }
 };
 use matrix_sdk_base::notification_settings::RoomNotificationMode as RsMode;
 use matrix_sdk_ui::{
@@ -35,20 +31,20 @@ use std::{
     },
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
-use std::{mem::ManuallyDrop, ops::Deref};
+use std::{mem::ManuallyDrop};
 use tokio::runtime::Runtime;
-use tracing::{debug, error, info, warn};
+use tracing::{ error, info, warn};
 use tracing_subscriber::{EnvFilter, fmt};
-use uniffi::{Enum, HandleAlloc, Object, Record, export, setup_scaffolding};
+use uniffi::{Enum, Object, Record, export, setup_scaffolding};
 
 use futures_util::StreamExt;
 use matrix_sdk::{
     Client as SdkClient, OwnedServerName, Room, RoomMemberships, SessionTokens,
-    authentication::{matrix::MatrixSession, oauth::OAuthError},
+    authentication::matrix::MatrixSession,
     config::SyncSettings,
-    media::{MediaFormat, MediaRequestParameters, MediaRetentionPolicy, MediaThumbnailSettings},
+    media::{MediaFormat, MediaRequestParameters, MediaRetentionPolicy},
     ruma::{
-        OwnedMxcUri, OwnedRoomAliasId, OwnedRoomOrAliasId, SpaceChildOrder,
+        OwnedRoomAliasId, OwnedRoomOrAliasId, SpaceChildOrder,
         api::client::{
             directory::get_public_rooms_filtered,
             push::{Pusher, PusherIds, PusherInit, PusherKind},
@@ -67,12 +63,10 @@ use matrix_sdk::{
     ruma::{
         EventId, OwnedDeviceId, OwnedRoomId, OwnedUserId,
         api::client::{
-            media::get_content_thumbnail::v3::Method as ThumbnailMethod,
             receipt::create_receipt::v3::ReceiptType,
         },
         events::call::invite::OriginalSyncCallInviteEvent,
         events::receipt::SyncReceiptEvent,
-        events::typing::SyncTypingEvent,
     },
 };
 use matrix_sdk::{
@@ -118,7 +112,6 @@ use ruma::{
     },
 };
 
-use matrix_sdk::live_location_share::ObservableLiveLocation;
 use matrix_sdk::ruma::{
     RoomVersionId,
     api::client::presence::{
@@ -136,7 +129,6 @@ use matrix_sdk::ruma::{
     },
     events::room::{
         history_visibility::HistoryVisibility, join_rules::JoinRule,
-        tombstone::RoomTombstoneEventContent,
     },
     presence::PresenceState,
 };
@@ -1485,7 +1477,7 @@ impl Client {
             // Apply right away.
             self.inner
                 .media()
-                .clean_up_media_cache()
+                .clean()
                 .await
                 .map_err(|e| FfiError::Msg(e.to_string()))
         })
@@ -1496,7 +1488,7 @@ impl Client {
         RT.block_on(async {
             self.inner
                 .media()
-                .clean_up_media_cache()
+                .clean()
                 .await
                 .map_err(|e| FfiError::Msg(e.to_string()))
         })
@@ -1968,14 +1960,14 @@ impl Client {
                         });
                         let _ = svc.start().await;
                     }
-                    State::Error => {
-                        obs.on_state(SyncStatus {
-                            phase: SyncPhase::Error,
-                            message: Some("Sync error".to_string()),
-                        });
-                        // Restart on error as docs suggested.
-                        let _ = svc.start().await;
-                    }
+                    State::Error(err) => {
+            obs.on_state(SyncStatus {
+                phase: SyncPhase::Error,
+                message: Some(format!("Sync error: {err:?}")),
+            });
+            // Restart on error as docs suggested.
+            let _ = svc.start().await;
+        }
                 }
             }
         });
@@ -2009,7 +2001,6 @@ impl Client {
             user_devs
                 .devices()
                 .map(|dev| {
-                    use matrix_sdk_crypto::LocalTrust;
 
                     let ed25519 = dev.ed25519_key().map(|k| k.to_base64()).unwrap_or_default();
                     let is_own = self
@@ -2861,8 +2852,8 @@ impl Client {
 
             controller.set_filter(Box::new(filters::new_filter_non_left()));
 
-            // Maintain local ordered state of rooms.
-            let mut rooms = Vector::<matrix_sdk::Room>::new();
+            use matrix_sdk_ui::room_list_service::RoomListItem; 
+            let mut items = Vector::<RoomListItem>::new();
 
             loop {
                 tokio::select! {
@@ -2886,69 +2877,25 @@ impl Client {
 
                         for diff in diffs {
                             match diff {
-                                VectorDiff::Reset { values } => {
-                                    rooms = values;
-                                    changed = true;
-                                }
-                                VectorDiff::Clear => {
-                                    rooms.clear();
-                                    changed = true;
-                                }
-                                VectorDiff::PushFront { value } => {
-                                    rooms.insert(0, value);
-                                    changed = true;
-                                }
-                                VectorDiff::PushBack { value } => {
-                                    rooms.push_back(value);
-                                    changed = true;
-                                }
-                                VectorDiff::PopFront => {
-                                    if !rooms.is_empty() {
-                                        rooms.remove(0);
-                                        changed = true;
-                                    }
-                                }
-                                VectorDiff::PopBack => {
-                                    rooms.pop_back();
-                                    changed = true;
-                                }
-                                VectorDiff::Insert { index, value } => {
-                                    let idx = index as usize;
-                                    if idx <= rooms.len() {
-                                        rooms.insert(idx, value);
-                                        changed = true;
-                                    }
-                                }
-                                VectorDiff::Set { index, value } => {
-                                    let idx = index as usize;
-                                    if idx < rooms.len() {
-                                        rooms[idx] = value;
-                                        changed = true;
-                                    }
-                                }
-                                VectorDiff::Remove { index } => {
-                                    let idx = index as usize;
-                                    if idx < rooms.len() {
-                                        rooms.remove(idx);
-                                        changed = true;
-                                    }
-                                }
-                                VectorDiff::Truncate { length } => {
-                                    rooms.truncate(length as usize);
-                                    changed = true;
-                                }
-                                VectorDiff::Append { values } => {
-                                    rooms.append(values);
-                                    changed = true;
-                                }
+                                VectorDiff::Reset { values } => { items = values; changed = true; }
+                                VectorDiff::Clear => { items.clear(); changed = true; }
+                                VectorDiff::PushFront { value } => { items.insert(0, value); changed = true; }
+                                VectorDiff::PushBack { value } => { items.push_back(value); changed = true; }
+                                VectorDiff::PopFront => { if !items.is_empty() { items.remove(0); changed = true; } }
+                                VectorDiff::PopBack => { items.pop_back(); changed = true; }
+                                VectorDiff::Insert { index, value } => { if index <= items.len() { items.insert(index, value); changed = true; } }
+                                VectorDiff::Set { index, value } => { if index < items.len() { items[index] = value; changed = true; } }
+                                VectorDiff::Remove { index } => { if index < items.len() { items.remove(index); changed = true; } }
+                                VectorDiff::Truncate { length } => { items.truncate(length); changed = true; }
+                                VectorDiff::Append { values } => { items.append(values); changed = true; }
                             }
                         }
 
                         if changed {
-                            let mut snapshot: Vec<RoomListEntry> = Vec::with_capacity(rooms.len());
+                            let mut snapshot: Vec<RoomListEntry> = Vec::with_capacity(items.len());
 
-                            for room_ref in rooms.iter() {
-                                let room = room_ref.clone();
+                            for item in items.iter() {                                
+                                let room = &**item;
 
                                 let notifications = room.num_unread_notifications();
                                 let messages      = room.num_unread_messages();
@@ -2957,7 +2904,8 @@ impl Client {
 
                                 let is_favourite   = room.is_favourite();
                                 let is_low_priority= room.is_low_priority();
-                                let last_ts        = room.recency_stamp().map_or(0, |s| s);
+                                
+                                let last_ts        = room.recency_stamp().map_or(0, |s| s.into());
 
                                 let avatar_url = room.avatar_url().map(|mxc| mxc.to_string());
                                 let is_dm = room.is_direct().await.unwrap_or(false);
@@ -2969,14 +2917,12 @@ impl Client {
                                 let member_count = member_count_u64.min(u32::MAX as u64) as u32;
                                 let topic = room.topic();
 
-                                let latest_event: Option<LatestRoomEvent> = latest_room_event_for(&client, &room).await;
+                                let latest_event: Option<LatestRoomEvent> = latest_room_event_for(&client, room).await;
 
                                 snapshot.push(RoomListEntry {
                                     room_id: room.room_id().to_string(),
-                                    name: room
-                                        .cached_display_name()
-                                        .map(|n| n.to_string())
-                                        .unwrap_or_else(|| room.room_id().to_string()),
+                                    name: item.cached_display_name()
+                                        .clone().unwrap_or(RoomDisplayName::Named(room.room_id().to_string())).to_string(),
                                     last_ts,
                                     notifications,
                                     messages,
@@ -5168,7 +5114,7 @@ fn render_timeline_text(ev: &EventTimelineItem) -> String {
             format!("Unsupported state event: {}", event_type)
         }
         TimelineItemContent::CallInvite => "Started a call".to_string(),
-        TimelineItemContent::CallNotify => "Call notification".to_string(),
+        TimelineItemContent::RtcNotification => "Call notification".to_string(),
     }
 }
 
@@ -5180,6 +5126,7 @@ fn render_msg_like(_ev: &EventTimelineItem, ml: &MsgLikeContent) -> String {
         Poll(_p) => "started a poll".to_string(),
         Redacted => "Message deleted".to_string(),
         UnableToDecrypt(_e) => "Unable to decrypt this message".to_string(),
+        Other(_) => "Custom message".to_string(),
     }
 }
 
@@ -5322,13 +5269,16 @@ async fn latest_room_event_for(client: &SdkClient, room: &Room) -> Option<Latest
                 is_encrypted = true;
                 body = None;
             }
+            MsgLikeKind::Other(_) => {
+                body = Some("Custom event".to_owned());
+            },
         },
         TimelineItemContent::CallInvite => {
             event_type = "m.call.invite".to_owned();
             body = None;
         }
-        TimelineItemContent::CallNotify => {
-            event_type = "m.call.notify".to_owned();
+        TimelineItemContent::RtcNotification => {
+            event_type = "m.rtc.notification".to_owned();
             body = None;
         }
         // Membership changes, profile changes, other state events..
