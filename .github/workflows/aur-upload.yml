@@ -10,6 +10,7 @@ on:
 jobs:
   update-aur:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -49,47 +50,11 @@ jobs:
           echo "x64_hash=$X64_HASH" >> "$GITHUB_OUTPUT"
           echo "arm64_hash=$ARM64_HASH" >> "$GITHUB_OUTPUT"
 
-      - name: Get current AUR package info and determine pkgrel
-        id: pkgrel
-        shell: bash
-        run: |
-          set -euo pipefail
-          
-          NEW_VERSION="${{ inputs.version_name }}"
-          
-          # Fetch current PKGBUILD from AUR (don't fail if package doesn't exist yet)
-          PKGBUILD=$(curl -sf "https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=mages-bin" 2>/dev/null || echo "")
-          
-          if [[ -n "$PKGBUILD" ]]; then
-            # Extract version and pkgrel, removing any quotes
-            CURRENT_VER=$(echo "$PKGBUILD" | grep "^pkgver=" | head -1 | cut -d= -f2 | tr -d "'" | tr -d '"' | tr -d ' ')
-            CURRENT_PKGREL=$(echo "$PKGBUILD" | grep "^pkgrel=" | head -1 | cut -d= -f2 | tr -d "'" | tr -d '"' | tr -d ' ')
-            echo "Found existing AUR package: version=$CURRENT_VER, pkgrel=$CURRENT_PKGREL"
-          else
-            CURRENT_VER=""
-            CURRENT_PKGREL="0"
-            echo "No existing AUR package found"
-          fi
-          
-          if ! [[ "$CURRENT_PKGREL" =~ ^[0-9]+$ ]]; then
-            CURRENT_PKGREL=0
-          fi
-          
-          if [[ "$NEW_VERSION" == "$CURRENT_VER" ]]; then
-            NEW_PKGREL=$((CURRENT_PKGREL + 1))
-            echo "Same version detected, incrementing pkgrel: $CURRENT_PKGREL -> $NEW_PKGREL"
-          else
-            NEW_PKGREL=1
-            echo "New version detected, setting pkgrel to 1"
-          fi
-          
-          echo "pkgrel=$NEW_PKGREL" >> "$GITHUB_OUTPUT"
-
       - name: Create PKGBUILD
         shell: bash
         run: |
+          set -euo pipefail
           VERSION="${{ inputs.version_name }}"
-          PKGREL="${{ steps.pkgrel.outputs.pkgrel }}"
           X64_HASH="${{ steps.checksums.outputs.x64_hash }}"
           ARM64_HASH="${{ steps.checksums.outputs.arm64_hash }}"
           
@@ -99,7 +64,7 @@ jobs:
           pkgname=mages-bin
           _pkgname=mages
           pkgver={{VER}}
-          pkgrel={{PKGREL}}
+          pkgrel=1
           pkgdesc="Mages desktop (early testing)"
           arch=('x86_64' 'aarch64')
           url="https://github.com/mlm-games/mages"
@@ -108,18 +73,14 @@ jobs:
           provides=('mages')
           conflicts=('mages')
           options=('!strip')
-
           source_x86_64=("${_pkgname}-${pkgver}-x86_64.AppImage::https://github.com/mlm-games/mages/releases/download/${pkgver}/mages-${pkgver}-x86_64.AppImage")
           source_aarch64=("${_pkgname}-${pkgver}-aarch64.AppImage::https://github.com/mlm-games/mages/releases/download/${pkgver}/mages-${pkgver}-aarch64.AppImage")
-
           sha256sums_x86_64=('{{X64_HASH}}')
           sha256sums_aarch64=('{{ARM64_HASH}}')
-
           prepare() {
             chmod +x "${_pkgname}-${pkgver}-${CARCH}.AppImage"
             "./${_pkgname}-${pkgver}-${CARCH}.AppImage" --appimage-extract
           }
-
           package() {
             install -Dm755 "${srcdir}/${_pkgname}-${pkgver}-${CARCH}.AppImage" \
               "${pkgdir}/opt/${_pkgname}/${_pkgname}.AppImage"
@@ -130,7 +91,6 @@ jobs:
           exec /opt/mages/mages.AppImage "$@"
           WRAPPER
             chmod 755 "${pkgdir}/usr/bin/${_pkgname}"
-
             install -Dm644 /dev/stdin "${pkgdir}/usr/share/applications/${_pkgname}.desktop" << DESKTOP_EOF
           [Desktop Entry]
           Name=Mages
@@ -143,14 +103,12 @@ jobs:
           Categories=Network;InstantMessaging;
           StartupNotify=true
           DESKTOP_EOF
-
             install -Dm644 "squashfs-root/mages.png" \
               "${pkgdir}/usr/share/icons/hicolor/512x512/apps/${_pkgname}.png"
           }
           EOF
-
+          
           sed -i "s/{{VER}}/${VERSION}/g" aur-package/PKGBUILD
-          sed -i "s/{{PKGREL}}/${PKGREL}/g" aur-package/PKGBUILD
           sed -i "s/{{X64_HASH}}/${X64_HASH}/g" aur-package/PKGBUILD
           sed -i "s/{{ARM64_HASH}}/${ARM64_HASH}/g" aur-package/PKGBUILD
           
@@ -162,7 +120,8 @@ jobs:
         with:
           pkgname: mages-bin
           pkgbuild: aur-package/PKGBUILD
+          auto_pkgrel: 'true'
           commit_username: MLM-stuff
           commit_email: gfxoxinzh@mozmail.com
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          commit_message: "Update to v${{ inputs.version_name }}-${{ steps.pkgrel.outputs.pkgrel }}"
+          commit_message: "Update to v${{ inputs.version_name }}"
