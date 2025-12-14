@@ -45,6 +45,7 @@ kotlin {
             implementation(libs.material.icons.extended)
             implementation(compose.ui)
             implementation(compose.components.resources)
+            implementation(compose.components.resources)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.androidx.datastore.preferences.core)
@@ -52,7 +53,6 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
-            implementation(compose.components.resources)
             implementation(libs.uri.kmp)
 
             implementation(libs.koin.core)
@@ -204,7 +204,7 @@ compose.resources {
 val cargoAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
 
 val rustDirDefault = rootProject.layout.projectDirectory.dir("rust")
-val os = OperatingSystem.current()
+val os = OperatingSystem.current()!!
 val hostLibName = when {
     os.isMacOsX -> "libmages_ffi.dylib"
     os.isWindows -> "mages_ffi.dll"
