@@ -252,20 +252,13 @@ class RoomsViewModel(
         }
     }
 
-    fun maybePrefetchRoomAvatar(roomId: String, avatarMxc: String?) {
-        val mxc = avatarMxc ?: return
-        if (!mxc.startsWith("mxc://")) return
-
+    private fun maybePrefetchRoomAvatar(roomId: String, avatarMxc: String?) {
+        if (avatarMxc.isNullOrBlank()) return
         if (currentState.roomAvatarPath.containsKey(roomId)) return
 
         launch {
-            val path = runCatching {
-                service.port.mxcThumbnailToCache(mxc, 96, 96, true)
-            }.getOrNull()
-
-            if (!path.isNullOrBlank()) {
-                updateState { copy(roomAvatarPath = roomAvatarPath + (roomId to path)) }
-            }
+            val path = service.avatars.resolve(avatarMxc, px = 96, crop = true) ?: return@launch
+            updateState { copy(roomAvatarPath = roomAvatarPath + (roomId to path)) }
         }
     }
 

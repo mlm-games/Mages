@@ -1,7 +1,7 @@
 use js_int::UInt;
 use matrix_sdk::{
-    PredecessorRoom, RoomDisplayName, SuccessorRoom, ruma::{
-        events::{
+    EncryptionState, PredecessorRoom, RoomDisplayName, SuccessorRoom, ruma::{
+        UserId, events::{
             ignored_user_list::IgnoredUserListEventContent,
             room::{
                 ImageInfo,
@@ -10,8 +10,7 @@ use matrix_sdk::{
                     VideoMessageEventContent,
                 },
             },
-        },
-        room::Restricted,
+        }, room::Restricted
     }
 };
 use matrix_sdk_base::notification_settings::RoomNotificationMode as RsMode;
@@ -306,6 +305,7 @@ pub struct RoomProfile {
     pub member_count: u64,
     pub is_encrypted: bool,
     pub is_dm: bool,
+    pub avatar_url: Option<String>,
 }
 
 #[derive(Clone, Debug, Record)]
@@ -2424,6 +2424,23 @@ impl Client {
                     .map(|s| s.is_encrypted())
                     .unwrap_or(false);
 
+                 let mut avatar_url = room.avatar_url().map(|mxc| mxc.to_string());
+
+                //If no room avatar, and it's a DM → use the other user's avatar
+                if avatar_url.is_none() && is_dm {
+                    if let Some(me) = self.inner.user_id() {
+                        let members = room
+                            .members(RoomMemberships::ACTIVE)
+                            .await
+                            .map_err(|e| FfiError::Msg(e.to_string()))?;
+
+                        // Find a "peer" (first joined member that is not me)
+                        if let Some(peer) = members.into_iter().find(|m| m.user_id() != me) {
+                            avatar_url = peer.avatar_url().map(|mxc| mxc.to_string());
+                        }
+                    }
+                }
+
                 out.push(RoomProfile {
                     room_id: rid.to_string(),
                     name,
@@ -2431,6 +2448,7 @@ impl Client {
                     member_count,
                     is_encrypted,
                     is_dm,
+                    avatar_url
                 });
             }
             Ok(out)
@@ -2518,7 +2536,7 @@ impl Client {
         })
     }
 
-    pub fn room_profile(&self, room_id: String) -> Result<RoomProfile, FfiError> {
+    pub fn room_profile(&self, room_id: String) -> Result<Option<RoomProfile>, FfiError> {
         RT.block_on(async {
             use matrix_sdk_base::RoomMemberships;
 
@@ -2539,35 +2557,36 @@ impl Client {
 
             let member_count = room.joined_members_count();
 
-            let is_encrypted = room
-                .latest_encryption_state()
-                .await
-                .map(|s| s.is_encrypted())
-                .unwrap_or(false);
+            let is_encrypted = matches!(room.encryption_state(), EncryptionState::Encrypted);
 
-            let is_dm = match room.is_direct().await {
-                Ok(b) => b,
-                Err(_) => {
-                    if let (Some(me), Ok(members)) = (
-                        self.inner.user_id(),
-                        room.members(RoomMemberships::ACTIVE).await,
-                    ) {
-                        let others = members.into_iter().filter(|m| m.user_id() != me).count();
-                        others == 1
-                    } else {
-                        false
+            let is_dm = room.is_direct().await.unwrap_or(false);
+
+            let mut avatar_url = room.avatar_url().map(|mxc| mxc.to_string());
+
+            //If no room avatar, and it's a DM → use the other user's avatar
+            if avatar_url.is_none() && is_dm {
+                if let Some(me) = self.inner.user_id() {
+                    let members = room
+                        .members(RoomMemberships::ACTIVE)
+                        .await
+                        .map_err(|e| FfiError::Msg(e.to_string()))?;
+
+                    // Find a "peer" (first joined member that is not me)
+                    if let Some(peer) = members.into_iter().find(|m| m.user_id() != me) {
+                        avatar_url = peer.avatar_url().map(|mxc| mxc.to_string());
                     }
                 }
-            };
+            }
 
-            Ok(RoomProfile {
+            Ok(Some(RoomProfile {
                 room_id: rid.to_string(),
                 name,
                 topic,
                 member_count,
                 is_encrypted,
                 is_dm,
-            })
+                avatar_url,
+            }))
         })
     }
 
@@ -2910,8 +2929,12 @@ impl Client {
                                 
                                 let last_ts        = room.recency_stamp().map_or(0, |s| s.into());
 
-                                let avatar_url = room.avatar_url().map(|mxc| mxc.to_string());
                                 let is_dm = room.is_direct().await.unwrap_or(false);
+
+                                let mut avatar_url = room.avatar_url().map(|mxc| mxc.to_string());
+                                if avatar_url.is_none() && is_dm {
+                                    avatar_url = Client::dm_peer_avatar_url(room, client.user_id()).await;
+                                }
                                 let is_encrypted = matches!(
                                     room.encryption_state(),
                                     matrix_sdk::EncryptionState::Encrypted
@@ -4953,6 +4976,22 @@ impl Client {
 
     fn inner_clone(&self) -> SdkClient {
         (*self.inner).clone()
+    }
+
+    async fn dm_peer_avatar_url(room: &Room, me: Option<&UserId>) -> Option<String> {
+        let peer: Option<OwnedUserId> = room
+            .direct_targets()
+            .iter()
+            .filter_map(|t| t.as_user_id()) // Option<&UserId>
+            .find(|uid| me.map_or(true, |me| *uid != me))
+            .map(|uid| uid.to_owned());
+
+        let peer = peer?;
+
+        let peer_ref: &UserId = <OwnedUserId as AsRef<UserId>>::as_ref(&peer);
+
+        let member = room.get_member_no_sync(peer_ref).await.ok().flatten()?;
+        member.avatar_url().map(|mxc| mxc.to_string())
     }
 }
 

@@ -47,7 +47,7 @@ fun RoomListItem(
             Box {
                 Avatar(
                     name = item.name,
-                    avatarUrl = item.avatarUrl,
+                    avatarPath = item.avatarUrl,
                     size = 52.dp,
                     shape = CircleShape
                 )

@@ -11,12 +11,15 @@ import org.mlm.mages.matrix.SpaceHierarchyPage
 import org.mlm.mages.matrix.SpaceInfo
 import org.mlm.mages.matrix.TimelineDiff
 import org.mlm.mages.matrix.VerificationObserver
+import org.mlm.mages.storage.AvatarLoader
 import kotlin.time.ExperimentalTime
 
 class MatrixService(val port: MatrixPort) {
 
     private val _syncStatus = MutableStateFlow<MatrixPort.SyncStatus?>(null)
     val syncStatus: StateFlow<MatrixPort.SyncStatus?> = _syncStatus.asStateFlow()
+
+    val avatars = AvatarLoader(port)
 
 
     suspend fun init(hs: String) = port.init(hs.trim())

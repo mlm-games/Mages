@@ -21,7 +21,8 @@ class RoomViewModel(
 ) : BaseViewModel<RoomUiState>(
     RoomUiState(
         roomId = savedStateHandle.get<String>("roomId") ?: "",
-        roomName = savedStateHandle.get<String>("roomName") ?: ""
+        roomName = savedStateHandle.get<String>("roomName") ?: "",
+        roomAvatarUrl = savedStateHandle.get<String>("roomAvatarUrl") ?: "",
     )
 ) {
     constructor(
@@ -81,9 +82,17 @@ class RoomViewModel(
 
         launch {
             dmPeer = runSafe { service.port.dmPeerUserId(currentState.roomId) }
+
             val profile = runSafe { service.port.roomProfile(currentState.roomId) }
             if (profile != null) {
-                updateState { copy(isDm = profile.isDm) }
+                updateState { copy(isDm = profile.isDm, roomAvatarUrl = profile.avatarUrl) }
+
+                profile.avatarUrl?.let { url ->
+                    if (url.startsWith("mxc://")) {
+                        val path = service.avatars.resolve(url, px = 96, crop = true)
+                        if (path != null) updateState { copy(roomAvatarUrl = path) }
+                    }
+                }
             }
         }
     }
@@ -483,13 +492,10 @@ class RoomViewModel(
                 if (!mxc.startsWith("mxc://")) return@forEach
 
                 launch {
-                    val path = runCatching {
-                        service.port.mxcThumbnailToCache(mxc, 64, 64, true)
-                    }.getOrNull() ?: return@launch
-
+                    val path = service.avatars.resolve(mxc, px = 64, crop = true) ?: return@launch
                     updateState {
                         copy(
-                            members = members.map { mm ->
+                            members = this.members.map { mm ->
                                 if (mm.userId == m.userId) mm.copy(avatarUrl = path) else mm
                             }
                         )
@@ -923,11 +929,38 @@ class RoomViewModel(
 
     private fun observeLiveLocation() {
         val token = service.port.observeLiveLocation(currentState.roomId) { shares ->
-            updateState {
-                copy(liveLocationShares = shares.associateBy { it.userId })
+            updateState { copy(liveLocationShares = shares.associateBy { it.userId }) }
+
+            val active = shares.filter { it.isLive }.map { it.userId }.toSet()
+            if (active.isNotEmpty()) {
+                ensureAvatarsForUsers(active)
             }
         }
         updateState { copy(liveLocationSubToken = token) }
+    }
+
+    private fun ensureAvatarsForUsers(userIds: Set<String>) {
+        launch {
+            if (currentState.members.isEmpty()) {
+                val members = runSafe { service.port.listMembers(currentState.roomId) } ?: emptyList()
+                updateState { copy(members = members) }
+            }
+
+            val targets = currentState.members.filter { it.userId in userIds }
+            targets.forEach { m ->
+                val mxc = m.avatarUrl ?: return@forEach
+                if (!mxc.startsWith("mxc://")) return@forEach
+
+                val path = service.avatars.resolve(mxc, px = 48, crop = true) ?: return@forEach
+                updateState {
+                    copy(
+                        members = this.members.map { mm ->
+                            if (mm.userId == m.userId) mm.copy(avatarUrl = path) else mm
+                        }
+                    )
+                }
+            }
+        }
     }
 
     private fun notifyIfNeeded(event: MessageEvent) {

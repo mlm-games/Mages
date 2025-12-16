@@ -9,7 +9,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.theme.Sizes
@@ -47,7 +46,7 @@ fun MemberActionsSheet(
             ) {
                 Avatar(
                     name = member.displayName ?: member.userId,
-                    avatarUrl = member.avatarUrl,
+                    avatarPath = member.avatarUrl,
                     size = Sizes.avatarMedium
                 )
                 Spacer(Modifier.width(Spacing.md))

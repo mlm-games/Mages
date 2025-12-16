@@ -97,6 +97,7 @@ data class RoomUiState(
     val forwardableRooms: List<ForwardableRoom> = emptyList(),
     val isLoadingForwardRooms: Boolean = false,
     val forwardSearchQuery: String = "",
+    val roomAvatarUrl: String?,
 )
 
 
@@ -213,6 +214,7 @@ data class ThreadUiState(
 
     val editingEvent: MessageEvent? = null,
     val editInput: String = "",
+    val avatarByUserId: Map<String, String> = emptyMap(),
 
     val reactionChips: Map<String, List<ReactionChip>> = emptyMap()
 ) {

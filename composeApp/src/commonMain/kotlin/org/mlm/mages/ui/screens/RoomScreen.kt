@@ -6,17 +6,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -165,6 +162,7 @@ fun RoomScreen(
             RoomTopBar(
                 roomName = state.roomName,
                 roomId = state.roomId,
+                avatarUrl = state.roomAvatarUrl,
                 typingNames = state.typingNames,
                 isOffline = state.isOffline,
                 onBack = onBack,
@@ -226,6 +224,7 @@ fun RoomScreen(
 //            if (activeLiveLocationUsers.isNotEmpty()) {
 //                LiveLocationBanner(
 //                    sharingUsers = activeLiveLocationUsers,
+//                    members = state.members,
 //                    onViewLocations = { /* TODO: Map view */ }
 //                )
 //            }
@@ -410,6 +409,7 @@ fun RoomScreen(
 private fun RoomTopBar(
     roomName: String,
     roomId: String,
+    avatarUrl: String?,
     typingNames: List<String>,
     isOffline: Boolean,
     onBack: () -> Unit,
@@ -428,11 +428,10 @@ private fun RoomTopBar(
                             modifier = Modifier.size(40.dp)
                         ) {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text(
-                                    roomName.take(2).uppercase(),
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    fontWeight = FontWeight.Bold,
-                                    overflow = TextOverflow.Ellipsis
+                                Avatar(
+                                    name = roomName,
+                                    avatarPath = avatarUrl,
+                                    size = 40.dp
                                 )
                             }
                         }

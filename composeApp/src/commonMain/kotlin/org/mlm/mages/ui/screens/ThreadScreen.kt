@@ -265,6 +265,7 @@ fun ThreadScreen(
                         state.rootMessage?.let { root ->
                             item(key = "root_${root.itemId}") {
                                 ThreadRootMessage(
+                                    state = state,
                                     event = root,
                                     isMine = root.sender == myUserId,
                                     reactionChips = state.reactionChips[root.eventId]
@@ -405,6 +406,7 @@ private fun ThreadTopBar(
 
 @Composable
 private fun ThreadRootMessage(
+    state: ThreadUiState,
     event: MessageEvent,
     isMine: Boolean,
     reactionChips: List<ReactionChip>,
@@ -447,7 +449,7 @@ private fun ThreadRootMessage(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Avatar(
                     name = event.sender,
-                    avatarUrl = null, //TODO
+                    avatarPath = state.avatarByUserId[event.sender],
                     size = 36.dp,
                     containerColor = if (isMine)
                         MaterialTheme.colorScheme.primaryContainer
@@ -715,7 +717,7 @@ private fun ThreadComposer(
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
-                                (if (isEditing) editingEvent?.body else replyTo?.body) ?: "",
+                                (if (isEditing) editingEvent.body else replyTo?.body) ?: "",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,

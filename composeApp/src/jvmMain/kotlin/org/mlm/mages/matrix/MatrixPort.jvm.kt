@@ -885,7 +885,7 @@ class RustMatrixPort() : MatrixPort {
     override suspend fun listInvited(): List<RoomProfile> = withContext(Dispatchers.IO) {
         withClient {
             it.listInvited().map {
-            RoomProfile(it.roomId, it.name, it.topic, it.memberCount.toLong(), it.isEncrypted, it.isDm)
+            RoomProfile(it.roomId, it.name, it.topic, it.memberCount.toLong(), it.isEncrypted, it.isDm, it.avatarUrl)
         }
     }
     }
@@ -927,7 +927,8 @@ class RustMatrixPort() : MatrixPort {
                 it.topic,
                 it.memberCount.toLong(),
                 it.isEncrypted,
-                it.isDm
+                it.isDm,
+                it.avatarUrl,
             )
         }
     }

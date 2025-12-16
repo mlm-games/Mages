@@ -119,7 +119,8 @@ data class RoomProfile(
     val topic: String?,
     val memberCount: Long,
     val isEncrypted: Boolean,
-    val isDm: Boolean
+    val isDm: Boolean,
+    val avatarUrl: String?
 )
 
 data class LatestRoomEvent(

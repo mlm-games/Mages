@@ -88,6 +88,31 @@ class RoomInfoViewModel(
                     error = if (profile == null) "Failed to load room info" else null
                 )
             }
+
+            profile?.avatarUrl?.let { url ->
+                if (url.startsWith("mxc://")) {
+                    launch {
+                        val path = service.avatars.resolve(url, px = 160, crop = true) ?: return@launch
+                        updateState { copy(profile = this.profile?.copy(avatarUrl = path)) }
+                    }
+                }
+            }
+
+            sorted.forEach { m ->
+                val mxc = m.avatarUrl ?: return@forEach
+                if (!mxc.startsWith("mxc://")) return@forEach
+
+                launch {
+                    val path = service.avatars.resolve(mxc, px = 64, crop = true) ?: return@launch
+                    updateState {
+                        copy(
+                            members = this.members.map { mm ->
+                                if (mm.userId == m.userId) mm.copy(avatarUrl = path) else mm
+                            }
+                        )
+                    }
+                }
+            }
         }
     }
 

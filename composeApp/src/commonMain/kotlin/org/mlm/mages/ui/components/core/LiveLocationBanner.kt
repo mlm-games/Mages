@@ -9,11 +9,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.LiveLocationShare
+import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.ui.theme.Spacing
 
 @Composable
 fun LiveLocationBanner(
     shares: Map<String, LiveLocationShare>,
+    members: List<MemberSummary>,
     onViewAll: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -21,6 +23,10 @@ fun LiveLocationBanner(
     
     val activeShares = shares.values.filter { it.isLive }
     if (activeShares.isEmpty()) return
+
+    val avatarByUserId = remember(members) {
+        members.associateBy({ it.userId }, { it.avatarUrl })
+    }
     
     Surface(
         color = MaterialTheme.colorScheme.secondaryContainer,
@@ -45,7 +51,7 @@ fun LiveLocationBanner(
                 activeShares.take(3).forEachIndexed { index, share ->
                     Avatar(
                         name = share.userId,
-                        avatarUrl = null, //TODO: share.,
+                        avatarPath = avatarByUserId[share.userId],
                         size = 24.dp,
                         modifier = Modifier.offset(x = (-8 * index).dp)
                     )
