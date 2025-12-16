@@ -175,6 +175,14 @@ pub struct MessageEvent {
     pub thread_root_event_id: Option<String>,
 }
 
+#[derive(Clone, Debug, Record)]
+pub struct SeenByEntry {
+    pub user_id: String,
+    pub display_name: Option<String>,
+    pub avatar_url: Option<String>,  
+    pub ts_ms: Option<u64>, 
+}
+
 #[derive(Clone, Enum)]
 pub enum AttachmentKind {
     Image,
@@ -300,10 +308,11 @@ pub struct RoomProfile {
     pub is_dm: bool,
 }
 
-#[derive(Clone, Record)]
+#[derive(Clone, Debug, Record)]
 pub struct MemberSummary {
     pub user_id: String,
     pub display_name: Option<String>,
+    pub avatar_url: Option<String>,
     pub is_me: bool,
     pub membership: String,
 }
@@ -2607,36 +2616,30 @@ impl Client {
     }
 
     pub fn list_members(&self, room_id: String) -> Result<Vec<MemberSummary>, FfiError> {
-        RT.block_on(async {
-            use matrix_sdk_base::RoomMemberships;
+            RT.block_on(async {
+                use matrix_sdk_base::RoomMemberships;
 
-            let rid =
-                ruma::OwnedRoomId::try_from(room_id).map_err(|e| FfiError::Msg(e.to_string()))?;
-            let room = self
-                .inner
-                .get_room(&rid)
-                .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+                let rid = ruma::OwnedRoomId::try_from(room_id)
+                    .map_err(|e| FfiError::Msg(e.to_string()))?;
+                let room = self.inner.get_room(&rid)
+                    .ok_or_else(|| FfiError::Msg("room not found".into()))?;
 
-            let me = self.inner.user_id();
+                let me = self.inner.user_id();
 
-            let members = room
-                .members(RoomMemberships::ACTIVE)
-                .await
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
+                let members = room
+                    .members(RoomMemberships::ACTIVE)
+                    .await
+                    .map_err(|e| FfiError::Msg(e.to_string()))?;
 
-            let out: Vec<MemberSummary> = members
-                .into_iter()
-                .map(|m| MemberSummary {
+                Ok(members.into_iter().map(|m| MemberSummary {
                     user_id: m.user_id().to_string(),
                     display_name: m.display_name().map(|n| n.to_string()),
+                    avatar_url: m.avatar_url().map(|u| u.to_string()),
                     is_me: me.map(|u| u == m.user_id()).unwrap_or(false),
                     membership: m.membership().to_string(),
-                })
-                .collect();
-
-            Ok(out)
-        })
-    }
+                }).collect())
+            })
+        }
 
     /// Register/Update HTTP pusher for UnifiedPush/Matrix gateway (e.g. ntfy)
     pub fn register_unifiedpush(
@@ -4737,6 +4740,159 @@ impl Client {
             res.is_ok()
         })
     }
+
+    pub fn seen_by_for_event(
+        &self,
+        room_id: String,
+        event_id: String,
+        limit: u32,
+    ) -> Result<Vec<SeenByEntry>, FfiError> {
+        RT.block_on(async {
+            use matrix_sdk_base::RoomMemberships;
+
+            let rid = ruma::OwnedRoomId::try_from(room_id.as_str())
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
+            let eid = ruma::OwnedEventId::try_from(event_id.as_str())
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
+
+            let room = self.inner.get_room(&rid)
+                .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+
+            let tl = get_timeline_for(&self.inner, &rid).await
+                .ok_or_else(|| FfiError::Msg("timeline not available".into()))?;
+
+            
+            
+            let _ = tl.fetch_members().await;
+
+            
+            let members = room.members(RoomMemberships::ACTIVE)
+                .await
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
+
+            let mut member_map: std::collections::HashMap<String, (Option<String>, Option<String>)> =
+                std::collections::HashMap::new();
+
+            for m in members {
+                member_map.insert(
+                    m.user_id().to_string(),
+                    (
+                        m.display_name().map(|s| s.to_string()),
+                        m.avatar_url().map(|u| u.to_string()),
+                    ),
+                );
+            }
+
+            let me = self.inner.user_id().map(|u| u.to_string());
+
+            
+            let (items, _stream) = tl.subscribe().await;
+
+            
+            let mut target_idx: Option<usize> = None;
+            for (idx, item) in items.iter().enumerate() {
+                if let Some(ev) = item.as_event() {
+                    if ev.event_id() == Some(eid.as_ref()) {
+                        target_idx = Some(idx);
+                        break;
+                    }
+                }
+            }
+            let Some(target_idx) = target_idx else {
+                return Ok(vec![]); 
+            };
+
+            
+            let mut best_ts: std::collections::HashMap<String, u64> = std::collections::HashMap::new();
+
+            for item in items.iter().skip(target_idx) {
+                let Some(ev) = item.as_event() else { continue };
+
+                
+                for (uid, receipt) in ev.read_receipts().iter() {
+                    let uid_str = uid.to_string();
+                    if me.as_deref() == Some(uid_str.as_str()) {
+                        continue;
+                    }
+
+                    let ts = receipt.ts
+                        .map(|t| t.0.into())
+                        .unwrap_or_else(|| ev.timestamp().0.into());
+
+                    best_ts.entry(uid_str)
+                        .and_modify(|old| *old = (*old).max(ts))
+                        .or_insert(ts);
+                }
+            }
+
+            // Sort by ts desc, return up to limit
+            let mut out: Vec<SeenByEntry> = best_ts.into_iter().map(|(user_id, ts)| {
+                let (dn, au) = member_map.get(&user_id).cloned().unwrap_or((None, None));
+                SeenByEntry {
+                    user_id,
+                    display_name: dn,
+                    avatar_url: au,
+                    ts_ms: Some(ts),
+                }
+            }).collect();
+
+            out.sort_by_key(|e| std::cmp::Reverse(e.ts_ms.unwrap_or(0)));
+            out.truncate(limit.max(1) as usize);
+            Ok(out)
+        })
+    }
+
+    pub fn mxc_thumbnail_to_cache(
+        &self,
+        mxc_uri: String,
+        width: u32,
+        height: u32,
+        crop: bool,
+    ) -> Result<String, FfiError> {
+        RT.block_on(async {
+            use matrix_sdk::media::{MediaRequestParameters, MediaFormat, MediaThumbnailSettings};
+            use matrix_sdk::ruma::api::client::media::get_content_thumbnail::v3::Method;
+            use matrix_sdk::ruma::events::room::MediaSource;
+            use js_int::UInt;
+
+            let dir = cache_dir(&self.store_dir);
+            ensure_dir(&dir);
+
+            let method = if crop { Method::Crop } else { Method::Scale };
+            let settings = MediaThumbnailSettings::with_method(
+                method,
+                UInt::from(width.max(1)),
+                UInt::from(height.max(1)),
+            );
+
+            let req = MediaRequestParameters {
+                source: MediaSource::Plain(mxc_uri.clone().into()),
+                format: MediaFormat::Thumbnail(settings),
+            };
+
+            let bytes = self.inner
+                .media()
+                .get_media_content(&req, true)
+                .await
+                .map_err(|e| FfiError::Msg(format!("get_media_content: {e}")))?;
+
+            let ext = if bytes.starts_with(&[0x89, b'P', b'N', b'G']) { "png" }
+            else if bytes.starts_with(&[0xFF, 0xD8, 0xFF]) { "jpg" }
+            else if bytes.starts_with(b"GIF8") { "gif" }
+            else { "img" };
+
+            let key = blake3::hash(format!("{mxc_uri}|{width}x{height}|{crop}").as_bytes())
+                .to_hex()
+                .to_string();
+
+            let out = dir.join(format!("mxc_thumb_{key}.{ext}"));
+            std::fs::write(&out, bytes)
+                .map_err(|e| FfiError::Msg(format!("write avatar: {e}")))?;
+
+            Ok(out.to_string_lossy().to_string())
+        })
+    }
+
 }
 
 impl Client {

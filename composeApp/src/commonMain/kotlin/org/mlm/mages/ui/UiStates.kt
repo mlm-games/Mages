@@ -40,6 +40,8 @@ data class RoomsUiState(
     val favouriteItems: List<RoomListItemUi> = emptyList(),
     val normalItems: List<RoomListItemUi> = emptyList(),
     val lowPriorityItems: List<RoomListItemUi> = emptyList(),
+
+    val roomAvatarPath: Map<String, String> = emptyMap()
 )
 
 data class RoomUiState(

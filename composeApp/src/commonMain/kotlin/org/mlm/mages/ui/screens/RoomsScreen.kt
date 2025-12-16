@@ -148,8 +148,9 @@ fun RoomsScreen(
                                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                                 )
                             }
+                            val resolved = state.roomAvatarPath[item.roomId] ?: item.avatarUrl
                             RoomListItem(
-                                item = item,
+                                item = item.copy(avatarUrl = resolved),
                                 onClick = { viewModel.openRoom(RoomSummary(item.roomId, item.name)) }
                             )
                         }
@@ -172,9 +173,9 @@ fun RoomsScreen(
                                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                                 )
                             }
-
+                            val resolved = state.roomAvatarPath[item.roomId] ?: item.avatarUrl
                             RoomListItem(
-                                item = item,
+                                item = item.copy(avatarUrl = resolved),
                                 onClick = { viewModel.openRoom(RoomSummary(item.roomId, item.name)) }
                             )
                         }
@@ -195,8 +196,9 @@ fun RoomsScreen(
                                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                                 )
                             }
+                            val resolved = state.roomAvatarPath[item.roomId] ?: item.avatarUrl
                             RoomListItem(
-                                item = item,
+                                item = item.copy(avatarUrl = resolved),
                                 onClick = { viewModel.openRoom(RoomSummary(item.roomId, item.name)) },
                                 modifier = Modifier.alpha(0.6f)
                             )

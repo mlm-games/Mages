@@ -47,6 +47,7 @@ fun MemberActionsSheet(
             ) {
                 Avatar(
                     name = member.displayName ?: member.userId,
+                    avatarUrl = member.avatarUrl,
                     size = Sizes.avatarMedium
                 )
                 Spacer(Modifier.width(Spacing.md))

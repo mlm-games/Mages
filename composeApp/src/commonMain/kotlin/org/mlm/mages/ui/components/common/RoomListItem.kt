@@ -44,13 +44,12 @@ fun RoomListItem(
                 .padding(horizontal = Spacing.lg, vertical = Spacing.md),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Avatar + unread badge
             Box {
-                RoomAvatar(
+                Avatar(
                     name = item.name,
                     avatarUrl = item.avatarUrl,
-                    isDm = item.isDm,
-                    isEncrypted = item.isEncrypted
+                    size = 52.dp,
+                    shape = CircleShape
                 )
 
                 if (item.unreadCount > 0) {
@@ -156,38 +155,6 @@ fun RoomListItem(
                         MaterialTheme.colorScheme.primary
                     else
                         MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RoomAvatar(
-    name: String,
-    avatarUrl: String?,
-    isDm: Boolean,
-    isEncrypted: Boolean
-) {
-    // You can later add actual image loading from avatarUrl here
-    Surface(
-        color = MaterialTheme.colorScheme.primaryContainer,
-        shape = CircleShape,
-        modifier = Modifier.size(52.dp)
-    ) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            if (isDm) {
-                Icon(
-                    Icons.Default.Person,
-                    contentDescription = null,
-                    modifier = Modifier.size(28.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            } else {
-                Avatar(
-                    name = name,
-                    size = 52.dp,
-                    shape = CircleShape
                 )
             }
         }

@@ -13,6 +13,13 @@ data class DeviceSummary(
     var verified: Boolean
 )
 
+data class SeenByEntry (
+    var userId: String,
+    var displayName: String?,
+    var avatarUrl: String?,
+    var tsMs: ULong?
+)
+
 sealed class TimelineDiff<out T> {
     data class Reset<T>(val items: List<T>) : TimelineDiff<T>()
     class Clear<T> : TimelineDiff<T>()
@@ -148,6 +155,7 @@ data class RoomListEntry(
 data class MemberSummary(
     val userId: String,
     val displayName: String?,
+    val avatarUrl: String?,
     val isMe: Boolean,
     val membership: String
 )
@@ -430,6 +438,10 @@ interface MatrixPort {
     fun stopObserveLiveLocation(token: ULong)
 
     suspend fun sendPoll(roomId: String, question: String, answers: List<String>): Boolean
+
+    fun seenByForEvent(roomId: String, eventId: String, limit: Int): List<SeenByEntry>
+
+    suspend fun mxcThumbnailToCache(mxcUri: String, width: Int, height: Int, crop: Boolean): String
 }
 
 expect fun createMatrixPort(): MatrixPort

@@ -40,7 +40,7 @@ class RustMatrixPort() : MatrixPort {
         }
 
     private inline fun <T> withClient(block: (FfiClient) -> T): T {
-        val c = client ?: error("Matrix client not initialized. Report it in issues.")
+        val c = client ?: error("Matrix client not initialized. Wait for init call.")
         return block(c)
     }
 
@@ -935,7 +935,7 @@ class RustMatrixPort() : MatrixPort {
     override suspend fun listMembers(roomId: String): List<MemberSummary> = withContext(Dispatchers.IO) {
         runCatching { withClient { it.listMembers(roomId) }
         }.getOrElse { emptyList() }.map {
-            MemberSummary(it.userId, it.displayName, it.isMe, it.membership)
+            MemberSummary(it.userId, it.displayName, it.avatarUrl, it.isMe, it.membership)
         }
     }
 
@@ -1255,6 +1255,34 @@ class RustMatrixPort() : MatrixPort {
 
         runCatching { withClient { it.sendPollStart(roomId, def) }
         }.isSuccess
+    }
+
+    override fun seenByForEvent(
+        roomId: String,
+        eventId: String,
+        limit: Int
+    ): List<SeenByEntry> {
+        return withClient {
+            it.seenByForEvent(roomId, eventId, limit.toUInt()).map { entry ->
+                SeenByEntry(
+                    userId = entry.userId,
+                    displayName = entry.displayName,
+                    avatarUrl = entry.avatarUrl,
+                    tsMs = entry.tsMs
+                )
+            }
+        }
+    }
+
+    override suspend fun mxcThumbnailToCache(
+        mxcUri: String,
+        width: Int,
+        height: Int,
+        crop: Boolean
+    ): String = withContext(Dispatchers.IO) {
+        withClient {
+            it.mxcThumbnailToCache(mxcUri, width.toUInt(), height.toUInt(), crop)
+        }
     }
 }
 

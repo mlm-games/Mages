@@ -476,11 +476,26 @@ class RoomViewModel(
     private fun loadMembers() {
         launch {
             val members = runSafe { service.port.listMembers(currentState.roomId) } ?: emptyList()
-            val sorted = members.sortedWith(
-                compareByDescending<MemberSummary> { it.isMe }
-                    .thenBy { it.displayName ?: it.userId }
-            )
-            updateState { copy(members = sorted, isLoadingMembers = false) }
+            updateState { copy(members = members, isLoadingMembers = false) }
+
+            members.forEach { m ->
+                val mxc = m.avatarUrl ?: return@forEach
+                if (!mxc.startsWith("mxc://")) return@forEach
+
+                launch {
+                    val path = runCatching {
+                        service.port.mxcThumbnailToCache(mxc, 64, 64, true)
+                    }.getOrNull() ?: return@launch
+
+                    updateState {
+                        copy(
+                            members = members.map { mm ->
+                                if (mm.userId == m.userId) mm.copy(avatarUrl = path) else mm
+                            }
+                        )
+                    }
+                }
+            }
         }
     }
 

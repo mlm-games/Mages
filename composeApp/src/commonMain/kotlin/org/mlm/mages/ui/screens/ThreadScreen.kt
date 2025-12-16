@@ -447,6 +447,7 @@ private fun ThreadRootMessage(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Avatar(
                     name = event.sender,
+                    avatarUrl = null, //TODO
                     size = 36.dp,
                     containerColor = if (isMine)
                         MaterialTheme.colorScheme.primaryContainer

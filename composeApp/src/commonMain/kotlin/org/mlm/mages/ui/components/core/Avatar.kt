@@ -9,12 +9,17 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import org.mlm.mages.ui.theme.Sizes
 import java.util.Locale
 
@@ -26,12 +31,14 @@ import java.util.Locale
 fun Avatar(
     name: String,
     modifier: Modifier = Modifier,
+    avatarUrl: String?,
     size: Dp = Sizes.avatarSmall,
     shape: Shape = CircleShape,
     containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
     contentColor: Color = MaterialTheme.colorScheme.onPrimaryContainer
 ) {
-    val initials = remember(name) { extractInitials(name) }
+    val initials = rememberSaveable(name) { extractInitials(name) }
+    val ctx = LocalPlatformContext.current
 
     Surface(
         color = containerColor,
@@ -39,6 +46,16 @@ fun Avatar(
         modifier = modifier.size(size)
     ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            if (!avatarUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(ctx)
+                        .data(avatarUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    modifier = modifier
+                )
+            } else {
             Text(
                 text = initials,
                 style = when {
@@ -52,26 +69,6 @@ fun Avatar(
         }
     }
 }
-
-/**
- * Avatar with explicit initials (for when name parsing isn't desired).
- */
-@Composable
-fun Avatar(
-    initials: String,
-    modifier: Modifier = Modifier,
-    size: Dp = Sizes.avatarSmall,
-    color: Color = MaterialTheme.colorScheme.primaryContainer
-) {
-    Surface(
-        color = color,
-        shape = MaterialTheme.shapes.small,
-        modifier = modifier.size(size)
-    ) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(initials.take(2), style = MaterialTheme.typography.labelLarge)
-        }
-    }
 }
 
 /**

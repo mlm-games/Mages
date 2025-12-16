@@ -45,6 +45,7 @@ fun LiveLocationBanner(
                 activeShares.take(3).forEachIndexed { index, share ->
                     Avatar(
                         name = share.userId,
+                        avatarUrl = null, //TODO: share.,
                         size = 24.dp,
                         modifier = Modifier.offset(x = (-8 * index).dp)
                     )

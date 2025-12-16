@@ -4,6 +4,7 @@ agp = "8.13.2"
 android-compileSdk = "36"
 android-minSdk = "24"
 android-targetSdk = "36"
+coilCompose = "3.3.0"
 connector = "3.1.2"
 dbusJavaCore = "5.1.1"
 dbusJavaTransportNativeUnixsocket = "5.1.1"
@@ -39,6 +40,7 @@ adaptive-navigation3 = { module = "org.jetbrains.compose.material3.adaptive:adap
 androidx-browser = { module = "androidx.browser:browser" , version.ref = "browser"}
 androidx-datastore-preferences-core = { module = "androidx.datastore:datastore-preferences-core", version.ref = "datastorePreferencesCore" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workRuntimeKtx" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCompose" }
 connector = { module = "org.unifiedpush.android:connector", version.ref = "connector" }
 connector-ui = { module = "org.unifiedpush.android:connector-ui", version.ref = "up-ui" }
 dbus-java-transport-native-unixsocket = { module = "com.github.hypfvieh:dbus-java-transport-native-unixsocket", version.ref = "dbusJavaTransportNativeUnixsocket" }

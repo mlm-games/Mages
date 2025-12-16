@@ -119,6 +119,7 @@ private fun MemberListItem(
         leadingContent = {
             Avatar(
                 name = member.displayName ?: member.userId,
+                avatarUrl = member.avatarUrl,
                 size = Sizes.avatarSmall
             )
         },

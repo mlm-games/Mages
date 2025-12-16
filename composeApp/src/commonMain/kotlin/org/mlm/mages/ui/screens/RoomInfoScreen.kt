@@ -325,7 +325,8 @@ fun RoomInfoScreen(
 @Composable
 private fun RoomHeader(state: RoomInfoUiState, onOpenRoom: (String) -> Unit) {
     val profile = state.profile ?: return
-        ElevatedCard(
+
+    ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -338,7 +339,7 @@ private fun RoomHeader(state: RoomInfoUiState, onOpenRoom: (String) -> Unit) {
                 color = MaterialTheme.colorScheme.primaryContainer,
                 modifier = Modifier.size(64.dp)
             ) {
-                Box(contentAlignment = Alignment.Center) {
+                Box(contentAlignment = Alignment.Center) { // TODO : add avatar usage / Switch to Avatar Composable
                     Icon(
                         imageVector = if (profile.isDm) Icons.Default.Person else Icons.Default.People,
                         contentDescription = null,

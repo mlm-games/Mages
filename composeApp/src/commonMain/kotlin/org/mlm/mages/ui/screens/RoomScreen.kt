@@ -36,7 +36,6 @@ import org.mlm.mages.ui.components.dialogs.InviteUserDialog
 import org.mlm.mages.ui.components.message.MessageBubble
 import org.mlm.mages.ui.components.message.MessageStatusLine
 import org.mlm.mages.ui.components.message.SeenByChip
-import org.mlm.mages.ui.components.sheets.LiveLocationBanner
 import org.mlm.mages.ui.components.sheets.LiveLocationSheet
 import org.mlm.mages.ui.components.sheets.MemberActionsSheet
 import org.mlm.mages.ui.components.sheets.MemberListSheet
@@ -224,12 +223,12 @@ fun RoomScreen(
             )
 
             // Live location banner
-            if (activeLiveLocationUsers.isNotEmpty()) {
-                LiveLocationBanner(
-                    sharingUsers = activeLiveLocationUsers,
-                    onViewLocations = { /* TODO: Map view */ }
-                )
-            }
+//            if (activeLiveLocationUsers.isNotEmpty()) {
+//                LiveLocationBanner(
+//                    sharingUsers = activeLiveLocationUsers,
+//                    onViewLocations = { /* TODO: Map view */ }
+//                )
+//            }
 
             // Message list
             Box(modifier = Modifier.weight(1f)) {

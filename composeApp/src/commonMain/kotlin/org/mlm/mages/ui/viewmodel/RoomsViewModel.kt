@@ -145,6 +145,7 @@ class RoomsViewModel(
 
         roomListToken = service.port.observeRoomList(object : MatrixPort.RoomListObserver {
             override fun onReset(items: List<RoomListEntry>) {
+                items.forEach { maybePrefetchRoomAvatar(it.roomId, it.avatarUrl) }
                 val domainRooms = items.map(::mapRoomSummary)
                 val uiItems     = items.map(::mapRoomEntryToUi)
 
@@ -163,6 +164,7 @@ class RoomsViewModel(
             }
 
             override fun onUpdate(item: RoomListEntry) {
+                maybePrefetchRoomAvatar(item.roomId, item.avatarUrl)
                 updateState {
                     val updatedRooms = rooms.map { room ->
                         if (room.id == item.roomId) mapRoomSummary(item) else room
@@ -247,6 +249,23 @@ class RoomsViewModel(
                 normalItems = normal,
                 lowPriorityItems = lowPriority
             )
+        }
+    }
+
+    fun maybePrefetchRoomAvatar(roomId: String, avatarMxc: String?) {
+        val mxc = avatarMxc ?: return
+        if (!mxc.startsWith("mxc://")) return
+
+        if (currentState.roomAvatarPath.containsKey(roomId)) return
+
+        launch {
+            val path = runCatching {
+                service.port.mxcThumbnailToCache(mxc, 96, 96, true)
+            }.getOrNull()
+
+            if (!path.isNullOrBlank()) {
+                updateState { copy(roomAvatarPath = roomAvatarPath + (roomId to path)) }
+            }
         }
     }
 
