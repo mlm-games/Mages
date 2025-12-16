@@ -273,16 +273,7 @@ fun LoginScreen(
                     }
                 }
             }
-
             Spacer(Modifier.height(24.dp))
-
-            Text(
-                text = "By signing in, you agree to follow the Matrix protocol standards",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 32.dp)
-            )
         }
     }
 }

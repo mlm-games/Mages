@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import org.mlm.mages.MatrixService
 import org.mlm.mages.storage.loadString
 import org.mlm.mages.storage.saveLong
@@ -49,34 +50,42 @@ class LoginViewModel(
         updateState { copy(pass = value) }
     }
 
+    private fun normalizeHomeserver(input: String): String {
+        val hs = input.trim()
+        if (hs.isBlank()) return ""
+        return if (hs.startsWith("https://") || hs.startsWith("http://")) hs else "https://$hs"
+    }
+
     @OptIn(ExperimentalTime::class)
     fun submit() {
         val s = currentState
         if (s.isBusy || s.user.isBlank() || s.pass.isBlank()) return
 
-        val hs = s.homeserver.trim()
-        if (!hs.startsWith("https://") && !hs.startsWith("http://")) {
-            updateState { copy(error = "Homeserver must start with https://") }
+        val hs = normalizeHomeserver(s.homeserver)
+        if (hs.isBlank()) {
+            updateState { copy(error = "Please enter a server") }
             return
         }
 
-        launch(
-            onError = { t ->
-                updateState { copy(isBusy = false, error = t.message ?: "Login failed") }
-            }
-        ) {
+        launch(onError = { t ->
+            updateState { copy(isBusy = false, error = t.message ?: "Login failed") }
+        }) {
             updateState { copy(isBusy = true, error = null) }
 
             service.init(hs)
             service.login(s.user, s.pass, "Mages")
 
-            // Persist homeserver for receivers/services
+            if (!service.isLoggedIn()) {
+                updateState { copy(isBusy = false, error = "Login failed") }
+                return@launch
+            }
+
             withContext(Dispatchers.Default) {
-                saveString(dataStore, "homeserver", s.homeserver)
+                saveString(dataStore, "homeserver", hs)
                 saveLong(dataStore, "notif:baseline_ms", Clock.System.now().toEpochMilliseconds())
             }
 
-            updateState { copy(isBusy = false, error = null) }
+            updateState { copy(isBusy = false, error = null, homeserver = hs) }
             _events.send(Event.LoginSuccess)
         }
     }
@@ -85,26 +94,35 @@ class LoginViewModel(
     fun startSso(openUrl: (String) -> Boolean) {
         if (currentState.isBusy) return
 
-        launch(
-            onError = { t ->
-                updateState { copy(isBusy = false, error = t.message ?: "SSO failed") }
-            }
-        ) {
+        launch(onError = { t ->
+            updateState { copy(isBusy = false, error = t.message ?: "SSO failed") }
+        }) {
             updateState { copy(isBusy = true, error = null) }
 
-            // Initialize with homeserver first
-            service.init(currentState.homeserver)
+            val hs = normalizeHomeserver(currentState.homeserver)
+            if (hs.isBlank()) {
+                updateState { copy(isBusy = false, error = "Please enter a server") }
+                return@launch
+            }
 
-            // Start SSO flow
-            service.port.loginSsoLoopback(openUrl, deviceName = "Mages")
+            service.init(hs)
 
-            // Persist homeserver
+            val ok = withTimeoutOrNull(120_000) {
+                service.port.loginSsoLoopback(openUrl, deviceName = "Mages")
+                service.isLoggedIn()
+            } ?: false
+
+            if (!ok) {
+                updateState { copy(isBusy = false, error = "SSO failed or was cancelled") }
+                return@launch
+            }
+
             withContext(Dispatchers.Default) {
-                saveString(dataStore, "homeserver", currentState.homeserver)
+                saveString(dataStore, "homeserver", hs)
                 saveLong(dataStore, "notif:baseline_ms", Clock.System.now().toEpochMilliseconds())
             }
 
-            updateState { copy(isBusy = false, error = null) }
+            updateState { copy(isBusy = false, error = null, homeserver = hs) }
             _events.send(Event.LoginSuccess)
         }
     }
