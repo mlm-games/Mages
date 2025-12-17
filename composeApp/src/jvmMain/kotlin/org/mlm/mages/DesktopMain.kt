@@ -8,6 +8,8 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import dorkbox.systemTray.MenuItem
 import dorkbox.systemTray.SystemTray
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import mages.composeapp.generated.resources.Res
@@ -15,13 +17,19 @@ import org.freedesktop.dbus.annotations.DBusInterfaceName
 import org.freedesktop.dbus.connections.impl.DBusConnection
 import org.freedesktop.dbus.connections.impl.DBusConnectionBuilder
 import org.freedesktop.dbus.interfaces.DBusInterface
+import org.freedesktop.dbus.messages.DBusSignal
 import org.freedesktop.dbus.types.UInt32
 import org.freedesktop.dbus.types.Variant
 import org.mlm.mages.matrix.createMatrixPort
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.Notifier
-import org.mlm.mages.storage.*
+import org.mlm.mages.storage.loadBoolean
+import org.mlm.mages.storage.provideAppDataStore
+import org.mlm.mages.storage.saveBoolean
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicReference
+import javax.swing.JOptionPane
 import javax.swing.SwingUtilities
 
 private const val PREF_START_IN_TRAY = "pref.startInTray"
@@ -38,6 +46,9 @@ fun main() = application {
     var startInTray by remember { mutableStateOf(initialStartInTray) }
     var showWindow by remember { mutableStateOf(!startInTray) }
 
+    val deepLinkRoomIds = remember { MutableSharedFlow<String>(extraBufferCapacity = 8) }
+    val deepLinks = remember { deepLinkRoomIds.asSharedFlow() }
+
     val scope = rememberCoroutineScope()
 
     var service by remember { mutableStateOf<MatrixService?>(null) }
@@ -47,9 +58,40 @@ fun main() = application {
         service?.let { return it }
         return synchronized(serviceLock) {
             service?.let { return it }
+            MatrixService(createMatrixPort()).also { created -> service = created }
+        }
+    }
 
-            MatrixService(createMatrixPort()).also { created ->
-                service = created
+    val svc = getService()
+
+    // Install desktop notif action handlers early
+    DesktopNotifActions.openRoom = { roomId ->
+        SwingUtilities.invokeLater { showWindow = true }
+        deepLinkRoomIds.tryEmit(roomId)
+    }
+
+    DesktopNotifActions.markRead = { roomId, eventId ->
+        scope.launch {
+            runCatching { svc.port.markFullyReadAt(roomId, eventId) }
+        }
+    }
+
+    DesktopNotifActions.reply = { roomId, eventId ->
+        SwingUtilities.invokeLater { showWindow = true }
+
+        // Ask for reply text on EDT (Swing, since some platforms might not have reply box)
+        val textRef = AtomicReference<String?>()
+        runCatching {
+            SwingUtilities.invokeAndWait {
+                textRef.set(JOptionPane.showInputDialog(null, "Reply:"))
+            }
+        }
+
+        val text = textRef.get()?.trim().orEmpty()
+        if (text.isNotBlank()) {
+            scope.launch {
+                runCatching { svc.port.reply(roomId, eventId, text) }
+                runCatching { svc.port.markFullyReadAt(roomId, eventId) }
             }
         }
     }
@@ -57,7 +99,6 @@ fun main() = application {
     val windowState = rememberWindowState()
 
     val tray: SystemTray? = remember {
-        // Enable this if you need diagnostics in the console
         SystemTray.DEBUG = false
 
         val osName = System.getProperty("os.name").lowercase()
@@ -78,20 +119,13 @@ fun main() = application {
             return@DisposableEffect onDispose { }
         }
 
-        val iconBytes = runBlocking {
-            Res.readBytes("files/ic_notif.png")
-        }
-
+        val iconBytes = runBlocking { Res.readBytes("files/ic_notif.png") }
         tray.setImage(iconBytes.inputStream())
-
         tray.setStatus("Mages")
 
         tray.menu.add(MenuItem("Show").apply {
             setCallback {
-                // Dorkbox callbacks are on their own thread – bounce to EDT/Compose thread
-                SwingUtilities.invokeLater {
-                    showWindow = true
-                }
+                SwingUtilities.invokeLater { showWindow = true }
             }
         })
 
@@ -110,12 +144,10 @@ fun main() = application {
                     else "Minimize to tray on launch"
             }
 
-            scope.launch {
-                saveBoolean(dataStore, PREF_START_IN_TRAY, startInTray)
-            }
+            scope.launch { saveBoolean(dataStore, PREF_START_IN_TRAY, startInTray) }
         }
-        tray.menu.add(minimizeItem)
 
+        tray.menu.add(minimizeItem)
         tray.menu.add(dorkbox.systemTray.Separator())
 
         tray.menu.add(MenuItem("Quit").apply {
@@ -127,15 +159,11 @@ fun main() = application {
             }
         })
 
-        onDispose {
-            tray.shutdown()
-        }
+        onDispose { tray.shutdown() }
     }
 
     Window(
-        onCloseRequest = {
-            showWindow = false
-        },
+        onCloseRequest = { showWindow = false },
         state = windowState,
         visible = showWindow,
         title = "Mages"
@@ -162,22 +190,60 @@ fun main() = application {
             }
         }
 
-        App(dataStore, getService())
+        App(dataStore = dataStore, service = svc, deepLinks = deepLinks)
     }
 }
 
 object NotifierImpl {
     private var conn: DBusConnection? = null
+    private var actionsSupported: Boolean? = null
+    private var handlersInstalled: Boolean = false
+
+    private val notifCtx = ConcurrentHashMap<UInt32, Pair<String, String>>()
 
     private fun ensure(): DBusConnection? {
-        if (conn?.isConnected == true) {
-            return conn
-        }
+        if (conn?.isConnected == true) return conn
         return try {
-            DBusConnectionBuilder.forSessionBus().build().also { conn = it }
+            DBusConnectionBuilder.forSessionBus().build().also { c ->
+                conn = c
+                if (!handlersInstalled) {
+                    installHandlers(c)
+                    handlersInstalled = true
+                }
+            }
         } catch (_: IOException) {
-            // Silently fails if DBus is not available
             null
+        }
+    }
+
+    private fun installHandlers(c: DBusConnection) {
+        val notifications = c.getRemoteObject(
+            "org.freedesktop.Notifications",
+            "/org/freedesktop/Notifications",
+            Notifications::class.java
+        )
+
+        actionsSupported = runCatching { notifications.GetCapabilities().contains("actions") }
+            .getOrNull() ?: false
+
+        runCatching {
+            c.addSigHandler(Notifications.ActionInvoked::class.java) { sig ->
+                val ctx = notifCtx[sig.id] ?: return@addSigHandler
+                val (roomId, eventId) = ctx
+
+                when (sig.actionKey) {
+                    "default", "open" -> DesktopNotifActions.openRoom(roomId)
+                    "mark_read" -> DesktopNotifActions.markRead(roomId, eventId)
+                    "reply" -> DesktopNotifActions.reply(roomId, eventId)
+                }
+            }
+        }
+
+        // Notif close -> cleanup mapping
+        runCatching {
+            c.addSigHandler(Notifications.NotificationClosed::class.java) { sig ->
+                notifCtx.remove(sig.id)
+            }
         }
     }
 
@@ -191,22 +257,64 @@ object NotifierImpl {
             )
 
             val hints = HashMap<String, Variant<*>>()
-            if (desktopEntry != null) {
-                hints["desktop-entry"] = Variant(desktopEntry)
-            }
+            if (desktopEntry != null) hints["desktop-entry"] = Variant(desktopEntry)
 
             notifications.Notify(
                 app,
                 UInt32(0),
-                "", // icon
+                "",
                 title,
                 body,
-                emptyArray(), // actions
+                emptyArray(),
                 hints,
-                -1 // default timeout
+                -1
             )
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (_: Exception) {
+        }
+    }
+
+    fun notifyMatrixEvent(
+        title: String,
+        body: String,
+        roomId: String,
+        eventId: String,
+        desktopEntry: String? = "org.mlm.mages"
+    ) {
+        val c = ensure() ?: return
+
+        val notifications = c.getRemoteObject(
+            "org.freedesktop.Notifications",
+            "/org/freedesktop/Notifications",
+            Notifications::class.java
+        )
+
+        val hints = HashMap<String, Variant<*>>()
+        desktopEntry?.let { hints["desktop-entry"] = Variant(it) }
+
+        val actions =
+            if (actionsSupported == true && roomId.isNotBlank() && eventId.isNotBlank()) {
+                arrayOf(
+                    "default", "Open",
+                    "reply", "Reply…",
+                    "mark_read", "Mark read"
+                )
+            } else {
+                emptyArray()
+            }
+
+        val id = notifications.Notify(
+            "Mages",
+            UInt32(0),
+            "",
+            title,
+            body,
+            actions,
+            hints,
+            -1
+        )
+
+        if (actions.isNotEmpty()) {
+            notifCtx[id] = roomId to eventId
         }
     }
 
@@ -222,5 +330,25 @@ object NotifierImpl {
             hints: Map<String, Variant<*>>,
             expireTimeout: Int
         ): UInt32
+
+        fun GetCapabilities(): List<String>
+
+        class ActionInvoked(
+            path: String,
+            val id: UInt32,
+            val actionKey: String
+        ) : DBusSignal(path, id, actionKey)
+
+        class NotificationClosed(
+            path: String,
+            val id: UInt32,
+            val reason: UInt32
+        ) : DBusSignal(path, id, reason)
     }
+}
+
+object DesktopNotifActions {
+    @Volatile var openRoom: (String) -> Unit = {}
+    @Volatile var markRead: (String, String) -> Unit = { _, _ -> }
+    @Volatile var reply: (String, String) -> Unit = { _, _ -> }
 }

@@ -18,6 +18,7 @@ actual object Notifier {
     private var windowFocused: Boolean = true
 
     actual fun notifyRoom(title: String, body: String) {
+        // Plain notifs without actions/context (used by other parts of the app)
         NotifierImpl.notify(app = "Mages", title = title, body = body, desktopEntry = "org.mlm.mages")
     }
 
@@ -38,6 +39,7 @@ actual object Notifier {
 
 @Composable
 actual fun BindLifecycle(service: MatrixService) {
+    // no-op here
 }
 
 @Composable
@@ -50,53 +52,65 @@ actual fun BindNotifications(service: MatrixService, dataStore: DataStore<Prefer
             saveLong(dataStore, "desktop:notif_baseline_ms", baseline)
         }
 
-        val me = if (service.isLoggedIn()) { service.port.whoami() } else null
+        val recentlyNotified = LinkedHashSet<String>()
+        fun rememberNotified(eventId: String) {
+            recentlyNotified.add(eventId)
+            while (recentlyNotified.size > 500) {
+                val it = recentlyNotified.iterator()
+                it.next()
+                it.remove()
+            }
+        }
+
+        val me = if (service.isLoggedIn()) service.port.whoami() else null
 
         while (true) {
             delay(15_000L) // poll every ... secs
 
             if (!service.isLoggedIn()) continue
 
+            // overlap window to avoid missing events (sleep/resume/clock skew)
+            val since = ((baseline ?: 0L) - 60_000L).coerceAtLeast(0L)
+
             val items = runCatching {
                 service.port.fetchNotificationsSince(
-                    sinceMs = baseline!!,
+                    sinceMs = since,
                     maxRooms = 50,
-                    maxEvents = 20
+                    maxEvents = 50
                 )
             }.getOrElse { emptyList() }
 
             if (items.isEmpty()) continue
 
-            var maxTs = baseline
+            var maxTs = baseline ?: 0L
 
             for (n in items) {
-                // optional room-level mode reuse (same as Android)
-                val mode = runCatching {
-                    getRoomNotifMode(dataStore, n.roomId)
-                }.getOrDefault(org.mlm.mages.notifications.RoomNotifMode.Default)
+                if (n.eventId.isBlank()) continue
+                if (recentlyNotified.contains(n.eventId)) continue
+
+                val mode = runCatching { getRoomNotifMode(dataStore, n.roomId) }
+                    .getOrDefault(org.mlm.mages.notifications.RoomNotifMode.Default)
 
                 if (!shouldNotify(mode, n.hasMention)) continue
 
                 val senderIsMe = me != null && me == n.senderUserId
-                if (!Notifier.shouldNotify(n.roomId, senderIsMe)) {
-                    continue
-                }
+                if (!Notifier.shouldNotify(n.roomId, senderIsMe)) continue
 
-                Notifier.notifyRoom(
+                NotifierImpl.notifyMatrixEvent(
                     title = n.roomName,
-                    body = "${n.sender}: ${n.body}"
+                    body = "${n.sender}: ${n.body}",
+                    roomId = n.roomId,
+                    eventId = n.eventId
                 )
 
-                if (n.tsMs > maxTs!!) {
-                    maxTs = n.tsMs
-                }
+                rememberNotified(n.eventId)
+
+                if (n.tsMs > maxTs) maxTs = n.tsMs
             }
 
-            if (maxTs != null) {
-                if (maxTs > baseline!!) {
-                    baseline = maxTs
-                    saveLong(dataStore, "desktop:notif_baseline_ms", baseline)
-                }
+            if (maxTs > (baseline ?: 0L)) {
+                baseline = maxTs
+                saveLong(dataStore, "desktop:notif_baseline_ms", baseline)
             }
         }
     }
