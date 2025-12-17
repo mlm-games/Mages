@@ -28,8 +28,6 @@ import org.mlm.mages.storage.provideAppDataStore
 import org.mlm.mages.storage.saveBoolean
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicReference
-import javax.swing.JOptionPane
 import javax.swing.SwingUtilities
 
 private const val PREF_START_IN_TRAY = "pref.startInTray"
@@ -76,23 +74,17 @@ fun main() = application {
         }
     }
 
-    DesktopNotifActions.reply = { roomId, eventId ->
-        SwingUtilities.invokeLater { showWindow = true }
+    DesktopNotifActions.reply = { roomId, _ ->
+        DesktopNotifActions.openRoom(roomId)
+    }
 
-        // Ask for reply text on EDT (Swing, since some platforms might not have reply box)
-        val textRef = AtomicReference<String?>()
-        runCatching {
-            SwingUtilities.invokeAndWait {
-                textRef.set(JOptionPane.showInputDialog(null, "Reply:"))
-            }
-        }
+    DesktopNotifActions.replyText = replyText@{ roomId, eventId, text ->
+        val msg = text.trim()
+        if (msg.isBlank()) return@replyText
 
-        val text = textRef.get()?.trim().orEmpty()
-        if (text.isNotBlank()) {
-            scope.launch {
-                runCatching { svc.port.reply(roomId, eventId, text) }
-                runCatching { svc.port.markFullyReadAt(roomId, eventId) }
-            }
+        scope.launch {
+            runCatching { svc.port.reply(roomId, eventId, msg) }
+            runCatching { svc.port.markFullyReadAt(roomId, eventId) }
         }
     }
 
@@ -196,7 +188,11 @@ fun main() = application {
 
 object NotifierImpl {
     private var conn: DBusConnection? = null
-    private var actionsSupported: Boolean? = null
+
+    private var capabilities: Set<String> = emptySet()
+    private var actionsSupported: Boolean = false
+    private var inlineReplySupported: Boolean = false
+
     private var handlersInstalled: Boolean = false
 
     private val notifCtx = ConcurrentHashMap<UInt32, Pair<String, String>>()
@@ -223,8 +219,11 @@ object NotifierImpl {
             Notifications::class.java
         )
 
-        actionsSupported = runCatching { notifications.GetCapabilities().contains("actions") }
-            .getOrNull() ?: false
+        capabilities = runCatching { notifications.GetCapabilities().toSet() }
+            .getOrElse { emptySet() }
+
+        actionsSupported = capabilities.contains("actions")
+        inlineReplySupported = capabilities.contains("inline-reply")
 
         runCatching {
             c.addSigHandler(Notifications.ActionInvoked::class.java) { sig ->
@@ -232,10 +231,19 @@ object NotifierImpl {
                 val (roomId, eventId) = ctx
 
                 when (sig.actionKey) {
-                    "default", "open" -> DesktopNotifActions.openRoom(roomId)
+                    "", "default" -> DesktopNotifActions.openRoom(roomId)
                     "mark_read" -> DesktopNotifActions.markRead(roomId, eventId)
                     "reply" -> DesktopNotifActions.reply(roomId, eventId)
+                    "inline-reply" -> DesktopNotifActions.reply(roomId, eventId)
                 }
+            }
+        }
+
+        runCatching {
+            c.addSigHandler(Notifications.NotificationReplied::class.java) { sig ->
+                val ctx = notifCtx[sig.id] ?: return@addSigHandler
+                val (roomId, eventId) = ctx
+                DesktopNotifActions.replyText(roomId, eventId, sig.replyText)
             }
         }
 
@@ -278,7 +286,8 @@ object NotifierImpl {
         body: String,
         roomId: String,
         eventId: String,
-        desktopEntry: String? = "org.mlm.mages"
+        hasMention: Boolean = false,
+        desktopEntry: String? = "mages"
     ) {
         val c = ensure() ?: return
 
@@ -289,32 +298,84 @@ object NotifierImpl {
         )
 
         val hints = HashMap<String, Variant<*>>()
+
         desktopEntry?.let { hints["desktop-entry"] = Variant(it) }
 
-        val actions =
-            if (actionsSupported == true && roomId.isNotBlank() && eventId.isNotBlank()) {
-                arrayOf(
-                    "default", "Open",
-                    "reply", "Reply…",
-                    "mark_read", "Mark read"
-                )
+        hints["urgency"] = Variant((if (hasMention) 2 else 1).toByte())
+
+        val expireTimeout = if (hasMention && capabilities.contains("persistence")) 0 else -1
+        if (hasMention && capabilities.contains("persistence")) {
+            hints["resident"] = Variant(true)
+        }
+
+        if (hasMention && capabilities.contains("sound")) {
+            hints["sound-name"] = Variant("message-new-instant")
+        }
+
+        val formattedBody = formatBodyForServer(body)
+
+        val actions: Array<String> =
+            if (actionsSupported && roomId.isNotBlank() && eventId.isNotBlank()) {
+                buildList {
+                    add("default"); add("Open")
+
+                    if (inlineReplySupported) {
+                        add("inline-reply"); add("Reply…")
+                    } else {
+                        add("reply"); add("Reply…")
+                    }
+
+                    add("mark_read"); add("Mark read")
+                }.toTypedArray()
+            } else emptyArray()
+
+        val appIcon = desktopEntry ?: "mages"
+
+        val id = try {
+            notifications.Notify(
+                "Mages",
+                UInt32(0),
+                appIcon,
+                title,
+                formattedBody,
+                actions,
+                hints,
+                expireTimeout
+            )
+        } catch (_: Exception) {
+            return
+        }
+
+        notifCtx[id] = roomId to eventId
+    }
+
+    private fun formatBodyForServer(body: String): String {
+        val b = body.trim()
+
+        if (capabilities.contains("body-markup")) {
+            val escaped = escapeMarkup(b)
+            return if (capabilities.contains("body-hyperlinks")) {
+                linkifyMarkup(escaped)
             } else {
-                emptyArray()
+                escaped
             }
+        }
 
-        val id = notifications.Notify(
-            "Mages",
-            UInt32(0),
-            "",
-            title,
-            body,
-            actions,
-            hints,
-            -1
-        )
+        return b
+    }
 
-        if (actions.isNotEmpty()) {
-            notifCtx[id] = roomId to eventId
+    private fun escapeMarkup(s: String): String =
+        s.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&apos;")
+
+    private fun linkifyMarkup(s: String): String {
+        val r = Regex("""(https?://\S+)""")
+        return r.replace(s) { m ->
+            val url = m.value
+            """<a href="$url">$url</a>"""
         }
     }
 
@@ -344,6 +405,12 @@ object NotifierImpl {
             val id: UInt32,
             val reason: UInt32
         ) : DBusSignal(path, id, reason)
+
+        class NotificationReplied(
+            path: String,
+            val id: UInt32,
+            val replyText: String
+        ) : DBusSignal(path, id, replyText)
     }
 }
 
@@ -351,4 +418,5 @@ object DesktopNotifActions {
     @Volatile var openRoom: (String) -> Unit = {}
     @Volatile var markRead: (String, String) -> Unit = { _, _ -> }
     @Volatile var reply: (String, String) -> Unit = { _, _ -> }
+    @Volatile var replyText: (String, String, String) -> Unit = { _, _, _ -> }
 }
