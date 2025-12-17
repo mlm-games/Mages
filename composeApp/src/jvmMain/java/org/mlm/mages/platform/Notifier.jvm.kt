@@ -82,7 +82,11 @@ actual fun BindNotifications(service: MatrixService, dataStore: DataStore<Prefer
 
             if (items.isEmpty()) continue
 
-            var maxTs = baseline ?: 0L
+            val maxTs = items.maxOfOrNull { it.tsMs } ?: (baseline ?: 0L)
+            if (maxTs > (baseline ?: 0L)) {
+                baseline = maxTs
+                saveLong(dataStore, "desktop:notif_baseline_ms", baseline)
+            }
 
             for (n in items) {
                 if (n.eventId.isBlank()) continue
@@ -100,17 +104,11 @@ actual fun BindNotifications(service: MatrixService, dataStore: DataStore<Prefer
                     title = n.roomName,
                     body = "${n.sender}: ${n.body}",
                     roomId = n.roomId,
-                    eventId = n.eventId
+                    eventId = n.eventId,
+                    hasMention = n.hasMention
                 )
 
                 rememberNotified(n.eventId)
-
-                if (n.tsMs > maxTs) maxTs = n.tsMs
-            }
-
-            if (maxTs > (baseline ?: 0L)) {
-                baseline = maxTs
-                saveLong(dataStore, "desktop:notif_baseline_ms", baseline)
             }
         }
     }
