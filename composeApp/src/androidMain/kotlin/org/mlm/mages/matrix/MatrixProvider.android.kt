@@ -1,7 +1,6 @@
 package org.mlm.mages.matrix
 
 import android.content.Context
-import kotlinx.coroutines.runBlocking
 import org.mlm.mages.MatrixService
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.storage.loadString
@@ -33,5 +32,15 @@ object MatrixProvider {
                 }
             })
         }
+    }
+
+    suspend fun getReady(context: Context): MatrixService? {
+        val svc = get(context)
+
+        val ds = provideAppDataStore(context)
+        val hs = loadString(ds, "homeserver") ?: return null
+
+        runCatching { svc.init(hs) }
+        return if (svc.isLoggedIn()) svc else null
     }
 }

@@ -3,6 +3,13 @@ package org.mlm.mages.push
 import android.content.Context
 import android.util.Log
 import androidx.core.content.edit
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -16,6 +23,7 @@ import kotlinx.coroutines.cancel
 import org.mlm.mages.notifications.getRoomNotifMode
 import org.mlm.mages.notifications.shouldNotify
 import org.mlm.mages.storage.provideAppDataStore
+import java.util.concurrent.TimeUnit
 
 const val PUSH_PREFS = "unifiedpush_prefs"
 const val PREF_ENDPOINT = "endpoint"
@@ -60,6 +68,8 @@ class AppPushService : PushService() {
                 AndroidNotificationHelper.NotificationText("New message", "You have a new message"),
                 roomId, eventId
             )
+
+            enqueueEnrich(roomId, eventId)
         }
     }
 
@@ -121,6 +131,31 @@ class AppPushService : PushService() {
         } catch (e: Exception) {
             Log.e("PusherDebug", "registerUnifiedPush FAILED", e)
         }
+    }
+
+    private fun enqueueEnrich(roomId: String, eventId: String) {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val req = OneTimeWorkRequestBuilder<NotificationEnrichWorker>()
+            .setConstraints(constraints)
+            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 10, TimeUnit.SECONDS)
+            .setInputData(
+                workDataOf(
+                    NotificationEnrichWorker.KEY_ROOM_ID to roomId,
+                    NotificationEnrichWorker.KEY_EVENT_ID to eventId
+                )
+            )
+            // Deduplicate work for the same event
+            .addTag("notif:$roomId:$eventId")
+            .build()
+
+        WorkManager.getInstance(applicationContext).enqueueUniqueWork(
+            "notif:$roomId:$eventId",
+            ExistingWorkPolicy.REPLACE,
+            req
+        )
     }
 }
 
