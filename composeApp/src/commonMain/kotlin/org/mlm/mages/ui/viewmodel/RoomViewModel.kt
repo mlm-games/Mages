@@ -660,7 +660,6 @@ class RoomViewModel(
         recomputeThreadCountsFromTimeline()
 
         prefetchThumbnailsForEvents(visible.takeLast(8))
-        visible.forEach { notifyIfNeeded(it) }
     }
 
     /**
@@ -960,19 +959,6 @@ class RoomViewModel(
                     )
                 }
             }
-        }
-    }
-
-    private fun notifyIfNeeded(event: MessageEvent) {
-        val myId = currentState.myUserId ?: return
-        val senderIsMe = event.sender == myId
-
-        if (Notifier.shouldNotify(currentState.roomId, senderIsMe)) {
-            val senderName = event.sender.removePrefix("@").substringBefore(":")
-            Notifier.notifyRoom(
-                title = "$senderName in ${currentState.roomName}",
-                body = event.body.take(100)
-            )
         }
     }
 
