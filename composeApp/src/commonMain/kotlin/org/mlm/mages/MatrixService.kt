@@ -16,6 +16,8 @@ import kotlin.time.ExperimentalTime
 
 class MatrixService(val port: MatrixPort) {
 
+    @Volatile private var supervisedSyncStarted = false
+
     private val _syncStatus = MutableStateFlow<MatrixPort.SyncStatus?>(null)
     val syncStatus: StateFlow<MatrixPort.SyncStatus?> = _syncStatus.asStateFlow()
 
@@ -32,6 +34,9 @@ class MatrixService(val port: MatrixPort) {
     suspend fun thumbnailToCache(info: AttachmentInfo, w: Int, h: Int, crop: Boolean) = port.thumbnailToCache(info, w, h, crop)
 
     fun startSupervisedSync(externalObserver: MatrixPort.SyncObserver? = null) {
+        if (supervisedSyncStarted) return
+        supervisedSyncStarted = true
+
         val wrappedObserver = object : MatrixPort.SyncObserver {
             override fun onState(status: MatrixPort.SyncStatus) {
                 _syncStatus.value = status
@@ -40,6 +45,7 @@ class MatrixService(val port: MatrixPort) {
         }
         runCatching { port.startSupervisedSync(wrappedObserver) }
     }
+
 
 
     // Connection monitoring
@@ -91,7 +97,10 @@ class MatrixService(val port: MatrixPort) {
     suspend fun cancelVerificationRequest(flowId: String, otherUserId: String?) =
         port.cancelVerificationRequest(flowId, otherUserId)
 
-    suspend fun logout(): Boolean = port.logout()
+    suspend fun logout(): Boolean {
+        supervisedSyncStarted = false
+        return port.logout()
+    }
 
     suspend fun sendAttachmentFromPath(
         roomId: String,

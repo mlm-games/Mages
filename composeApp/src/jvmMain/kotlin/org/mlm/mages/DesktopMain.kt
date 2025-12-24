@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import mages.composeapp.generated.resources.Res
 import org.freedesktop.dbus.annotations.DBusInterfaceName
 import org.freedesktop.dbus.connections.impl.DBusConnection
@@ -22,9 +23,11 @@ import org.freedesktop.dbus.messages.DBusSignal
 import org.freedesktop.dbus.types.UInt32
 import org.freedesktop.dbus.types.Variant
 import org.mlm.mages.matrix.createMatrixPort
+import org.mlm.mages.platform.BindNotifications
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.Notifier
 import org.mlm.mages.storage.loadBoolean
+import org.mlm.mages.storage.loadString
 import org.mlm.mages.storage.provideAppDataStore
 import org.mlm.mages.storage.saveBoolean
 import java.io.IOException
@@ -62,6 +65,25 @@ fun main() = application {
     }
 
     val svc = getService()
+
+    LaunchedEffect(Unit) {
+        // Warm up DBus so actions work immediately
+        withContext(Dispatchers.IO) {
+            NotifierImpl.warmUp()
+        }
+
+        // Init Matrix client early, (if window = false, compose actually doesn't run App())
+        val hs = runCatching { loadString(dataStore, "homeserver") }.getOrNull()
+        if (!hs.isNullOrBlank()) {
+            runCatching { svc.init(hs) }
+        }
+
+        if (svc.isLoggedIn()) {
+            svc.startSupervisedSync()
+            runCatching { svc.port.enterForeground() }
+        }
+    }
+
 
     // Install desktop notif action handlers early
     DesktopNotifActions.openRoom = { roomId ->
@@ -191,6 +213,7 @@ fun main() = application {
 
         App(dataStore = dataStore, service = svc, deepLinks = deepLinks)
     }
+    BindNotifications(service = svc, dataStore = dataStore)
 }
 
 object NotifierImpl {

@@ -45,14 +45,15 @@ actual fun BindLifecycle(service: MatrixService) {
 @Composable
 actual fun BindNotifications(service: MatrixService, dataStore: DataStore<Preferences>) {
     LaunchedEffect(service) {
-        // Baseline: avoid flooding on first run
         var baseline = loadLong(dataStore, "desktop:notif_baseline_ms")
         if (baseline == null) {
             baseline = System.currentTimeMillis()
             saveLong(dataStore, "desktop:notif_baseline_ms", baseline)
         }
 
+        var firstPoll = true
         val recentlyNotified = LinkedHashSet<String>()
+
         fun rememberNotified(eventId: String) {
             recentlyNotified.add(eventId)
             while (recentlyNotified.size > 500) {
@@ -62,16 +63,24 @@ actual fun BindNotifications(service: MatrixService, dataStore: DataStore<Prefer
             }
         }
 
-        var me : String? = null
+        // cache per room (to avoid calling ownLastRead too much)
+        val lastReadByRoom = HashMap<String, Long>()
 
         while (true) {
-            delay(15_000L) // poll every ... secs
+            if (!service.isLoggedIn()) {
+                firstPoll = true
+                delay(15_000L)
+                continue
+            }
 
-            if (!service.isLoggedIn()) continue
-            if (me == null) me = runCatching { service.port.whoami() }.getOrNull()
+            val me = runCatching { service.port.whoami() }.getOrNull()
 
-            // overlap window to avoid missing events (sleep/resume/clock skew)
-            val since = ((baseline ?: 0L) - 60_000L).coerceAtLeast(0L)
+            val since = if (firstPoll) {
+                baseline ?: 0L
+            } else {
+                ((baseline ?: 0L) - 60_000L).coerceAtLeast(0L)
+            }
+            firstPoll = false
 
             val items = runCatching {
                 service.port.fetchNotificationsSince(
@@ -81,13 +90,21 @@ actual fun BindNotifications(service: MatrixService, dataStore: DataStore<Prefer
                 )
             }.getOrElse { emptyList() }
 
-            if (items.isEmpty()) continue
-
-            var maxTs = baseline ?: 0L
+            var maxSeenTs = baseline ?: 0L
 
             for (n in items) {
                 if (n.eventId.isBlank()) continue
+
+                // Always advance baseline based on what we *saw*, not only what we notified.
+                if (n.tsMs > maxSeenTs) maxSeenTs = n.tsMs
+
                 if (recentlyNotified.contains(n.eventId)) continue
+
+                val lastReadTs = lastReadByRoom[n.roomId] ?: runCatching {
+                    service.port.ownLastRead(n.roomId).second ?: 0L
+                }.getOrDefault(0L).also { lastReadByRoom[n.roomId] = it }
+
+                if (lastReadTs > 0L && n.tsMs <= lastReadTs) continue
 
                 val mode = runCatching { getRoomNotifMode(dataStore, n.roomId) }
                     .getOrDefault(org.mlm.mages.notifications.RoomNotifMode.Default)
@@ -101,18 +118,18 @@ actual fun BindNotifications(service: MatrixService, dataStore: DataStore<Prefer
                     title = n.roomName,
                     body = "${n.sender}: ${n.body}",
                     roomId = n.roomId,
-                    eventId = n.eventId
+                    eventId = n.eventId,
+                    hasMention = n.hasMention
                 )
-
                 rememberNotified(n.eventId)
-
-                if (n.tsMs > maxTs) maxTs = n.tsMs
             }
 
-            if (maxTs > (baseline ?: 0L)) {
-                baseline = maxTs
+            if (maxSeenTs > (baseline ?: 0L)) {
+                baseline = maxSeenTs
                 saveLong(dataStore, "desktop:notif_baseline_ms", baseline)
             }
+
+            delay(15_000L)
         }
     }
 }
