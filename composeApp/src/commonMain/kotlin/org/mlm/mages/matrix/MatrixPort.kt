@@ -443,6 +443,7 @@ interface MatrixPort {
     fun seenByForEvent(roomId: String, eventId: String, limit: Int): List<SeenByEntry>
 
     suspend fun mxcThumbnailToCache(mxcUri: String, width: Int, height: Int, crop: Boolean): String
+    suspend fun loadRoomListCache(): List<RoomListEntry>
 }
 
 expect fun createMatrixPort(): MatrixPort

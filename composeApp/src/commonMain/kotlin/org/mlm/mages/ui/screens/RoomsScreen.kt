@@ -47,11 +47,6 @@ fun RoomsScreen(
     val firstFavouriteId = state.favouriteItems.firstOrNull()?.roomId
     val firstNormalId = state.normalItems.firstOrNull()?.roomId
 
-    LaunchedEffect(Unit) {
-        delay(500)
-        viewModel.refresh()
-    }
-
     LaunchedEffect(firstFavouriteId, firstNormalId) {
         if ((firstFavouriteId != null || firstNormalId != null) && listState.firstVisibleItemIndex > 0) {
             listState.animateScrollToItem(0)
@@ -72,7 +67,7 @@ fun RoomsScreen(
             RoomsTopBar(
                 offlineBanner = state.offlineBanner,
                 syncBanner = state.syncBanner,
-                isLoading = state.isLoading && state.rooms.isNotEmpty(),
+                isLoading = state.isLoading && state.allItems.isNotEmpty(),
                 searchQuery = state.roomSearchQuery,
                 unreadOnly = state.unreadOnly,
                 onSearchChange = viewModel::setSearchQuery,
@@ -104,8 +99,23 @@ fun RoomsScreen(
         }
     ) { innerPadding ->
         when {
-            state.isLoading && state.rooms.isEmpty() -> {
+            state.isLoading && state.allItems.isEmpty() -> {
                 ShimmerList(modifier = Modifier.fillMaxSize().padding(innerPadding))
+            }
+            !hasAnyRooms && state.offlineBanner != null -> {
+                EmptyState(
+                    icon = Icons.Default.CloudOff,
+                    title = state.offlineBanner ?: "Offline",
+                    subtitle = "Connect to the internet to load rooms. If you’ve opened this account before, your last room list will appear here instantly.",
+                    modifier = Modifier.padding(innerPadding),
+                    action = {
+                        Button(onClick = viewModel::refresh) {
+                            Icon(Icons.Default.Refresh, null)
+                            Spacer(Modifier.width(Spacing.sm))
+                            Text("Retry")
+                        }
+                    }
+                )
             }
             !hasAnyRooms -> {
                 EmptyState(

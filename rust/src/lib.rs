@@ -673,9 +673,12 @@ struct SessionInfo {
     homeserver: String,
 }
 
-// TODO: remove later (after the login fix, should not be needed)
 fn session_file(dir: &PathBuf) -> PathBuf {
     dir.join("session.json")
+}
+
+fn room_list_cache_file(dir: &PathBuf) -> PathBuf {
+    dir.join("room_list_cache.json")
 }
 
 #[derive(Debug, Error, uniffi::Error)]
@@ -1014,6 +1017,16 @@ impl Client {
         self.inner.user_id().map(|u| u.to_string())
     }
 
+    pub fn load_room_list_cache(&self) -> Vec<RoomListEntry> {
+        RT.block_on(async {
+            let path = room_list_cache_file(&self.store_dir);
+            match tokio::fs::read_to_string(&path).await {
+                Ok(txt) => serde_json::from_str::<Vec<RoomListEntry>>(&txt).unwrap_or_default(),
+                Err(_) => Vec::new(),
+            }
+        })
+    }
+
     pub fn login(
         &self,
         username: String,
@@ -1077,16 +1090,22 @@ impl Client {
     }
 
     pub fn enter_foreground(&self) {
-        if let Some(svc) = self.sync_service.lock().unwrap().as_ref().cloned() {
-            let _ = RT.block_on(async { svc.start().await });
-        }
+        let _ = RT.block_on(async {
+            self.ensure_sync_service().await;
+            if let Some(svc) = self.sync_service.lock().unwrap().as_ref().cloned() {
+                let _ = svc.start().await;
+            }
+        });
     }
 
     /// Send the app to background: stop Sliding Sync supervision. (stub)
     pub fn enter_background(&self) {
-        if let Some(svc) = self.sync_service.lock().unwrap().as_ref().cloned() {
-            let _ = RT.block_on(async { svc.stop().await });
-        }
+        let _ = RT.block_on(async {
+            self.ensure_sync_service().await;
+            if let Some(svc) = self.sync_service.lock().unwrap().as_ref().cloned() {
+                let _ = svc.stop().await;
+            }
+        });
     }
 
     pub fn recent_events(&self, room_id: String, limit: u32) -> Vec<MessageEvent> {
@@ -2846,6 +2865,7 @@ impl Client {
         let obs: std::sync::Arc<dyn RoomListObserver> = std::sync::Arc::from(observer);
         let svc_slot = self.sync_service.clone();
         let client = self.inner_clone();
+        let store_dir = self.store_dir.clone();
         let id = self.next_sub_id();
 
         let (cmd_tx, mut cmd_rx) = tokio::sync::mpsc::unbounded_channel::<RoomListCmd>();
@@ -2964,6 +2984,11 @@ impl Client {
                                     latest_event,
                                 });
                             }
+
+                            let _ = tokio::fs::write(
+                                room_list_cache_file(&store_dir),
+                                serde_json::to_string(&snapshot).unwrap_or_default(),
+                            ).await;
 
                             let obs_clone = obs.clone();
                             let _ = std::panic::catch_unwind(AssertUnwindSafe(move || {

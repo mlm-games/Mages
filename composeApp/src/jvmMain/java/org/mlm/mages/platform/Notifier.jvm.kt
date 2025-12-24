@@ -62,12 +62,13 @@ actual fun BindNotifications(service: MatrixService, dataStore: DataStore<Prefer
             }
         }
 
-        val me = if (service.isLoggedIn()) service.port.whoami() else null
+        var me : String? = null
 
         while (true) {
             delay(15_000L) // poll every ... secs
 
             if (!service.isLoggedIn()) continue
+            if (me == null) me = runCatching { service.port.whoami() }.getOrNull()
 
             // overlap window to avoid missing events (sleep/resume/clock skew)
             val since = ((baseline ?: 0L) - 60_000L).coerceAtLeast(0L)

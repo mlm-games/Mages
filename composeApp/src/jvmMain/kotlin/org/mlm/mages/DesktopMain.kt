@@ -8,6 +8,7 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import dorkbox.systemTray.MenuItem
 import dorkbox.systemTray.SystemTray
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
@@ -154,6 +155,12 @@ fun main() = application {
         onDispose { tray.shutdown() }
     }
 
+    LaunchedEffect(Unit) {
+        scope.launch(Dispatchers.IO) {
+            NotifierImpl.warmUp()
+        }
+    }
+
     Window(
         onCloseRequest = { showWindow = false },
         state = windowState,
@@ -187,27 +194,38 @@ fun main() = application {
 }
 
 object NotifierImpl {
+    private val lock = Any()
+
     private var conn: DBusConnection? = null
 
     private var capabilities: Set<String> = emptySet()
     private var actionsSupported: Boolean = false
     private var inlineReplySupported: Boolean = false
 
-    private var handlersInstalled: Boolean = false
+    private var handlersInstalledFor: DBusConnection? = null
+
 
     private val notifCtx = ConcurrentHashMap<UInt32, Pair<String, String>>()
 
-    private fun ensure(): DBusConnection? {
+    private fun ensure(): DBusConnection? = synchronized(lock) {
         if (conn?.isConnected == true) return conn
+
         return try {
             DBusConnectionBuilder.forSessionBus().build().also { c ->
                 conn = c
-                if (!handlersInstalled) {
+
+                if (handlersInstalledFor !== c) {
+                    // Reset per-connection state
+                    capabilities = emptySet()
+                    actionsSupported = false
+                    inlineReplySupported = false
+
                     installHandlers(c)
-                    handlersInstalled = true
+                    handlersInstalledFor = c
                 }
             }
         } catch (_: IOException) {
+            conn = null
             null
         }
     }
@@ -347,6 +365,10 @@ object NotifierImpl {
         }
 
         notifCtx[id] = roomId to eventId
+    }
+
+    fun warmUp() {
+        ensure()
     }
 
     private fun formatBodyForServer(body: String): String {

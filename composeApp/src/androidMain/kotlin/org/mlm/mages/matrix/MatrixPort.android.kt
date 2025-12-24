@@ -684,70 +684,12 @@ class RustMatrixPort() : MatrixPort {
     override fun observeRoomList(observer: MatrixPort.RoomListObserver): ULong {
         val cb = object : mages.RoomListObserver {
             override fun onReset(items: List<mages.RoomListEntry>) {
-                val mapped = items.map {
-                    RoomListEntry(
-                        roomId        = it.roomId,
-                        name          = it.name,
-                        lastTs        = it.lastTs,
-                        notifications = it.notifications,
-                        messages      = it.messages,
-                        mentions      = it.mentions,
-                        markedUnread  = it.markedUnread,
-                        isFavourite   = it.isFavourite,
-                        isLowPriority = it.isLowPriority,
-                        avatarUrl     = it.avatarUrl,
-                        isDm          = it.isDm,
-                        isEncrypted   = it.isEncrypted,
-                        memberCount   = it.memberCount.toInt(),
-                        topic         = it.topic,
-                        latestEvent   = it.latestEvent?.let { e ->
-                            LatestRoomEvent(
-                                eventId     = e.eventId,
-                                sender      = e.sender,
-                                body        = e.body,
-                                msgtype     = e.msgtype,
-                                eventType   = e.eventType,
-                                timestamp   = e.timestamp,
-                                isRedacted  = e.isRedacted,
-                                isEncrypted = e.isEncrypted
-                            )
-                        }
-                    )
-                }
+                val mapped = items.map { it.toKotlinRoomListEntry() }
                 observer.onReset(mapped)
             }
 
             override fun onUpdate(item: mages.RoomListEntry) {
-                observer.onUpdate(
-                    RoomListEntry(
-                        roomId        = item.roomId,
-                        name          = item.name,
-                        lastTs        = item.lastTs,
-                        notifications = item.notifications,
-                        messages      = item.messages,
-                        mentions      = item.mentions,
-                        markedUnread  = item.markedUnread,
-                        isFavourite   = item.isFavourite,
-                        isLowPriority = item.isLowPriority,
-                        avatarUrl     = item.avatarUrl,
-                        isDm          = item.isDm,
-                        isEncrypted   = item.isEncrypted,
-                        memberCount   = item.memberCount.toInt(),
-                        topic         = item.topic,
-                        latestEvent   = item.latestEvent?.let { e ->
-                            LatestRoomEvent(
-                                eventId     = e.eventId,
-                                sender      = e.sender,
-                                body        = e.body,
-                                msgtype     = e.msgtype,
-                                eventType   = e.eventType,
-                                timestamp   = e.timestamp,
-                                isRedacted  = e.isRedacted,
-                                isEncrypted = e.isEncrypted
-                            )
-                        }
-                    )
-                )
+                observer.onUpdate(item.toKotlinRoomListEntry())
             }
         }
         return withClient { it.observeRoomList(cb)
@@ -1285,6 +1227,12 @@ class RustMatrixPort() : MatrixPort {
             it.mxcThumbnailToCache(mxcUri, width.toUInt(), height.toUInt(), crop)
         }
     }
+    override suspend fun loadRoomListCache(): List<RoomListEntry> =
+        withContext(Dispatchers.IO) {
+            withClient { cl ->
+                cl.loadRoomListCache().map { it.toKotlinRoomListEntry() }
+            }
+        }
 }
 
 
@@ -1385,5 +1333,35 @@ private fun mages.RoomDirectoryVisibility.toKotlin(): RoomDirectoryVisibility = 
     mages.RoomDirectoryVisibility.PUBLIC -> RoomDirectoryVisibility.Public
     mages.RoomDirectoryVisibility.PRIVATE -> RoomDirectoryVisibility.Private
 }
+
+private fun mages.RoomListEntry.toKotlinRoomListEntry(): RoomListEntry =
+    RoomListEntry(
+        roomId        = roomId,
+        name          = name,
+        lastTs        = lastTs,
+        notifications = notifications,
+        messages      = messages,
+        mentions      = mentions,
+        markedUnread  = markedUnread,
+        isFavourite   = isFavourite,
+        isLowPriority = isLowPriority,
+        avatarUrl     = avatarUrl,
+        isDm          = isDm,
+        isEncrypted   = isEncrypted,
+        memberCount   = memberCount.toInt(),
+        topic         = topic,
+        latestEvent   = latestEvent?.let { e ->
+            LatestRoomEvent(
+                eventId     = e.eventId,
+                sender      = e.sender,
+                body        = e.body,
+                msgtype     = e.msgtype,
+                eventType   = e.eventType,
+                timestamp   = e.timestamp,
+                isRedacted  = e.isRedacted,
+                isEncrypted = e.isEncrypted
+            )
+        }
+    )
 
 actual fun createMatrixPort(): MatrixPort = RustMatrixPort()

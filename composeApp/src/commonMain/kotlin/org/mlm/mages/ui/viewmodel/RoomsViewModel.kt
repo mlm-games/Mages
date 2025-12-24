@@ -33,10 +33,12 @@ class RoomsViewModel(
     private var connToken: ULong? = null
     private var roomListToken: ULong? = null
     private var initialized = false
+    private var didSubscribeRoomList = false
 
     init {
         observeConnection()
         observeRoomList()
+        bootstrapRoomListFromCache()
     }
 
     //  Public Actions
@@ -64,9 +66,8 @@ class RoomsViewModel(
     }
 
     fun refresh() {
-        // Room list is reactive, but we can force a re-observe
-        roomListToken?.let { service.port.unobserveRoomList(it) }
-        observeRoomList()
+        updateState { copy(isLoading = true) }
+        service.port.enterForeground()
     }
 
     private fun mapRoomSummary(entry: RoomListEntry): RoomSummary {
@@ -145,6 +146,11 @@ class RoomsViewModel(
 
         roomListToken = service.port.observeRoomList(object : MatrixPort.RoomListObserver {
             override fun onReset(items: List<RoomListEntry>) {
+                if (items.isEmpty() && currentState.allItems.isNotEmpty() && currentState.offlineBanner != null) {
+                    updateState { copy(isLoading = false) }
+                    return
+                } // HACK: To prevent empty / No rooms when offline
+
                 items.forEach { maybePrefetchRoomAvatar(it.roomId, it.avatarUrl) }
                 val domainRooms = items.map(::mapRoomSummary)
                 val uiItems     = items.map(::mapRoomEntryToUi)
@@ -194,14 +200,6 @@ class RoomsViewModel(
                 recomputeGroupedRooms()
             }
         })
-
-        // Timeout fallback
-        viewModelScope.launch {
-            delay(5000)
-            if (!initialized) {
-                updateState { copy(isLoading = false) }
-            }
-        }
     }
 
     private fun observeConnection() {
@@ -215,7 +213,12 @@ class RoomsViewModel(
                     MatrixPort.ConnectionState.Connecting -> "Connecting..."
                     else -> null
                 }
-                updateState { copy(offlineBanner = banner) }
+                updateState {
+                    copy(
+                        offlineBanner = banner,
+                        isLoading = if (banner != null && allItems.isEmpty()) false else isLoading
+                    )
+                }
             }
         })
     }
@@ -259,6 +262,32 @@ class RoomsViewModel(
         launch {
             val path = service.avatars.resolve(avatarMxc, px = 96, crop = true) ?: return@launch
             updateState { copy(roomAvatarPath = roomAvatarPath + (roomId to path)) }
+        }
+    }
+
+    private fun bootstrapRoomListFromCache() {
+        viewModelScope.launch {
+            val cached = runCatching { service.port.loadRoomListCache() }
+                .getOrElse { emptyList() }
+
+            if (cached.isEmpty()) return@launch
+
+            cached.forEach { maybePrefetchRoomAvatar(it.roomId, it.avatarUrl) }
+
+            val domainRooms = cached.map(::mapRoomSummary)
+            val uiItems = cached.map(::mapRoomEntryToUi)
+
+            updateState {
+                copy(
+                    rooms = domainRooms,
+                    unread = cached.associate { e -> e.roomId to e.notifications.toInt() },
+                    favourites = cached.filter { it.isFavourite }.map { it.roomId }.toSet(),
+                    lowPriority = cached.filter { it.isLowPriority }.map { it.roomId }.toSet(),
+                    allItems = uiItems,
+                    isLoading = true
+                )
+            }
+            recomputeGroupedRooms()
         }
     }
 
