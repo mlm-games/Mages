@@ -14,7 +14,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
 import org.mlm.mages.matrix.MatrixProvider
 import org.unifiedpush.android.connector.PushService
 import org.unifiedpush.android.connector.data.PushEndpoint
@@ -74,8 +73,13 @@ class AppPushService : PushService() {
     }
 
     override fun onUnregistered(instance: String) {
-        Log.i("AppPushService", "Unregistered: $instance")
+        Log.i(TAG, "Unregistered: $instance")
         removeEndpoint(applicationContext, instance)
+
+        PushManager.registerSilently(applicationContext, instance)
+        scope.launch {
+            runCatching { PusherReconciler.ensureServerPusherRegistered(applicationContext, instance) }
+        }
     }
 
     override fun onRegistrationFailed(

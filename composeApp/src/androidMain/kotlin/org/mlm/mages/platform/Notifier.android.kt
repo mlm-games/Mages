@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.NotificationCompat
 import androidx.core.content.getSystemService
@@ -14,8 +15,12 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlinx.coroutines.launch
 import org.mlm.mages.MatrixService
 import org.mlm.mages.R
+import org.mlm.mages.matrix.MatrixProvider
+import org.mlm.mages.push.PREF_INSTANCE
+import org.mlm.mages.push.PusherReconciler
 
 actual object Notifier {
     private const val CHANNEL_ID = "messages"
@@ -58,24 +63,38 @@ actual object Notifier {
 }
 
 @Composable
-actual fun BindLifecycle(service: MatrixService)  {
-    if (service.isLoggedIn()) {
-        val lifecycleOwner = LocalLifecycleOwner.current
-        DisposableEffect(lifecycleOwner) {
-            val obs = object : DefaultLifecycleObserver {
-                override fun onStart(owner: LifecycleOwner) {
-                    service.port.enterForeground()
-                }
+actual fun BindLifecycle(service: MatrixService) {
+    val ctx = LocalContext.current.applicationContext
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
 
-                override fun onStop(owner: LifecycleOwner) {
-                    service.port.enterBackground()
+    DisposableEffect(lifecycleOwner, service) {
+        val obs = object : DefaultLifecycleObserver {
+            override fun onStart(owner: LifecycleOwner) {
+                scope.launch {
+                    val ready = MatrixProvider.getReady(ctx)
+                    if (ready != null) {
+                        runCatching { service.port.enterForeground() }
+
+                        MatrixProvider.ensureSyncStarted()
+
+                        runCatching { PusherReconciler.ensureServerPusherRegistered(ctx, PREF_INSTANCE) }
+                    }
                 }
             }
-            lifecycleOwner.lifecycle.addObserver(obs)
-            onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+
+            override fun onStop(owner: LifecycleOwner) {
+                scope.launch {
+                    runCatching { service.port.enterBackground() }
+                }
+            }
         }
+
+        lifecycleOwner.lifecycle.addObserver(obs)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
     }
 }
+
 
 @Composable
 actual fun rememberQuitApp(): () -> Unit {

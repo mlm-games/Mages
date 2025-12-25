@@ -41,6 +41,9 @@ object MatrixProvider {
         val hs = loadString(ds, "homeserver") ?: return null
 
         runCatching { svc.init(hs) }
-        return if (svc.isLoggedIn()) svc else null
+        return if (svc.isLoggedIn()) {
+            ensureSyncStarted()
+            svc
+        } else null
     }
 }

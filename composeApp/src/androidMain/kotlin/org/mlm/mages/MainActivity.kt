@@ -87,6 +87,7 @@ class MainActivity : AppCompatActivity() {
             if (uri.scheme == "mages" && uri.host == "room") {
                 val roomId = uri.getQueryParameter("id")
                 if (!roomId.isNullOrBlank()) {
+                    lifecycleScope.launch { MatrixProvider.getReady(applicationContext) }
                     deepLinkRoomIds.tryEmit(roomId)
                 }
                 return
