@@ -121,7 +121,10 @@ private fun SasActions(
     onConfirm: () -> Unit,
     onCancel: () -> Unit
 ) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
         when (phase) {
             SasPhase.Requested -> {
                 if (showAccept) {
@@ -133,11 +136,19 @@ private fun SasActions(
                     }
                 }
             }
+
+            SasPhase.Ready -> {
+                OutlinedButton(onClick = onCancel, Modifier.weight(1f)) { Text("Cancel") }
+                Button(onClick = onAccept, Modifier.weight(1f)) { Text("Continue") }
+            }
+
             SasPhase.Emojis -> {
                 OutlinedButton(onClick = onCancel, Modifier.weight(1f)) { Text("They don't match") }
                 Button(onClick = onConfirm, Modifier.weight(1f)) { Text("They match") }
             }
+
             SasPhase.Done -> Button(onClick = onCancel, Modifier.fillMaxWidth()) { Text("Close") }
+
             else -> OutlinedButton(onClick = onCancel, Modifier.fillMaxWidth()) { Text("Cancel") }
         }
     }

@@ -125,7 +125,7 @@ fun SecurityScreen(
             otherUser = state.sasOtherUser ?: "",
             otherDevice = state.sasOtherDevice ?: "",
             error = state.sasError,
-            showAccept = state.sasIncoming && state.sasPhase == SasPhase.Requested,
+            showAccept = state.sasIncoming && (state.sasPhase == SasPhase.Requested || state.sasPhase == SasPhase.Ready),
             onAccept = viewModel::acceptSas,
             onConfirm = viewModel::confirmSas,
             onCancel = viewModel::cancelSas
