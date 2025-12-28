@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.mlm.mages.MatrixService
+import org.mlm.mages.platform.getDeviceDisplayName
 import org.mlm.mages.storage.loadString
 import org.mlm.mages.storage.saveLong
 import org.mlm.mages.storage.saveString
@@ -73,7 +74,7 @@ class LoginViewModel(
             updateState { copy(isBusy = true, error = null) }
 
             service.init(hs)
-            service.login(s.user, s.pass, "Mages")
+            service.login(s.user, s.pass, getDeviceDisplayName())
 
             if (!service.isLoggedIn()) {
                 updateState { copy(isBusy = false, error = "Login failed") }
@@ -108,7 +109,7 @@ class LoginViewModel(
             service.init(hs)
 
             val ok = withTimeoutOrNull(120_000) {
-                service.port.loginSsoLoopback(openUrl, deviceName = "Mages")
+                service.port.loginSsoLoopback(openUrl, deviceName = getDeviceDisplayName())
                 service.isLoggedIn()
             } ?: false
 
