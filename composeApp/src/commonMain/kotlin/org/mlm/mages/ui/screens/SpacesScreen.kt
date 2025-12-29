@@ -90,10 +90,12 @@ fun SpacesScreen(
                 state.isLoading && state.spaces.isEmpty() -> {
                     ShimmerList(modifier = Modifier.fillMaxSize())
                 }
+
                 state.filteredSpaces.isEmpty() -> {
                     EmptyState(
                         icon = Icons.Default.Workspaces,
-                        title = if (state.searchQuery.isBlank()) "No spaces yet" else "No spaces found",
+                        title = if (state.searchQuery.isBlank()) "No spaces yet"
+                        else "No spaces found",
                         subtitle = if (state.searchQuery.isBlank())
                             "Create a space to organize your rooms"
                         else
@@ -109,6 +111,7 @@ fun SpacesScreen(
                         } else null
                     )
                 }
+
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -423,7 +426,9 @@ private fun CreateSpaceSheet(
 
             Button(
                 onClick = onCreate,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
                 enabled = name.isNotBlank() && !isCreating,
                 shape = MaterialTheme.shapes.large
             ) {

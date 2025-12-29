@@ -5,15 +5,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.mlm.mages.matrix.RoomProfile
+import org.mlm.mages.ui.components.core.StatusBanner
+import org.mlm.mages.ui.components.core.BannerType
 import org.mlm.mages.ui.viewmodel.InvitesViewModel
 
 @Composable
@@ -22,7 +22,6 @@ fun InvitesRoute(
     onBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    val scope = rememberCoroutineScope()
 
     InvitesScreen(
         invites = state.invites,
@@ -36,12 +35,10 @@ fun InvitesRoute(
                 viewModel.accept(profile.roomId, profile.name)
             }
         },
-        onDecline = { roomId -> viewModel.decline(roomId) },
-        onOpenRoom = { roomId, title ->
-            // No-op; navigation handled via events
-        }
+        onDecline = { roomId -> viewModel.decline(roomId) }
     )
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InvitesScreen(
@@ -51,27 +48,46 @@ fun InvitesScreen(
     onBack: () -> Unit,
     onRefresh: () -> Unit,
     onAccept: suspend (String) -> Unit,
-    onDecline: (String) -> Unit,
-    onOpenRoom: (roomId: String, title: String) -> Unit
+    onDecline: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Invites") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                    }
+                },
                 actions = {
-                    IconButton(enabled = !busy, onClick = onRefresh) { Icon(Icons.Default.Refresh, contentDescription = "Refresh") }
+                    IconButton(enabled = !busy, onClick = onRefresh) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                    }
                 }
             )
         }
     ) { pad ->
-        Column(Modifier.fillMaxSize().padding(pad)) {
-            if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(pad)
+        ) {
+            if (busy) {
+                LinearProgressIndicator(Modifier.fillMaxWidth())
+            }
+
+            StatusBanner(
+                message = error,
+                type = BannerType.ERROR
+            )
 
             if (invites.isEmpty() && !busy) {
-                Text("No pending invites", modifier = Modifier.padding(16.dp))
+                Text(
+                    "No pending invites",
+                    modifier = Modifier.padding(16.dp)
+                )
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(12.dp),
@@ -84,19 +100,27 @@ fun InvitesScreen(
                                 supportingContent = {
                                     Column {
                                         inv.topic?.let { Text(it) }
-                                        Text(inv.roomId, style = MaterialTheme.typography.labelSmall)
+                                        Text(
+                                            inv.roomId,
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
                                     }
                                 },
                                 trailingContent = {
-                                    Row { //Setting vertical alignment won't help on mobile since misaligns are due to text overflow...
-                                        TextButton(onClick = { onDecline(inv.roomId) }) { Text("Decline") }
+                                    Row {
+                                        TextButton(onClick = { onDecline(inv.roomId) }) {
+                                            Text("Decline")
+                                        }
                                         Spacer(Modifier.width(8.dp))
-                                        Button(onClick = {
-                                            scope.launch {
-                                                onAccept(inv.roomId)
-                                                onOpenRoom(inv.roomId, inv.name)
+                                        Button(
+                                            onClick = {
+                                                scope.launch {
+                                                    onAccept(inv.roomId)
+                                                }
                                             }
-                                        }) { Text("Accept") }
+                                        ) {
+                                            Text("Accept")
+                                        }
                                     }
                                 }
                             )

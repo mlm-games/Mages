@@ -3,7 +3,6 @@ package org.mlm.mages.ui.screens
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -15,12 +14,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.mlm.mages.RoomSummary
 import org.mlm.mages.ui.components.common.RoomListItem
 import org.mlm.mages.ui.components.core.EmptyState
+import org.mlm.mages.ui.components.core.SectionHeader
 import org.mlm.mages.ui.components.core.ShimmerList
+import org.mlm.mages.ui.components.core.StatusBanner
+import org.mlm.mages.ui.components.core.BannerType
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.RoomsViewModel
 
@@ -38,12 +39,10 @@ fun RoomsScreen(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
-    // Check if there are any rooms to display
     val hasAnyRooms = state.favouriteItems.isNotEmpty() ||
             state.normalItems.isNotEmpty() ||
             state.lowPriorityItems.isNotEmpty()
 
-    // Scroll to top when first room changes (new unread activity)
     val firstFavouriteId = state.favouriteItems.firstOrNull()?.roomId
     val firstNormalId = state.normalItems.firstOrNull()?.roomId
 
@@ -53,7 +52,6 @@ fun RoomsScreen(
         }
     }
 
-    // Show FAB when not at top and there's unread activity
     val showScrollToTopFab by remember(listState, state) {
         derivedStateOf {
             listState.firstVisibleItemIndex > 2 &&
@@ -102,11 +100,12 @@ fun RoomsScreen(
             state.isLoading && state.allItems.isEmpty() -> {
                 ShimmerList(modifier = Modifier.fillMaxSize().padding(innerPadding))
             }
+
             !hasAnyRooms && state.offlineBanner != null -> {
                 EmptyState(
                     icon = Icons.Default.CloudOff,
                     title = state.offlineBanner ?: "Offline",
-                    subtitle = "Connect to the internet to load rooms. If you’ve opened this account before, your last room list will appear here instantly.",
+                    subtitle = "Connect to the internet to load rooms. If you've opened this account before, your last room list will appear here instantly.",
                     modifier = Modifier.padding(innerPadding),
                     action = {
                         Button(onClick = viewModel::refresh) {
@@ -117,6 +116,7 @@ fun RoomsScreen(
                     }
                 )
             }
+
             !hasAnyRooms -> {
                 EmptyState(
                     icon = Icons.Default.MeetingRoom,
@@ -137,21 +137,27 @@ fun RoomsScreen(
                     } else null
                 )
             }
+
             else -> {
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize().padding(innerPadding),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
                     if (state.favouriteItems.isNotEmpty()) {
                         item(key = "header_favourites") {
                             SectionHeader(
-                                icon = Icons.Default.Star,
                                 title = "Favourites",
-                                count = state.favouriteItems.size
+                                count = state.favouriteItems.size,
+                                icon = Icons.Default.Star
                             )
                         }
-                        itemsIndexed(state.favouriteItems, key = {_, item -> "fav_${item.roomId}" }) { index, item ->
+                        itemsIndexed(
+                            state.favouriteItems,
+                            key = { _, item -> "fav_${item.roomId}" }
+                        ) { index, item ->
                             if (index > 0) {
                                 HorizontalDivider(
                                     modifier = Modifier.padding(horizontal = Spacing.lg),
@@ -170,13 +176,16 @@ fun RoomsScreen(
                         if (state.favouriteItems.isNotEmpty()) {
                             item(key = "header_rooms") {
                                 SectionHeader(
-                                    icon = Icons.Default.ChatBubble,
                                     title = "Rooms",
-                                    count = state.normalItems.size
+                                    count = state.normalItems.size,
+                                    icon = Icons.Default.ChatBubble
                                 )
                             }
                         }
-                        itemsIndexed(state.normalItems, key = { _, item -> "room_${item.roomId}" }) { index, item ->
+                        itemsIndexed(
+                            state.normalItems,
+                            key = { _, item -> "room_${item.roomId}" }
+                        ) { index, item ->
                             if (index > 0) {
                                 HorizontalDivider(
                                     modifier = Modifier.padding(horizontal = Spacing.lg),
@@ -194,12 +203,15 @@ fun RoomsScreen(
                     if (state.lowPriorityItems.isNotEmpty()) {
                         item(key = "header_low_priority") {
                             SectionHeader(
-                                icon = Icons.Default.ArrowDownward,
                                 title = "Low Priority",
-                                count = state.lowPriorityItems.size
+                                count = state.lowPriorityItems.size,
+                                icon = Icons.Default.ArrowDownward
                             )
                         }
-                        itemsIndexed(state.lowPriorityItems, key = { _, item -> "low_${item.roomId}" }) { index, item ->
+                        itemsIndexed(
+                            state.lowPriorityItems,
+                            key = { _, item -> "low_${item.roomId}" }
+                        ) { index, item ->
                             if (index > 0) {
                                 HorizontalDivider(
                                     modifier = Modifier.padding(horizontal = Spacing.lg),
@@ -263,53 +275,16 @@ private fun RoomsTopBar(
         )
 
         // Connection banners
-        AnimatedVisibility(visible = offlineBanner != null) {
-            Surface(
-                color = MaterialTheme.colorScheme.errorContainer,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.CloudOff,
-                        null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text(
-                        offlineBanner ?: "",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
-            }
-        }
+        StatusBanner(
+            message = offlineBanner,
+            type = BannerType.OFFLINE
+        )
 
-        AnimatedVisibility(visible = offlineBanner == null && syncBanner != null) {
-            Surface(
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(12.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text(
-                        syncBanner ?: "",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
-            }
+        if (offlineBanner == null) {
+            StatusBanner(
+                message = syncBanner,
+                type = BannerType.LOADING
+            )
         }
 
         AnimatedVisibility(visible = isLoading) {
@@ -352,38 +327,5 @@ private fun RoomsTopBar(
                 } else null
             )
         }
-    }
-}
-
-@Composable
-private fun SectionHeader(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    count: Int
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Medium
-        )
-        Text(
-            text = "($count)",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }

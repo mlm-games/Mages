@@ -21,6 +21,7 @@ import org.mlm.mages.matrix.DeviceSummary
 import org.mlm.mages.matrix.Presence
 import org.mlm.mages.matrix.SasPhase
 import org.mlm.mages.ui.components.core.EmptyState
+import org.mlm.mages.ui.components.dialogs.ConfirmationDialog
 import org.mlm.mages.ui.components.dialogs.RecoveryDialog
 import org.mlm.mages.ui.components.dialogs.SasDialog
 import org.mlm.mages.ui.theme.Spacing
@@ -38,7 +39,6 @@ fun SecurityScreen(
     var verifyUserId by remember { mutableStateOf("") }
     var showVerifyUserDialog by remember { mutableStateOf(false) }
 
-    // Show error from state
     LaunchedEffect(state.error) {
         state.error?.let { snackbarHostState.showSnackbar(it) }
     }
@@ -63,6 +63,7 @@ fun SecurityScreen(
                         }
                     }
                 )
+
                 TabRow(selectedTabIndex = state.selectedTab) {
                     Tab(
                         selected = state.selectedTab == 0,
@@ -187,29 +188,17 @@ fun SecurityScreen(
 
     // Logout Confirmation
     if (showLogoutConfirm) {
-        AlertDialog(
-            onDismissRequest = { showLogoutConfirm = false },
-            icon = { Icon(Icons.AutoMirrored.Filled.Logout, null) },
-            title = { Text("Sign Out") },
-            text = { Text("Are you sure you want to sign out?") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showLogoutConfirm = false
-                        viewModel.logout()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("Sign Out")
-                }
+        ConfirmationDialog(
+            title = "Sign Out",
+            message = "Are you sure you want to sign out?",
+            confirmText = "Sign Out",
+            icon = Icons.AutoMirrored.Filled.Logout,
+            isDestructive = true,
+            onConfirm = {
+                showLogoutConfirm = false
+                viewModel.logout()
             },
-            dismissButton = {
-                TextButton(onClick = { showLogoutConfirm = false }) {
-                    Text("Cancel")
-                }
-            }
+            onDismiss = { showLogoutConfirm = false }
         )
     }
 }
@@ -251,7 +240,9 @@ private fun DevicesTab(
 
         item {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.sm),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = Spacing.sm),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -262,7 +253,10 @@ private fun DevicesTab(
                 )
                 IconButton(onClick = onRefresh, enabled = !isLoading) {
                     if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        )
                     } else {
                         Icon(Icons.Default.Refresh, "Refresh")
                     }
@@ -305,15 +299,27 @@ private fun ActionCard(
             modifier = Modifier.padding(Spacing.lg),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
+            Icon(
+                icon,
+                null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(32.dp)
+            )
             Spacer(Modifier.height(Spacing.sm))
-            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
+            Text(
+                title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Medium
+            )
         }
     }
 }
 
 @Composable
-private fun DeviceCard(device: DeviceSummary, onVerify: () -> Unit) {
+private fun DeviceCard(
+    device: DeviceSummary,
+    onVerify: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -324,13 +330,17 @@ private fun DeviceCard(device: DeviceSummary, onVerify: () -> Unit) {
         )
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.lg),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                if (device.verified) Icons.Default.VerifiedUser else Icons.Default.Smartphone,
+                if (device.verified) Icons.Default.VerifiedUser
+                else Icons.Default.Smartphone,
                 null,
-                tint = if (device.verified) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (device.verified) Color(0xFF4CAF50)
+                else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(40.dp)
             )
 
@@ -354,7 +364,11 @@ private fun DeviceCard(device: DeviceSummary, onVerify: () -> Unit) {
                     Text("Verify")
                 }
             } else {
-                Icon(Icons.Default.CheckCircle, "Verified", tint = Color(0xFF4CAF50))
+                Icon(
+                    Icons.Default.CheckCircle,
+                    "Verified",
+                    tint = Color(0xFF4CAF50)
+                )
             }
         }
     }
@@ -365,7 +379,11 @@ private fun PrivacyTab(
     ignoredUsers: List<String>,
     onUnignore: (String) -> Unit
 ) {
-    Column(Modifier.fillMaxSize().padding(Spacing.lg)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(Spacing.lg)
+    ) {
         Text("Ignored Users", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(Spacing.md))
 
@@ -380,7 +398,9 @@ private fun PrivacyTab(
                 items(ignoredUsers) { mxid ->
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Row(
-                            Modifier.fillMaxWidth().padding(Spacing.md),
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(Spacing.md),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(Icons.Default.Person, null)
@@ -407,10 +427,16 @@ private fun PresenceTab(
     onSave: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(Spacing.lg),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg)
     ) {
-        Text("Your Status", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(
+            "Your Status",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -445,7 +471,11 @@ private fun PresenceTab(
             }
         }
 
-        Text("Status Message", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
+        Text(
+            "Status Message",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Medium
+        )
 
         OutlinedTextField(
             value = statusMessage,
@@ -490,7 +520,11 @@ private fun PresenceOption(
             .padding(vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Surface(color = color, shape = CircleShape, modifier = Modifier.size(12.dp)) {}
+        Surface(
+            color = color,
+            shape = CircleShape,
+            modifier = Modifier.size(12.dp)
+        ) {}
         Spacer(Modifier.width(Spacing.md))
         Text(
             title,
@@ -499,7 +533,11 @@ private fun PresenceOption(
             modifier = Modifier.weight(1f)
         )
         if (isSelected) {
-            Icon(Icons.Default.CheckCircle, "Selected", tint = MaterialTheme.colorScheme.primary)
+            Icon(
+                Icons.Default.CheckCircle,
+                "Selected",
+                tint = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }

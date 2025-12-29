@@ -2,7 +2,6 @@ package org.mlm.mages.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -14,11 +13,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.RoomDirectoryVisibility
 import org.mlm.mages.matrix.RoomProfile
-import org.mlm.mages.ui.viewmodel.RoomInfoUiState
+import org.mlm.mages.ui.components.dialogs.ConfirmationDialog
 import org.mlm.mages.ui.theme.Spacing
+import org.mlm.mages.ui.viewmodel.RoomInfoUiState
 import org.mlm.mages.ui.viewmodel.RoomInfoViewModel
 
 @Composable
@@ -36,16 +35,21 @@ fun RoomInfoRoute(
             when (event) {
                 RoomInfoViewModel.Event.LeaveSuccess -> onLeaveSuccess()
                 is RoomInfoViewModel.Event.OpenRoom -> {
-                    // handled in App.kt (no anim though)
+                    // handled in App.kt
                 }
-                is RoomInfoViewModel.Event.ShowError -> snackbarHostState.showSnackbar(event.message)
-                is RoomInfoViewModel.Event.ShowSuccess -> snackbarHostState.showSnackbar(event.message)
+                is RoomInfoViewModel.Event.ShowError -> {
+                    snackbarHostState.showSnackbar(event.message)
+                }
+                is RoomInfoViewModel.Event.ShowSuccess -> {
+                    snackbarHostState.showSnackbar(event.message)
+                }
             }
         }
     }
 
     RoomInfoScreen(
         state = state,
+        snackbarHostState = snackbarHostState,
         onBack = onBack,
         onRefresh = viewModel::refresh,
         onNameChange = viewModel::updateName,
@@ -66,6 +70,7 @@ fun RoomInfoRoute(
 @Composable
 fun RoomInfoScreen(
     state: RoomInfoUiState,
+    snackbarHostState: SnackbarHostState,
     onBack: () -> Unit,
     onRefresh: () -> Unit,
     onNameChange: (String) -> Unit,
@@ -81,7 +86,6 @@ fun RoomInfoScreen(
     onOpenRoom: (String) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
     var showLeaveDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -104,14 +108,18 @@ fun RoomInfoScreen(
     ) { padding ->
         if (state.isLoading && state.profile == null) {
             Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
             }
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -120,6 +128,7 @@ fun RoomInfoScreen(
                     RoomHeader(state, onOpenRoom)
                 }
 
+                // Priority section
                 item {
                     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
@@ -146,7 +155,8 @@ fun RoomInfoScreen(
                                     label = { Text("Favourite") },
                                     leadingIcon = {
                                         Icon(
-                                            if (state.isFavourite) Icons.Default.Star else Icons.Default.StarBorder,
+                                            if (state.isFavourite) Icons.Default.Star
+                                            else Icons.Default.StarBorder,
                                             contentDescription = null,
                                             modifier = Modifier.size(18.dp)
                                         )
@@ -168,7 +178,8 @@ fun RoomInfoScreen(
                                     label = { Text("Low Priority") },
                                     leadingIcon = {
                                         Icon(
-                                            if (state.isLowPriority) Icons.Default.ArrowDownward else Icons.Default.Remove,
+                                            if (state.isLowPriority) Icons.Default.ArrowDownward
+                                            else Icons.Default.Remove,
                                             contentDescription = null,
                                             modifier = Modifier.size(18.dp)
                                         )
@@ -180,7 +191,6 @@ fun RoomInfoScreen(
                         }
                     }
                 }
-
 
                 // Edit name
                 item {
@@ -221,6 +231,7 @@ fun RoomInfoScreen(
 
                 item { HorizontalDivider() }
 
+                // Privacy section
                 item {
                     state.profile?.let { profile ->
                         PrivacySection(
@@ -230,34 +241,26 @@ fun RoomInfoScreen(
                             onSetVisibility = {
                                 scope.launch {
                                     val target = if (state.directoryVisibility == RoomDirectoryVisibility.Public)
-                                        RoomDirectoryVisibility.Private else RoomDirectoryVisibility.Public
+                                        RoomDirectoryVisibility.Private
+                                    else
+                                        RoomDirectoryVisibility.Public
                                     val ok = onSetVisibility(target)
-                                    if (!ok) snackbarHostState.showSnackbar("Failed to update visibility")
+                                    if (!ok) {
+                                        snackbarHostState.showSnackbar("Failed to update visibility")
+                                    }
                                 }
                             },
                             onEnableEncryption = {
                                 scope.launch {
                                     val ok = onEnableEncryption()
-                                    if (!ok) snackbarHostState.showSnackbar("Failed to enable encryption")
+                                    if (!ok) {
+                                        snackbarHostState.showSnackbar("Failed to enable encryption")
+                                    }
                                 }
                             }
                         )
                     }
                 }
-
-                // Members header (duplicate)
-//                item {
-//                    Text(
-//                        text = "Members (${state.members.size})",
-//                        style = MaterialTheme.typography.titleMedium
-//                    )
-//                }
-//
-//                items(state.members) { member ->
-//                    MemberRow(member)
-//                }
-
-
 
                 item { HorizontalDivider() }
 
@@ -273,7 +276,10 @@ fun RoomInfoScreen(
                     ) {
                         Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text(if (state.profile?.isDm == true) "End conversation" else "Leave room")
+                        Text(
+                            if (state.profile?.isDm == true) "End conversation"
+                            else "Leave room"
+                        )
                     }
                 }
             }
@@ -281,35 +287,24 @@ fun RoomInfoScreen(
 
         // Leave confirmation dialog
         if (showLeaveDialog) {
-            AlertDialog(
-                onDismissRequest = { showLeaveDialog = false },
-                icon = { Icon(Icons.Default.Warning, contentDescription = null) },
-                title = { Text("Leave room?") },
-                text = {
-                    Text("You will no longer receive messages from this room. You can rejoin if invited again.")
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            showLeaveDialog = false
-                            scope.launch {
-                                val success = onLeave()
-                                if (success) {
-                                    onLeaveSuccess()
-                                } else {
-                                    snackbarHostState.showSnackbar("Failed to leave room")
-                                }
-                            }
+            ConfirmationDialog(
+                title = "Leave room?",
+                message = "You will no longer receive messages from this room. You can rejoin if invited again.",
+                confirmText = "Leave",
+                icon = Icons.Default.Warning,
+                isDestructive = true,
+                onConfirm = {
+                    showLeaveDialog = false
+                    scope.launch {
+                        val success = onLeave()
+                        if (success) {
+                            onLeaveSuccess()
+                        } else {
+                            snackbarHostState.showSnackbar("Failed to leave room")
                         }
-                    ) {
-                        Text("Leave", color = MaterialTheme.colorScheme.error)
                     }
                 },
-                dismissButton = {
-                    TextButton(onClick = { showLeaveDialog = false }) {
-                        Text("Cancel")
-                    }
-                }
+                onDismiss = { showLeaveDialog = false }
             )
         }
 
@@ -323,12 +318,13 @@ fun RoomInfoScreen(
 }
 
 @Composable
-private fun RoomHeader(state: RoomInfoUiState, onOpenRoom: (String) -> Unit) {
+private fun RoomHeader(
+    state: RoomInfoUiState,
+    onOpenRoom: (String) -> Unit
+) {
     val profile = state.profile ?: return
 
-    ElevatedCard(
-        modifier = Modifier.fillMaxWidth(),
-    ) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -339,9 +335,10 @@ private fun RoomHeader(state: RoomInfoUiState, onOpenRoom: (String) -> Unit) {
                 color = MaterialTheme.colorScheme.primaryContainer,
                 modifier = Modifier.size(64.dp)
             ) {
-                Box(contentAlignment = Alignment.Center) { // TODO : add avatar usage / Switch to Avatar Composable
+                Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = if (profile.isDm) Icons.Default.Person else Icons.Default.People,
+                        imageVector = if (profile.isDm) Icons.Default.Person
+                        else Icons.Default.People,
                         contentDescription = null,
                         modifier = Modifier.size(32.dp),
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
@@ -387,7 +384,6 @@ private fun RoomHeader(state: RoomInfoUiState, onOpenRoom: (String) -> Unit) {
         }
     }
 
-
     Column(Modifier.fillMaxWidth()) {
         if (state.successor != null) {
             ElevatedCard(
@@ -397,7 +393,10 @@ private fun RoomHeader(state: RoomInfoUiState, onOpenRoom: (String) -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("This room has been upgraded", style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        "This room has been upgraded",
+                        style = MaterialTheme.typography.titleSmall
+                    )
                     state.successor.reason?.let {
                         Spacer(Modifier.height(4.dp))
                         Text(it, style = MaterialTheme.typography.bodySmall)
@@ -419,7 +418,10 @@ private fun RoomHeader(state: RoomInfoUiState, onOpenRoom: (String) -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Upgraded from another room", style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        "Upgraded from another room",
+                        style = MaterialTheme.typography.titleSmall
+                    )
                     TextButton(onClick = { onOpenRoom(state.predecessor.roomId) }) {
                         Text("Open previous room")
                     }
@@ -452,7 +454,9 @@ private fun EditableField(
         Button(
             onClick = onSave,
             enabled = !isSaving,
-            modifier = Modifier.align(Alignment.CenterHorizontally).fillMaxWidth()
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .fillMaxWidth()
         ) {
             if (isSaving) {
                 CircularProgressIndicator(
@@ -464,58 +468,6 @@ private fun EditableField(
             }
         }
     }
-}
-
-@Composable
-private fun MemberRow(member: MemberSummary) {
-    ListItem(
-        leadingContent = {
-            Surface(
-                shape = MaterialTheme.shapes.small,
-                color = if (member.isMe)
-                    MaterialTheme.colorScheme.primaryContainer
-                else
-                    MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = null,
-                        tint = if (member.isMe)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        },
-        headlineContent = {
-            Text(
-                text = member.displayName ?: member.userId,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        },
-        supportingContent = {
-            if (member.displayName != null) {
-                Text(
-                    text = member.userId,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        },
-        trailingContent = {
-            if (member.isMe) {
-                Text(
-                    text = "You",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-    )
 }
 
 @Composable

@@ -87,7 +87,11 @@ fun SpaceSettingsScreen(
                         headlineContent = { Text("Add rooms") },
                         supportingContent = { Text("Add existing rooms to this space") },
                         leadingContent = {
-                            Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.primary)
+                            Icon(
+                                Icons.Default.Add,
+                                null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         },
                         modifier = Modifier.clickable(enabled = !state.isSaving) {
                             viewModel.showAddRoomDialog()
@@ -100,7 +104,11 @@ fun SpaceSettingsScreen(
                         headlineContent = { Text("Invite users") },
                         supportingContent = { Text("Invite users to this space") },
                         leadingContent = {
-                            Icon(Icons.Default.PersonAdd, null, tint = MaterialTheme.colorScheme.primary)
+                            Icon(
+                                Icons.Default.PersonAdd,
+                                null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         },
                         modifier = Modifier.clickable(enabled = !state.isSaving) {
                             viewModel.showInviteDialog()
@@ -245,7 +253,8 @@ private fun ChildRoomItem(
             ) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Icon(
-                        if (child.isSpace) Icons.Default.Workspaces else Icons.Default.Tag,
+                        if (child.isSpace) Icons.Default.Workspaces
+                        else Icons.Default.Tag,
                         null
                     )
                 }
@@ -292,7 +301,11 @@ private fun AddRoomDialog(
                             ListItem(
                                 headlineContent = { Text(room.name) },
                                 supportingContent = {
-                                    Text(room.id, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(
+                                        room.id,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 },
                                 leadingContent = {
                                     RadioButton(
@@ -385,4 +398,3 @@ private fun InviteUserToSpaceDialog(
         }
     )
 }
-

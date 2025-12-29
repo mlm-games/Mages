@@ -66,7 +66,10 @@ fun LoginScreen(
                 shape = MaterialTheme.shapes.extraLarge,
                 modifier = Modifier.size(100.dp)
             ) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
+                ) {
                     Icon(
                         Icons.AutoMirrored.Filled.Chat,
                         null,
@@ -106,11 +109,15 @@ fun LoginScreen(
             // Login card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
                 elevation = CardDefaults.cardElevation(2.dp)
             ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(20.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // Username
@@ -212,11 +219,15 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(
-                            if (showAdvanced) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            if (showAdvanced) Icons.Default.ExpandLess
+                            else Icons.Default.ExpandMore,
                             null
                         )
                         Spacer(Modifier.width(4.dp))
-                        Text(if (showAdvanced) "Hide advanced options" else "Show advanced options")
+                        Text(
+                            if (showAdvanced) "Hide advanced options"
+                            else "Show advanced options"
+                        )
                     }
 
                     Spacer(Modifier.height(8.dp))
@@ -225,7 +236,9 @@ fun LoginScreen(
                     Button(
                         onClick = viewModel::submit,
                         enabled = !state.isBusy && state.user.isNotBlank() && state.pass.isNotBlank(),
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
                         shape = MaterialTheme.shapes.large
                     ) {
                         if (state.isBusy) {
@@ -273,6 +286,7 @@ fun LoginScreen(
                     }
                 }
             }
+
             Spacer(Modifier.height(24.dp))
         }
     }

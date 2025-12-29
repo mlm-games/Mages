@@ -13,6 +13,8 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.mlm.mages.matrix.DirectoryUser
 import org.mlm.mages.matrix.PublicRoom
+import org.mlm.mages.ui.components.core.StatusBanner
+import org.mlm.mages.ui.components.core.BannerType
 import org.mlm.mages.ui.viewmodel.DiscoverUi
 import org.mlm.mages.ui.viewmodel.DiscoverViewModel
 
@@ -22,7 +24,6 @@ fun DiscoverRoute(
     onClose: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    val scope = rememberCoroutineScope()
 
     DiscoverScreen(
         state = state,
@@ -32,6 +33,7 @@ fun DiscoverRoute(
         onOpenRoom = { r -> viewModel.openRoom(r) }
     )
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiscoverScreen(
@@ -42,15 +44,26 @@ fun DiscoverScreen(
     onOpenRoom: suspend (PublicRoom) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Discover") },
-                navigationIcon = { IconButton(onClick = onClose) { Icon(Icons.Default.Group, contentDescription = null) } }
+                navigationIcon = {
+                    IconButton(onClick = onClose) {
+                        Icon(Icons.Default.Group, contentDescription = null)
+                    }
+                }
             )
         }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             OutlinedTextField(
                 value = state.query,
                 onValueChange = onQuery,
@@ -66,19 +79,31 @@ fun DiscoverScreen(
             // Users
             if (state.users.isNotEmpty()) {
                 Text("Users", style = MaterialTheme.typography.titleSmall)
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.heightIn(max = 260.dp)) {
+
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.heightIn(max = 260.dp)
+                ) {
                     items(state.users) { u ->
                         ListItem(
                             headlineContent = { Text(u.displayName ?: u.userId) },
-                            supportingContent = { if (!u.displayName.isNullOrBlank()) Text(u.userId) },
-                            leadingContent = { Icon(Icons.Default.Person, contentDescription = null) },
+                            supportingContent = {
+                                if (!u.displayName.isNullOrBlank()) {
+                                    Text(u.userId)
+                                }
+                            },
+                            leadingContent = {
+                                Icon(Icons.Default.Person, contentDescription = null)
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             overlineContent = null,
                             trailingContent = {
-                                TextButton(onClick = { scope.launch { onOpenUser(u) } }) { Text("Message") }
+                                TextButton(onClick = { scope.launch { onOpenUser(u) } }) {
+                                    Text("Message")
+                                }
                             }
                         )
-                        Divider()
+                        HorizontalDivider()
                     }
                 }
             }
@@ -86,7 +111,11 @@ fun DiscoverScreen(
             // Rooms
             if (state.rooms.isNotEmpty()) {
                 Text("Public rooms", style = MaterialTheme.typography.titleSmall)
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f, fill = true)) {
+
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f, fill = true)
+                ) {
                     items(state.rooms) { r ->
                         ListItem(
                             headlineContent = { Text(r.name ?: r.alias ?: r.roomId) },
@@ -96,17 +125,25 @@ fun DiscoverScreen(
                                 }
                                 if (line.isNotBlank()) Text(line)
                             },
-                            leadingContent = { Icon(Icons.Default.Group, contentDescription = null) },
+                            leadingContent = {
+                                Icon(Icons.Default.Group, contentDescription = null)
+                            },
                             trailingContent = {
-                                TextButton(onClick = { scope.launch { onOpenRoom(r) } }) { Text("Join") }
+                                TextButton(onClick = { scope.launch { onOpenRoom(r) } }) {
+                                    Text("Join")
+                                }
                             }
                         )
-                        Divider()
+                        HorizontalDivider()
                     }
                 }
             }
 
-            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            // Error banner
+            StatusBanner(
+                message = state.error,
+                type = BannerType.ERROR
+            )
         }
     }
 }

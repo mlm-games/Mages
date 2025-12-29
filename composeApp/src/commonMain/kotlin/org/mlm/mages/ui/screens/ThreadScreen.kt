@@ -16,7 +16,6 @@ import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
@@ -33,6 +32,9 @@ import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.ReactionChip
 import org.mlm.mages.ui.ThreadUiState
 import org.mlm.mages.ui.components.core.Avatar
+import org.mlm.mages.ui.components.core.LoadMoreButton
+import org.mlm.mages.ui.components.core.StatusBanner
+import org.mlm.mages.ui.components.core.BannerType
 import org.mlm.mages.ui.components.core.formatDisplayName
 import org.mlm.mages.ui.components.message.MessageBubble
 import org.mlm.mages.ui.components.sheets.MessageActionSheet
@@ -48,7 +50,6 @@ fun ThreadRoute(
 ) {
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
-
     val snackbarManager: SnackbarManager = koinInject()
 
     LaunchedEffect(Unit) {
@@ -104,12 +105,12 @@ fun ThreadScreen(
     var sheetEvent by remember { mutableStateOf<MessageEvent?>(null) }
     val listState = rememberLazyListState()
 
-    // Calculate total items: load more button (optional) + root (optional) + divider (optional) + replies
+    // Calculate total items
     val totalItems = remember(state.nextBatch, state.rootMessage, state.replies) {
         var count = 0
-        if (state.nextBatch != null) count++ // load more
-        if (state.rootMessage != null) count++ // root
-        if (state.rootMessage != null && state.replies.isNotEmpty()) count++ // divider
+        if (state.nextBatch != null) count++
+        if (state.rootMessage != null) count++
+        if (state.rootMessage != null && state.replies.isNotEmpty()) count++
         count += state.replies.size
         count
     }
@@ -121,7 +122,7 @@ fun ThreadScreen(
         }
     }
 
-    // Auto-scroll when new message appears at bottom (if already near bottom)
+    // Auto-scroll when new message appears
     LaunchedEffect(state.replies.lastOrNull()?.itemId, isNearBottom) {
         if (isNearBottom && totalItems > 0) {
             listState.animateScrollToItem(totalItems - 1)
@@ -183,37 +184,13 @@ fun ThreadScreen(
                 )
             }
 
-            state.error?.let { error ->
-                Surface(
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(Spacing.lg),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.ErrorOutline,
-                            null,
-                            tint = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(Modifier.width(Spacing.md))
-                        Text(
-                            error,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
+            StatusBanner(
+                message = state.error,
+                type = BannerType.ERROR
+            )
 
             when {
                 !state.hasInitialLoad && state.isLoading -> {
-                    // initial loading
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator()
@@ -239,26 +216,11 @@ fun ThreadScreen(
                     ) {
                         if (state.nextBatch != null) {
                             item(key = "load_more") {
-                                Box(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(Spacing.lg),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    OutlinedButton(
-                                        onClick = onLoadMore,
-                                        enabled = !state.isLoading
-                                    ) {
-                                        if (state.isLoading) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(16.dp),
-                                                strokeWidth = 2.dp
-                                            )
-                                            Spacer(Modifier.width(Spacing.sm))
-                                        }
-                                        Text("Load earlier messages")
-                                    }
-                                }
+                                LoadMoreButton(
+                                    isLoading = state.isLoading,
+                                    onClick = onLoadMore,
+                                    text = "Load earlier messages"
+                                )
                             }
                         }
 
@@ -268,15 +230,13 @@ fun ThreadScreen(
                                     state = state,
                                     event = root,
                                     isMine = root.sender == myUserId,
-                                    reactionChips = state.reactionChips[root.eventId]
-                                        ?: emptyList(),
+                                    reactionChips = state.reactionChips[root.eventId] ?: emptyList(),
                                     onReact = { emoji -> onReact(root, emoji) },
                                     onReply = { onStartReply(root) },
                                     onLongPress = { sheetEvent = root }
                                 )
                             }
 
-                            
                             if (state.replies.isNotEmpty()) {
                                 item(key = "divider") {
                                     ThreadDivider(replyCount = state.replies.size)
@@ -284,7 +244,6 @@ fun ThreadScreen(
                             }
                         }
 
-                        
                         itemsIndexed(
                             items = state.replies,
                             key = { _, ev -> "reply_${ev.itemId}" }
@@ -297,8 +256,7 @@ fun ThreadScreen(
                             ThreadReplyMessage(
                                 event = event,
                                 isMine = event.sender == myUserId,
-                                reactionChips = state.reactionChips[event.eventId]
-                                    ?: emptyList(),
+                                reactionChips = state.reactionChips[event.eventId] ?: emptyList(),
                                 onReact = { emoji -> onReact(event, emoji) },
                                 onLongPress = { sheetEvent = event },
                                 grouped = shouldGroup
@@ -310,7 +268,6 @@ fun ThreadScreen(
         }
     }
 
-    
     sheetEvent?.let { ev ->
         val isMine = ev.sender == myUserId
         MessageActionSheet(
@@ -425,7 +382,6 @@ private fun ThreadRootMessage(
         onClick = onLongPress
     ) {
         Column(modifier = Modifier.padding(Spacing.lg)) {
-            
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -466,7 +422,8 @@ private fun ThreadRootMessage(
                         formatDisplayName(event.sender),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (isMine) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        color = if (isMine) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         formatTime(event.timestamp),
@@ -680,7 +637,6 @@ private fun ThreadComposer(
                             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Accent
                         Box(
                             modifier = Modifier
                                 .width(3.dp)
@@ -696,7 +652,8 @@ private fun ThreadComposer(
                         Spacer(Modifier.width(Spacing.md))
 
                         Icon(
-                            if (isEditing) Icons.Default.Edit else Icons.AutoMirrored.Filled.Reply,
+                            if (isEditing) Icons.Default.Edit
+                            else Icons.AutoMirrored.Filled.Reply,
                             null,
                             modifier = Modifier.size(16.dp),
                             tint = if (isEditing)
@@ -791,7 +748,8 @@ private fun ThreadComposer(
                     )
                 ) {
                     Icon(
-                        if (isEditing) Icons.Default.Edit else Icons.AutoMirrored.Filled.Send,
+                        if (isEditing) Icons.Default.Edit
+                        else Icons.AutoMirrored.Filled.Send,
                         if (isEditing) "Save" else "Send"
                     )
                 }

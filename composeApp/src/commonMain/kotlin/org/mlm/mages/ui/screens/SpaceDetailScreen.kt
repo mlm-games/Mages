@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.matrix.SpaceInfo
 import org.mlm.mages.ui.components.core.EmptyState
+import org.mlm.mages.ui.components.core.LoadMoreButton
+import org.mlm.mages.ui.components.core.SectionHeader
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.SpaceDetailViewModel
 
@@ -94,6 +96,7 @@ fun SpaceDetailScreen(
                         CircularProgressIndicator()
                     }
                 }
+
                 state.hierarchy.isEmpty() -> {
                     EmptyState(
                         icon = Icons.Default.FolderOpen,
@@ -101,6 +104,7 @@ fun SpaceDetailScreen(
                         subtitle = "Add rooms or subspaces to organize your conversations"
                     )
                 }
+
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -108,7 +112,10 @@ fun SpaceDetailScreen(
                     ) {
                         if (state.subspaces.isNotEmpty()) {
                             item(key = "header_subspaces") {
-                                SectionHeader("Spaces", state.subspaces.size)
+                                SectionHeader(
+                                    title = "Spaces",
+                                    count = state.subspaces.size
+                                )
                             }
                             items(state.subspaces, key = { "sub_${it.roomId}" }) { child ->
                                 SpaceChildItem(
@@ -120,7 +127,10 @@ fun SpaceDetailScreen(
 
                         if (state.rooms.isNotEmpty()) {
                             item(key = "header_rooms") {
-                                SectionHeader("Rooms", state.rooms.size)
+                                SectionHeader(
+                                    title = "Rooms",
+                                    count = state.rooms.size
+                                )
                             }
                             items(state.rooms, key = { "room_${it.roomId}" }) { child ->
                                 SpaceChildItem(
@@ -132,26 +142,10 @@ fun SpaceDetailScreen(
 
                         if (state.nextBatch != null) {
                             item(key = "load_more") {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(Spacing.lg),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    OutlinedButton(
-                                        onClick = viewModel::loadMore,
-                                        enabled = !state.isLoadingMore
-                                    ) {
-                                        if (state.isLoadingMore) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(16.dp),
-                                                strokeWidth = 2.dp
-                                            )
-                                            Spacer(Modifier.width(Spacing.sm))
-                                        }
-                                        Text("Load more")
-                                    }
-                                }
+                                LoadMoreButton(
+                                    isLoading = state.isLoadingMore,
+                                    onClick = viewModel::loadMore
+                                )
                             }
                         }
                     }
@@ -206,7 +200,10 @@ private fun SpaceHeaderCard(space: SpaceInfo) {
                                 Text(
                                     "Public",
                                     style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = 2.dp)
+                                    modifier = Modifier.padding(
+                                        horizontal = Spacing.sm,
+                                        vertical = 2.dp
+                                    )
                                 )
                             }
                         }
@@ -227,34 +224,6 @@ private fun SpaceHeaderCard(space: SpaceInfo) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun SectionHeader(title: String, count: Int) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(Modifier.width(Spacing.sm))
-        Surface(
-            color = MaterialTheme.colorScheme.primaryContainer,
-            shape = CircleShape
-        ) {
-            Text(
-                count.toString(),
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(horizontal = Spacing.sm, vertical = 2.dp)
-            )
         }
     }
 }
@@ -302,7 +271,8 @@ private fun SpaceChildItem(
             ) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Icon(
-                        if (child.isSpace) Icons.Default.Workspaces else Icons.Default.Tag,
+                        if (child.isSpace) Icons.Default.Workspaces
+                        else Icons.Default.Tag,
                         null,
                         tint = if (child.isSpace)
                             MaterialTheme.colorScheme.onSecondaryContainer
