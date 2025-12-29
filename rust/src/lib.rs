@@ -172,6 +172,7 @@ pub struct MessageEvent {
     pub reply_to_body: Option<String>,
     pub attachment: Option<AttachmentInfo>,
     pub thread_root_event_id: Option<String>,
+    pub is_edited: bool,
 }
 
 #[derive(Clone, Debug, Record)]
@@ -5174,6 +5175,7 @@ fn map_timeline_event(
     let mut attachment: Option<AttachmentInfo> = None;
     let thread_root_event_id = ev.content().thread_root().map(|id| id.to_string());
     let body: String;
+    let mut is_edited = false;  
 
     match ev.content() {
         TimelineItemContent::MsgLike(ml) => {
@@ -5189,11 +5191,12 @@ fn map_timeline_event(
 
             if let Some(msg) = ml.as_message() {
                 attachment = extract_attachment(&msg);
+                is_edited = msg.is_edited();  
                 let raw = msg.body();
                 body = if reply_to_event_id.is_some() {
                     strip_reply_fallback(raw)
                 } else {
-                    render_message_text(&msg)
+                    raw.to_owned()  
                 };
             } else {
                 body = render_msg_like(ev, ml);
@@ -5218,6 +5221,7 @@ fn map_timeline_event(
         reply_to_body,
         attachment,
         thread_root_event_id,
+        is_edited,  
     })
 }
 
@@ -5494,15 +5498,12 @@ async fn attach_sas_stream(
 }
 
 fn render_message_text(msg: &matrix_sdk_ui::timeline::Message) -> String {
-    let mut s = msg.body().to_owned();
+    let s = msg.body().to_owned();
     if s.trim().is_empty() {
-        s = "Encrypted or unsupported message. Verify this session or restore keys to view."
-            .to_owned();
+        "Encrypted or unsupported message. Verify this session or restore keys to view.".to_owned()
+    } else {
+        s
     }
-    if msg.is_edited() {
-        s.push_str(" \n(edited)");
-    }
-    s
 }
 
 async fn latest_room_event_for(client: &SdkClient, room: &Room) -> Option<LatestRoomEvent> {

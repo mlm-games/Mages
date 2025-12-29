@@ -648,7 +648,8 @@ private fun MessageItem(
         onOpenAttachment = onOpenAttachment,
         replyPreview = event.replyToBody,
         replySender = event.replyToSender?.let { formatDisplayName(it) },
-        sendState = event.sendState
+        sendState = event.sendState,
+        isEdited = event.isEdited
     )
 
     val threadCount = state.threadCount[event.eventId]

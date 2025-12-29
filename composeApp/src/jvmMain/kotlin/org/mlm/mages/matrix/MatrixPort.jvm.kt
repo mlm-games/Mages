@@ -1251,7 +1251,8 @@ private fun mages.MessageEvent.toModel() = MessageEvent(
     replyToSender = replyToSender,
     replyToBody = replyToBody,
     attachment = attachment?.toModel(),
-    threadRootEventId = threadRootEventId
+    threadRootEventId = threadRootEventId,
+    isEdited = isEdited
 )
 
 private fun mages.SendState.toKotlin(): SendState = when (this) {

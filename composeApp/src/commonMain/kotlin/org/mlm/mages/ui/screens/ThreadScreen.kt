@@ -606,7 +606,8 @@ private fun ThreadReplyMessage(
                 onLongPress = onLongPress,
                 replyPreview = event.replyToBody,
                 replySender = event.replyToSender?.let { formatDisplayName(it) },
-                sendState = event.sendState
+                sendState = event.sendState,
+                isEdited = event.isEdited
             )
         }
     }

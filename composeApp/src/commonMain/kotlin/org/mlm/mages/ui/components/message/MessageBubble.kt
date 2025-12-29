@@ -45,7 +45,8 @@ fun MessageBubble(
     lastReadByOthersTs: Long? = null,
     onLongPress: (() -> Unit)? = null,
     onReact: ((String) -> Unit)? = null,
-    onOpenAttachment: (() -> Unit)? = null
+    onOpenAttachment: (() -> Unit)? = null,
+    isEdited: Boolean = false,
 ) {
     Column(
         modifier = modifier
@@ -85,6 +86,16 @@ fun MessageBubble(
                         text = body,
                         color = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
                         else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                if (isEdited) {
+                    Text(
+                        text = "(edited)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = (if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.6f),
+                        modifier = Modifier.padding(top = 2.dp)
                     )
                 }
 
