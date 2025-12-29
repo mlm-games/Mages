@@ -8,8 +8,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import org.mlm.mages.MatrixService
 import org.mlm.mages.MessageEvent
-import org.mlm.mages.matrix.ReactionChip
-import org.mlm.mages.matrix.SendState
 import org.mlm.mages.matrix.TimelineDiff
 import org.mlm.mages.ui.ThreadUiState
 

@@ -1,7 +1,9 @@
 use js_int::UInt;
 use matrix_sdk::{
-    EncryptionState, PredecessorRoom, RoomDisplayName, SuccessorRoom, ruma::{
-        UserId, events::{
+    EncryptionState, PredecessorRoom, RoomDisplayName, SuccessorRoom,
+    ruma::{
+        UserId,
+        events::{
             ignored_user_list::IgnoredUserListEventContent,
             room::{
                 ImageInfo,
@@ -10,8 +12,9 @@ use matrix_sdk::{
                     VideoMessageEventContent,
                 },
             },
-        }, room::Restricted
-    }
+        },
+        room::Restricted,
+    },
 };
 use matrix_sdk_base::notification_settings::RoomNotificationMode as RsMode;
 use matrix_sdk_ui::{
@@ -21,6 +24,7 @@ use matrix_sdk_ui::{
 use mime::Mime;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use std::mem::ManuallyDrop;
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -30,9 +34,8 @@ use std::{
     },
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
-use std::{mem::ManuallyDrop};
 use tokio::runtime::Runtime;
-use tracing::{ error, info, warn};
+use tracing::{error, info, warn};
 use tracing_subscriber::{EnvFilter, fmt};
 use uniffi::{Enum, Object, Record, export, setup_scaffolding};
 
@@ -61,11 +64,8 @@ use matrix_sdk::{
     encryption::BackupDownloadStrategy,
     ruma::{
         EventId, OwnedDeviceId, OwnedRoomId, OwnedUserId,
-        api::client::{
-            receipt::create_receipt::v3::ReceiptType,
-        },
-        events::call::invite::OriginalSyncCallInviteEvent,
-        events::receipt::SyncReceiptEvent,
+        api::client::receipt::create_receipt::v3::ReceiptType,
+        events::call::invite::OriginalSyncCallInviteEvent, events::receipt::SyncReceiptEvent,
     },
 };
 use matrix_sdk::{
@@ -126,9 +126,7 @@ use matrix_sdk::ruma::{
             UnstablePollStartContentBlock,
         },
     },
-    events::room::{
-        history_visibility::HistoryVisibility, join_rules::JoinRule,
-    },
+    events::room::{history_visibility::HistoryVisibility, join_rules::JoinRule},
     presence::PresenceState,
 };
 use std::panic::AssertUnwindSafe;
@@ -179,8 +177,8 @@ pub struct MessageEvent {
 pub struct SeenByEntry {
     pub user_id: String,
     pub display_name: Option<String>,
-    pub avatar_url: Option<String>,  
-    pub ts_ms: Option<u64>, 
+    pub avatar_url: Option<String>,
+    pub ts_ms: Option<u64>,
 }
 
 #[derive(Clone, Enum)]
@@ -887,31 +885,6 @@ impl Client {
             call_subs: Mutex::new(HashMap::new()),
             live_location_subs: Mutex::new(HashMap::new()),
         };
-
-        {
-            let client = this.inner.clone();
-            let h = RT.spawn(async move {
-                if let Some(mut stream) = client.encryption().room_keys_received_stream().await {
-                    while let Some(batch) = stream.next().await {
-                        let Ok(infos) = batch else { continue };
-                        use std::collections::HashMap;
-                        let mut by_room: HashMap<OwnedRoomId, Vec<String>> = HashMap::new();
-                        for info in infos {
-                            by_room
-                                .entry(info.room_id.clone())
-                                .or_default()
-                                .push(info.session_id.clone());
-                        }
-                        for (rid, sessions) in by_room {
-                            if let Some(tl) = get_timeline_for(&client, &rid).await {
-                                tl.retry_decryption(sessions).await;
-                            }
-                        }
-                    }
-                }
-            });
-            this.guards.lock().unwrap().push(h);
-        }
 
         {
             let observers = this.send_observers.clone();
@@ -1943,15 +1916,13 @@ impl Client {
     pub fn start_supervised_sync(&self, observer: Box<dyn SyncObserver>) {
         let obs: Arc<dyn SyncObserver> = Arc::from(observer);
         let svc_slot = self.sync_service.clone();
-        let h = RT.spawn(async move {
-            use std::time::Duration;
 
+        let h = RT.spawn(async move {
             obs.on_state(SyncStatus {
                 phase: SyncPhase::Idle,
                 message: None,
             });
 
-            // Wait until it starts (session may be restoring)
             let svc = loop {
                 if let Some(s) = { svc_slot.lock().unwrap().as_ref().cloned() } {
                     break s;
@@ -1960,7 +1931,8 @@ impl Client {
             };
 
             let mut st = svc.state();
-            let _ = svc.start().await;
+
+            svc.start().await;
 
             while let Some(state) = st.next().await {
                 match state {
@@ -1979,24 +1951,24 @@ impl Client {
                     State::Offline => {
                         obs.on_state(SyncStatus {
                             phase: SyncPhase::BackingOff,
-                            message: Some("Offline".into()),
+                            message: Some("Offline (auto-retrying)".into()),
                         });
                     }
                     State::Terminated => {
                         obs.on_state(SyncStatus {
-                            phase: SyncPhase::Error,
-                            message: Some("Sync terminated".into()),
+                            phase: SyncPhase::Idle,
+                            message: Some("Sync stopped".into()),
                         });
-                        let _ = svc.start().await;
                     }
                     State::Error(err) => {
-            obs.on_state(SyncStatus {
-                phase: SyncPhase::Error,
-                message: Some(format!("Sync error: {err:?}")),
-            });
-            // Restart on error as docs suggested.
-            let _ = svc.start().await;
-        }
+                        obs.on_state(SyncStatus {
+                            phase: SyncPhase::Error,
+                            message: Some(format!("Sync error: {err:?}")),
+                        });
+
+                        tokio::time::sleep(Duration::from_secs(2)).await;
+                        svc.start().await;
+                    }
                 }
             }
         });
@@ -2030,7 +2002,6 @@ impl Client {
             user_devs
                 .devices()
                 .map(|dev| {
-
                     let ed25519 = dev.ed25519_key().map(|k| k.to_base64()).unwrap_or_default();
                     let is_own = self
                         .inner
@@ -2444,7 +2415,7 @@ impl Client {
                     .map(|s| s.is_encrypted())
                     .unwrap_or(false);
 
-                 let mut avatar_url = room.avatar_url().map(|mxc| mxc.to_string());
+                let mut avatar_url = room.avatar_url().map(|mxc| mxc.to_string());
 
                 //If no room avatar, and it's a DM → use the other user's avatar
                 if avatar_url.is_none() && is_dm {
@@ -2468,7 +2439,7 @@ impl Client {
                     member_count,
                     is_encrypted,
                     is_dm,
-                    avatar_url
+                    avatar_url,
                 });
             }
             Ok(out)
@@ -2655,30 +2626,35 @@ impl Client {
     }
 
     pub fn list_members(&self, room_id: String) -> Result<Vec<MemberSummary>, FfiError> {
-            RT.block_on(async {
-                use matrix_sdk_base::RoomMemberships;
+        RT.block_on(async {
+            use matrix_sdk_base::RoomMemberships;
 
-                let rid = ruma::OwnedRoomId::try_from(room_id)
-                    .map_err(|e| FfiError::Msg(e.to_string()))?;
-                let room = self.inner.get_room(&rid)
-                    .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+            let rid =
+                ruma::OwnedRoomId::try_from(room_id).map_err(|e| FfiError::Msg(e.to_string()))?;
+            let room = self
+                .inner
+                .get_room(&rid)
+                .ok_or_else(|| FfiError::Msg("room not found".into()))?;
 
-                let me = self.inner.user_id();
+            let me = self.inner.user_id();
 
-                let members = room
-                    .members(RoomMemberships::ACTIVE)
-                    .await
-                    .map_err(|e| FfiError::Msg(e.to_string()))?;
+            let members = room
+                .members(RoomMemberships::ACTIVE)
+                .await
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
 
-                Ok(members.into_iter().map(|m| MemberSummary {
+            Ok(members
+                .into_iter()
+                .map(|m| MemberSummary {
                     user_id: m.user_id().to_string(),
                     display_name: m.display_name().map(|n| n.to_string()),
                     avatar_url: m.avatar_url().map(|u| u.to_string()),
                     is_me: me.map(|u| u == m.user_id()).unwrap_or(false),
                     membership: m.membership().to_string(),
-                }).collect())
-            })
-        }
+                })
+                .collect())
+        })
+    }
 
     /// Register/Update HTTP pusher for UnifiedPush/Matrix gateway (e.g. ntfy)
     pub fn register_unifiedpush(
@@ -2895,7 +2871,7 @@ impl Client {
 
             controller.set_filter(Box::new(filters::new_filter_non_left()));
 
-            use matrix_sdk_ui::room_list_service::RoomListItem; 
+            use matrix_sdk_ui::room_list_service::RoomListItem;
             let mut items = Vector::<RoomListItem>::new();
 
             loop {
@@ -2937,7 +2913,7 @@ impl Client {
                         if changed {
                             let mut snapshot: Vec<RoomListEntry> = Vec::with_capacity(items.len());
 
-                            for item in items.iter() {                                
+                            for item in items.iter() {
                                 let room = &**item;
 
                                 let notifications = room.num_unread_notifications();
@@ -2947,7 +2923,7 @@ impl Client {
 
                                 let is_favourite   = room.is_favourite();
                                 let is_low_priority= room.is_low_priority();
-                                
+
                                 let last_ts        = room.recency_stamp().map_or(0, |s| s.into());
 
                                 let is_dm = room.is_direct().await.unwrap_or(false);
@@ -3420,15 +3396,24 @@ impl Client {
             };
 
             let mut out = Vec::new();
-            for room in self.inner.joined_rooms().into_iter().take(max_rooms as usize) {
+            for room in self
+                .inner
+                .joined_rooms()
+                .into_iter()
+                .take(max_rooms as usize)
+            {
                 let rid = room.room_id().to_owned();
-                let Ok(tl) = room.timeline().await else { continue };
+                let Ok(tl) = room.timeline().await else {
+                    continue;
+                };
                 let (items, _stream) = tl.subscribe().await;
 
                 for it in items.iter().rev() {
                     let Some(ev) = it.as_event() else { continue };
                     let ts: u64 = ev.timestamp().0.into();
-                    if ts <= since_ts_ms { break; }
+                    if ts <= since_ts_ms {
+                        break;
+                    }
 
                     let Some(eid) = ev.event_id() else { continue };
 
@@ -3437,48 +3422,50 @@ impl Client {
                         Err(_) => continue,
                     };
 
-                    let NotificationStatus::Event(item) = status else { continue };
+                    let NotificationStatus::Event(item) = status else {
+                        continue;
+                    };
 
-    let room_name = item.room_computed_display_name.clone();
-                        let sender_user_id = item.event.sender().to_string();
-                        let ts_ms: u64 = notification_event_ts_ms(&item.event);
+                    let room_name = item.room_computed_display_name.clone();
+                    let sender_user_id = item.event.sender().to_string();
+                    let ts_ms: u64 = notification_event_ts_ms(&item.event);
 
-                        let mut sender = item
-                            .sender_display_name
-                            .clone()
-                            .unwrap_or_else(|| item.event.sender().localpart().to_string());
+                    let mut sender = item
+                        .sender_display_name
+                        .clone()
+                        .unwrap_or_else(|| item.event.sender().localpart().to_string());
 
-                        let mut body = String::from("New event");
-                        if let NotificationEvent::Timeline(tev) = &item.event {
-                            if let ruma::events::AnySyncTimelineEvent::MessageLike(
-                                ruma::events::AnySyncMessageLikeEvent::RoomMessage(m),
-                            ) = tev.as_ref()
-                            {
-                                if let Some(orig) = m.as_original() {
-                                    sender = item
-                                        .sender_display_name
-                                        .clone()
-                                        .unwrap_or_else(|| orig.sender.localpart().to_string());
-                                    body = orig.content.body().to_string();
-                                }
+                    let mut body = String::from("New event");
+                    if let NotificationEvent::Timeline(tev) = &item.event {
+                        if let ruma::events::AnySyncTimelineEvent::MessageLike(
+                            ruma::events::AnySyncMessageLikeEvent::RoomMessage(m),
+                        ) = tev.as_ref()
+                        {
+                            if let Some(orig) = m.as_original() {
+                                sender = item
+                                    .sender_display_name
+                                    .clone()
+                                    .unwrap_or_else(|| orig.sender.localpart().to_string());
+                                body = orig.content.body().to_string();
                             }
                         }
+                    }
 
-                        out.push(RenderedNotification {
-                            room_id: rid.to_string(),
-                            event_id: eid.to_string(),
-                            room_name,
-                            sender,
-                            sender_user_id,
-                            body,
-                            is_noisy: item.is_noisy.unwrap_or(false),
-                            has_mention: item.has_mention.unwrap_or(false),
-                            ts_ms,
-                        });
+                    out.push(RenderedNotification {
+                        room_id: rid.to_string(),
+                        event_id: eid.to_string(),
+                        room_name,
+                        sender,
+                        sender_user_id,
+                        body,
+                        is_noisy: item.is_noisy.unwrap_or(false),
+                        has_mention: item.has_mention.unwrap_or(false),
+                        ts_ms,
+                    });
 
-                        if out.len() as u32 >= max_events {
-                            return Ok(out);
-                        }
+                    if out.len() as u32 >= max_events {
+                        return Ok(out);
+                    }
                 }
             }
 
@@ -4794,23 +4781,26 @@ impl Client {
             let eid = ruma::OwnedEventId::try_from(event_id.as_str())
                 .map_err(|e| FfiError::Msg(e.to_string()))?;
 
-            let room = self.inner.get_room(&rid)
+            let room = self
+                .inner
+                .get_room(&rid)
                 .ok_or_else(|| FfiError::Msg("room not found".into()))?;
 
-            let tl = get_timeline_for(&self.inner, &rid).await
+            let tl = get_timeline_for(&self.inner, &rid)
+                .await
                 .ok_or_else(|| FfiError::Msg("timeline not available".into()))?;
 
-            
-            
             let _ = tl.fetch_members().await;
 
-            
-            let members = room.members(RoomMemberships::ACTIVE)
+            let members = room
+                .members(RoomMemberships::ACTIVE)
                 .await
                 .map_err(|e| FfiError::Msg(e.to_string()))?;
 
-            let mut member_map: std::collections::HashMap<String, (Option<String>, Option<String>)> =
-                std::collections::HashMap::new();
+            let mut member_map: std::collections::HashMap<
+                String,
+                (Option<String>, Option<String>),
+            > = std::collections::HashMap::new();
 
             for m in members {
                 member_map.insert(
@@ -4824,10 +4814,8 @@ impl Client {
 
             let me = self.inner.user_id().map(|u| u.to_string());
 
-            
             let (items, _stream) = tl.subscribe().await;
 
-            
             let mut target_idx: Option<usize> = None;
             for (idx, item) in items.iter().enumerate() {
                 if let Some(ev) = item.as_event() {
@@ -4838,42 +4826,46 @@ impl Client {
                 }
             }
             let Some(target_idx) = target_idx else {
-                return Ok(vec![]); 
+                return Ok(vec![]);
             };
 
-            
-            let mut best_ts: std::collections::HashMap<String, u64> = std::collections::HashMap::new();
+            let mut best_ts: std::collections::HashMap<String, u64> =
+                std::collections::HashMap::new();
 
             for item in items.iter().skip(target_idx) {
                 let Some(ev) = item.as_event() else { continue };
 
-                
                 for (uid, receipt) in ev.read_receipts().iter() {
                     let uid_str = uid.to_string();
                     if me.as_deref() == Some(uid_str.as_str()) {
                         continue;
                     }
 
-                    let ts = receipt.ts
+                    let ts = receipt
+                        .ts
                         .map(|t| t.0.into())
                         .unwrap_or_else(|| ev.timestamp().0.into());
 
-                    best_ts.entry(uid_str)
+                    best_ts
+                        .entry(uid_str)
                         .and_modify(|old| *old = (*old).max(ts))
                         .or_insert(ts);
                 }
             }
 
             // Sort by ts desc, return up to limit
-            let mut out: Vec<SeenByEntry> = best_ts.into_iter().map(|(user_id, ts)| {
-                let (dn, au) = member_map.get(&user_id).cloned().unwrap_or((None, None));
-                SeenByEntry {
-                    user_id,
-                    display_name: dn,
-                    avatar_url: au,
-                    ts_ms: Some(ts),
-                }
-            }).collect();
+            let mut out: Vec<SeenByEntry> = best_ts
+                .into_iter()
+                .map(|(user_id, ts)| {
+                    let (dn, au) = member_map.get(&user_id).cloned().unwrap_or((None, None));
+                    SeenByEntry {
+                        user_id,
+                        display_name: dn,
+                        avatar_url: au,
+                        ts_ms: Some(ts),
+                    }
+                })
+                .collect();
 
             out.sort_by_key(|e| std::cmp::Reverse(e.ts_ms.unwrap_or(0)));
             out.truncate(limit.max(1) as usize);
@@ -4889,10 +4881,10 @@ impl Client {
         crop: bool,
     ) -> Result<String, FfiError> {
         RT.block_on(async {
-            use matrix_sdk::media::{MediaRequestParameters, MediaFormat, MediaThumbnailSettings};
+            use js_int::UInt;
+            use matrix_sdk::media::{MediaFormat, MediaRequestParameters, MediaThumbnailSettings};
             use matrix_sdk::ruma::api::client::media::get_content_thumbnail::v3::Method;
             use matrix_sdk::ruma::events::room::MediaSource;
-            use js_int::UInt;
 
             let dir = cache_dir(&self.store_dir);
             ensure_dir(&dir);
@@ -4909,29 +4901,33 @@ impl Client {
                 format: MediaFormat::Thumbnail(settings),
             };
 
-            let bytes = self.inner
+            let bytes = self
+                .inner
                 .media()
                 .get_media_content(&req, true)
                 .await
                 .map_err(|e| FfiError::Msg(format!("get_media_content: {e}")))?;
 
-            let ext = if bytes.starts_with(&[0x89, b'P', b'N', b'G']) { "png" }
-            else if bytes.starts_with(&[0xFF, 0xD8, 0xFF]) { "jpg" }
-            else if bytes.starts_with(b"GIF8") { "gif" }
-            else { "img" };
+            let ext = if bytes.starts_with(&[0x89, b'P', b'N', b'G']) {
+                "png"
+            } else if bytes.starts_with(&[0xFF, 0xD8, 0xFF]) {
+                "jpg"
+            } else if bytes.starts_with(b"GIF8") {
+                "gif"
+            } else {
+                "img"
+            };
 
             let key = blake3::hash(format!("{mxc_uri}|{width}x{height}|{crop}").as_bytes())
                 .to_hex()
                 .to_string();
 
             let out = dir.join(format!("mxc_thumb_{key}.{ext}"));
-            std::fs::write(&out, bytes)
-                .map_err(|e| FfiError::Msg(format!("write avatar: {e}")))?;
+            std::fs::write(&out, bytes).map_err(|e| FfiError::Msg(format!("write avatar: {e}")))?;
 
             Ok(out.to_string_lossy().to_string())
         })
     }
-
 }
 
 impl Client {
@@ -5040,7 +5036,6 @@ impl Client {
         self.guards.lock().unwrap().push(h);
     }
 
-
     async fn ensure_sync_service(&self) {
         if self.sync_service.lock().unwrap().is_some() {
             return;
@@ -5050,10 +5045,17 @@ impl Client {
             return;
         }
 
-        if let Ok(service) = SyncService::builder(self.inner_clone()).build().await {
-            let mut guard = self.sync_service.lock().unwrap();
-            if guard.is_none() {
-                guard.replace(service.into());
+        let builder = SyncService::builder(self.inner_clone()).with_offline_mode();
+
+        match builder.build().await {
+            Ok(service) => {
+                let mut guard = self.sync_service.lock().unwrap();
+                if guard.is_none() {
+                    guard.replace(service.into());
+                }
+            }
+            Err(e) => {
+                tracing::warn!("ensure_sync_service: failed to build SyncService: {e:?}");
             }
         }
     }
@@ -5175,7 +5177,7 @@ fn map_timeline_event(
     let mut attachment: Option<AttachmentInfo> = None;
     let thread_root_event_id = ev.content().thread_root().map(|id| id.to_string());
     let body: String;
-    let mut is_edited = false;  
+    let mut is_edited = false;
 
     match ev.content() {
         TimelineItemContent::MsgLike(ml) => {
@@ -5191,12 +5193,12 @@ fn map_timeline_event(
 
             if let Some(msg) = ml.as_message() {
                 attachment = extract_attachment(&msg);
-                is_edited = msg.is_edited();  
+                is_edited = msg.is_edited();
                 let raw = msg.body();
                 body = if reply_to_event_id.is_some() {
                     strip_reply_fallback(raw)
                 } else {
-                    raw.to_owned()  
+                    raw.to_owned()
                 };
             } else {
                 body = render_msg_like(ev, ml);
@@ -5221,7 +5223,7 @@ fn map_timeline_event(
         reply_to_body,
         attachment,
         thread_root_event_id,
-        is_edited,  
+        is_edited,
     })
 }
 
@@ -5470,7 +5472,10 @@ async fn attach_sas_stream(
                     continue;
                 }
                 obs.on_phase(flow_id.clone(), SasPhase::Failed);
-                obs.on_error(flow_id.clone(), "KeysExchanged but no emojis provided".into());
+                obs.on_error(
+                    flow_id.clone(),
+                    "KeysExchanged but no emojis provided".into(),
+                );
             }
 
             SdkSasState::Confirmed => {
@@ -5559,7 +5564,7 @@ async fn latest_room_event_for(client: &SdkClient, room: &Room) -> Option<Latest
             }
             MsgLikeKind::Other(_) => {
                 body = Some("Custom event".to_owned());
-            },
+            }
         },
         TimelineItemContent::CallInvite => {
             event_type = "m.call.invite".to_owned();
