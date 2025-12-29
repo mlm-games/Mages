@@ -144,6 +144,8 @@ data class SecurityUiState(
     val sasError: String? = null,
     val sasIncoming: Boolean = false,
 
+    val sasContinuePressed: Boolean = false,
+
     // Privacy
     val ignoredUsers: List<String> = emptyList(),
 

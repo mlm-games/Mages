@@ -4948,13 +4948,12 @@ impl Client {
 
             let deadline = Instant::now() + Duration::from_secs(120);
 
+            obs.on_phase(flow_id.clone(), SasPhase::Requested);
+
             let we_started = req.we_started();
             let mut started_sas = false;
 
-            obs.on_phase(flow_id.clone(), SasPhase::Requested);
-
             let mut changes = req.changes();
-
             let mut next_state: Option<VerificationRequestState> = Some(req.state());
 
             loop {
@@ -4987,17 +4986,17 @@ impl Client {
                         obs.on_error(flow_id.clone(), info.reason().to_owned());
                         break;
                     }
+
                     VerificationRequestState::Done => {
                         obs.on_phase(flow_id.clone(), SasPhase::Done);
                         break;
                     }
 
-                    VerificationRequestState::Created { .. } | VerificationRequestState::Requested { .. } => {
+                    VerificationRequestState::Created { .. }
+                    | VerificationRequestState::Requested { .. } => {
                     }
 
                     VerificationRequestState::Ready { .. } => {
-                        obs.on_phase(flow_id.clone(), SasPhase::Ready);
-
                         if we_started && !started_sas {
                             started_sas = true;
 
@@ -5006,23 +5005,29 @@ impl Client {
                                     attach_sas_stream(verifs.clone(), flow_id.clone(), sas, obs.clone()).await;
                                     break;
                                 }
-                                Ok(None) => { }
+                                Ok(None) => {
+                                    started_sas = false; // allow a future Ready transition to retry once
+                                }
                                 Err(e) => {
                                     obs.on_error(flow_id.clone(), format!("start_sas failed: {e}"));
+                                    started_sas = false;
                                 }
                             }
                         }
                     }
 
-                    VerificationRequestState::Transitioned { verification } => {
+                    VerificationRequestState::Transitioned { verification, .. } => {
                         match verification {
                             Verification::SasV1(sas) => {
-                                obs.on_phase(flow_id.clone(), SasPhase::Ready);
+                                // SAS exists (likely on the acceptor side).
                                 attach_sas_stream(verifs.clone(), flow_id.clone(), sas, obs.clone()).await;
                                 break;
                             }
                             _ => {
-                                obs.on_error(flow_id.clone(), "Verification transitioned to non-SAS method (unsupported in Mages UI)".into());
+                                obs.on_error(
+                                    flow_id.clone(),
+                                    "Verification transitioned to a non-SAS method (unsupported in this UI)".into(),
+                                );
                                 break;
                             }
                         }
@@ -5416,7 +5421,7 @@ async fn attach_sas_stream(
 ) {
     use futures_util::StreamExt;
 
-    info!("attach_sas_stream (manual accept): flow_id={}", flow_id);
+    info!("attach_sas_stream: flow_id={}", flow_id);
 
     let other_user = sas.other_user_id().to_owned();
     let other_device = sas.other_device().device_id().to_owned();
@@ -5429,6 +5434,8 @@ async fn attach_sas_stream(
             _other_device: other_device.clone(),
         },
     );
+
+    obs.on_phase(flow_id.clone(), SasPhase::Ready);
 
     let mut stream = sas.changes();
 
@@ -5449,18 +5456,6 @@ async fn attach_sas_stream(
                     continue;
                 }
 
-                if let Some(arr) = sas.emoji() {
-                    let payload = SasEmojis {
-                        flow_id: flow_id.clone(),
-                        other_user: sas.other_user_id().to_string(),
-                        other_device: sas.other_device().device_id().to_string(),
-                        emojis: arr.iter().map(|e| e.symbol.to_string()).collect(),
-                    };
-                    obs.on_phase(flow_id.clone(), SasPhase::Emojis);
-                    obs.on_emojis(payload);
-                    continue;
-                }
-
                 let decimal_values = Some(decimals).or_else(|| sas.decimals());
                 if let Some((a, b, c)) = decimal_values {
                     obs.on_phase(flow_id.clone(), SasPhase::Failed);
@@ -5470,12 +5465,13 @@ async fn attach_sas_stream(
                     );
                     continue;
                 }
-
                 obs.on_phase(flow_id.clone(), SasPhase::Failed);
-                obs.on_error(flow_id.clone(), "Keys exchanged but no emoji SAS available".into());
+                obs.on_error(flow_id.clone(), "KeysExchanged but no emojis provided".into());
             }
 
-            SdkSasState::Confirmed => obs.on_phase(flow_id.clone(), SasPhase::Confirmed),
+            SdkSasState::Confirmed => {
+                obs.on_phase(flow_id.clone(), SasPhase::Confirmed);
+            }
 
             SdkSasState::Done { .. } => {
                 obs.on_phase(flow_id.clone(), SasPhase::Done);
@@ -5496,7 +5492,6 @@ async fn attach_sas_stream(
         }
     }
 }
-
 
 fn render_message_text(msg: &matrix_sdk_ui::timeline::Message) -> String {
     let mut s = msg.body().to_owned();

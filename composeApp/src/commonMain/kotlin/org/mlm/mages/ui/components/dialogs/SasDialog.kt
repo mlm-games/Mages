@@ -27,30 +27,45 @@ fun SasDialog(
     otherUser: String,
     otherDevice: String,
     error: String?,
-    showAccept: Boolean,
-    onAccept: () -> Unit,
+    showAcceptRequest: Boolean,
+    showContinue: Boolean,
+    actionInFlight: Boolean,
+    onAcceptOrContinue: () -> Unit,
     onConfirm: () -> Unit,
     onCancel: () -> Unit
 ) {
     Dialog(onDismissRequest = onCancel, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Card(modifier = Modifier.fillMaxWidth(0.9f).wrapContentHeight(), shape = MaterialTheme.shapes.extraLarge, colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )) {
+        Card(
+            modifier = Modifier.fillMaxWidth(0.9f).wrapContentHeight(),
+            shape = MaterialTheme.shapes.extraLarge,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
             Column(modifier = Modifier.padding(Spacing.xl), horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Default.VerifiedUser, null, Modifier.size(Sizes.avatarMedium), MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(Spacing.lg))
                 Text("Verify Device", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                
+
                 if (otherUser.isNotBlank() || otherDevice.isNotBlank()) {
                     Spacer(Modifier.height(Spacing.sm))
                     Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.small) {
-                        Text("$otherUser • $otherDevice", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = Spacing.md, vertical = 6.dp))
+                        Text(
+                            "$otherUser • $otherDevice",
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.padding(horizontal = Spacing.md, vertical = 6.dp)
+                        )
                     }
                 }
 
                 Spacer(Modifier.height(Spacing.xl))
+
                 AnimatedContent(targetState = phase, transitionSpec = { AnimationSpecs.contentTransform() }, label = "SasPhase") { currentPhase ->
-                    SasPhaseContent(currentPhase, emojis)
+                    SasPhaseContent(
+                        phase = currentPhase,
+                        emojis = emojis,
+                        showAcceptRequest = showAcceptRequest,
+                        showContinue = showContinue,
+                        actionInFlight = actionInFlight
+                    )
                 }
 
                 error?.let {
@@ -61,25 +76,62 @@ fun SasDialog(
                 }
 
                 Spacer(Modifier.height(Spacing.xl))
-                SasActions(phase, showAccept, onAccept, onConfirm, onCancel)
+
+                SasActions(
+                    phase = phase,
+                    showAcceptRequest = showAcceptRequest,
+                    showContinue = showContinue,
+                    actionInFlight = actionInFlight,
+                    onAcceptOrContinue = onAcceptOrContinue,
+                    onConfirm = onConfirm,
+                    onCancel = onCancel
+                )
             }
         }
     }
 }
 
 @Composable
-private fun SasPhaseContent(phase: SasPhase?, emojis: List<String>) {
+private fun SasPhaseContent(
+    phase: SasPhase?,
+    emojis: List<String>,
+    showAcceptRequest: Boolean,
+    showContinue: Boolean,
+    actionInFlight: Boolean
+) {
     when (phase) {
-        SasPhase.Ready -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator()
-            Spacer(Modifier.height(Spacing.sm))
-            Text("Preparing emoji comparison…")
+        SasPhase.Requested -> {
+            if (showAcceptRequest && !actionInFlight) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Verification request received", style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(Spacing.sm))
+                    Text("Accept to continue with emoji verification", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                }
+            } else {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator()
+                    Spacer(Modifier.height(Spacing.sm))
+                    Text("Waiting…")
+                }
+            }
         }
-        SasPhase.Requested -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Verification request received", style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(Spacing.sm))
-            Text("Accept to continue with emoji verification", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+
+        SasPhase.Ready -> {
+            if (showContinue && !actionInFlight) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Ready for emoji comparison", style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(Spacing.sm))
+                    Text("Press Continue on both devices", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                }
+            } else {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator()
+                    Spacer(Modifier.height(Spacing.sm))
+                    Text("Continuing…")
+                }
+            }
         }
+
         SasPhase.Emojis -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("Compare these emojis", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(Spacing.lg))
@@ -87,6 +139,7 @@ private fun SasPhaseContent(phase: SasPhase?, emojis: List<String>) {
             Spacer(Modifier.height(Spacing.lg))
             Text("Do these match on the other device?", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+
         SasPhase.Done -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = CircleShape, modifier = Modifier.size(Sizes.avatarLarge)) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -96,7 +149,12 @@ private fun SasPhaseContent(phase: SasPhase?, emojis: List<String>) {
             Spacer(Modifier.height(Spacing.lg))
             Text("Verification Complete!", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         }
-        else -> CircularProgressIndicator()
+
+        else -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator()
+            Spacer(Modifier.height(Spacing.sm))
+            Text("Preparing…")
+        }
     }
 }
 
@@ -116,30 +174,33 @@ private fun EmojiGrid(emojis: List<String>) {
 @Composable
 private fun SasActions(
     phase: SasPhase?,
-    showAccept: Boolean,
-    onAccept: () -> Unit,
+    showAcceptRequest: Boolean,
+    showContinue: Boolean,
+    actionInFlight: Boolean,
+    onAcceptOrContinue: () -> Unit,
     onConfirm: () -> Unit,
     onCancel: () -> Unit
 ) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-    ) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         when (phase) {
             SasPhase.Requested -> {
-                if (showAccept) {
-                    OutlinedButton(onClick = onCancel, Modifier.weight(1f)) { Text("Reject") }
-                    Button(onClick = onAccept, Modifier.weight(1f)) { Text("Accept") }
+                if (showAcceptRequest) {
+                    OutlinedButton(onClick = onCancel, enabled = !actionInFlight, modifier = Modifier.weight(1f)) { Text("Reject") }
+                    Button(onClick = onAcceptOrContinue, enabled = !actionInFlight, modifier = Modifier.weight(1f)) { Text("Accept") }
                 } else {
-                    OutlinedButton(onClick = onCancel, Modifier.fillMaxWidth()) {
-                        Text("Cancel request")
-                    }
+                    OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Cancel request") }
                 }
             }
 
             SasPhase.Ready -> {
-                OutlinedButton(onClick = onCancel, Modifier.weight(1f)) { Text("Cancel") }
-                Button(onClick = onAccept, Modifier.weight(1f)) { Text("Continue") }
+                if (showContinue) {
+                    OutlinedButton(onClick = onCancel, enabled = !actionInFlight, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                    Button(onClick = onAcceptOrContinue, enabled = !actionInFlight, modifier = Modifier.weight(1f)) {
+                        Text(if (actionInFlight) "Continuing…" else "Continue")
+                    }
+                } else {
+                    OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
+                }
             }
 
             SasPhase.Emojis -> {

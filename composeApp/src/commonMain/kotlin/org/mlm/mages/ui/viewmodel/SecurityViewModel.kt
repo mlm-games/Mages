@@ -138,10 +138,22 @@ class SecurityViewModel(
 
     fun acceptSas() {
         val flowId = currentState.sasFlowId ?: return
+
+        updateState { copy(sasContinuePressed = true, sasError = null) }
+
         launch {
             val ok = service.acceptVerification(flowId, currentState.sasOtherUser, commonObserver())
             if (!ok) {
-                updateState { copy(sasError = "Accept failed") }
+                updateState { copy(sasContinuePressed = false, sasError = "Continue failed") }
+                return@launch
+            }
+
+            val s = currentState
+            val stillSameFlow = s.sasFlowId == flowId
+            val stillReady = s.sasPhase == SasPhase.Ready
+            val noEmojisYet = s.sasEmojis.isEmpty()
+            if (stillSameFlow && stillReady && noEmojisYet) {
+                updateState { copy(sasContinuePressed = false) }
             }
         }
     }
