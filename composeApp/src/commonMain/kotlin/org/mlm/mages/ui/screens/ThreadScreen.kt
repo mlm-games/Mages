@@ -28,14 +28,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.ReactionChip
 import org.mlm.mages.ui.ThreadUiState
-import org.mlm.mages.ui.base.SnackbarController
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.formatDisplayName
 import org.mlm.mages.ui.components.message.MessageBubble
 import org.mlm.mages.ui.components.sheets.MessageActionSheet
+import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatTime
 import org.mlm.mages.ui.viewmodel.ThreadViewModel
@@ -44,16 +45,17 @@ import org.mlm.mages.ui.viewmodel.ThreadViewModel
 fun ThreadRoute(
     viewModel: ThreadViewModel,
     onBack: () -> Unit,
-    snackbarController: SnackbarController
 ) {
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
 
+    val snackbarManager: SnackbarManager = koinInject()
+
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                is ThreadViewModel.Event.ShowError -> snackbarController.showError(event.message)
-                is ThreadViewModel.Event.ShowSuccess -> snackbarController.show(event.message)
+                is ThreadViewModel.Event.ShowError -> snackbarManager.showError(event.message)
+                is ThreadViewModel.Event.ShowSuccess -> snackbarManager.show(event.message)
             }
         }
     }
@@ -79,7 +81,6 @@ fun ThreadRoute(
         onStartEdit = viewModel::startEdit,
         onCancelEdit = viewModel::cancelEdit,
         onDelete = { ev -> viewModel.delete(ev) },
-        snackbarController = snackbarController
     )
 }
 
@@ -98,7 +99,6 @@ fun ThreadScreen(
     onStartEdit: (MessageEvent) -> Unit,
     onCancelEdit: () -> Unit,
     onDelete: suspend (MessageEvent) -> Boolean,
-    snackbarController: SnackbarController
 ) {
     val scope = rememberCoroutineScope()
     var sheetEvent by remember { mutableStateOf<MessageEvent?>(null) }

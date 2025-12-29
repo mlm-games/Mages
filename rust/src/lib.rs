@@ -24,7 +24,6 @@ use matrix_sdk_ui::{
 use mime::Mime;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use std::mem::ManuallyDrop;
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -34,6 +33,7 @@ use std::{
     },
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
+use std::{mem::ManuallyDrop, sync::atomic::AtomicBool};
 use tokio::runtime::Runtime;
 use tracing::{error, info, warn};
 use tracing_subscriber::{EnvFilter, fmt};
@@ -732,8 +732,11 @@ pub struct Client {
     room_list_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     room_list_cmds: Mutex<HashMap<u64, tokio::sync::mpsc::UnboundedSender<RoomListCmd>>>,
     send_handles_by_txn: Mutex<HashMap<String, matrix_sdk::send_queue::SendHandle>>,
+    send_queue_supervised: AtomicBool,
     call_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     live_location_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
+
+    pub app_in_foreground: Arc<AtomicBool>,
 }
 
 #[derive(Clone, Enum)]
@@ -882,8 +885,11 @@ impl Client {
             room_list_subs: Mutex::new(HashMap::new()),
             room_list_cmds: Mutex::new(HashMap::new()),
             send_handles_by_txn: Mutex::new(HashMap::new()),
+            send_queue_supervised: AtomicBool::new(false),
             call_subs: Mutex::new(HashMap::new()),
             live_location_subs: Mutex::new(HashMap::new()),
+
+            app_in_foreground: Arc::new(AtomicBool::new(false)),
         };
 
         {
@@ -923,6 +929,12 @@ impl Client {
                         };
                         if this.inner.restore_session(session).await.is_ok() {
                             this.ensure_sync_service().await;
+
+                            this.ensure_send_queue_supervision();
+                            this.inner
+                                .send_queue()
+                                .respawn_tasks_for_rooms_with_unsent_requests()
+                                .await;
                         } else {
                             let _ = tokio::fs::remove_file(&path).await;
                             reset_store_dir(&this.store_dir);
@@ -1035,6 +1047,12 @@ impl Client {
 
             self.ensure_sync_service().await;
 
+            self.ensure_send_queue_supervision();
+            self.inner
+                .send_queue()
+                .respawn_tasks_for_rooms_with_unsent_requests()
+                .await;
+
             Ok(())
         })
     }
@@ -1064,6 +1082,8 @@ impl Client {
     }
 
     pub fn enter_foreground(&self) {
+        self.app_in_foreground
+            .store(true, std::sync::atomic::Ordering::SeqCst);
         let _ = RT.block_on(async {
             self.ensure_sync_service().await;
             if let Some(svc) = self.sync_service.lock().unwrap().as_ref().cloned() {
@@ -1072,8 +1092,10 @@ impl Client {
         });
     }
 
-    /// Send the app to background: stop Sliding Sync supervision. (stub)
+    /// Send the app to background: stop Sliding Sync supervision.
     pub fn enter_background(&self) {
+        self.app_in_foreground
+            .store(false, std::sync::atomic::Ordering::SeqCst);
         let _ = RT.block_on(async {
             self.ensure_sync_service().await;
             if let Some(svc) = self.sync_service.lock().unwrap().as_ref().cloned() {
@@ -1916,6 +1938,7 @@ impl Client {
     pub fn start_supervised_sync(&self, observer: Box<dyn SyncObserver>) {
         let obs: Arc<dyn SyncObserver> = Arc::from(observer);
         let svc_slot = self.sync_service.clone();
+        let in_foreground = self.app_in_foreground.clone();
 
         let h = RT.spawn(async move {
             obs.on_state(SyncStatus {
@@ -1959,6 +1982,11 @@ impl Client {
                             phase: SyncPhase::Idle,
                             message: Some("Sync stopped".into()),
                         });
+
+                        if in_foreground.load(std::sync::atomic::Ordering::SeqCst) {
+                            tokio::time::sleep(Duration::from_millis(500)).await;
+                            svc.start().await;
+                        }
                     }
                     State::Error(err) => {
                         obs.on_state(SyncStatus {
@@ -3648,6 +3676,173 @@ impl Client {
     pub fn set_room_low_priority(&self, room_id: String, low: bool) -> bool {
         with_room_async!(self, room_id, |room: Room, _rid| async move {
             room.set_is_low_priority(low, None).await.is_ok()
+        })
+    }
+
+    fn ensure_send_queue_supervision(&self) {
+        use std::sync::atomic::Ordering;
+
+        if self.send_queue_supervised.swap(true, Ordering::SeqCst) {
+            return; // already running
+        }
+
+        let client_updates = self.inner_clone();
+        let tx_updates = self.send_tx.clone();
+
+        let h_updates = RT.spawn(async move {
+            let mut rx = client_updates.send_queue().subscribe();
+
+            let mut attempts: std::collections::HashMap<String, u32> =
+                std::collections::HashMap::new();
+
+            loop {
+                let upd = match rx.recv().await {
+                    Ok(u) => u,
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
+                    Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+                };
+
+                let room_id_str = upd.room_id.to_string();
+
+                use matrix_sdk::send_queue::RoomSendQueueUpdate as U;
+                match upd.update {
+                    U::NewLocalEvent(local) => {
+                        let key = format!("{room_id_str}|{}", local.transaction_id);
+                        attempts.entry(key).or_insert(0);
+
+                        let _ = tx_updates.send(SendUpdate {
+                            room_id: room_id_str,
+                            txn_id: local.transaction_id.to_string(),
+                            attempts: 0,
+                            state: SendState::Enqueued,
+                            event_id: None,
+                            error: None,
+                        });
+                    }
+
+                    U::RetryEvent { transaction_id } => {
+                        let key = format!("{room_id_str}|{transaction_id}");
+                        let n = attempts.entry(key).and_modify(|v| *v += 1).or_insert(1);
+
+                        let _ = tx_updates.send(SendUpdate {
+                            room_id: room_id_str,
+                            txn_id: transaction_id.to_string(),
+                            attempts: *n,
+                            state: SendState::Retrying,
+                            event_id: None,
+                            error: None,
+                        });
+                    }
+
+                    U::SentEvent {
+                        transaction_id,
+                        event_id,
+                    } => {
+                        let key = format!("{room_id_str}|{transaction_id}");
+                        let n = attempts.remove(&key).unwrap_or(0); // Prune on success
+
+                        let _ = tx_updates.send(SendUpdate {
+                            room_id: room_id_str,
+                            txn_id: transaction_id.to_string(),
+                            attempts: n,
+                            state: SendState::Sent,
+                            event_id: Some(event_id.to_string()),
+                            error: None,
+                        });
+                    }
+
+                    U::SendError {
+                        transaction_id,
+                        error,
+                        is_recoverable,
+                    } => {
+                        let key = format!("{room_id_str}|{transaction_id}");
+                        let n = attempts.entry(key).and_modify(|v| *v += 1).or_insert(1);
+
+                        let msg = format!("{:?} (recoverable={})", error, is_recoverable);
+
+                        let _ = tx_updates.send(SendUpdate {
+                            room_id: room_id_str,
+                            txn_id: transaction_id.to_string(),
+                            attempts: *n,
+                            state: SendState::Failed,
+                            event_id: None,
+                            error: Some(msg),
+                        });
+                    }
+
+                    U::CancelledLocalEvent { transaction_id } => {
+                        let key = format!("{room_id_str}|{transaction_id}");
+                        attempts.remove(&key); // Prune on cancel
+
+                        let _ = tx_updates.send(SendUpdate {
+                            room_id: room_id_str,
+                            txn_id: transaction_id.to_string(),
+                            attempts: 0,
+                            state: SendState::Failed,
+                            event_id: None,
+                            error: Some("Cancelled before sending".into()),
+                        });
+                    }
+
+                    U::ReplacedLocalEvent { .. } => {}
+
+                    U::MediaUpload { .. } => {
+                        // TODO: wire progress into ProgressObserver.
+                    }
+                }
+            }
+        });
+
+        self.guards.lock().unwrap().push(h_updates);
+
+        let client_errs = self.inner_clone();
+        let tx_errs = self.send_tx.clone();
+
+        let h_errs = RT.spawn(async move {
+            let mut rx = client_errs.send_queue().subscribe_errors();
+
+            loop {
+                let err = match rx.recv().await {
+                    Ok(e) => e,
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
+                    Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+                };
+
+                let _ = tx_errs.send(SendUpdate {
+                    room_id: err.room_id.to_string(),
+                    txn_id: "".into(),
+                    attempts: 0,
+                    state: SendState::Failed,
+                    event_id: None,
+                    error: Some(format!(
+                        "Room send queue disabled (recoverable={}): {:?}",
+                        err.is_recoverable, err.error
+                    )),
+                });
+            }
+        });
+
+        self.guards.lock().unwrap().push(h_errs);
+    }
+
+    pub fn send_queue_set_enabled(&self, enabled: bool) -> bool {
+        RT.block_on(async {
+            self.inner.send_queue().set_enabled(enabled).await;
+            true
+        })
+    }
+
+    pub fn room_send_queue_set_enabled(&self, room_id: String, enabled: bool) -> bool {
+        RT.block_on(async {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return false;
+            };
+            let Some(room) = self.inner.get_room(&rid) else {
+                return false;
+            };
+            room.send_queue().set_enabled(enabled);
+            true
         })
     }
 

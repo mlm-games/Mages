@@ -38,7 +38,6 @@ fun MessageActionSheet(
     onDelete: () -> Unit,
     onReact: (String) -> Unit,
     onMarkReadHere: () -> Unit,
-    onRetry: (() -> Unit)? = null,
     onReplyInThread: (() -> Unit)? = null,
     onShare: (() -> Unit)? = null,
     onForward: (() -> Unit)? = null,
@@ -54,9 +53,6 @@ fun MessageActionSheet(
             HorizontalDivider(Modifier.padding(horizontal = Spacing.lg))
             Spacer(Modifier.height(Spacing.sm))
 
-            if (isMine && event.sendState == SendState.Failed && onRetry != null) {
-                ActionItem(Icons.Default.Refresh, "Retry send") { onRetry(); onDismiss() }
-            }
             ActionItem(Icons.Default.ContentCopy, "Copy") { clipboard.setText(AnnotatedString(event.body)); onDismiss() }
             if (onShare != null) {
                 ActionItem(Icons.Default.Share, "Share") { onShare(); onDismiss() }

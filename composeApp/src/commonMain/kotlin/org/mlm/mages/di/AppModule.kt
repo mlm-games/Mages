@@ -6,9 +6,12 @@ import androidx.datastore.preferences.core.Preferences
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import org.mlm.mages.MatrixService
+import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.viewmodel.*
 
 val appModule = module {
+
+    single { SnackbarManager() }
 
     // Room
     viewModel { (roomId: String, roomName: String) ->

@@ -182,7 +182,7 @@ fun RoomScreen(
                 onCancelReply = viewModel::cancelReply,
                 onCancelEdit = viewModel::cancelEdit,
                 onAttach = viewModel::showAttachmentPicker,
-                onCancelUpload = viewModel::cancelAttachmentUpload
+                onCancelUpload = viewModel::cancelAttachmentUpload,
             )
         },
         floatingActionButton = {
@@ -380,9 +380,6 @@ fun RoomScreen(
             onDelete = { viewModel.delete(event); sheetEvent = null },
             onReact = { emoji -> viewModel.react(event, emoji) },
             onMarkReadHere = { viewModel.markReadHere(event); sheetEvent = null },
-            onRetry = if (isMine && event.sendState == SendState.Failed) {
-                { viewModel.retry(event); sheetEvent = null }
-            } else null,
             onReplyInThread = { viewModel.openThread(event); sheetEvent = null },
             onShare = { viewModel.shareMessage(event) },
             onForward = { viewModel.startForward(event); sheetEvent = null },
@@ -503,7 +500,7 @@ private fun RoomBottomBar(
     onCancelReply: () -> Unit,
     onCancelEdit: () -> Unit,
     onAttach: () -> Unit,
-    onCancelUpload: () -> Unit
+    onCancelUpload: () -> Unit,
 ) {
     Column {
         ActionBanner(

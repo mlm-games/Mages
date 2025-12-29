@@ -98,7 +98,7 @@ data class RoomUiState(
     val isLoadingForwardRooms: Boolean = false,
     val forwardSearchQuery: String = "",
     val roomAvatarUrl: String?,
-)
+    )
 
 
 data class ForwardableRoom(

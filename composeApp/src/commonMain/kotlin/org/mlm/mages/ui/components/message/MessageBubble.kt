@@ -215,7 +215,7 @@ private fun FailedIndicator() {
         )
         Spacer(Modifier.width(6.dp))
         Text(
-            text = "Failed to send. Long-press to retry.",
+            text = "Failed to send. Check your internet?",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.error
         )

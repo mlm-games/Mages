@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,8 +47,9 @@ import org.mlm.mages.platform.rememberQuitApp
 import org.mlm.mages.storage.loadString
 import org.mlm.mages.ui.animation.forwardTransition
 import org.mlm.mages.ui.animation.popTransition
-import org.mlm.mages.ui.base.rememberSnackbarController
 import org.mlm.mages.ui.components.sheets.CreateRoomSheet
+import org.mlm.mages.ui.components.snackbar.LauncherSnackbarHost
+import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.screens.DiscoverRoute
 import org.mlm.mages.ui.screens.InvitesRoute
 import org.mlm.mages.ui.screens.LoginScreen
@@ -89,9 +92,9 @@ private fun AppContent(
 ) {
     val service: MatrixService = koinInject()
     val dataStore: DataStore<Preferences> = koinInject()
+    val snackbarManager: SnackbarManager = koinInject()
 
     MainTheme {
-        val snackbar = rememberSnackbarController()
         val scope = rememberCoroutineScope()
 
         var showCreateRoom by remember { mutableStateOf(false) }
@@ -103,6 +106,24 @@ private fun AppContent(
                 runCatching { service.init(hs) }
             }
             value = if (service.isLoggedIn()) Route.Rooms else Route.Login
+        }
+
+        LaunchedEffect(service, initialRoute) {
+            if (initialRoute != Route.Rooms) return@LaunchedEffect
+            if (!service.isLoggedIn()) return@LaunchedEffect
+
+            service.port.observeSends().collect { update ->
+                if (update.txnId.isBlank() && update.error?.contains("send queue disabled") == true) {
+                    snackbarManager.show(
+                        message = "Sending paused",
+                        actionLabel = "Resume",
+                        duration = SnackbarDuration.Indefinite,
+                        onAction = {
+                            service.port.sendQueueSetEnabled(true)
+                        }
+                    )
+                }
+            }
         }
 
         if (initialRoute == null) {
@@ -137,9 +158,15 @@ private fun AppContent(
         }
 
         val openUrl = rememberOpenBrowser()
+        val snackbarHostState = remember { SnackbarHostState() }
 
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbar.hostState) }
+            snackbarHost = {
+                LauncherSnackbarHost(
+                    hostState = snackbarHostState,
+                    manager = snackbarManager
+                )
+            }
         ) { _ ->
             NavDisplay(
                 backStack = backStack,
@@ -189,7 +216,7 @@ private fun AppContent(
                                         backStack.add(Route.Room(event.roomId, event.name))
                                     }
                                     is RoomsViewModel.Event.ShowError -> {
-                                        snackbar.showError(event.message)
+                                        snackbarManager.show("Error: $event.message")
                                     }
                                 }
                             }
@@ -213,7 +240,7 @@ private fun AppContent(
                                             showCreateRoom = false
                                             backStack.add(Route.Room(roomId, name ?: roomId))
                                         } else {
-                                            snackbar.showError("Failed to create room")
+                                            snackbarManager.show("Error: Failed to create room")
                                         }
                                     }
                                 },
@@ -251,10 +278,10 @@ private fun AppContent(
                                         quitApp()
                                     }
                                     is SecurityViewModel.Event.ShowError -> {
-                                        snackbar.showError(event.message)
+                                        snackbarManager.show("Error: $event.message")
                                     }
                                     is SecurityViewModel.Event.ShowSuccess -> {
-                                        snackbar.show(event.message)
+                                        snackbarManager.show(event.message)
                                     }
                                 }
                             }
@@ -276,7 +303,7 @@ private fun AppContent(
                                         backStack.add(Route.Room(event.roomId, event.name))
                                     }
                                     is DiscoverViewModel.Event.ShowError -> {
-                                        snackbar.showError(event.message)
+                                        snackbarManager.show("Error: $event.message")
                                     }
                                 }
                             }
@@ -298,7 +325,7 @@ private fun AppContent(
                                         backStack.add(Route.Room(event.roomId, event.name))
                                     }
                                     is InvitesViewModel.Event.ShowError -> {
-                                        snackbar.showError(event.message)
+                                        snackbarManager.show("Error: $event.message")
                                     }
                                 }
                             }
@@ -325,10 +352,10 @@ private fun AppContent(
                                         backStack.add(Route.Room(event.roomId, event.name))
                                     }
                                     is RoomInfoViewModel.Event.ShowError -> {
-                                        snackbar.showError(event.message)
+                                        snackbarManager.show("Error: $event.message")
                                     }
                                     is RoomInfoViewModel.Event.ShowSuccess -> {
-                                        snackbar.show(event.message)
+                                        snackbarManager.show(event.message)
                                     }
                                 }
                             }
@@ -349,7 +376,6 @@ private fun AppContent(
                         ThreadRoute(
                             viewModel = viewModel,
                             onBack = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) },
-                            snackbarController = snackbar
                         )
                     }
 
@@ -366,7 +392,7 @@ private fun AppContent(
                                         backStack.add(Route.Room(event.roomId, event.name))
                                     }
                                     is SpacesViewModel.Event.ShowError -> {
-                                        snackbar.showError(event.message)
+                                        snackbarManager.show("Error: $event.message")
                                     }
 
                                     else -> {}
@@ -395,7 +421,7 @@ private fun AppContent(
                                         backStack.add(Route.Room(event.roomId, event.name))
                                     }
                                     is SpaceDetailViewModel.Event.ShowError -> {
-                                        snackbar.showError(event.message)
+                                        snackbarManager.show("Error: $event.message")
                                     }
                                 }
                             }
@@ -417,10 +443,10 @@ private fun AppContent(
                             viewModel.events.collect { event ->
                                 when (event) {
                                     is SpaceSettingsViewModel.Event.ShowError -> {
-                                        snackbar.showError(event.message)
+                                        snackbarManager.show("Error: $event.message")
                                     }
                                     is SpaceSettingsViewModel.Event.ShowSuccess -> {
-                                        snackbar.show(event.message)
+                                        snackbarManager.show(event.message)
                                     }
                                 }
                             }

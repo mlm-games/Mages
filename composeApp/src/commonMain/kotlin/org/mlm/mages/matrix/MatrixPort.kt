@@ -219,6 +219,9 @@ interface MatrixPort {
     fun timelineDiffs(roomId: String): Flow<TimelineDiff<MessageEvent>>
     suspend fun send(roomId: String, body: String): Boolean
 
+    suspend fun sendQueueSetEnabled(enabled: Boolean): Boolean
+    suspend fun roomSendQueueSetEnabled(roomId: String, enabled: Boolean): Boolean
+
     suspend fun sendExistingAttachment(
         roomId: String,
         attachment: AttachmentInfo,

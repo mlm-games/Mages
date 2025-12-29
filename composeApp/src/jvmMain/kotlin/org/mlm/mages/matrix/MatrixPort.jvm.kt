@@ -180,6 +180,17 @@ class RustMatrixPort() : MatrixPort {
         }
         }
 
+    override suspend fun sendQueueSetEnabled(enabled: Boolean): Boolean =
+        withContext(Dispatchers.IO) {
+            withClient { it.sendQueueSetEnabled(enabled) }
+        }
+
+    override suspend fun roomSendQueueSetEnabled(roomId: String, enabled: Boolean): Boolean =
+        withContext(Dispatchers.IO) {
+            withClient { it.roomSendQueueSetEnabled(roomId, enabled) }
+        }
+
+
     override suspend fun sendExistingAttachment(
         roomId: String,
         attachment: AttachmentInfo,
