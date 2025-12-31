@@ -1,10 +1,7 @@
 package org.mlm.mages.ui.viewmodel
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import org.mlm.mages.MatrixService
@@ -17,8 +14,7 @@ import org.mlm.mages.ui.RoomListItemUi
 import org.mlm.mages.ui.RoomsUiState
 
 class RoomsViewModel(
-    private val service: MatrixService,
-    private val dataStore: DataStore<Preferences>
+    private val service: MatrixService
 ) : BaseViewModel<RoomsUiState>(RoomsUiState(isLoading = true)) {
 
     // One-time events

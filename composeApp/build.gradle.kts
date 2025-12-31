@@ -60,7 +60,7 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.coil.compose)
-//            implementation(libs.koin.compose.navigation3) Causes a desktop err
+            implementation(libs.koin.compose.navigation3) // Causes a desktop err
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)

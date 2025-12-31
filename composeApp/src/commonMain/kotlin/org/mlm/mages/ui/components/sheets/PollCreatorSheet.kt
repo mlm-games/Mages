@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -133,7 +134,7 @@ fun PollCreatorSheet(
                     },
                     enabled = isValid
                 ) {
-                    Icon(Icons.Default.Send, null)
+                    Icon(Icons.AutoMirrored.Filled.Send, null)
                     Spacer(Modifier.width(Spacing.sm))
                     Text("Create Poll")
                 }

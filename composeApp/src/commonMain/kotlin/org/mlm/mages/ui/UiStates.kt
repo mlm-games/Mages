@@ -11,6 +11,7 @@ import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.matrix.RoomPredecessorInfo
 import org.mlm.mages.matrix.RoomUpgradeInfo
 import org.mlm.mages.matrix.SasPhase
+import org.mlm.mages.matrix.SearchHit
 import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.matrix.SpaceInfo
 import org.mlm.mages.ui.components.AttachmentData
@@ -98,6 +99,13 @@ data class RoomUiState(
     val isLoadingForwardRooms: Boolean = false,
     val forwardSearchQuery: String = "",
     val roomAvatarUrl: String?,
+
+    val showRoomSearch: Boolean = false,
+    val roomSearchQuery: String = "",
+    val roomSearchResults: List<SearchHit> = emptyList(),
+    val roomSearchNextOffset: Int? = null,
+    val isRoomSearching: Boolean = false,
+    val hasRoomSearched: Boolean = false,
     )
 
 
@@ -258,4 +266,17 @@ data class RoomListItemUi(
     val lastMessageSender: String? = null,
     val lastMessageType: LastMessageType = LastMessageType.Text,
     val lastMessageTs: Long? = null,
+)
+
+data class SearchUiState(
+    val query: String = "",
+    val isSearching: Boolean = false,
+    val results: List<SearchHit> = emptyList(),
+    val nextOffset: Int? = null,
+    val hasSearched: Boolean = false,
+    val error: String? = null,
+
+    // For scoped search
+    val scopedRoomId: String? = null,
+    val scopedRoomName: String? = null
 )

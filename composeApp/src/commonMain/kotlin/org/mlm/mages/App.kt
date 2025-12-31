@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -19,6 +18,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -42,7 +42,6 @@ import org.mlm.mages.nav.popUntil
 import org.mlm.mages.nav.replaceTop
 import org.mlm.mages.platform.BindLifecycle
 import org.mlm.mages.platform.BindNotifications
-import org.mlm.mages.platform.rememberOpenBrowser
 import org.mlm.mages.platform.rememberQuitApp
 import org.mlm.mages.storage.loadString
 import org.mlm.mages.ui.animation.forwardTransition
@@ -56,18 +55,21 @@ import org.mlm.mages.ui.screens.LoginScreen
 import org.mlm.mages.ui.screens.RoomInfoRoute
 import org.mlm.mages.ui.screens.RoomScreen
 import org.mlm.mages.ui.screens.RoomsScreen
+import org.mlm.mages.ui.screens.SearchScreen
 import org.mlm.mages.ui.screens.SecurityScreen
 import org.mlm.mages.ui.screens.SpaceDetailScreen
 import org.mlm.mages.ui.screens.SpaceSettingsScreen
 import org.mlm.mages.ui.screens.SpacesScreen
 import org.mlm.mages.ui.screens.ThreadRoute
 import org.mlm.mages.ui.theme.MainTheme
+import org.mlm.mages.ui.util.popBack
 import org.mlm.mages.ui.viewmodel.DiscoverViewModel
 import org.mlm.mages.ui.viewmodel.InvitesViewModel
 import org.mlm.mages.ui.viewmodel.LoginViewModel
 import org.mlm.mages.ui.viewmodel.RoomInfoViewModel
 import org.mlm.mages.ui.viewmodel.RoomViewModel
 import org.mlm.mages.ui.viewmodel.RoomsViewModel
+import org.mlm.mages.ui.viewmodel.SearchViewModel
 import org.mlm.mages.ui.viewmodel.SecurityViewModel
 import org.mlm.mages.ui.viewmodel.SpaceDetailViewModel
 import org.mlm.mages.ui.viewmodel.SpaceSettingsViewModel
@@ -157,7 +159,19 @@ private fun AppContent(
             }
         }
 
-        val openUrl = rememberOpenBrowser()
+        val uriHandler = LocalUriHandler.current
+
+        val openUrl: (String) -> Boolean = remember(uriHandler) {
+            { url ->
+                try {
+                    uriHandler.openUri(url)
+                    true
+                } catch (t: Throwable) {
+                    t.printStackTrace()
+                    false
+                }
+            }
+        }
         val snackbarHostState = remember { SnackbarHostState() }
 
         Scaffold(
@@ -216,7 +230,7 @@ private fun AppContent(
                                         backStack.add(Route.Room(event.roomId, event.name))
                                     }
                                     is RoomsViewModel.Event.ShowError -> {
-                                        snackbarManager.show("Error: $event.message")
+                                        snackbarManager.showError("$event.message")
                                     }
                                 }
                             }
@@ -228,7 +242,8 @@ private fun AppContent(
                             onOpenDiscover = { backStack.add(Route.Discover) },
                             onOpenInvites = { backStack.add(Route.Invites) },
                             onOpenCreateRoom = { showCreateRoom = true },
-                            onOpenSpaces = { backStack.add(Route.Spaces) }
+                            onOpenSpaces = { backStack.add(Route.Spaces) },
+                            onOpenSearch = { backStack.add(Route.Search) }
                         )
 
                         if (showCreateRoom) {
@@ -256,7 +271,7 @@ private fun AppContent(
 
                         RoomScreen(
                             viewModel = viewModel,
-                            onBack = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) },
+                            onBack = backStack::popBack,
                             onOpenInfo = { backStack.add(Route.RoomInfo(key.roomId)) },
                             onNavigateToRoom = { roomId, name -> backStack.add(Route.Room(roomId, name)) },
                             onNavigateToThread = { roomId, eventId, roomName ->
@@ -289,7 +304,7 @@ private fun AppContent(
 
                         SecurityScreen(
                             viewModel = viewModel,
-                            onBack = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) }
+                            onBack = backStack::popBack
                         )
                     }
 
@@ -311,7 +326,7 @@ private fun AppContent(
 
                         DiscoverRoute(
                             viewModel = viewModel,
-                            onClose = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) }
+                            onClose = backStack::popBack
                         )
                     }
 
@@ -333,7 +348,7 @@ private fun AppContent(
 
                         InvitesRoute(
                             viewModel = viewModel,
-                            onBack = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) }
+                            onBack = backStack::popBack
                         )
                     }
 
@@ -363,7 +378,7 @@ private fun AppContent(
 
                         RoomInfoRoute(
                             viewModel = viewModel,
-                            onBack = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) },
+                            onBack = backStack::popBack,
                             onLeaveSuccess = { backStack.popUntil { it is Route.Rooms } }
                         )
                     }
@@ -375,7 +390,7 @@ private fun AppContent(
 
                         ThreadRoute(
                             viewModel = viewModel,
-                            onBack = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) },
+                            onBack = backStack::popBack,
                         )
                     }
 
@@ -402,7 +417,7 @@ private fun AppContent(
 
                         SpacesScreen(
                             viewModel = viewModel,
-                            onBack = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) }
+                            onBack = backStack::popBack
                         )
                     }
 
@@ -429,7 +444,7 @@ private fun AppContent(
 
                         SpaceDetailScreen(
                             viewModel = viewModel,
-                            onBack = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) },
+                            onBack = backStack::popBack,
                             onOpenSettings = { backStack.add(Route.SpaceSettings(key.spaceId)) }
                         )
                     }
@@ -454,7 +469,35 @@ private fun AppContent(
 
                         SpaceSettingsScreen(
                             viewModel = viewModel,
-                            onBack = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) }
+                            onBack = backStack::popBack
+                        )
+                    }
+
+                    entry<Route.Search> {
+                        val viewModel: SearchViewModel = koinViewModel(
+                            parameters = { parametersOf(null, null) } // Global search
+                        )
+
+                        LaunchedEffect(Unit) {
+                            viewModel.events.collect { event ->
+                                when (event) {
+                                    is SearchViewModel.Event.OpenResult -> {
+                                        backStack.add(Route.Room(event.roomId, event.roomName))
+                                        // TODO: Pass eventId to jump to specific message
+                                    }
+                                    is SearchViewModel.Event.ShowError -> {
+                                        snackbarManager.showError(event.message)
+                                    }
+                                }
+                            }
+                        }
+
+                        SearchScreen(
+                            viewModel = viewModel,
+                            onBack = backStack::popBack,
+                            onOpenResult = { roomId, eventId, roomName ->
+                                backStack.add(Route.Room(roomId, roomName))
+                            }
                         )
                     }
                 }

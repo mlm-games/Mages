@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
 import org.mlm.mages.RoomSummary
 import org.mlm.mages.ui.components.common.RoomListItem
 import org.mlm.mages.ui.components.core.EmptyState
@@ -28,12 +29,13 @@ import org.mlm.mages.ui.viewmodel.RoomsViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomsScreen(
-    viewModel: RoomsViewModel,
+    viewModel: RoomsViewModel = koinViewModel(),
     onOpenSecurity: () -> Unit,
     onOpenDiscover: () -> Unit,
     onOpenInvites: () -> Unit,
     onOpenCreateRoom: () -> Unit,
     onOpenSpaces: () -> Unit,
+    onOpenSearch: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
     val listState = rememberLazyListState()
@@ -75,7 +77,9 @@ fun RoomsScreen(
                 onOpenSecurity = onOpenSecurity,
                 onOpenDiscover = onOpenDiscover,
                 onOpenInvites = onOpenInvites,
-                onOpenCreateRoom = onOpenCreateRoom
+                onOpenCreateRoom = onOpenCreateRoom,
+                onOpenSearch = onOpenSearch
+
             )
         },
         floatingActionButton = {
@@ -247,7 +251,8 @@ private fun RoomsTopBar(
     onOpenSecurity: () -> Unit,
     onOpenDiscover: () -> Unit,
     onOpenInvites: () -> Unit,
-    onOpenCreateRoom: () -> Unit
+    onOpenCreateRoom: () -> Unit,
+    onOpenSearch: () -> Unit
 ) {
     Column {
         TopAppBar(
@@ -270,6 +275,9 @@ private fun RoomsTopBar(
                 }
                 IconButton(onClick = onOpenCreateRoom) {
                     Icon(Icons.Default.Add, "New Room")
+                }
+                IconButton(onClick = onOpenSearch) {
+                    Icon(Icons.Default.Search, "Search messages")
                 }
             }
         )

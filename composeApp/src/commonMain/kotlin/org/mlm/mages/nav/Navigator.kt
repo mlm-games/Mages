@@ -23,7 +23,7 @@ const val NAV_ANIM_DURATION = 450
 sealed interface Route : NavKey {
     @Serializable data object Login : Route
     @Serializable data object Rooms : Route
-    @Serializable data class Room(val roomId: String, val name: String) : Route
+    @Serializable data class Room(val roomId: String, val name: String, val eventId: String? = null) : Route
     @Serializable data object Security : Route
     @Serializable data object Discover : Route
     @Serializable data object Invites : Route
@@ -33,6 +33,8 @@ sealed interface Route : NavKey {
     @Serializable data object Spaces : Route
     @Serializable data class SpaceDetail(val spaceId: String, val spaceName: String) : Route
     @Serializable data class SpaceSettings(val spaceId: String) : Route
+
+    @Serializable data object Search : Route
 }
 
 fun <T : NavKey> NavBackStack<T>.replaceTop(key: T) {

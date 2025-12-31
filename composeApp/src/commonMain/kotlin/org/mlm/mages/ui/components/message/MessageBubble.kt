@@ -1,30 +1,37 @@
 package org.mlm.mages.ui.components.message
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import org.mlm.mages.AttachmentKind
+import org.mlm.mages.matrix.PollData
 import org.mlm.mages.matrix.ReactionChip
 import org.mlm.mages.matrix.SendState
-import org.mlm.mages.platform.loadImageBitmapFromPath
 import org.mlm.mages.ui.components.core.MarkdownText
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatDuration
 import org.mlm.mages.ui.util.formatTime
+import java.io.File
 
 @Composable
 fun MessageBubble(
@@ -47,6 +54,9 @@ fun MessageBubble(
     onReact: ((String) -> Unit)? = null,
     onOpenAttachment: (() -> Unit)? = null,
     isEdited: Boolean = false,
+    poll: PollData? = null,
+    onVote: ((String) -> Unit)? = null,
+    onEndPoll: (() -> Unit)? = null
 ) {
     Column(
         modifier = modifier
@@ -79,9 +89,16 @@ fun MessageBubble(
                     Spacer(Modifier.height(Spacing.sm))
                 }
 
-                AttachmentThumbnail(thumbPath, attachmentKind, durationMs, onOpenAttachment)
+                AttachmentThumbnail(thumbPath, attachmentKind, durationMs, isMine, onOpenAttachment)
 
-                if (body.isNotBlank()) {
+                if (poll != null) {
+                    PollBubble(
+                        poll = poll,
+                        isMine = isMine,
+                        onVote = { optId -> onVote?.invoke(optId) },
+                        onEndPoll = { onEndPoll?.invoke() }
+                    )
+                } else if (body.isNotBlank()) {
                     MarkdownText(
                         text = body,
                         color = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
@@ -158,30 +175,89 @@ private fun AttachmentThumbnail(
     thumbPath: String?,
     attachmentKind: AttachmentKind?,
     durationMs: Long?,
+    isMine: Boolean,
     onOpen: (() -> Unit)?
 ) {
-    if (thumbPath == null || (attachmentKind != AttachmentKind.Image && attachmentKind != AttachmentKind.Video)) return
+    if (attachmentKind == null) return
 
-    val bmp = loadImageBitmapFromPath(thumbPath)
-    if (bmp != null) {
+    val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
+    else MaterialTheme.colorScheme.onSurfaceVariant
+    val accentColor = if (isMine) MaterialTheme.colorScheme.primary
+    else MaterialTheme.colorScheme.secondary
+
+    if (attachmentKind == AttachmentKind.File) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .background(contentColor.copy(alpha = 0.08f))
+                .border(1.dp, contentColor.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
+                .clickable(enabled = onOpen != null) { onOpen?.invoke() }
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(accentColor.copy(alpha = 0.15f))
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = "Tap to open",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = contentColor
+                )
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        return
+    }
+
+    if (thumbPath != null) {
         Box(
             modifier = Modifier
                 .widthIn(max = Sizes.bubbleMaxWidth)
                 .clip(RoundedCornerShape(8.dp))
                 .clickable(enabled = onOpen != null) { onOpen?.invoke() }
         ) {
-            Image(bitmap = bmp, contentDescription = null, modifier = Modifier.fillMaxWidth())
+            AsyncImage(
+                model = ImageRequest.Builder(LocalPlatformContext.current)
+                    .data(File(thumbPath))
+                    .crossfade(true)
+                    .build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxWidth()
+            )
+
             if (attachmentKind == AttachmentKind.Video && durationMs != null) {
                 DurationBadge(durationMs, Modifier.align(Alignment.BottomEnd).padding(6.dp))
             }
         }
         Spacer(Modifier.height(6.dp))
     } else {
-        Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(8.dp)) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(contentColor.copy(alpha = 0.08f))
+                .border(1.dp, contentColor.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+        ) {
             Text(
                 text = if (attachmentKind == AttachmentKind.Video) "Video" else "Image",
-                modifier = Modifier.padding(Spacing.md),
-                style = MaterialTheme.typography.bodySmall
+                modifier = Modifier.padding(12.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = contentColor
             )
         }
         Spacer(Modifier.height(6.dp))

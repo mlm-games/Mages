@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -19,10 +20,8 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.SendState
-import org.mlm.mages.platform.ShareContent
-import org.mlm.mages.platform.rememberFilePicker
-import org.mlm.mages.platform.rememberFileOpener
-import org.mlm.mages.platform.rememberShareHandler
+import org.mlm.mages.platform.*
+import org.mlm.mages.ui.components.AttachmentData
 import org.mlm.mages.ui.components.RoomUpgradeBanner
 import org.mlm.mages.ui.components.attachment.AttachmentPicker
 import org.mlm.mages.ui.components.attachment.AttachmentProgress
@@ -33,18 +32,14 @@ import org.mlm.mages.ui.components.dialogs.InviteUserDialog
 import org.mlm.mages.ui.components.message.MessageBubble
 import org.mlm.mages.ui.components.message.MessageStatusLine
 import org.mlm.mages.ui.components.message.SeenByChip
-import org.mlm.mages.ui.components.sheets.LiveLocationSheet
-import org.mlm.mages.ui.components.sheets.MemberActionsSheet
-import org.mlm.mages.ui.components.sheets.MemberListSheet
-import org.mlm.mages.ui.components.sheets.MessageActionSheet
-import org.mlm.mages.ui.components.sheets.PollCreatorSheet
-import org.mlm.mages.ui.components.sheets.RoomNotificationSheet
-import org.mlm.mages.ui.components.sheets.RoomPickerSheet
+import org.mlm.mages.ui.components.sheets.*
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatDate
 import org.mlm.mages.ui.util.formatTime
 import org.mlm.mages.ui.util.formatTypingText
 import org.mlm.mages.ui.viewmodel.RoomViewModel
+import java.io.File
+import java.nio.file.Files
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,6 +55,7 @@ fun RoomScreen(
     val shareHandler = rememberShareHandler()
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
+
     val openExternal = rememberFileOpener()
 
     val picker = rememberFilePicker { data ->
@@ -67,6 +63,7 @@ fun RoomScreen(
         viewModel.hideAttachmentPicker()
     }
 
+    var isDragging by remember { mutableStateOf(false) }
     var sheetEvent by remember { mutableStateOf<MessageEvent?>(null) }
 
     var didInitialScroll by rememberSaveable { mutableStateOf(false) }
@@ -74,7 +71,6 @@ fun RoomScreen(
     LaunchedEffect(state.hasTimelineSnapshot, state.events.size) {
         if (!state.hasTimelineSnapshot || state.events.isEmpty()) return@LaunchedEffect
 
-        // Only do this once, and only if the user hasn't scrolled yet
         if (!didInitialScroll &&
             listState.firstVisibleItemIndex == 0 &&
             listState.firstVisibleItemScrollOffset == 0
@@ -138,7 +134,6 @@ fun RoomScreen(
         } else emptyList()
     }
 
-    // Auto-scroll and mark read
     LaunchedEffect(events.lastOrNull()?.itemId, isNearBottom) {
         val last = events.lastOrNull() ?: return@LaunchedEffect
         if (isNearBottom) viewModel.markReadHere(last)
@@ -147,13 +142,6 @@ fun RoomScreen(
     LaunchedEffect(events.size) {
         if (isNearBottom && events.isNotEmpty()) {
             listState.animateScrollToItem(events.lastIndex)
-        }
-    }
-
-    // Active live location shares
-    val activeLiveLocationUsers = remember(state.liveLocationShares) {
-        state.liveLocationShares.values.filter { it.isLive }.map {
-            it.userId.substringAfter('@').substringBefore(':')
         }
     }
 
@@ -168,7 +156,8 @@ fun RoomScreen(
                 onBack = onBack,
                 onOpenInfo = onOpenInfo,
                 onOpenNotifications = viewModel::showNotificationSettings,
-                onOpenMembers = viewModel::showMembers
+                onOpenMembers = viewModel::showMembers,
+                onOpenSearch = viewModel::showRoomSearch
             )
         },
         bottomBar = {
@@ -208,81 +197,126 @@ fun RoomScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
-        Column(
+
+        // File Drop Zone
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-        ) {
-            // Room upgrade banner
-            RoomUpgradeBanner(
-                successor = state.successor,
-                predecessor = state.predecessor,
-                onNavigateToRoom = { roomId -> onNavigateToRoom(roomId, "Room") }
-            )
-
-            // Live location banner
-//            if (activeLiveLocationUsers.isNotEmpty()) {
-//                LiveLocationBanner(
-//                    sharingUsers = activeLiveLocationUsers,
-//                    members = state.members,
-//                    onViewLocations = { /* TODO: Map view */ }
-//                )
-//            }
-
-            // Message list
-            Box(modifier = Modifier.weight(1f)) {
-                if (!state.hasTimelineSnapshot) {
-                    // Timeline still loading
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                } else if (events.isEmpty()) {
-                    EmptyState(
-                        icon = Icons.Default.ChatBubbleOutline,
-                        title = "No messages yet",
-                        subtitle = "Send a message to start the conversation"
-                    )
-                } else {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(vertical = 8.dp),
-                        reverseLayout = false
-                    ) {
-                        // Load earlier button
-                        if (!state.hitStart) {
-                            item(key = "load_earlier") {
-                                LoadEarlierButton(
-                                    isLoading = state.isPaginatingBack,
-                                    onClick = viewModel::paginateBack
-                                )
-                            }
-                        } else {
-                            item(key = "start_of_conversation") {
-                                StartOfConversationChip()
+                .fileDrop(
+                    enabled = true,
+                    onDragEnter = { isDragging = true },
+                    onDragExit = {
+                        isDragging = false },
+                    onDrop = { paths ->
+                        isDragging = false
+                        paths.firstOrNull()?.let { path ->
+                            try {
+                                val file = File(path)
+                                if (file.exists()) {
+                                    val mime = Files.probeContentType(file.toPath()) ?: "application/octet-stream"
+                                    viewModel.sendAttachment(
+                                        AttachmentData(
+                                            path = path,
+                                            fileName = file.name,
+                                            mimeType = mime,
+                                            sizeBytes = file.length()
+                                        )
+                                    )
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
                             }
                         }
+                    }
+                )
+        ) {
 
-                        // Messages
-                        itemsIndexed(events, key = { _, e -> e.itemId }) { index, event ->
-                            MessageItem(
-                                event = event,
-                                index = index,
-                                events = events,
-                                state = state,
-                                lastOutgoingIndex = lastOutgoingIndex,
-                                seenByNames = seenByNames,
-                                onLongPress = { sheetEvent = event },
-                                onReact = { emoji -> viewModel.react(event, emoji) },
-                                onOpenAttachment = {
-                                    viewModel.openAttachment(event) { path, mime ->
-                                        openExternal(path, mime)
-                                    }
-                                },
-                                onOpenThread = { viewModel.openThread(event) }
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Room upgrade banner
+                RoomUpgradeBanner(
+                    successor = state.successor,
+                    predecessor = state.predecessor,
+                    onNavigateToRoom = { roomId -> onNavigateToRoom(roomId, "Room") }
+                )
+
+                // Message list
+                Box(modifier = Modifier.weight(1f)) {
+                    if (!state.hasTimelineSnapshot) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    } else if (events.isEmpty()) {
+                        EmptyState(
+                            icon = Icons.Default.ChatBubbleOutline,
+                            title = "No messages yet",
+                            subtitle = "Send a message to start the conversation"
+                        )
+                    } else {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(vertical = 8.dp),
+                            reverseLayout = false
+                        ) {
+                            if (!state.hitStart) {
+                                item(key = "load_earlier") {
+                                    LoadEarlierButton(
+                                        isLoading = state.isPaginatingBack,
+                                        onClick = viewModel::paginateBack
+                                    )
+                                }
+                            } else {
+                                item(key = "start_of_conversation") {
+                                    StartOfConversationChip()
+                                }
+                            }
+
+                            itemsIndexed(events, key = { _, e -> e.itemId }) { index, event ->
+                                MessageItem(
+                                    event = event,
+                                    index = index,
+                                    events = events,
+                                    state = state,
+                                    lastOutgoingIndex = lastOutgoingIndex,
+                                    seenByNames = seenByNames,
+                                    onLongPress = { sheetEvent = event },
+                                    onReact = { emoji -> viewModel.react(event, emoji) },
+                                    onOpenAttachment = {
+                                        viewModel.openAttachment(event) { path, mime ->
+                                            openExternal(path, mime)
+                                        }
+                                    },
+                                    onOpenThread = { viewModel.openThread(event) },
+                                    viewModel
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Drag overlay
+            if (isDragging) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Text(
+                                text = "Drop file to send",
+                                modifier = Modifier.padding(24.dp),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
                     }
@@ -293,7 +327,6 @@ fun RoomScreen(
 
     //  Sheets & Dialogs 
 
-    // Attachment picker
     if (state.showAttachmentPicker) {
         AttachmentPicker(
             onPickImage = { picker.pick("image/*") },
@@ -305,7 +338,6 @@ fun RoomScreen(
         )
     }
 
-    // Poll creator
     if (state.showPollCreator) {
         PollCreatorSheet(
             onCreatePoll = viewModel::sendPoll,
@@ -313,7 +345,6 @@ fun RoomScreen(
         )
     }
 
-    // Live location
     if (state.showLiveLocation) {
         LiveLocationSheet(
             isCurrentlySharing = viewModel.isCurrentlyShareingLocation,
@@ -323,7 +354,6 @@ fun RoomScreen(
         )
     }
 
-    // Notification settings
     if (state.showNotificationSettings) {
         RoomNotificationSheet(
             currentMode = state.notificationMode,
@@ -333,7 +363,6 @@ fun RoomScreen(
         )
     }
 
-    // Member list
     if (state.showMembers) {
         MemberListSheet(
             members = state.members,
@@ -345,7 +374,6 @@ fun RoomScreen(
         )
     }
 
-    // Member actions
     state.selectedMemberForAction?.let { member ->
         MemberActionsSheet(
             member = member,
@@ -360,7 +388,6 @@ fun RoomScreen(
         )
     }
 
-    // Invite dialog
     if (state.showInviteDialog) {
         InviteUserDialog(
             onInvite = viewModel::inviteUser,
@@ -368,7 +395,6 @@ fun RoomScreen(
         )
     }
 
-    // Message action sheet
     sheetEvent?.let { event ->
         val isMine = event.sender == state.myUserId
         MessageActionSheet(
@@ -397,9 +423,21 @@ fun RoomScreen(
             onDismiss = viewModel::cancelForward
         )
     }
+    if (state.showRoomSearch) {
+        RoomSearchSheet(
+            query = state.roomSearchQuery,
+            isSearching = state.isRoomSearching,
+            results = state.roomSearchResults,
+            hasSearched = state.hasRoomSearched,
+            onQueryChange = viewModel::setRoomSearchQuery,
+            onSearch = { viewModel.performRoomSearch(reset = true) },
+            onResultClick = { hit -> viewModel.jumpToSearchResult(hit) },
+            onLoadMore = viewModel::loadMoreRoomSearchResults,
+            hasMore = state.roomSearchNextOffset != null,
+            onDismiss = viewModel::hideRoomSearch
+        )
+    }
 }
-
-//  Sub-composables 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -412,7 +450,8 @@ private fun RoomTopBar(
     onBack: () -> Unit,
     onOpenInfo: () -> Unit,
     onOpenNotifications: () -> Unit,
-    onOpenMembers: () -> Unit
+    onOpenMembers: () -> Unit,
+    onOpenSearch: () -> Unit,
 ) {
     Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 2.dp) {
         Column {
@@ -471,6 +510,9 @@ private fun RoomTopBar(
                     }
                     IconButton(onClick = onOpenInfo) {
                         Icon(Icons.Default.Info, "Room info")
+                    }
+                    IconButton(onClick = onOpenSearch) {
+                        Icon(Icons.Default.Search, "Search")
                     }
                 }
             )
@@ -582,7 +624,8 @@ private fun MessageItem(
     onLongPress: () -> Unit,
     onReact: (String) -> Unit,
     onOpenAttachment: () -> Unit,
-    onOpenThread: () -> Unit
+    onOpenThread: () -> Unit,
+    viewModel: RoomViewModel
 ) {
 
     val eventDate = formatDate(event.timestamp)
@@ -646,7 +689,14 @@ private fun MessageItem(
         replyPreview = event.replyToBody,
         replySender = event.replyToSender?.let { formatDisplayName(it) },
         sendState = event.sendState,
-        isEdited = event.isEdited
+        isEdited = event.isEdited,
+        poll = event.pollData,
+        onVote = { optionId ->
+            event.pollData?.let { p -> viewModel.votePoll(event.eventId, p, optionId) }
+        },
+        onEndPoll = {
+            viewModel.endPoll(event.eventId)
+        }
     )
 
     val threadCount = state.threadCount[event.eventId]

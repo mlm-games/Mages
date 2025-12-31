@@ -1,43 +1,39 @@
 package org.mlm.mages.matrix
 
 import kotlinx.coroutines.Dispatchers
-import mages.SasEmojis
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.withContext
 import mages.FfiRoomNotificationMode
+import mages.SasEmojis
 import mages.TimelineDiffKind
-import org.mlm.mages.AttachmentInfo
-import org.mlm.mages.AttachmentKind
-import org.mlm.mages.EncFile
 import mages.Client as FfiClient
 import mages.RoomSummary as FfiRoom
-import org.mlm.mages.MessageEvent
-import org.mlm.mages.RoomSummary
+import org.mlm.mages.*
 import org.mlm.mages.platform.MagesPaths
 
-class RustMatrixPort() : MatrixPort {
+class RustMatrixPort : MatrixPort {
     @Volatile
-        private var client: FfiClient? = null
-        private val clientLock = Any()
-        private var currentHs: String? = null
+    private var client: FfiClient? = null
+    private val clientLock = Any()
+    private var currentHs: String? = null
 
-        override suspend fun init(hs: String) =
-            withContext(Dispatchers.IO) {
-                synchronized(clientLock) {
-                    if (currentHs == hs && client != null) return@synchronized
+    override suspend fun init(hs: String) =
+        withContext(Dispatchers.IO) {
+            synchronized(clientLock) {
+                if (currentHs == hs && client != null) return@synchronized
 
-                    client?.let { c ->
-                        runCatching { c.shutdown() }
-                        runCatching { c.close() }
-                    }
-
-                    client = FfiClient(hs, MagesPaths.storeDir())
-                    currentHs = hs
+                client?.let { c ->
+                    runCatching { c.shutdown() }
+                    runCatching { c.close() }
                 }
+
+                client = FfiClient(hs, MagesPaths.storeDir())
+                currentHs = hs
             }
+        }
 
     private inline fun <T> withClient(block: (FfiClient) -> T): T {
         val c = client ?: error("Matrix client not initialized. Wait for init call.")
@@ -66,8 +62,7 @@ class RustMatrixPort() : MatrixPort {
 
     override suspend fun listRooms(): List<RoomSummary> =
         withContext(Dispatchers.IO) {
-            withClient { it.rooms().map { it.toModel() }
-            }
+            withClient { it.rooms().map { r -> r.toModel() } }
         }
 
     override suspend fun recent(roomId: String, limit: Int): List<MessageEvent> =
@@ -81,40 +76,24 @@ class RustMatrixPort() : MatrixPort {
         val obs = object : mages.TimelineObserver {
             override fun onDiff(diff: TimelineDiffKind) {
                 val mapped: TimelineDiff<MessageEvent>? = when (diff) {
-                    is TimelineDiffKind.Reset -> {
-                        TimelineDiff.Reset(diff.values.map { it.toModel() })
-                    }
-                    is TimelineDiffKind.Clear -> {
-                        TimelineDiff.Clear()
-                    }
-
+                    is TimelineDiffKind.Reset -> TimelineDiff.Reset(diff.values.map { it.toModel() })
+                    is TimelineDiffKind.Clear -> TimelineDiff.Clear()
                     is TimelineDiffKind.Append -> {
                         val items = diff.values.map { it.toModel() }
                         if (items.isNotEmpty()) TimelineDiff.Append(items) else null
                     }
-                    is TimelineDiffKind.PushBack -> {
-                        TimelineDiff.Append(listOf(diff.value.toModel()))
-                    }
+                    is TimelineDiffKind.PushBack -> TimelineDiff.Append(listOf(diff.value.toModel()))
                     is TimelineDiffKind.PushFront -> {
                         val item = diff.value.toModel()
                         TimelineDiff.UpsertByItemId(item.itemId, item)
                     }
-
-                    is TimelineDiffKind.UpdateByItemId -> {
-                        TimelineDiff.UpdateByItemId(diff.itemId, diff.value.toModel())
-                    }
-                    is TimelineDiffKind.RemoveByItemId -> {
-                        TimelineDiff.RemoveByItemId(diff.itemId)
-                    }
-                    is TimelineDiffKind.UpsertByItemId -> {
-                        TimelineDiff.UpsertByItemId(diff.itemId, diff.value.toModel())
-                    }
-
+                    is TimelineDiffKind.UpdateByItemId -> TimelineDiff.UpdateByItemId(diff.itemId, diff.value.toModel())
+                    is TimelineDiffKind.RemoveByItemId -> TimelineDiff.RemoveByItemId(diff.itemId)
+                    is TimelineDiffKind.UpsertByItemId -> TimelineDiff.UpsertByItemId(diff.itemId, diff.value.toModel())
                     is TimelineDiffKind.PopBack,
                     is TimelineDiffKind.PopFront,
                     is TimelineDiffKind.Truncate -> null
                 }
-
                 mapped?.let { trySendBlocking(it) }
             }
 
@@ -123,9 +102,8 @@ class RustMatrixPort() : MatrixPort {
             }
         }
 
-        val token = withClient { it.observeTimeline(roomId, obs)}
-        awaitClose { withClient { it.unobserveTimeline(token) }
-        }
+        val token = withClient { it.observeTimeline(roomId, obs) }
+        awaitClose { withClient { it.unobserveTimeline(token) } }
     }
 
     override fun observeConnection(observer: MatrixPort.ConnectionObserver): ULong {
@@ -141,15 +119,11 @@ class RustMatrixPort() : MatrixPort {
                 observer.onConnectionChange(mapped)
             }
         }
-        return withClient {
-            it.monitorConnection(cb)
-        }
+        return withClient { it.monitorConnection(cb) }
     }
 
     override fun stopConnectionObserver(token: ULong) {
-        withClient {
-            it.unobserveConnection(token)
-    }
+        withClient { it.unobserveConnection(token) }
     }
 
     override fun startVerificationInbox(observer: MatrixPort.VerificationInboxObserver): ULong {
@@ -162,34 +136,27 @@ class RustMatrixPort() : MatrixPort {
                 observer.onError(message)
             }
         }
-        return withClient {
-            it.startVerificationInbox(cb)
-    }
+        return withClient { it.startVerificationInbox(cb) }
     }
 
     override fun stopVerificationInbox(token: ULong) {
-        withClient {
-            it.unobserveVerificationInbox(token)
-        }
+        withClient { it.unobserveVerificationInbox(token) }
     }
 
     override suspend fun send(roomId: String, body: String): Boolean =
         withContext(Dispatchers.IO) {
-            withClient {
-                it.sendMessage(roomId, body)
-        }
+            runCatching { withClient { it.sendMessage(roomId, body) } }.isSuccess
         }
 
     override suspend fun sendQueueSetEnabled(enabled: Boolean): Boolean =
         withContext(Dispatchers.IO) {
-            withClient { it.sendQueueSetEnabled(enabled) }
+            runCatching { withClient { it.sendQueueSetEnabled(enabled) } }.isSuccess
         }
 
     override suspend fun roomSendQueueSetEnabled(roomId: String, enabled: Boolean): Boolean =
         withContext(Dispatchers.IO) {
-            withClient { it.roomSendQueueSetEnabled(roomId, enabled) }
+            runCatching { withClient { it.roomSendQueueSetEnabled(roomId, enabled) } }.isSuccess
         }
-
 
     override suspend fun sendExistingAttachment(
         roomId: String,
@@ -203,15 +170,12 @@ class RustMatrixPort() : MatrixPort {
             }
         } else null
 
-        withClient {
-            it.sendExistingAttachment(roomId, attachment.toFfi(), body, cb)
-    }
+        runCatching { withClient { it.sendExistingAttachment(roomId, attachment.toFfi(), body, cb) } }.isSuccess
     }
 
     override suspend fun enqueueText(roomId: String, body: String, txnId: String?): String =
         withContext(Dispatchers.IO) {
-            withClient { it.enqueueText(roomId, body, txnId)
-        }
+            withClient { it.enqueueText(roomId, body, txnId) }
         }
 
     override fun observeSends(): Flow<SendUpdate> = callbackFlow {
@@ -236,79 +200,63 @@ class RustMatrixPort() : MatrixPort {
             }
         }
         val token = withClient { it.observeSends(obs) }
-        awaitClose { withClient { it.unobserveSends(token) }
-        }
+        awaitClose { withClient { it.unobserveSends(token) } }
     }
 
     override suspend fun thumbnailToCache(
         info: AttachmentInfo, width: Int, height: Int, crop: Boolean
     ): Result<String> =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.thumbnailToCache(info.toFfi(), width.toUInt(), height.toUInt(), crop) }
-            }
+            runCatching { withClient { it.thumbnailToCache(info.toFfi(), width.toUInt(), height.toUInt(), crop) } }
         }
 
     override suspend fun setTyping(roomId: String, typing: Boolean): Boolean =
         withContext(Dispatchers.IO) {
-            withClient { it.setTyping(roomId, typing)
-        }
+            runCatching { withClient { it.setTyping(roomId, typing) } }.isSuccess
         }
 
     override fun whoami(): String? {
-        return withClient {
-            it.whoami()
-        }
+        return withClient { it.whoami() }
     }
 
     override suspend fun paginateBack(roomId: String, count: Int): Boolean =
         withContext(Dispatchers.IO) {
-            withClient {
-                it.paginateBackwards(roomId, count.toUShort())
-        }
+            runCatching { withClient { it.paginateBackwards(roomId, count.toUShort()) } }.isSuccess
         }
 
     override suspend fun paginateForward(roomId: String, count: Int): Boolean =
         withContext(Dispatchers.IO) {
-            withClient {
-                it.paginateForwards(roomId, count.toUShort())
-        }
+            runCatching { withClient { it.paginateForwards(roomId, count.toUShort()) } }.isSuccess
         }
 
     override suspend fun markRead(roomId: String): Boolean =
         withContext(Dispatchers.IO) {
-        withClient { it.markRead(roomId)
-        }
+            runCatching { withClient { it.markRead(roomId) } }.isSuccess
         }
 
     override suspend fun markReadAt(roomId: String, eventId: String): Boolean =
         withContext(Dispatchers.IO) {
-            withClient { it.markReadAt(roomId, eventId)
-        }
+            runCatching { withClient { it.markReadAt(roomId, eventId) } }.isSuccess
         }
 
     override suspend fun react(roomId: String, eventId: String, emoji: String): Boolean =
         withContext(Dispatchers.IO) {
-            withClient {
-                it.react(roomId, eventId, emoji)
-        }
+            runCatching { withClient { it.react(roomId, eventId, emoji) } }.isSuccess
         }
 
     override suspend fun reply(roomId: String, inReplyToEventId: String, body: String): Boolean =
         withContext(Dispatchers.IO) {
-            withClient { it.reply(roomId, inReplyToEventId, body)
-        }
+            runCatching { withClient { it.reply(roomId, inReplyToEventId, body) } }.isSuccess
         }
 
     override suspend fun edit(roomId: String, targetEventId: String, newBody: String): Boolean =
         withContext(Dispatchers.IO) {
-            withClient { it.edit(roomId, targetEventId, newBody)
-        }
+            runCatching { withClient { it.edit(roomId, targetEventId, newBody) } }.isSuccess
         }
 
     override suspend fun redact(roomId: String, eventId: String, reason: String?): Boolean =
         withContext(Dispatchers.IO) {
-            withClient { it.redact(roomId, eventId, reason)
-        }
+            runCatching { withClient { it.redact(roomId, eventId, reason) } }.isSuccess
         }
 
     override fun observeTyping(roomId: String, onUpdate: (List<String>) -> Unit): ULong {
@@ -317,14 +265,11 @@ class RustMatrixPort() : MatrixPort {
                 onUpdate(names)
             }
         }
-        return withClient {
-            it.observeTyping(roomId, obs)
-    }
+        return withClient { it.observeTyping(roomId, obs) }
     }
 
     override fun stopTypingObserver(token: ULong) {
-        withClient { it.unobserveTyping(token)
-    }
+        withClient { it.unobserveTyping(token) }
     }
 
     override fun observeReceipts(roomId: String, observer: ReceiptsObserver): ULong {
@@ -333,22 +278,21 @@ class RustMatrixPort() : MatrixPort {
                 observer.onChanged()
             }
         }
-        return withClient { it.observeReceipts(roomId, cb)
-    }
-        
+        return withClient { it.observeReceipts(roomId, cb) }
     }
 
     override fun stopReceiptsObserver(token: ULong) {
-        withClient { it.unobserveReceipts(token)
-    }
+        withClient { it.unobserveReceipts(token) }
     }
 
     override suspend fun dmPeerUserId(roomId: String): String? =
-        withContext(Dispatchers.IO) { withClient { it.dmPeerUserId(roomId) }
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.dmPeerUserId(roomId) } }.getOrNull()
         }
 
     override suspend fun isEventReadBy(roomId: String, eventId: String, userId: String): Boolean =
-        withContext(Dispatchers.IO) { withClient { it.isEventReadBy(roomId, eventId, userId) }
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.isEventReadBy(roomId, eventId, userId) } }.getOrDefault(false)
         }
 
     override fun startCallInbox(observer: MatrixPort.CallObserver): ULong {
@@ -365,14 +309,11 @@ class RustMatrixPort() : MatrixPort {
                 )
             }
         }
-        return withClient { it.startCallInbox(cb)
-    }
+        return withClient { it.startCallInbox(cb) }
     }
 
     override fun stopCallInbox(token: ULong) {
-        withClient {
-            it.stopCallInbox(token)
-        }
+        withClient { it.stopCallInbox(token) }
     }
 
     override fun startSupervisedSync(observer: MatrixPort.SyncObserver) {
@@ -387,23 +328,24 @@ class RustMatrixPort() : MatrixPort {
                 observer.onState(MatrixPort.SyncStatus(phase, status.message))
             }
         }
-        withClient { it.startSupervisedSync(cb)
-    }
+        withClient { it.startSupervisedSync(cb) }
     }
 
     override suspend fun listMyDevices(): List<DeviceSummary> =
         withContext(Dispatchers.IO) {
-            withClient {
-                it.listMyDevices().map {
-                    DeviceSummary(
-                        deviceId = it.deviceId,
-                        displayName = it.displayName,
-                        ed25519 = it.ed25519,
-                        isOwn = it.isOwn,
-                    verified = it.verified
-                )
-            }
-        }
+            runCatching {
+                withClient {
+                    it.listMyDevices().map { d ->
+                        DeviceSummary(
+                            deviceId = d.deviceId,
+                            displayName = d.displayName,
+                            ed25519 = d.ed25519,
+                            isOwn = d.isOwn,
+                            verified = d.verified
+                        )
+                    }
+                }
+            }.getOrElse { emptyList() }
         }
 
     private fun mages.SasPhase.toCommon(): SasPhase = when (this) {
@@ -438,8 +380,7 @@ class RustMatrixPort() : MatrixPort {
                 observer.onError(flowId, message)
             }
         }
-        withClient { it.startSelfSas(targetDeviceId, obs)
-    }
+        withClient { it.startSelfSas(targetDeviceId, obs) }
     }
 
     override suspend fun startUserSas(
@@ -464,8 +405,7 @@ class RustMatrixPort() : MatrixPort {
                 observer.onError(flowId, message)
             }
         }
-        withClient { it.startUserSas(userId, obs)
-    }
+        withClient { it.startUserSas(userId, obs) }
     }
 
     override suspend fun acceptVerification(
@@ -475,17 +415,7 @@ class RustMatrixPort() : MatrixPort {
     ): Boolean = withContext(Dispatchers.IO) {
         val cb = object : mages.VerificationObserver {
             override fun onPhase(flowId: String, phase: mages.SasPhase) {
-                observer.onPhase(
-                    flowId, when (phase) {
-                        mages.SasPhase.REQUESTED -> SasPhase.Requested
-                        mages.SasPhase.READY -> SasPhase.Ready
-                        mages.SasPhase.EMOJIS -> SasPhase.Emojis
-                        mages.SasPhase.CONFIRMED -> SasPhase.Confirmed
-                        mages.SasPhase.CANCELLED -> SasPhase.Cancelled
-                        mages.SasPhase.FAILED -> SasPhase.Failed
-                        mages.SasPhase.DONE -> SasPhase.Done
-                    }
-                )
+                observer.onPhase(flowId, phase.toCommon())
             }
 
             override fun onEmojis(payload: SasEmojis) {
@@ -501,47 +431,45 @@ class RustMatrixPort() : MatrixPort {
                 observer.onError(flowId, message)
             }
         }
-        withClient { it.acceptVerification(flowId, otherUserId, cb)
-    }
+        runCatching { withClient { it.acceptVerification(flowId, otherUserId, cb) } }.isSuccess
     }
 
     override suspend fun confirmVerification(flowId: String): Boolean =
-        withContext(Dispatchers.IO) { withClient { it.confirmVerification(flowId) }
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.confirmVerification(flowId) } }.isSuccess
         }
 
     override suspend fun cancelVerification(flowId: String): Boolean =
-        withContext(Dispatchers.IO) { withClient { it.cancelVerification(flowId) }
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.cancelVerification(flowId) } }.isSuccess
         }
 
-    override suspend fun cancelVerificationRequest(
-        flowId: String,
-        otherUserId: String?
-    ): Boolean = withContext(Dispatchers.IO) {
-        withClient { it.cancelVerificationRequest(flowId, otherUserId)
-    }
-    }
+    override suspend fun cancelVerificationRequest(flowId: String, otherUserId: String?): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.cancelVerificationRequest(flowId, otherUserId) } }.isSuccess
+        }
 
     override suspend fun logout(): Boolean =
-        withContext(Dispatchers.IO) { withClient { it.logout() }
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.logout() } }.isSuccess
         }
 
     override suspend fun retryByTxn(roomId: String, txnId: String): Boolean =
-        withContext(Dispatchers.IO) { withClient { it.retryByTxn(roomId, txnId) }
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.retryByTxn(roomId, txnId) } }.isSuccess
         }
 
     override suspend fun checkVerificationRequest(userId: String, flowId: String): Boolean =
-        withContext(Dispatchers.IO) { withClient { it.checkVerificationRequest(userId, flowId) }
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.checkVerificationRequest(userId, flowId) } }.getOrDefault(false)
         }
 
     override fun enterForeground() {
-        withClient { it.enterForeground()
-    }
+        withClient { it.enterForeground() }
     }
 
     override fun enterBackground() {
-        withClient {
-            it.enterBackground()
-        }
+        withClient { it.enterBackground() }
     }
 
     override suspend fun sendAttachmentFromPath(
@@ -556,9 +484,7 @@ class RustMatrixPort() : MatrixPort {
                 onProgress(sent.toLong(), total?.toLong())
             }
         } else null
-        withClient {
-            it.sendAttachmentFromPath(roomId, path, mime, filename, cb)
-        }
+        runCatching { withClient { it.sendAttachmentFromPath(roomId, path, mime, filename, cb) } }.isSuccess
     }
 
     override suspend fun sendAttachmentBytes(
@@ -573,9 +499,7 @@ class RustMatrixPort() : MatrixPort {
                 onProgress(sent.toLong(), total?.toLong())
             }
         } else null
-        withClient {
-            it.sendAttachmentBytes(roomId, filename, mime, data, cb)
-    }
+        runCatching { withClient { it.sendAttachmentBytes(roomId, filename, mime, data, cb) } }.isSuccess
     }
 
     override suspend fun downloadAttachmentToCache(
@@ -583,10 +507,7 @@ class RustMatrixPort() : MatrixPort {
         filenameHint: String?
     ): Result<String> =
         withContext(Dispatchers.IO) {
-            runCatching {
-                withClient { it.downloadAttachmentToCacheFile(info.toFfi(), filenameHint).path
-            }
-            }
+            runCatching { withClient { it.downloadAttachmentToCacheFile(info.toFfi(), filenameHint).path } }
         }
 
     override suspend fun downloadAttachmentToPath(
@@ -600,15 +521,12 @@ class RustMatrixPort() : MatrixPort {
             }
         } else null
 
-        runCatching {
-            withClient {
-                it.downloadAttachmentToPath(info.toFfi(), savePath, cb).path
-        }
-        }
+        runCatching { withClient { it.downloadAttachmentToPath(info.toFfi(), savePath, cb).path } }
     }
 
     override suspend fun recoverWithKey(recoveryKey: String): Boolean =
-        withContext(Dispatchers.IO) { withClient { it.recoverWithKey(recoveryKey) }
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.recoverWithKey(recoveryKey) } }.isSuccess
         }
 
     override suspend fun registerUnifiedPush(
@@ -619,77 +537,67 @@ class RustMatrixPort() : MatrixPort {
         lang: String,
         profileTag: String?,
     ): Boolean = withContext(Dispatchers.IO) {
-        withClient {
-            it.registerUnifiedpush(appId, pushKey, gatewayUrl, deviceName, lang, profileTag)
-    }
+        runCatching {
+            withClient { it.registerUnifiedpush(appId, pushKey, gatewayUrl, deviceName, lang, profileTag) }
+        }.isSuccess
     }
 
-    override suspend fun unregisterUnifiedPush(
-        appId: String,
-        pushKey: String,
-    ): Boolean = withContext(Dispatchers.IO) {
-        withClient {
-            it.unregisterUnifiedpush(appId, pushKey)
-    }
-    }
+    override suspend fun unregisterUnifiedPush(appId: String, pushKey: String): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.unregisterUnifiedpush(appId, pushKey) } }.isSuccess
+        }
 
     override suspend fun roomUnreadStats(roomId: String): UnreadStats? =
         withContext(Dispatchers.IO) {
-            withClient {
-                it.roomUnreadStats(roomId)?.let {
-                    UnreadStats(
-                        it.messages.toLong(),
-                        it.notifications.toLong(),
-                        it.mentions.toLong()
-                    )
-            }
-        }
+            runCatching {
+                withClient {
+                    it.roomUnreadStats(roomId)?.let { s ->
+                        UnreadStats(
+                            s.messages.toLong(),
+                            s.notifications.toLong(),
+                            s.mentions.toLong()
+                        )
+                    }
+                }
+            }.getOrNull()
         }
 
     override suspend fun roomNotificationMode(roomId: String): RoomNotificationMode? =
         withContext(Dispatchers.IO) {
-        withClient { it.roomNotificationMode(roomId)?.toKotlin()
-        }
+            runCatching { withClient { it.roomNotificationMode(roomId)?.toKotlin() } }.getOrNull()
         }
 
     override suspend fun setRoomNotificationMode(
         roomId: String,
         mode: RoomNotificationMode
     ): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.setRoomNotificationMode(roomId, mode.toFfi()) }
-        }.isSuccess
+        runCatching { withClient { it.setRoomNotificationMode(roomId, mode.toFfi()) } }.isSuccess
     }
 
     override suspend fun encryptionCatchupOnce(): Boolean =
-        withContext(Dispatchers.IO) { withClient { it.encryptionCatchupOnce() }
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.encryptionCatchupOnce() } }.isSuccess
         }
 
     override suspend fun ownLastRead(roomId: String): Pair<String?, Long?> =
         withContext(Dispatchers.IO) {
-            withClient { it.ownLastRead(roomId).let { it.eventId to it.tsMs?.toLong() }
-        }
+            runCatching {
+                withClient { it.ownLastRead(roomId).let { r -> r.eventId to r.tsMs?.toLong() } }
+            }.getOrElse { null to null }
         }
 
-    override fun observeOwnReceipt(
-        roomId: String,
-        observer: ReceiptsObserver,
-    ): ULong {
-        val cb =
-            object : mages.ReceiptsObserver {
-                override fun onChanged() {
-                    observer.onChanged()
-                }
+    override fun observeOwnReceipt(roomId: String, observer: ReceiptsObserver): ULong {
+        val cb = object : mages.ReceiptsObserver {
+            override fun onChanged() {
+                observer.onChanged()
             }
-        return withClient {
-            it.observeOwnReceipt(roomId, cb)
         }
-        
+        return withClient { it.observeOwnReceipt(roomId, cb) }
     }
 
     override suspend fun markFullyReadAt(roomId: String, eventId: String): Boolean =
         withContext(Dispatchers.IO) {
-            withClient { it.markFullyReadAt(roomId, eventId)
-        }
+            runCatching { withClient { it.markFullyReadAt(roomId, eventId) } }.isSuccess
         }
 
     override fun observeRoomList(observer: MatrixPort.RoomListObserver): ULong {
@@ -703,34 +611,33 @@ class RustMatrixPort() : MatrixPort {
                 observer.onUpdate(item.toKotlinRoomListEntry())
             }
         }
-        return withClient { it.observeRoomList(cb)
-    }
+        return withClient { it.observeRoomList(cb) }
     }
 
     override fun unobserveRoomList(token: ULong) {
-        withClient { it.unobserveRoomList(token)
+        withClient { it.unobserveRoomList(token) }
     }
-    }
-    override suspend fun fetchNotification(
-        roomId: String,
-        eventId: String
-    ): RenderedNotification? = withContext(Dispatchers.IO) {
-        withClient {
-            it.fetchNotification(roomId, eventId)?.let {
-                RenderedNotification(
-                    roomId = it.roomId,
-                    eventId = it.eventId,
-                    roomName = it.roomName,
-                    sender = it.sender,
-                    body = it.body,
-                    isNoisy = it.isNoisy,
-                    hasMention = it.hasMention,
-                    senderUserId = it.senderUserId,
-                tsMs = it.tsMs.toLong(),
-            )
+
+    override suspend fun fetchNotification(roomId: String, eventId: String): RenderedNotification? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                withClient {
+                    it.fetchNotification(roomId, eventId)?.let { n ->
+                        RenderedNotification(
+                            roomId = n.roomId,
+                            eventId = n.eventId,
+                            roomName = n.roomName,
+                            sender = n.sender,
+                            body = n.body,
+                            isNoisy = n.isNoisy,
+                            hasMention = n.hasMention,
+                            senderUserId = n.senderUserId,
+                            tsMs = n.tsMs.toLong(),
+                        )
+                    }
+                }
+            }.getOrNull()
         }
-    }
-    }
 
     override suspend fun fetchNotificationsSince(
         sinceMs: Long,
@@ -738,35 +645,33 @@ class RustMatrixPort() : MatrixPort {
         maxEvents: Int
     ): List<RenderedNotification> = withContext(Dispatchers.IO) {
         runCatching {
-            withClient { it.fetchNotificationsSince(
-                sinceMs.toULong(),
-                maxRooms.toUInt(),
-                maxEvents.toUInt()
-            )
-        }
+            withClient {
+                it.fetchNotificationsSince(
+                    sinceMs.toULong(),
+                    maxRooms.toUInt(),
+                    maxEvents.toUInt()
+                )
+            }
         }.getOrElse { emptyList() }
-            .map {
+            .map { n ->
                 RenderedNotification(
-                    roomId = it.roomId,
-                    eventId = it.eventId,
-                    roomName = it.roomName,
-                    sender = it.sender,
-                    body = it.body,
-                    isNoisy = it.isNoisy,
-                    hasMention = it.hasMention,
-                    senderUserId = it.senderUserId,
-                    tsMs = it.tsMs.toLong()
+                    roomId = n.roomId,
+                    eventId = n.eventId,
+                    roomName = n.roomName,
+                    sender = n.sender,
+                    body = n.body,
+                    isNoisy = n.isNoisy,
+                    hasMention = n.hasMention,
+                    senderUserId = n.senderUserId,
+                    tsMs = n.tsMs.toLong()
                 )
             }
     }
 
-    override fun roomListSetUnreadOnly(
-        token: ULong,
-        unreadOnly: Boolean
-    ): Boolean {
+    override fun roomListSetUnreadOnly(token: ULong, unreadOnly: Boolean): Boolean {
         return withClient {
             it.roomListSetUnreadOnly(token, unreadOnly)
-    }
+        }
     }
 
     override suspend fun loginSsoLoopback(
@@ -776,18 +681,18 @@ class RustMatrixPort() : MatrixPort {
         val opener = object : mages.UrlOpener {
             override fun open(url: String): Boolean = openUrl(url)
         }
-        runCatching { withClient { it.loginSsoLoopback(opener, deviceName) }
-        }.isSuccess
+        runCatching { withClient { it.loginSsoLoopback(opener, deviceName) } }.isSuccess
     }
 
     override suspend fun searchUsers(term: String, limit: Int): List<DirectoryUser> =
         withContext(Dispatchers.IO) {
-            withClient {
-                it.searchUsers(term, limit.toULong()).map { u ->
-                    DirectoryUser(u.userId, u.displayName, u.avatarUrl)
+            runCatching {
+                withClient {
+                    it.searchUsers(term, limit.toULong()).map { u ->
+                        DirectoryUser(u.userId, u.displayName, u.avatarUrl)
+                    }
                 }
-            }
-            
+            }.getOrElse { emptyList() }
         }
 
     override suspend fun publicRooms(
@@ -797,19 +702,19 @@ class RustMatrixPort() : MatrixPort {
         since: String?
     ): PublicRoomsPage = withContext(Dispatchers.IO) {
         val resp = withClient {
-            it.publicRooms(server, search, limit.toUInt(), since) 
+            it.publicRooms(server, search, limit.toUInt(), since)
         }
-            PublicRoomsPage(
-                rooms = resp.rooms.map {
-                    PublicRoom(
-                        roomId = it.roomId,
-                        name = it.name,
-                        topic = it.topic,
-                        alias = it.alias,
-                        avatarUrl = it.avatarUrl,
-                    memberCount = it.memberCount.toLong(),
-                    worldReadable = it.worldReadable,
-                    guestCanJoin = it.guestCanJoin
+        PublicRoomsPage(
+            rooms = resp.rooms.map { r ->
+                PublicRoom(
+                    roomId = r.roomId,
+                    name = r.name,
+                    topic = r.topic,
+                    alias = r.alias,
+                    avatarUrl = r.avatarUrl,
+                    memberCount = r.memberCount.toLong(),
+                    worldReadable = r.worldReadable,
+                    guestCanJoin = r.guestCanJoin
                 )
             },
             nextBatch = resp.nextBatch,
@@ -819,61 +724,63 @@ class RustMatrixPort() : MatrixPort {
 
     override suspend fun joinByIdOrAlias(idOrAlias: String): Boolean =
         withContext(Dispatchers.IO) {
-            withClient { it.joinByIdOrAlias(idOrAlias)
-        }
+            runCatching { withClient { it.joinByIdOrAlias(idOrAlias) } }.isSuccess
         }
 
     override suspend fun ensureDm(userId: String): String? =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.ensureDm(userId) }
-            }.getOrNull()
+            runCatching { withClient { it.ensureDm(userId) } }.getOrNull()
         }
 
     override suspend fun resolveRoomId(idOrAlias: String): String? =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.resolveRoomId(idOrAlias) }
-            }.getOrNull()
+            runCatching { withClient { it.resolveRoomId(idOrAlias) } }.getOrNull()
         }
 
     override suspend fun listInvited(): List<RoomProfile> = withContext(Dispatchers.IO) {
-        withClient {
-            it.listInvited().map {
-            RoomProfile(it.roomId, it.name, it.topic, it.memberCount.toLong(), it.isEncrypted, it.isDm, it.avatarUrl)
-        }
-    }
+        runCatching {
+            withClient {
+                it.listInvited().map { p ->
+                    RoomProfile(
+                        p.roomId,
+                        p.name,
+                        p.topic,
+                        p.memberCount.toLong(),
+                        p.isEncrypted,
+                        p.isDm,
+                        p.avatarUrl
+                    )
+                }
+            }
+        }.getOrElse { emptyList() }
     }
 
     override suspend fun acceptInvite(roomId: String): Boolean = withContext(Dispatchers.IO) {
-        withClient { it.acceptInvite(roomId)
-    }
+        runCatching { withClient { it.acceptInvite(roomId) } }.isSuccess
     }
 
     override suspend fun leaveRoom(roomId: String): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.leaveRoom(roomId) }
-        }.isSuccess
+        runCatching { withClient { it.leaveRoom(roomId) } }.isSuccess
     }
 
     override suspend fun createRoom(
         name: String?, topic: String?, invitees: List<String>
     ): String? = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.createRoom(name, topic, invitees) }
-        }.getOrNull()
+        runCatching { withClient { it.createRoom(name, topic, invitees) } }.getOrNull()
     }
 
-    override suspend fun setRoomName(roomId: String, name: String): Boolean = withContext(Dispatchers.IO) {
-        withClient { it.setRoomName(roomId, name)
+    override suspend fun setRoomName(roomId: String, name: String): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.setRoomName(roomId, name) } }.isSuccess
         }
-        
-    }
 
-    override suspend fun setRoomTopic(roomId: String, topic: String): Boolean = withContext(Dispatchers.IO) {
-        withClient { it.setRoomTopic(roomId, topic)
-    }
-    }
+    override suspend fun setRoomTopic(roomId: String, topic: String): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.setRoomTopic(roomId, topic) } }.isSuccess
+        }
 
     override suspend fun roomProfile(roomId: String): RoomProfile? = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.roomProfile(roomId) }
-        }.getOrNull()?.let {
+        runCatching { withClient { it.roomProfile(roomId) } }.getOrNull()?.let {
             RoomProfile(
                 it.roomId,
                 it.name,
@@ -886,20 +793,22 @@ class RustMatrixPort() : MatrixPort {
         }
     }
 
-    override suspend fun listMembers(roomId: String): List<MemberSummary> = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.listMembers(roomId) }
-        }.getOrElse { emptyList() }.map {
-            MemberSummary(it.userId, it.displayName, it.avatarUrl, it.isMe, it.membership)
+    override suspend fun listMembers(roomId: String): List<MemberSummary> =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.listMembers(roomId) } }
+                .getOrElse { emptyList() }.map {
+                    MemberSummary(it.userId, it.displayName, it.avatarUrl, it.isMe, it.membership)
+                }
         }
-    }
 
     override suspend fun reactions(roomId: String, eventId: String): List<ReactionChip> =
         withContext(Dispatchers.IO) {
-        withClient {
-            it.reactionsForEvent(roomId, eventId)
-                .map { ReactionChip(it.key, it.count.toInt(), it.me) }
-        }
-            
+            runCatching {
+                withClient {
+                    it.reactionsForEvent(roomId, eventId)
+                        .map { r -> ReactionChip(r.key, r.count.toInt(), r.me) }
+                }
+            }.getOrElse { emptyList() }
         }
 
     override suspend fun reactionsBatch(
@@ -907,11 +816,12 @@ class RustMatrixPort() : MatrixPort {
         eventIds: List<String>
     ): Map<String, List<ReactionChip>> = withContext(Dispatchers.IO) {
         runCatching {
-            withClient { it.reactionsBatch(roomId, eventIds)
-                .mapValues { (_, chips) ->
-                    chips.map { ReactionChip(it.key, it.count.toInt(), it.me) }
-                }
-        }
+            withClient {
+                it.reactionsBatch(roomId, eventIds)
+                    .mapValues { (_, chips) ->
+                        chips.map { c -> ReactionChip(c.key, c.count.toInt(), c.me) }
+                    }
+            }
         }.getOrElse { emptyMap() }
     }
 
@@ -924,8 +834,7 @@ class RustMatrixPort() : MatrixPort {
         val s = withClient {
             it.threadSummary(roomId, rootEventId, perPage.toUInt(), maxPages.toUInt())
         }
-            ThreadSummary(s.rootEventId, s.roomId, s.count.toLong(), s.latestTsMs?.toLong())
-        
+        ThreadSummary(s.rootEventId, s.roomId, s.count.toLong(), s.latestTsMs?.toLong())
     }
 
     override suspend fun threadReplies(
@@ -951,32 +860,29 @@ class RustMatrixPort() : MatrixPort {
         body: String,
         replyToEventId: String?
     ): Boolean = withContext(Dispatchers.IO) {
-        withClient {
-            it.sendThreadText(roomId, rootEventId, body, replyToEventId)
-        }
-        
+        runCatching { withClient { it.sendThreadText(roomId, rootEventId, body, replyToEventId) } }.isSuccess
     }
 
     override suspend fun isSpace(roomId: String): Boolean =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.isSpace(roomId) }
-            }.getOrDefault(false)
+            runCatching { withClient { it.isSpace(roomId) } }.getOrDefault(false)
         }
 
     override suspend fun mySpaces(): List<SpaceInfo> =
         withContext(Dispatchers.IO) {
             runCatching {
-                withClient { it.mySpaces().map { space ->
-                    SpaceInfo(
-                        roomId = space.roomId,
-                        name = space.name,
-                        topic = space.topic,
-                        memberCount = space.memberCount.toLong(),
-                        isEncrypted = space.isEncrypted,
-                        isPublic = space.isPublic
-                    )
+                withClient {
+                    it.mySpaces().map { space ->
+                        SpaceInfo(
+                            roomId = space.roomId,
+                            name = space.name,
+                            topic = space.topic,
+                            memberCount = space.memberCount.toLong(),
+                            isEncrypted = space.isEncrypted,
+                            isPublic = space.isPublic
+                        )
+                    }
                 }
-            }
             }.getOrDefault(emptyList())
         }
 
@@ -986,8 +892,7 @@ class RustMatrixPort() : MatrixPort {
         isPublic: Boolean,
         invitees: List<String>
     ): String? = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.createSpace(name, topic, isPublic, invitees) }
-        }.getOrNull()
+        runCatching { withClient { it.createSpace(name, topic, isPublic, invitees) } }.getOrNull()
     }
 
     override suspend fun spaceAddChild(
@@ -996,16 +901,14 @@ class RustMatrixPort() : MatrixPort {
         order: String?,
         suggested: Boolean?
     ): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.spaceAddChild(spaceId, childRoomId, order, suggested) }
-        }.isSuccess
+        runCatching { withClient { it.spaceAddChild(spaceId, childRoomId, order, suggested) } }.isSuccess
     }
 
     override suspend fun spaceRemoveChild(
         spaceId: String,
         childRoomId: String
     ): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.spaceRemoveChild(spaceId, childRoomId) }
-        }.isSuccess
+        runCatching { withClient { it.spaceRemoveChild(spaceId, childRoomId) } }.isSuccess
     }
 
     override suspend fun spaceHierarchy(
@@ -1025,15 +928,15 @@ class RustMatrixPort() : MatrixPort {
                     suggestedOnly = suggestedOnly
                 )
             }
-                SpaceHierarchyPage(
-                    children = page.children.map { child ->
-                        SpaceChildInfo(
-                            roomId = child.roomId,
-                            name = child.name,
-                            topic = child.topic,
-                            alias = child.alias,
-                            avatarUrl = child.avatarUrl,
-                            isSpace = child.isSpace,
+            SpaceHierarchyPage(
+                children = page.children.map { child ->
+                    SpaceChildInfo(
+                        roomId = child.roomId,
+                        name = child.name,
+                        topic = child.topic,
+                        alias = child.alias,
+                        avatarUrl = child.avatarUrl,
+                        isSpace = child.isSpace,
                         memberCount = child.memberCount.toLong(),
                         worldReadable = child.worldReadable,
                         guestCanJoin = child.guestCanJoin,
@@ -1047,125 +950,112 @@ class RustMatrixPort() : MatrixPort {
 
     override suspend fun spaceInviteUser(spaceId: String, userId: String): Boolean =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.spaceInviteUser(spaceId, userId) }
-            }.isSuccess
+            runCatching { withClient { it.spaceInviteUser(spaceId, userId) } }.isSuccess
         }
 
     override suspend fun roomTags(roomId: String): Pair<Boolean, Boolean>? = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.roomTags(roomId) }
-        }.getOrNull()?.let {
+        runCatching { withClient { it.roomTags(roomId) } }.getOrNull()?.let {
             it.isFavourite to it.isLowPriority
         }
     }
 
-    override suspend fun setRoomFavourite(roomId: String, favourite: Boolean): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.setRoomFavourite(roomId, favourite) }
-        }.isSuccess
-    }
+    override suspend fun setRoomFavourite(roomId: String, favourite: Boolean): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.setRoomFavourite(roomId, favourite) } }.isSuccess
+        }
 
-    override suspend fun setRoomLowPriority(roomId: String, lowPriority: Boolean): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.setRoomLowPriority(roomId, lowPriority) }
-        }.isSuccess
-    }
+    override suspend fun setRoomLowPriority(roomId: String, lowPriority: Boolean): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.setRoomLowPriority(roomId, lowPriority) } }.isSuccess
+        }
 
-
-    override suspend fun setPresence(presence: Presence, status: String?): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.setPresence(presence.toFfi(), status) }
-        }.isSuccess
-    }
+    override suspend fun setPresence(presence: Presence, status: String?): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.setPresence(presence.toFfi(), status) } }.isSuccess
+        }
 
     override suspend fun getPresence(userId: String): Pair<Presence, String?>? =
         withContext(Dispatchers.IO) {
-            val info = runCatching { withClient { it.getPresence(userId) }
-            }.getOrNull()
+            val info = runCatching { withClient { it.getPresence(userId) } }.getOrNull()
                 ?: return@withContext null
-
             info.presence.toKotlin() to info.statusMsg
         }
 
     override suspend fun ignoreUser(userId: String): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.ignoreUser(userId) }
-        }.isSuccess
+        runCatching { withClient { it.ignoreUser(userId) } }.isSuccess
     }
 
     override suspend fun unignoreUser(userId: String): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.unignoreUser(userId) }
-        }.isSuccess
+        runCatching { withClient { it.unignoreUser(userId) } }.isSuccess
     }
 
     override suspend fun ignoredUsers(): List<String> = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.ignoredUsers() }
-        }.getOrElse { emptyList() }
+        runCatching { withClient { it.ignoredUsers() } }.getOrElse { emptyList() }
     }
 
-    override suspend fun roomDirectoryVisibility(roomId: String): RoomDirectoryVisibility? = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.roomDirectoryVisibility(roomId) }
-        }.getOrNull()?.toKotlin()
+    override suspend fun roomDirectoryVisibility(roomId: String): RoomDirectoryVisibility? =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.roomDirectoryVisibility(roomId) } }.getOrNull()?.toKotlin()
+        }
+
+    override suspend fun setRoomDirectoryVisibility(
+        roomId: String,
+        visibility: RoomDirectoryVisibility
+    ): Boolean = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.setRoomDirectoryVisibility(roomId, visibility.toFfi()) } }.isSuccess
     }
 
-    override suspend fun setRoomDirectoryVisibility(roomId: String, visibility: RoomDirectoryVisibility): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.setRoomDirectoryVisibility(roomId, visibility.toFfi()) }
-        }.isSuccess
-    }
+    override suspend fun banUser(roomId: String, userId: String, reason: String?): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.banUser(roomId, userId, reason) } }.isSuccess
+        }
 
-    override suspend fun banUser(roomId: String, userId: String, reason: String?): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.banUser(roomId, userId, reason) }
-        }.isSuccess
-    }
+    override suspend fun unbanUser(roomId: String, userId: String, reason: String?): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.unbanUser(roomId, userId, reason) } }.isSuccess
+        }
 
-    override suspend fun unbanUser(roomId: String, userId: String, reason: String?): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.unbanUser(roomId, userId, reason) }
-        }.isSuccess
-    }
+    override suspend fun kickUser(roomId: String, userId: String, reason: String?): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.kickUser(roomId, userId, reason) } }.isSuccess
+        }
 
-    override suspend fun kickUser(roomId: String, userId: String, reason: String?): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.kickUser(roomId, userId, reason) }
-        }.isSuccess
-    }
-
-    override suspend fun inviteUser(roomId: String, userId: String): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.inviteUser(roomId, userId) }
-        }.isSuccess
-    }
+    override suspend fun inviteUser(roomId: String, userId: String): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.inviteUser(roomId, userId) } }.isSuccess
+        }
 
     override suspend fun enableRoomEncryption(roomId: String): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.enableRoomEncryption(roomId) }
-        }.isSuccess
+        runCatching { withClient { it.enableRoomEncryption(roomId) } }.isSuccess
     }
 
     override suspend fun roomSuccessor(roomId: String): RoomUpgradeInfo? = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.roomSuccessor(roomId) }
-        }.getOrNull()?.let { ffi ->
+        runCatching { withClient { it.roomSuccessor(roomId) } }.getOrNull()?.let { ffi ->
             RoomUpgradeInfo(roomId = ffi.roomId, reason = ffi.reason)
         }
     }
 
     override suspend fun roomPredecessor(roomId: String): RoomPredecessorInfo? = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.roomPredecessor(roomId) }
-        }.getOrNull()?.let { ffi ->
+        runCatching { withClient { it.roomPredecessor(roomId) } }.getOrNull()?.let { ffi ->
             RoomPredecessorInfo(roomId = ffi.roomId)
         }
     }
-
 
     override suspend fun startLiveLocationShare(
         roomId: String,
         durationMs: Long
     ): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.startLiveLocation(roomId, durationMs.toULong(), null) }
-        }.isSuccess
+        runCatching { withClient { it.startLiveLocation(roomId, durationMs.toULong(), null) } }.isSuccess
     }
 
     override suspend fun stopLiveLocationShare(roomId: String): Boolean =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.stopLiveLocation(roomId) }
-            }.isSuccess
+            runCatching { withClient { it.stopLiveLocation(roomId) } }.isSuccess
         }
 
     override suspend fun sendLiveLocation(roomId: String, geoUri: String): Boolean =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.sendLiveLocation(roomId, geoUri) }
-            }.isSuccess
+            runCatching { withClient { it.sendLiveLocation(roomId, geoUri) } }.isSuccess
         }
 
     override fun observeLiveLocation(
@@ -1185,15 +1075,12 @@ class RustMatrixPort() : MatrixPort {
                 onShares(mapped)
             }
         }
-        return withClient { it.observeLiveLocation(roomId, cb)
-    }
+        return withClient { it.observeLiveLocation(roomId, cb) }
     }
 
     override fun stopObserveLiveLocation(token: ULong) {
-        withClient { it.unobserveLiveLocation(token)
+        withClient { it.unobserveLiveLocation(token) }
     }
-    }
-
 
     override suspend fun sendPoll(
         roomId: String,
@@ -1206,9 +1093,22 @@ class RustMatrixPort() : MatrixPort {
             kind = mages.PollKind.DISCLOSED,
             maxSelections = 1u
         )
+        runCatching { withClient { it.sendPollStart(roomId, def) } }.isSuccess
+    }
 
-        runCatching { withClient { it.sendPollStart(roomId, def) }
-        }.isSuccess
+    override suspend fun sendPollResponse(
+        roomId: String,
+        pollEventId: String,
+        answers: List<String>
+    ): Boolean = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.sendPollResponse(roomId, pollEventId, answers) } }.isSuccess
+    }
+
+    override suspend fun sendPollEnd(
+        roomId: String,
+        pollEventId: String
+    ): Boolean = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.sendPollEnd(roomId, pollEventId) } }.isSuccess
     }
 
     override fun seenByForEvent(
@@ -1238,14 +1138,25 @@ class RustMatrixPort() : MatrixPort {
             it.mxcThumbnailToCache(mxcUri, width.toUInt(), height.toUInt(), crop)
         }
     }
+
     override suspend fun loadRoomListCache(): List<RoomListEntry> =
         withContext(Dispatchers.IO) {
             withClient { cl ->
                 cl.loadRoomListCache().map { it.toKotlinRoomListEntry() }
             }
         }
-}
 
+    override suspend fun searchRoom(
+        roomId: String,
+        query: String,
+        limit: Int,
+        offset: Int?
+    ): SearchPage = withContext(Dispatchers.IO) {
+        withClient {
+            it.searchRoom(roomId, query, limit.toUInt(), offset?.toUInt()).toKotlin()
+        }
+    }
+}
 
 private fun FfiRoom.toModel() = RoomSummary(id = id, name = name)
 
@@ -1263,7 +1174,8 @@ private fun mages.MessageEvent.toModel() = MessageEvent(
     replyToBody = replyToBody,
     attachment = attachment?.toModel(),
     threadRootEventId = threadRootEventId,
-    isEdited = isEdited
+    isEdited = isEdited,
+    pollData = pollData?.toModel()
 )
 
 private fun mages.SendState.toKotlin(): SendState = when (this) {
@@ -1305,7 +1217,7 @@ private fun AttachmentInfo.toFfi() = mages.AttachmentInfo(
     kind = when (kind) {
         AttachmentKind.Image -> mages.AttachmentKind.IMAGE
         AttachmentKind.Video -> mages.AttachmentKind.VIDEO
-        AttachmentKind.File  -> mages.AttachmentKind.FILE
+        AttachmentKind.File -> mages.AttachmentKind.FILE
     },
     mxcUri = mxcUri,
     mime = mime,
@@ -1346,34 +1258,75 @@ private fun mages.RoomDirectoryVisibility.toKotlin(): RoomDirectoryVisibility = 
     mages.RoomDirectoryVisibility.PRIVATE -> RoomDirectoryVisibility.Private
 }
 
+private fun mages.SearchPage.toKotlin(): SearchPage =
+    SearchPage(
+        hits = hits.map { it.toKotlin() },
+        nextOffset = nextOffset
+    )
+
+private fun mages.SearchHit.toKotlin(): SearchHit =
+    SearchHit(
+        roomId = roomId,
+        eventId = eventId,
+        sender = sender,
+        body = body,
+        timestampMs = timestampMs
+    )
+
 private fun mages.RoomListEntry.toKotlinRoomListEntry(): RoomListEntry =
     RoomListEntry(
-        roomId        = roomId,
-        name          = name,
-        lastTs        = lastTs,
+        roomId = roomId,
+        name = name,
+        lastTs = lastTs,
         notifications = notifications,
-        messages      = messages,
-        mentions      = mentions,
-        markedUnread  = markedUnread,
-        isFavourite   = isFavourite,
+        messages = messages,
+        mentions = mentions,
+        markedUnread = markedUnread,
+        isFavourite = isFavourite,
         isLowPriority = isLowPriority,
-        avatarUrl     = avatarUrl,
-        isDm          = isDm,
-        isEncrypted   = isEncrypted,
-        memberCount   = memberCount.toInt(),
-        topic         = topic,
-        latestEvent   = latestEvent?.let { e ->
+        avatarUrl = avatarUrl,
+        isDm = isDm,
+        isEncrypted = isEncrypted,
+        memberCount = memberCount.toInt(),
+        topic = topic,
+        latestEvent = latestEvent?.let { e ->
             LatestRoomEvent(
-                eventId     = e.eventId,
-                sender      = e.sender,
-                body        = e.body,
-                msgtype     = e.msgtype,
-                eventType   = e.eventType,
-                timestamp   = e.timestamp,
-                isRedacted  = e.isRedacted,
+                eventId = e.eventId,
+                sender = e.sender,
+                body = e.body,
+                msgtype = e.msgtype,
+                eventType = e.eventType,
+                timestamp = e.timestamp,
+                isRedacted = e.isRedacted,
                 isEncrypted = e.isEncrypted
             )
         }
     )
+
+
+private fun mages.PollData.toModel(): PollData {
+    val mappedOptions = options.map { it.toModel() }
+    val voteMap = options.associate { it.id to it.votes.toInt() }
+    val mySelections = options.filter { it.isSelected }.map { it.id }
+
+    return PollData(
+        question = question,
+        kind = if (kind == mages.PollKind.DISCLOSED) PollKind.Disclosed else PollKind.Undisclosed,
+        maxSelections = maxSelections.toLong(),
+        options = mappedOptions,
+        votes = voteMap,
+        totalVotes = totalVotes.toLong(),
+        mySelections = mySelections,
+        isEnded = isEnded
+    )
+}
+
+private fun mages.PollOption.toModel() = PollOption(
+    id = id,
+    text = text,
+    isWinner = isWinner,
+    votes = votes.toLong(),
+    isSelected = isSelected
+)
 
 actual fun createMatrixPort(): MatrixPort = RustMatrixPort()

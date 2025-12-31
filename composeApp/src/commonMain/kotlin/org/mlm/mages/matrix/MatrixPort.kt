@@ -1,6 +1,7 @@
 package org.mlm.mages.matrix
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.Serializable
 import org.mlm.mages.AttachmentInfo
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.RoomSummary
@@ -18,6 +19,19 @@ data class SeenByEntry (
     var displayName: String?,
     var avatarUrl: String?,
     var tsMs: ULong?
+)
+
+data class SearchHit (
+    var roomId: String,
+    var eventId: String,
+    var sender: String,
+    var body: String,
+    var timestampMs: ULong
+)
+
+data class SearchPage (
+    var hits: List<SearchHit>,
+    var nextOffset: UInt?
 )
 
 sealed class TimelineDiff<out T> {
@@ -198,6 +212,32 @@ data class SpaceHierarchyPage(
     val nextBatch: String?
 )
 
+@Serializable
+data class PollData(
+    val question: String,
+    val kind: PollKind, // Disclosed or Undisclosed
+    val maxSelections: Long,
+    val options: List<PollOption>,
+    val votes: Map<String, Int>, // OptionId -> Count
+    val mySelections: List<String>, // List of OptionIds selected by me
+    val isEnded: Boolean,
+    val totalVotes: Long
+)
+
+@Serializable
+data class PollOption(
+    var id: String,
+    var text: String,
+    var votes: Long,
+    var isSelected: Boolean,
+    var isWinner: Boolean
+)
+
+enum class PollKind {
+    Disclosed,
+    Undisclosed
+}
+
 interface MatrixPort {
 
     data class SyncStatus(val phase: SyncPhase, val message: String?)
@@ -318,6 +358,12 @@ interface MatrixPort {
         onProgress: ((Long, Long?) -> Unit)? = null
     ): Result<String>
 
+    suspend fun searchRoom(
+        roomId: String,
+        query: String,
+        limit: Int = 50,
+        offset: Int? = null
+    ): SearchPage
 
     suspend fun recoverWithKey(recoveryKey: String): Boolean
     fun observeReceipts(roomId: String, observer: ReceiptsObserver): ULong
@@ -447,6 +493,9 @@ interface MatrixPort {
 
     suspend fun mxcThumbnailToCache(mxcUri: String, width: Int, height: Int, crop: Boolean): String
     suspend fun loadRoomListCache(): List<RoomListEntry>
+
+    suspend fun sendPollResponse(roomId: String, pollEventId: String, answers: List<String>): Boolean
+    suspend fun sendPollEnd(roomId: String, pollEventId: String): Boolean
 }
 
 expect fun createMatrixPort(): MatrixPort

@@ -1244,6 +1244,17 @@ class RustMatrixPort() : MatrixPort {
                 cl.loadRoomListCache().map { it.toKotlinRoomListEntry() }
             }
         }
+
+    override suspend fun searchRoom(
+        roomId: String,
+        query: String,
+        limit: Int,
+        offset: Int?
+    ): SearchPage = withContext(Dispatchers.IO) {
+        withClient {
+            it.searchRoom(roomId, query, limit.toUInt(), offset?.toUInt()).toKotlin()
+        }
+    }
 }
 
 
@@ -1345,6 +1356,21 @@ private fun mages.RoomDirectoryVisibility.toKotlin(): RoomDirectoryVisibility = 
     mages.RoomDirectoryVisibility.PUBLIC -> RoomDirectoryVisibility.Public
     mages.RoomDirectoryVisibility.PRIVATE -> RoomDirectoryVisibility.Private
 }
+
+private fun mages.SearchPage.toKotlin(): SearchPage =
+    SearchPage(
+        hits = hits.map { it.toKotlin() },
+        nextOffset = nextOffset
+    )
+
+private fun mages.SearchHit.toKotlin(): SearchHit =
+    SearchHit(
+        roomId = roomId,
+        eventId = eventId,
+        sender = sender,
+        body = body,
+        timestampMs = timestampMs
+    )
 
 private fun mages.RoomListEntry.toKotlinRoomListEntry(): RoomListEntry =
     RoomListEntry(

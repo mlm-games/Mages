@@ -1,7 +1,5 @@
 package org.mlm.mages.ui.viewmodel
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.*
@@ -13,10 +11,10 @@ import org.mlm.mages.platform.Notifier
 import org.mlm.mages.ui.ForwardableRoom
 import org.mlm.mages.ui.RoomUiState
 import org.mlm.mages.ui.components.AttachmentData
+import org.mlm.mages.ui.util.mimeToExtension
 
 class RoomViewModel(
     private val service: MatrixService,
-    private val dataStore: DataStore<Preferences>,
     private val savedStateHandle: SavedStateHandle
 ) : BaseViewModel<RoomUiState>(
     RoomUiState(
@@ -27,12 +25,10 @@ class RoomViewModel(
 ) {
     constructor(
         service: MatrixService,
-        dataStore: DataStore<Preferences>,
         roomId: String,
         roomName: String
     ) : this(
         service = service,
-        dataStore = dataStore,
         savedStateHandle = SavedStateHandle(mapOf("roomId" to roomId, "roomName" to roomName))
     )
 
@@ -61,6 +57,7 @@ class RoomViewModel(
     private var uploadJob: Job? = null
     private var typingJob: Job? = null
     private var hasTimelineSnapshot = false
+    private var searchJob: Job? = null
 
     // Track which event IDs we've checked via API for additional thread replies
     // (beyond what's visible in timeline)
@@ -318,10 +315,16 @@ class RoomViewModel(
     fun openAttachment(event: MessageEvent, onOpen: (String, String?) -> Unit) {
         val a = event.attachment ?: return
         launch {
-            val nameHint = run {
-                val ext = a.mime?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
+            val nameHint = event.body.takeIf { body ->
+                body.isNotBlank() &&
+                        body.contains('.') &&
+                        !body.startsWith("mxc://") &&
+                        !body.contains('\n') &&
+                        body.length < 256
+            } ?: run {
+                val ext = mimeToExtension(a.mime)
                 val base = event.eventId.ifBlank { "file" }
-                if (ext != null) "$base.$ext" else base
+                "$base.$ext"
             }
 
             service.port.downloadAttachmentToCache(a, nameHint)
@@ -357,17 +360,23 @@ class RoomViewModel(
                     )
                 )
             } else {
-                val nameHint = run {
-                    val ext = attachment.mime?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
+                val nameHint = event.body.takeIf { body ->
+                    body.isNotBlank() &&
+                            body.contains('.') &&
+                            !body.startsWith("mxc://") &&
+                            !body.contains('\n') &&
+                            body.length < 256
+                } ?: run {
+                    val ext = mimeToExtension(attachment.mime)
                     val base = event.eventId.ifBlank { "file" }
-                    if (ext != null) "$base.$ext" else base
+                    "$base.$ext"
                 }
 
                 service.port.downloadAttachmentToCache(attachment, nameHint)
                     .onSuccess { path ->
                         _events.send(
                             Event.ShareMessage(
-                                text = text,
+                                text = null,
                                 filePath = path,
                                 mimeType = attachment.mime
                             )
@@ -477,6 +486,109 @@ class RoomViewModel(
         val predecessor = currentState.predecessor ?: return
         launch {
             _events.send(Event.NavigateToRoom(predecessor.roomId, "Previous Room"))
+        }
+    }
+
+    fun votePoll(pollEventId: String, poll: PollData, optionId: String) {
+        launch {
+            val currentSelections = poll.mySelections.toSet()
+            val newSelections = if (poll.maxSelections == 1L) {
+                if (currentSelections.contains(optionId)) emptyList() else listOf(optionId)
+            } else {
+                if (currentSelections.contains(optionId)) {
+                    currentSelections - optionId
+                } else {
+                    currentSelections + optionId
+                }
+            }.toList()
+
+            val ok = service.port.sendPollResponse(currentState.roomId, pollEventId, newSelections)
+            if (!ok) {
+                _events.send(Event.ShowError("Failed to submit vote"))
+            }
+        }
+    }
+
+    fun endPoll(pollEventId: String) {
+        launch {
+            val ok = service.port.sendPollEnd(currentState.roomId, pollEventId)
+            if (!ok) {
+                _events.send(Event.ShowError("Failed to end poll"))
+            } else {
+                _events.send(Event.ShowSuccess("Poll ended"))
+            }
+        }
+    }
+
+
+    fun showRoomSearch() = updateState { copy(showRoomSearch = true) }
+    fun hideRoomSearch() = updateState {
+        copy(
+            showRoomSearch = false,
+            roomSearchQuery = "",
+            roomSearchResults = emptyList(),
+            roomSearchNextOffset = null,
+            hasRoomSearched = false
+        )
+    }
+
+    fun setRoomSearchQuery(query: String) {
+        updateState { copy(roomSearchQuery = query) }
+
+        searchJob?.cancel()
+        if (query.length >= 2) {
+            searchJob = launch {
+                delay(300)
+                performRoomSearch(reset = true)
+            }
+        } else if (query.isEmpty()) {
+            updateState { copy(roomSearchResults = emptyList(), hasRoomSearched = false) }
+        }
+    }
+
+    fun performRoomSearch(reset: Boolean = true) {
+        val query = currentState.roomSearchQuery.trim()
+        if (query.length < 2) return
+
+        searchJob?.cancel()
+        searchJob = launch {
+            updateState { copy(isRoomSearching = true) }
+
+            val offset = if (reset) null else currentState.roomSearchNextOffset
+            val page = runSafe {
+                service.port.searchRoom(
+                    roomId = currentState.roomId,
+                    query = query,
+                    limit = 30,
+                    offset = offset
+                )
+            }
+
+            if (page != null) {
+                updateState {
+                    copy(
+                        isRoomSearching = false,
+                        hasRoomSearched = true,
+                        roomSearchResults = if (reset) page.hits else roomSearchResults + page.hits,
+                        roomSearchNextOffset = page.nextOffset?.toInt()
+                    )
+                }
+            } else {
+                updateState { copy(isRoomSearching = false, hasRoomSearched = true) }
+            }
+        }
+    }
+
+    fun loadMoreRoomSearchResults() {
+        if (currentState.isRoomSearching || currentState.roomSearchNextOffset == null) return
+        performRoomSearch(reset = false)
+    }
+
+    fun jumpToSearchResult(hit: SearchHit) {
+        hideRoomSearch()
+        // TODO: jump to event
+        launch {
+            _events.send(Event.ShowSuccess("Found: ${hit.body.take(50)}..."))
         }
     }
 

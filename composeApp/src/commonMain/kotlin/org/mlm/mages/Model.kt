@@ -1,6 +1,7 @@
 package org.mlm.mages
 
 import kotlinx.serialization.Serializable
+import org.mlm.mages.matrix.PollData
 
 @Serializable
 data class RoomSummary(
@@ -26,7 +27,8 @@ data class MessageEvent(
     val replyToBody: String? = null,
     val attachment: AttachmentInfo? = null,
     val threadRootEventId: String? = null,
-    val isEdited: Boolean = false
+    val isEdited: Boolean = false,
+    var pollData: PollData?
 )
 
 @Serializable

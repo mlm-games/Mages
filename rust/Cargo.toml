@@ -19,6 +19,7 @@ matrix-sdk = { version = "0.16.0", default-features = false, features = [
     "sso-login",
     "automatic-room-key-forwarding",
     "bundled-sqlite",
+    "experimental-search",
 ] }
 matrix-sdk-ui = { version = "0.16.0", default-features = false, features = [
     "rustls-tls",
@@ -46,3 +47,13 @@ uuid = "1.19"
 [build-dependencies]
 uniffi = { version = "0.29.4", features = ["build"] }
 uniffi_bindgen = "0.29.4"
+
+# [patch.crates-io]
+# matrix-sdk = { git = "https://github.com/matrix-org/matrix-rust-sdk", tag = "matrix-sdk-0.16.0" }
+# matrix-sdk-base = { git = "https://github.com/matrix-org/matrix-rust-sdk", tag = "matrix-sdk-0.16.0" }
+# matrix-sdk-common = { git = "https://github.com/matrix-org/matrix-rust-sdk", tag = "matrix-sdk-0.16.0" }
+# matrix-sdk-crypto = { git = "https://github.com/matrix-org/matrix-rust-sdk", tag = "matrix-sdk-0.16.0" }
+# matrix-sdk-sqlite = { git = "https://github.com/matrix-org/matrix-rust-sdk", tag = "matrix-sdk-0.16.0" }
+# matrix-sdk-store-encryption = { git = "https://github.com/matrix-org/matrix-rust-sdk", tag = "matrix-sdk-0.16.0" }
+# matrix-sdk-ui = { git = "https://github.com/matrix-org/matrix-rust-sdk", tag = "matrix-sdk-0.16.0" }
+# matrix-sdk-search = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "search-dir-nonexistent" }

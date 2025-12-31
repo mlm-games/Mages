@@ -17,7 +17,6 @@ val appModule = module {
     viewModel { (roomId: String, roomName: String) ->
         RoomViewModel(
             service = get(),
-            dataStore = get(),
             roomId = roomId,
             roomName = roomName
         )
@@ -26,8 +25,7 @@ val appModule = module {
     // Rooms list
     viewModel {
         RoomsViewModel(
-            service = get(),
-            dataStore = get()
+            service = get()
         )
     }
 
@@ -98,6 +96,14 @@ val appModule = module {
     viewModel {
         InvitesViewModel(
             service = get()
+        )
+    }
+
+    viewModel { (scopedRoomId: String?, scopedRoomName: String?) ->
+        SearchViewModel(
+            service = get(),
+            scopedRoomId = scopedRoomId,
+            scopedRoomName = scopedRoomName
         )
     }
 }

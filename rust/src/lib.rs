@@ -15,6 +15,7 @@ use matrix_sdk::{
         },
         room::Restricted,
     },
+    search_index::SearchIndexStoreKind,
 };
 use matrix_sdk_base::notification_settings::RoomNotificationMode as RsMode;
 use matrix_sdk_ui::{
@@ -38,6 +39,7 @@ use tokio::runtime::Runtime;
 use tracing::{error, info, warn};
 use tracing_subscriber::{EnvFilter, fmt};
 use uniffi::{Enum, Object, Record, export, setup_scaffolding};
+use uuid::Uuid;
 
 use futures_util::StreamExt;
 use matrix_sdk::{
@@ -171,6 +173,7 @@ pub struct MessageEvent {
     pub attachment: Option<AttachmentInfo>,
     pub thread_root_event_id: Option<String>,
     pub is_edited: bool,
+    pub poll_data: Option<PollData>,
 }
 
 #[derive(Clone, Debug, Record)]
@@ -543,6 +546,22 @@ pub enum PollKind {
 }
 
 #[derive(Clone, Record)]
+pub struct SearchHit {
+    pub room_id: String,
+    pub event_id: String,
+    pub sender: String,
+    pub body: String,
+    pub timestamp_ms: u64,
+}
+
+#[derive(Clone, Record)]
+pub struct SearchPage {
+    pub hits: Vec<SearchHit>,
+    /// Pagination offset for the *next* page. `None` means “no more results”.
+    pub next_offset: Option<u32>,
+}
+
+#[derive(Clone, Record)]
 pub struct PollDefinition {
     /// Question text
     pub question: String,
@@ -560,6 +579,25 @@ pub struct LiveLocationShareInfo {
     pub geo_uri: String,
     pub ts_ms: u64,
     pub is_live: bool,
+}
+
+#[derive(Clone, Record)]
+pub struct PollOption {
+    pub id: String,
+    pub text: String,
+    pub votes: u32,
+    pub is_selected: bool,
+    pub is_winner: bool,
+}
+
+#[derive(Clone, Record)]
+pub struct PollData {
+    pub question: String,
+    pub kind: PollKind,
+    pub max_selections: u32,
+    pub options: Vec<PollOption>,
+    pub total_votes: u32,
+    pub is_ended: bool,
 }
 
 #[export(callback_interface)]
@@ -851,9 +889,14 @@ impl Client {
 
         let inner = RT
             .block_on(async {
+                let idx_dir = search_index_dir(&store_dir_path);
+                let _ = std::fs::create_dir_all(&idx_dir);
+                let idx_key = load_or_create_search_index_key(&store_dir_path);
+
                 SdkClient::builder()
                     .homeserver_url(&homeserver_url)
                     .sqlite_store(&store_dir_path, None)
+                    .search_index_store(SearchIndexStoreKind::EncryptedDirectory(idx_dir, idx_key))
                     .with_encryption_settings(EncryptionSettings {
                         auto_enable_cross_signing: true,
                         auto_enable_backups: true,
@@ -929,6 +972,10 @@ impl Client {
                         };
                         if this.inner.restore_session(session).await.is_ok() {
                             this.ensure_sync_service().await;
+
+                            if let Err(e) = this.inner.event_cache().subscribe() {
+                                warn!("event_cache.subscribe() failed after login: {e:?}");
+                            }
 
                             this.ensure_send_queue_supervision();
                             this.inner
@@ -1047,6 +1094,10 @@ impl Client {
 
             self.ensure_sync_service().await;
 
+            if let Err(e) = self.inner.event_cache().subscribe() {
+                warn!("event_cache.subscribe() failed after login: {e:?}");
+            }
+
             self.ensure_send_queue_supervision();
             self.inner
                 .send_queue()
@@ -1086,6 +1137,11 @@ impl Client {
             .store(true, std::sync::atomic::Ordering::SeqCst);
         let _ = RT.block_on(async {
             self.ensure_sync_service().await;
+
+            if let Err(e) = self.inner.event_cache().subscribe() {
+                warn!("event_cache.subscribe() failed: {e:?}");
+            }
+
             if let Some(svc) = self.sync_service.lock().unwrap().as_ref().cloned() {
                 let _ = svc.start().await;
             }
@@ -1114,6 +1170,12 @@ impl Client {
                 return vec![];
             };
 
+            let me = self
+                .inner
+                .user_id()
+                .map(|u| u.to_string())
+                .unwrap_or_default();
+
             let (items, _stream) = timeline.subscribe().await;
             let mut out: Vec<MessageEvent> = items
                 .iter()
@@ -1124,6 +1186,7 @@ impl Client {
                             ev,
                             room_id.as_str(),
                             Some(&it.unique_id().0.to_string()),
+                            &me,
                         )
                     })
                 })
@@ -1141,6 +1204,8 @@ impl Client {
         };
         let obs: Arc<dyn TimelineObserver> = Arc::from(observer);
 
+        let me = client.user_id().map(|u| u.to_string()).unwrap_or_default();
+
         sub_manager!(self, timeline_subs, async move {
             let Some(tl) = get_timeline_for(&client, &room_id).await else {
                 return;
@@ -1157,6 +1222,7 @@ impl Client {
                             ei,
                             room_id.as_str(),
                             Some(&it.unique_id().0.to_string()),
+                            &me,
                         )
                     })
                 })
@@ -1177,7 +1243,7 @@ impl Client {
 
             while let Some(diffs) = stream.next().await {
                 for diff in diffs {
-                    if let Some(mapped) = map_vec_diff(diff, &room_id, &tl) {
+                    if let Some(mapped) = map_vec_diff(diff, &room_id, &tl, &me) {
                         let _ = std::panic::catch_unwind(AssertUnwindSafe(|| obs.on_diff(mapped)));
                     }
                 }
@@ -5123,6 +5189,64 @@ impl Client {
             Ok(out.to_string_lossy().to_string())
         })
     }
+
+    pub fn search_room(
+        &self,
+        room_id: String,
+        query: String,
+        limit: u32,
+        offset: Option<u32>,
+    ) -> Result<SearchPage, FfiError> {
+        RT.block_on(async {
+            let limit_usize = (limit.max(1)).min(200) as usize;
+            let offset_usize = offset.map(|o| o as usize);
+
+            let rid = OwnedRoomId::try_from(room_id.clone())
+                .map_err(|e| FfiError::Msg(format!("bad room id: {e}")))?;
+
+            let Some(room) = self.inner.get_room(&rid) else {
+                return Ok(SearchPage {
+                    hits: vec![],
+                    next_offset: None,
+                });
+            };
+
+            let event_ids = room
+                .search(query.trim(), limit_usize, offset_usize)
+                .await
+                .map_err(|e| FfiError::Msg(format!("room.search failed: {e:?}")))?;
+
+            let mut hits = Vec::with_capacity(event_ids.len());
+
+            for eid in event_ids.iter() {
+                if let Some(mev) = map_event_id_via_timeline(&self.inner, &rid, eid).await {
+                    hits.push(SearchHit {
+                        room_id: rid.to_string(),
+                        event_id: mev.event_id.clone(),
+                        sender: mev.sender.clone(),
+                        body: mev.body.clone(),
+                        timestamp_ms: mev.timestamp_ms,
+                    });
+                } else {
+                    hits.push(SearchHit {
+                        room_id: rid.to_string(),
+                        event_id: eid.to_string(),
+                        sender: "".into(),
+                        body: "".into(),
+                        timestamp_ms: 0,
+                    });
+                }
+            }
+
+            let next_offset = if hits.len() == limit_usize {
+                Some(offset.unwrap_or(0).saturating_add(hits.len() as u32))
+            } else {
+                None
+            };
+
+            Ok(SearchPage { hits, next_offset })
+        })
+    }
 }
 
 impl Client {
@@ -5332,6 +5456,7 @@ fn map_timeline_event(
     ev: &EventTimelineItem,
     room_id: &str,
     item_id: Option<&str>,
+    me: &str,
 ) -> Option<MessageEvent> {
     let ts: u64 = ev.timestamp().0.into();
 
@@ -5373,6 +5498,7 @@ fn map_timeline_event(
     let thread_root_event_id = ev.content().thread_root().map(|id| id.to_string());
     let body: String;
     let mut is_edited = false;
+    let mut poll_data: Option<PollData> = None;
 
     match ev.content() {
         TimelineItemContent::MsgLike(ml) => {
@@ -5386,17 +5512,25 @@ fn map_timeline_event(
                 }
             }
 
-            if let Some(msg) = ml.as_message() {
-                attachment = extract_attachment(&msg);
-                is_edited = msg.is_edited();
-                let raw = msg.body();
-                body = if reply_to_event_id.is_some() {
-                    strip_reply_fallback(raw)
-                } else {
-                    raw.to_owned()
-                };
-            } else {
-                body = render_msg_like(ev, ml);
+            match &ml.kind {
+                MsgLikeKind::Message(msg) => {
+                    attachment = extract_attachment(msg);
+                    is_edited = msg.is_edited();
+                    let raw = msg.body();
+                    body = if reply_to_event_id.is_some() {
+                        strip_reply_fallback(raw)
+                    } else {
+                        raw.to_owned()
+                    };
+                }
+                MsgLikeKind::Poll(poll_state) => {
+                    let data = map_poll_state(poll_state, me);
+                    body = data.question.clone();
+                    poll_data = Some(data);
+                }
+                _ => {
+                    body = render_msg_like(ev, ml);
+                }
             }
         }
         _ => {
@@ -5419,6 +5553,7 @@ fn map_timeline_event(
         attachment,
         thread_root_event_id,
         is_edited,
+        poll_data,
     })
 }
 
@@ -5577,7 +5712,8 @@ async fn map_event_id_via_timeline(
         TimelineEventItemId::EventId(id) => id.to_string(),
         TimelineEventItemId::TransactionId(id) => id.to_string(),
     };
-    map_timeline_event(&item, rid.as_str(), Some(&item_id))
+    let me = client.user_id().map(|u| u.to_string()).unwrap_or_default();
+    map_timeline_event(&item, rid.as_str(), Some(&item_id), &me)
 }
 
 fn render_timeline_text(ev: &EventTimelineItem) -> String {
@@ -5926,6 +6062,7 @@ fn map_vec_diff(
     diff: VectorDiff<Arc<TimelineItem>>,
     room_id: &OwnedRoomId,
     tl: &Arc<Timeline>,
+    me: &str,
 ) -> Option<TimelineDiffKind> {
     match diff {
         VectorDiff::Append { values } => {
@@ -5934,7 +6071,12 @@ fn map_vec_diff(
                 .filter_map(|v| {
                     v.as_event().and_then(|ei| {
                         fetch_reply_if_needed(ei, tl);
-                        map_timeline_event(ei, room_id.as_str(), Some(&v.unique_id().0.to_string()))
+                        map_timeline_event(
+                            ei,
+                            room_id.as_str(),
+                            Some(&v.unique_id().0.to_string()),
+                            &me,
+                        )
                     })
                 })
                 .collect();
@@ -5950,7 +6092,12 @@ fn map_vec_diff(
             .as_event()
             .and_then(|ei| {
                 fetch_reply_if_needed(ei, tl);
-                map_timeline_event(ei, room_id.as_str(), Some(&value.unique_id().0.to_string()))
+                map_timeline_event(
+                    ei,
+                    room_id.as_str(),
+                    Some(&value.unique_id().0.to_string()),
+                    &me,
+                )
             })
             .map(|v| TimelineDiffKind::PushBack { value: v }),
 
@@ -5958,7 +6105,12 @@ fn map_vec_diff(
             .as_event()
             .and_then(|ei| {
                 fetch_reply_if_needed(ei, tl);
-                map_timeline_event(ei, room_id.as_str(), Some(&value.unique_id().0.to_string()))
+                map_timeline_event(
+                    ei,
+                    room_id.as_str(),
+                    Some(&value.unique_id().0.to_string()),
+                    &me,
+                )
             })
             .map(|v| TimelineDiffKind::PushFront { value: v }),
 
@@ -5968,7 +6120,7 @@ fn map_vec_diff(
                 .as_event()
                 .and_then(|ei| {
                     fetch_reply_if_needed(ei, tl);
-                    map_timeline_event(ei, room_id.as_str(), Some(&item_id))
+                    map_timeline_event(ei, room_id.as_str(), Some(&item_id), &me)
                 })
                 .map(|v| TimelineDiffKind::UpdateByItemId { item_id, value: v })
         }
@@ -5979,7 +6131,7 @@ fn map_vec_diff(
                 .as_event()
                 .and_then(|ei| {
                     fetch_reply_if_needed(ei, tl);
-                    map_timeline_event(ei, room_id.as_str(), Some(&item_id))
+                    map_timeline_event(ei, room_id.as_str(), Some(&item_id), &me)
                 })
                 .map(|v| TimelineDiffKind::UpsertByItemId { item_id, value: v })
         }
@@ -6004,12 +6156,71 @@ fn map_vec_diff(
                 .filter_map(|v| {
                     v.as_event().and_then(|ei| {
                         fetch_reply_if_needed(ei, tl);
-                        map_timeline_event(ei, room_id.as_str(), Some(&v.unique_id().0.to_string()))
+                        map_timeline_event(
+                            ei,
+                            room_id.as_str(),
+                            Some(&v.unique_id().0.to_string()),
+                            &me,
+                        )
                     })
                 })
                 .collect();
             Some(TimelineDiffKind::Reset { values: vals })
         }
+    }
+}
+
+fn map_poll_state(state: &matrix_sdk_ui::timeline::PollState, me: &str) -> PollData {
+    let results = state.results();
+
+    let is_ended = results.end_time.is_some();
+
+    let mut vote_counts: HashMap<String, u32> = HashMap::new();
+    let mut my_votes: Vec<String> = Vec::new();
+
+    for (answer_id, voters) in &results.votes {
+        vote_counts.insert(answer_id.clone(), voters.len() as u32);
+
+        if voters.iter().any(|u| u == me) {
+            my_votes.push(answer_id.clone());
+        }
+    }
+
+    let total_votes: u32 = vote_counts.values().sum();
+    let max_votes = if is_ended {
+        vote_counts.values().max().cloned().unwrap_or(0)
+    } else {
+        0
+    };
+
+    let options: Vec<PollOption> = results
+        .answers
+        .iter()
+        .map(|a| {
+            let count = *vote_counts.get(&a.id).unwrap_or(&0);
+            PollOption {
+                id: a.id.clone(),
+                text: a.text.clone(),
+                votes: count,
+                is_selected: my_votes.contains(&a.id),
+                is_winner: is_ended && count > 0 && count == max_votes,
+            }
+        })
+        .collect();
+
+    let kind = match results.kind {
+        matrix_sdk::ruma::events::poll::start::PollKind::Disclosed => PollKind::Disclosed,
+        matrix_sdk::ruma::events::poll::start::PollKind::Undisclosed => PollKind::Undisclosed,
+        _ => PollKind::Disclosed,
+    };
+
+    PollData {
+        question: results.question,
+        kind,
+        max_selections: results.max_selections as u32,
+        options,
+        total_votes,
+        is_ended,
     }
 }
 
@@ -6020,6 +6231,30 @@ fn fetch_reply_if_needed(ei: &EventTimelineItem, tl: &Arc<Timeline>) {
             let _ = tlc.fetch_details_for_event(eid.as_ref()).await;
         });
     }
+}
+
+fn search_index_dir(store_dir: &PathBuf) -> PathBuf {
+    store_dir.join("search_index")
+}
+
+fn search_index_key_file(store_dir: &PathBuf) -> PathBuf {
+    store_dir.join("search_index_key.txt")
+}
+
+fn load_or_create_search_index_key(store_dir: &PathBuf) -> String {
+    let path = search_index_key_file(store_dir);
+
+    if let Ok(s) = std::fs::read_to_string(&path) {
+        let key = s.trim().to_string();
+        if !key.is_empty() {
+            return key;
+        }
+    }
+
+    let key = format!("{}{}", Uuid::new_v4(), Uuid::new_v4());
+
+    let _ = std::fs::write(&path, &key);
+    key
 }
 
 #[export(callback_interface)]
