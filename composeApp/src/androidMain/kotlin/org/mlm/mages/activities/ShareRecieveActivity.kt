@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,10 +26,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
+import org.koin.compose.koinInject
 import org.mlm.mages.MainActivity
 import org.mlm.mages.MatrixService
 import org.mlm.mages.platform.AppCtx
 import org.mlm.mages.ui.ForwardableRoom
+import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.theme.MainTheme
 import org.mlm.mages.ui.theme.Spacing
 import java.io.File
@@ -58,11 +61,13 @@ class ShareReceiverActivity : ComponentActivity() {
 
         setContent {
             MainTheme {
+                val snackbarManager: SnackbarManager = koinInject()
                 ShareReceiverScreen(
                     sharedContent = sharedContent,
                     service = service,
                     onDismiss = { finish() },
                     onSent = { roomName ->
+                        snackbarManager.show("Sent to $roomName")
                         finish()
                     }
                 )
@@ -192,7 +197,7 @@ private fun ShareReceiverScreen(
                         lastActivity = 0L  // TODO
                     )
                 }.sortedByDescending { it.lastActivity }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 emptyList()
             }
         }
@@ -440,7 +445,7 @@ private fun ShareRoomItem(room: ForwardableRoom, onClick: () -> Unit) {
             }
 
             Icon(
-                Icons.Default.Send,
+                Icons.AutoMirrored.Filled.Send,
                 contentDescription = "Send",
                 tint = MaterialTheme.colorScheme.primary
             )
@@ -492,7 +497,7 @@ private suspend fun sendSharedContent(
                 allSuccess
             }
         }
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         false
     }
 }
