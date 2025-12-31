@@ -55,6 +55,8 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
             implementation(libs.uri.kmp)
+            implementation("com.mikepenz:multiplatform-markdown-renderer:0.39.0")
+            implementation("com.mikepenz:multiplatform-markdown-renderer-m3:0.39.0")
 
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
@@ -71,6 +73,7 @@ kotlin {
             implementation(libs.dbus.java.transport.native.unixsocket)
             implementation(libs.slf4j.simple)
             implementation(libs.systemtray)
+            implementation("me.friwi:jcefmaven:141.0.10")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

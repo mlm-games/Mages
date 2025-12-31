@@ -1,19 +1,41 @@
 package org.mlm.mages.ui.components.core
 
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import org.mlm.mages.ui.util.parseMarkdown
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import com.mikepenz.markdown.compose.Markdown
+import com.mikepenz.markdown.m3.markdownColor
+import com.mikepenz.markdown.m3.markdownTypography
 
 @Composable
 fun MarkdownText(
     text: String,
     modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.onSurface
+    color: Color = LocalContentColor.current,
+    style: TextStyle = MaterialTheme.typography.bodyLarge,
+    onLinkClick: ((String) -> Unit)? = null
 ) {
-    val styled = remember(text) { parseMarkdown(text) }
-    Text(text = styled, modifier = modifier, color = color, style = MaterialTheme.typography.bodyMedium)
+    SelectionContainer {
+        Markdown(
+            content = text,
+            modifier = modifier,
+            colors = markdownColor(
+                text = color,
+                inlineCodeBackground = MaterialTheme.colorScheme.onSurfaceVariant,
+                codeBackground = MaterialTheme.colorScheme.surfaceVariant,
+                tableBackground = MaterialTheme.colorScheme.primary
+            ),
+            typography = markdownTypography(
+                text = style,
+                code = MaterialTheme.typography.bodyMedium.copy(
+                    fontFamily = FontFamily.Monospace
+                )
+            )
+        )
+    }
 }
