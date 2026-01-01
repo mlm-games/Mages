@@ -8,7 +8,10 @@ coilCompose = "3.3.0"
 connector = "3.1.2"
 dbusJavaCore = "5.2.0"
 dbusJavaTransportNativeUnixsocket = "5.2.0"
+jcefmaven = "141.0.10"
 koinComposeNavigation3 = "4.2.0-beta2"
+multiplatformMarkdownRenderer = "0.39.0"
+multiplatformMarkdownRendererM3 = "0.39.0"
 navigation3Ui = "1.0.0-alpha06"
 slf4jSimple = "2.0.17"
 systemtray = "4.4"
@@ -34,7 +37,8 @@ uriKmp = "0.0.21"
 workRuntimeKtx = "2.11.0"
 browser = "1.9.0"
 koin = "4.1.1"
-kmpSettingsCore = "0.3.0"
+kmpSettingsCore = "0.3.2"
+ksp = "2.3.4"
 apkDist = "0.5.2"
 
 [libraries]
@@ -47,6 +51,7 @@ connector = { module = "org.unifiedpush.android:connector", version.ref = "conne
 connector-ui = { module = "org.unifiedpush.android:connector-ui", version.ref = "up-ui" }
 dbus-java-transport-native-unixsocket = { module = "com.github.hypfvieh:dbus-java-transport-native-unixsocket", version.ref = "dbusJavaTransportNativeUnixsocket" }
 dbus-java-core = { module = "com.github.hypfvieh:dbus-java-core", version.ref = "dbusJavaCore" }
+jcefmaven = { module = "me.friwi:jcefmaven", version.ref = "jcefmaven" }
 koin-compose-navigation3 = { module = "io.insert-koin:koin-compose-navigation3", version.ref = "koinComposeNavigation3" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
@@ -64,6 +69,8 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 lifecycle-viewmodel-navigation3 = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "androidx-lifecycle" }
 material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
+multiplatform-markdown-renderer = { module = "com.mikepenz:multiplatform-markdown-renderer", version.ref = "multiplatformMarkdownRenderer" }
+multiplatform-markdown-renderer-m3 = { module = "com.mikepenz:multiplatform-markdown-renderer-m3", version.ref = "multiplatformMarkdownRendererM3" }
 navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "navigation3Ui" }
 net-jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
 okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
@@ -86,3 +93,4 @@ composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "k
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 apk-dist = {id = "io.github.mlm-games.apk-dist", version.ref = "apkDist"}
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

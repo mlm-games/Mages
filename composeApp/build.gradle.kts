@@ -1,4 +1,3 @@
-import com.android.build.gradle.internal.api.ApkVariantOutputImpl
 import org.gradle.internal.os.OperatingSystem
 import javax.inject.Inject
 import org.gradle.api.DefaultTask
@@ -16,6 +15,8 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.apk.dist)
+    alias(libs.plugins.ksp)
 }
 
 kotlin {
@@ -34,7 +35,6 @@ kotlin {
             implementation(libs.androidx.work.runtime.ktx)
             implementation(libs.androidx.browser)
             implementation(libs.koin.android)
-
         }
         commonMain.dependencies {
             implementation(libs.navigation3.ui)
@@ -55,8 +55,11 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
             implementation(libs.uri.kmp)
-            implementation("com.mikepenz:multiplatform-markdown-renderer:0.39.0")
-            implementation("com.mikepenz:multiplatform-markdown-renderer-m3:0.39.0")
+            implementation(libs.multiplatform.markdown.renderer)
+            implementation(libs.multiplatform.markdown.renderer.m3)
+
+            implementation(libs.kmp.settings.ui.compose)
+            implementation(libs.kmp.settings.core)
 
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
@@ -73,7 +76,7 @@ kotlin {
             implementation(libs.dbus.java.transport.native.unixsocket)
             implementation(libs.slf4j.simple)
             implementation(libs.systemtray)
-            implementation("me.friwi:jcefmaven:141.0.10")
+            implementation(libs.jcefmaven)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -89,8 +92,8 @@ android {
         applicationId = "org.mlm.mages"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 351
-        versionName = "1.1.4"
+        versionCode = 341
+        versionName = "1.2.0"
 
         androidResources {
             localeFilters += setOf("en", "ar", "de", "es-rES", "es-rUS", "fr", "hr", "hu", "in", "it", "ja", "pl", "pt-rBR", "ru-rRU", "sv", "tr", "uk", "zh", "cs", "el", "fi", "ko", "nl", "vi")
@@ -122,34 +125,7 @@ android {
             }
         }
 
-        applicationVariants.all {
-            val buildingApk = gradle.startParameter.taskNames.any { it.contains("assemble", ignoreCase = true) }
-            if (!buildingApk) return@all
 
-            val variant = this
-            outputs.all {
-                if (this is ApkVariantOutputImpl) {
-                    val abiName = filters.find { it.filterType == "ABI" }?.identifier
-                    val base = variant.versionCode
-
-                    if (abiName != null) {
-                        // Split APKs get stable per-ABI version codes and names
-                        val abiVersionCode = when (abiName) {
-                            "x86" -> base - 3
-                            "x86_64" -> base - 2
-                            "armeabi-v7a" -> base - 1
-                            "arm64-v8a" -> base
-                            else -> base
-                        }
-                        versionCodeOverride = abiVersionCode
-                        outputFileName = "mages-${variant.versionName}-${abiName}.apk"
-                    } else {
-                        versionCodeOverride = base + 1
-                        outputFileName = "mages-${variant.versionName}-universal.apk"
-                    }
-                }
-            }
-        }
     }
     signingConfigs {
         create("release") {
@@ -200,6 +176,10 @@ dependencies {
 compose.resources {
     publicResClass = true
     generateResClass = auto
+}
+
+apkDist {
+    artifactNamePrefix = "mages"
 }
 
 val cargoAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
