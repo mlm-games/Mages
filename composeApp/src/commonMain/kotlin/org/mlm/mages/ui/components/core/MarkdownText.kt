@@ -17,7 +17,7 @@ fun MarkdownText(
     text: String,
     modifier: Modifier = Modifier,
     color: Color = LocalContentColor.current,
-    style: TextStyle = MaterialTheme.typography.bodyLarge,
+    style: TextStyle = MaterialTheme.typography.bodySmall,
     onLinkClick: ((String) -> Unit)? = null
 ) {
     SelectionContainer {
@@ -27,12 +27,12 @@ fun MarkdownText(
             colors = markdownColor(
                 text = color,
                 inlineCodeBackground = MaterialTheme.colorScheme.onSurfaceVariant,
-                codeBackground = MaterialTheme.colorScheme.surfaceVariant,
+                codeBackground = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7F),
                 tableBackground = MaterialTheme.colorScheme.primary
             ),
             typography = markdownTypography(
                 text = style,
-                code = MaterialTheme.typography.bodyMedium.copy(
+                code = MaterialTheme.typography.bodySmall.copy(
                     fontFamily = FontFamily.Monospace
                 )
             )
