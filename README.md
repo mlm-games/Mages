@@ -61,8 +61,8 @@ Most Matrix‑specific logic lives in Rust; Kotlin mostly handles presentation.
 ### Android
 
 ```bash
-./gradlew :composeApp:assembleRelease
-# APKs end up under composeApp/build/outputs/apk/release
+./gradlew :shared:assembleRelease
+# APKs end up under shared/build/outputs/apk/release
 ```
 
 ### Desktop (Linux)
@@ -70,7 +70,7 @@ Most Matrix‑specific logic lives in Rust; Kotlin mostly handles presentation.
 ```bash
 # Build Rust JNI + desktop distribution
 cargo build --release --manifest-path rust/Cargo.toml
-./gradlew :composeApp:genUniFFIJvm :composeApp:packageDistributionForCurrentOS
+./gradlew :shared:genUniFFIJvm :shared:packageDistributionForCurrentOS
 # AppImage is assembled by the desktop release workflow
 ```
 

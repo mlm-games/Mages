@@ -67,11 +67,11 @@ jobs:
 
       - name: Generate UniFFI (JVM) and package desktop
         run: |
-          ./gradlew :composeApp:genUniFFIJvm :composeApp:packageDistributionForCurrentOS --no-daemon
+          ./gradlew :shared:genUniFFIJvm :shared:packageDistributionForCurrentOS --no-daemon
 
       - name: Build AppImage
         run: |
-          APPDIR=$(find composeApp/build/compose/binaries/main/app -type d -name "Mages" | head -n 1)
+          APPDIR=$(find shared/build/compose/binaries/main/app -type d -name "Mages" | head -n 1)
           if [ -d "$APPDIR" ]; then
             mkdir -p dist
             
@@ -107,7 +107,7 @@ jobs:
       - name: Collect desktop artifacts
         run: |
           mkdir -p dist
-          find composeApp/build/compose/binaries/main -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) -exec cp {} dist/ \;
+          find shared/build/compose/binaries/main -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) -exec cp {} dist/ \;
           ls -la dist
 
       - name: Upload artifacts (CI)

@@ -26,7 +26,7 @@ env:
   APPLICATION_ID: 'org.mlm.mages'
   JAVA_VERSION: '21'
   JAVA_DISTRIBUTION: 'temurin'
-  BUILD_GRADLE_PATH: 'composeApp/build.gradle.kts'
+  BUILD_GRADLE_PATH: 'shared/build.gradle.kts'
   ANDROID_API: '36'
   ANDROID_BUILD_TOOLS: '36.0.0'
   ANDROID_NDK_VERSION: '27.0.12077973'
@@ -53,7 +53,7 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
 
       - id: ver
-        name: Bump versionCode/versionName in composeApp
+        name: Bump versionCode/versionName in shared
         shell: bash
         run: |
           set -euo pipefail
@@ -142,12 +142,12 @@ jobs:
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_ALIAS:      ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD:   ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew :composeApp:bundleRelease -PenableApkSplits=false
+        run: ./gradlew :shared:bundleRelease -PenableApkSplits=false
 
       - name: Prepare AAB artifact
         run: |
           mkdir -p artifacts
-          cp composeApp/build/outputs/bundle/release/*release.aab \
+          cp shared/build/outputs/bundle/release/*release.aab \
              "artifacts/${{ env.APP_SLUG }}-${{ needs.prepare-version.outputs.version_name }}.aab"
       
       - name: Clean before APK build
@@ -159,12 +159,12 @@ jobs:
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_ALIAS:      ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD:   ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew :composeApp:assembleRelease --no-daemon -PenableApkSplits=true -PincludeUniversalApk=true
+        run: ./gradlew :shared:assembleRelease --no-daemon -PenableApkSplits=true -PincludeUniversalApk=true
 
       - name: Prepare APKs
         run: |
           mkdir -p artifacts
-          for apk in composeApp/build/outputs/apk/release/*.apk; do
+          for apk in shared/build/outputs/apk/release/*.apk; do
             if [ -f "$apk" ]; then
               arch=$(echo "$apk" | grep -oE '(arm64-v8a|armeabi-v7a|x86_64|x86|universal)')
               if [ -n "$arch" ]; then
