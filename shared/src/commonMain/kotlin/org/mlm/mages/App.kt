@@ -59,7 +59,6 @@ import org.mlm.mages.ui.screens.RoomScreen
 import org.mlm.mages.ui.screens.RoomsScreen
 import org.mlm.mages.ui.screens.SearchScreen
 import org.mlm.mages.ui.screens.SecurityScreen
-import org.mlm.mages.ui.screens.SettingsScreen
 import org.mlm.mages.ui.screens.SpaceDetailScreen
 import org.mlm.mages.ui.screens.SpaceSettingsScreen
 import org.mlm.mages.ui.screens.SpacesScreen
@@ -74,7 +73,6 @@ import org.mlm.mages.ui.viewmodel.RoomViewModel
 import org.mlm.mages.ui.viewmodel.RoomsViewModel
 import org.mlm.mages.ui.viewmodel.SearchViewModel
 import org.mlm.mages.ui.viewmodel.SecurityViewModel
-import org.mlm.mages.ui.viewmodel.SettingsViewModel
 import org.mlm.mages.ui.viewmodel.SpaceDetailViewModel
 import org.mlm.mages.ui.viewmodel.SpaceSettingsViewModel
 import org.mlm.mages.ui.viewmodel.SpacesViewModel

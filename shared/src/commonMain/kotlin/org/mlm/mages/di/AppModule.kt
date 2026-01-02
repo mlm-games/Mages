@@ -26,12 +26,6 @@ val appModule = module {
         )
     }
 
-    viewModel {
-        SettingsViewModel(
-            get()
-        )
-    }
-
     // Rooms list
     viewModel {
         RoomsViewModel(
