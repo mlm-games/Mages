@@ -50,6 +50,7 @@ import java.nio.file.Files
 @Composable
 fun RoomScreen(
     viewModel: RoomViewModel,
+    initialScrollToEventId: String? = null,
     onBack: () -> Unit,
     onOpenInfo: () -> Unit,
     onNavigateToRoom: (roomId: String, name: String) -> Unit,
@@ -148,6 +149,44 @@ fun RoomScreen(
     LaunchedEffect(events.size) {
         if (isNearBottom && events.isNotEmpty()) {
             listState.animateScrollToItem(events.lastIndex)
+        }
+    }
+
+    var pendingJumpEventId by rememberSaveable(initialScrollToEventId) {
+        mutableStateOf(initialScrollToEventId)
+    }
+    var jumpAttempts by remember { mutableIntStateOf(0) }
+
+    // you always have exactly 1 header item (load_earlier OR start_of_conversation)
+    fun listIndexForEventIndex(eventIndex: Int): Int = eventIndex + 1
+
+    LaunchedEffect(
+        pendingJumpEventId,
+        state.hasTimelineSnapshot,
+        state.events.size,
+        state.hitStart,
+        state.isPaginatingBack
+    ) {
+        val target = pendingJumpEventId ?: return@LaunchedEffect
+        if (!state.hasTimelineSnapshot) return@LaunchedEffect
+        if (state.events.isEmpty()) return@LaunchedEffect
+
+        val idx = state.events.indexOfFirst { it.eventId == target }
+        if (idx >= 0) {
+            listState.scrollToItem(listIndexForEventIndex(idx))
+            pendingJumpEventId = null
+            jumpAttempts = 0
+            return@LaunchedEffect
+        }
+
+        // Not found yet → back paginate until we find it, but don’t loop forever
+        if (!state.hitStart && !state.isPaginatingBack && jumpAttempts < 30) {
+            jumpAttempts++
+            viewModel.paginateBack()
+        } else if (state.hitStart || jumpAttempts >= 30) {
+            pendingJumpEventId = null
+            jumpAttempts = 0
+            snackbarHostState.showSnackbar("Couldn’t find that message in loaded history.")
         }
     }
 

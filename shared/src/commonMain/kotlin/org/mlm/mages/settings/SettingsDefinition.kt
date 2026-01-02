@@ -117,6 +117,13 @@ data class AppSettings(
     )
     val presence: Int = PresenceMode.Online.ordinal,
 
+//    @Setting(
+//        type = TextInput::class,
+//        title = "Status Message",
+//        description = "What's on your mind?"
+//    )
+//    val statusMessage: String = ""
+
     @Setting(
         title = "Element Call URL",
         description = "Override Element Call instance (default: call.element.io)",

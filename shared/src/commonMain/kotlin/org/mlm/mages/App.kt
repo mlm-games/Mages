@@ -30,6 +30,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -113,7 +114,7 @@ private fun AppContent(
 
 
         val initialRoute by produceState<Route?>(initialValue = null, service, settingsRepository) {
-            val hs = settings.homeserver
+            val hs = settingsRepository.flow.first().homeserver
             if (hs.isNotBlank()) {
                 runCatching { service.init(hs) }
             }
@@ -280,6 +281,7 @@ private fun AppContent(
 
                         RoomScreen(
                             viewModel = viewModel,
+                            initialScrollToEventId = key.eventId,
                             onBack = backStack::popBack,
                             onOpenInfo = { backStack.add(Route.RoomInfo(key.roomId)) },
                             onNavigateToRoom = { roomId, name -> backStack.add(Route.Room(roomId, name)) },
@@ -493,8 +495,7 @@ private fun AppContent(
                             viewModel.events.collect { event ->
                                 when (event) {
                                     is SearchViewModel.Event.OpenResult -> {
-                                        backStack.add(Route.Room(event.roomId, event.roomName))
-                                        // TODO: Pass eventId to jump to specific message
+                                        backStack.add(Route.Room(event.roomId, event.roomName, event.eventId))
                                     }
                                     is SearchViewModel.Event.ShowError -> {
                                         snackbarManager.showError(event.message)
@@ -507,7 +508,7 @@ private fun AppContent(
                             viewModel = viewModel,
                             onBack = backStack::popBack,
                             onOpenResult = { roomId, eventId, roomName ->
-                                backStack.add(Route.Room(roomId, roomName))
+                                backStack.add(Route.Room(roomId, roomName, eventId))
                             }
                         )
                     }
