@@ -42,6 +42,8 @@ android {
             keyPassword = System.getenv("KEY_PASSWORD")
             enableV1Signing = true
             enableV2Signing = true
+            enableV3Signing = false
+            enableV4Signing = false
         }
     }
 
@@ -65,10 +67,9 @@ android {
         }
     }
 
-    sourceSets {
-        getByName("main") {
-            java.srcDir("src/main/kotlin")
-        }
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 }
 

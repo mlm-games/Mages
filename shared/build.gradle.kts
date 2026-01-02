@@ -34,6 +34,7 @@ kotlin {
             implementation(libs.material.icons.extended)
             implementation(compose.ui)
             implementation(compose.components.uiToolingPreview)
+            implementation(compose.components.resources)
 
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
@@ -227,7 +228,7 @@ abstract class GenerateUniFFITask @Inject constructor(private val execOps: ExecO
 
 compose.resources {
     publicResClass = true
-    // generateResClass = always
+    generateResClass = auto
 }
 
 kotlin {

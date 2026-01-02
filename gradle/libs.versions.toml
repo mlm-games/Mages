@@ -95,3 +95,4 @@ kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", versio
 apk-dist = {id = "io.github.mlm-games.apk-dist", version.ref = "apkDist"}
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
