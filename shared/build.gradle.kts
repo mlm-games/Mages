@@ -34,11 +34,11 @@ kotlin {
             implementation(libs.material.icons.extended)
             implementation(compose.ui)
             implementation(compose.components.uiToolingPreview)
+            implementation(compose.components.resources)
 
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.androidx.datastore.preferences.core)
-
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
@@ -227,7 +227,7 @@ abstract class GenerateUniFFITask @Inject constructor(private val execOps: ExecO
 
 compose.resources {
     publicResClass = true
-    // generateResClass = always
+//    generateResClass = auto
 }
 
 kotlin {

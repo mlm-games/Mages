@@ -3,7 +3,6 @@ package org.mlm.mages.settings
 import io.github.mlmgames.settings.core.annotations.*
 import kotlinx.serialization.Serializable
 
-// Define categories
 @CategoryDefinition(order = 0)
 object General
 
@@ -19,7 +18,6 @@ object Privacy
 @CategoryDefinition(order = 4)
 object Advanced
 
-// Settings data class
 @Serializable
 data class AppSettings(
     // General

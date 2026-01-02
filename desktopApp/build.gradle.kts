@@ -18,8 +18,6 @@ dependencies {
     implementation(libs.net.jna)
     implementation(libs.androidx.datastore.preferences.core)
     implementation(libs.kmp.settings.core)
-
-
 }
 
 compose.desktop {
