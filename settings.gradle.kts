@@ -1,4 +1,3 @@
-rootProject.name = "Mages"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
@@ -28,4 +27,7 @@ dependencyResolutionManagement {
     }
 }
 
-include(":composeApp")
+rootProject.name = "mages"
+include(":shared")
+include(":androidApp")
+include(":desktopApp")

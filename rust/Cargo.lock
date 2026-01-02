@@ -2149,7 +2149,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk"
 version = "0.16.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick#a45795b0595f86a6bb77ace6a69be870ad243d75"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick#46c70eedd49bce60602574d629b5377f4670e4d4"
 dependencies = [
  "anymap2",
  "aquamarine",
@@ -2201,6 +2201,7 @@ dependencies = [
  "tracing",
  "url",
  "urlencoding",
+ "uuid",
  "vodozemac",
  "zeroize",
 ]
@@ -2208,7 +2209,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-base"
 version = "0.16.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick#a45795b0595f86a6bb77ace6a69be870ad243d75"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick#46c70eedd49bce60602574d629b5377f4670e4d4"
 dependencies = [
  "as_variant",
  "async-trait",
@@ -2235,7 +2236,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-common"
 version = "0.16.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick#a45795b0595f86a6bb77ace6a69be870ad243d75"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick#46c70eedd49bce60602574d629b5377f4670e4d4"
 dependencies = [
  "eyeball-im",
  "futures-core",
@@ -2258,7 +2259,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-crypto"
 version = "0.16.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick#a45795b0595f86a6bb77ace6a69be870ad243d75"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick#46c70eedd49bce60602574d629b5377f4670e4d4"
 dependencies = [
  "aes",
  "aquamarine",
@@ -2298,7 +2299,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-indexeddb"
 version = "0.16.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick#a45795b0595f86a6bb77ace6a69be870ad243d75"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick#46c70eedd49bce60602574d629b5377f4670e4d4"
 dependencies = [
  "async-trait",
  "base64",
@@ -2329,7 +2330,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-search"
 version = "0.16.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick#a45795b0595f86a6bb77ace6a69be870ad243d75"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick#46c70eedd49bce60602574d629b5377f4670e4d4"
 dependencies = [
  "aes",
  "byteorder",
@@ -2349,7 +2350,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-sqlite"
 version = "0.16.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick#a45795b0595f86a6bb77ace6a69be870ad243d75"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick#46c70eedd49bce60602574d629b5377f4670e4d4"
 dependencies = [
  "as_variant",
  "async-trait",
@@ -2376,7 +2377,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-store-encryption"
 version = "0.16.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick#a45795b0595f86a6bb77ace6a69be870ad243d75"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick#46c70eedd49bce60602574d629b5377f4670e4d4"
 dependencies = [
  "base64",
  "blake3",
@@ -2396,7 +2397,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-ui"
 version = "0.16.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick#a45795b0595f86a6bb77ace6a69be870ad243d75"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick#46c70eedd49bce60602574d629b5377f4670e4d4"
 dependencies = [
  "as_variant",
  "async-rx",

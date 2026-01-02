@@ -1,0 +1,129 @@
+package org.mlm.mages
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.os.Bundle
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.util.Log
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import io.github.mlmgames.settings.core.SettingsRepository
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
+import org.mlm.mages.matrix.MatrixProvider
+import org.mlm.mages.matrix.createMatrixPort
+import org.mlm.mages.nav.handleMatrixLink
+import org.mlm.mages.nav.parseMatrixLink
+import org.mlm.mages.platform.MagesPaths
+import org.mlm.mages.platform.SettingsProvider
+import org.mlm.mages.push.PREF_INSTANCE
+import org.mlm.mages.storage.provideAppDataStore
+import org.mlm.mages.push.PushManager
+import org.mlm.mages.push.PusherReconciler
+import org.mlm.mages.settings.AppSettings
+import org.unifiedpush.android.connector.UnifiedPush
+
+class MainActivity : AppCompatActivity() {
+    private val deepLinkRoomIds = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    private val deepLinks = deepLinkRoomIds.asSharedFlow()
+
+    private val dataStore by lazy { provideAppDataStore(this) }
+    private val service by lazy { MatrixService(createMatrixPort()) }
+
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
+        ensureCallNotificationChannel()
+
+        handleIntent(intent)
+        MagesPaths.init(this)
+        val settingsRepository: SettingsRepository<AppSettings> = SettingsProvider.get(applicationContext)
+
+
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1001)
+        }
+
+        UnifiedPush.tryUseCurrentOrDefaultDistributor(this) { success ->
+            val saved = UnifiedPush.getSavedDistributor(this)
+            val dists = UnifiedPush.getDistributors(this)
+            Log.i(
+                "UP-Mages",
+                "tryUseCurrentOrDefaultDistributor success=$success, " +
+                        "savedDistributor=$saved, distributors=$dists"
+            )
+
+            if (success) {
+                UnifiedPush.register(this, PREF_INSTANCE)
+                lifecycleScope.launch {
+                    runCatching { PusherReconciler.ensureServerPusherRegistered(this@MainActivity) }
+                }
+            } else {
+                PushManager.registerWithDialog(this, PREF_INSTANCE)
+            }
+        }
+
+        setContent {
+            App(dataStore = dataStore, service = service, settingsRepository, deepLinks = deepLinks)
+        }
+
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent) {
+        intent.data?.let { uri ->
+            if (uri.scheme == "mages" && uri.host == "room") {
+                val roomId = uri.getQueryParameter("id")
+                if (!roomId.isNullOrBlank()) {
+                    lifecycleScope.launch {
+                        MatrixProvider.getReady(applicationContext)
+                    }
+                    deepLinkRoomIds.tryEmit(roomId)
+                }
+                return
+            }
+
+            val url = uri.toString()
+            val link = parseMatrixLink(url)
+            if (link !is org.mlm.mages.nav.MatrixLink.Unsupported) {
+                lifecycleScope.launch {
+                    MatrixProvider.get(applicationContext)
+                    handleMatrixLink(
+                        service = service,
+                        link = link,
+                    ) { roomId, _ ->
+                        deepLinkRoomIds.tryEmit(roomId)
+                    }
+                }
+            }
+        }
+    }
+
+
+    private fun ensureCallNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val mgr = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            val channel = NotificationChannel(
+                "calls",
+                "Calls",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Incoming calls"
+                setSound(null, null) // TODO: sound configurable later
+                enableVibration(true)
+            }
+            mgr.createNotificationChannel(channel)
+        }
+    }
+}
