@@ -292,6 +292,7 @@ private fun AppContent(
                         )
                     }
 
+
                     entry<Route.Security> {
                         val quitApp = rememberQuitApp()
                         val viewModel: SecurityViewModel = koinViewModel()
@@ -305,7 +306,7 @@ private fun AppContent(
                                         quitApp()
                                     }
                                     is SecurityViewModel.Event.ShowError -> {
-                                        snackbarManager.show("Error: $event.message")
+                                        snackbarManager.show("Error: ${event.message}")
                                     }
                                     is SecurityViewModel.Event.ShowSuccess -> {
                                         snackbarManager.show(event.message)
@@ -510,17 +511,6 @@ private fun AppContent(
                             onOpenResult = { roomId, eventId, roomName ->
                                 backStack.add(Route.Room(roomId, roomName))
                             }
-                        )
-                    }
-                    entry<Route.Settings> { key ->
-
-                        val viewModel: SettingsViewModel = koinViewModel(
-                            parameters = { parametersOf(settingsRepository) }
-                        )
-
-                        SettingsScreen(
-                            viewModel = viewModel,
-                            onBack = backStack::popBack,
                         )
                     }
                 }

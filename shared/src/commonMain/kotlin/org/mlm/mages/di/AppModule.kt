@@ -28,36 +28,32 @@ val appModule = module {
 
     viewModel {
         SettingsViewModel(
-            settingsRepository = get()
+            get()
         )
     }
 
     // Rooms list
     viewModel {
         RoomsViewModel(
-            service = get()
+            get()
         )
     }
 
     // Security
-    viewModel {
-        SecurityViewModel(
-            service = get()
-        )
-    }
+    viewModel { SecurityViewModel(get(), get()) }
 
     // Login
     viewModel {
         LoginViewModel(
-            service = get(),
-            settingsRepository = get()
+            get(),
+            get()
         )
     }
 
     // Spaces
     viewModel {
         SpacesViewModel(
-            service = get()
+            get()
         )
     }
 
@@ -98,14 +94,14 @@ val appModule = module {
     // Discover
     viewModel {
         DiscoverViewModel(
-            service = get()
+            get()
         )
     }
 
     // Invites
     viewModel {
         InvitesViewModel(
-            service = get()
+            get()
         )
     }
 

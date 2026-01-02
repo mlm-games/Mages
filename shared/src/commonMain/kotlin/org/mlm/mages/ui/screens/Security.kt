@@ -19,10 +19,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
+import io.github.mlmgames.settings.core.SettingsSchema
+import io.github.mlmgames.settings.core.annotations.SettingAction
+import io.github.mlmgames.settings.ui.AutoSettingsScreen
+import io.github.mlmgames.settings.ui.CategoryConfig
 import org.mlm.mages.matrix.DeviceSummary
 import org.mlm.mages.matrix.Presence
 import org.mlm.mages.matrix.SasPhase
-import org.mlm.mages.nav.Route
+import org.mlm.mages.settings.*
 import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.components.dialogs.ConfirmationDialog
 import org.mlm.mages.ui.components.dialogs.RecoveryDialog
@@ -30,6 +34,7 @@ import org.mlm.mages.ui.components.dialogs.SasDialog
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.popBack
 import org.mlm.mages.ui.viewmodel.SecurityViewModel
+import kotlin.reflect.KClass
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +43,7 @@ fun SecurityScreen(
     backStack: NavBackStack<NavKey>
 ) {
     val state by viewModel.state.collectAsState()
+    val settings by viewModel.settings.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var showLogoutConfirm by remember { mutableStateOf(false) }
     var verifyUserId by remember { mutableStateOf("") }
@@ -53,7 +59,7 @@ fun SecurityScreen(
                 TopAppBar(
                     title = { Text("Security & Settings", fontWeight = FontWeight.SemiBold) },
                     navigationIcon = {
-                        IconButton(onClick = { backStack.popBack()}) {
+                        IconButton(onClick = { backStack.popBack() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                         }
                     },
@@ -63,12 +69,6 @@ fun SecurityScreen(
                                 Icons.AutoMirrored.Filled.Logout,
                                 "Logout",
                                 tint = MaterialTheme.colorScheme.error
-                            )
-                        }
-                        IconButton(onClick = { backStack.add(Route.Settings) }) {
-                            Icon(
-                                Icons.Default.Settings,
-                                "Settings",
                             )
                         }
                     }
@@ -90,8 +90,8 @@ fun SecurityScreen(
                     Tab(
                         selected = state.selectedTab == 2,
                         onClick = { viewModel.setSelectedTab(2) },
-                        text = { Text("Status") },
-                        icon = { Icon(Icons.Default.Circle, null) }
+                        text = { Text("Settings") },
+                        icon = { Icon(Icons.Default.Settings, null) }
                     )
                 }
             }
@@ -116,13 +116,18 @@ fun SecurityScreen(
                     ignoredUsers = state.ignoredUsers,
                     onUnignore = viewModel::unignoreUser
                 )
-                2 -> PresenceTab(
+                2 -> SettingsTab(
+                    settings = settings,
+                    schema = viewModel.settingsSchema,
                     currentPresence = state.presence.currentPresence,
                     statusMessage = state.presence.statusMessage,
-                    isSaving = state.presence.isSaving,
+                    isSavingPresence = state.presence.isSaving,
                     onPresenceChange = viewModel::setPresence,
                     onStatusChange = viewModel::setStatusMessage,
-                    onSave = viewModel::savePresence
+                    onSavePresence = viewModel::savePresence,
+                    onSettingChange = viewModel::updateSetting,
+                    onSettingAction = viewModel::executeSettingAction,
+                    snackbarHostState = snackbarHostState
                 )
             }
         }
@@ -227,7 +232,6 @@ private fun DevicesTab(
         contentPadding = PaddingValues(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
-        // Action cards
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -428,88 +432,39 @@ private fun PrivacyTab(
 }
 
 @Composable
-private fun PresenceTab(
+private fun SettingsTab(
+    settings: AppSettings,
+    schema: SettingsSchema<AppSettings>,
     currentPresence: Presence,
     statusMessage: String,
-    isSaving: Boolean,
+    isSavingPresence: Boolean,
     onPresenceChange: (Presence) -> Unit,
     onStatusChange: (String) -> Unit,
-    onSave: () -> Unit
+    onSavePresence: () -> Unit,
+    onSettingChange: (String, Any) -> Unit,
+    onSettingAction: suspend (KClass<out SettingAction>) -> Unit,
+    snackbarHostState: SnackbarHostState
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.lg)
+        modifier = Modifier.fillMaxSize()
     ) {
-        Text(
-            "Your Status",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
+        AutoSettingsScreen(
+            schema = schema,
+            value = settings,
+            onSet = onSettingChange,
+            onAction = onSettingAction,
+            modifier = Modifier.fillMaxSize(),
+            categoryConfigs = listOf(
+                CategoryConfig(Account::class, "Account"),
+                CategoryConfig(Appearance::class, "Appearance"),
+                CategoryConfig(Notifications::class, "Notifications"),
+                CategoryConfig(Privacy::class, "Privacy"),
+                CategoryConfig(Calls::class, "Calls"),
+                CategoryConfig(Storage::class, "Storage"),
+                CategoryConfig(Advanced::class, "Advanced"),
+            ),
+            snackbarHostState = snackbarHostState
         )
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            )
-        ) {
-            Column(modifier = Modifier.padding(Spacing.md)) {
-                PresenceOption(
-                    presence = Presence.Online,
-                    currentPresence = currentPresence,
-                    title = "Online",
-                    color = Color(0xFF4CAF50),
-                    onClick = { onPresenceChange(Presence.Online) }
-                )
-                HorizontalDivider(Modifier.padding(vertical = Spacing.sm))
-                PresenceOption(
-                    presence = Presence.Unavailable,
-                    currentPresence = currentPresence,
-                    title = "Away",
-                    color = Color(0xFFFF9800),
-                    onClick = { onPresenceChange(Presence.Unavailable) }
-                )
-                HorizontalDivider(Modifier.padding(vertical = Spacing.sm))
-                PresenceOption(
-                    presence = Presence.Offline,
-                    currentPresence = currentPresence,
-                    title = "Invisible",
-                    color = Color(0xFF9E9E9E),
-                    onClick = { onPresenceChange(Presence.Offline) }
-                )
-            }
-        }
-
-        Text(
-            "Status Message",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Medium
-        )
-
-        OutlinedTextField(
-            value = statusMessage,
-            onValueChange = onStatusChange,
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("What's on your mind?") },
-            singleLine = true
-        )
-
-        Button(
-            onClick = onSave,
-            enabled = !isSaving,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            if (isSaving) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-                Spacer(Modifier.width(Spacing.sm))
-            }
-            Text("Update Status")
-        }
     }
 }
 

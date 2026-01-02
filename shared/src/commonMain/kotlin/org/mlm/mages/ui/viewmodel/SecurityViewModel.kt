@@ -1,15 +1,23 @@
 package org.mlm.mages.ui.viewmodel
 
+import androidx.lifecycle.viewModelScope
+import io.github.mlmgames.settings.core.SettingsRepository
+import io.github.mlmgames.settings.core.actions.ActionRegistry
+import io.github.mlmgames.settings.core.annotations.SettingAction
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.*
+import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.SecurityUiState
 import org.mlm.mages.ui.VerificationRequestUi
+import kotlin.reflect.KClass
 
 class SecurityViewModel(
-    private val service: MatrixService
+    private val service: MatrixService,
+    private val settingsRepository: SettingsRepository<AppSettings>
 ) : BaseViewModel<SecurityUiState>(SecurityUiState()) {
 
     // One-time events
@@ -24,6 +32,12 @@ class SecurityViewModel(
 
     private var inboxToken: ULong? = null
 
+    // Settings
+    val settings = settingsRepository.flow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
+
+    val settingsSchema = settingsRepository.schema
+
     init {
         refreshDevices()
         refreshIgnored()
@@ -31,13 +45,26 @@ class SecurityViewModel(
         startVerificationInbox()
     }
 
-    //  Tab Selection 
+    //  Settings
+
+    fun <T> updateSetting(name: String, value: T) {
+        launch {
+            @Suppress("UNCHECKED_CAST")
+            settingsRepository.set(name, value as Any)
+        }
+    }
+
+    suspend fun executeSettingAction(actionClass: KClass<out SettingAction>) {
+        ActionRegistry.execute(actionClass)
+    }
+
+    //  Tab Selection
 
     fun setSelectedTab(index: Int) {
         updateState { copy(selectedTab = index) }
     }
 
-    //  Devices 
+    //  Devices
 
     fun refreshDevices() {
         launch(
@@ -51,7 +78,7 @@ class SecurityViewModel(
         }
     }
 
-    //  Verification 
+    //  Verification
 
     private fun startVerificationInbox() {
         inboxToken?.let { service.stopVerificationInbox(it) }
@@ -189,7 +216,7 @@ class SecurityViewModel(
         }
     }
 
-    //  Recovery 
+    //  Recovery
 
     fun openRecoveryDialog() {
         updateState { copy(showRecoveryDialog = true, recoveryKeyInput = "") }
@@ -221,7 +248,7 @@ class SecurityViewModel(
         }
     }
 
-    //  Privacy / Ignored Users 
+    //  Privacy / Ignored Users
 
     fun refreshIgnored() {
         launch {
@@ -242,7 +269,7 @@ class SecurityViewModel(
         }
     }
 
-    //  Presence 
+    //  Presence
 
     fun loadPresence() {
         launch {
@@ -288,7 +315,7 @@ class SecurityViewModel(
         }
     }
 
-    //  Logout 
+    //  Logout
 
     fun logout() {
         launch {
@@ -316,7 +343,6 @@ class SecurityViewModel(
             )
         }
     }
-
 
     override fun onCleared() {
         super.onCleared()
