@@ -698,7 +698,7 @@ private fun MessageItem(
     MessageBubble(
         isMine = isMine,
         body = event.body,
-        sender = formatDisplayName(event.sender),
+        sender = event.senderDisplayName,
         timestamp = timestamp,
         grouped = shouldGroup,
         reactionChips = chips,
@@ -711,7 +711,7 @@ private fun MessageItem(
         durationMs = event.attachment?.durationMs,
         onOpenAttachment = onOpenAttachment,
         replyPreview = event.replyToBody,
-        replySender = event.replyToSender?.let { formatDisplayName(it) },
+        replySender = event.replyToSenderDisplayName,
         sendState = event.sendState,
         isEdited = event.isEdited,
         poll = event.pollData,

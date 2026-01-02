@@ -554,7 +554,7 @@ private fun ThreadReplyMessage(
             MessageBubble(
                 isMine = isMine,
                 body = event.body,
-                sender = if (grouped) null else formatDisplayName(event.sender),
+                sender = if (grouped) null else event.senderDisplayName,
                 timestamp = event.timestampMs,
                 grouped = grouped,
                 reactionChips = reactionChips,
@@ -562,7 +562,7 @@ private fun ThreadReplyMessage(
                 onReact = onReact,
                 onLongPress = onLongPress,
                 replyPreview = event.replyToBody,
-                replySender = event.replyToSender?.let { formatDisplayName(it) },
+                replySender = event.replyToSenderDisplayName,
                 sendState = event.sendState,
                 isEdited = event.isEdited
             )
