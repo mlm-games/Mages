@@ -50,6 +50,8 @@ class RoomViewModel(
             val filePath: String?,
             val mimeType: String?
         ) : Event()
+
+        data class JumpToEvent(val eventId: String) : Event()
     }
 
     private val _events = Channel<Event>(Channel.BUFFERED)
@@ -132,10 +134,12 @@ class RoomViewModel(
     //  Message Input
 
     fun setInput(value: String) {
+        updateState { copy(input = value) }
+
         launch {
-            val prefs = settingsRepo.flow.first()
+            val prefs = settingsRepo.flow.first() // HACK: expensive
             if (!prefs.sendTypingIndicators) return@launch
-            updateState { copy(input = value) }
+
             typingJob?.cancel()
             typingJob = launch {
                 if (value.isBlank()) {
@@ -599,9 +603,11 @@ class RoomViewModel(
 
     fun jumpToSearchResult(hit: SearchHit) {
         hideRoomSearch()
-        // TODO: jump to event
+        val eid = hit.eventId
+        if (eid.isBlank()) return
+
         launch {
-            _events.send(Event.ShowSuccess("Found: ${hit.body.take(50)}..."))
+            _events.send(Event.JumpToEvent(eid))
         }
     }
 

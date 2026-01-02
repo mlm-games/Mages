@@ -63,6 +63,11 @@ fun RoomScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
 
+    var pendingJumpEventId by rememberSaveable(initialScrollToEventId) {
+        mutableStateOf(initialScrollToEventId)
+    }
+    var jumpAttempts by remember { mutableIntStateOf(0) }
+
     val openExternal = rememberFileOpener()
 
     val picker = rememberFilePicker { data ->
@@ -75,8 +80,9 @@ fun RoomScreen(
 
     var didInitialScroll by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(state.hasTimelineSnapshot, state.events.size) {
+    LaunchedEffect(state.hasTimelineSnapshot, state.events.size, pendingJumpEventId) {
         if (!state.hasTimelineSnapshot || state.events.isEmpty()) return@LaunchedEffect
+        if (pendingJumpEventId != null) return@LaunchedEffect
 
         if (!didInitialScroll &&
             listState.firstVisibleItemIndex == 0 &&
@@ -113,6 +119,9 @@ fun RoomScreen(
                             mimeType = event.mimeType
                         )
                     )
+                }
+                is RoomViewModel.Event.JumpToEvent -> {
+                    pendingJumpEventId = event.eventId
                 }
             }
         }
@@ -151,11 +160,6 @@ fun RoomScreen(
             listState.animateScrollToItem(events.lastIndex)
         }
     }
-
-    var pendingJumpEventId by rememberSaveable(initialScrollToEventId) {
-        mutableStateOf(initialScrollToEventId)
-    }
-    var jumpAttempts by remember { mutableIntStateOf(0) }
 
     // you always have exactly 1 header item (load_earlier OR start_of_conversation)
     fun listIndexForEventIndex(eventIndex: Int): Int = eventIndex + 1
@@ -561,9 +565,9 @@ private fun RoomTopBar(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onStartCall, enabled = !hasActiveCall) {
-                        Icon(Icons.Default.Call, "Start call")
-                    }
+//                    IconButton(onClick = onStartCall, enabled = !hasActiveCall) {
+//                        Icon(Icons.Default.Call, "Start call")
+//                    }
                     IconButton(onClick = onOpenNotifications) {
                         Icon(Icons.Default.Notifications, "Notifications")
                     }
