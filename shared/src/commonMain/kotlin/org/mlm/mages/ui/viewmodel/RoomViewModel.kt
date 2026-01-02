@@ -2,13 +2,16 @@ package org.mlm.mages.ui.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
+import org.koin.core.component.inject
 import org.mlm.mages.*
 import org.mlm.mages.matrix.*
 import org.mlm.mages.platform.CallWebViewController
 import org.mlm.mages.platform.Notifier
+import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.ForwardableRoom
 import org.mlm.mages.ui.ActiveCallUi
 import org.mlm.mages.ui.RoomUiState
@@ -66,6 +69,8 @@ class RoomViewModel(
     private val checkedThreadRootsViaApi = mutableSetOf<String>()
 
     private var callWebViewController: CallWebViewController? = null
+
+    private val settingsRepo: SettingsRepository<AppSettings> by inject()
 
     init {
         initialize()
@@ -127,15 +132,19 @@ class RoomViewModel(
     //  Message Input
 
     fun setInput(value: String) {
-        updateState { copy(input = value) }
-        typingJob?.cancel()
-        typingJob = launch {
-            if (value.isBlank()) {
-                runSafe { service.port.setTyping(currentState.roomId, false) }
-            } else {
-                runSafe { service.port.setTyping(currentState.roomId, true) }
-                delay(4000)
-                runSafe { service.port.setTyping(currentState.roomId, false) }
+        launch {
+            val prefs = settingsRepo.flow.first()
+            if (!prefs.sendTypingIndicators) return@launch
+            updateState { copy(input = value) }
+            typingJob?.cancel()
+            typingJob = launch {
+                if (value.isBlank()) {
+                    runSafe { service.port.setTyping(currentState.roomId, false) }
+                } else {
+                    runSafe { service.port.setTyping(currentState.roomId, true) }
+                    delay(4000)
+                    runSafe { service.port.setTyping(currentState.roomId, false) }
+                }
             }
         }
     }
@@ -1031,7 +1040,7 @@ class RoomViewModel(
                 updateState {
                     val index = allEvents.indexOfFirst { it.itemId == diff.itemId }
                     val newAll = if (index == -1) {
-                        val insertIndex = allEvents.indexOfFirst { it.timestamp > diff.item.timestamp }
+                        val insertIndex = allEvents.indexOfFirst { it.timestampMs > diff.item.timestampMs }
                         if (insertIndex == -1) {
                             allEvents + diff.item
                         } else {
@@ -1131,7 +1140,7 @@ class RoomViewModel(
             return
         }
 
-        val lastIncoming = s.events.asSequence().filter { it.sender != me }.maxOfOrNull { it.timestamp }
+        val lastIncoming = s.events.asSequence().filter { it.sender != me }.maxOfOrNull { it.timestampMs }
         updateState { copy(lastIncomingFromOthersTs = lastIncoming) }
 
         if (s.isDm) recomputeReadStatuses()

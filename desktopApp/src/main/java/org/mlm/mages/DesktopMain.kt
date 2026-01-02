@@ -11,6 +11,7 @@ import dorkbox.systemTray.SystemTray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -20,31 +21,26 @@ import org.mlm.mages.platform.BindNotifications
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.Notifier
 import org.mlm.mages.platform.SettingsProvider
-import org.mlm.mages.storage.loadBoolean
-import org.mlm.mages.storage.loadString
-import org.mlm.mages.storage.provideAppDataStore
-import org.mlm.mages.storage.saveBoolean
+import org.mlm.mages.settings.AppSettings
 import java.awt.event.WindowEvent
 import java.awt.event.WindowFocusListener
 import javax.swing.SwingUtilities
 
-private const val PREF_START_IN_TRAY = "pref.startInTray"
-
 fun main() = application {
     MagesPaths.init()
 
-    val dataStore = remember { provideAppDataStore() }
-
+    val settingsRepo = remember { SettingsProvider.get() }
     val initialStartInTray = remember {
-        runBlocking { loadBoolean(dataStore, PREF_START_IN_TRAY) ?: false }
+        runBlocking { settingsRepo.flow.first().startInTray }
     }
+
+    val settings = settingsRepo.flow.collectAsState(AppSettings()).value
 
     var startInTray by remember { mutableStateOf(initialStartInTray) }
     var showWindow by remember { mutableStateOf(!startInTray) }
 
     val deepLinkRoomIds = remember { MutableSharedFlow<String>(extraBufferCapacity = 8) }
     val deepLinks = remember { deepLinkRoomIds.asSharedFlow() }
-    val settingsRepository = remember { SettingsProvider.get() }
 
     val scope = rememberCoroutineScope()
 
@@ -68,8 +64,8 @@ fun main() = application {
         }
 
         // Init Matrix client early, (if window = false, compose actually doesn't run App())
-        val hs = runCatching { loadString(dataStore, "homeserver") }.getOrNull()
-        if (!hs.isNullOrBlank()) {
+        val hs = settings.homeserver
+        if (hs.isNotBlank()) {
             runCatching { svc.init(hs) }
         }
 
@@ -154,7 +150,9 @@ fun main() = application {
                     else "Minimize to tray on launch"
             }
 
-            scope.launch { saveBoolean(dataStore, PREF_START_IN_TRAY, startInTray) }
+            scope.launch {
+                settingsRepo.update { it.copy(startInTray = startInTray) }
+            }
         }
 
         tray.menu.add(minimizeItem)
@@ -206,7 +204,7 @@ fun main() = application {
             }
         }
 
-        App(dataStore, svc, settingsRepository, deepLinks)
+        App( svc, settingsRepo, deepLinks)
     }
-    BindNotifications(service = svc, dataStore = dataStore)
+    BindNotifications(service = svc, settingsRepo)
 }

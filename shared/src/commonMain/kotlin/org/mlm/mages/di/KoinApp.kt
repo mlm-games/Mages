@@ -19,18 +19,11 @@ import org.mlm.mages.MatrixService
 @Composable
 fun KoinApp(
     service: MatrixService,
-    dataStore: DataStore<Preferences>,
     settingsRepository: SettingsRepository<AppSettings>,
     content: @Composable () -> Unit
 ) {
     KoinApplication(configuration = koinConfiguration(declaration = {
-        modules(
-            appModules(
-                service,
-                dataStore,
-                settingsRepository
-            )
-        )
+        modules(appModules(service, settingsRepository))
     }), content = {
         content()
     })
@@ -46,7 +39,7 @@ fun initKoin(
     additionalModules: List<Module> = emptyList()
 ) {
     startKoin {
-        modules(appModules(service, dataStore, settingsRepository) + additionalModules)
+        modules(appModules(service, settingsRepository) + additionalModules)
     }
 }
 

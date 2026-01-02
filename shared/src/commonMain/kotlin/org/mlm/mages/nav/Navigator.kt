@@ -27,6 +27,7 @@ sealed interface Route : NavKey {
     @Serializable data object Security : Route
     @Serializable data object Discover : Route
     @Serializable data object Invites : Route
+    @Serializable data object Settings : Route
     @Serializable data class RoomInfo(val roomId: String) : Route
     @Serializable data class Thread(val roomId: String, val rootEventId: String, val roomName: String) : Route
 

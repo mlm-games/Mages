@@ -650,9 +650,10 @@ private fun MessageItem(
     onOpenThread: () -> Unit,
     viewModel: RoomViewModel
 ) {
+    val timestamp = event.timestampMs
 
-    val eventDate = formatDate(event.timestamp)
-    val prevDate = events.getOrNull(index - 1)?.let { formatDate(it.timestamp) }
+    val eventDate = formatDate(timestamp)
+    val prevDate = events.getOrNull(index - 1)?.let { formatDate(it.timestampMs) }
 
     // Date header
     if (prevDate != eventDate) {
@@ -668,9 +669,9 @@ private fun MessageItem(
         if (lastReadTs != null) {
             val prev = events.getOrNull(index - 1)
             val prevIsFromMe = prev != null && myId != null && prev.sender == myId
-            val prevTs = prev?.timestamp
+            val prevTs = prev?.timestampMs
 
-            val justCrossed = event.timestamp > lastReadTs &&
+            val justCrossed = timestamp > lastReadTs &&
                     (prev == null || prevIsFromMe || (prevTs != null && prevTs <= lastReadTs))
 
             if (justCrossed) {
@@ -698,7 +699,7 @@ private fun MessageItem(
         isMine = isMine,
         body = event.body,
         sender = formatDisplayName(event.sender),
-        timestamp = event.timestamp,
+        timestamp = timestamp,
         grouped = shouldGroup,
         reactionChips = chips,
         eventId = event.eventId,
@@ -758,7 +759,7 @@ private fun MessageItem(
                 SendState.Failed -> "Failed to send"
                 SendState.Sent -> {
                     if (state.lastOutgoingRead) {
-                        "Seen ${formatTime(lastOutgoing.timestamp)}"
+                        "Seen ${formatTime(lastOutgoing.timestampMs)}"
                     } else {
                         "Delivered"
                     }
@@ -768,7 +769,7 @@ private fun MessageItem(
                     if (lastOutgoing.eventId.isBlank()) {
                         "Sending…"
                     } else if (state.lastOutgoingRead) {
-                        "Seen ${formatTime(lastOutgoing.timestamp)}"
+                        "Seen ${formatTime(lastOutgoing.timestampMs)}"
                     } else {
                         "Delivered"
                     }

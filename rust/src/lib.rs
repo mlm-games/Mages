@@ -31,6 +31,7 @@ use matrix_sdk_ui::{
 use mime::Mime;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -171,13 +172,17 @@ pub struct MessageEvent {
     pub item_id: String,
     pub event_id: String,
     pub room_id: String,
+    /// Full MXID
     pub sender: String,
+    pub sender_display_name: Option<String>,
+    pub sender_avatar_url: Option<String>,
     pub body: String,
     pub timestamp_ms: u64,
     pub send_state: Option<SendState>,
     pub txn_id: Option<String>,
     pub reply_to_event_id: Option<String>,
     pub reply_to_sender: Option<String>,
+    pub reply_to_sender_display_name: Option<String>,
     pub reply_to_body: Option<String>,
     pub attachment: Option<AttachmentInfo>,
     pub thread_root_event_id: Option<String>,
@@ -5647,9 +5652,28 @@ fn build_unstable_poll_content(
 static TIMELINES: Lazy<Mutex<HashMap<OwnedRoomId, Arc<Timeline>>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
+static TIMELINE_MEMBERS_FETCHED: Lazy<Mutex<HashSet<OwnedRoomId>>> =
+    Lazy::new(|| Mutex::new(HashSet::new()));
+
 async fn get_timeline_for(client: &SdkClient, room_id: &OwnedRoomId) -> Option<Arc<Timeline>> {
     // reuse existing timeline for this room
     if let Some(tl) = TIMELINES.lock().unwrap().get(room_id).cloned() {
+        // ensure member fetch has been triggered once
+        let should_fetch = {
+            let mut s = TIMELINE_MEMBERS_FETCHED.lock().unwrap();
+            if s.contains(room_id) {
+                false
+            } else {
+                s.insert(room_id.clone());
+                true
+            }
+        };
+        if should_fetch {
+            let tlc = tl.clone();
+            tokio::spawn(async move {
+                let _ = tlc.fetch_members().await;
+            });
+        }
         return Some(tl);
     }
 
@@ -5659,11 +5683,40 @@ async fn get_timeline_for(client: &SdkClient, room_id: &OwnedRoomId) -> Option<A
 
     let _ = tl.paginate_backwards(INITIAL_BACK_PAGINATION).await;
 
+    // trigger member fetch once per room
+    {
+        let mut s = TIMELINE_MEMBERS_FETCHED.lock().unwrap();
+        if !s.contains(room_id) {
+            s.insert(room_id.clone());
+            let tlc = tl.clone();
+            tokio::spawn(async move {
+                let _ = tlc.fetch_members().await;
+            });
+        }
+    }
+
     TIMELINES
         .lock()
         .unwrap()
         .insert(room_id.clone(), tl.clone());
     Some(tl)
+}
+
+fn map_sender_profile(
+    sender_mxid: &ruma::UserId,
+    details: &TimelineDetails<matrix_sdk_ui::timeline::Profile>,
+) -> (Option<String>, Option<String>) {
+    match details {
+        TimelineDetails::Ready(p) => (
+            p.display_name.clone(),
+            p.avatar_url.as_ref().map(|u| u.to_string()),
+        ),
+        _ => {
+            // No profile yet (Unavailable/Pending/Error)
+            // Return None so Kotlin can fall back to localpart formatting if it wants
+            (None, None)
+        }
+    }
 }
 
 fn map_timeline_event(
@@ -5713,6 +5766,7 @@ fn map_timeline_event(
     let body: String;
     let mut is_edited = false;
     let mut poll_data: Option<PollData> = None;
+    let mut reply_to_sender_display_name: Option<String> = None;
 
     match ev.content() {
         TimelineItemContent::MsgLike(ml) => {
@@ -5720,6 +5774,10 @@ fn map_timeline_event(
                 reply_to_event_id = Some(details.event_id.to_string());
                 if let TimelineDetails::Ready(embed) = &details.event {
                     reply_to_sender = Some(embed.sender.to_string());
+
+                    let (dn, _av) = map_sender_profile(&embed.sender, &embed.sender_profile);
+                    reply_to_sender_display_name = dn;
+
                     if let Some(m) = embed.content.as_message() {
                         reply_to_body = Some(m.body().to_owned());
                     }
@@ -5752,17 +5810,23 @@ fn map_timeline_event(
         }
     }
 
+    let (sender_display_name, sender_avatar_url) =
+        map_sender_profile(ev.sender(), ev.sender_profile());
+
     Some(MessageEvent {
         item_id: item_id_str,
         event_id,
         room_id: room_id.to_string(),
         sender: ev.sender().to_string(),
+        sender_display_name,
+        sender_avatar_url,
         body,
         timestamp_ms: ts,
         send_state,
         txn_id,
         reply_to_event_id,
         reply_to_sender,
+        reply_to_sender_display_name,
         reply_to_body,
         attachment,
         thread_root_event_id,

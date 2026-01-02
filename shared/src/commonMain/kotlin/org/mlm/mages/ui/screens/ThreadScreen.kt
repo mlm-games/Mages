@@ -251,7 +251,7 @@ fun ThreadScreen(
                             val prevEvent = state.replies.getOrNull(index - 1)
                             val shouldGroup = prevEvent != null &&
                                     prevEvent.sender == event.sender &&
-                                    (event.timestamp - prevEvent.timestamp) < 300_000
+                                    (event.timestampMs - prevEvent.timestampMs) < 300_000
 
                             ThreadReplyMessage(
                                 event = event,
@@ -426,7 +426,7 @@ private fun ThreadRootMessage(
                         else MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        formatTime(event.timestamp),
+                        formatTime(event.timestampMs),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -555,7 +555,7 @@ private fun ThreadReplyMessage(
                 isMine = isMine,
                 body = event.body,
                 sender = if (grouped) null else formatDisplayName(event.sender),
-                timestamp = event.timestamp,
+                timestamp = event.timestampMs,
                 grouped = grouped,
                 reactionChips = reactionChips,
                 eventId = event.eventId,

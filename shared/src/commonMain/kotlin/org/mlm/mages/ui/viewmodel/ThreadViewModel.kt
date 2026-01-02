@@ -149,7 +149,7 @@ class ThreadViewModel(
             } else {
                 (replies + newReplies)
                     .distinctBy { it.itemId }
-            }.sortedBy { it.timestamp }
+            }.sortedBy { it.timestampMs }
 
             copy(
                 rootMessage = updatedRoot,
@@ -213,7 +213,7 @@ class ThreadViewModel(
                         copy(replies = replies.toMutableList().apply { this[idx] = event })
                     } else {
                         // Insert new, sorted by timestamp
-                        val insertIdx = replies.indexOfFirst { it.timestamp > event.timestamp }
+                        val insertIdx = replies.indexOfFirst { it.timestampMs > event.timestampMs }
                         val newReplies = if (insertIdx == -1) {
                             replies + event
                         } else {
@@ -266,7 +266,7 @@ class ThreadViewModel(
                 forward = true
             )
 
-            val allMessages = page.messages.sortedBy { it.timestamp }
+            val allMessages = page.messages.sortedBy { it.timestampMs }
             val root = allMessages.find { it.eventId == rootEventId }
             val replies = allMessages.filter { it.eventId != rootEventId }
 
@@ -278,7 +278,7 @@ class ThreadViewModel(
                 val mergedRoot = root ?: rootMessage
                 val mergedReplies = (this.replies + replies)
                     .distinctBy { it.itemId }
-                    .sortedBy { it.timestamp }
+                    .sortedBy { it.timestampMs }
 
                 copy(
                     rootMessage = mergedRoot,
@@ -326,7 +326,7 @@ class ThreadViewModel(
             updateState {
                 val merged = (newReplies + replies)
                     .distinctBy { it.itemId }
-                    .sortedBy { it.timestamp }
+                    .sortedBy { it.timestampMs }
                 copy(
                     replies = merged,
                     nextBatch = page.nextBatch,

@@ -3,6 +3,7 @@ package org.mlm.mages.push
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import org.mlm.mages.matrix.MatrixProvider
 
@@ -15,14 +16,21 @@ class NotificationEnrichWorker(
         val roomId = inputData.getString(KEY_ROOM_ID) ?: return Result.failure()
         val eventId = inputData.getString(KEY_EVENT_ID) ?: return Result.failure()
 
+        val settingsRepo = org.mlm.mages.platform.SettingsProvider.get(applicationContext)
+        val settings = settingsRepo.flow.first()
+        if (!settings.notificationsEnabled) return Result.success()
+
         val svc = MatrixProvider.getReady(applicationContext) ?: return Result.retry()
 
-        // Keep it bounded
         val rendered = withTimeoutOrNull(7_000) {
             svc.port.fetchNotification(roomId, eventId)
         } ?: return Result.retry()
 
         if (rendered != null) {
+            // follow server rules
+            if (!rendered.isNoisy) return Result.success()
+            if (settings.mentionsOnly and !rendered.hasMention) return Result.success()
+
             AndroidNotificationHelper.showSingleEvent(
                 applicationContext,
                 AndroidNotificationHelper.NotificationText(

@@ -17,21 +17,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
 import org.mlm.mages.matrix.DeviceSummary
 import org.mlm.mages.matrix.Presence
 import org.mlm.mages.matrix.SasPhase
+import org.mlm.mages.nav.Route
 import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.components.dialogs.ConfirmationDialog
 import org.mlm.mages.ui.components.dialogs.RecoveryDialog
 import org.mlm.mages.ui.components.dialogs.SasDialog
 import org.mlm.mages.ui.theme.Spacing
+import org.mlm.mages.ui.util.popBack
 import org.mlm.mages.ui.viewmodel.SecurityViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SecurityScreen(
     viewModel: SecurityViewModel,
-    onBack: () -> Unit
+    backStack: NavBackStack<NavKey>
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -49,7 +53,7 @@ fun SecurityScreen(
                 TopAppBar(
                     title = { Text("Security & Settings", fontWeight = FontWeight.SemiBold) },
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
+                        IconButton(onClick = { backStack.popBack()}) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                         }
                     },
@@ -59,6 +63,12 @@ fun SecurityScreen(
                                 Icons.AutoMirrored.Filled.Logout,
                                 "Logout",
                                 tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                        IconButton(onClick = { backStack.add(Route.Settings) }) {
+                            Icon(
+                                Icons.Default.Settings,
+                                "Settings",
                             )
                         }
                     }

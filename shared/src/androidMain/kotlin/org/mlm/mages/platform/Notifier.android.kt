@@ -15,12 +15,14 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.MatrixProvider
 import org.mlm.mages.push.PREF_INSTANCE
 import org.mlm.mages.push.PusherReconciler
+import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.shared.R
 
 actual object Notifier {
@@ -112,6 +114,6 @@ actual fun rememberQuitApp(): () -> Unit {
 @Composable
 actual fun BindNotifications(
     service: MatrixService,
-    dataStore: DataStore<Preferences>
+    settingsRepository: SettingsRepository<AppSettings>
 ) { // Only for jvm, android uses push
 }

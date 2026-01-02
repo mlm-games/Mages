@@ -10,11 +10,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.koin.core.component.KoinComponent
 
 /**
  * Base ViewModel providing common patterns for state management.
  */
-abstract class BaseViewModel<S>(initialState: S) : ViewModel() {
+abstract class BaseViewModel<S>(initialState: S) : ViewModel(), KoinComponent {
 
     protected val _state = MutableStateFlow(initialState)
     val state: StateFlow<S> = _state.asStateFlow()

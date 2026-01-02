@@ -1,5 +1,6 @@
 package org.mlm.mages
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -9,6 +10,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -19,8 +21,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
@@ -45,7 +45,7 @@ import org.mlm.mages.platform.BindLifecycle
 import org.mlm.mages.platform.BindNotifications
 import org.mlm.mages.platform.rememberQuitApp
 import org.mlm.mages.settings.AppSettings
-import org.mlm.mages.storage.loadString
+import org.mlm.mages.settings.ThemeMode
 import org.mlm.mages.ui.animation.forwardTransition
 import org.mlm.mages.ui.animation.popTransition
 import org.mlm.mages.ui.components.sheets.CreateRoomSheet
@@ -59,6 +59,7 @@ import org.mlm.mages.ui.screens.RoomScreen
 import org.mlm.mages.ui.screens.RoomsScreen
 import org.mlm.mages.ui.screens.SearchScreen
 import org.mlm.mages.ui.screens.SecurityScreen
+import org.mlm.mages.ui.screens.SettingsScreen
 import org.mlm.mages.ui.screens.SpaceDetailScreen
 import org.mlm.mages.ui.screens.SpaceSettingsScreen
 import org.mlm.mages.ui.screens.SpacesScreen
@@ -73,6 +74,7 @@ import org.mlm.mages.ui.viewmodel.RoomViewModel
 import org.mlm.mages.ui.viewmodel.RoomsViewModel
 import org.mlm.mages.ui.viewmodel.SearchViewModel
 import org.mlm.mages.ui.viewmodel.SecurityViewModel
+import org.mlm.mages.ui.viewmodel.SettingsViewModel
 import org.mlm.mages.ui.viewmodel.SpaceDetailViewModel
 import org.mlm.mages.ui.viewmodel.SpaceSettingsViewModel
 import org.mlm.mages.ui.viewmodel.SpacesViewModel
@@ -80,12 +82,11 @@ import org.mlm.mages.ui.viewmodel.ThreadViewModel
 
 @Composable
 fun App(
-    dataStore: DataStore<Preferences>,
     service: MatrixService,
     settingsRepository: SettingsRepository<AppSettings>,
     deepLinks: Flow<String>? = null
 ) {
-    KoinApp(service, dataStore, settingsRepository) {
+    KoinApp(service, settingsRepository) {
         AppContent(deepLinks = deepLinks)
     }
 }
@@ -96,19 +97,26 @@ private fun AppContent(
     deepLinks: Flow<String>?
 ) {
     val service: MatrixService = koinInject()
-    val dataStore: DataStore<Preferences> = koinInject()
+    val settingsRepository: SettingsRepository<AppSettings> = koinInject()
     val snackbarManager: SnackbarManager = koinInject()
     val snackbarHostState: SnackbarHostState = koinInject()
+    val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
 
-    MainTheme {
+    MainTheme(darkTheme = when (settings.themeMode) {
+        ThemeMode.System.ordinal -> isSystemInDarkTheme()
+        ThemeMode.Dark.ordinal -> true
+        ThemeMode.Light.ordinal -> false
+        else -> { isSystemInDarkTheme() }
+    }) {
         val scope = rememberCoroutineScope()
 
         var showCreateRoom by remember { mutableStateOf(false) }
         var sessionEpoch by remember { mutableIntStateOf(0) }
 
-        val initialRoute by produceState<Route?>(initialValue = null, service, dataStore) {
-            val hs = loadString(dataStore, "homeserver")
-            if (hs != null) {
+
+        val initialRoute by produceState<Route?>(initialValue = null, service, settingsRepository) {
+            val hs = settings.homeserver
+            if (hs.isNotBlank()) {
                 runCatching { service.init(hs) }
             }
             value = if (service.isLoggedIn()) Route.Rooms else Route.Login
@@ -149,7 +157,7 @@ private fun AppContent(
 
         BindDeepLinks(backStack, deepLinks)
         BindLifecycle(service)
-        BindNotifications(service, dataStore)
+        BindNotifications(service, settingsRepository)
 
         LaunchedEffect(initialRoute) {
             if (initialRoute == Route.Rooms && service.isLoggedIn()) {
@@ -308,7 +316,7 @@ private fun AppContent(
 
                         SecurityScreen(
                             viewModel = viewModel,
-                            onBack = backStack::popBack
+                            backStack = backStack
                         )
                     }
 
@@ -502,6 +510,17 @@ private fun AppContent(
                             onOpenResult = { roomId, eventId, roomName ->
                                 backStack.add(Route.Room(roomId, roomName))
                             }
+                        )
+                    }
+                    entry<Route.Settings> { key ->
+
+                        val viewModel: SettingsViewModel = koinViewModel(
+                            parameters = { parametersOf(settingsRepository) }
+                        )
+
+                        SettingsScreen(
+                            viewModel = viewModel,
+                            onBack = backStack::popBack,
                         )
                     }
                 }

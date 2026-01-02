@@ -2,6 +2,7 @@ package org.mlm.mages
 
 import kotlinx.serialization.Serializable
 import org.mlm.mages.matrix.PollData
+import org.mlm.mages.matrix.SendState
 
 @Serializable
 data class RoomSummary(
@@ -14,22 +15,26 @@ data class RoomSummary(
 
 @Serializable
 data class MessageEvent(
-    val itemId: String,
-    val eventId: String,
-    val roomId: String,
-    val sender: String,
-    val body: String,
-    val timestamp: Long,
-    val sendState: org.mlm.mages.matrix.SendState? = null,
-    val txnId: String? = null,
-    val replyToEventId: String? = null,
-    val replyToSender: String? = null,
-    val replyToBody: String? = null,
-    val attachment: AttachmentInfo? = null,
-    val threadRootEventId: String? = null,
-    val isEdited: Boolean = false,
+    var itemId: String,
+    var eventId: String,
+    var roomId: String,
+    var sender: String,
+    var senderDisplayName: String?,
+    var senderAvatarUrl: String?,
+    var body: String,
+    var timestampMs: Long,
+    var sendState: SendState?,
+    var txnId: String?,
+    var replyToEventId: String?,
+    var replyToSender: String?,
+    var replyToSenderDisplayName: String?,
+    var replyToBody: String?,
+    var attachment: AttachmentInfo?,
+    var threadRootEventId: String?,
+    var isEdited: Boolean,
     var pollData: PollData?
 )
+
 
 @Serializable
 enum class AttachmentKind { Image, Video, File }

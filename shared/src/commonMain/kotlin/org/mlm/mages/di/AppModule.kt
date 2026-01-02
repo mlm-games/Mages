@@ -50,7 +50,7 @@ val appModule = module {
     viewModel {
         LoginViewModel(
             service = get(),
-            dataStore = get()
+            settingsRepository = get()
         )
     }
 
@@ -120,12 +120,10 @@ val appModule = module {
 
 fun appModules(
     service: MatrixService,
-    dataStore: DataStore<Preferences>,
     settingsRepository: SettingsRepository<AppSettings>
 ) = listOf(
     module {
         single { service }
-        single { dataStore }
         single { settingsRepository }
     },
     appModule

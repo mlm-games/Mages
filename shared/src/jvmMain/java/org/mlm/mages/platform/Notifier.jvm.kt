@@ -2,15 +2,12 @@ package org.mlm.mages.platform
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
+import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import org.mlm.mages.MatrixService
 import org.mlm.mages.NotifierImpl
-import org.mlm.mages.notifications.getRoomNotifMode
-import org.mlm.mages.notifications.shouldNotify
-import org.mlm.mages.storage.loadLong
-import org.mlm.mages.storage.saveLong
+import org.mlm.mages.settings.AppSettings
 import kotlin.system.exitProcess
 
 actual object Notifier {
@@ -43,45 +40,31 @@ actual fun BindLifecycle(service: MatrixService) {
 }
 
 @Composable
-actual fun BindNotifications(service: MatrixService, dataStore: DataStore<Preferences>) {
+actual fun BindNotifications(service: MatrixService, settingsRepository: SettingsRepository<AppSettings>) {
     LaunchedEffect(service) {
-        var baseline = loadLong(dataStore, "desktop:notif_baseline_ms")
-        if (baseline == null) {
-            baseline = System.currentTimeMillis()
-            saveLong(dataStore, "desktop:notif_baseline_ms", baseline)
-        }
-
         var firstPoll = true
         val recentlyNotified = LinkedHashSet<String>()
-
-        fun rememberNotified(eventId: String) {
-            recentlyNotified.add(eventId)
-            while (recentlyNotified.size > 500) {
-                val it = recentlyNotified.iterator()
-                it.next()
-                it.remove()
-            }
-        }
-
-        // cache per room (to avoid calling ownLastRead too much)
         val lastReadByRoom = HashMap<String, Long>()
 
         while (true) {
-            if (!service.isLoggedIn()) {
+            val settings = settingsRepository.flow.first()
+
+            if (!settings.notificationsEnabled || !service.isLoggedIn()) {
                 firstPoll = true
                 delay(15_000L)
                 continue
             }
 
-            val me = runCatching { service.port.whoami() }.getOrNull()
-
-            val since = if (firstPoll) {
-                baseline ?: 0L
-            } else {
-                ((baseline ?: 0L) - 60_000L).coerceAtLeast(0L)
+            var baseline = settings.desktopNotifBaselineMs
+            if (baseline == 0L) {
+                baseline = System.currentTimeMillis()
+                settingsRepository.update { it.copy(desktopNotifBaselineMs = baseline) }
             }
+
+            val since = if (firstPoll) baseline else (baseline - 60_000L).coerceAtLeast(0L)
             firstPoll = false
 
+            val me = runCatching { service.port.whoami() }.getOrNull()
             val items = runCatching {
                 service.port.fetchNotificationsSince(
                     sinceMs = since,
@@ -90,15 +73,15 @@ actual fun BindNotifications(service: MatrixService, dataStore: DataStore<Prefer
                 )
             }.getOrElse { emptyList() }
 
-            var maxSeenTs = baseline ?: 0L
+            var maxSeenTs = baseline
 
             for (n in items) {
                 if (n.eventId.isBlank()) continue
-
-                // Always advance baseline based on what we *saw*, not only what we notified.
                 if (n.tsMs > maxSeenTs) maxSeenTs = n.tsMs
+                if (!recentlyNotified.add(n.eventId)) continue
 
-                if (recentlyNotified.contains(n.eventId)) continue
+                val senderIsMe = me != null && me == n.senderUserId
+                if (!Notifier.shouldNotify(n.roomId, senderIsMe)) continue
 
                 val lastReadTs = lastReadByRoom[n.roomId] ?: runCatching {
                     service.port.ownLastRead(n.roomId).second ?: 0L
@@ -106,13 +89,8 @@ actual fun BindNotifications(service: MatrixService, dataStore: DataStore<Prefer
 
                 if (lastReadTs > 0L && n.tsMs <= lastReadTs) continue
 
-                val mode = runCatching { getRoomNotifMode(dataStore, n.roomId) }
-                    .getOrDefault(org.mlm.mages.notifications.RoomNotifMode.Default)
-
-                if (!shouldNotify(mode, n.hasMention)) continue
-
-                val senderIsMe = me != null && me == n.senderUserId
-                if (!Notifier.shouldNotify(n.roomId, senderIsMe)) continue
+                // Use server push evaluation
+                if (!n.isNoisy) continue
 
                 NotifierImpl.notifyMatrixEvent(
                     title = n.roomName,
@@ -121,12 +99,10 @@ actual fun BindNotifications(service: MatrixService, dataStore: DataStore<Prefer
                     eventId = n.eventId,
                     hasMention = n.hasMention
                 )
-                rememberNotified(n.eventId)
             }
 
-            if (maxSeenTs > (baseline ?: 0L)) {
-                baseline = maxSeenTs
-                saveLong(dataStore, "desktop:notif_baseline_ms", baseline)
+            if (maxSeenTs > baseline) {
+                settingsRepository.update { it.copy(desktopNotifBaselineMs = maxSeenTs) }
             }
 
             delay(15_000L)

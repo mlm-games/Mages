@@ -1,10 +1,10 @@
 package org.mlm.mages.matrix
 
 import android.content.Context
+import kotlinx.coroutines.flow.first
 import org.mlm.mages.MatrixService
 import org.mlm.mages.platform.MagesPaths
-import org.mlm.mages.storage.loadString
-import org.mlm.mages.storage.provideAppDataStore
+import org.mlm.mages.platform.SettingsProvider
 
 object MatrixProvider {
     @Volatile private var service: MatrixService? = null
@@ -36,9 +36,9 @@ object MatrixProvider {
 
     suspend fun getReady(context: Context): MatrixService? {
         val svc = get(context)
-
-        val ds = provideAppDataStore(context)
-        val hs = loadString(ds, "homeserver") ?: return null
+        val settingsRepo = SettingsProvider.get(context)
+        val hs = settingsRepo.flow.first().homeserver
+        if (hs.isBlank()) return null
 
         runCatching { svc.init(hs) }
         return if (svc.isLoggedIn()) {

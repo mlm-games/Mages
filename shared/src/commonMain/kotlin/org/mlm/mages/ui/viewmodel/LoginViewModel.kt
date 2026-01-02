@@ -1,25 +1,30 @@
 package org.mlm.mages.ui.viewmodel
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import kotlinx.coroutines.Dispatchers
+import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.mlm.mages.MatrixService
 import org.mlm.mages.platform.getDeviceDisplayName
-import org.mlm.mages.storage.loadString
-import org.mlm.mages.storage.saveLong
-import org.mlm.mages.storage.saveString
+import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.LoginUiState
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 class LoginViewModel(
     private val service: MatrixService,
-    private val dataStore: DataStore<Preferences>
+    private val settingsRepository: SettingsRepository<AppSettings>
 ) : BaseViewModel<LoginUiState>(LoginUiState()) {
+
+    init {
+        launch {
+            val savedHs = settingsRepository.flow.first().homeserver
+            if (savedHs.isNotBlank()) {
+                updateState { copy(homeserver = savedHs) }
+            }
+        }
+    }
 
     // One-time events
     sealed class Event {
@@ -29,14 +34,6 @@ class LoginViewModel(
     private val _events = Channel<Event>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
 
-    init {
-        launch {
-            val savedHs = loadString(dataStore, "homeserver")
-            if (savedHs != null) {
-                updateState { copy(homeserver = savedHs) }
-            }
-        }
-    }
     //  Public Actions 
 
     fun setHomeserver(value: String) {
@@ -81,9 +78,11 @@ class LoginViewModel(
                 return@launch
             }
 
-            withContext(Dispatchers.Default) {
-                saveString(dataStore, "homeserver", hs)
-                saveLong(dataStore, "notif:baseline_ms", Clock.System.now().toEpochMilliseconds())
+            settingsRepository.update {
+                it.copy(
+                    homeserver = hs,
+                    androidNotifBaselineMs = Clock.System.now().toEpochMilliseconds()
+                )
             }
 
             updateState { copy(isBusy = false, error = null, homeserver = hs) }
@@ -118,9 +117,11 @@ class LoginViewModel(
                 return@launch
             }
 
-            withContext(Dispatchers.Default) {
-                saveString(dataStore, "homeserver", hs)
-                saveLong(dataStore, "notif:baseline_ms", Clock.System.now().toEpochMilliseconds())
+            settingsRepository.update {
+                it.copy(
+                    homeserver = hs,
+                    androidNotifBaselineMs = Clock.System.now().toEpochMilliseconds()
+                )
             }
 
             updateState { copy(isBusy = false, error = null, homeserver = hs) }

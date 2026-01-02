@@ -1195,7 +1195,7 @@ private fun mages.MessageEvent.toModel() = MessageEvent(
     roomId = roomId,
     sender = sender,
     body = body,
-    timestamp = timestampMs.toLong(),
+    timestampMs = timestampMs.toLong(),
     sendState = sendState?.toKotlin(),
     txnId = txnId,
     replyToEventId = replyToEventId,
@@ -1204,6 +1204,9 @@ private fun mages.MessageEvent.toModel() = MessageEvent(
     attachment = attachment?.toModel(),
     threadRootEventId = threadRootEventId,
     isEdited = isEdited,
+    senderAvatarUrl = senderAvatarUrl,
+    senderDisplayName = senderDisplayName,
+    replyToSenderDisplayName = replyToSenderDisplayName,
     pollData = pollData?.toModel()
 )
 
