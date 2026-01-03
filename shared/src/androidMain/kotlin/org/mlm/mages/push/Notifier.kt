@@ -1,6 +1,5 @@
 package org.mlm.mages.push
 
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
@@ -32,6 +31,7 @@ object AndroidNotificationHelper {
             .setSmallIcon(R.drawable.ic_notif_status_bar)
             .setContentTitle(n.title)
             .setContentText(n.body)
+            .setChannelId(channelId)
             .setStyle(NotificationCompat.BigTextStyle().bigText(n.body))
             .setContentIntent(createOpenIntent(ctx, roomId, notifId))
             .addAction(createReplyAction(ctx, roomId, eventId, notifId))
@@ -40,27 +40,6 @@ object AndroidNotificationHelper {
             .build()
 
         mgr.notify(notifId, notification)
-    }
-
-    fun showBasic(ctx: Context, roomId: String, eventId: String) {
-        showSingleEvent(
-            ctx,
-            NotificationText("New message", "You have a new message"),
-            roomId,
-            eventId
-        )
-    }
-
-    fun showEnriched(ctx: Context, rendered: org.mlm.mages.matrix.RenderedNotification) {
-        showSingleEvent(
-            ctx,
-            NotificationText(
-                title = "${rendered.sender} • ${rendered.roomName}",
-                body = rendered.body
-            ),
-            rendered.roomId,
-            rendered.eventId
-        )
     }
 
     private fun createOpenIntent(ctx: Context, roomId: String, notifId: Int): PendingIntent {

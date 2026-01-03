@@ -6,6 +6,7 @@ import androidx.work.WorkerParameters
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import org.mlm.mages.matrix.MatrixProvider
+import org.mlm.mages.platform.SettingsProvider
 
 class NotificationEnrichWorker(
     appContext: Context,
@@ -16,7 +17,7 @@ class NotificationEnrichWorker(
         val roomId = inputData.getString(KEY_ROOM_ID) ?: return Result.failure()
         val eventId = inputData.getString(KEY_EVENT_ID) ?: return Result.failure()
 
-        val settingsRepo = org.mlm.mages.platform.SettingsProvider.get(applicationContext)
+        val settingsRepo = SettingsProvider.get(applicationContext)
         val settings = settingsRepo.flow.first()
         if (!settings.notificationsEnabled) return Result.success()
 
@@ -26,21 +27,18 @@ class NotificationEnrichWorker(
             svc.port.fetchNotification(roomId, eventId)
         } ?: return Result.retry()
 
-        if (rendered != null) {
-            // follow server rules
-            if (!rendered.isNoisy) return Result.success()
-            if (settings.mentionsOnly and !rendered.hasMention) return Result.success()
+        if (!rendered.isNoisy) return Result.success()
+        if (settings.mentionsOnly and !rendered.hasMention) return Result.success()
 
-            AndroidNotificationHelper.showSingleEvent(
-                applicationContext,
-                AndroidNotificationHelper.NotificationText(
-                    title = "${rendered.sender} • ${rendered.roomName}",
-                    body = rendered.body
-                ),
-                roomId = roomId,
-                eventId = eventId
-            )
-        }
+        AndroidNotificationHelper.showSingleEvent(
+            applicationContext,
+            AndroidNotificationHelper.NotificationText(
+                title = "${rendered.sender} • ${rendered.roomName}",
+                body = rendered.body
+            ),
+            roomId = roomId,
+            eventId = eventId
+        )
 
         return Result.success()
     }
