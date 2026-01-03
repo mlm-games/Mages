@@ -98,7 +98,7 @@ class RoomViewModel(
 
             val profile = runSafe { service.port.roomProfile(currentState.roomId) }
             if (profile != null) {
-                updateState { copy(isDm = profile.isDm, roomAvatarUrl = profile.avatarUrl) }
+                updateState { copy(isDm = profile.isDm, roomAvatarUrl = profile.avatarUrl, roomName = profile.name) }
 
                 profile.avatarUrl?.let { url ->
                     if (url.startsWith("mxc://")) {
