@@ -1,4 +1,5 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.gradle.internal.os.OperatingSystem
 
 plugins {
     id("org.jetbrains.kotlin.jvm")
@@ -46,6 +47,31 @@ compose.desktop {
                 menuGroup = "Network;InstantMessaging"
                 appCategory = "Network"
             }
+        }
+    }
+}
+
+
+val os = OperatingSystem.current()!!
+val hostLibName = when {
+    os.isMacOsX -> "libmages_ffi.dylib"
+    os.isWindows -> "mages_ffi.dll"
+    else -> "libmages_ffi.so"
+}
+
+val sharedNativeLibsDir = project(":shared").layout.buildDirectory.dir("nativeLibs")
+
+
+tasks.withType<Sync>().configureEach {
+    val isPrepareResources =
+        name == "prepareAppResources" || name == "prepareComposeAppResources"
+
+    if (isPrepareResources) {
+        dependsOn(project(":shared").tasks.named("cargoBuildDesktop"))
+
+        from(sharedNativeLibsDir) {
+            include(hostLibName)
+            into("common")
         }
     }
 }
