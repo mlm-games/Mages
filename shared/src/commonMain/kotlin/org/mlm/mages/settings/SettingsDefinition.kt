@@ -27,12 +27,13 @@ enum class LocalRoomNotifMode {
 
 @Serializable
 data class AppSettings(
-    @Setting(
-        title = "Homeserver",
-        description = "Matrix homeserver URL used for login and session restore",
-        category = Account::class,
-        type = TextInput::class
-    )
+//    @Setting(
+//        title = "Homeserver",
+//        description = "Matrix homeserver URL used for login and session restore",
+//        category = Account::class,
+//        type = TextInput::class
+//    )
+    @Persisted
     val homeserver: String = "https://matrix.org",
 
     @Setting(
@@ -72,14 +73,14 @@ data class AppSettings(
     )
     val mentionsOnly: Boolean = false,
 
-    @Setting(
-        title = "Notification sound",
-        description = "Play sound for notifications (platform support varies)",
-        category = Notifications::class,
-        type = Toggle::class,
-        dependsOn = "notificationsEnabled"
-    )
-    val notificationSound: Boolean = true,
+//    @Setting(
+//        title = "Notification sound",
+//        description = "Play sound for notifications (platform support varies)",
+//        category = Notifications::class,
+//        type = Toggle::class,
+//        dependsOn = "notificationsEnabled"
+//    )
+//    val notificationSound: Boolean = true,
 
     // Local per-room overrides (not shown in auto UI), gives ksp error fo now
 //    @Persisted
@@ -124,13 +125,13 @@ data class AppSettings(
 //    )
 //    val statusMessage: String = ""
 
-    @Setting(
-        title = "Element Call URL",
-        description = "Override Element Call instance (default: call.element.io)",
-        category = Calls::class,
-        type = TextInput::class
-    )
-    val elementCallUrl: String = "",
+//    @Setting(
+//        title = "Element Call URL",
+//        description = "Override Element Call instance (default: call.element.io)",
+//        category = Calls::class,
+//        type = TextInput::class
+//    )
+//    val elementCallUrl: String = "",
 
     @Setting(
         title = "Media cache max size (MB)",
