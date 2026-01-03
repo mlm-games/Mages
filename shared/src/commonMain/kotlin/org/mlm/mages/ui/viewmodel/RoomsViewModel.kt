@@ -29,12 +29,11 @@ class RoomsViewModel(
     private var connToken: ULong? = null
     private var roomListToken: ULong? = null
     private var initialized = false
-    private var didSubscribeRoomList = false
 
     init {
         observeConnection()
-        observeRoomList()
         bootstrapRoomListFromCache()
+        observeRoomList()
     }
 
     //  Public Actions
@@ -62,7 +61,7 @@ class RoomsViewModel(
     }
 
     fun refresh() {
-        updateState { copy(isLoading = true) }
+//        updateState { copy(isLoading = true) }
         service.port.enterForeground()
     }
 
@@ -142,6 +141,8 @@ class RoomsViewModel(
 
         roomListToken = service.port.observeRoomList(object : MatrixPort.RoomListObserver {
             override fun onReset(items: List<RoomListEntry>) {
+                initialized = true
+
                 if (items.isEmpty() && currentState.allItems.isNotEmpty() && currentState.offlineBanner != null) {
                     updateState { copy(isLoading = false) }
                     return
@@ -162,7 +163,6 @@ class RoomsViewModel(
                     )
                 }
                 recomputeGroupedRooms()
-                initialized = true
             }
 
             override fun onUpdate(item: RoomListEntry) {
@@ -263,26 +263,29 @@ class RoomsViewModel(
 
     private fun bootstrapRoomListFromCache() {
         viewModelScope.launch {
+            if (initialized) return@launch
+            if (currentState.allItems.isNotEmpty()) return@launch
+
             val cached = runCatching { service.port.loadRoomListCache() }
                 .getOrElse { emptyList() }
 
             if (cached.isEmpty()) return@launch
-
             cached.forEach { maybePrefetchRoomAvatar(it.roomId, it.avatarUrl) }
 
             val domainRooms = cached.map(::mapRoomSummary)
             val uiItems = cached.map(::mapRoomEntryToUi)
 
             updateState {
-                copy(
+                if (initialized || allItems.isNotEmpty()) this
+                else copy(
                     rooms = domainRooms,
                     unread = cached.associate { e -> e.roomId to e.notifications.toInt() },
                     favourites = cached.filter { it.isFavourite }.map { it.roomId }.toSet(),
                     lowPriority = cached.filter { it.isLowPriority }.map { it.roomId }.toSet(),
-                    allItems = uiItems,
-                    isLoading = true
+                    allItems = uiItems
                 )
             }
+
             recomputeGroupedRooms()
         }
     }
