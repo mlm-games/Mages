@@ -32,7 +32,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.AppImage, TargetFormat.Deb, TargetFormat.Rpm)
             packageName = "Mages"
-            packageVersion = "1.0.0"  //android.defaultConfig.versionName
+            packageVersion = "9.9.9"  //android.defaultConfig.versionName
             description = "Mages Matrix Client"
             vendor = "MLM Games"
             appResourcesRootDir.set(project.layout.projectDirectory.dir("resources"))
