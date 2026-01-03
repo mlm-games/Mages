@@ -2,6 +2,8 @@ package org.mlm.mages.ui.util
 
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 fun <T : NavKey> NavBackStack<T>.popBack() {
     if (size > 1) {
@@ -42,3 +44,6 @@ fun mimeToExtension(mime: String?): String = when (mime) {
         ?.takeIf { it.length in 1..10 && it.all { c -> c.isLetterOrDigit() } }
         ?: "bin"
 }
+
+@OptIn(ExperimentalTime::class)
+fun nowMs(): Long = Clock.System.now().toEpochMilliseconds()

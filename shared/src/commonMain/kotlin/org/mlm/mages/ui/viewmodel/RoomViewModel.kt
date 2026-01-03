@@ -269,7 +269,7 @@ class RoomViewModel(
         launch {
             updateState { copy(isPaginatingBack = true) }
             try {
-                val hitStart = runSafe { service.paginateBack(s.roomId, 50) } ?: false
+                val hitStart = runSafe { service.port.paginateBack(s.roomId, 50) } ?: false
                 updateState { copy(hitStart = hitStart || this.hitStart) }
 
                 // After pagination, recompute thread counts from timeline
@@ -1025,7 +1025,7 @@ class RoomViewModel(
 
     fun onCallWidgetMessage(message: String) {
         val sid = _state.value.activeCall?.sessionId ?: return
-        service.sendCallWidgetMessage(sid, message)
+        service.port.callWidgetFromWebview(sid, message)
     }
 
     fun attachCallWebViewController(controller: CallWebViewController?) {
@@ -1033,7 +1033,7 @@ class RoomViewModel(
     }
 
     fun endCall() {
-        _state.value.activeCall?.sessionId?.let { service.stopCall(it) }
+        _state.value.activeCall?.sessionId?.let { service.port.stopElementCall(it) }
         callWebViewController = null
         _state.update { it.copy(activeCall = null) }
     }

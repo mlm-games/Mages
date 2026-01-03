@@ -127,9 +127,6 @@ class MatrixService(val port: MatrixPort) {
     suspend fun recoverWithKey(recoveryKey: String) =
         runCatching { port.recoverWithKey(recoveryKey) }.getOrElse { false }
 
-    @OptIn(ExperimentalTime::class)
-    fun nowMs(): Long = kotlin.time.Clock.System.now().toEpochMilliseconds()
-
     suspend fun startUserSas(userId: String, observer: VerificationObserver) =
         port.startUserSas(userId, observer)
 
@@ -183,10 +180,4 @@ class MatrixService(val port: MatrixPort) {
         }
         return port.startElementCall(roomId, intent, elementCallUrl, observer)
     }
-
-    fun sendCallWidgetMessage(sessionId: ULong, message: String): Boolean =
-        port.callWidgetFromWebview(sessionId, message)
-
-    fun stopCall(sessionId: ULong): Boolean =
-        port.stopElementCall(sessionId)
 }

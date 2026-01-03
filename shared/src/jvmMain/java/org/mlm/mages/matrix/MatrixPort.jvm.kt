@@ -221,12 +221,16 @@ class RustMatrixPort : MatrixPort {
 
     override suspend fun paginateBack(roomId: String, count: Int): Boolean =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.paginateBackwards(roomId, count.toUShort()) } }.isSuccess
+            runCatching {
+                withClient { it.paginateBackwards(roomId, count.toUShort()) }
+            }.getOrDefault(false)
         }
 
     override suspend fun paginateForward(roomId: String, count: Int): Boolean =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.paginateForwards(roomId, count.toUShort()) } }.isSuccess
+            runCatching {
+                withClient { it.paginateForwards(roomId, count.toUShort()) }
+            }.getOrDefault(false)
         }
 
     override suspend fun markRead(roomId: String): Boolean =
