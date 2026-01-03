@@ -67,7 +67,7 @@ jobs:
 
       - name: Generate UniFFI (JVM) and package desktop
         run: |
-          ./gradlew :desktopApp:genUniFFIJvm :desktopApp:packageDistributionForCurrentOS --no-daemon
+          ./gradlew :shared:genUniFFIJvm :desktopApp:packageDistributionForCurrentOS --no-daemon
 
       - name: Build AppImage
         run: |
