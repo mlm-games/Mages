@@ -11,12 +11,14 @@ import org.mlm.mages.*
 import org.mlm.mages.matrix.*
 import org.mlm.mages.platform.CallWebViewController
 import org.mlm.mages.platform.Notifier
+import org.mlm.mages.platform.ShareContent
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.ForwardableRoom
 import org.mlm.mages.ui.ActiveCallUi
 import org.mlm.mages.ui.RoomUiState
 import org.mlm.mages.ui.components.AttachmentData
 import org.mlm.mages.ui.util.mimeToExtension
+import kotlin.collections.map
 
 class RoomViewModel(
     private val service: MatrixService,
@@ -52,6 +54,12 @@ class RoomViewModel(
         ) : Event()
 
         data class JumpToEvent(val eventId: String) : Event()
+
+        data class OpenForwardPicker(val sourceRoomId: String, val eventIds: List<String>) : Event()
+
+        data class ShareContentEvent(val content: ShareContent) : Event()
+
+        data class ShowProgress(val current: Int, val total: Int, val label: String) : Event()
     }
 
     private val _events = Channel<Event>(Channel.BUFFERED)
@@ -410,6 +418,124 @@ class RoomViewModel(
                         )
                     }
             }
+        }
+    }
+
+    fun enterSelectionMode(eventId: String) {
+        if (eventId.isBlank()) return
+        updateState { copy(isSelectionMode = true, selectedEventIds = setOf(eventId)) }
+    }
+
+    fun toggleSelected(eventId: String) {
+        if (eventId.isBlank()) return
+        updateState {
+            val next = if (eventId in selectedEventIds) selectedEventIds - eventId else selectedEventIds + eventId
+            copy(
+                selectedEventIds = next,
+                isSelectionMode = next.isNotEmpty()
+            )
+        }
+    }
+
+    fun clearSelection() {
+        updateState { copy(isSelectionMode = false, selectedEventIds = emptySet()) }
+    }
+
+    fun selectAllVisible() {
+        val ids = currentState.events.mapNotNull { it.eventId.takeIf { id -> id.isNotBlank() } }.toSet()
+        updateState {
+            copy(
+                isSelectionMode = ids.isNotEmpty(),
+                selectedEventIds = ids
+            )
+        }
+    }
+
+    fun forwardSelected() {
+        val ids = currentState.selectedEventIds.toList()
+        if (ids.isEmpty()) return
+
+        launch {
+            _events.send(Event.OpenForwardPicker(currentState.roomId, ids))
+            clearSelection()
+        }
+    }
+
+    fun shareSelected() {
+        val selected = currentState.allEvents
+            .filter { it.eventId.isNotBlank() && it.eventId in currentState.selectedEventIds }
+
+        if (selected.isEmpty()) return
+
+        launch {
+            val files = mutableListOf<String>()
+            val mimes = mutableListOf<String?>()
+            val texts = mutableListOf<String>()
+
+            val total = selected.size
+            var i = 0
+
+            for (ev in selected) {
+                i++
+                _events.send(Event.ShowProgress(i, total, "Preparing share…"))
+
+                val att = ev.attachment
+                if (att != null) {
+                    val hint = ev.body.takeIf { it.contains('.') && !it.startsWith("mxc://") }
+                    val path = service.port.downloadAttachmentToCache(att, hint).getOrNull()
+                    if (path != null) {
+                        files += path
+                        mimes += att.mime
+                    }
+                } else {
+                    val t = ev.body.trim()
+                    if (t.isNotBlank()) texts += t
+                }
+            }
+
+            if (files.isEmpty() && texts.isEmpty()) {
+                _events.send(Event.ShowError("Nothing to share"))
+                return@launch
+            }
+
+            val textBlock = texts.takeIf { it.isNotEmpty() }?.joinToString("\n\n")
+
+            _events.send(
+                Event.ShareContentEvent(
+                    ShareContent(
+                        subject = "Mages",
+                        text = textBlock,
+                        filePaths = files,
+                        mimeTypes = mimes
+                    )
+                )
+            )
+
+            clearSelection()
+        }
+    }
+
+    fun deleteSelected() {
+        val selected = currentState.allEvents
+            .filter { it.eventId.isNotBlank() && it.eventId in currentState.selectedEventIds }
+
+        if (selected.isEmpty()) return
+
+        launch {
+            val total = selected.size
+            var ok = 0
+
+            selected.forEachIndexed { idx, ev ->
+                _events.send(Event.ShowProgress(idx + 1, total, "Deleting…"))
+                val success = runCatching { service.port.redact(currentState.roomId, ev.eventId, null) }
+                    .getOrDefault(false)
+                if (success) ok++
+            }
+
+            clearSelection()
+
+            if (ok == total) _events.send(Event.ShowSuccess("Deleted $ok messages"))
+            else _events.send(Event.ShowError("Deleted $ok of $total messages"))
         }
     }
 

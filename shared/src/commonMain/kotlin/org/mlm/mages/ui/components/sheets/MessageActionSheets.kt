@@ -35,6 +35,7 @@ fun MessageActionSheet(
     onDismiss: () -> Unit,
     onReply: () -> Unit,
     onEdit: () -> Unit,
+    onSelect: () -> Unit,
     onDelete: () -> Unit,
     onReact: (String) -> Unit,
     onMarkReadHere: () -> Unit,
@@ -71,6 +72,7 @@ fun MessageActionSheet(
             if (isMine) {
                 ActionItem(Icons.Default.Delete, "Delete", MaterialTheme.colorScheme.error) { onDelete(); onDismiss() }
             }
+            ActionItem(Icons.Default.Deselect, "Select") { onSelect(); onDismiss() }
         }
     }
 }

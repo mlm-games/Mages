@@ -106,6 +106,16 @@ val appModule = module {
             scopedRoomName = scopedRoomName
         )
     }
+
+    viewModel { params -> MediaGalleryViewModel(get(), params.get()) }
+
+    viewModel { params ->
+        ForwardPickerViewModel(
+            service = get(),
+            sourceRoomId = params.get(),
+            eventIds = params.get()
+        )
+    }
 }
 
 fun appModules(

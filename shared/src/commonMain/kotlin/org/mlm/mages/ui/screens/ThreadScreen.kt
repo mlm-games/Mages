@@ -297,7 +297,8 @@ fun ThreadScreen(
                 } else null
             },
             onReact = { emoji -> onReact(ev, emoji) },
-            onMarkReadHere = { sheetEvent = null }
+            onMarkReadHere = { sheetEvent = null },
+            onSelect = { }// viewModel.enterSelectionMode(event.eventId) },
         )
     }
 }

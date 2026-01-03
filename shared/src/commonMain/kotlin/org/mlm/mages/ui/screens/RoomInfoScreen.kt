@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,7 +25,8 @@ import org.mlm.mages.ui.viewmodel.RoomInfoViewModel
 fun RoomInfoRoute(
     viewModel: RoomInfoViewModel,
     onBack: () -> Unit,
-    onLeaveSuccess: () -> Unit
+    onLeaveSuccess: () -> Unit,
+    onOpenMediaGallery: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
@@ -62,7 +64,8 @@ fun RoomInfoRoute(
         onLeaveSuccess = onLeaveSuccess,
         onSetVisibility = { v -> viewModel.setDirectoryVisibility(v) },
         onEnableEncryption = { viewModel.enableEncryption() },
-        onOpenRoom = { roomId -> viewModel.openRoom(roomId) }
+        onOpenRoom = { roomId -> viewModel.openRoom(roomId) },
+        onOpenMediaGallery = onOpenMediaGallery
     )
 }
 
@@ -84,6 +87,7 @@ fun RoomInfoScreen(
     onSetVisibility: suspend (RoomDirectoryVisibility) -> Boolean,
     onEnableEncryption: suspend () -> Boolean,
     onOpenRoom: (String) -> Unit,
+    onOpenMediaGallery: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     var showLeaveDialog by remember { mutableStateOf(false) }
@@ -259,6 +263,41 @@ fun RoomInfoScreen(
                                 }
                             }
                         )
+                    }
+                }
+
+                item {
+                    ElevatedCard(
+                        onClick = { onOpenMediaGallery() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PhotoLibrary,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    "Media & Files",
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
 

@@ -1,6 +1,8 @@
 package org.mlm.mages.ui.screens
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -9,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Forward
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -56,10 +59,12 @@ fun RoomScreen(
     onNavigateToRoom: (roomId: String, name: String) -> Unit,
     onNavigateToThread: (roomId: String, eventId: String, roomName: String) -> Unit,
     onStartCall: () -> Unit,
+    onOpenForwardPicker: (sourceRoomId: String, eventIds: List<String>) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
     val shareHandler = rememberShareHandler()
+    var progressText by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
 
@@ -97,9 +102,11 @@ fun RoomScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is RoomViewModel.Event.ShowError -> {
+                    progressText = null
                     snackbarHostState.showSnackbar(event.message)
                 }
                 is RoomViewModel.Event.ShowSuccess -> {
+                    progressText = null
                     snackbarHostState.showSnackbar(event.message)
                 }
                 is RoomViewModel.Event.NavigateToThread -> {
@@ -122,6 +129,18 @@ fun RoomScreen(
                 }
                 is RoomViewModel.Event.JumpToEvent -> {
                     pendingJumpEventId = event.eventId
+                }
+                is RoomViewModel.Event.ShareContentEvent -> {
+                    progressText = null
+                    shareHandler(event.content)
+                }
+
+                is RoomViewModel.Event.OpenForwardPicker -> {
+                    onOpenForwardPicker(event.sourceRoomId, event.eventIds)
+                }
+
+                is RoomViewModel.Event.ShowProgress -> {
+                    progressText = "${event.label} ${event.current}/${event.total}"
                 }
             }
         }
@@ -196,34 +215,62 @@ fun RoomScreen(
 
     Scaffold(
         topBar = {
-            RoomTopBar(
-                roomName = state.roomName,
-                roomId = state.roomId,
-                avatarUrl = state.roomAvatarUrl,
-                typingNames = state.typingNames,
-                isOffline = state.isOffline,
-                onBack = onBack,
-                onOpenInfo = onOpenInfo,
-                onOpenNotifications = viewModel::showNotificationSettings,
-                onOpenMembers = viewModel::showMembers,
-                onOpenSearch = viewModel::showRoomSearch,
-                onStartCall = onStartCall,
-                hasActiveCall = state.activeCall != null,
-            )
+            if (state.isSelectionMode) {
+                SelectionTopBar(
+                    selectedCount = state.selectedEventIds.size,
+                    onClearSelection = viewModel::clearSelection,
+                    onSelectAll = viewModel::selectAllVisible
+                )
+            } else {
+                RoomTopBar(
+                    roomName = state.roomName,
+                    roomId = state.roomId,
+                    avatarUrl = state.roomAvatarUrl,
+                    typingNames = state.typingNames,
+                    isOffline = state.isOffline,
+                    onBack = onBack,
+                    onOpenInfo = onOpenInfo,
+                    onOpenNotifications = viewModel::showNotificationSettings,
+                    onOpenMembers = viewModel::showMembers,
+                    onOpenSearch = viewModel::showRoomSearch,
+                    onStartCall = onStartCall,
+                    hasActiveCall = state.activeCall != null,
+                )
+            }
         },
         bottomBar = {
-            RoomBottomBar(
-                state = state,
-                onSetInput = viewModel::setInput,
-                onSend = {
-                    if (state.editing != null) viewModel.confirmEdit()
-                    else viewModel.send()
-                },
-                onCancelReply = viewModel::cancelReply,
-                onCancelEdit = viewModel::cancelEdit,
-                onAttach = viewModel::showAttachmentPicker,
-                onCancelUpload = viewModel::cancelAttachmentUpload,
-            )
+            Column {
+                if (progressText != null) {
+                    Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
+                        Text(
+                            text = progressText!!,
+                            modifier = Modifier.padding(12.dp),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+
+                if (state.isSelectionMode) {
+                    SelectionBottomBar(
+                        onShare = viewModel::shareSelected,
+                        onForward = viewModel::forwardSelected,
+                        onDelete = viewModel::deleteSelected,
+                    )
+                } else {
+                    RoomBottomBar(
+                        state = state,
+                        onSetInput = viewModel::setInput,
+                        onSend = {
+                            if (state.editing != null) viewModel.confirmEdit()
+                            else viewModel.send()
+                        },
+                        onCancelReply = viewModel::cancelReply,
+                        onCancelEdit = viewModel::cancelEdit,
+                        onAttach = viewModel::showAttachmentPicker,
+                        onCancelUpload = viewModel::cancelAttachmentUpload,
+                    )
+                }
+            }
         },
         floatingActionButton = {
             AnimatedVisibility(
@@ -470,6 +517,7 @@ fun RoomScreen(
             onReplyInThread = { viewModel.openThread(event); sheetEvent = null },
             onShare = { viewModel.shareMessage(event) },
             onForward = { viewModel.startForward(event); sheetEvent = null },
+            onSelect = { viewModel.enterSelectionMode(event.eventId) },
         )
     }
 
@@ -738,33 +786,56 @@ private fun MessageItem(
 
     val isMine = event.sender == state.myUserId
 
-    MessageBubble(
-        isMine = isMine,
-        body = event.body,
-        sender = event.senderDisplayName,
-        timestamp = timestamp,
-        grouped = shouldGroup,
-        reactionChips = chips,
-        eventId = event.eventId,
-        onLongPress = onLongPress,
-        onReact = onReact,
-        lastReadByOthersTs = state.lastIncomingFromOthersTs,
-        thumbPath = state.thumbByEvent[event.eventId],
-        attachmentKind = event.attachment?.kind,
-        durationMs = event.attachment?.durationMs,
-        onOpenAttachment = onOpenAttachment,
-        replyPreview = event.replyToBody,
-        replySender = event.replyToSenderDisplayName,
-        sendState = event.sendState,
-        isEdited = event.isEdited,
-        poll = event.pollData,
-        onVote = { optionId ->
-            event.pollData?.let { p -> viewModel.votePoll(event.eventId, p, optionId) }
-        },
-        onEndPoll = {
-            viewModel.endPoll(event.eventId)
-        }
-    )
+    val isSelected = state.isSelectionMode && event.eventId in state.selectedEventIds
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = {
+                    if (state.isSelectionMode) {
+                        viewModel.toggleSelected(event.eventId)
+                    }
+                },
+                onLongClick = {
+                    if (state.isSelectionMode) viewModel.toggleSelected(event.eventId)
+                    else onLongPress()
+                }
+            )
+            .then(
+                if (isSelected) Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                else Modifier
+            )
+    ) {
+
+        MessageBubble(
+            isMine = isMine,
+            body = event.body,
+            sender = event.senderDisplayName,
+            timestamp = timestamp,
+            grouped = shouldGroup,
+            reactionChips = chips,
+            eventId = event.eventId,
+            onLongPress = onLongPress,
+            onReact = onReact,
+            lastReadByOthersTs = state.lastIncomingFromOthersTs,
+            thumbPath = state.thumbByEvent[event.eventId],
+            attachmentKind = event.attachment?.kind,
+            durationMs = event.attachment?.durationMs,
+            onOpenAttachment = onOpenAttachment,
+            replyPreview = event.replyToBody,
+            replySender = event.replyToSenderDisplayName,
+            sendState = event.sendState,
+            isEdited = event.isEdited,
+            poll = event.pollData,
+            onVote = { optionId ->
+                event.pollData?.let { p -> viewModel.votePoll(event.eventId, p, optionId) }
+            },
+            onEndPoll = {
+                viewModel.endPoll(event.eventId)
+            }
+        )
+    }
 
     val threadCount = state.threadCount[event.eventId]
 
@@ -910,6 +981,36 @@ private fun CallOverlay(
                 LaunchedEffect(controller) {
                     onAttachController(controller)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectionBottomBar(
+    onShare: () -> Unit,
+    onForward: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Surface(tonalElevation = 3.dp) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            TextButton(onClick = onShare) {
+                Icon(Icons.Default.Share, null)
+                Spacer(Modifier.width(6.dp))
+                Text("Share")
+            }
+            TextButton(onClick = onForward) {
+                Icon(Icons.AutoMirrored.Filled.Forward, null)
+                Spacer(Modifier.width(6.dp))
+                Text("Forward")
+            }
+            TextButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, null)
+                Spacer(Modifier.width(6.dp))
+                Text("Delete")
             }
         }
     }

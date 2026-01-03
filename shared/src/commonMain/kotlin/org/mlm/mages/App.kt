@@ -47,6 +47,7 @@ import org.mlm.mages.nav.popUntil
 import org.mlm.mages.nav.replaceTop
 import org.mlm.mages.platform.BindLifecycle
 import org.mlm.mages.platform.BindNotifications
+import org.mlm.mages.platform.rememberFileOpener
 import org.mlm.mages.platform.rememberQuitApp
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.ThemeMode
@@ -56,8 +57,10 @@ import org.mlm.mages.ui.components.sheets.CreateRoomSheet
 import org.mlm.mages.ui.components.snackbar.LauncherSnackbarHost
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.screens.DiscoverRoute
+import org.mlm.mages.ui.screens.ForwardPickerScreen
 import org.mlm.mages.ui.screens.InvitesRoute
 import org.mlm.mages.ui.screens.LoginScreen
+import org.mlm.mages.ui.screens.MediaGalleryScreen
 import org.mlm.mages.ui.screens.RoomInfoRoute
 import org.mlm.mages.ui.screens.RoomScreen
 import org.mlm.mages.ui.screens.RoomsScreen
@@ -70,8 +73,10 @@ import org.mlm.mages.ui.screens.ThreadRoute
 import org.mlm.mages.ui.theme.MainTheme
 import org.mlm.mages.ui.util.popBack
 import org.mlm.mages.ui.viewmodel.DiscoverViewModel
+import org.mlm.mages.ui.viewmodel.ForwardPickerViewModel
 import org.mlm.mages.ui.viewmodel.InvitesViewModel
 import org.mlm.mages.ui.viewmodel.LoginViewModel
+import org.mlm.mages.ui.viewmodel.MediaGalleryViewModel
 import org.mlm.mages.ui.viewmodel.RoomInfoViewModel
 import org.mlm.mages.ui.viewmodel.RoomViewModel
 import org.mlm.mages.ui.viewmodel.RoomsViewModel
@@ -305,7 +310,10 @@ private fun AppContent(
                             onNavigateToThread = { roomId, eventId, roomName ->
                                 backStack.add(Route.Thread(roomId, eventId, roomName))
                             },
-                            onStartCall = { viewModel.startCall() }
+                            onStartCall = { viewModel.startCall() },
+                            onOpenForwardPicker = { roomId, eventIds ->
+                                backStack.add(Route.ForwardPicker(roomId, eventIds))
+                            }
                         )
                     }
 
@@ -409,7 +417,8 @@ private fun AppContent(
                         RoomInfoRoute(
                             viewModel = viewModel,
                             onBack = backStack::popBack,
-                            onLeaveSuccess = { backStack.popUntil { it is Route.Rooms } }
+                            onLeaveSuccess = { backStack.popUntil { it is Route.Rooms } },
+                            onOpenMediaGallery = { backStack.add(Route.MediaGallery(key.roomId)) }
                         )
                     }
 
@@ -526,6 +535,45 @@ private fun AppContent(
                             onBack = backStack::popBack,
                             onOpenResult = { roomId, eventId, roomName ->
                                 backStack.add(Route.Room(roomId, roomName, eventId))
+                            }
+                        )
+                    }
+                    entry<Route.MediaGallery> { key ->
+                        val viewModel: MediaGalleryViewModel = koinViewModel(
+                            parameters = { parametersOf(key.roomId) }
+                        )
+                        val openExternal = rememberFileOpener()
+
+                        MediaGalleryScreen(
+                            viewModel = viewModel,
+                            onBack = backStack::popBack,
+                            onOpenAttachment = { event ->
+                                event.attachment?.let { att ->
+                                    scope.launch {
+                                        val hint = event.body.takeIf { it.contains('.') && !it.startsWith("mxc://") }
+                                        service.port.downloadAttachmentToCache(att, hint)
+                                            .onSuccess { path -> openExternal(path, att.mime) }
+                                            .onFailure { snackbarManager.showError("Download failed") }
+                                    }
+                                }
+                            },
+                            onForward = { eventIds ->
+                                backStack.add(Route.ForwardPicker(key.roomId, eventIds))
+                            }
+                        )
+                    }
+
+                    entry<Route.ForwardPicker> { key ->
+                        val viewModel: ForwardPickerViewModel = koinViewModel(
+                            parameters = { parametersOf(key.roomId, key.eventIds) }
+                        )
+
+                        ForwardPickerScreen(
+                            viewModel = viewModel,
+                            onBack = backStack::popBack,
+                            onForwardComplete = { roomId, roomName ->
+                                backStack.popUntil { it is Route.Rooms }
+                                backStack.add(Route.Room(roomId, roomName))
                             }
                         )
                     }
