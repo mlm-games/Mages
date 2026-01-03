@@ -28,13 +28,13 @@ kotlin {
             implementation(libs.lifecycle.viewmodel.navigation3)
             implementation(libs.adaptive.navigation3)
 
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.material3)
+            implementation(libs.runtime)
+            implementation(libs.foundation)
+            implementation(libs.material3)
             implementation(libs.material.icons.extended)
-            implementation(compose.ui)
-            implementation(compose.components.uiToolingPreview)
-            implementation(compose.components.resources)
+            implementation(libs.ui)
+            implementation(libs.ui.tooling.preview)
+            implementation(libs.components.resources)
 
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
@@ -57,6 +57,7 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
+            //noinspection UseTomlInstead
             implementation("net.java.dev.jna:jna:${libs.versions.jna.get()}@aar")
             implementation(libs.okio)
             implementation(libs.connector)
