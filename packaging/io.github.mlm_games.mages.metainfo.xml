@@ -1,51 +1,93 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<component type="desktop">
+<component type="desktop-application">
   <id>io.github.mlm_games.mages</id>
+  
   <name>Mages</name>
-  <summary>Matrix client</summary>
-
+  <summary>Experimental Matrix chat client</summary>
+  
   <metadata_license>CC0-1.0</metadata_license>
-  <project_license>GPL-3.0-or-later</project_license>
-
-  <developer_name>MLM-stuff</developer_name>
-  <url type="homepage">https://github.com/mlm-games/mages</url>
-  <url type="bugtracker">https://github.com/mlm-games/mages/issues</url>
-  <url type="help">https://github.com/mlm-games/mages</url>
-  <url type="donation">https://github.com/mlm-games/mages</url>
-
-  <launchable type="desktop-id">io.github.mlm_games.mages.desktop</launchable>
-
+  <project_license>GPL-3.0-only</project_license>
+  
+  <developer id="io.github.mlm_games">
+    <name>MLM-stuff</name>
+  </developer>
+  
   <description>
     <p>
-      Mages is an Matrix client with a tray notifier.
+      Mages is an experimental Matrix chat client built with Compose Multiplatform 
+      and a Rust core powered by matrix-rust-sdk.
     </p>
+    <p>Features include:</p>
+    <ul>
+      <li>Room list with previews and unread counts</li>
+      <li>Room and thread timelines (text, media, polls)</li>
+      <li>End-to-end encryption via matrix-sdk</li>
+      <li>Spaces browser</li>
+      <li>Presence and privacy settings</li>
+    </ul>
     <p>
-      The Matrix protocol logic is implemented in a Rust library using
-      matrix-sdk and exposed to the Kotlin UI layer via UniFFI.
+      Note: This is experimental software. Things may break, but encryption 
+      is handled by the battle-tested matrix-rust-sdk.
     </p>
   </description>
-
-  <categories>
-    <category>Network</category>
-    <category>InstantMessaging</category>
-  </categories>
-
-  <keywords>
-    <keyword>matrix</keyword>
-    <keyword>chat</keyword>
-    <keyword>messaging</keyword>
-  </keywords>
-
+  
+  <launchable type="desktop-id">io.github.mlm_games.mages.desktop</launchable>
+  
+  <url type="homepage">https://github.com/mlm-games/mages</url>
+  <url type="bugtracker">https://github.com/mlm-games/mages/issues</url>
+  <url type="vcs-browser">https://github.com/mlm-games/mages</url>
+  
+  <branding>
+    <color type="primary" scheme_preference="light">#7c4dff</color>
+    <color type="primary" scheme_preference="dark">#512da8</color>
+  </branding>
+  
+  <screenshots>
+    <screenshot type="default">
+      <caption>Main login page</caption>
+      <image>https://raw.githubusercontent.com/mlm-games/Mages/refs/heads/main/fastlane/metadata/android/en-US/images/tvScreenshots/1.png</image>
+    </screenshot>
+   
+  </screenshots>
+  
   <content_rating type="oars-1.1">
-    <content_attribute id="social-chat">moderate</content_attribute>
+    <content_attribute id="social-chat">intense</content_attribute>
+    <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
-
+  
   <releases>
-    <release version="0.9.5" date="2025-12-01">
+    <release version="1.3.1" date="2026-01-5">
       <description>
-        <p>Initial public builds for Android and Linux desktop.</p>
+        <p>Initial flathub release.</p>
       </description>
     </release>
   </releases>
-
+  
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  
+  <recommends>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </recommends>
+  
+  <supports>
+    <control>touch</control>
+  </supports>
+  
+  <categories>
+    <category>Network</category>
+    <category>InstantMessaging</category>
+    <category>Chat</category>
+  </categories>
+  
+  <keywords>
+    <keyword>matrix</keyword>
+    <keyword>chat</keyword>
+    <keyword>messenger</keyword>
+    <keyword>encrypted</keyword>
+    <keyword>e2ee</keyword>
+    <keyword>federation</keyword>
+  </keywords>
 </component>
