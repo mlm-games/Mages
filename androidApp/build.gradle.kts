@@ -19,8 +19,8 @@ android {
         applicationId = "org.mlm.mages"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 391
-        versionName = "1.2.3"
+        versionCode = 401
+        versionName = "1.2.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
