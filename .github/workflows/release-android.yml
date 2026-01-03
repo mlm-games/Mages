@@ -94,6 +94,24 @@ jobs:
       contents: write
       actions: write
     steps:
+      - name: Free disk space
+        run: |
+          echo "=== Before cleanup ==="
+          df -h
+          
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/local/share/chromium
+          sudo rm -rf /usr/local/share/powershell
+          
+          sudo docker image prune --all --force || true
+          
+          echo "=== After cleanup ==="
+          df -h
+            
       - uses: actions/checkout@v5
         with: 
           ref: ${{ needs.prepare-version.outputs.commit_sha }}
