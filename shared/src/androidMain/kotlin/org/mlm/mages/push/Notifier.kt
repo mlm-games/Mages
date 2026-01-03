@@ -5,10 +5,10 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.RemoteInput
-import androidx.core.net.toUri
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.mlm.mages.platform.SettingsProvider
@@ -33,7 +33,7 @@ object AndroidNotificationHelper {
             .setContentText(n.body)
             .setChannelId(channelId)
             .setStyle(NotificationCompat.BigTextStyle().bigText(n.body))
-            .setContentIntent(createOpenIntent(ctx, roomId, notifId))
+            .setContentIntent(createOpenIntent(ctx, roomId, eventId, notifId))
             .addAction(createReplyAction(ctx, roomId, eventId, notifId))
             .addAction(createMarkReadAction(ctx, roomId, eventId, notifId))
             .setAutoCancel(true)
@@ -42,17 +42,22 @@ object AndroidNotificationHelper {
         mgr.notify(notifId, notification)
     }
 
-    private fun createOpenIntent(ctx: Context, roomId: String, notifId: Int): PendingIntent {
-        val intent = Intent().apply {
-            action = Intent.ACTION_VIEW
-            data = "mages://room?id=$roomId".toUri()
+    private fun createOpenIntent(ctx: Context, roomId: String, eventId: String, requestCode: Int): PendingIntent {
+        val uri = Uri.Builder()
+            .scheme("mages")
+            .authority("room")
+            .appendQueryParameter("id", roomId)
+            .appendQueryParameter("event", eventId)
+            .build()
+
+        val intent = Intent(Intent.ACTION_VIEW, uri).apply {
             setPackage(ctx.packageName)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
 
         return PendingIntent.getActivity(
             ctx,
-            notifId,
+            requestCode,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )

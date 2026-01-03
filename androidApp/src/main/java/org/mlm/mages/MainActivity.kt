@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import org.mlm.mages.matrix.MatrixProvider
 import org.mlm.mages.matrix.createMatrixPort
+import org.mlm.mages.nav.MatrixLink
 import org.mlm.mages.nav.handleMatrixLink
 import org.mlm.mages.nav.parseMatrixLink
 import org.mlm.mages.platform.MagesPaths
@@ -87,22 +88,25 @@ class MainActivity : AppCompatActivity() {
                 if (!roomId.isNullOrBlank()) {
                     lifecycleScope.launch {
                         MatrixProvider.getReady(applicationContext)
+                        deepLinkRoomIds.emit(roomId)
                     }
-                    deepLinkRoomIds.tryEmit(roomId)
                 }
                 return
             }
 
             val url = uri.toString()
             val link = parseMatrixLink(url)
-            if (link !is org.mlm.mages.nav.MatrixLink.Unsupported) {
+            if (link !is MatrixLink.Unsupported) {
                 lifecycleScope.launch {
                     MatrixProvider.get(applicationContext)
                     handleMatrixLink(
                         service = service,
                         link = link,
                     ) { roomId, _ ->
-                        deepLinkRoomIds.tryEmit(roomId)
+                        lifecycleScope.launch {
+                            MatrixProvider.getReady(this@MainActivity)
+                            deepLinkRoomIds.emit(roomId)
+                        }
                     }
                 }
             }
