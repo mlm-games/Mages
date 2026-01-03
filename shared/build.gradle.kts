@@ -161,6 +161,10 @@ val copyNativeForJna = tasks.register<Copy>("copyNativeForJna") {
     into(file("src/jvmMain/resources/$jnaPlatformDir"))
 }
 
+tasks.named("jvmProcessResources") {
+    dependsOn(copyNativeForJna)
+}
+
 @DisableCachingByDefault(because = "Builds native code")
 abstract class CargoHostTask @Inject constructor(private val execOps: ExecOperations) : DefaultTask() {
     @get:Input abstract val cargoBin: Property<String>
