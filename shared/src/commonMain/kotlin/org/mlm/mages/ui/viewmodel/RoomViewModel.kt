@@ -74,6 +74,10 @@ class RoomViewModel(
 
     private val settingsRepo: SettingsRepository<AppSettings> by inject()
 
+    private val prefs = settingsRepo.flow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
+
+
     init {
         initialize()
     }
@@ -90,6 +94,7 @@ class RoomViewModel(
 
         launch {
             dmPeer = runSafe { service.port.dmPeerUserId(currentState.roomId) }
+            settingsRepo.update { it.copy(lastOpenedRoomId = currentState.roomId) }
 
             val profile = runSafe { service.port.roomProfile(currentState.roomId) }
             if (profile != null) {
@@ -136,19 +141,17 @@ class RoomViewModel(
     fun setInput(value: String) {
         updateState { copy(input = value) }
 
-        launch {
-            val prefs = settingsRepo.flow.first() // HACK: expensive
-            if (!prefs.sendTypingIndicators) return@launch
+        // only network typing notices are gated
+        if (!prefs.value.sendTypingIndicators) return
 
-            typingJob?.cancel()
-            typingJob = launch {
-                if (value.isBlank()) {
-                    runSafe { service.port.setTyping(currentState.roomId, false) }
-                } else {
-                    runSafe { service.port.setTyping(currentState.roomId, true) }
-                    delay(4000)
-                    runSafe { service.port.setTyping(currentState.roomId, false) }
-                }
+        typingJob?.cancel()
+        typingJob = launch {
+            if (value.isBlank()) {
+                runSafe { service.port.setTyping(currentState.roomId, false) }
+            } else {
+                runSafe { service.port.setTyping(currentState.roomId, true) }
+                delay(4000)
+                runSafe { service.port.setTyping(currentState.roomId, false) }
             }
         }
     }
@@ -274,6 +277,8 @@ class RoomViewModel(
 
     fun markReadHere(event: MessageEvent) {
         if (event.eventId.isBlank()) return
+        if (!prefs.value.sendReadReceipts) return
+
         launch { service.markReadAt(event.roomId, event.eventId) }
     }
 
@@ -867,12 +872,13 @@ class RoomViewModel(
 
         launch {
             val roomId = currentState.roomId
+            val callUrl = prefs.value.elementCallUrl.trim().ifBlank { null }
+
             val session = service.startCall(
                 roomId = roomId,
                 intent = intent,
-                elementCallUrl = null, // own setting later
+                elementCallUrl = callUrl,
             ) { messageFromSdk ->
-                // SDK -> app -> widget
                 callWebViewController?.sendToWidget(messageFromSdk)
             }
 

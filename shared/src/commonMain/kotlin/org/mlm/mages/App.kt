@@ -9,6 +9,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -18,6 +19,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
@@ -36,6 +38,7 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import org.mlm.mages.di.KoinApp
+import org.mlm.mages.matrix.Presence
 import org.mlm.mages.nav.BindDeepLinks
 import org.mlm.mages.nav.Route
 import org.mlm.mages.nav.loginEntryFadeMetadata
@@ -79,14 +82,21 @@ import org.mlm.mages.ui.viewmodel.SpaceSettingsViewModel
 import org.mlm.mages.ui.viewmodel.SpacesViewModel
 import org.mlm.mages.ui.viewmodel.ThreadViewModel
 
+val LocalMessageFontSize = staticCompositionLocalOf { 16f }
+
 @Composable
 fun App(
     service: MatrixService,
     settingsRepository: SettingsRepository<AppSettings>,
     deepLinks: Flow<String>? = null
 ) {
-    KoinApp(service, settingsRepository) {
-        AppContent(deepLinks = deepLinks)
+    val settings by settingsRepository.flow.collectAsState(AppSettings())
+
+    CompositionLocalProvider(LocalMessageFontSize provides settings.fontSize) {
+
+        KoinApp(service, settingsRepository) {
+            AppContent(deepLinks = deepLinks)
+        }
     }
 }
 
@@ -100,6 +110,13 @@ private fun AppContent(
     val snackbarManager: SnackbarManager = koinInject()
     val snackbarHostState: SnackbarHostState = koinInject()
     val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
+
+    LaunchedEffect(service) {
+        settingsRepository.flow.collect { s ->
+            if (!service.isLoggedIn()) return@collect
+            runCatching { service.port.setPresence(Presence.entries[s.presence], null) }
+        }
+    }
 
     MainTheme(darkTheme = when (settings.themeMode) {
         ThemeMode.System.ordinal -> isSystemInDarkTheme()

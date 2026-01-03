@@ -4,11 +4,15 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
+import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.RemoteInput
 import androidx.core.net.toUri
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import org.mlm.mages.platform.SettingsProvider
 import org.mlm.mages.shared.R
 
 object AndroidNotificationHelper {
@@ -17,8 +21,10 @@ object AndroidNotificationHelper {
     data class NotificationText(val title: String, val body: String)
 
     fun showSingleEvent(ctx: Context, n: NotificationText, roomId: String, eventId: String) {
-        val mgr = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        ensureChannel(mgr)
+        val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val settingsRepo = SettingsProvider.get(ctx)
+        val soundEnabled = runBlocking { settingsRepo.flow.first().notificationSound }
+        val channelId = if (soundEnabled) "messages" else "messages_silent"
 
         val notifId = (roomId + eventId).hashCode()
 
@@ -126,22 +132,5 @@ object AndroidNotificationHelper {
             .addRemoteInput(remoteInput)
             .setAllowGeneratedReplies(true)
             .build()
-    }
-
-    private fun ensureChannel(mgr: NotificationManager) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (mgr.getNotificationChannel(CHANNEL_ID) == null) {
-                mgr.createNotificationChannel(
-                    NotificationChannel(
-                        CHANNEL_ID,
-                        "Messages",
-                        NotificationManager.IMPORTANCE_HIGH
-                    ).apply {
-                        description = "Chat messages"
-                        enableVibration(true)
-                    }
-                )
-            }
-        }
     }
 }

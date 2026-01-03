@@ -16,7 +16,7 @@ import kotlinx.serialization.Serializable
 enum class ThemeMode { System, Light, Dark }
 
 @Serializable
-enum class PresenceMode { Online, Unavailable, Offline }
+enum class PresenceMode { Online, Offline,  Unavailable }
 
 @Serializable
 enum class LocalRoomNotifMode {
@@ -73,14 +73,14 @@ data class AppSettings(
     )
     val mentionsOnly: Boolean = false,
 
-//    @Setting(
-//        title = "Notification sound",
-//        description = "Play sound for notifications (platform support varies)",
-//        category = Notifications::class,
-//        type = Toggle::class,
-//        dependsOn = "notificationsEnabled"
-//    )
-//    val notificationSound: Boolean = true,
+    @Setting(
+        title = "Notification sound",
+        description = "Play sound for notifications (platform support varies)",
+        category = Notifications::class,
+        type = Toggle::class,
+        dependsOn = "notificationsEnabled"
+    )
+    val notificationSound: Boolean = true,
 
     // Local per-room overrides (not shown in auto UI), gives ksp error fo now
 //    @Persisted
@@ -111,10 +111,10 @@ data class AppSettings(
 
     @Setting(
         title = "Presence",
-        description = "Online / Unavailable / Offline",
+        description = "Set a global presence status",
         category = Privacy::class,
         type = Dropdown::class,
-        options = ["Online", "Unavailable", "Offline"]
+        options = ["Online", "Offline", "Unavailable"]
     )
     val presence: Int = PresenceMode.Online.ordinal,
 
@@ -125,13 +125,13 @@ data class AppSettings(
 //    )
 //    val statusMessage: String = ""
 
-//    @Setting(
-//        title = "Element Call URL",
-//        description = "Override Element Call instance (default: call.element.io)",
-//        category = Calls::class,
-//        type = TextInput::class
-//    )
-//    val elementCallUrl: String = "",
+    @Setting(
+        title = "Element Call URL",
+        description = "Override Element Call instance (default: call.element.io)",
+        category = Calls::class,
+        type = TextInput::class
+    )
+    val elementCallUrl: String = "",
 
     @Setting(
         title = "Media cache max size (MB)",

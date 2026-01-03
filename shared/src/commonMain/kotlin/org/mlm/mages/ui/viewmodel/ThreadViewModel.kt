@@ -1,15 +1,21 @@
 package org.mlm.mages.ui.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.koin.core.component.inject
 import org.mlm.mages.MatrixService
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.TimelineDiff
+import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.ThreadUiState
+import kotlin.getValue
 
 class ThreadViewModel(
     private val service: MatrixService,
@@ -38,6 +44,12 @@ class ThreadViewModel(
 
     // Track all events we've seen for this thread (for deduplication)
     private val seenItemIds = mutableSetOf<String>()
+
+    private val settingsRepo: SettingsRepository<AppSettings> by inject()
+
+    private val prefs = settingsRepo.flow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
+
 
     init {
         observeTimeline()
@@ -385,8 +397,9 @@ class ThreadViewModel(
     /**
      * Update the input text.
      */
-    fun setInput(input: String) {
-        updateState { copy(input = input) }
+    fun setInput(value: String) {
+        updateState { copy(input = value) }
+        if (!prefs.value.sendTypingIndicators) return
     }
 
     /**

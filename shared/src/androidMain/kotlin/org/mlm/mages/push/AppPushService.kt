@@ -19,9 +19,6 @@ import org.unifiedpush.android.connector.PushService
 import org.unifiedpush.android.connector.data.PushEndpoint
 import org.unifiedpush.android.connector.data.PushMessage
 import kotlinx.coroutines.cancel
-import org.mlm.mages.notifications.getRoomNotifMode
-import org.mlm.mages.notifications.shouldNotify
-import org.mlm.mages.storage.provideAppDataStore
 import java.util.concurrent.TimeUnit
 
 const val PUSH_PREFS = "unifiedpush_prefs"

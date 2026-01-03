@@ -22,7 +22,6 @@ import org.mlm.mages.nav.parseMatrixLink
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.SettingsProvider
 import org.mlm.mages.push.PREF_INSTANCE
-import org.mlm.mages.storage.provideAppDataStore
 import org.mlm.mages.push.PushManager
 import org.mlm.mages.push.PusherReconciler
 import org.mlm.mages.settings.AppSettings
@@ -32,7 +31,6 @@ class MainActivity : AppCompatActivity() {
     private val deepLinkRoomIds = MutableSharedFlow<String>(extraBufferCapacity = 1)
     private val deepLinks = deepLinkRoomIds.asSharedFlow()
 
-    private val dataStore by lazy { provideAppDataStore(this) }
     private val service by lazy { MatrixService(createMatrixPort()) }
 
 
@@ -40,6 +38,7 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         ensureCallNotificationChannel()
+        ensureMessageChannels()
 
         handleIntent(intent)
         MagesPaths.init(this)
@@ -71,7 +70,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         setContent {
-            App(dataStore = dataStore, service = service, settingsRepository, deepLinks = deepLinks)
+            App(service = service, settingsRepository, deepLinks = deepLinks)
         }
 
     }
@@ -126,4 +125,32 @@ class MainActivity : AppCompatActivity() {
             mgr.createNotificationChannel(channel)
         }
     }
+    private fun ensureMessageChannels() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val mgr = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+
+        val normal = NotificationChannel(
+            "messages",
+            "Messages",
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = "Message notifications"
+            enableVibration(true)
+            // default sound
+        }
+
+        val silent = NotificationChannel(
+            "messages_silent",
+            "Messages (Silent)",
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = "Message notifications (no sound)"
+            setSound(null, null)
+            enableVibration(false)
+        }
+
+        mgr.createNotificationChannel(normal)
+        mgr.createNotificationChannel(silent)
+    }
+
 }

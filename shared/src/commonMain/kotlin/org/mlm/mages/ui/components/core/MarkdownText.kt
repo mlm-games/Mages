@@ -9,10 +9,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mikepenz.markdown.compose.Markdown
 import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
+import org.mlm.mages.LocalMessageFontSize
 
 @Composable
 fun MarkdownText(
@@ -22,6 +23,9 @@ fun MarkdownText(
     style: TextStyle = MaterialTheme.typography.bodyMedium,
     onLinkClick: ((String) -> Unit)? = null
 ) {
+    val fontSize = LocalMessageFontSize.current.sp
+    val effectiveStyle = style.copy(fontSize = fontSize)
+
     SelectionContainer {
         Markdown(
             content = text,
@@ -33,9 +37,10 @@ fun MarkdownText(
                 tableBackground = MaterialTheme.colorScheme.primary
             ),
             typography = markdownTypography(
-                text = style,
+                text = effectiveStyle,
                 code = MaterialTheme.typography.bodySmall.copy(
-                    fontFamily = FontFamily.Monospace
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = (fontSize.value * 0.9f).sp
                 )
             )
         )

@@ -69,7 +69,6 @@ actual object Notifier {
 actual fun BindLifecycle(service: MatrixService) {
     val ctx = LocalContext.current.applicationContext
     val lifecycleOwner = LocalLifecycleOwner.current
-    val dataStore: DataStore<Preferences> = koinInject()
     val scope = rememberCoroutineScope()
 
     DisposableEffect(lifecycleOwner, service) {
