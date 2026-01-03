@@ -9,10 +9,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
@@ -72,7 +72,6 @@ fun RoomsScreen(
                 unreadOnly = state.unreadOnly,
                 onSearchChange = viewModel::setSearchQuery,
                 onToggleUnreadOnly = viewModel::toggleUnreadOnly,
-                onRefresh = viewModel::refresh,
                 onOpenSpaces = onOpenSpaces,
                 onOpenSecurity = onOpenSecurity,
                 onOpenDiscover = onOpenDiscover,
@@ -246,7 +245,6 @@ private fun RoomsTopBar(
     unreadOnly: Boolean,
     onSearchChange: (String) -> Unit,
     onToggleUnreadOnly: () -> Unit,
-    onRefresh: () -> Unit,
     onOpenSpaces: () -> Unit,
     onOpenSecurity: () -> Unit,
     onOpenDiscover: () -> Unit,
@@ -256,11 +254,8 @@ private fun RoomsTopBar(
 ) {
     Column {
         TopAppBar(
-            title = { Text("Rooms", fontWeight = FontWeight.SemiBold) },
+            title = { Text("Rooms", fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis) },
             actions = {
-                IconButton(onClick = onRefresh, enabled = !isLoading) {
-                    Icon(Icons.Default.Refresh, "Refresh")
-                }
                 IconButton(onClick = onOpenSpaces) {
                     Icon(Icons.Default.Workspaces, "Spaces")
                 }
