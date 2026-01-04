@@ -45,6 +45,21 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="2.0.2" date="2026-01-04" type="stable">
+      <description>
+        <ul>
+          <li>Android Multi account related fixes, remove AppCtx and MatrixProvider classes (might not be necessary now) for android</li>
+          <li>Update release notes for v2.0.1</li>
+          <li>Breaking change, bump major ver (may need to relogin)</li>
+          <li>Add multi login support</li>
+          <li>Dark theme by default</li>
+          <li>fix the body_path for release notes, and remove extra step</li>
+          <li>Login screen adjusts for keyboard padding (fix #18)</li>
+          <li>Use DayNight instead of Light for AppCompat (#16)</li>
+          <li>Update io.github.mlm_games.mages.metainfo.xml</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.0.1" date="2026-01-04" type="stable">
       <description>
         <ul>
