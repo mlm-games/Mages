@@ -20,7 +20,9 @@ android {
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 421
-        versionName = "1.3.2"
+        versionName = "2.0.0"
+
+        // have to keep versionName here for fdroid, do not change
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
