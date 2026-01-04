@@ -48,11 +48,7 @@
     <release version="1.3.2" date="2026-01-04" type="stable">
       <description>
         <ul>
-          <li>Update release-android.yml</li>
-          <li>Update release-android.yml</li>
           <li>Allow direct # paths in discovery (#21)</li>
-          <li>try calling all tasks (in yml</li>
-          <li>Revert "Trial fix for desktop"</li>
         </ul>
       </description>
     </release>
