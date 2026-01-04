@@ -1,5 +1,4 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.gradle.internal.os.OperatingSystem
 
 plugins {
     id("org.jetbrains.kotlin.jvm")

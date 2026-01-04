@@ -1,3 +1,4 @@
+// src/commonMain/kotlin/org/mlm/mages/ui/screens/DiscoverScreen.kt
 package org.mlm.mages.ui.screens
 
 import androidx.compose.foundation.layout.*
@@ -5,10 +6,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -26,12 +27,27 @@ fun DiscoverRoute(
 ) {
     val state by viewModel.state.collectAsState()
 
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is DiscoverViewModel.Event.OpenRoom -> onClose()
+                is DiscoverViewModel.Event.ShowError -> {
+                    // Shown via banner
+                }
+            }
+        }
+    }
+
     DiscoverScreen(
         state = state,
         onQuery = viewModel::setQuery,
         onClose = onClose,
         onOpenUser = { u -> viewModel.openUser(u) },
-        onOpenRoom = { r -> viewModel.openRoom(r) }
+        onOpenRoom = { r -> viewModel.openRoom(r) },
+        onJoinByIdOrAlias = { idOrAlias -> viewModel.joinDirect(idOrAlias) },
+        onSelectServer = viewModel::setDirectoryServer,
+        onAddCustomServer = viewModel::addCustomServer,
+        onLoadMore = viewModel::loadMoreRooms
     )
 }
 
@@ -41,8 +57,12 @@ fun DiscoverScreen(
     state: DiscoverUi,
     onQuery: (String) -> Unit,
     onClose: () -> Unit,
-    onOpenUser: suspend (DirectoryUser) -> Unit,
-    onOpenRoom: suspend (PublicRoom) -> Unit,
+    onOpenUser: (DirectoryUser) -> Unit,
+    onOpenRoom: (PublicRoom) -> Unit,
+    onJoinByIdOrAlias: (String) -> Unit,
+    onSelectServer: (String) -> Unit,
+    onAddCustomServer: (String) -> Unit,
+    onLoadMore: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
 
@@ -52,7 +72,7 @@ fun DiscoverScreen(
                 title = { Text("Discover") },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -70,80 +90,522 @@ fun DiscoverScreen(
                 onValueChange = onQuery,
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Search users or public rooms") },
-                singleLine = true
+                placeholder = { Text("e.g., #linux:matrix.org or @user:server.com") },
+                singleLine = true,
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = null)
+                },
+                trailingIcon = {
+                    if (state.query.isNotEmpty()) {
+                        IconButton(onClick = { onQuery("") }) {
+                            Icon(Icons.Default.Clear, contentDescription = "Clear")
+                        }
+                    }
+                }
             )
 
-            if (state.isBusy) {
+            DirectoryServerSelector(
+                currentServer = state.directoryServer,
+                availableServers = state.availableServers,
+                homeServer = state.homeServer,
+                onSelectServer = onSelectServer,
+                onAddCustomServer = onAddCustomServer
+            )
+
+            if (state.isBusy && !state.isPaging) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
 
-            // Users
-            if (state.users.isNotEmpty()) {
-                Text("Users", style = MaterialTheme.typography.titleSmall)
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                // always show first if available
+                state.directJoinCandidate?.let { target ->
+                    item(key = "direct_join") {
+                        DirectJoinCard(
+                            target = target,
+                            onJoin = { onJoinByIdOrAlias(target) },
+                            isBusy = state.isBusy
+                        )
+                    }
+                }
 
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.heightIn(max = 260.dp)
-                ) {
-                    items(state.users) { u ->
-                        ListItem(
-                            headlineContent = { Text(u.displayName ?: u.userId) },
-                            supportingContent = {
-                                if (!u.displayName.isNullOrBlank()) {
-                                    Text(u.userId)
-                                }
-                            },
-                            leadingContent = {
-                                Icon(Icons.Default.Person, contentDescription = null)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            overlineContent = null,
-                            trailingContent = {
-                                TextButton(onClick = { scope.launch { onOpenUser(u) } }) {
-                                    Text("Message")
+                if (state.users.isNotEmpty()) {
+                    item(key = "users_header") {
+                        Text(
+                            "Users",
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+
+                    items(state.users, key = { it.userId }) { user ->
+                        UserListItem(
+                            user = user,
+                            onMessage = { onOpenUser(user) }
+                        )
+                    }
+                }
+
+                // Rooms section
+                if (state.rooms.isNotEmpty()) {
+                    item(key = "rooms_header") {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Public rooms on ${state.directoryServer}",
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                            Text(
+                                "${state.rooms.size} found",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    items(state.rooms, key = { it.roomId }) { room ->
+                        RoomListItem(
+                            room = room,
+                            onJoin = { onOpenRoom(room) }
+                        )
+                    }
+
+                    if (state.nextBatch != null) {
+                        item(key = "load_more") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (state.isPaging) {
+                                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                } else {
+                                    OutlinedButton(onClick = onLoadMore) {
+                                        Icon(
+                                            Icons.Default.ExpandMore,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("Load more rooms")
+                                    }
                                 }
                             }
-                        )
-                        HorizontalDivider()
+                        }
+                    }
+                }
+
+                if (!state.isBusy &&
+                    state.query.isNotBlank() &&
+                    state.users.isEmpty() &&
+                    state.rooms.isEmpty() &&
+                    state.directJoinCandidate == null
+                ) {
+                    item(key = "empty") {
+                        EmptySearchState(query = state.query)
+                    }
+                }
+
+                if (state.query.isBlank()) {
+                    item(key = "hint") {
+                        SearchHintCard()
                     }
                 }
             }
 
-            // Rooms
-            if (state.rooms.isNotEmpty()) {
-                Text("Public rooms", style = MaterialTheme.typography.titleSmall)
-
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.weight(1f, fill = true)
-                ) {
-                    items(state.rooms) { r ->
-                        ListItem(
-                            headlineContent = { Text(r.name ?: r.alias ?: r.roomId) },
-                            supportingContent = {
-                                val line = buildString {
-                                    if (!r.topic.isNullOrBlank()) append(r.topic)
-                                }
-                                if (line.isNotBlank()) Text(line)
-                            },
-                            leadingContent = {
-                                Icon(Icons.Default.Group, contentDescription = null)
-                            },
-                            trailingContent = {
-                                TextButton(onClick = { scope.launch { onOpenRoom(r) } }) {
-                                    Text("Join")
-                                }
-                            }
-                        )
-                        HorizontalDivider()
-                    }
-                }
-            }
-
-            // Error banner
             StatusBanner(
                 message = state.error,
                 type = BannerType.ERROR
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DirectoryServerSelector(
+    currentServer: String,
+    availableServers: List<String>,
+    homeServer: String,
+    onSelectServer: (String) -> Unit,
+    onAddCustomServer: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var showCustomDialog by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            "Directory:",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it },
+            modifier = Modifier.weight(1f)
+        ) {
+            OutlinedTextField(
+                value = currentServer,
+                onValueChange = {},
+                readOnly = true,
+                singleLine = true,
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth(),
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                },
+                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                textStyle = MaterialTheme.typography.bodyMedium
+            )
+
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                availableServers.forEach { server ->
+                    DropdownMenuItem(
+                        text = {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(server)
+                                if (server == homeServer) {
+                                    Text(
+                                        "(home)",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        },
+                        onClick = {
+                            onSelectServer(server)
+                            expanded = false
+                        },
+                        leadingIcon = {
+                            if (server == currentServer) {
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    )
+                }
+
+                HorizontalDivider()
+
+                DropdownMenuItem(
+                    text = { Text("Add custom server...") },
+                    onClick = {
+                        expanded = false
+                        showCustomDialog = true
+                    },
+                    leadingIcon = {
+                        Icon(Icons.Default.Add, contentDescription = null)
+                    }
+                )
+            }
+        }
+    }
+
+    if (showCustomDialog) {
+        CustomServerDialog(
+            onDismiss = { showCustomDialog = false },
+            onConfirm = { server ->
+                onAddCustomServer(server)
+                showCustomDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun CustomServerDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var serverInput by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add custom server") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "Enter the homeserver domain to search its public room directory.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                OutlinedTextField(
+                    value = serverInput,
+                    onValueChange = { serverInput = it },
+                    label = { Text("Server domain") },
+                    placeholder = { Text("e.g., libera.chat") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(serverInput) },
+                enabled = serverInput.isNotBlank()
+            ) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+private fun DirectJoinCard(
+    target: String,
+    onJoin: () -> Unit,
+    isBusy: Boolean
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        ListItem(
+            headlineContent = {
+                Text(
+                    target,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            },
+            supportingContent = {
+                Text("Join this room directly by alias/ID")
+            },
+            leadingContent = {
+                Icon(
+                    Icons.Default.MeetingRoom,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            trailingContent = {
+                Button(
+                    onClick = onJoin,
+                    enabled = !isBusy
+                ) {
+                    Text("Join")
+                }
+            },
+            colors = ListItemDefaults.colors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            )
+        )
+    }
+}
+
+@Composable
+private fun UserListItem(
+    user: DirectoryUser,
+    onMessage: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        ListItem(
+            headlineContent = { Text(user.displayName ?: user.userId) },
+            supportingContent = {
+                if (!user.displayName.isNullOrBlank()) {
+                    Text(user.userId)
+                }
+            },
+            leadingContent = {
+                Icon(Icons.Default.Person, contentDescription = null)
+            },
+            trailingContent = {
+                TextButton(onClick = onMessage) {
+                    Text("Message")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun RoomListItem(
+    room: PublicRoom,
+    onJoin: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        ListItem(
+            headlineContent = {
+                Text(room.name ?: room.alias ?: room.roomId)
+            },
+            supportingContent = {
+                Column {
+                    room.alias?.let { alias ->
+                        if (alias != room.name) {
+                            Text(
+                                alias,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                    room.topic?.takeIf { it.isNotBlank() }?.let { topic ->
+                        Text(
+                            topic.take(100) + if (topic.length > 100) "..." else "",
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2
+                        )
+                    }
+//                    room.numJoinedMembers?.let { members ->
+//                        Text(
+//                            "$members members",
+//                            style = MaterialTheme.typography.labelSmall,
+//                            color = MaterialTheme.colorScheme.onSurfaceVariant
+//                        )
+//                    }
+                }
+            },
+            leadingContent = {
+                Icon(Icons.Default.Group, contentDescription = null)
+            },
+            trailingContent = {
+                TextButton(onClick = onJoin) {
+                    Text("Join")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun EmptySearchState(query: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                Icons.Default.SearchOff,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                "No results for \"$query\"",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                "Try a different search term or directory server",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchHintCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                "Search tips",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            SearchHintRow(
+                icon = Icons.Default.Tag,
+                example = "#linux:matrix.org",
+                description = "Join a room by its full alias"
+            )
+
+            SearchHintRow(
+                icon = Icons.Default.Person,
+                example = "@username:server.com",
+                description = "Start a DM with a user"
+            )
+
+            SearchHintRow(
+                icon = Icons.Default.Search,
+                example = "programming",
+                description = "Search for rooms by topic"
+            )
+
+            SearchHintRow(
+                icon = Icons.Default.Link,
+                example = "https://matrix.to/#/...",
+                description = "Paste a matrix.to link"
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchHintRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    example: String,
+    description: String
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Column {
+            Text(
+                example,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
