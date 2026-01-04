@@ -34,7 +34,6 @@ fun KoinApp(
  */
 fun initKoin(
     service: MatrixService,
-    dataStore: DataStore<Preferences>,
     settingsRepository: SettingsRepository<AppSettings>,
     additionalModules: List<Module> = emptyList()
 ) {
