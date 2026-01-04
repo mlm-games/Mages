@@ -9,19 +9,22 @@ import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.RemoteInput
+import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import org.mlm.mages.platform.SettingsProvider
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.shared.R
 
-object AndroidNotificationHelper {
+object AndroidNotificationHelper: KoinComponent {
     private const val CHANNEL_ID = "messages"
 
     data class NotificationText(val title: String, val body: String)
 
     fun showSingleEvent(ctx: Context, n: NotificationText, roomId: String, eventId: String) {
         val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        val settingsRepo = SettingsProvider.get(ctx)
+        val settingsRepo: SettingsRepository<AppSettings> by inject()
         val soundEnabled = runBlocking { settingsRepo.flow.first().notificationSound }
         val channelId = if (soundEnabled) "messages" else "messages_silent"
 

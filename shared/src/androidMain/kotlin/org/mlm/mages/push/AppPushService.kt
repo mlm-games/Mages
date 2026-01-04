@@ -13,12 +13,14 @@ import androidx.work.workDataOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import org.mlm.mages.matrix.MatrixProvider
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.mlm.mages.MatrixService
 import org.unifiedpush.android.connector.PushService
 import org.unifiedpush.android.connector.data.PushEndpoint
 import org.unifiedpush.android.connector.data.PushMessage
-import kotlinx.coroutines.cancel
 import java.util.concurrent.TimeUnit
 
 const val PUSH_PREFS = "unifiedpush_prefs"
@@ -29,14 +31,20 @@ private const val TAG = "UP-Mages"
 /**
  * UnifiedPush entrypoint
  */
-class AppPushService : PushService() {
+class AppPushService : PushService(), KoinComponent {
+
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    private val service: MatrixService by inject()
 
     override fun onNewEndpoint(endpoint: PushEndpoint, instance: String) {
         val url = endpoint.url
         Log.i(TAG, "onNewEndpoint: instance=$instance url=$url")
+
         scope.launch {
             saveEndpoint(applicationContext, url, instance)
+
+            runCatching { service.initFromDisk() }
             registerPusher(applicationContext, url, instance, token = null)
         }
     }
@@ -57,14 +65,13 @@ class AppPushService : PushService() {
             return
         }
 
-        // Show message is unstable with the current method (bg network issues), for now this is fine
+        // Show a lightweight notification immediately, then enrich via WorkManager
         for ((roomId, eventId) in pairs.take(3)) {
             AndroidNotificationHelper.showSingleEvent(
                 this,
                 AndroidNotificationHelper.NotificationText("New message", "You have a new message"),
                 roomId, eventId
             )
-
             enqueueEnrich(roomId, eventId)
         }
     }
@@ -83,11 +90,11 @@ class AppPushService : PushService() {
         reason: org.unifiedpush.android.connector.FailedReason,
         instance: String
     ) {
-        Log.w("AppPushService", "Registration failed for $instance: $reason")
+        Log.w(TAG, "Registration failed for $instance: $reason")
     }
 
     override fun onTempUnavailable(instance: String) {
-        Log.i("AppPushService", "Temp unavailable for $instance")
+        Log.i(TAG, "Temp unavailable for $instance")
     }
 
     override fun onDestroy() {
@@ -101,37 +108,35 @@ class AppPushService : PushService() {
         instance: String,
         token: String?,
     ) {
-        Log.d("PusherDebug", "=== registerPusher called ===")
-        Log.d("PusherDebug", "endpoint: $endpoint")
-        Log.d("PusherDebug", "instance: $instance")
-
         val gatewayUrl = GatewayResolver.resolveGateway(endpoint)
-        Log.d("PusherDebug", "resolved gateway: $gatewayUrl")
-
         val pushKey = token ?: endpoint
 
-        val service = MatrixProvider.get(context)
-        val loggedIn = service.isLoggedIn()
-        Log.d("PusherDebug", "isLoggedIn: $loggedIn")
+        // Ensure the service is restored
+        runCatching { service.initFromDisk() }
+
+        val port = service.portOrNull
+        val accountId = service.activeAccount.value?.id
+
+        val loggedIn = (port != null && service.isLoggedIn() && accountId != null)
+        Log.d(TAG, "registerPusher: loggedIn=$loggedIn activeAccountId=$accountId")
 
         if (!loggedIn) {
-            Log.w("PusherDebug", "NOT LOGGED IN - skipping pusher registration")
+            Log.w(TAG, "NOT LOGGED IN or no active account - skipping pusher registration")
             return
         }
 
-        try {
-            val result = service.port.registerUnifiedPush(
+        val ok = runCatching {
+            port!!.registerUnifiedPush(
                 appId = context.packageName,
                 pushKey = pushKey,
                 gatewayUrl = gatewayUrl,
                 deviceName = android.os.Build.MODEL ?: "Android",
                 lang = java.util.Locale.getDefault().toLanguageTag(),
-                profileTag = instance,
+                profileTag = accountId
             )
-            Log.d("PusherDebug", "registerUnifiedPush result: $result")
-        } catch (e: Exception) {
-            Log.e("PusherDebug", "registerUnifiedPush FAILED", e)
-        }
+        }.getOrDefault(false)
+
+        Log.i(TAG, "registerUnifiedPush(ok=$ok, gateway=$gatewayUrl, profileTag=$accountId)")
     }
 
     private fun enqueueEnrich(roomId: String, eventId: String) {
@@ -148,7 +153,6 @@ class AppPushService : PushService() {
                     NotificationEnrichWorker.KEY_EVENT_ID to eventId
                 )
             )
-            // Deduplicate work for the same event
             .addTag("notif:$roomId:$eventId")
             .build()
 
@@ -183,7 +187,6 @@ private fun extractMatrixPushPayload(raw: String): List<Pair<String, String>> {
         val obj = org.json.JSONObject(raw)
         val pairs = mutableListOf<Pair<String, String>>()
 
-        // Try Element/spec format {"notification": {e..}}
         val notification = obj.optJSONObject("notification")
         if (notification != null) {
             val eid = notification.optString("event_id", "")
@@ -194,14 +197,12 @@ private fun extractMatrixPushPayload(raw: String): List<Pair<String, String>> {
             }
         }
 
-        // fallback
         if (obj.has("event_id") && obj.has("room_id")) {
             val eid = obj.optString("event_id")
             val rid = obj.optString("room_id")
             if (eid.isNotBlank() && rid.isNotBlank()) pairs += rid to eid
         }
 
-        // Other fallbacks (array)
         val keys = arrayOf("events", "notifications")
         for (k in keys) {
             val arr = obj.optJSONArray(k) ?: continue

@@ -3,6 +3,7 @@ package org.mlm.mages.platform
 import android.app.Activity
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.Context
 import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -10,16 +11,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.NotificationCompat
 import androidx.core.content.getSystemService
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.launch
-import org.koin.compose.koinInject
+import org.koin.core.context.GlobalContext
 import org.mlm.mages.MatrixService
-import org.mlm.mages.matrix.MatrixProvider
+import org.mlm.mages.platform.Notifier.appContextOrNull
 import org.mlm.mages.push.PREF_INSTANCE
 import org.mlm.mages.push.PusherReconciler
 import org.mlm.mages.settings.AppSettings
@@ -29,8 +28,11 @@ actual object Notifier {
     private const val CHANNEL_ID = "messages"
     private var currentRoomId: String? = null
 
+    fun appContextOrNull(): Context? =
+        runCatching { GlobalContext.get().get<Context>() }.getOrNull()
+
     actual fun notifyRoom(title: String, body: String) {
-        val ctx = AppCtx.get() ?: return
+        val ctx = appContextOrNull() ?: return
         val mgr = ctx.getSystemService<NotificationManager>() ?: return
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -40,6 +42,7 @@ actual object Notifier {
                 )
             }
         }
+
         val n = NotificationCompat.Builder(ctx, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_monochrome)
             .setContentTitle(title)
@@ -47,6 +50,7 @@ actual object Notifier {
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setAutoCancel(true)
             .build()
+
         mgr.notify((System.currentTimeMillis() % Int.MAX_VALUE).toInt(), n)
     }
 
@@ -81,7 +85,7 @@ actual fun BindLifecycle(service: MatrixService) {
                     runCatching { port.enterForeground() }
                     runCatching { service.startSupervisedSync() }
 
-                    val ctx = AppCtx.get()
+                    val ctx = appContextOrNull()
                     if (ctx != null) {
                         runCatching {
                             PusherReconciler.ensureServerPusherRegistered(ctx, PREF_INSTANCE)

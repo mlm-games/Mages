@@ -8,9 +8,14 @@ import android.content.Intent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.mlm.mages.matrix.MatrixProvider
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.mlm.mages.MatrixService
 
-class NotificationActionReceiver : BroadcastReceiver() {
+class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
+
+    private val service: MatrixService by inject()
+
     override fun onReceive(context: Context, intent: Intent) {
         val pending = goAsync()
 
@@ -20,11 +25,13 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 val eventId = intent.getStringExtra(EXTRA_EVENT_ID) ?: return@launch
                 val notifId = intent.getIntExtra(EXTRA_NOTIF_ID, 0)
 
-                val svc = MatrixProvider.getReady(context) ?: return@launch
+                runCatching { service.initFromDisk() }
+                val port = service.portOrNull
+                if (port == null || !service.isLoggedIn()) return@launch
 
                 when (intent.action) {
                     ACTION_MARK_READ -> {
-                        svc.port.markFullyReadAt(roomId, eventId)
+                        port.markFullyReadAt(roomId, eventId)
                     }
 
                     ACTION_REPLY -> {
@@ -35,13 +42,12 @@ class NotificationActionReceiver : BroadcastReceiver() {
                             .orEmpty()
 
                         if (text.isNotBlank()) {
-                            svc.port.reply(roomId, eventId, text)
-                            svc.port.markFullyReadAt(roomId, eventId)
+                            port.reply(roomId, eventId, text)
+                            port.markFullyReadAt(roomId, eventId)
                         }
                     }
                 }
 
-                // dismiss notification after action
                 val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 if (notifId != 0) nm.cancel(notifId)
             } finally {

@@ -5,13 +5,17 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
-import org.mlm.mages.matrix.MatrixProvider
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.mlm.mages.MatrixService
 import org.mlm.mages.platform.SettingsProvider
 
 class NotificationEnrichWorker(
     appContext: Context,
     params: WorkerParameters
-) : CoroutineWorker(appContext, params) {
+) : CoroutineWorker(appContext, params), KoinComponent {
+
+    private val service: MatrixService by inject()
 
     override suspend fun doWork(): Result {
         val roomId = inputData.getString(KEY_ROOM_ID) ?: return Result.failure()
@@ -21,14 +25,19 @@ class NotificationEnrichWorker(
         val settings = settingsRepo.flow.first()
         if (!settings.notificationsEnabled) return Result.success()
 
-        val svc = MatrixProvider.getReady(applicationContext) ?: return Result.retry()
+        runCatching { service.initFromDisk() }
+
+        val port = service.portOrNull
+        if (port == null || !service.isLoggedIn()) {
+            return Result.success()
+        }
 
         val rendered = withTimeoutOrNull(7_000) {
-            svc.port.fetchNotification(roomId, eventId)
+            port.fetchNotification(roomId, eventId)
         } ?: return Result.retry()
 
         if (!rendered.isNoisy) return Result.success()
-        if (settings.mentionsOnly and !rendered.hasMention) return Result.success()
+        if (settings.mentionsOnly && !rendered.hasMention) return Result.success()
 
         AndroidNotificationHelper.showSingleEvent(
             applicationContext,
