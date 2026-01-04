@@ -43,7 +43,7 @@ data class AppSettings(
         type = Dropdown::class,
         options = ["System", "Light", "Dark"]
     )
-    val themeMode: Int = ThemeMode.System.ordinal,
+    val themeMode: Int = ThemeMode.Dark.ordinal,
 
     @Setting(
         title = "Font size",
