@@ -922,10 +922,21 @@ fn init_tracing() {
 #[export]
 impl Client {
     #[uniffi::constructor]
-    pub fn new(homeserver_url: String, store_dir: String) -> Result<Self, FfiError> {
+    pub fn new(
+        homeserver_url: String,
+        base_store_dir: String,
+        account_id: Option<String>,
+    ) -> Result<Self, FfiError> {
         init_tracing();
 
-        let store_dir_path = std::path::PathBuf::from(&store_dir);
+        let store_dir_path = if let Some(ref id) = account_id {
+            std::path::PathBuf::from(&base_store_dir)
+                .join("accounts")
+                .join(id)
+        } else {
+            std::path::PathBuf::from(&base_store_dir)
+        };
+
         let _ = std::fs::create_dir_all(&store_dir_path);
 
         let inner = RT
@@ -944,6 +955,7 @@ impl Client {
                         backup_download_strategy: BackupDownloadStrategy::OneShot,
                         ..Default::default()
                     })
+                    .handle_refresh_tokens()
                     .build()
                     .await
             })

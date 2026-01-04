@@ -19,19 +19,21 @@ class RustMatrixPort : MatrixPort {
     private var client: FfiClient? = null
     private val clientLock = Any()
     private var currentHs: String? = null
+    private var currentAccountId: String? = null
 
-    override suspend fun init(hs: String) =
+    override suspend fun init(hs: String, accountId: String?) =
         withContext(Dispatchers.IO) {
             synchronized(clientLock) {
-                if (currentHs == hs && client != null) return@synchronized
+                if (currentHs == hs && currentAccountId == accountId && client != null) return@synchronized
 
                 client?.let { c ->
                     runCatching { c.shutdown() }
                     runCatching { c.close() }
                 }
 
-                client = FfiClient(hs, MagesPaths.storeDir())
+                client = FfiClient(hs, MagesPaths.storeDir(), accountId)
                 currentHs = hs
+                currentAccountId = accountId
             }
         }
 
@@ -221,12 +223,16 @@ class RustMatrixPort : MatrixPort {
 
     override suspend fun paginateBack(roomId: String, count: Int): Boolean =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.paginateBackwards(roomId, count.toUShort()) } }.isSuccess
+            runCatching {
+                withClient { it.paginateBackwards(roomId, count.toUShort()) }
+            }.getOrDefault(false)
         }
 
     override suspend fun paginateForward(roomId: String, count: Int): Boolean =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.paginateForwards(roomId, count.toUShort()) } }.isSuccess
+            runCatching {
+                withClient { it.paginateForwards(roomId, count.toUShort()) }
+            }.getOrDefault(false)
         }
 
     override suspend fun markRead(roomId: String): Boolean =

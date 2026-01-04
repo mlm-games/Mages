@@ -81,9 +81,9 @@ class SecurityViewModel(
     //  Verification
 
     private fun startVerificationInbox() {
-        inboxToken?.let { service.stopVerificationInbox(it) }
+        inboxToken?.let { service.portOrNull?.stopVerificationInbox(it) }
 
-        inboxToken = service.startVerificationInbox(object : MatrixPort.VerificationInboxObserver {
+        inboxToken = service.portOrNull?.startVerificationInbox(object : MatrixPort.VerificationInboxObserver {
             override fun onRequest(flowId: String, fromUser: String, fromDevice: String) {
                 updateState {
                     val pending = pendingVerifications + VerificationRequestUi(
@@ -346,6 +346,6 @@ class SecurityViewModel(
 
     override fun onCleared() {
         super.onCleared()
-        inboxToken?.let { service.stopVerificationInbox(it) }
+        inboxToken?.let { service.portOrNull?.stopVerificationInbox(it) }
     }
 }

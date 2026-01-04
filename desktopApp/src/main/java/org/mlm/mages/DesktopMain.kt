@@ -16,8 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import mages.shared.generated.resources.Res
-import org.mlm.mages.matrix.createMatrixPort
-import org.mlm.mages.platform.BindNotifications
+import org.mlm.mages.di.KoinApp
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.Notifier
 import org.mlm.mages.platform.SettingsProvider
@@ -44,71 +43,12 @@ fun main() = application {
 
     val scope = rememberCoroutineScope()
 
-    var service by remember { mutableStateOf<MatrixService?>(null) }
-    val serviceLock = remember { Any() }
-
-    fun getService(): MatrixService {
-        service?.let { return it }
-        return synchronized(serviceLock) {
-            service?.let { return it }
-            MatrixService(createMatrixPort()).also { created -> service = created }
-        }
-    }
-
-    val svc = getService()
-
-    LaunchedEffect(Unit) {
-        // Warm up DBus so actions work immediately
-        withContext(Dispatchers.IO) {
-            NotifierImpl.warmUp()
-        }
-
-        // Init Matrix client early, (if window = false, compose actually doesn't run App())
-        val hs = settings.homeserver
-        if (hs.isNotBlank()) {
-            runCatching { svc.init(hs) }
-        }
-
-        if (svc.isLoggedIn()) {
-            svc.startSupervisedSync()
-            runCatching { svc.port.enterForeground() }
-        }
-    }
-
-
-    // Install desktop notif action handlers early
-    DesktopNotifActions.openRoom = { roomId ->
-        SwingUtilities.invokeLater { showWindow = true }
-        deepLinkRoomIds.tryEmit(roomId)
-    }
-
-    DesktopNotifActions.markRead = { roomId, eventId ->
-        scope.launch {
-            runCatching { svc.port.markFullyReadAt(roomId, eventId) }
-        }
-    }
-
-    DesktopNotifActions.reply = { roomId, _ ->
-        DesktopNotifActions.openRoom(roomId)
-    }
-
-    DesktopNotifActions.replyText = replyText@{ roomId, eventId, text ->
-        val msg = text.trim()
-        if (msg.isBlank()) return@replyText
-
-        scope.launch {
-            runCatching { svc.port.reply(roomId, eventId, msg) }
-            runCatching { svc.port.markFullyReadAt(roomId, eventId) }
-        }
-    }
-
     val windowState = rememberWindowState()
 
     val tray: SystemTray? = remember {
         SystemTray.DEBUG = false
 
         val osName = System.getProperty("os.name").lowercase()
-        // Work around some macOS issues by forcing Swing
         if (osName.contains("mac")) {
             SystemTray.FORCE_TRAY_TYPE = SystemTray.TrayType.Swing
         }
@@ -171,7 +111,7 @@ fun main() = application {
     }
 
     LaunchedEffect(Unit) {
-        scope.launch(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
             NotifierImpl.warmUp()
         }
     }
@@ -204,7 +144,12 @@ fun main() = application {
             }
         }
 
-        App( svc, settingsRepo, deepLinks)
+        KoinApp(settingsRepo) {
+            DesktopAppContent(
+                deepLinks = deepLinks,
+                deepLinkRoomIds = deepLinkRoomIds,
+                scope = scope
+            )
+        }
     }
-    BindNotifications(service = svc, settingsRepo)
 }

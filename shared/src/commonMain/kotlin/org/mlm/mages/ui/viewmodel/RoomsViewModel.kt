@@ -1,7 +1,9 @@
 package org.mlm.mages.ui.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import org.mlm.mages.MatrixService
@@ -29,11 +31,38 @@ class RoomsViewModel(
     private var connToken: ULong? = null
     private var roomListToken: ULong? = null
     private var initialized = false
+    private var observerJob: Job? = null
 
     init {
-        observeConnection()
-        bootstrapRoomListFromCache()
-        observeRoomList()
+        observerJob = launch {
+            while (!service.isLoggedIn()) {
+                delay(100)
+            }
+
+            service.activeAccount.collect { account ->
+                if (account != null) {
+                    resetObservers()
+                    observeConnection()
+                    bootstrapRoomListFromCache()
+                    observeRoomList()
+                }
+            }
+        }
+    }
+
+    private fun resetObservers() {
+        roomListToken?.let {
+            runCatching { service.portOrNull?.unobserveRoomList(it) }
+        }
+        roomListToken = null
+
+        connToken?.let {
+            runCatching { service.portOrNull?.stopConnectionObserver(it) }
+        }
+        connToken = null
+
+        initialized = false
+        updateState { RoomsUiState(isLoading = true) }
     }
 
     //  Public Actions
@@ -48,7 +77,7 @@ class RoomsViewModel(
         updateState { copy(unreadOnly = next) }
 
         roomListToken?.let { token ->
-            service.port.roomListSetUnreadOnly(token, next)
+            runCatching { service.port.roomListSetUnreadOnly(token, next) }
         }
 
         recomputeGroupedRooms()
@@ -61,8 +90,8 @@ class RoomsViewModel(
     }
 
     fun refresh() {
-//        updateState { copy(isLoading = true) }
-        service.port.enterForeground()
+        updateState { copy(isLoading = true) }
+        runCatching { service.port.enterForeground() }
     }
 
     private fun mapRoomSummary(entry: RoomListEntry): RoomSummary {
@@ -121,7 +150,6 @@ class RoomsViewModel(
         if (event == null) return null
         val body = event.body
 
-        // Hide raw mxc:// URLs for media
         if (body != null && body.startsWith("mxc://")) {
             return when (type) {
                 LastMessageType.Image -> "Photo"
@@ -137,86 +165,94 @@ class RoomsViewModel(
     //  Private Methods
 
     private fun observeRoomList() {
-        roomListToken?.let { service.port.unobserveRoomList(it) }
+        if (roomListToken != null) return
 
-        roomListToken = service.port.observeRoomList(object : MatrixPort.RoomListObserver {
-            override fun onReset(items: List<RoomListEntry>) {
-                initialized = true
+        try {
+            roomListToken = service.port.observeRoomList(object : MatrixPort.RoomListObserver {
+                override fun onReset(items: List<RoomListEntry>) {
+                    initialized = true
 
-                if (items.isEmpty() && currentState.allItems.isNotEmpty() && currentState.offlineBanner != null) {
-                    updateState { copy(isLoading = false) }
-                    return
-                } // HACK: To prevent empty / No rooms when offline
+                    if (items.isEmpty() && currentState.allItems.isNotEmpty() && currentState.offlineBanner != null) {
+                        updateState { copy(isLoading = false) }
+                        return
+                    }
 
-                items.forEach { maybePrefetchRoomAvatar(it.roomId, it.avatarUrl) }
-                val domainRooms = items.map(::mapRoomSummary)
-                val uiItems     = items.map(::mapRoomEntryToUi)
+                    items.forEach { maybePrefetchRoomAvatar(it.roomId, it.avatarUrl) }
+                    val domainRooms = items.map(::mapRoomSummary)
+                    val uiItems     = items.map(::mapRoomEntryToUi)
 
-                updateState {
-                    copy(
-                        rooms = domainRooms,
-                        unread = items.associate { e -> e.roomId to e.notifications.toInt() },
-                        favourites = items.filter { e -> e.isFavourite }.map { e -> e.roomId }.toSet(),
-                        lowPriority = items.filter { e -> e.isLowPriority }.map { e -> e.roomId }.toSet(),
-                        allItems = uiItems,
-                        isLoading = false
-                    )
+                    updateState {
+                        copy(
+                            rooms = domainRooms,
+                            unread = items.associate { e -> e.roomId to e.notifications.toInt() },
+                            favourites = items.filter { e -> e.isFavourite }.map { e -> e.roomId }.toSet(),
+                            lowPriority = items.filter { e -> e.isLowPriority }.map { e -> e.roomId }.toSet(),
+                            allItems = uiItems,
+                            isLoading = false
+                        )
+                    }
+                    recomputeGroupedRooms()
                 }
-                recomputeGroupedRooms()
-            }
 
-            override fun onUpdate(item: RoomListEntry) {
-                maybePrefetchRoomAvatar(item.roomId, item.avatarUrl)
-                updateState {
-                    val updatedRooms = rooms.map { room ->
-                        if (room.id == item.roomId) mapRoomSummary(item) else room
+                override fun onUpdate(item: RoomListEntry) {
+                    maybePrefetchRoomAvatar(item.roomId, item.avatarUrl)
+                    updateState {
+                        val updatedRooms = rooms.map { room ->
+                            if (room.id == item.roomId) mapRoomSummary(item) else room
+                        }
+
+                        val updatedUiItems = allItems.map { existing ->
+                            if (existing.roomId == item.roomId) mapRoomEntryToUi(item) else existing
+                        }
+
+                        val updatedUnread = unread.toMutableMap().apply {
+                            put(item.roomId, item.notifications.toInt())
+                        }
+
+                        val updatedFavourites =
+                            if (item.isFavourite) favourites + item.roomId else favourites - item.roomId
+                        val updatedLowPriority =
+                            if (item.isLowPriority) lowPriority + item.roomId else lowPriority - item.roomId
+
+                        copy(
+                            rooms = updatedRooms,
+                            unread = updatedUnread,
+                            favourites = updatedFavourites,
+                            lowPriority = updatedLowPriority,
+                            allItems = updatedUiItems
+                        )
                     }
-
-                    val updatedUiItems = allItems.map { existing ->
-                        if (existing.roomId == item.roomId) mapRoomEntryToUi(item) else existing
-                    }
-
-                    val updatedUnread = unread.toMutableMap().apply {
-                        put(item.roomId, item.notifications.toInt())
-                    }
-
-                    val updatedFavourites =
-                        if (item.isFavourite) favourites + item.roomId else favourites - item.roomId
-                    val updatedLowPriority =
-                        if (item.isLowPriority) lowPriority + item.roomId else lowPriority - item.roomId
-
-                    copy(
-                        rooms = updatedRooms,
-                        unread = updatedUnread,
-                        favourites = updatedFavourites,
-                        lowPriority = updatedLowPriority,
-                        allItems = updatedUiItems
-                    )
+                    recomputeGroupedRooms()
                 }
-                recomputeGroupedRooms()
-            }
-        })
+            })
+        } catch (e: Exception) {
+            println("Failed to observe room list: ${e.message}")
+        }
     }
 
     private fun observeConnection() {
-        connToken?.let { service.stopConnectionObserver(it) }
+        if (connToken != null) return
 
-        connToken = service.observeConnection(object : MatrixPort.ConnectionObserver {
-            override fun onConnectionChange(state: MatrixPort.ConnectionState) {
-                val banner = when (state) {
-                    MatrixPort.ConnectionState.Disconnected -> "No connection"
-                    MatrixPort.ConnectionState.Reconnecting -> "Reconnecting..."
-                    MatrixPort.ConnectionState.Connecting -> "Connecting..."
-                    else -> null
+        try {
+            connToken = service.portOrNull?.observeConnection(object : MatrixPort.ConnectionObserver {
+                override fun onConnectionChange(state: MatrixPort.ConnectionState) {
+                    val banner = when (state) {
+                        MatrixPort.ConnectionState.Disconnected -> "No connection"
+                        MatrixPort.ConnectionState.Reconnecting -> "Reconnecting..."
+                        MatrixPort.ConnectionState.Connecting -> "Connecting..."
+                        else -> null
+                    }
+                    updateState {
+                        copy(
+                            offlineBanner = banner,
+                            isLoading = if (banner != null && allItems.isEmpty()) false else isLoading
+                        )
+                    }
                 }
-                updateState {
-                    copy(
-                        offlineBanner = banner,
-                        isLoading = if (banner != null && allItems.isEmpty()) false else isLoading
-                    )
-                }
-            }
-        })
+            })
+        } catch (e: Exception) {
+            println("Failed to observe connection: ${e.message}")
+        }
     }
 
     private fun recomputeGroupedRooms() {
@@ -225,7 +261,6 @@ class RoomsViewModel(
 
         var list = s.allItems
 
-        // Search filter
         if (query.isNotBlank()) {
             list = list.filter {
                 it.name.contains(query, ignoreCase = true) ||
@@ -233,7 +268,6 @@ class RoomsViewModel(
             }
         }
 
-        // Unread filter
         if (s.unreadOnly) {
             list = list.filter { it.unreadCount > 0 }
         }
@@ -256,8 +290,12 @@ class RoomsViewModel(
         if (currentState.roomAvatarPath.containsKey(roomId)) return
 
         launch {
-            val path = service.avatars.resolve(avatarMxc, px = 96, crop = true) ?: return@launch
-            updateState { copy(roomAvatarPath = roomAvatarPath + (roomId to path)) }
+            try {
+                val path = service.avatars.resolve(avatarMxc, px = 96, crop = true) ?: return@launch
+                updateState { copy(roomAvatarPath = roomAvatarPath + (roomId to path)) }
+            } catch (_: Exception) {
+                // Ignore
+            }
         }
     }
 
@@ -292,7 +330,13 @@ class RoomsViewModel(
 
     override fun onCleared() {
         super.onCleared()
-        roomListToken?.let { service.port.unobserveRoomList(it) }
-        connToken?.let { service.stopConnectionObserver(it) }
+        observerJob?.cancel()
+
+        roomListToken?.let { token ->
+            runCatching { service.portOrNull?.unobserveRoomList(token) }
+        }
+        connToken?.let { token ->
+            runCatching { service.portOrNull?.stopConnectionObserver(token) }
+        }
     }
 }

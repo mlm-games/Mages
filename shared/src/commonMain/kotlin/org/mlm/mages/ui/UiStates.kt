@@ -22,6 +22,7 @@ data class LoginUiState(
     val user: String = "",
     val pass: String = "",
     val isBusy: Boolean = false,
+    val ssoInProgress: Boolean = false,
     val error: String? = null
 )
 

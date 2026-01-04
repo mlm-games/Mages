@@ -4,21 +4,27 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import org.mlm.mages.matrix.CallIntent
-import org.mlm.mages.matrix.CallSession
-import org.mlm.mages.matrix.CallWidgetObserver
-import org.mlm.mages.matrix.DeviceSummary
-import org.mlm.mages.matrix.MatrixPort
-import org.mlm.mages.matrix.SendUpdate
-import org.mlm.mages.matrix.SpaceHierarchyPage
-import org.mlm.mages.matrix.SpaceInfo
-import org.mlm.mages.matrix.TimelineDiff
-import org.mlm.mages.matrix.VerificationObserver
+import org.mlm.mages.accounts.MatrixAccount
+import org.mlm.mages.accounts.MatrixClients
+import org.mlm.mages.matrix.*
 import org.mlm.mages.storage.AvatarLoader
 import kotlin.concurrent.Volatile
-import kotlin.time.ExperimentalTime
 
-class MatrixService(val port: MatrixPort) {
+class MatrixService(
+    private val clients: MatrixClients
+) {
+    // Delegate to the currently active port
+    val port: MatrixPort
+        get() = clients.port
+
+    val portOrNull: MatrixPort?
+        get() = clients.portOrNull
+
+    val activeAccount: StateFlow<MatrixAccount?>
+        get() = clients.activeAccount
+
+    val isReady: StateFlow<Boolean>
+        get() = clients.isReady
 
     @Volatile
     private var supervisedSyncStarted = false
@@ -26,17 +32,41 @@ class MatrixService(val port: MatrixPort) {
     private val _syncStatus = MutableStateFlow<MatrixPort.SyncStatus?>(null)
     val syncStatus: StateFlow<MatrixPort.SyncStatus?> = _syncStatus.asStateFlow()
 
-    val avatars = AvatarLoader(port)
+    // Lazy avatar loader -> recreated when account switches
+    private var _avatars: AvatarLoader? = null
+    val avatars: AvatarLoader
+        get() {
+            val current = _avatars
+            if (current != null && clients.portOrNull != null) {
+                return current
+            }
+            val newLoader = AvatarLoader(port)
+            _avatars = newLoader
+            return newLoader
+        }
 
+    suspend fun initFromDisk(): Boolean {
+        val result = clients.initFromDisk()
+        if (result && clients.portOrNull != null) {
+            _avatars = AvatarLoader(port)
+        }
+        return result
+    }
 
-    suspend fun init(hs: String) = port.init(hs.trim())
-    suspend fun login(user: String, password: String, deviceDisplayName: String?) =
-         port.login(user.trim(), password, deviceDisplayName)
+    suspend fun init(hs: String) {
+        port.init(hs.trim())
+    }
 
-    fun isLoggedIn(): Boolean = port.isLoggedIn()
+    suspend fun login(user: String, password: String, deviceDisplayName: String?) {
+        port.login(user.trim(), password, deviceDisplayName)
+    }
+
+    fun isLoggedIn(): Boolean = clients.hasActiveClient()
 
     fun observeSends(): Flow<SendUpdate> = port.observeSends()
-    suspend fun thumbnailToCache(info: AttachmentInfo, w: Int, h: Int, crop: Boolean) = port.thumbnailToCache(info, w, h, crop)
+
+    suspend fun thumbnailToCache(info: AttachmentInfo, w: Int, h: Int, crop: Boolean) =
+        port.thumbnailToCache(info, w, h, crop)
 
     fun startSupervisedSync(externalObserver: MatrixPort.SyncObserver? = null) {
         if (supervisedSyncStarted) return
@@ -51,32 +81,56 @@ class MatrixService(val port: MatrixPort) {
         runCatching { port.startSupervisedSync(wrappedObserver) }
     }
 
+    fun resetSyncState() {
+        supervisedSyncStarted = false
+        _syncStatus.value = null
+    }
 
+    suspend fun switchAccount(account: MatrixAccount): Boolean {
+        resetSyncState()
+        _avatars = null
+        val result = clients.switchTo(account)
+        if (result) {
+            _avatars = AvatarLoader(port)
+        }
+        return result
+    }
 
-    // Connection monitoring
-    fun observeConnection(observer: MatrixPort.ConnectionObserver): ULong =
-        port.observeConnection(observer)
-    fun stopConnectionObserver(token: ULong) = port.stopConnectionObserver(token)
+    suspend fun removeAccount(accountId: String) {
+        if (clients.activeAccount.value?.id == accountId) {
+            resetSyncState()
+            _avatars = null
+        }
+        clients.removeAccount(accountId)
+        if (clients.hasActiveClient()) {
+            _avatars = AvatarLoader(port)
+        }
+    }
 
-    fun startVerificationInbox(cb: MatrixPort.VerificationInboxObserver): ULong =
-        port.startVerificationInbox(cb)
-    fun stopVerificationInbox(token: ULong) = port.stopVerificationInbox(token)
-
-    suspend fun listRooms(): List<RoomSummary> = port.listRooms()
-    suspend fun loadRecent(roomId: String, limit: Int = 50): List<MessageEvent> = port.recent(roomId, limit)
     fun timelineDiffs(roomId: String): Flow<TimelineDiff<MessageEvent>> = port.timelineDiffs(roomId)
 
-    suspend fun sendMessage(roomId: String, body: String): Boolean =
-        port.send(roomId, body)
-    suspend fun paginateBack(roomId: String, count: Int) = runCatching { port.paginateBack(roomId, count) }.getOrElse { false }
-    suspend fun paginateForward(roomId: String, count: Int) = runCatching { port.paginateForward(roomId, count) }.getOrElse { false }
+    suspend fun sendMessage(roomId: String, body: String): Boolean = port.send(roomId, body)
 
-    suspend fun markRead(roomId: String) = runCatching { port.markRead(roomId) }.getOrElse { false }
-    suspend fun markReadAt(roomId: String, eventId: String) = runCatching { port.markReadAt(roomId, eventId) }.getOrElse { false }
+    suspend fun paginateBack(roomId: String, count: Int) =
+        runCatching { port.paginateBack(roomId, count) }.getOrElse { false }
 
-    suspend fun react(roomId: String, eventId: String, emoji: String) = runCatching { port.react(roomId, eventId, emoji) }.getOrElse { false }
-    suspend fun reply(roomId: String, inReplyToEventId: String, body: String) = runCatching { port.reply(roomId, inReplyToEventId, body) }.getOrElse { false }
-    suspend fun edit(roomId: String, targetEventId: String, newBody: String) = runCatching { port.edit(roomId, targetEventId, newBody) }.getOrElse { false }
+    suspend fun paginateForward(roomId: String, count: Int) =
+        runCatching { port.paginateForward(roomId, count) }.getOrElse { false }
+
+    suspend fun markRead(roomId: String) =
+        runCatching { port.markRead(roomId) }.getOrElse { false }
+
+    suspend fun markReadAt(roomId: String, eventId: String) =
+        runCatching { port.markReadAt(roomId, eventId) }.getOrElse { false }
+
+    suspend fun react(roomId: String, eventId: String, emoji: String) =
+        runCatching { port.react(roomId, eventId, emoji) }.getOrElse { false }
+
+    suspend fun reply(roomId: String, inReplyToEventId: String, body: String) =
+        runCatching { port.reply(roomId, inReplyToEventId, body) }.getOrElse { false }
+
+    suspend fun edit(roomId: String, targetEventId: String, newBody: String) =
+        runCatching { port.edit(roomId, targetEventId, newBody) }.getOrElse { false }
 
     suspend fun redact(roomId: String, eventId: String, reason: String? = null) =
         runCatching { port.redact(roomId, eventId, reason) }.getOrElse { false }
@@ -86,17 +140,18 @@ class MatrixService(val port: MatrixPort) {
 
     fun stopTypingObserver(token: ULong) = port.stopTypingObserver(token)
 
-    suspend fun enqueueText(roomId: String, body: String, txnId: String? = null) = port.enqueueText(roomId, body, txnId)
+    suspend fun enqueueText(roomId: String, body: String, txnId: String? = null) =
+        port.enqueueText(roomId, body, txnId)
 
-    suspend fun listMyDevices(): List<DeviceSummary> = runCatching { port.listMyDevices() }.getOrElse { emptyList() }
+    suspend fun listMyDevices(): List<DeviceSummary> =
+        runCatching { port.listMyDevices() }.getOrElse { emptyList() }
 
-    suspend fun startSelfSas(deviceId: String, observer: VerificationObserver) = port.startSelfSas(deviceId, observer)
-
-//    suspend fun startVerification(targetUser: String, targetDevice: String, observer: VerificationObserver) =
-//        port.startVerification(targetUser, targetDevice, observer)
+    suspend fun startSelfSas(deviceId: String, observer: VerificationObserver) =
+        port.startSelfSas(deviceId, observer)
 
     suspend fun acceptVerification(flowId: String, otherUserId: String?, observer: VerificationObserver) =
         port.acceptVerification(flowId, otherUserId, observer)
+
     suspend fun confirmVerification(flowId: String) = port.confirmVerification(flowId)
     suspend fun cancelVerification(flowId: String) = port.cancelVerification(flowId)
     suspend fun cancelVerificationRequest(flowId: String, otherUserId: String?) =
@@ -123,14 +178,13 @@ class MatrixService(val port: MatrixPort) {
         onProgress: ((Long, Long?) -> Unit)? = null
     ) = runCatching { port.sendAttachmentBytes(roomId, data, mime, filename, onProgress) }.getOrElse { false }
 
-    // Recovery
     suspend fun recoverWithKey(recoveryKey: String) =
         runCatching { port.recoverWithKey(recoveryKey) }.getOrElse { false }
 
     suspend fun startUserSas(userId: String, observer: VerificationObserver) =
         port.startUserSas(userId, observer)
 
-        suspend fun retryByTxn(roomId: String, txnId: String) =
+    suspend fun retryByTxn(roomId: String, txnId: String) =
         runCatching { port.retryByTxn(roomId, txnId) }.getOrElse { false }
 
     suspend fun isSpace(roomId: String): Boolean =

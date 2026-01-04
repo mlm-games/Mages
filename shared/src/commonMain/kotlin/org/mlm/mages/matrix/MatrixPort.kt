@@ -266,7 +266,7 @@ interface MatrixPort {
 
     interface SyncObserver { fun onState(status: SyncStatus) }
 
-    suspend fun init(hs: String)
+    suspend fun init(hs: String, accountId: String? = null)
     suspend fun login(user: String, password: String, deviceDisplayName: String?)
     suspend fun listRooms(): List<RoomSummary>
     suspend fun recent(roomId: String, limit: Int = 50): List<MessageEvent>

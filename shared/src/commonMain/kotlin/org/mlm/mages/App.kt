@@ -1,25 +1,16 @@
 package org.mlm.mages
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
@@ -32,19 +23,13 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
-import org.mlm.mages.di.KoinApp
+import org.mlm.mages.accounts.AccountStore
 import org.mlm.mages.matrix.Presence
-import org.mlm.mages.nav.BindDeepLinks
-import org.mlm.mages.nav.Route
-import org.mlm.mages.nav.loginEntryFadeMetadata
-import org.mlm.mages.nav.navSavedStateConfiguration
-import org.mlm.mages.nav.popUntil
-import org.mlm.mages.nav.replaceTop
+import org.mlm.mages.nav.*
 import org.mlm.mages.platform.BindLifecycle
 import org.mlm.mages.platform.BindNotifications
 import org.mlm.mages.platform.rememberFileOpener
@@ -53,165 +38,133 @@ import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.ThemeMode
 import org.mlm.mages.ui.animation.forwardTransition
 import org.mlm.mages.ui.animation.popTransition
+import org.mlm.mages.ui.components.sheets.AccountSwitcherSheet
 import org.mlm.mages.ui.components.sheets.CreateRoomSheet
 import org.mlm.mages.ui.components.snackbar.LauncherSnackbarHost
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
-import org.mlm.mages.ui.screens.DiscoverRoute
-import org.mlm.mages.ui.screens.ForwardPickerScreen
-import org.mlm.mages.ui.screens.InvitesRoute
-import org.mlm.mages.ui.screens.LoginScreen
-import org.mlm.mages.ui.screens.MediaGalleryScreen
-import org.mlm.mages.ui.screens.RoomInfoRoute
-import org.mlm.mages.ui.screens.RoomScreen
-import org.mlm.mages.ui.screens.RoomsScreen
-import org.mlm.mages.ui.screens.SearchScreen
-import org.mlm.mages.ui.screens.SecurityScreen
-import org.mlm.mages.ui.screens.SpaceDetailScreen
-import org.mlm.mages.ui.screens.SpaceSettingsScreen
-import org.mlm.mages.ui.screens.SpacesScreen
-import org.mlm.mages.ui.screens.ThreadRoute
+import org.mlm.mages.ui.screens.*
 import org.mlm.mages.ui.theme.MainTheme
 import org.mlm.mages.ui.util.popBack
-import org.mlm.mages.ui.viewmodel.DiscoverViewModel
-import org.mlm.mages.ui.viewmodel.ForwardPickerViewModel
-import org.mlm.mages.ui.viewmodel.InvitesViewModel
-import org.mlm.mages.ui.viewmodel.LoginViewModel
-import org.mlm.mages.ui.viewmodel.MediaGalleryViewModel
-import org.mlm.mages.ui.viewmodel.RoomInfoViewModel
-import org.mlm.mages.ui.viewmodel.RoomViewModel
-import org.mlm.mages.ui.viewmodel.RoomsViewModel
-import org.mlm.mages.ui.viewmodel.SearchViewModel
-import org.mlm.mages.ui.viewmodel.SecurityViewModel
-import org.mlm.mages.ui.viewmodel.SpaceDetailViewModel
-import org.mlm.mages.ui.viewmodel.SpaceSettingsViewModel
-import org.mlm.mages.ui.viewmodel.SpacesViewModel
-import org.mlm.mages.ui.viewmodel.ThreadViewModel
+import org.mlm.mages.ui.viewmodel.*
 
 val LocalMessageFontSize = staticCompositionLocalOf { 16f }
 
 @Composable
 fun App(
-    service: MatrixService,
     settingsRepository: SettingsRepository<AppSettings>,
     deepLinks: Flow<String>? = null
 ) {
     val settings by settingsRepository.flow.collectAsState(AppSettings())
 
     CompositionLocalProvider(LocalMessageFontSize provides settings.fontSize) {
-
-        KoinApp(service, settingsRepository) {
-            AppContent(deepLinks = deepLinks)
-        }
+        AppContent(deepLinks = deepLinks)
     }
 }
 
 @Suppress("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-private fun AppContent(
-    deepLinks: Flow<String>?
-) {
+private fun AppContent(deepLinks: Flow<String>?) {
     val service: MatrixService = koinInject()
+    val accountStore: AccountStore = koinInject()
     val settingsRepository: SettingsRepository<AppSettings> = koinInject()
     val snackbarManager: SnackbarManager = koinInject()
     val snackbarHostState: SnackbarHostState = koinInject()
     val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
 
-    LaunchedEffect(service) {
-        settingsRepository.flow.collect { s ->
-            if (!service.isLoggedIn()) return@collect
-            runCatching { service.port.setPresence(Presence.entries[s.presence], null) }
-        }
+    var initDone by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        runCatching { service.initFromDisk() }
+        initDone = true
     }
 
-    MainTheme(darkTheme = when (settings.themeMode) {
-        ThemeMode.System.ordinal -> isSystemInDarkTheme()
-        ThemeMode.Dark.ordinal -> true
-        ThemeMode.Light.ordinal -> false
-        else -> { isSystemInDarkTheme() }
-    }) {
+    val activeAccount by service.activeAccount.collectAsState()
+    val activeId = activeAccount?.id
+
+    if (!initDone) {
+        Surface {
+            Box(
+                modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center
+            ) { CircularProgressIndicator() }
+        }
+        return
+    }
+
+    val initialRoute = remember(activeId) {
+        if (activeId != null && service.isLoggedIn()) Route.Rooms else Route.Login
+    }
+
+    MainTheme(
+        darkTheme = when (settings.themeMode) {
+            ThemeMode.System.ordinal -> isSystemInDarkTheme()
+            ThemeMode.Dark.ordinal -> true
+            ThemeMode.Light.ordinal -> false
+            else -> isSystemInDarkTheme()
+        }
+    ) {
         val scope = rememberCoroutineScope()
-
-        var showCreateRoom by remember { mutableStateOf(false) }
         var sessionEpoch by remember { mutableIntStateOf(0) }
+        var showCreateRoom by remember { mutableStateOf(false) }
+        var showAccountSwitcher by remember { mutableStateOf(false) }
+        val accounts by accountStore.accounts.collectAsState()
+        val activeAccountId by accountStore.activeAccountId.collectAsState()
 
+        val backStack: NavBackStack<NavKey> =
+            rememberNavBackStack(navSavedStateConfiguration, initialRoute)
 
-        val initialRoute by produceState<Route?>(initialValue = null, service, settingsRepository) {
-            val hs = settingsRepository.flow.first().homeserver
-            if (hs.isNotBlank()) {
-                runCatching { service.init(hs) }
+        BindDeepLinks(backStack, deepLinks)
+
+        BindLifecycle(service)
+        BindNotifications(service, settingsRepository)
+
+        LaunchedEffect(activeId) {
+            if (activeId == null || !service.isLoggedIn()) {
+                backStack.clear()
+                backStack.add(Route.Login)
+                return@LaunchedEffect
+            } else {
+                // If account becomes active, go to Rooms
+                if (backStack.lastOrNull() == Route.Login) {
+                    backStack.replaceTop(Route.Rooms)
+                }
             }
-            value = if (service.isLoggedIn()) Route.Rooms else Route.Login
         }
 
-        LaunchedEffect(service, initialRoute) {
-            if (initialRoute != Route.Rooms) return@LaunchedEffect
-            if (!service.isLoggedIn()) return@LaunchedEffect
+        LaunchedEffect(activeId) {
+            if (activeId == null || !service.isLoggedIn()) return@LaunchedEffect
+            settingsRepository.flow.collect { s ->
+                runCatching { service.port.setPresence(Presence.entries[s.presence], null) }
+            }
+        }
 
+        LaunchedEffect(activeId) {
+            service.resetSyncState()
+            if (activeId == null || !service.isLoggedIn()) return@LaunchedEffect
+            service.startSupervisedSync()
+        }
+
+        LaunchedEffect(activeId) {
+            if (activeId == null || !service.isLoggedIn()) return@LaunchedEffect
             service.port.observeSends().collect { update ->
                 if (update.txnId.isBlank() && update.error?.contains("send queue disabled") == true) {
                     snackbarManager.show(
                         message = "Sending paused",
                         actionLabel = "Resume",
                         duration = SnackbarDuration.Indefinite,
-                        onAction = {
-                            service.port.sendQueueSetEnabled(true)
-                        }
+                        onAction = { runCatching { service.port.sendQueueSetEnabled(true) } }
                     )
                 }
             }
         }
 
-        if (initialRoute == null) {
-            Surface {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-            return@MainTheme
-        }
-
-        val backStack: NavBackStack<NavKey> =
-            rememberNavBackStack(navSavedStateConfiguration, initialRoute!!)
-
-        BindDeepLinks(backStack, deepLinks)
-        BindLifecycle(service)
-        BindNotifications(service, settingsRepository)
-
-        LaunchedEffect(initialRoute) {
-            if (initialRoute == Route.Rooms && service.isLoggedIn()) {
-                sessionEpoch++
-            }
-        }
-
-        LaunchedEffect(sessionEpoch) {
-            if (service.isLoggedIn()) {
-                service.startSupervisedSync()
-            }
-        }
-
         val uriHandler = LocalUriHandler.current
-
         val openUrl: (String) -> Boolean = remember(uriHandler) {
-            { url ->
-                try {
-                    uriHandler.openUri(url)
-                    true
-                } catch (t: Throwable) {
-                    t.printStackTrace()
-                    false
-                }
-            }
+            { url -> runCatching { uriHandler.openUri(url); true }.getOrDefault(false) }
         }
 
         Scaffold(
             snackbarHost = {
-                LauncherSnackbarHost(
-                    hostState = snackbarHostState,
-                    manager = snackbarManager
-                )
+                LauncherSnackbarHost(hostState = snackbarHostState, manager = snackbarManager)
             }
         ) { _ ->
             NavDisplay(
@@ -226,9 +179,7 @@ private fun AppContent(
                 onBack = {
                     val top = backStack.lastOrNull()
                     val blockBack = top == Route.Login || top == Route.Rooms
-                    if (!blockBack && backStack.size > 1) {
-                        backStack.removeAt(backStack.lastIndex)
-                    }
+                    if (!blockBack && backStack.size > 1) backStack.removeAt(backStack.lastIndex)
                 },
                 entryProvider = entryProvider {
 
@@ -239,19 +190,14 @@ private fun AppContent(
                             viewModel.events.collect { event ->
                                 when (event) {
                                     LoginViewModel.Event.LoginSuccess -> {
-                                        sessionEpoch++
-                                        backStack.replaceTop(Route.Rooms)
+                                        // activeId effect above will move auto. to Rooms
                                     }
                                 }
                             }
                         }
 
-                        LoginScreen(
-                            viewModel = viewModel,
-                            onSso = { viewModel.startSso(openUrl) }
-                        )
+                        LoginScreen(viewModel = viewModel, onSso = { viewModel.startSso(openUrl) })
                     }
-
                     entry<Route.Rooms> {
                         val viewModel: RoomsViewModel = koinViewModel()
 
@@ -275,7 +221,7 @@ private fun AppContent(
                             onOpenInvites = { backStack.add(Route.Invites) },
                             onOpenCreateRoom = { showCreateRoom = true },
                             onOpenSpaces = { backStack.add(Route.Spaces) },
-                            onOpenSearch = { backStack.add(Route.Search) }
+                            onOpenSearch = { backStack.add(Route.Search) },
                         )
 
                         if (showCreateRoom) {
@@ -342,8 +288,43 @@ private fun AppContent(
 
                         SecurityScreen(
                             viewModel = viewModel,
-                            backStack = backStack
+                            backStack = backStack,
+                            onOpenAccountSwitcher = { showAccountSwitcher = true }
                         )
+
+
+                        if (showAccountSwitcher) {
+                            AccountSwitcherSheet(
+                                accounts = accounts,
+                                activeAccountId = activeAccountId,
+                                onSelectAccount = { account ->
+                                    scope.launch {
+                                        val success = service.switchAccount(account)
+                                        if (success) {
+                                            sessionEpoch++
+                                            snackbarManager.show("Switched to ${account.userId}")
+                                        } else {
+                                            snackbarManager.showError("Failed to switch account")
+                                        }
+                                    }
+                                },
+                                onAddAccount = {
+                                    showAccountSwitcher = false
+                                    backStack.add(Route.Login)
+                                },
+                                onRemoveAccount = { account ->
+                                    scope.launch {
+                                        service.removeAccount(account.id)
+                                        if (!service.isLoggedIn()) {
+                                            backStack.replaceTop(Route.Login)
+                                        } else {
+                                            sessionEpoch++
+                                        }
+                                    }
+                                },
+                                onDismiss = { showAccountSwitcher = false }
+                            )
+                        }
                     }
 
                     entry<Route.Discover> {

@@ -1,23 +1,30 @@
-
 package org.mlm.mages.di
 
 import androidx.compose.material3.SnackbarHostState
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import io.github.mlmgames.settings.core.SettingsRepository
+import kotlinx.serialization.json.Json
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import org.mlm.mages.MatrixService
+import org.mlm.mages.accounts.AccountStore
+import org.mlm.mages.accounts.MatrixClients
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.viewmodel.*
 
-val appModule = module {
-
+val coreModule = module {
+    single { Json { ignoreUnknownKeys = true; encodeDefaults = true } }
     single { SnackbarHostState() }
     single { SnackbarManager() }
+}
 
-    // Room
+val accountModule = module {
+    single { AccountStore(get(), get()) }
+    single { MatrixClients(get()) }
+    single { MatrixService(get()) }
+}
+
+val viewModelModule = module {
     viewModel { (roomId: String, roomName: String) ->
         RoomViewModel(
             service = get(),
@@ -26,32 +33,14 @@ val appModule = module {
         )
     }
 
-    // Rooms list
-    viewModel {
-        RoomsViewModel(
-            get()
-        )
-    }
+    viewModel { RoomsViewModel(get()) }
 
-    // Security
     viewModel { SecurityViewModel(get(), get()) }
 
-    // Login
-    viewModel {
-        LoginViewModel(
-            get(),
-            get()
-        )
-    }
+    viewModel { LoginViewModel(get(), get()) }
 
-    // Spaces
-    viewModel {
-        SpacesViewModel(
-            get()
-        )
-    }
+    viewModel { SpacesViewModel(get()) }
 
-    // Space Detail
     viewModel { (spaceId: String, spaceName: String) ->
         SpaceDetailViewModel(
             service = get(),
@@ -60,7 +49,6 @@ val appModule = module {
         )
     }
 
-    // Space Settings
     viewModel { (spaceId: String) ->
         SpaceSettingsViewModel(
             service = get(),
@@ -68,7 +56,6 @@ val appModule = module {
         )
     }
 
-    // Thread
     viewModel { (roomId: String, rootEventId: String) ->
         ThreadViewModel(
             service = get(),
@@ -77,7 +64,6 @@ val appModule = module {
         )
     }
 
-    // Room Info
     viewModel { (roomId: String) ->
         RoomInfoViewModel(
             service = get(),
@@ -85,19 +71,9 @@ val appModule = module {
         )
     }
 
-    // Discover
-    viewModel {
-        DiscoverViewModel(
-            get()
-        )
-    }
+    viewModel { DiscoverViewModel(get()) }
 
-    // Invites
-    viewModel {
-        InvitesViewModel(
-            get()
-        )
-    }
+    viewModel { InvitesViewModel(get()) }
 
     viewModel { (scopedRoomId: String?, scopedRoomName: String?) ->
         SearchViewModel(
@@ -116,15 +92,13 @@ val appModule = module {
             eventIds = params.get()
         )
     }
+
+    viewModel { AccountsViewModel(get(), get()) }
 }
 
-fun appModules(
-    service: MatrixService,
-    settingsRepository: SettingsRepository<AppSettings>
-) = listOf(
-    module {
-        single { service }
-        single { settingsRepository }
-    },
-    appModule
+fun appModules(settingsRepository: SettingsRepository<AppSettings>) = listOf(
+    module { single { settingsRepository } },
+    coreModule,
+    accountModule,
+    viewModelModule
 )

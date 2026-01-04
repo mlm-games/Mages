@@ -85,20 +85,28 @@ fun LoginScreen(
 
             // Title with animation
             AnimatedContent(
-                targetState = state.isBusy,
+                targetState = state.isBusy to state.ssoInProgress,
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
                 label = "busy"
-            ) { isBusy ->
+            ) { (isBusy, ssoInProgress) ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = if (isBusy) "Connecting..." else "Welcome to Mages",
+                        text = when {
+                            ssoInProgress -> "Waiting for SSO..."
+                            isBusy -> "Connecting..."
+                            else -> "Welcome to Mages"
+                        },
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = if (isBusy) "Please wait" else "Sign in to your Matrix account",
+                        text = when {
+                            ssoInProgress -> "Complete login in your browser"
+                            isBusy -> "Please wait"
+                            else -> "Sign in to your Matrix account"
+                        },
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -186,15 +194,28 @@ fun LoginScreen(
                         )
                     )
 
-                    // SSO Button
-                    OutlinedButton(
-                        onClick = onSso,
-                        enabled = !state.isBusy,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.OpenInBrowser, null)
-                        Spacer(Modifier.width(Spacing.sm))
-                        Text("Continue with SSO")
+                    if (state.ssoInProgress) {
+                        OutlinedButton(
+                            onClick = { viewModel.cancelSso() },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Icon(Icons.Default.Close, null)
+                            Spacer(Modifier.width(Spacing.sm))
+                            Text("Cancel SSO")
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = onSso,
+                            enabled = !state.isBusy,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.OpenInBrowser, null)
+                            Spacer(Modifier.width(Spacing.sm))
+                            Text("Continue with SSO")
+                        }
                     }
 
                     // Advanced options
@@ -243,7 +264,7 @@ fun LoginScreen(
                             .height(56.dp),
                         shape = MaterialTheme.shapes.large
                     ) {
-                        if (state.isBusy) {
+                        if (state.isBusy && !state.ssoInProgress) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(24.dp),
                                 color = MaterialTheme.colorScheme.onPrimary,

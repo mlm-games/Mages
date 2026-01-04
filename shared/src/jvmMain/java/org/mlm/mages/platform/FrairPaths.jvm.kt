@@ -2,10 +2,10 @@ package org.mlm.mages.platform
 
 import java.io.File
 
-object MagesPaths {
+actual object MagesPaths {
     @Volatile private var storeDir: String? = null
 
-    fun init() {
+    actual fun init() {
         if (storeDir == null) {
             val home = System.getProperty("user.home")
             val base = File(home, ".mages/store")
@@ -14,7 +14,7 @@ object MagesPaths {
         }
     }
 
-    fun storeDir(): String {
+    actual fun storeDir(): String {
         return storeDir ?: run {
             init()
             storeDir!!

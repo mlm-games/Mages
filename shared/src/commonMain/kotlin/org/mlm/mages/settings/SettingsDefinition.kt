@@ -27,14 +27,14 @@ enum class LocalRoomNotifMode {
 
 @Serializable
 data class AppSettings(
-//    @Setting(
-//        title = "Homeserver",
-//        description = "Matrix homeserver URL used for login and session restore",
-//        category = Account::class,
-//        type = TextInput::class
-//    )
     @Persisted
     val homeserver: String = "https://matrix.org",
+
+    @Persisted
+    val accountsJson: String = "",
+
+    @Persisted
+    val activeAccountId: String? = null,
 
     @Setting(
         title = "Theme",
@@ -66,7 +66,7 @@ data class AppSettings(
 
     @Setting(
         title = "Mentions only (local)",
-        description = "Only notify when you’re mentioned (local filter)",
+        description = "Only notify when you're mentioned (local filter)",
         category = Notifications::class,
         type = Toggle::class,
         dependsOn = "notificationsEnabled"
@@ -82,11 +82,6 @@ data class AppSettings(
     )
     val notificationSound: Boolean = true,
 
-    // Local per-room overrides (not shown in auto UI), gives ksp error fo now
-//    @Persisted
-//    val roomNotificationOverrides: Map<String, LocalRoomNotifMode> = emptyMap(),
-
-    // Desktop + Android notification baselines
     @Persisted
     val desktopNotifBaselineMs: Long = 0L,
 

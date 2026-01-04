@@ -40,7 +40,8 @@ import kotlin.reflect.KClass
 @Composable
 fun SecurityScreen(
     viewModel: SecurityViewModel,
-    backStack: NavBackStack<NavKey>
+    backStack: NavBackStack<NavKey>,
+    onOpenAccountSwitcher: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
     val settings by viewModel.settings.collectAsState()
@@ -64,11 +65,17 @@ fun SecurityScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { showLogoutConfirm = true }) {
+//                        IconButton(onClick = { showLogoutConfirm = true }) {
+//                            Icon(
+//                                Icons.AutoMirrored.Filled.Logout,
+//                                "Logout",
+//                                tint = MaterialTheme.colorScheme.error
+//                            )
+//                        }
+                        IconButton(onClick = onOpenAccountSwitcher) {
                             Icon(
-                                Icons.AutoMirrored.Filled.Logout,
-                                "Logout",
-                                tint = MaterialTheme.colorScheme.error
+                                Icons.Default.SwitchAccount,
+                                "Account",
                             )
                         }
                     }

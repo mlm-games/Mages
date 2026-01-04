@@ -67,23 +67,24 @@ actual object Notifier {
 
 @Composable
 actual fun BindLifecycle(service: MatrixService) {
-    val ctx = LocalContext.current.applicationContext
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
 
     DisposableEffect(lifecycleOwner, service) {
         val obs = object : DefaultLifecycleObserver {
+
             override fun onStart(owner: LifecycleOwner) {
                 scope.launch {
-                    if (service.isLoggedIn()) {
-                        runCatching { service.port.enterForeground() }
-                        service.startSupervisedSync()
+                    val port = service.portOrNull ?: return@launch
+                    if (!service.isLoggedIn()) return@launch
 
-                        val ctx = AppCtx.get()
-                        if (ctx != null) {
-                            runCatching {
-                                PusherReconciler.ensureServerPusherRegistered(ctx, PREF_INSTANCE)
-                            }
+                    runCatching { port.enterForeground() }
+                    runCatching { service.startSupervisedSync() }
+
+                    val ctx = AppCtx.get()
+                    if (ctx != null) {
+                        runCatching {
+                            PusherReconciler.ensureServerPusherRegistered(ctx, PREF_INSTANCE)
                         }
                     }
                 }
@@ -91,7 +92,8 @@ actual fun BindLifecycle(service: MatrixService) {
 
             override fun onStop(owner: LifecycleOwner) {
                 scope.launch {
-                    runCatching { service.port.enterBackground() }
+                    val port = service.portOrNull ?: return@launch
+                    runCatching { port.enterBackground() }
                 }
             }
         }
@@ -100,7 +102,6 @@ actual fun BindLifecycle(service: MatrixService) {
         onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
     }
 }
-
 
 @Composable
 actual fun rememberQuitApp(): () -> Unit {

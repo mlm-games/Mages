@@ -2,6 +2,8 @@ package org.mlm.mages.platform
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -40,8 +42,16 @@ actual fun BindLifecycle(service: MatrixService) {
 }
 
 @Composable
-actual fun BindNotifications(service: MatrixService, settingsRepository: SettingsRepository<AppSettings>) {
-    LaunchedEffect(service) {
+actual fun BindNotifications(
+    service: MatrixService,
+    settingsRepository: SettingsRepository<AppSettings>
+) {
+    val activeAccount by service.activeAccount.collectAsState()
+    val activeId = activeAccount?.id
+
+    LaunchedEffect(activeId) {
+        if (activeId == null) return@LaunchedEffect
+
         var firstPoll = true
         val recentlyNotified = LinkedHashSet<String>()
         val lastReadByRoom = HashMap<String, Long>()
@@ -49,8 +59,14 @@ actual fun BindNotifications(service: MatrixService, settingsRepository: Setting
         while (true) {
             val settings = settingsRepository.flow.first()
 
-            if (!settings.notificationsEnabled || !service.isLoggedIn()) {
+            val port = service.portOrNull
+            val loggedIn = port != null && service.isLoggedIn()
+
+            if (!settings.notificationsEnabled || !loggedIn) {
+                // Account may have been logged out/removed; wait and retry until this effect is cancelled
                 firstPoll = true
+                recentlyNotified.clear()
+                lastReadByRoom.clear()
                 delay(15_000L)
                 continue
             }
@@ -64,9 +80,10 @@ actual fun BindNotifications(service: MatrixService, settingsRepository: Setting
             val since = if (firstPoll) baseline else (baseline - 60_000L).coerceAtLeast(0L)
             firstPoll = false
 
-            val me = runCatching { service.port.whoami() }.getOrNull()
+            val me = runCatching { port.whoami() }.getOrNull()
+
             val items = runCatching {
-                service.port.fetchNotificationsSince(
+                port.fetchNotificationsSince(
                     sinceMs = since,
                     maxRooms = 50,
                     maxEvents = 50
@@ -78,13 +95,19 @@ actual fun BindNotifications(service: MatrixService, settingsRepository: Setting
             for (n in items) {
                 if (n.eventId.isBlank()) continue
                 if (n.tsMs > maxSeenTs) maxSeenTs = n.tsMs
+
+                if (recentlyNotified.size > 2000) {
+                    val nit = recentlyNotified.iterator()
+                    repeat(500) { if (nit.hasNext()) { nit.next(); nit.remove() } }
+                }
+
                 if (!recentlyNotified.add(n.eventId)) continue
 
                 val senderIsMe = me != null && me == n.senderUserId
                 if (!Notifier.shouldNotify(n.roomId, senderIsMe)) continue
 
                 val lastReadTs = lastReadByRoom[n.roomId] ?: runCatching {
-                    service.port.ownLastRead(n.roomId).second ?: 0L
+                    port.ownLastRead(n.roomId).second ?: 0L
                 }.getOrDefault(0L).also { lastReadByRoom[n.roomId] = it }
 
                 if (lastReadTs > 0L && n.tsMs <= lastReadTs) continue

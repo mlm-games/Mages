@@ -15,8 +15,9 @@ import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import org.koin.android.ext.android.inject
+import org.mlm.mages.di.KoinApp
 import org.mlm.mages.matrix.MatrixProvider
-import org.mlm.mages.matrix.createMatrixPort
 import org.mlm.mages.nav.MatrixLink
 import org.mlm.mages.nav.handleMatrixLink
 import org.mlm.mages.nav.parseMatrixLink
@@ -31,8 +32,6 @@ import org.unifiedpush.android.connector.UnifiedPush
 class MainActivity : AppCompatActivity() {
     private val deepLinkRoomIds = MutableSharedFlow<String>(extraBufferCapacity = 1)
     private val deepLinks = deepLinkRoomIds.asSharedFlow()
-
-    private val service by lazy { MatrixService(createMatrixPort()) }
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,7 +70,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         setContent {
-            App(service = service, settingsRepository, deepLinks = deepLinks)
+            KoinApp(settingsRepository) {
+                App(settingsRepository, deepLinks)
+            }
         }
 
     }
@@ -98,6 +99,7 @@ class MainActivity : AppCompatActivity() {
             val link = parseMatrixLink(url)
             if (link !is MatrixLink.Unsupported) {
                 lifecycleScope.launch {
+                    val service: MatrixService by inject()
                     MatrixProvider.get(applicationContext)
                     handleMatrixLink(
                         service = service,

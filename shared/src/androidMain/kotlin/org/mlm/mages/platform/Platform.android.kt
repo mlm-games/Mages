@@ -1,6 +1,7 @@
 package org.mlm.mages.platform
 
 import android.os.Build
+import java.io.File
 
 actual fun getDeviceDisplayName(): String {
     val manufacturer = Build.MANUFACTURER.replaceFirstChar { it.uppercase() }
@@ -10,4 +11,9 @@ actual fun getDeviceDisplayName(): String {
     } else {
         "Mages (Android - $manufacturer $model)"
     }
+}
+
+
+actual fun deleteDirectory(path: String): Boolean {
+    return File(path).deleteRecursively()
 }

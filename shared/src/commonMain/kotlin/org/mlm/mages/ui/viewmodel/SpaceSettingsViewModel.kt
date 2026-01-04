@@ -177,7 +177,7 @@ class SpaceSettingsViewModel(
 
     private fun loadAvailableRooms() {
         launch {
-            val rooms = runSafe { service.listRooms() } ?: emptyList()
+            val rooms = runSafe { service.portOrNull?.listRooms() } ?: emptyList()
             // Filter out rooms that are already children and the space itself
             val childIds = currentState.children.map { it.roomId }.toSet() + currentState.spaceId
             val available = rooms.filter { it.id !in childIds }
