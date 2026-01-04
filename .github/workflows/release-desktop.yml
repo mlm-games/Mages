@@ -65,9 +65,13 @@ jobs:
           sudo mv squashfs-root /opt/appimagetool
           sudo ln -s /opt/appimagetool/AppRun /usr/local/bin/appimagetool
 
-      - name: Generate UniFFI (JVM) and package desktop
+      - name: Build and prepare native libraries
         run: |
-          ./gradlew :shared:genUniFFIJvm :desktopApp:packageDistributionForCurrentOS --no-daemon
+          ./gradlew :shared:cargoBuildDesktop :shared:copyNativeForJna :shared:genUniFFIJvm
+
+      - name: Package desktop application
+        run: |
+          ./gradlew :desktopApp:packageDistributionForCurrentOS --no-daemon
 
       - name: Build AppImage
         run: |
