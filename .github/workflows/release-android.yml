@@ -68,7 +68,7 @@ jobs:
           echo "version_code=$NEW_CODE" >> $GITHUB_OUTPUT
 
       - id: notes
-      - name: Generate Release Notes
+        name: Generate Release Notes
         uses: mlm-games/release-notes-generator@main
         with:
           version: ${{ steps.ver.outputs.version_name }}
