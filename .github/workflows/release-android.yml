@@ -172,9 +172,6 @@ jobs:
           mkdir -p artifacts
           cp androidApp/build/outputs/bundle/release/*release.aab \
              "artifacts/${{ env.APP_SLUG }}-${{ needs.prepare-version.outputs.version_name }}.aab"
-      
-      - name: Clean before APK build
-        run: ./gradlew clean
 
       - name: Build APKs
         env:
@@ -212,7 +209,7 @@ jobs:
           tag_name: ${{ needs.prepare-version.outputs.version_name }}
           target_commitish: ${{ needs.prepare-version.outputs.commit_sha }}
           prerelease: ${{ inputs.mark_prerelease }}
-          body_path: ./fastlane/metadata/android/en-US/changelogs/${{ steps.ver.outputs.version_code }}.txt
+          body_path: ./fastlane/metadata/android/en-US/changelogs/${{ needs.prepare-version.outputs.version_code }}.txt
                     
 
       - name: Dispatch release-desktop.yml
