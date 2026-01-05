@@ -1,15 +1,14 @@
 package org.mlm.mages
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,9 +80,9 @@ private fun AppContent(deepLinks: Flow<String>?) {
     val activeId = activeAccount?.id
 
     if (!initDone) {
-        Surface {
+        Surface(color = darkColorScheme().surface) {
             Box(
-                modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) { CircularProgressIndicator() }
         }

@@ -10,8 +10,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
-import com.mikepenz.markdown.compose.Markdown
-import com.mikepenz.markdown.m3.markdownColor
+import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.m3.markdownTypography
 import org.mlm.mages.LocalMessageFontSize
 
@@ -30,12 +29,12 @@ fun MarkdownText(
         Markdown(
             content = text,
             modifier = modifier,
-            colors = markdownColor(
-                text = color,
-                inlineCodeBackground = MaterialTheme.colorScheme.onSurfaceVariant,
-                codeBackground = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7F),
-                tableBackground = MaterialTheme.colorScheme.primary
-            ),
+//            colors = markdownColor(
+//                text = color,
+//                inlineCodeBackground = MaterialTheme.colorScheme.onSurfaceVariant,
+//                codeBackground = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7F),
+//                tableBackground = MaterialTheme.colorScheme.primary
+//            ),
             typography = markdownTypography(
                 text = effectiveStyle,
                 code = MaterialTheme.typography.bodySmall.copy(
