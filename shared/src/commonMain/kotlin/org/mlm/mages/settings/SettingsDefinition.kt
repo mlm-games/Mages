@@ -120,12 +120,12 @@ data class AppSettings(
 //    )
 //    val statusMessage: String = ""
 
-    @Setting(
-        title = "Element Call URL",
-        description = "Override Element Call instance (default: call.element.io)",
-        category = Calls::class,
-        type = TextInput::class
-    )
+//    @Setting(
+//        title = "Element Call URL",
+//        description = "Override Element Call instance (default: call.element.io)",
+//        category = Calls::class,
+//        type = TextInput::class
+//    )
     val elementCallUrl: String = "",
 
     @Setting(
