@@ -45,6 +45,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="2.0.3" date="2026-01-05" type="stable">
+      <description>
+        <ul>
+          <li>Fix markdown colors for `` text, and also make the surface dark for loading bg</li>
+          <li>Switch logout button to show logout icon, show options when added</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.0.2" date="2026-01-04" type="stable">
       <description>
         <ul>

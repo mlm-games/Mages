@@ -1,3 +1,9 @@
+## v2.0.3
+
+- Fix markdown colors for `` text, and also make the surface dark for loading bg
+- Switch logout button to show logout icon, show options when added
+
+
 ## v2.0.2
 
 - Android Multi account related fixes, remove AppCtx and MatrixProvider classes (might not be necessary now) for android
