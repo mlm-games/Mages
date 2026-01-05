@@ -126,7 +126,7 @@ class AppPushService : PushService(), KoinComponent {
         }
 
         val ok = runCatching {
-            port!!.registerUnifiedPush(
+            port.registerUnifiedPush(
                 appId = context.packageName,
                 pushKey = pushKey,
                 gatewayUrl = gatewayUrl,

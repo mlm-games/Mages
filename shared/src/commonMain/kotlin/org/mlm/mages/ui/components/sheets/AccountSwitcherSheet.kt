@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -125,8 +126,9 @@ private fun AccountRow(
                 }
                 IconButton(onClick = { showRemoveDialog = true }) {
                     Icon(
-                        Icons.Default.MoreVert,
-                        contentDescription = "Options"
+                        Icons.AutoMirrored.Filled.Logout,
+                        contentDescription = "LogOut",
+                        tint = MaterialTheme.colorScheme.error
                     )
                 }
             }
