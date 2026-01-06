@@ -51,6 +51,8 @@ android {
             keyPassword = System.getenv("KEY_PASSWORD")
             enableV1Signing = true
             enableV2Signing = true
+            enableV3Signing = false
+            enableV4Signing = false
         }
     }
 
@@ -75,6 +77,11 @@ android {
     }
 
     sourceSets["main"].jniLibs.srcDirs("src/androidMain/jniLibs")
+
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
 }
 
 dependencies {
@@ -86,7 +93,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore.preferences.core)
     implementation(libs.kmp.settings.core)
-
+    implementation(libs.element.call.embedded)
 
     implementation(libs.connector)
     implementation(libs.connector.ui)
