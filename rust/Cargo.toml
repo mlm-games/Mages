@@ -46,6 +46,10 @@ blake3 = "1.8.2"
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
 js_int = "0.2.2"
 uuid = "1.19"
+reqwest = { version = "0.12", default-features = false, features = [
+    "json",
+    "rustls-tls",
+] }
 
 [build-dependencies]
 uniffi = { version = "0.29.4", features = ["build"] }

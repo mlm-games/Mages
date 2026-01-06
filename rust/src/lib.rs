@@ -1,4 +1,5 @@
 use js_int::UInt;
+use matrix_sdk::reqwest::Url;
 use matrix_sdk::search_index::SearchIndexStoreKind;
 use matrix_sdk::{
     EncryptionState, PredecessorRoom, RoomDisplayName, SuccessorRoom,
@@ -738,6 +739,110 @@ fn notification_event_ts_ms(ev: &NotificationEvent) -> u64 {
     }
 }
 
+#[derive(Debug, Deserialize)]
+struct WellKnownClient {
+    #[serde(rename = "m.homeserver")]
+    homeserver: Option<WellKnownHomeserver>,
+}
+
+#[derive(Debug, Deserialize)]
+struct WellKnownHomeserver {
+    #[serde(rename = "base_url")]
+    base_url: String,
+}
+
+fn strip_matrix_path(mut u: Url) -> Url {
+    //Example: https://hs/_matrix/client/v3, strips at /_matrix/
+    if let Some(idx) = u.path().find("/_matrix/") {
+        let new_path = u.path()[..idx].to_string();
+        u.set_path(&new_path);
+        u.set_query(None);
+        u.set_fragment(None);
+    }
+    u
+}
+
+fn ensure_trailing_slash(mut u: Url) -> Url {
+    let p = u.path();
+    if !p.ends_with('/') {
+        u.set_path(&format!("{}/", p));
+    }
+    u
+}
+
+fn origin_url(u: &Url) -> Result<Url, FfiError> {
+    let host = u
+        .host_str()
+        .ok_or_else(|| FfiError::Msg("Homeserver URL missing host".into()))?;
+    let mut o = Url::parse(&format!("{}://{}", u.scheme(), host))
+        .map_err(|e| FfiError::Msg(format!("Bad URL: {e}")))?;
+    if let Some(port) = u.port() {
+        let _ = o.set_port(Some(port));
+    }
+    Ok(o)
+}
+
+async fn is_matrix_cs_base(http: &reqwest::Client, base: &Url) -> bool {
+    let base = ensure_trailing_slash(base.clone());
+    let versions = match base.join("_matrix/client/versions") {
+        Ok(u) => u,
+        Err(_) => return false,
+    };
+
+    match http.get(versions).send().await {
+        Ok(resp) => resp.status().is_success(),
+        Err(_) => false,
+    }
+}
+
+async fn resolve_homeserver_base_url(input: &str) -> Result<Url, FfiError> {
+    let raw = input.trim();
+    if raw.is_empty() {
+        return Err(FfiError::Msg("Homeserver is empty".into()));
+    }
+
+    // Parse input; if it has no scheme, assume https://
+    let parsed = Url::parse(raw)
+        .or_else(|_| Url::parse(&format!("https://{raw}")))
+        .map_err(|e| FfiError::Msg(format!("Invalid homeserver URL: {e}")))?;
+
+    let parsed = strip_matrix_path(parsed);
+
+    let http = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .build()
+        .map_err(|e| FfiError::Msg(format!("HTTP client error: {e}")))?;
+
+    if is_matrix_cs_base(&http, &parsed).await {
+        return Ok(parsed);
+    }
+
+    let origin = origin_url(&parsed)?;
+    let well_known = origin
+        .join("/.well-known/matrix/client")
+        .map_err(|e| FfiError::Msg(format!("Failed to build well-known URL: {e}")))?;
+
+    if let Ok(resp) = http.get(well_known).send().await {
+        if resp.status().is_success() {
+            if let Ok(body) = resp.json::<WellKnownClient>().await {
+                if let Some(hs) = body.homeserver {
+                    if let Ok(base_url) = Url::parse(&hs.base_url) {
+                        let base_url = strip_matrix_path(base_url);
+                        if is_matrix_cs_base(&http, &base_url).await {
+                            return Ok(base_url);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Err(FfiError::Msg(
+        "There are no Matrix endpoints here. Try entering the homeserver base URL (m.homeserver.base_url), or ensure /.well-known/matrix/client is set correctly."
+            .into(),
+    ))
+}
+
 // Session persistence
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct SessionInfo {
@@ -929,6 +1034,8 @@ impl Client {
     ) -> Result<Self, FfiError> {
         init_tracing();
 
+        let hs = RT.block_on(async { resolve_homeserver_base_url(&homeserver_url).await })?;
+
         let store_dir_path = if let Some(ref id) = account_id {
             std::path::PathBuf::from(&base_store_dir)
                 .join("accounts")
@@ -946,7 +1053,7 @@ impl Client {
                 let idx_key = load_or_create_search_index_key(&store_dir_path);
 
                 SdkClient::builder()
-                    .homeserver_url(&homeserver_url)
+                    .homeserver_url(hs)
                     .sqlite_store(&store_dir_path, None)
                     .search_index_store(SearchIndexStoreKind::EncryptedDirectory(idx_dir, idx_key))
                     .with_encryption_settings(EncryptionSettings {
