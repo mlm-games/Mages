@@ -6,6 +6,8 @@ import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.internal.SynchronizedObject
+import kotlinx.coroutines.internal.synchronized
 import org.koin.core.component.inject
 import org.mlm.mages.*
 import org.mlm.mages.matrix.*
@@ -85,6 +87,9 @@ class RoomViewModel(
     private val prefs = settingsRepo.flow
         .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
 
+    private val pendingToWidget = ArrayDeque<String>()
+    @OptIn(InternalCoroutinesApi::class)
+    private val pendingLock = Any() as SynchronizedObject
 
     init {
         initialize()
@@ -992,7 +997,7 @@ class RoomViewModel(
             }
         }
     }
-    
+
     fun startCall(intent: CallIntent = CallIntent.StartCall) {
         if (currentState.activeCall != null) return
 
@@ -1000,15 +1005,19 @@ class RoomViewModel(
             val roomId = currentState.roomId
             val callUrl = prefs.value.elementCallUrl.trim().ifBlank { null }
 
+            println("[WidgetBridge] Starting call in room: $roomId")
+
             val session = service.startCall(
                 roomId = roomId,
                 intent = intent,
                 elementCallUrl = callUrl,
             ) { messageFromSdk ->
-                callWebViewController?.sendToWidget(messageFromSdk)
+                println("[WidgetBridge] Rust → Widget queue: ${messageFromSdk.take(200)}")
+                sendToWidgetOrQueue(messageFromSdk)
             }
 
             if (session != null) {
+                println("[WidgetBridge] Call session created: ${session.sessionId}")
                 updateState {
                     copy(
                         activeCall = ActiveCallUi(
@@ -1024,18 +1033,54 @@ class RoomViewModel(
     }
 
     fun onCallWidgetMessage(message: String) {
-        val sid = _state.value.activeCall?.sessionId ?: return
-        service.port.callWidgetFromWebview(sid, message)
+        val sid = _state.value.activeCall?.sessionId ?: run {
+            println("[WidgetBridge] Widget → Rust: No active call session")
+            return
+        }
+        println("[WidgetBridge] Widget → Rust: ${message.take(200)}")
+        val sent = service.port.callWidgetFromWebview(sid, message)
+        println("[WidgetBridge] Widget → Rust delivered: $sent")
     }
 
+    @OptIn(InternalCoroutinesApi::class)
     fun attachCallWebViewController(controller: CallWebViewController?) {
+        println("[WidgetBridge] Attaching controller: ${controller != null}")
         callWebViewController = controller
+        if (controller != null) {
+            val drained = synchronized(pendingLock) {
+                val out = pendingToWidget.toList()
+                pendingToWidget.clear()
+                out
+            }
+            println("[WidgetBridge] Draining ${drained.size} pending messages to widget")
+            drained.forEach { msg ->
+                println("[WidgetBridge] Sending queued: ${msg.take(100)}")
+                controller.sendToWidget(msg)
+            }
+        }
     }
 
+    @OptIn(InternalCoroutinesApi::class)
     fun endCall() {
+        println("[WidgetBridge] endCall() called")
         _state.value.activeCall?.sessionId?.let { service.port.stopElementCall(it) }
         callWebViewController = null
+        synchronized(pendingLock) { pendingToWidget.clear() }
         _state.update { it.copy(activeCall = null) }
+    }
+
+    @OptIn(InternalCoroutinesApi::class)
+    private fun sendToWidgetOrQueue(msg: String) {
+        val c = callWebViewController
+        if (c != null) {
+            println("[WidgetBridge] Sending directly to widget: ${msg.take(100)}")
+            c.sendToWidget(msg)
+        } else {
+            synchronized(pendingLock) {
+                pendingToWidget.addLast(msg)
+                println("[WidgetBridge] Queued message (queue size: ${pendingToWidget.size})")
+            }
+        }
     }
 
     private suspend fun forwardMessage(event: MessageEvent, targetRoomId: String): Boolean {

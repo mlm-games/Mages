@@ -28,7 +28,8 @@ import javax.swing.SwingUtilities
 actual fun CallWebViewHost(
     widgetUrl: String,
     onMessageFromWidget: (String) -> Unit,
-    onClosed: () -> Unit
+    onClosed: () -> Unit,
+    modifier: Modifier
 ): CallWebViewController {
 
     val controller = remember {
@@ -47,7 +48,7 @@ actual fun CallWebViewHost(
     }
 
     SwingPanel(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier,
         factory = { controller.container }
     )
 

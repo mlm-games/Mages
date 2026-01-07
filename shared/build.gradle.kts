@@ -66,6 +66,7 @@ kotlin {
             implementation(libs.androidx.work.runtime.ktx)
             implementation(libs.androidx.browser)
             implementation(libs.koin.android)
+            implementation(libs.androidx.webkit)
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)

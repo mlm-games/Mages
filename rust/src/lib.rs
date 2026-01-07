@@ -5501,7 +5501,6 @@ impl Client {
                 ),
 
                 widget_id: format!("mages-ecall-{}", session_id),
-                encryption: EncryptionSystem::Unencrypted,
 
                 ..VirtualElementCallWidgetProperties::default()
             };

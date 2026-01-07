@@ -1,6 +1,7 @@
 package org.mlm.mages.platform
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 
 interface CallWebViewController {
     fun sendToWidget(message: String)
@@ -11,5 +12,6 @@ interface CallWebViewController {
 expect fun CallWebViewHost(
     widgetUrl: String,
     onMessageFromWidget: (String) -> Unit,
-    onClosed: () -> Unit
+    onClosed: () -> Unit,
+    modifier: Modifier = Modifier,
 ): CallWebViewController
