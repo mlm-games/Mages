@@ -1425,71 +1425,77 @@ impl Client {
 
         let id = self.next_sub_id();
         let h = RT.spawn(async move {
-        info!("verification_inbox: start (sub_id={})", id);
+            info!("verification_inbox: start (sub_id={})", id);
 
-        let td_handler = client.observe_events::<ToDeviceKeyVerificationRequestEvent, ()>();
-        let mut td_sub = td_handler.subscribe();
-        info!("verification_inbox: subscribed to ToDeviceKeyVerificationRequestEvent");
+            client.encryption().wait_for_e2ee_initialization_tasks().await;
 
-        let ir_handler = client.observe_events::<SyncRoomMessageEvent, Room>();
-        let mut ir_sub = ir_handler.subscribe();
-        info!("verification_inbox: subscribed to SyncRoomMessageEvent");
+            if let Err(e) = client.event_cache().subscribe() {
+                warn!("verification_inbox: event_cache.subscribe() failed: {e:?}");
+            }
 
-        loop {
-            tokio::select! {
-                maybe = td_sub.next() => {
-                    info!("verification_inbox: to-device next = {:?}", maybe.as_ref().map(|(ev, _)| &ev.content.transaction_id));
-                    if let Some((ev, ())) = maybe {
-                        let flow_id    = ev.content.transaction_id.to_string();
-                        let from_user  = ev.sender.to_string();
-                        let from_device= ev.content.from_device.to_string();
+            let td_handler = client.observe_events::<ToDeviceKeyVerificationRequestEvent, ()>();
+            let mut td_sub = td_handler.subscribe();
+            info!("verification_inbox: subscribed to ToDeviceKeyVerificationRequestEvent");
 
-                        inbox.lock().unwrap().insert(
-                            flow_id.clone(),
-                            (ev.sender, ev.content.from_device.clone()),
-                        );
+            let ir_handler = client.observe_events::<SyncRoomMessageEvent, Room>();
+            let mut ir_sub = ir_handler.subscribe();
+            info!("verification_inbox: subscribed to SyncRoomMessageEvent");
 
-                        info!("verification_inbox: got to-device request flow_id={} from {} / {}",
-                              flow_id, from_user, from_device);
+            loop {
+                tokio::select! {
+                    maybe = td_sub.next() => {
+                        info!("verification_inbox: to-device next = {:?}", maybe.as_ref().map(|(ev, _)| &ev.content.transaction_id));
+                        if let Some((ev, ())) = maybe {
+                            let flow_id     = ev.content.transaction_id.to_string();
+                            let from_user   = ev.sender.to_string();
+                            let from_device = ev.content.from_device.to_string();
 
-                        let _ = std::panic::catch_unwind(AssertUnwindSafe(|| {
-                            obs.on_request(flow_id, from_user, from_device);
-                        }));
-                    } else {
-                        info!("verification_inbox: to-device stream ended");
-                        break;
+                            inbox.lock().unwrap().insert(
+                                flow_id.clone(),
+                                (ev.sender, ev.content.from_device.clone()),
+                            );
+
+                            info!("verification_inbox: got to-device request flow_id={} from {} / {}",
+                                  flow_id, from_user, from_device);
+
+                            let _ = std::panic::catch_unwind(AssertUnwindSafe(|| {
+                                obs.on_request(flow_id, from_user, from_device);
+                            }));
+                        } else {
+                            info!("verification_inbox: to-device stream ended");
+                            break;
+                        }
                     }
-                }
 
-                maybe = ir_sub.next() => {
-                    info!("verification_inbox: in-room next = {:?}", maybe.as_ref().map(|(ev, _)| ev.event_id()));
-                    if let Some((ev, _room)) = maybe {
-                        if let SyncRoomMessageEvent::Original(o) = ev {
-                            if let MessageType::VerificationRequest(_c) = &o.content.msgtype {
-                                let flow_id   = o.event_id.to_string();
-                                let from_user = o.sender.to_string();
+                    maybe = ir_sub.next() => {
+                        info!("verification_inbox: in-room next = {:?}", maybe.as_ref().map(|(ev, _)| ev.event_id()));
+                        if let Some((ev, _room)) = maybe {
+                            if let SyncRoomMessageEvent::Original(o) = ev {
+                                if let MessageType::VerificationRequest(_c) = &o.content.msgtype {
+                                    let flow_id   = o.event_id.to_string();
+                                    let from_user = o.sender.to_string();
 
                                 inbox.lock().unwrap().insert(
                                     flow_id.clone(),
                                     (o.sender.clone(), owned_device_id!("inroom")),
                                 );
 
-                                info!("verification_inbox: got in-room request flow_id={} from {}",
-                                      flow_id, from_user);
+                                    info!("verification_inbox: got in-room request flow_id={} from {}",
+                                          flow_id, from_user);
 
-                                let _ = std::panic::catch_unwind(AssertUnwindSafe(|| {
-                                    obs.on_request(flow_id, from_user, String::new());
-                                }));
+                                    let _ = std::panic::catch_unwind(AssertUnwindSafe(|| {
+                                        obs.on_request(flow_id, from_user, String::new());
+                                    }));
+                                }
                             }
+                        } else {
+                            info!("verification_inbox: in-room stream ended");
+                            break;
                         }
-                    } else {
-                        info!("verification_inbox: in-room stream ended");
-                        break;
                     }
                 }
             }
-        }
-    });
+        });
 
         self.inbox_subs.lock().unwrap().insert(id, h);
         id
@@ -2396,123 +2402,169 @@ impl Client {
         })
     }
 
-    pub fn accept_verification(
+    pub fn accept_verification_request(
         &self,
         flow_id: String,
         other_user_id: Option<String>,
         observer: Box<dyn VerificationObserver>,
     ) -> bool {
         let obs: Arc<dyn VerificationObserver> = Arc::from(observer);
+
         RT.block_on(async {
             info!(
-                "accept_verification: flow_id={:?}, other_user_id={:?}",
+                "accept_verification_request: flow_id={:?}, other_user_id={:?}",
                 flow_id, other_user_id
             );
 
-            let user_opt = if let Some(uid) = other_user_id {
-                uid.parse::<OwnedUserId>().ok()
-            } else {
-                self.inbox
-                    .lock()
-                    .unwrap()
-                    .get(&flow_id)
-                    .map(|p| p.0.clone())
-            };
-            let Some(user) = user_opt else {
+            let Some(user) = self.resolve_other_user_for_flow(&flow_id, other_user_id) else {
                 warn!(
-                    "accept_verification: could not resolve user for flow_id={}",
+                    "accept_verification_request: could not resolve user for flow_id={}",
                     flow_id
                 );
                 return false;
             };
-            info!("accept_verification: resolved user={}", user);
 
-            if let Some(f) = self.verifs.lock().unwrap().get(&flow_id) {
-                info!("accept_verification: found existing SAS in verifs, calling accept()");
-                return f.sas.accept().await.is_ok();
-            }
-
+            // If the request exists, accept it and start monitoring until it transitions to SAS.
             if let Some(req) = self
                 .inner
                 .encryption()
                 .get_verification_request(&user, &flow_id)
                 .await
             {
-                info!("accept_verification: found VerificationRequest, accepting and starting sas");
+                info!("accept_verification_request: found VerificationRequest, accepting");
                 if req.accept().await.is_err() {
-                    warn!("accept_verification: req.accept() failed");
+                    warn!("accept_verification_request: req.accept() failed");
                     return false;
                 }
+
                 self.wait_and_start_sas(flow_id.clone(), req, obs.clone());
                 return true;
             }
 
-            if let Some(verification) = self
-                .inner
-                .encryption()
-                .get_verification(&user, &flow_id)
-                .await
-            {
-                info!("accept_verification: found Verification, trying sas().accept()");
-                if let Some(sas) = verification.clone().sas() {
-                    return sas.accept().await.is_ok();
-                }
-                for _ in 0..5 {
-                    tokio::time::sleep(std::time::Duration::from_millis(150)).await;
-                    if let Some(sas) = verification.clone().sas() {
-                        info!("accept_verification: sas became available, accepting");
-                        return sas.accept().await.is_ok();
-                    }
-                }
-                warn!("accept_verification: sas() never became available");
-            } else {
-                warn!(
-                    "accept_verification: no Verification found for user={} flow_id={}",
-                    user, flow_id
-                );
+            warn!(
+                "accept_verification_request: no VerificationRequest found for user={} flow_id={}",
+                user, flow_id
+            );
+            false
+        })
+    }
+
+    pub fn accept_sas(
+        &self,
+        flow_id: String,
+        other_user_id: Option<String>,
+        observer: Box<dyn VerificationObserver>,
+    ) -> bool {
+        let obs: Arc<dyn VerificationObserver> = Arc::from(observer);
+        let verifs = self.verifs.clone();
+        let client = self.inner_clone();
+
+        RT.block_on(async {
+            info!(
+                "accept_sas: flow_id={:?}, other_user_id={:?}",
+                flow_id, other_user_id
+            );
+
+            let Some(user) = self.resolve_other_user_for_flow(&flow_id, other_user_id) else {
+                warn!("accept_sas: could not resolve user for flow_id={}", flow_id);
+                return false;
+            };
+
+            // Fast path: we already cached the SasVerification and have a running stream.
+            if let Some(f) = self.verifs.lock().unwrap().get(&flow_id) {
+                info!("accept_sas: found cached SAS, calling sas.accept()");
+                return f.sas.accept().await.is_ok();
             }
 
+            // Slow path: fetch Verification and wait for sas() to appear.
+            let Some(verification) = client.encryption().get_verification(&user, &flow_id).await
+            else {
+                warn!(
+                    "accept_sas: no Verification found for user={} flow_id={}",
+                    user, flow_id
+                );
+                return false;
+            };
+
+            for _ in 0..25 {
+                if let Some(sas) = verification.clone().sas() {
+                    info!("accept_sas: sas() available, attaching stream and accepting");
+
+                    // Attach stream if we weren't already doing so (don’t block this call on it).
+                    let sas_for_stream = sas.clone();
+                    let flow_for_stream = flow_id.clone();
+                    let obs_for_stream = obs.clone();
+                    let verifs_for_stream = verifs.clone();
+
+                    RT.spawn(async move {
+                        attach_sas_stream(
+                            verifs_for_stream,
+                            flow_for_stream,
+                            sas_for_stream,
+                            obs_for_stream,
+                        )
+                        .await;
+                    });
+
+                    return sas.accept().await.is_ok();
+                }
+
+                tokio::time::sleep(Duration::from_millis(120)).await;
+            }
+
+            warn!("accept_sas: timed out waiting for sas() to become available");
             false
         })
     }
 
     pub fn confirm_verification(&self, flow_id: String) -> bool {
         RT.block_on(async {
-            if let Some(f) = self.verifs.lock().unwrap().get(&flow_id) {
-                f.sas.confirm().await.is_ok()
-            } else {
-                false
+            let sas = {
+                self.verifs
+                    .lock()
+                    .unwrap()
+                    .get(&flow_id)
+                    .map(|f| f.sas.clone())
+            };
+
+            match sas {
+                Some(sas) => sas.confirm().await.is_ok(),
+                None => false,
             }
         })
     }
 
     pub fn cancel_verification(&self, flow_id: String) -> bool {
         RT.block_on(async {
-            // Cancel an active SAS if we have it cached
-            if let Some(f) = self.verifs.lock().unwrap().get(&flow_id) {
-                return f.sas.cancel().await.is_ok();
+            let sas = {
+                self.verifs
+                    .lock()
+                    .unwrap()
+                    .get(&flow_id)
+                    .map(|f| f.sas.clone())
+            };
+
+            if let Some(sas) = sas {
+                return sas.cancel().await.is_ok();
             }
-            // Else try to resolve via crypto and cancel there as a best‑effort
-            let user = match self
+
+            let user = self
                 .inbox
                 .lock()
                 .unwrap()
                 .get(&flow_id)
                 .map(|p| p.0.clone())
-            {
-                Some(u) => u,
-                None => match self.inner.user_id() {
-                    Some(me) => me.to_owned(),
-                    None => return false,
-                },
-            };
-            if let Some(verification) = self
+                .or_else(|| self.inner.user_id().map(|u| u.to_owned()));
+
+            let Some(user) = user else { return false };
+
+            if let Some(v) = self
                 .inner
                 .encryption()
                 .get_verification(&user, &flow_id)
                 .await
             {
-                if let Some(sas) = verification.sas() {
+                if let Some(sas) = v.sas() {
                     return sas.cancel().await.is_ok();
                 }
             }
