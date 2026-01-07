@@ -7,7 +7,6 @@ use matrix_sdk::{
         UserId,
         directory::Filter,
         events::{
-            MessageLikeEventType, StateEventType, ToDeviceEventType,
             ignored_user_list::IgnoredUserListEventContent,
             room::{
                 ImageInfo,
@@ -19,10 +18,7 @@ use matrix_sdk::{
         },
         room::Restricted,
     },
-    widget::{
-        MessageLikeEventFilter, StateEventFilter, ToDeviceEventFilter,
-        VirtualElementCallWidgetConfig, VirtualElementCallWidgetProperties,
-    },
+    widget::{VirtualElementCallWidgetConfig, VirtualElementCallWidgetProperties},
 };
 use matrix_sdk_base::notification_settings::RoomNotificationMode as RsMode;
 use matrix_sdk_ui::{
@@ -139,8 +135,8 @@ use matrix_sdk::ruma::{
     presence::PresenceState,
 };
 use matrix_sdk::widget::{
-    Capabilities, CapabilitiesProvider, ClientProperties, Intent as WidgetIntent, WidgetDriver,
-    WidgetDriverHandle, WidgetSettings,
+    Capabilities, CapabilitiesProvider, ClientProperties, EncryptionSystem, Intent as WidgetIntent,
+    WidgetDriver, WidgetDriverHandle, WidgetSettings,
 };
 use std::panic::AssertUnwindSafe;
 
@@ -369,8 +365,11 @@ pub struct OwnReceipt {
 
 #[derive(Clone, Enum)]
 pub enum SasPhase {
+    Created,
     Requested,
     Ready,
+    Accepted,
+    Started,
     Emojis,
     Confirmed,
     Cancelled,
@@ -1475,10 +1474,10 @@ impl Client {
                                     let flow_id   = o.event_id.to_string();
                                     let from_user = o.sender.to_string();
 
-                                inbox.lock().unwrap().insert(
-                                    flow_id.clone(),
-                                    (o.sender.clone(), owned_device_id!("inroom")),
-                                );
+                                    inbox.lock().unwrap().insert(
+                                        flow_id.clone(),
+                                        (o.sender.clone(), owned_device_id!("inroom")),
+                                    );
 
                                     info!("verification_inbox: got in-room request flow_id={} from {}",
                                           flow_id, from_user);
@@ -2597,6 +2596,7 @@ impl Client {
             {
                 return req.cancel().await.is_ok();
             }
+
             if let Some(verification) = self
                 .inner
                 .encryption()
@@ -2607,6 +2607,7 @@ impl Client {
                     return sas.cancel().await.is_ok();
                 }
             }
+
             false
         })
     }
@@ -5472,10 +5473,6 @@ impl Client {
     }
 
     /// Start or join an Element Call session for a room.
-    ///
-    /// `element_call_url`:
-    ///   - `None`  -> use "https://call.element.io".
-    ///   - `Some`  -> use a self-hosted Element Call instance.
     pub fn start_element_call(
         &self,
         room_id: String,
@@ -5487,7 +5484,6 @@ impl Client {
         let obs: Arc<dyn CallWidgetObserver> = Arc::from(observer);
         let session_id = self.next_sub_id();
 
-        // 1) Build WidgetSettings + final WebView URL.
         let (widget_settings, widget_url) = RT.block_on(async {
             let rid = OwnedRoomId::try_from(room_id.as_str())
                 .map_err(|e| FfiError::Msg(e.to_string()))?;
@@ -5495,35 +5491,38 @@ impl Client {
                 return Err(FfiError::Msg("room not found".into()));
             };
 
-            // Properties needed to construct the Element Call widget.
-            // See VirtualElementCallWidgetProperties docs.
             let props = VirtualElementCallWidgetProperties {
-                element_call_url: element_call_url
-                    .unwrap_or_else(|| "https://call.element.io".to_owned()),
-                widget_id: format!("mages-ecall-{}", session_id),
+                element_call_url: element_call_url.unwrap_or_else(|| {
+                    "https://appassets.androidplatform.net/element-call/index.html".to_owned()
+                }),
+                parent_url: Some(
+                    "https://appassets.androidplatform.net/assets/element-call/index.html"
+                        .to_owned(),
+                ),
 
-                // The rest can use the defaults from `Default::default()`.
-                // EncryptionSystem::PerParticipantKeys is the default and
-                // corresponds to `perParticipantE2EE=true`.
+                widget_id: format!("mages-ecall-{}", session_id),
+                encryption: EncryptionSystem::Unencrypted,
+
                 ..VirtualElementCallWidgetProperties::default()
             };
 
-            // Behavioural config; mirrors matrix-sdk's own tests in element_call.rs:
-            // - controlled_audio_devices depends on platform (here: false)
-            // - preload=true, app_prompt=true, confine_to_room=true
-            // - hide_screensharing=false, header=Standard
-            // - intent set from your ElementCallIntent.
+            let is_dm = room.is_direct().await.unwrap_or(false);
+
+            let widget_intent = match (intent, is_dm) {
+                (ElementCallIntent::StartCall, true) => WidgetIntent::StartCallDm,
+                (ElementCallIntent::JoinExisting, true) => WidgetIntent::JoinExistingDm,
+                (ElementCallIntent::StartCall, false) => WidgetIntent::StartCall,
+                (ElementCallIntent::JoinExisting, false) => WidgetIntent::JoinExisting,
+            };
+
             let config = VirtualElementCallWidgetConfig {
-                controlled_audio_devices: Some(false),
-                preload: Some(true),
-                app_prompt: Some(true),
+                controlled_audio_devices: Some(true),
+                preload: Some(false),
+                app_prompt: Some(false),
                 confine_to_room: Some(true),
                 hide_screensharing: Some(false),
 
-                intent: Some(match intent {
-                    ElementCallIntent::StartCall => WidgetIntent::StartCall,
-                    ElementCallIntent::JoinExisting => WidgetIntent::JoinExisting,
-                }),
+                intent: Some(widget_intent),
                 ..VirtualElementCallWidgetConfig::default()
             };
 
@@ -5787,6 +5786,18 @@ impl Client {
 
         let member = room.get_member_no_sync(peer_ref).await.ok().flatten()?;
         member.avatar_url().map(|mxc| mxc.to_string())
+    }
+
+    fn resolve_other_user_for_flow(
+        &self,
+        flow_id: &str,
+        other_user_id: Option<String>,
+    ) -> Option<OwnedUserId> {
+        if let Some(uid) = other_user_id {
+            uid.parse::<OwnedUserId>().ok()
+        } else {
+            self.inbox.lock().unwrap().get(flow_id).map(|p| p.0.clone())
+        }
     }
 }
 
@@ -6275,9 +6286,14 @@ async fn attach_sas_stream(
                 break;
             }
 
-            SdkSasState::Created { .. }
-            | SdkSasState::Started { .. }
-            | SdkSasState::Accepted { .. } => {}
+            SdkSasState::Accepted { .. } => {
+                obs.on_phase(flow_id.clone(), SasPhase::Accepted);
+            }
+            SdkSasState::Started { .. } => {
+                obs.on_phase(flow_id.clone(), SasPhase::Started);
+            }
+
+            SdkSasState::Created { .. } => {}
         }
     }
 }
@@ -6728,99 +6744,10 @@ struct ElementCallCapabilitiesProvider {
 }
 
 impl CapabilitiesProvider for ElementCallCapabilitiesProvider {
-    async fn acquire_capabilities(&self, _requested: Capabilities) -> Capabilities {
-        use matrix_sdk::widget::Filter;
-        // Filters that are both read and send
-        let read_send: Vec<Filter> = vec![
-            // Rageshake requests
-            Filter::MessageLike(MessageLikeEventFilter::WithType(
-                "org.matrix.rageshake_request".into(),
-            )),
-            // Encryption keys (to-device)
-            Filter::ToDevice(ToDeviceEventFilter::new(ToDeviceEventType::from(
-                "io.element.call.encryption_keys",
-            ))),
-            // Encryption keys (timeline fallback)
-            Filter::MessageLike(MessageLikeEventFilter::WithType(
-                "io.element.call.encryption_keys".into(),
-            )),
-            // Custom Element Call reactions
-            Filter::MessageLike(MessageLikeEventFilter::WithType(
-                "io.element.call.reaction".into(),
-            )),
-            // Standard m.reaction
-            Filter::MessageLike(MessageLikeEventFilter::WithType(
-                MessageLikeEventType::Reaction,
-            )),
-            // Redactions (clear reactions / raised hand)
-            Filter::MessageLike(MessageLikeEventFilter::WithType(
-                MessageLikeEventType::RoomRedaction,
-            )),
-            // Decline incoming calls
-            Filter::MessageLike(MessageLikeEventFilter::WithType(
-                MessageLikeEventType::RtcDecline,
-            )),
-        ];
-
-        // Read capabilities
-        let mut read: Vec<Filter> = vec![
-            // Call member state
-            Filter::State(StateEventFilter::WithType(StateEventType::CallMember)),
-            // Room name
-            Filter::State(StateEventFilter::WithType(StateEventType::RoomName)),
-            // Room members
-            Filter::State(StateEventFilter::WithType(StateEventType::RoomMember)),
-            // Encryption settings
-            Filter::State(StateEventFilter::WithType(StateEventType::RoomEncryption)),
-            // Room version / auth rules
-            Filter::State(StateEventFilter::WithType(StateEventType::RoomCreate)),
-        ];
-        read.extend(read_send.clone());
-
-        // Send capabilities
-        let mut send: Vec<Filter> = vec![
-            // MatrixRTC notifications
-            Filter::MessageLike(MessageLikeEventFilter::WithType(
-                "org.matrix.msc4075.rtc.notification".into(),
-            )),
-            // Deprecated CallNotify (compat)
-            Filter::MessageLike(MessageLikeEventFilter::WithType(
-                MessageLikeEventType::CallNotify,
-            )),
-            // Legacy call member state (no device suffix)
-            Filter::State(StateEventFilter::WithTypeAndStateKey(
-                StateEventType::CallMember,
-                self.own_user_id.to_string(),
-            )),
-            // MatrixRTC membership (mxid+device)
-            Filter::State(StateEventFilter::WithTypeAndStateKey(
-                StateEventType::CallMember,
-                format!("{}_{}", self.own_user_id, self.own_device_id),
-            )),
-            // Same with _m.call suffix
-            Filter::State(StateEventFilter::WithTypeAndStateKey(
-                StateEventType::CallMember,
-                format!("{}_{}_m.call", self.own_user_id, self.own_device_id),
-            )),
-            // Same but with leading underscore (workaround)
-            Filter::State(StateEventFilter::WithTypeAndStateKey(
-                StateEventType::CallMember,
-                format!("_{}_{}", self.own_user_id, self.own_device_id),
-            )),
-            // Underscored + _m.call suffix
-            Filter::State(StateEventFilter::WithTypeAndStateKey(
-                StateEventType::CallMember,
-                format!("_{}_{}_m.call", self.own_user_id, self.own_device_id),
-            )),
-        ];
-        send.extend(read_send);
-
-        Capabilities {
-            read,
-            send,
-            requires_client: true,
-            update_delayed_event: true,
-            send_delayed_event: true,
-        }
+    fn acquire_capabilities(
+        &self,
+        requested: Capabilities,
+    ) -> impl Future<Output = Capabilities> + Send {
+        async move { requested }
     }
 }
