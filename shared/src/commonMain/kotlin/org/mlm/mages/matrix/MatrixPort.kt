@@ -44,7 +44,7 @@ sealed class TimelineDiff<out T> {
     data class RemoveByItemId<T>(val itemId: String) : TimelineDiff<T>()
     data class UpsertByItemId<T>(val itemId: String, val item: T) : TimelineDiff<T>()
 }
-enum class SasPhase { Requested, Ready, Emojis, Confirmed, Cancelled, Failed, Done }
+enum class SasPhase { Created, Requested, Ready, Accepted, Started, Emojis, Confirmed, Cancelled, Failed, Done }
 
 enum class SendState { Enqueued, Sending, Sent, Retrying, Failed }
 
@@ -332,7 +332,9 @@ interface MatrixPort {
     suspend fun startSelfSas(targetDeviceId: String, observer: VerificationObserver): String
     suspend fun startUserSas(userId: String, observer: VerificationObserver): String
 
-    suspend fun acceptVerification(flowId: String, otherUserId: String?, observer: VerificationObserver): Boolean
+    suspend fun acceptVerificationRequest(flowId: String, otherUserId: String?, observer: VerificationObserver): Boolean
+    suspend fun acceptSas(flowId: String, otherUserId: String?, observer: VerificationObserver): Boolean
+
     suspend fun confirmVerification(flowId: String): Boolean
     suspend fun cancelVerification(flowId: String): Boolean
 

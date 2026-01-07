@@ -9,18 +9,18 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import org.mlm.mages.MatrixService
-import org.mlm.mages.matrix.*
+import org.mlm.mages.matrix.Presence
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.SecurityUiState
-import org.mlm.mages.ui.VerificationRequestUi
+import org.mlm.mages.verification.VerificationCoordinator
 import kotlin.reflect.KClass
 
 class SecurityViewModel(
     private val service: MatrixService,
-    private val settingsRepository: SettingsRepository<AppSettings>
+    private val settingsRepository: SettingsRepository<AppSettings>,
+    private val verification: VerificationCoordinator
 ) : BaseViewModel<SecurityUiState>(SecurityUiState()) {
 
-    // One-time events
     sealed class Event {
         data object LogoutSuccess : Event()
         data class ShowError(val message: String) : Event()
@@ -30,9 +30,6 @@ class SecurityViewModel(
     private val _events = Channel<Event>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
 
-    private var inboxToken: ULong? = null
-
-    // Settings
     val settings = settingsRepository.flow
         .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
 
@@ -42,10 +39,7 @@ class SecurityViewModel(
         refreshDevices()
         refreshIgnored()
         loadPresence()
-        startVerificationInbox()
     }
-
-    //  Settings
 
     fun <T> updateSetting(name: String, value: T) {
         launch {
@@ -58,208 +52,65 @@ class SecurityViewModel(
         ActionRegistry.execute(actionClass)
     }
 
-    //  Tab Selection
-
     fun setSelectedTab(index: Int) {
         updateState { copy(selectedTab = index) }
     }
 
-    //  Devices
-
     fun refreshDevices() {
-        launch(
-            onError = { t ->
-                updateState { copy(isLoadingDevices = false, error = "Failed to load devices: ${t.message}") }
-            }
-        ) {
+        launch(onError = { t ->
+            updateState { copy(isLoadingDevices = false, error = "Failed to load devices: ${t.message}") }
+        }) {
             updateState { copy(isLoadingDevices = true, error = null) }
             val devices = service.listMyDevices()
             updateState { copy(devices = devices, isLoadingDevices = false) }
         }
     }
 
-    //  Verification
+    // Verification actions delegated to the global coordinator
+    fun startSelfVerify(deviceId: String) = verification.startSelfVerify(deviceId)
+    fun startUserVerify(userId: String) = verification.startUserVerify(userId.trim())
 
-    private fun startVerificationInbox() {
-        inboxToken?.let { service.portOrNull?.stopVerificationInbox(it) }
-
-        inboxToken = service.portOrNull?.startVerificationInbox(object : MatrixPort.VerificationInboxObserver {
-            override fun onRequest(flowId: String, fromUser: String, fromDevice: String) {
-                updateState {
-                    val pending = pendingVerifications + VerificationRequestUi(
-                        flowId = flowId,
-                        fromUser = fromUser,
-                        fromDevice = fromDevice
-                    )
-                    copy(
-                        pendingVerifications = pending,
-                        sasFlowId = sasFlowId ?: flowId,
-                        sasPhase = sasPhase ?: SasPhase.Requested,
-                        sasOtherUser = sasOtherUser ?: fromUser,
-                        sasOtherDevice = sasOtherDevice ?: fromDevice,
-                        sasError = null,
-                        sasIncoming = true
-                    )
-                }
-            }
-
-            override fun onError(message: String) {
-                updateState { copy(error = "Verification inbox: $message") }
-            }
-        })
-    }
-
-    private fun commonObserver(): VerificationObserver = object : VerificationObserver {
-        override fun onPhase(flowId: String, phase: SasPhase) {
-            updateState { copy(sasFlowId = flowId, sasPhase = phase, sasError = null) }
-
-            if (phase == SasPhase.Done || phase == SasPhase.Cancelled) {
-                clearVerificationFlow(flowId)
-                refreshDevices()
-            }
-        }
-
-        override fun onEmojis(flowId: String, otherUser: String, otherDevice: String, emojis: List<String>) {
-            updateState {
-                copy(
-                    sasFlowId = flowId,
-                    sasOtherUser = otherUser,
-                    sasOtherDevice = otherDevice,
-                    sasEmojis = emojis
-                )
-            }
-        }
-
-        override fun onError(flowId: String, message: String) {
-            updateState { copy(sasFlowId = flowId, sasError = message) }
-        }
-    }
-
-    fun startSelfVerify(deviceId: String) {
-        val myUserId = service.port.whoami() ?: return
-
-        updateState { copy(sasOtherUser = myUserId, sasIncoming = false) }
-
-        launch {
-            val flowId = service.startSelfSas(deviceId, commonObserver())
-            if (flowId.isBlank()) {
-                updateState { copy(sasError = "Failed to start verification") }
-            } else {
-                updateState { copy(sasFlowId = flowId) }
-            }
-        }
-    }
-
-    fun startUserVerify(userId: String) {
-        updateState { copy(sasOtherUser = userId, sasIncoming = false) }
-
-        launch {
-            val flowId = service.startUserSas(userId, commonObserver())
-            if (flowId.isBlank()) {
-                updateState { copy(sasError = "Failed to start verification") }
-            } else {
-                updateState { copy(sasFlowId = flowId) }
-            }
-        }
-    }
-
-    fun acceptSas() {
-        val flowId = currentState.sasFlowId ?: return
-
-        updateState { copy(sasContinuePressed = true, sasError = null) }
-
-        launch {
-            val ok = service.acceptVerification(flowId, currentState.sasOtherUser, commonObserver())
-            if (!ok) {
-                updateState { copy(sasContinuePressed = false, sasError = "Continue failed") }
-                return@launch
-            }
-
-            val s = currentState
-            val stillSameFlow = s.sasFlowId == flowId
-            val stillReady = s.sasPhase == SasPhase.Ready
-            val noEmojisYet = s.sasEmojis.isEmpty()
-            if (stillSameFlow && stillReady && noEmojisYet) {
-                updateState { copy(sasContinuePressed = false) }
-            }
-        }
-    }
-
-    fun confirmSas() {
-        val flowId = currentState.sasFlowId ?: return
-        launch {
-            val ok = service.confirmVerification(flowId)
-            if (!ok) {
-                updateState { copy(sasError = "Confirm failed") }
-            }
-        }
-    }
-
-    fun cancelSas() {
-        val flowId = currentState.sasFlowId ?: return
-        val phase = currentState.sasPhase
-        val targetUser = currentState.sasOtherUser
-
-        launch {
-            val ok = if (phase == SasPhase.Requested) {
-                service.cancelVerificationRequest(flowId, targetUser)
-            } else {
-                service.cancelVerification(flowId)
-            }
-
-            if (!ok) {
-                updateState { copy(sasError = "Cancel failed") }
-            }
-            else {
-                clearVerificationFlow(flowId)
-            }
-        }
-    }
-
-    //  Recovery
-
-    fun openRecoveryDialog() {
-        updateState { copy(showRecoveryDialog = true, recoveryKeyInput = "") }
-    }
-
-    fun closeRecoveryDialog() {
-        updateState { copy(showRecoveryDialog = false, recoveryKeyInput = "") }
-    }
-
-    fun setRecoveryKey(value: String) {
-        updateState { copy(recoveryKeyInput = value) }
-    }
+    // Recovery
+    fun openRecoveryDialog() = updateState { copy(showRecoveryDialog = true, recoveryKeyInput = "") }
+    fun closeRecoveryDialog() = updateState { copy(showRecoveryDialog = false, recoveryKeyInput = "") }
+    fun setRecoveryKey(value: String) = updateState { copy(recoveryKeyInput = value) }
 
     fun submitRecoveryKey() {
         val key = currentState.recoveryKeyInput.trim()
         if (key.isBlank()) {
-            updateState { copy(sasError = "Enter a recovery key") }
+            updateState { copy(error = "Enter a recovery key") }
             return
         }
 
         launch {
-            val ok = service.recoverWithKey(key)
+            val port = service.portOrNull
+            if (port == null || !service.isLoggedIn()) {
+                _events.send(Event.ShowError("Not logged in"))
+                return@launch
+            }
+
+            val ok = port.recoverWithKey(key)
             if (ok) {
-                updateState { copy(showRecoveryDialog = false, recoveryKeyInput = "", sasError = null) }
+                updateState { copy(showRecoveryDialog = false, recoveryKeyInput = "", error = null) }
                 _events.send(Event.ShowSuccess("Recovery successful"))
             } else {
-                updateState { copy(sasError = "Recovery failed") }
+                _events.send(Event.ShowError("Recovery failed"))
             }
         }
     }
 
-    //  Privacy / Ignored Users
-
     fun refreshIgnored() {
         launch {
-            val list = runSafe { service.port.ignoredUsers() } ?: emptyList()
+            val port = service.portOrNull ?: return@launch
+            val list = runCatching { port.ignoredUsers() }.getOrElse { emptyList() }
             updateState { copy(ignoredUsers = list) }
         }
     }
 
     fun unignoreUser(userId: String) {
         launch {
-            val ok = service.port.unignoreUser(userId)
+            val port = service.portOrNull ?: return@launch
+            val ok = port.unignoreUser(userId)
             if (ok) {
                 refreshIgnored()
                 _events.send(Event.ShowSuccess("User unignored"))
@@ -269,12 +120,11 @@ class SecurityViewModel(
         }
     }
 
-    //  Presence
-
     fun loadPresence() {
         launch {
-            val myId = service.port.whoami() ?: return@launch
-            val result = runSafe { service.port.getPresence(myId) }
+            val port = service.portOrNull ?: return@launch
+            val myId = port.whoami() ?: return@launch
+            val result = port.getPresence(myId)
             if (result != null) {
                 updateState {
                     copy(
@@ -298,54 +148,26 @@ class SecurityViewModel(
 
     fun savePresence() {
         launch {
+            val port = service.portOrNull ?: return@launch
             updateState { copy(presence = presence.copy(isSaving = true)) }
 
-            val ok = service.port.setPresence(
+            val ok = port.setPresence(
                 currentState.presence.currentPresence,
                 currentState.presence.statusMessage.ifBlank { null }
             )
 
             updateState { copy(presence = presence.copy(isSaving = false)) }
 
-            if (ok) {
-                _events.send(Event.ShowSuccess("Status updated"))
-            } else {
-                _events.send(Event.ShowError("Failed to update status"))
-            }
+            if (ok) _events.send(Event.ShowSuccess("Status updated"))
+            else _events.send(Event.ShowError("Failed to update status"))
         }
     }
-
-    //  Logout
 
     fun logout() {
         launch {
             val ok = service.logout()
-            if (ok) {
-                _events.send(Event.LogoutSuccess)
-            } else {
-                _events.send(Event.ShowError("Logout failed"))
-            }
+            if (ok) _events.send(Event.LogoutSuccess)
+            else _events.send(Event.ShowError("Logout failed"))
         }
-    }
-
-    private fun clearVerificationFlow(flowId: String) {
-        updateState {
-            val remaining = pendingVerifications.filterNot { it.flowId == flowId }
-            copy(
-                pendingVerifications = remaining,
-                sasFlowId = remaining.firstOrNull()?.flowId,
-                sasPhase = if (remaining.isNotEmpty()) SasPhase.Requested else null,
-                sasOtherUser = remaining.firstOrNull()?.fromUser,
-                sasOtherDevice = remaining.firstOrNull()?.fromDevice,
-                sasEmojis = emptyList(),
-                sasError = null,
-                sasIncoming = remaining.isNotEmpty()
-            )
-        }
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        inboxToken?.let { service.portOrNull?.stopVerificationInbox(it) }
     }
 }

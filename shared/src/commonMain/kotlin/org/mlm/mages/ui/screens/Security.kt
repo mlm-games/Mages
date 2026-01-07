@@ -140,26 +140,6 @@ fun SecurityScreen(
         }
     }
 
-    // SAS Verification Dialog
-    if (state.sasFlowId != null && state.sasPhase != null) {
-        val showAcceptRequest = state.sasIncoming && state.sasPhase == SasPhase.Requested
-        val showContinue = state.sasPhase == SasPhase.Ready
-
-        SasDialog(
-            phase = state.sasPhase,
-            emojis = state.sasEmojis,
-            otherUser = state.sasOtherUser ?: "",
-            otherDevice = state.sasOtherDevice ?: "",
-            error = state.sasError,
-            showAcceptRequest = showAcceptRequest,
-            showContinue = showContinue,
-            actionInFlight = state.sasContinuePressed,
-            onAcceptOrContinue = viewModel::acceptSas,
-            onConfirm = viewModel::confirmSas,
-            onCancel = viewModel::cancelSas
-        )
-    }
-
     // Recovery Key Dialog
     if (state.showRecoveryDialog) {
         RecoveryDialog(

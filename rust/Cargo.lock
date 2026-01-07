@@ -2069,6 +2069,7 @@ dependencies = [
  "mime",
  "once_cell",
  "rand 0.9.2",
+ "reqwest",
  "serde",
  "serde_json",
  "thiserror 2.0.17",

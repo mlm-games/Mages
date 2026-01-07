@@ -11,6 +11,7 @@ import org.mlm.mages.accounts.MatrixClients
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.viewmodel.*
+import org.mlm.mages.verification.VerificationCoordinator
 
 val coreModule = module {
     single { Json { ignoreUnknownKeys = true; encodeDefaults = true } }
@@ -22,6 +23,7 @@ val accountModule = module {
     single { AccountStore(get(), get()) }
     single { MatrixClients(get()) }
     single { MatrixService(get()) }
+    single { VerificationCoordinator(get()) }
 }
 
 val viewModelModule = module {
@@ -35,7 +37,7 @@ val viewModelModule = module {
 
     viewModel { RoomsViewModel(get()) }
 
-    viewModel { SecurityViewModel(get(), get()) }
+    viewModel { SecurityViewModel(get(), get(), get()) }
 
     viewModel { LoginViewModel(get(), get()) }
 

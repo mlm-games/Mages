@@ -13,7 +13,6 @@ import kotlin.concurrent.Volatile
 class MatrixService(
     private val clients: MatrixClients
 ) {
-    // Delegate to the currently active port
     val port: MatrixPort
         get() = clients.port
 
@@ -32,14 +31,11 @@ class MatrixService(
     private val _syncStatus = MutableStateFlow<MatrixPort.SyncStatus?>(null)
     val syncStatus: StateFlow<MatrixPort.SyncStatus?> = _syncStatus.asStateFlow()
 
-    // Lazy avatar loader -> recreated when account switches
     private var _avatars: AvatarLoader? = null
     val avatars: AvatarLoader
         get() {
             val current = _avatars
-            if (current != null && clients.portOrNull != null) {
-                return current
-            }
+            if (current != null && clients.portOrNull != null) return current
             val newLoader = AvatarLoader(port)
             _avatars = newLoader
             return newLoader
@@ -149,8 +145,14 @@ class MatrixService(
     suspend fun startSelfSas(deviceId: String, observer: VerificationObserver) =
         port.startSelfSas(deviceId, observer)
 
-    suspend fun acceptVerification(flowId: String, otherUserId: String?, observer: VerificationObserver) =
-        port.acceptVerification(flowId, otherUserId, observer)
+    suspend fun startUserSas(userId: String, observer: VerificationObserver) =
+        port.startUserSas(userId, observer)
+
+    suspend fun acceptVerificationRequest(flowId: String, otherUserId: String?, observer: VerificationObserver) =
+        port.acceptVerificationRequest(flowId, otherUserId, observer)
+
+    suspend fun acceptSas(flowId: String, otherUserId: String?, observer: VerificationObserver) =
+        port.acceptSas(flowId, otherUserId, observer)
 
     suspend fun confirmVerification(flowId: String) = port.confirmVerification(flowId)
     suspend fun cancelVerification(flowId: String) = port.cancelVerification(flowId)
@@ -180,9 +182,6 @@ class MatrixService(
 
     suspend fun recoverWithKey(recoveryKey: String) =
         runCatching { port.recoverWithKey(recoveryKey) }.getOrElse { false }
-
-    suspend fun startUserSas(userId: String, observer: VerificationObserver) =
-        port.startUserSas(userId, observer)
 
     suspend fun retryByTxn(roomId: String, txnId: String) =
         runCatching { port.retryByTxn(roomId, txnId) }.getOrElse { false }

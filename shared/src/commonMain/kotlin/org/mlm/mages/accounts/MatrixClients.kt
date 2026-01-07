@@ -9,6 +9,7 @@ import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.createMatrixPort
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.deleteDirectory
+import kotlin.concurrent.Volatile
 
 class MatrixClients(
     private val accountStore: AccountStore
@@ -21,7 +22,7 @@ class MatrixClients(
     private val _isReady = MutableStateFlow(false)
     val isReady: StateFlow<Boolean> = _isReady.asStateFlow()
 
-    // Only one at a time
+    @Volatile
     private var _activePort: MatrixPort? = null
 
     val port: MatrixPort
@@ -34,6 +35,12 @@ class MatrixClients(
      * Restores the previously active account if available.
      */
     suspend fun initFromDisk(): Boolean = mutex.withLock {
+        // Already initialized
+        _activePort?.let { existing ->
+            _isReady.value = true
+            return@withLock existing.isLoggedIn()
+        }
+
         accountStore.init()
 
         val activeId = accountStore.activeAccountId.value
@@ -136,6 +143,10 @@ class MatrixClients(
     fun getAccounts(): List<MatrixAccount> = accountStore.accounts.value
 
     private suspend fun initAccountInternal(account: MatrixAccount): Boolean {
+        _activePort?.let { runCatching { it.close() } }
+        _activePort = null
+        _activeAccount.value = null
+
         val port = createMatrixPort()
 
         return try {
@@ -153,7 +164,7 @@ class MatrixClients(
                 _isReady.value = true
                 false
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             runCatching { port.close() }
             _isReady.value = true
             false

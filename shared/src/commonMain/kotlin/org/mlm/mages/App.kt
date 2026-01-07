@@ -28,6 +28,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import org.mlm.mages.accounts.AccountStore
 import org.mlm.mages.matrix.Presence
+import org.mlm.mages.matrix.SasPhase
 import org.mlm.mages.nav.*
 import org.mlm.mages.platform.BindLifecycle
 import org.mlm.mages.platform.BindNotifications
@@ -37,6 +38,7 @@ import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.ThemeMode
 import org.mlm.mages.ui.animation.forwardTransition
 import org.mlm.mages.ui.animation.popTransition
+import org.mlm.mages.ui.components.dialogs.SasDialog
 import org.mlm.mages.ui.components.sheets.AccountSwitcherSheet
 import org.mlm.mages.ui.components.sheets.CreateRoomSheet
 import org.mlm.mages.ui.components.snackbar.LauncherSnackbarHost
@@ -45,6 +47,7 @@ import org.mlm.mages.ui.screens.*
 import org.mlm.mages.ui.theme.MainTheme
 import org.mlm.mages.ui.util.popBack
 import org.mlm.mages.ui.viewmodel.*
+import org.mlm.mages.verification.VerificationCoordinator
 
 val LocalMessageFontSize = staticCompositionLocalOf { 16f }
 
@@ -78,6 +81,9 @@ private fun AppContent(deepLinks: Flow<String>?) {
 
     val activeAccount by service.activeAccount.collectAsState()
     val activeId = activeAccount?.id
+
+    val verification: VerificationCoordinator = koinInject()
+    val verState by verification.state.collectAsState()
 
     if (!initDone) {
         Surface(color = darkColorScheme().surface) {
@@ -558,6 +564,29 @@ private fun AppContent(deepLinks: Flow<String>?) {
                         )
                     }
                 }
+            )
+        }
+        if (verState.sasFlowId != null && verState.sasPhase != null) {
+            val showAcceptRequest =
+                verState.sasIncoming && verState.sasPhase == SasPhase.Requested
+
+            val showContinue = when (verState.sasPhase) {
+                SasPhase.Ready, SasPhase.Started -> true
+                else -> false
+            }
+
+            SasDialog(
+                phase = verState.sasPhase,
+                emojis = verState.sasEmojis,
+                otherUser = verState.sasOtherUser ?: "",
+                otherDevice = verState.sasOtherDevice ?: "",
+                error = verState.sasError,
+                showAcceptRequest = showAcceptRequest,
+                showContinue = showContinue,
+                actionInFlight = verState.sasContinuePressed,
+                onAcceptOrContinue = verification::acceptOrContinue,
+                onConfirm = verification::confirm,
+                onCancel = verification::cancel
             )
         }
     }

@@ -18,7 +18,6 @@ import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.launch
 import org.koin.core.context.GlobalContext
 import org.mlm.mages.MatrixService
-import org.mlm.mages.platform.Notifier.appContextOrNull
 import org.mlm.mages.push.PREF_INSTANCE
 import org.mlm.mages.push.PusherReconciler
 import org.mlm.mages.settings.AppSettings
@@ -28,7 +27,7 @@ actual object Notifier {
     private const val CHANNEL_ID = "messages"
     private var currentRoomId: String? = null
 
-    fun appContextOrNull(): Context? =
+    private fun appContextOrNull(): Context? =
         runCatching { GlobalContext.get().get<Context>() }.getOrNull()
 
     actual fun notifyRoom(title: String, body: String) {
@@ -79,17 +78,18 @@ actual fun BindLifecycle(service: MatrixService) {
 
             override fun onStart(owner: LifecycleOwner) {
                 scope.launch {
+                    runCatching { service.initFromDisk() }
+
                     val port = service.portOrNull ?: return@launch
                     if (!service.isLoggedIn()) return@launch
 
                     runCatching { port.enterForeground() }
+                    runCatching { service.resetSyncState() }
                     runCatching { service.startSupervisedSync() }
 
-                    val ctx = appContextOrNull()
+                    val ctx = runCatching { GlobalContext.get().get<Context>() }.getOrNull()
                     if (ctx != null) {
-                        runCatching {
-                            PusherReconciler.ensureServerPusherRegistered(ctx, PREF_INSTANCE)
-                        }
+                        runCatching { PusherReconciler.ensureServerPusherRegistered(ctx, PREF_INSTANCE) }
                     }
                 }
             }
@@ -110,9 +110,7 @@ actual fun BindLifecycle(service: MatrixService) {
 @Composable
 actual fun rememberQuitApp(): () -> Unit {
     val context = LocalContext.current
-    return {
-        (context as? Activity)?.finishAffinity()
-    }
+    return { (context as? Activity)?.finishAffinity() }
 }
 
 @Composable
