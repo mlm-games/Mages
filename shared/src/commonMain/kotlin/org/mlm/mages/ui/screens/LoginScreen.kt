@@ -33,7 +33,8 @@ import org.mlm.mages.ui.viewmodel.LoginViewModel
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel,
-    onSso: () -> Unit
+    onSso: () -> Unit,
+    isAddingAccount: Boolean = false
 ) {
     val state by viewModel.state.collectAsState()
     val focusManager = LocalFocusManager.current
@@ -94,6 +95,7 @@ fun LoginScreen(
                         text = when {
                             ssoInProgress -> "Waiting for SSO..."
                             isBusy -> "Connecting..."
+                            isAddingAccount -> "Add Account"
                             else -> "Welcome to Mages"
                         },
                         style = MaterialTheme.typography.headlineMedium,
