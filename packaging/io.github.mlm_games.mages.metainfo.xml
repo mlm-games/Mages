@@ -45,6 +45,19 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="2.1.1" date="2026-01-07" type="stable">
+      <description>
+        <ul>
+          <li>Fix go back logic for adding an account, change security icon to settigns icon, and remove unused logic from security screen)</li>
+          <li>Hide start in tray on Android (fix #26)</li>
+          <li>Hide start in tray on Android (fix #26)</li>
+          <li>Update release notes for v2.0.4</li>
+          <li>Make verification flows global, and fix them for android</li>
+          <li>Resolve homeservers (#22)</li>
+          <li>Remove depinfo (migr miss)</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.0.4" date="2026-01-07" type="stable">
       <description>
         <ul>

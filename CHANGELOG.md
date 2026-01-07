@@ -1,3 +1,14 @@
+## v2.1.1
+
+- Fix go back logic for adding an account, change security icon to settigns icon, and remove unused logic from security screen)
+- Hide start in tray on Android (fix #26)
+- Hide start in tray on Android (fix #26)
+- Update release notes for v2.0.4
+- Make verification flows global, and fix them for android
+- Resolve homeservers (#22)
+- Remove depinfo (migr miss)
+
+
 ## v2.0.4
 
 - Make verification flows global, and fix them for android
