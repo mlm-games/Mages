@@ -1,3 +1,10 @@
+## v2.0.4
+
+- Make verification flows global, and fix them for android
+- Resolve homeservers (#22)
+- Remove depinfo (migr miss)
+
+
 ## v2.0.3
 
 - Fix markdown colors for `` text, and also make the surface dark for loading bg

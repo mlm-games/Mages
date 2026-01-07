@@ -1,0 +1,3 @@
+- Make verification flows global, and fix them for android
+- Resolve homeservers (#22)
+- Remove depinfo (migr miss)
