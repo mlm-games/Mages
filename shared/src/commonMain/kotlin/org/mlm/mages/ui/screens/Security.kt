@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,12 +24,9 @@ import io.github.mlmgames.settings.ui.AutoSettingsScreen
 import io.github.mlmgames.settings.ui.CategoryConfig
 import org.mlm.mages.matrix.DeviceSummary
 import org.mlm.mages.matrix.Presence
-import org.mlm.mages.matrix.SasPhase
 import org.mlm.mages.settings.*
 import org.mlm.mages.ui.components.core.EmptyState
-import org.mlm.mages.ui.components.dialogs.ConfirmationDialog
 import org.mlm.mages.ui.components.dialogs.RecoveryDialog
-import org.mlm.mages.ui.components.dialogs.SasDialog
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.popBack
 import org.mlm.mages.ui.viewmodel.SecurityViewModel
@@ -46,7 +42,6 @@ fun SecurityScreen(
     val state by viewModel.state.collectAsState()
     val settings by viewModel.settings.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    var showLogoutConfirm by remember { mutableStateOf(false) }
     var verifyUserId by remember { mutableStateOf("") }
     var showVerifyUserDialog by remember { mutableStateOf(false) }
 
@@ -65,13 +60,6 @@ fun SecurityScreen(
                         }
                     },
                     actions = {
-//                        IconButton(onClick = { showLogoutConfirm = true }) {
-//                            Icon(
-//                                Icons.AutoMirrored.Filled.Logout,
-//                                "Logout",
-//                                tint = MaterialTheme.colorScheme.error
-//                            )
-//                        }
                         IconButton(onClick = onOpenAccountSwitcher) {
                             Icon(
                                 Icons.Default.SwitchAccount,
@@ -185,22 +173,6 @@ fun SecurityScreen(
                     Text("Cancel")
                 }
             }
-        )
-    }
-
-    // Logout Confirmation
-    if (showLogoutConfirm) {
-        ConfirmationDialog(
-            title = "Sign Out",
-            message = "Are you sure you want to sign out?",
-            confirmText = "Sign Out",
-            icon = Icons.AutoMirrored.Filled.Logout,
-            isDestructive = true,
-            onConfirm = {
-                showLogoutConfirm = false
-                viewModel.logout()
-            },
-            onDismiss = { showLogoutConfirm = false }
         )
     }
 }

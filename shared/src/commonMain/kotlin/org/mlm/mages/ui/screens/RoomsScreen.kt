@@ -260,7 +260,7 @@ private fun RoomsTopBar(
                     Icon(Icons.Default.Workspaces, "Spaces")
                 }
                 IconButton(onClick = onOpenSecurity) {
-                    Icon(Icons.Default.Security, "Security")
+                    Icon(Icons.Default.Settings, "Settings")
                 }
                 IconButton(onClick = onOpenDiscover) {
                     Icon(Icons.Default.Explore, "Discover")

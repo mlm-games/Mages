@@ -183,13 +183,16 @@ private fun AppContent(deepLinks: Flow<String>?) {
                 predictivePopTransitionSpec = { _ -> popTransition.invoke(this) },
                 onBack = {
                     val top = backStack.lastOrNull()
-                    val blockBack = top == Route.Login || top == Route.Rooms
+                    val isInitialLogin = top == Route.Login && backStack.size == 1
+                    val isRoomsRoot = top == Route.Rooms
+                    val blockBack = isInitialLogin || isRoomsRoot
                     if (!blockBack && backStack.size > 1) backStack.removeAt(backStack.lastIndex)
                 },
                 entryProvider = entryProvider {
 
                     entry<Route.Login>(metadata = loginEntryFadeMetadata()) {
                         val viewModel: LoginViewModel = koinViewModel()
+                        val isAddingAccount = backStack.size > 1
 
                         LaunchedEffect(Unit) {
                             viewModel.events.collect { event ->
@@ -201,7 +204,11 @@ private fun AppContent(deepLinks: Flow<String>?) {
                             }
                         }
 
-                        LoginScreen(viewModel = viewModel, onSso = { viewModel.startSso(openUrl) })
+                        LoginScreen(
+                            viewModel = viewModel,
+                            onSso = { viewModel.startSso(openUrl) },
+                            isAddingAccount = isAddingAccount
+                        )
                     }
                     entry<Route.Rooms> {
                         val viewModel: RoomsViewModel = koinViewModel()
