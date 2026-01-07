@@ -36,6 +36,7 @@ actual fun CallWebViewHost(
     widgetUrl: String,
     onMessageFromWidget: (String) -> Unit,
     onClosed: () -> Unit,
+    widgetBaseUrl: String?,
     modifier: Modifier,
 ): CallWebViewController {
     val context = LocalContext.current

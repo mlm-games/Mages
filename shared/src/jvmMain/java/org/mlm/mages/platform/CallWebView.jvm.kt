@@ -1,6 +1,5 @@
 package org.mlm.mages.platform
 
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.SwingPanel
@@ -15,6 +14,8 @@ import org.cef.callback.CefQueryCallback
 import org.cef.handler.CefDisplayHandlerAdapter
 import org.cef.handler.CefLoadHandlerAdapter
 import org.cef.handler.CefMessageRouterHandlerAdapter
+import org.cef.network.CefRequest
+import org.json.JSONObject
 import java.awt.BorderLayout
 import java.awt.Component
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -23,13 +24,23 @@ import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
 
+private val ELEMENT_SPECIFIC_ACTIONS = setOf(
+    "io.element.device_mute",
+    "io.element.join",
+    "io.element.close",
+    "io.element.tile_layout",
+    "io.element.spotlight_layout",
+    "set_always_on_screen",
+    "im.vector.hangup"
+)
 
 @Composable
 actual fun CallWebViewHost(
     widgetUrl: String,
     onMessageFromWidget: (String) -> Unit,
     onClosed: () -> Unit,
-    modifier: Modifier
+    widgetBaseUrl: String?,
+    modifier: Modifier,
 ): CallWebViewController {
 
     val controller = remember {
@@ -127,7 +138,54 @@ private class JcefCallWebViewController(
     }
 
     /* ---------------------------------------------------------------------- */
-    /*  Widget → Rust                                                          */
+    /*  Widget → Rust  (with Element-specific action handling)                 */
+    /* ---------------------------------------------------------------------- */
+
+    private fun handleWidgetMessage(message: String) {
+        try {
+            val json = JSONObject(message)
+            val api = json.optString("api")
+            val action = json.optString("action")
+
+            println("[WidgetBridge-JVM] Widget → Native: api=$api, action=$action")
+
+            if (api == "fromWidget" && action in ELEMENT_SPECIFIC_ACTIONS) {
+                println("[WidgetBridge-JVM] Handling Element-specific action locally: $action")
+
+                // Send success response back to widget
+                sendElementActionResponse(message)
+
+                // Handle specific actions that need app-level behavior
+                when (action) {
+                    "io.element.close", "im.vector.hangup" -> {
+                        println("[WidgetBridge-JVM] Call ended by widget")
+                        close()
+                    }
+                }
+                return // Don't forward to SDK
+            }
+
+            // Forward all other messages to SDK
+            onMessageFromWidget(message)
+        } catch (e: Exception) {
+            println("[WidgetBridge-JVM] Error parsing message, forwarding anyway: ${e.message}")
+            onMessageFromWidget(message)
+        }
+    }
+
+    private fun sendElementActionResponse(originalMessage: String) {
+        try {
+            val response = JSONObject(originalMessage).apply {
+                put("response", JSONObject())
+            }
+            sendToWidget(response.toString())
+        } catch (e: Exception) {
+            println("[WidgetBridge-JVM] Failed to send response: ${e.message}")
+        }
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /*  Rust → Widget                                                          */
     /* ---------------------------------------------------------------------- */
 
     override fun sendToWidget(message: String) {
@@ -139,19 +197,10 @@ private class JcefCallWebViewController(
             return
         }
 
-        val js = """
-            (function () {
-              try {
-                var raw = ${jsStringLiteral(message)};
-                try {
-                  window.postMessage(JSON.parse(raw), "*");
-                } catch (_) {
-                  window.postMessage(raw, "*");
-                }
-              } catch (_) {}
-            })();
-        """.trimIndent()
+        println("[WidgetBridge-JVM] Native → Widget: ${message.take(200)}")
 
+        // Use postMessage like Element X does
+        val js = "postMessage($message, '*')"
         b.mainFrame.executeJavaScript(js, b.mainFrame.url, 0)
     }
 
@@ -163,7 +212,7 @@ private class JcefCallWebViewController(
         val cl = app.createClient()
 
         val routerCfg =
-            CefMessageRouter.CefMessageRouterConfig("cefQuery", "cefQueryCancel")
+            CefMessageRouter.CefMessageRouterConfig("elementX", "elementXCancel")
         val r = CefMessageRouter.create(routerCfg)
 
         r.addHandler(object : CefMessageRouterHandlerAdapter() {
@@ -175,7 +224,7 @@ private class JcefCallWebViewController(
                 persistent: Boolean,
                 callback: CefQueryCallback
             ): Boolean {
-                onMessageFromWidget(request)
+                handleWidgetMessage(request)
                 callback.success("")
                 return true
             }
@@ -184,13 +233,22 @@ private class JcefCallWebViewController(
         cl.addMessageRouter(r)
 
         cl.addLoadHandler(object : CefLoadHandlerAdapter() {
+            override fun onLoadStart(
+                browser: CefBrowser,
+                frame: CefFrame,
+                transitionType: CefRequest.TransitionType
+            ) {
+                if (!frame.isMain) return
+                // Inject bridge early (like Android's onPageStarted)
+                injectBridge(frame)
+            }
+
             override fun onLoadEnd(
                 browser: CefBrowser,
                 frame: CefFrame,
                 httpStatusCode: Int
             ) {
                 if (!frame.isMain) return
-                injectBridge(frame)
                 flushPendingToWidget()
             }
         })
@@ -203,7 +261,7 @@ private class JcefCallWebViewController(
                 source: String,
                 line: Int
             ): Boolean {
-                println("JCEF [$level] $source:$line $message")
+                println("[WebViewConsole-JVM] [$level] $source:$line $message")
                 return false
             }
         })
@@ -221,27 +279,34 @@ private class JcefCallWebViewController(
     }
 
     /* ---------------------------------------------------------------------- */
-    /*  JS bridge (CURRENT widget spec)                                        */
+    /*  JS bridge (matching Android/Element X implementation)                  */
     /* ---------------------------------------------------------------------- */
 
     private fun injectBridge(frame: CefFrame) {
+        // Match Element X's message filtering logic exactly
         val js = """
-            (function () {
-              if (window.__MagesBridgeInstalled) return;
-              window.__MagesBridgeInstalled = true;
+            (function() {
+                if (window.__MagesBridgeInstalled) return;
+                window.__MagesBridgeInstalled = true;
 
-              window.addEventListener("message", function (ev) {
-                try {
-                  if (ev.data == null) return;
-                  const payload = typeof ev.data === "string"
-                    ? ev.data
-                    : JSON.stringify(ev.data);
-
-                  if (typeof window.cefQuery === "function") {
-                    window.cefQuery({ request: payload });
-                  }
-                } catch (_) {}
-              }, false);
+                window.addEventListener('message', function(event) {
+                    try {
+                        var message = {data: event.data, origin: event.origin};
+                        // Forward fromWidget requests (no response) and toWidget responses (has response)
+                        if (message.data.response && message.data.api == "toWidget"
+                            || !message.data.response && message.data.api == "fromWidget") {
+                            var json = JSON.stringify(event.data);
+                            console.log('message sent: ' + json);
+                            if (typeof window.elementX === "function") {
+                                window.elementX({request: json});
+                            }
+                        } else {
+                            console.log('message received (ignored): ' + JSON.stringify(event.data));
+                        }
+                    } catch (e) {
+                        console.error('Bridge error:', e);
+                    }
+                });
             })();
         """.trimIndent()
 
@@ -254,20 +319,4 @@ private class JcefCallWebViewController(
             sendToWidget(msg)
         }
     }
-
-    private fun jsStringLiteral(s: String): String =
-        buildString(s.length + 16) {
-            append('\'')
-            for (c in s) {
-                when (c) {
-                    '\\' -> append("\\\\")
-                    '\'' -> append("\\'")
-                    '\n' -> append("\\n")
-                    '\r' -> append("\\r")
-                    '\t' -> append("\\t")
-                    else -> append(c)
-                }
-            }
-            append('\'')
-        }
 }

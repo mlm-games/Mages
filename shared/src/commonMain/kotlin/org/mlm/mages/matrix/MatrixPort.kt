@@ -245,7 +245,8 @@ enum class CallIntent {
 
 data class CallSession(
     val sessionId: ULong,
-    val widgetUrl: String
+    val widgetUrl: String,
+    val widgetBaseUrl: String?,
 )
 
 interface CallWidgetObserver {
@@ -516,8 +517,11 @@ interface MatrixPort {
         roomId: String,
         intent: CallIntent,
         elementCallUrl: String? = null,
+        languageTag: String? = null,
+        theme: String? = null,
         observer: CallWidgetObserver
     ): CallSession?
+
 
     fun callWidgetFromWebview(sessionId: ULong, message: String): Boolean
     fun stopElementCall(sessionId: ULong): Boolean

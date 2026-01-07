@@ -5,6 +5,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import mages.FfiRoomNotificationMode
 import mages.SasEmojis
@@ -43,10 +44,12 @@ class RustMatrixPort : MatrixPort {
     }
 
     override fun close() {
-        synchronized(clientLock) {
-            withClient {
-                it.let { c ->
-                    runCatching { c.shutdown() }
+        runBlocking(Dispatchers.IO) {
+            synchronized(clientLock) {
+                withClient {
+                    it.let { c ->
+                        runCatching { c.shutdown() }
+                    }
                 }
             }
         }
@@ -60,7 +63,9 @@ class RustMatrixPort : MatrixPort {
         }
 
     override fun isLoggedIn(): Boolean =
-        synchronized(clientLock) { client?.isLoggedIn() ?: false }
+        runBlocking(Dispatchers.IO) {
+            synchronized(clientLock) { client?.isLoggedIn() ?: false }
+        }
 
     override suspend fun listRooms(): List<RoomSummary> =
         withContext(Dispatchers.IO) {
@@ -104,45 +109,59 @@ class RustMatrixPort : MatrixPort {
             }
         }
 
-        val token = withClient { it.observeTimeline(roomId, obs) }
-        awaitClose { withClient { it.unobserveTimeline(token) } }
+        val token = withContext(Dispatchers.IO) {
+            withClient { it.observeTimeline(roomId, obs) }
+        }
+        awaitClose {
+            runBlocking(Dispatchers.IO) {
+                withClient { it.unobserveTimeline(token) }
+            }
+        }
     }
 
     override fun observeConnection(observer: MatrixPort.ConnectionObserver): ULong {
-        val cb = object : mages.ConnectionObserver {
-            override fun onConnectionChange(state: mages.ConnectionState) {
-                val mapped = when (state) {
-                    is mages.ConnectionState.Disconnected -> MatrixPort.ConnectionState.Disconnected
-                    is mages.ConnectionState.Connecting -> MatrixPort.ConnectionState.Connecting
-                    is mages.ConnectionState.Connected -> MatrixPort.ConnectionState.Connected
-                    is mages.ConnectionState.Syncing -> MatrixPort.ConnectionState.Syncing
-                    is mages.ConnectionState.Reconnecting -> MatrixPort.ConnectionState.Reconnecting
+        return runBlocking(Dispatchers.IO) {
+            val cb = object : mages.ConnectionObserver {
+                override fun onConnectionChange(state: mages.ConnectionState) {
+                    val mapped = when (state) {
+                        is mages.ConnectionState.Disconnected -> MatrixPort.ConnectionState.Disconnected
+                        is mages.ConnectionState.Connecting -> MatrixPort.ConnectionState.Connecting
+                        is mages.ConnectionState.Connected -> MatrixPort.ConnectionState.Connected
+                        is mages.ConnectionState.Syncing -> MatrixPort.ConnectionState.Syncing
+                        is mages.ConnectionState.Reconnecting -> MatrixPort.ConnectionState.Reconnecting
+                    }
+                    observer.onConnectionChange(mapped)
                 }
-                observer.onConnectionChange(mapped)
             }
+            withClient { it.monitorConnection(cb) }
         }
-        return withClient { it.monitorConnection(cb) }
     }
 
     override fun stopConnectionObserver(token: ULong) {
-        withClient { it.unobserveConnection(token) }
+        runBlocking(Dispatchers.IO) {
+            withClient { it.unobserveConnection(token) }
+        }
     }
 
     override fun startVerificationInbox(observer: MatrixPort.VerificationInboxObserver): ULong {
-        val cb = object : mages.VerificationInboxObserver {
-            override fun onRequest(flowId: String, fromUser: String, fromDevice: String) {
-                observer.onRequest(flowId, fromUser, fromDevice)
-            }
+        return runBlocking(Dispatchers.IO) {
+            val cb = object : mages.VerificationInboxObserver {
+                override fun onRequest(flowId: String, fromUser: String, fromDevice: String) {
+                    observer.onRequest(flowId, fromUser, fromDevice)
+                }
 
-            override fun onError(message: String) {
-                observer.onError(message)
+                override fun onError(message: String) {
+                    observer.onError(message)
+                }
             }
+            withClient { it.startVerificationInbox(cb) }
         }
-        return withClient { it.startVerificationInbox(cb) }
     }
 
     override fun stopVerificationInbox(token: ULong) {
-        withClient { it.unobserveVerificationInbox(token) }
+        runBlocking(Dispatchers.IO) {
+            withClient { it.unobserveVerificationInbox(token) }
+        }
     }
 
     override suspend fun send(roomId: String, body: String): Boolean =
@@ -201,8 +220,14 @@ class RustMatrixPort : MatrixPort {
                 )
             }
         }
-        val token = withClient { it.observeSends(obs) }
-        awaitClose { withClient { it.unobserveSends(token) } }
+        val token = withContext(Dispatchers.IO) {
+            withClient { it.observeSends(obs) }
+        }
+        awaitClose {
+            runBlocking(Dispatchers.IO) {
+                withClient { it.unobserveSends(token) }
+            }
+        }
     }
 
     override suspend fun thumbnailToCache(
@@ -218,7 +243,9 @@ class RustMatrixPort : MatrixPort {
         }
 
     override fun whoami(): String? {
-        return withClient { it.whoami() }
+        return runBlocking(Dispatchers.IO) {
+            withClient { it.whoami() }
+        }
     }
 
     override suspend fun paginateBack(roomId: String, count: Int): Boolean =
@@ -266,29 +293,37 @@ class RustMatrixPort : MatrixPort {
         }
 
     override fun observeTyping(roomId: String, onUpdate: (List<String>) -> Unit): ULong {
-        val obs = object : mages.TypingObserver {
-            override fun onUpdate(names: List<String>) {
-                onUpdate(names)
+        return runBlocking(Dispatchers.IO) {
+            val obs = object : mages.TypingObserver {
+                override fun onUpdate(names: List<String>) {
+                    onUpdate(names)
+                }
             }
+            withClient { it.observeTyping(roomId, obs) }
         }
-        return withClient { it.observeTyping(roomId, obs) }
     }
 
     override fun stopTypingObserver(token: ULong) {
-        withClient { it.unobserveTyping(token) }
+        runBlocking(Dispatchers.IO) {
+            withClient { it.unobserveTyping(token) }
+        }
     }
 
     override fun observeReceipts(roomId: String, observer: ReceiptsObserver): ULong {
-        val cb = object : mages.ReceiptsObserver {
-            override fun onChanged() {
-                observer.onChanged()
+        return runBlocking(Dispatchers.IO) {
+            val cb = object : mages.ReceiptsObserver {
+                override fun onChanged() {
+                    observer.onChanged()
+                }
             }
+            withClient { it.observeReceipts(roomId, cb) }
         }
-        return withClient { it.observeReceipts(roomId, cb) }
     }
 
     override fun stopReceiptsObserver(token: ULong) {
-        withClient { it.unobserveReceipts(token) }
+        runBlocking(Dispatchers.IO) {
+            withClient { it.unobserveReceipts(token) }
+        }
     }
 
     override suspend fun dmPeerUserId(roomId: String): String? =
@@ -302,39 +337,45 @@ class RustMatrixPort : MatrixPort {
         }
 
     override fun startCallInbox(observer: MatrixPort.CallObserver): ULong {
-        val cb = object : mages.CallObserver {
-            override fun onInvite(invite: mages.CallInvite) {
-                observer.onInvite(
-                    CallInvite(
-                        roomId = invite.roomId,
-                        sender = invite.sender,
-                        callId = invite.callId,
-                        isVideo = invite.isVideo,
-                        tsMs = invite.tsMs.toLong()
+        return runBlocking(Dispatchers.IO) {
+            val cb = object : mages.CallObserver {
+                override fun onInvite(invite: mages.CallInvite) {
+                    observer.onInvite(
+                        CallInvite(
+                            roomId = invite.roomId,
+                            sender = invite.sender,
+                            callId = invite.callId,
+                            isVideo = invite.isVideo,
+                            tsMs = invite.tsMs.toLong()
+                        )
                     )
-                )
+                }
             }
+            withClient { it.startCallInbox(cb) }
         }
-        return withClient { it.startCallInbox(cb) }
     }
 
     override fun stopCallInbox(token: ULong) {
-        withClient { it.stopCallInbox(token) }
+        runBlocking(Dispatchers.IO) {
+            withClient { it.stopCallInbox(token) }
+        }
     }
 
     override fun startSupervisedSync(observer: MatrixPort.SyncObserver) {
-        val cb = object : mages.SyncObserver {
-            override fun onState(status: mages.SyncStatus) {
-                val phase = when (status.phase) {
-                    mages.SyncPhase.IDLE -> MatrixPort.SyncPhase.Idle
-                    mages.SyncPhase.RUNNING -> MatrixPort.SyncPhase.Running
-                    mages.SyncPhase.BACKING_OFF -> MatrixPort.SyncPhase.BackingOff
-                    mages.SyncPhase.ERROR -> MatrixPort.SyncPhase.Error
+        runBlocking(Dispatchers.IO) {
+            val cb = object : mages.SyncObserver {
+                override fun onState(status: mages.SyncStatus) {
+                    val phase = when (status.phase) {
+                        mages.SyncPhase.IDLE -> MatrixPort.SyncPhase.Idle
+                        mages.SyncPhase.RUNNING -> MatrixPort.SyncPhase.Running
+                        mages.SyncPhase.BACKING_OFF -> MatrixPort.SyncPhase.BackingOff
+                        mages.SyncPhase.ERROR -> MatrixPort.SyncPhase.Error
+                    }
+                    observer.onState(MatrixPort.SyncStatus(phase, status.message))
                 }
-                observer.onState(MatrixPort.SyncStatus(phase, status.message))
             }
+            withClient { it.startSupervisedSync(cb) }
         }
-        withClient { it.startSupervisedSync(cb) }
     }
 
     override suspend fun listMyDevices(): List<DeviceSummary> =
@@ -488,11 +529,15 @@ class RustMatrixPort : MatrixPort {
         }
 
     override fun enterForeground() {
-        withClient { it.enterForeground() }
+        runBlocking(Dispatchers.IO) {
+            withClient { it.enterForeground() }
+        }
     }
 
     override fun enterBackground() {
-        withClient { it.enterBackground() }
+        runBlocking(Dispatchers.IO) {
+            withClient { it.enterBackground() }
+        }
     }
 
     override suspend fun sendAttachmentFromPath(
@@ -610,12 +655,14 @@ class RustMatrixPort : MatrixPort {
         }
 
     override fun observeOwnReceipt(roomId: String, observer: ReceiptsObserver): ULong {
-        val cb = object : mages.ReceiptsObserver {
-            override fun onChanged() {
-                observer.onChanged()
+        return runBlocking(Dispatchers.IO) {
+            val cb = object : mages.ReceiptsObserver {
+                override fun onChanged() {
+                    observer.onChanged()
+                }
             }
+            withClient { it.observeOwnReceipt(roomId, cb) }
         }
-        return withClient { it.observeOwnReceipt(roomId, cb) }
     }
 
     override suspend fun markFullyReadAt(roomId: String, eventId: String): Boolean =
@@ -624,21 +671,25 @@ class RustMatrixPort : MatrixPort {
         }
 
     override fun observeRoomList(observer: MatrixPort.RoomListObserver): ULong {
-        val cb = object : mages.RoomListObserver {
-            override fun onReset(items: List<mages.RoomListEntry>) {
-                val mapped = items.map { it.toKotlinRoomListEntry() }
-                observer.onReset(mapped)
-            }
+        return runBlocking(Dispatchers.IO) {
+            val cb = object : mages.RoomListObserver {
+                override fun onReset(items: List<mages.RoomListEntry>) {
+                    val mapped = items.map { it.toKotlinRoomListEntry() }
+                    observer.onReset(mapped)
+                }
 
-            override fun onUpdate(item: mages.RoomListEntry) {
-                observer.onUpdate(item.toKotlinRoomListEntry())
+                override fun onUpdate(item: mages.RoomListEntry) {
+                    observer.onUpdate(item.toKotlinRoomListEntry())
+                }
             }
+            withClient { it.observeRoomList(cb) }
         }
-        return withClient { it.observeRoomList(cb) }
     }
 
     override fun unobserveRoomList(token: ULong) {
-        withClient { it.unobserveRoomList(token) }
+        runBlocking(Dispatchers.IO) {
+            withClient { it.unobserveRoomList(token) }
+        }
     }
 
     override suspend fun fetchNotification(roomId: String, eventId: String): RenderedNotification? =
@@ -692,8 +743,10 @@ class RustMatrixPort : MatrixPort {
     }
 
     override fun roomListSetUnreadOnly(token: ULong, unreadOnly: Boolean): Boolean {
-        return withClient {
-            it.roomListSetUnreadOnly(token, unreadOnly)
+        return runBlocking(Dispatchers.IO) {
+            withClient {
+                it.roomListSetUnreadOnly(token, unreadOnly)
+            }
         }
     }
 
@@ -1085,24 +1138,28 @@ class RustMatrixPort : MatrixPort {
         roomId: String,
         onShares: (List<LiveLocationShare>) -> Unit
     ): ULong {
-        val cb = object : mages.LiveLocationObserver {
-            override fun onUpdate(shares: List<mages.LiveLocationShareInfo>) {
-                val mapped = shares.map {
-                    LiveLocationShare(
-                        userId = it.userId,
-                        geoUri = it.geoUri,
-                        tsMs = it.tsMs.toLong(),
-                        isLive = it.isLive
-                    )
+        return runBlocking(Dispatchers.IO) {
+            val cb = object : mages.LiveLocationObserver {
+                override fun onUpdate(shares: List<mages.LiveLocationShareInfo>) {
+                    val mapped = shares.map {
+                        LiveLocationShare(
+                            userId = it.userId,
+                            geoUri = it.geoUri,
+                            tsMs = it.tsMs.toLong(),
+                            isLive = it.isLive
+                        )
+                    }
+                    onShares(mapped)
                 }
-                onShares(mapped)
             }
+            withClient { it.observeLiveLocation(roomId, cb) }
         }
-        return withClient { it.observeLiveLocation(roomId, cb) }
     }
 
     override fun stopObserveLiveLocation(token: ULong) {
-        withClient { it.unobserveLiveLocation(token) }
+        runBlocking(Dispatchers.IO) {
+            withClient { it.unobserveLiveLocation(token) }
+        }
     }
 
     override suspend fun sendPoll(
@@ -1139,14 +1196,16 @@ class RustMatrixPort : MatrixPort {
         eventId: String,
         limit: Int
     ): List<SeenByEntry> {
-        return withClient {
-            it.seenByForEvent(roomId, eventId, limit.toUInt()).map { entry ->
-                SeenByEntry(
-                    userId = entry.userId,
-                    displayName = entry.displayName,
-                    avatarUrl = entry.avatarUrl,
-                    tsMs = entry.tsMs
-                )
+        return runBlocking(Dispatchers.IO) {
+            withClient {
+                it.seenByForEvent(roomId, eventId, limit.toUInt()).map { entry ->
+                    SeenByEntry(
+                        userId = entry.userId,
+                        displayName = entry.displayName,
+                        avatarUrl = entry.avatarUrl,
+                        tsMs = entry.tsMs
+                    )
+                }
             }
         }
     }
@@ -1184,7 +1243,9 @@ class RustMatrixPort : MatrixPort {
         roomId: String,
         intent: CallIntent,
         elementCallUrl: String?,
-        observer: CallWidgetObserver
+        languageTag: String?,
+        theme: String?,
+        observer: CallWidgetObserver,
     ): CallSession? = withContext(Dispatchers.IO) {
         val ffiIntent = when (intent) {
             CallIntent.StartCall -> mages.ElementCallIntent.START_CALL
@@ -1197,18 +1258,24 @@ class RustMatrixPort : MatrixPort {
 
         runCatching {
             withClient { cl ->
-                val info = cl.startElementCall(roomId, elementCallUrl, ffiIntent, cb)
-                CallSession(sessionId = info.sessionId, widgetUrl = info.widgetUrl)
+                val info = cl.startElementCall(roomId, elementCallUrl, ffiIntent, cb, languageTag, theme)
+                CallSession(sessionId = info.sessionId, widgetUrl = info.widgetUrl, widgetBaseUrl = info.widgetBaseUrl)
             }
         }.getOrNull()
     }
 
-    override fun callWidgetFromWebview(sessionId: ULong, message: String): Boolean =
-        runCatching { withClient { it.callWidgetFromWebview(sessionId, message) } }
-            .getOrDefault(false)
+    override fun callWidgetFromWebview(sessionId: ULong, message: String): Boolean {
+        return runBlocking(Dispatchers.IO) {
+            runCatching { withClient { it.callWidgetFromWebview(sessionId, message) } }
+                .getOrDefault(false)
+        }
+    }
 
-    override fun stopElementCall(sessionId: ULong): Boolean =
-        runCatching { withClient { it.stopElementCall(sessionId) } }.getOrDefault(false)
+    override fun stopElementCall(sessionId: ULong): Boolean {
+        return runBlocking(Dispatchers.IO) {
+            runCatching { withClient { it.stopElementCall(sessionId) } }.getOrDefault(false)
+        }
+    }
 }
 
 private fun FfiRoom.toModel() = RoomSummary(id = id, name = name)

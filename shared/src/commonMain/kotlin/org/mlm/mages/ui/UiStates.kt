@@ -289,5 +289,6 @@ data class SearchUiState(
 
 data class ActiveCallUi(
     val sessionId: ULong,
-    val widgetUrl: String
+    val widgetUrl: String,
+    val widgetBaseUrl: String?,
 )

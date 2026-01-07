@@ -78,6 +78,7 @@ kotlin {
             implementation(libs.slf4j.simple)
             implementation(libs.systemtray)
             implementation(libs.jcefmaven)
+            implementation("org.json:json:20231013")
         }
     }
 }

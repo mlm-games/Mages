@@ -226,11 +226,13 @@ class MatrixService(
         roomId: String,
         intent: CallIntent,
         elementCallUrl: String? = null,
+        languageTag: String? = null,
+        theme: String? = null,
         onToWidget: (String) -> Unit
     ): CallSession? {
         val observer = object : CallWidgetObserver {
             override fun onToWidget(message: String) = onToWidget(message)
         }
-        return port.startElementCall(roomId, intent, elementCallUrl, observer)
+        return port.startElementCall(roomId, intent, elementCallUrl, languageTag, theme, observer)
     }
 }

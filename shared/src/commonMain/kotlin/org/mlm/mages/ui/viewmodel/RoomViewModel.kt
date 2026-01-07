@@ -998,7 +998,7 @@ class RoomViewModel(
         }
     }
 
-    fun startCall(intent: CallIntent = CallIntent.StartCall) {
+    fun startCall(intent: CallIntent = CallIntent.StartCall, theme: String?, languageTag: String?) {
         if (currentState.activeCall != null) return
 
         launch {
@@ -1008,9 +1008,11 @@ class RoomViewModel(
             println("[WidgetBridge] Starting call in room: $roomId")
 
             val session = service.startCall(
-                roomId = roomId,
-                intent = intent,
+                roomId,
+                intent,
                 elementCallUrl = callUrl,
+                languageTag,
+                theme
             ) { messageFromSdk ->
                 println("[WidgetBridge] Rust → Widget queue: ${messageFromSdk.take(200)}")
                 sendToWidgetOrQueue(messageFromSdk)
@@ -1022,7 +1024,8 @@ class RoomViewModel(
                     copy(
                         activeCall = ActiveCallUi(
                             sessionId = session.sessionId,
-                            widgetUrl = session.widgetUrl
+                            widgetUrl = session.widgetUrl,
+                            widgetBaseUrl = session.widgetBaseUrl
                         )
                     )
                 }

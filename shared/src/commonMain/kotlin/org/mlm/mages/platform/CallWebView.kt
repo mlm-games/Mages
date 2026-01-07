@@ -13,5 +13,6 @@ expect fun CallWebViewHost(
     widgetUrl: String,
     onMessageFromWidget: (String) -> Unit,
     onClosed: () -> Unit,
+    widgetBaseUrl: String?,
     modifier: Modifier = Modifier,
 ): CallWebViewController

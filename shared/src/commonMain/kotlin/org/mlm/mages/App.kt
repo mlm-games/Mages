@@ -48,6 +48,7 @@ import org.mlm.mages.ui.theme.MainTheme
 import org.mlm.mages.ui.util.popBack
 import org.mlm.mages.ui.viewmodel.*
 import org.mlm.mages.verification.VerificationCoordinator
+import java.util.Locale
 
 val LocalMessageFontSize = staticCompositionLocalOf { 16f }
 
@@ -99,13 +100,18 @@ private fun AppContent(deepLinks: Flow<String>?) {
         if (activeId != null && service.isLoggedIn()) Route.Rooms else Route.Login
     }
 
+    val isDark = when (settings.themeMode) {
+        ThemeMode.System.ordinal -> isSystemInDarkTheme()
+        ThemeMode.Dark.ordinal -> true
+        ThemeMode.Light.ordinal -> false
+        else -> isSystemInDarkTheme()
+    }
+    val widgetTheme = if (isDark) "dark" else "light"
+
+    val languageTag = Locale.getDefault().toLanguageTag()
+
     MainTheme(
-        darkTheme = when (settings.themeMode) {
-            ThemeMode.System.ordinal -> isSystemInDarkTheme()
-            ThemeMode.Dark.ordinal -> true
-            ThemeMode.Light.ordinal -> false
-            else -> isSystemInDarkTheme()
-        }
+        darkTheme = isDark
     ) {
         val scope = rememberCoroutineScope()
         var sessionEpoch by remember { mutableIntStateOf(0) }
@@ -268,7 +274,12 @@ private fun AppContent(deepLinks: Flow<String>?) {
                             onNavigateToThread = { roomId, eventId, roomName ->
                                 backStack.add(Route.Thread(roomId, eventId, roomName))
                             },
-                            onStartCall = { viewModel.startCall() },
+                            onStartCall = {
+                                viewModel.startCall(
+                                    theme = widgetTheme,
+                                    languageTag = languageTag,
+                                )
+                            },
                             onOpenForwardPicker = { roomId, eventIds ->
                                 backStack.add(Route.ForwardPicker(roomId, eventIds))
                             }

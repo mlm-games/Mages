@@ -936,52 +936,21 @@ private fun CallOverlay(
     onEndCall: () -> Unit,
     onAttachController: (CallWebViewController?) -> Unit
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-        tonalElevation = 12.dp,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Column(Modifier.fillMaxSize()) {
-            // Simple call header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Spacing.md),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    "Call in progress",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                TextButton(onClick = onEndCall) {
-                    Icon(
-                        Icons.Default.CallEnd,
-                        "End call",
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text("End", color = MaterialTheme.colorScheme.error)
-                }
-            }
+    Box(modifier = Modifier.fillMaxSize()) {
+        val controller = CallWebViewHost(
+            widgetUrl = activeCall.widgetUrl,
+            onMessageFromWidget = onMessageFromWidget,
+            widgetBaseUrl = activeCall.widgetBaseUrl,
+            onClosed = onEndCall,
+            modifier = Modifier.fillMaxSize()
+        )
 
-            // WebView host fills remaining space
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(Spacing.md)
-            ) {
-                val controller = CallWebViewHost(
-                    widgetUrl = activeCall.widgetUrl,
-                    onMessageFromWidget = onMessageFromWidget,
-                    onClosed = onEndCall
-                )
+        LaunchedEffect(controller) {
+            onAttachController(controller)
+        }
 
-                LaunchedEffect(controller) {
-                    onAttachController(controller)
-                }
-            }
+        DisposableEffect(Unit) {
+            onDispose { onAttachController(null) }
         }
     }
 }

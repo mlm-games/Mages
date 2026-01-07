@@ -1,4 +1,5 @@
 use js_int::UInt;
+use matrix_sdk::authentication::oauth::registration::language_tags::LanguageTag;
 use matrix_sdk::reqwest::Url;
 use matrix_sdk::search_index::SearchIndexStoreKind;
 use matrix_sdk::{
@@ -135,8 +136,8 @@ use matrix_sdk::ruma::{
     presence::PresenceState,
 };
 use matrix_sdk::widget::{
-    Capabilities, CapabilitiesProvider, ClientProperties, EncryptionSystem, Intent as WidgetIntent,
-    WidgetDriver, WidgetDriverHandle, WidgetSettings,
+    Capabilities, CapabilitiesProvider, ClientProperties, Intent as WidgetIntent, WidgetDriver,
+    WidgetDriverHandle, WidgetSettings,
 };
 use std::panic::AssertUnwindSafe;
 
@@ -698,6 +699,7 @@ pub struct CallSessionInfo {
     pub session_id: u64,
     /// Fully-expanded Element Call URL to load into a WebView.
     pub widget_url: String,
+    pub widget_base_url: Option<String>,
 }
 
 #[export(callback_interface)]
@@ -738,18 +740,6 @@ fn notification_event_ts_ms(ev: &NotificationEvent) -> u64 {
     }
 }
 
-#[derive(Debug, Deserialize)]
-struct WellKnownClient {
-    #[serde(rename = "m.homeserver")]
-    homeserver: Option<WellKnownHomeserver>,
-}
-
-#[derive(Debug, Deserialize)]
-struct WellKnownHomeserver {
-    #[serde(rename = "base_url")]
-    base_url: String,
-}
-
 fn strip_matrix_path(mut u: Url) -> Url {
     //Example: https://hs/_matrix/client/v3, strips at /_matrix/
     if let Some(idx) = u.path().find("/_matrix/") {
@@ -759,87 +749,6 @@ fn strip_matrix_path(mut u: Url) -> Url {
         u.set_fragment(None);
     }
     u
-}
-
-fn ensure_trailing_slash(mut u: Url) -> Url {
-    let p = u.path();
-    if !p.ends_with('/') {
-        u.set_path(&format!("{}/", p));
-    }
-    u
-}
-
-fn origin_url(u: &Url) -> Result<Url, FfiError> {
-    let host = u
-        .host_str()
-        .ok_or_else(|| FfiError::Msg("Homeserver URL missing host".into()))?;
-    let mut o = Url::parse(&format!("{}://{}", u.scheme(), host))
-        .map_err(|e| FfiError::Msg(format!("Bad URL: {e}")))?;
-    if let Some(port) = u.port() {
-        let _ = o.set_port(Some(port));
-    }
-    Ok(o)
-}
-
-async fn is_matrix_cs_base(http: &reqwest::Client, base: &Url) -> bool {
-    let base = ensure_trailing_slash(base.clone());
-    let versions = match base.join("_matrix/client/versions") {
-        Ok(u) => u,
-        Err(_) => return false,
-    };
-
-    match http.get(versions).send().await {
-        Ok(resp) => resp.status().is_success(),
-        Err(_) => false,
-    }
-}
-
-async fn resolve_homeserver_base_url(input: &str) -> Result<Url, FfiError> {
-    let raw = input.trim();
-    if raw.is_empty() {
-        return Err(FfiError::Msg("Homeserver is empty".into()));
-    }
-
-    // Parse input; if it has no scheme, assume https://
-    let parsed = Url::parse(raw)
-        .or_else(|_| Url::parse(&format!("https://{raw}")))
-        .map_err(|e| FfiError::Msg(format!("Invalid homeserver URL: {e}")))?;
-
-    let parsed = strip_matrix_path(parsed);
-
-    let http = reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::limited(10))
-        .build()
-        .map_err(|e| FfiError::Msg(format!("HTTP client error: {e}")))?;
-
-    if is_matrix_cs_base(&http, &parsed).await {
-        return Ok(parsed);
-    }
-
-    let origin = origin_url(&parsed)?;
-    let well_known = origin
-        .join("/.well-known/matrix/client")
-        .map_err(|e| FfiError::Msg(format!("Failed to build well-known URL: {e}")))?;
-
-    if let Ok(resp) = http.get(well_known).send().await {
-        if resp.status().is_success() {
-            if let Ok(body) = resp.json::<WellKnownClient>().await {
-                if let Some(hs) = body.homeserver {
-                    if let Ok(base_url) = Url::parse(&hs.base_url) {
-                        let base_url = strip_matrix_path(base_url);
-                        if is_matrix_cs_base(&http, &base_url).await {
-                            return Ok(base_url);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    Err(FfiError::Msg(
-        "There are no Matrix endpoints here. Try entering the homeserver base URL (m.homeserver.base_url), or ensure /.well-known/matrix/client is set correctly."
-            .into(),
-    ))
 }
 
 // Session persistence
@@ -1033,7 +942,14 @@ impl Client {
     ) -> Result<Self, FfiError> {
         init_tracing();
 
-        let hs = RT.block_on(async { resolve_homeserver_base_url(&homeserver_url).await })?;
+        let normalized = {
+            let raw = homeserver_url.trim();
+            Url::parse(raw)
+                .or_else(|_| Url::parse(&format!("https://{raw}")))
+                .map(strip_matrix_path)
+                .map(|u| u.to_string())
+                .unwrap_or_else(|_| raw.to_owned())
+        };
 
         let store_dir_path = if let Some(ref id) = account_id {
             std::path::PathBuf::from(&base_store_dir)
@@ -1052,7 +968,7 @@ impl Client {
                 let idx_key = load_or_create_search_index_key(&store_dir_path);
 
                 SdkClient::builder()
-                    .homeserver_url(hs)
+                    .server_name_or_homeserver_url(normalized)
                     .sqlite_store(&store_dir_path, None)
                     .search_index_store(SearchIndexStoreKind::EncryptedDirectory(idx_dir, idx_key))
                     .with_encryption_settings(EncryptionSettings {
@@ -5479,12 +5395,18 @@ impl Client {
         element_call_url: Option<String>,
         intent: ElementCallIntent,
         observer: Box<dyn CallWidgetObserver>,
+        language_tag: Option<String>,
+        theme: Option<String>,
     ) -> Result<CallSessionInfo, FfiError> {
         let inner = self.inner.clone();
         let obs: Arc<dyn CallWidgetObserver> = Arc::from(observer);
         let session_id = self.next_sub_id();
 
-        let (widget_settings, widget_url) = RT.block_on(async {
+        let lang = language_tag
+            .as_deref()
+            .and_then(|s| LanguageTag::parse(s).ok());
+
+        let (widget_settings, widget_url, widget_base_url) = RT.block_on(async {
             let rid = OwnedRoomId::try_from(room_id.as_str())
                 .map_err(|e| FfiError::Msg(e.to_string()))?;
             let Some(room) = inner.get_room(&rid) else {
@@ -5529,33 +5451,21 @@ impl Client {
                 .map_err(|e| FfiError::Msg(e.to_string()))?;
 
             // ClientProperties: controls lang/theme/clientId in the final URL.
-            let client_props = ClientProperties::new("org.mlm.mages", None, None);
+            let client_props = ClientProperties::new("org.mlm.mages", lang, theme);
 
             let url = settings
                 .generate_webview_url(&room, client_props)
                 .await
                 .map_err(|e| FfiError::Msg(e.to_string()))?;
 
-            Ok::<_, FfiError>((settings, url.to_string()))
+            let widget_base_url = settings.base_url().map(|u| u.to_string());
+
+            Ok::<_, FfiError>((settings, url.to_string(), widget_base_url))
         })?;
 
-        // 2) Start the widget driver & hook it to the observer.
         let (driver, handle) = WidgetDriver::new(widget_settings);
 
-        // Build capability provider using our actual mxid + device id.
-        let own_user_id: OwnedUserId = inner
-            .user_id()
-            .ok_or_else(|| FfiError::Msg("no user id".into()))?
-            .into();
-        let own_device_id = inner
-            .device_id()
-            .ok_or_else(|| FfiError::Msg("no device id".into()))?
-            .to_string();
-
-        let cap_provider = ElementCallCapabilitiesProvider {
-            own_user_id: own_user_id.clone(),
-            own_device_id,
-        };
+        let cap_provider = ElementCallCapabilitiesProvider {};
 
         // Handle for messages client <-> widget.
         self.widget_handles
@@ -5598,6 +5508,7 @@ impl Client {
         Ok(CallSessionInfo {
             session_id,
             widget_url,
+            widget_base_url,
         })
     }
 
@@ -5702,7 +5613,7 @@ impl Client {
 
                     VerificationRequestState::Ready { .. } => {
                         if we_started && !started_sas {
-                            started_sas = true;
+                            // started_sas = true;
 
                             match req.start_sas().await {
                                 Ok(Some(sas)) => {
@@ -5884,7 +5795,7 @@ async fn get_timeline_for(client: &SdkClient, room_id: &OwnedRoomId) -> Option<A
 }
 
 fn map_sender_profile(
-    sender_mxid: &ruma::UserId,
+    _sender_mxid: &ruma::UserId,
     details: &TimelineDetails<matrix_sdk_ui::timeline::Profile>,
 ) -> (Option<String>, Option<String>) {
     match details {
@@ -6737,10 +6648,7 @@ impl Drop for Client {
 }
 
 #[derive(Clone)]
-struct ElementCallCapabilitiesProvider {
-    own_user_id: OwnedUserId,
-    own_device_id: String,
-}
+struct ElementCallCapabilitiesProvider {}
 
 impl CapabilitiesProvider for ElementCallCapabilitiesProvider {
     fn acquire_capabilities(
