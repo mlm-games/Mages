@@ -151,10 +151,11 @@ data class AppSettings(
     val mediaMaxFileMb: Float = 0f,
 
     @Setting(
-        title = "Start in tray (desktop)",
+        title = "Start in tray",
         description = "Minimize to tray on launch",
         category = Advanced::class,
-        type = Toggle::class
+        type = Toggle::class,
+        platforms = [SettingPlatform.DESKTOP]
     )
     val startInTray: Boolean = false,
 
