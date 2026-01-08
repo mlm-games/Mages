@@ -114,7 +114,8 @@ private fun AppContent(deepLinks: Flow<String>?) {
     val languageTag = Locale.getDefault().toLanguageTag()
 
     MainTheme(
-        darkTheme = isDark
+        darkTheme = isDark,
+        dynamicColors = settings.dynamicColors
     ) {
         val scope = rememberCoroutineScope()
         var sessionEpoch by remember { mutableIntStateOf(0) }

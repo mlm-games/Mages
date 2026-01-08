@@ -9,6 +9,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.mlm.mages.platform.getDynamicColorScheme
 
 object AppColors {
     val Purple80 = Color(0xFFD0BCFF)
@@ -60,10 +61,14 @@ val AppShapes = Shapes(
 @Composable
 fun MainTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColors: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    val colorScheme = getDynamicColorScheme(darkTheme, dynamicColors)
+        ?: if (darkTheme) DarkColorScheme else LightColorScheme
+
     MaterialTheme(
-        colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
+        colorScheme = colorScheme,
         typography = AppTypography,
         shapes = AppShapes,
         content = content

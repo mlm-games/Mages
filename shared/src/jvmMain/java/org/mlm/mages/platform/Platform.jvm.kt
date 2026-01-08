@@ -1,5 +1,7 @@
 package org.mlm.mages.platform
 
+import androidx.compose.material3.ColorScheme
+import androidx.compose.runtime.Composable
 import java.io.File
 import java.net.InetAddress
 
@@ -20,3 +22,9 @@ actual fun getDeviceDisplayName(): String {
 actual fun deleteDirectory(path: String): Boolean {
     return File(path).deleteRecursively()
 }
+
+@Composable
+actual fun getDynamicColorScheme(
+    darkTheme: Boolean,
+    useDynamicColors: Boolean
+): ColorScheme? {return null}
