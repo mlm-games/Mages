@@ -39,10 +39,16 @@ class NotificationEnrichWorker(
         if (!rendered.isNoisy) return Result.success()
         if (settings.mentionsOnly && !rendered.hasMention) return Result.success()
 
+        val title = if (rendered.sender == rendered.roomName) { // later use rendered.isDm ||
+            rendered.sender
+        } else {
+            "${rendered.sender} • ${rendered.roomName}"
+        }
+
         AndroidNotificationHelper.showSingleEvent(
             applicationContext,
             AndroidNotificationHelper.NotificationText(
-                title = "${rendered.sender} • ${rendered.roomName}",
+                title,
                 body = rendered.body
             ),
             roomId = roomId,
