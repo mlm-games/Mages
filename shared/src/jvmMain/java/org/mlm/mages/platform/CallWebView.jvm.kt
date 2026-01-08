@@ -41,6 +41,7 @@ actual fun CallWebViewHost(
     onClosed: () -> Unit,
     widgetBaseUrl: String?,
     modifier: Modifier,
+    onAttachController: (CallWebViewController?) -> Unit
 ): CallWebViewController {
 
     val controller = remember {

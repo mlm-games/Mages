@@ -27,6 +27,7 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import org.mlm.mages.accounts.AccountStore
+import org.mlm.mages.calls.CallManager
 import org.mlm.mages.matrix.Presence
 import org.mlm.mages.matrix.SasPhase
 import org.mlm.mages.nav.*
@@ -36,6 +37,7 @@ import org.mlm.mages.platform.rememberFileOpener
 import org.mlm.mages.platform.rememberQuitApp
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.ThemeMode
+import org.mlm.mages.ui.GlobalCallOverlay
 import org.mlm.mages.ui.animation.forwardTransition
 import org.mlm.mages.ui.animation.popTransition
 import org.mlm.mages.ui.components.dialogs.SasDialog
@@ -72,6 +74,7 @@ private fun AppContent(deepLinks: Flow<String>?) {
     val settingsRepository: SettingsRepository<AppSettings> = koinInject()
     val snackbarManager: SnackbarManager = koinInject()
     val snackbarHostState: SnackbarHostState = koinInject()
+    val callManager: CallManager = koinInject()
     val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
 
     var initDone by remember { mutableStateOf(false) }
@@ -607,5 +610,6 @@ private fun AppContent(deepLinks: Flow<String>?) {
                 onCancel = verification::cancel
             )
         }
+        GlobalCallOverlay(callManager, Modifier.fillMaxSize())
     }
 }

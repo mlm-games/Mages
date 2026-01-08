@@ -6,17 +6,14 @@ import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.internal.SynchronizedObject
-import kotlinx.coroutines.internal.synchronized
 import org.koin.core.component.inject
 import org.mlm.mages.*
+import org.mlm.mages.calls.CallManager
 import org.mlm.mages.matrix.*
-import org.mlm.mages.platform.CallWebViewController
 import org.mlm.mages.platform.Notifier
 import org.mlm.mages.platform.ShareContent
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.ForwardableRoom
-import org.mlm.mages.ui.ActiveCallUi
 import org.mlm.mages.ui.RoomUiState
 import org.mlm.mages.ui.components.AttachmentData
 import org.mlm.mages.ui.util.mimeToExtension
@@ -25,7 +22,7 @@ import kotlin.collections.map
 class RoomViewModel(
     private val service: MatrixService,
     private val savedStateHandle: SavedStateHandle
-) : BaseViewModel<RoomUiState>(
+) : BaseViewModel<RoomUiState> (
     RoomUiState(
         roomId = savedStateHandle.get<String>("roomId") ?: "",
         roomName = savedStateHandle.get<String>("roomName") ?: "",
@@ -80,16 +77,12 @@ class RoomViewModel(
     // (beyond what's visible in timeline)
     private val checkedThreadRootsViaApi = mutableSetOf<String>()
 
-    private var callWebViewController: CallWebViewController? = null
-
     private val settingsRepo: SettingsRepository<AppSettings> by inject()
+
+    private val callManager: CallManager by inject()
 
     private val prefs = settingsRepo.flow
         .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
-
-    private val pendingToWidget = ArrayDeque<String>()
-    @OptIn(InternalCoroutinesApi::class)
-    private val pendingLock = Any() as SynchronizedObject
 
     init {
         initialize()
@@ -120,6 +113,10 @@ class RoomViewModel(
                     }
                 }
             }
+        }
+
+        launch {
+           updateState { copy(hasActiveCall = callManager.isInCall()) }
         }
     }
 
@@ -998,91 +995,21 @@ class RoomViewModel(
         }
     }
 
-    fun startCall(intent: CallIntent = CallIntent.StartCall, theme: String?, languageTag: String?) {
-        if (currentState.activeCall != null) return
-
+    fun startCall(intent: CallIntent = CallIntent.StartCall, languageTag: String?, theme: String?) {
         launch {
-            val roomId = currentState.roomId
             val callUrl = prefs.value.elementCallUrl.trim().ifBlank { null }
 
-            println("[WidgetBridge] Starting call in room: $roomId")
-
-            val session = service.startCall(
-                roomId,
-                intent,
+            val ok = callManager.startOrJoinCall(
+                roomId = currentState.roomId,
+                roomName = currentState.roomName,
+                intent = intent,
                 elementCallUrl = callUrl,
-                languageTag,
-                theme
-            ) { messageFromSdk ->
-                println("[WidgetBridge] Rust → Widget queue: ${messageFromSdk.take(200)}")
-                sendToWidgetOrQueue(messageFromSdk)
-            }
+                languageTag = languageTag,
+                theme = theme,
+                onToWidget = { msg -> callManager.onToWidgetFromSdk(msg) }
+            )
 
-            if (session != null) {
-                println("[WidgetBridge] Call session created: ${session.sessionId}")
-                updateState {
-                    copy(
-                        activeCall = ActiveCallUi(
-                            sessionId = session.sessionId,
-                            widgetUrl = session.widgetUrl,
-                            widgetBaseUrl = session.widgetBaseUrl
-                        )
-                    )
-                }
-            } else {
-                _events.send(Event.ShowError("Failed to start call"))
-            }
-        }
-    }
-
-    fun onCallWidgetMessage(message: String) {
-        val sid = _state.value.activeCall?.sessionId ?: run {
-            println("[WidgetBridge] Widget → Rust: No active call session")
-            return
-        }
-        println("[WidgetBridge] Widget → Rust: ${message.take(200)}")
-        val sent = service.port.callWidgetFromWebview(sid, message)
-        println("[WidgetBridge] Widget → Rust delivered: $sent")
-    }
-
-    @OptIn(InternalCoroutinesApi::class)
-    fun attachCallWebViewController(controller: CallWebViewController?) {
-        println("[WidgetBridge] Attaching controller: ${controller != null}")
-        callWebViewController = controller
-        if (controller != null) {
-            val drained = synchronized(pendingLock) {
-                val out = pendingToWidget.toList()
-                pendingToWidget.clear()
-                out
-            }
-            println("[WidgetBridge] Draining ${drained.size} pending messages to widget")
-            drained.forEach { msg ->
-                println("[WidgetBridge] Sending queued: ${msg.take(100)}")
-                controller.sendToWidget(msg)
-            }
-        }
-    }
-
-    @OptIn(InternalCoroutinesApi::class)
-    fun endCall() {
-        println("[WidgetBridge] endCall() called")
-        _state.value.activeCall?.sessionId?.let { service.port.stopElementCall(it) }
-        callWebViewController = null
-        synchronized(pendingLock) { pendingToWidget.clear() }
-        _state.update { it.copy(activeCall = null) }
-    }
-
-    @OptIn(InternalCoroutinesApi::class)
-    private fun sendToWidgetOrQueue(msg: String) {
-        val c = callWebViewController
-        if (c != null) {
-            println("[WidgetBridge] Sending directly to widget: ${msg.take(100)}")
-            c.sendToWidget(msg)
-        } else {
-            synchronized(pendingLock) {
-                pendingToWidget.addLast(msg)
-                println("[WidgetBridge] Queued message (queue size: ${pendingToWidget.size})")
-            }
+            if (!ok) _events.send(Event.ShowError("Failed to start call"))
         }
     }
 

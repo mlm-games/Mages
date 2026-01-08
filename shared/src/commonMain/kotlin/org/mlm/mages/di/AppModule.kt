@@ -8,6 +8,7 @@ import org.koin.dsl.module
 import org.mlm.mages.MatrixService
 import org.mlm.mages.accounts.AccountStore
 import org.mlm.mages.accounts.MatrixClients
+import org.mlm.mages.calls.CallManager
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.viewmodel.*
@@ -17,6 +18,7 @@ val coreModule = module {
     single { Json { ignoreUnknownKeys = true; encodeDefaults = true } }
     single { SnackbarHostState() }
     single { SnackbarManager() }
+    single { CallManager(get()) }
 }
 
 val accountModule = module {
@@ -24,6 +26,7 @@ val accountModule = module {
     single { MatrixClients(get()) }
     single { MatrixService(get()) }
     single { VerificationCoordinator(get()) }
+
 }
 
 val viewModelModule = module {

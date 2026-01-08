@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.CallMerge
 import androidx.compose.material.icons.automirrored.filled.Forward
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.*
@@ -29,7 +30,6 @@ import org.mlm.mages.platform.CallWebViewController
 import org.mlm.mages.platform.CallWebViewHost
 import org.mlm.mages.platform.*
 import org.mlm.mages.ui.components.AttachmentData
-import org.mlm.mages.ui.ActiveCallUi
 import org.mlm.mages.ui.components.RoomUpgradeBanner
 import org.mlm.mages.ui.components.attachment.AttachmentPicker
 import org.mlm.mages.ui.components.attachment.AttachmentProgress
@@ -234,7 +234,7 @@ fun RoomScreen(
                     onOpenMembers = viewModel::showMembers,
                     onOpenSearch = viewModel::showRoomSearch,
                     onStartCall = onStartCall,
-                    hasActiveCall = state.activeCall != null,
+                    hasActiveCall = state.hasActiveCall,
                 )
             }
         },
@@ -493,16 +493,6 @@ fun RoomScreen(
         )
     }
 
-    val activeCall = state.activeCall
-    if (activeCall != null) {
-        CallOverlay(
-            activeCall = activeCall,
-            onMessageFromWidget = viewModel::onCallWidgetMessage,
-            onEndCall = viewModel::endCall,
-            onAttachController = viewModel::attachCallWebViewController
-        )
-    }
-
     sheetEvent?.let { event ->
         val isMine = event.sender == state.myUserId
         MessageActionSheet(
@@ -613,9 +603,12 @@ private fun RoomTopBar(
                     }
                 },
                 actions = {
-//                    IconButton(onClick = onStartCall, enabled = !hasActiveCall) {
-//                        Icon(Icons.Default.Call, "Start call")
-//                    }
+                    IconButton(onClick = onStartCall, enabled = !hasActiveCall) {
+                        if (hasActiveCall) {
+                            Icon(Icons.AutoMirrored.Filled.CallMerge, "Join call")
+                        }
+                        else Icon(Icons.Default.Call, "Start call")
+                    }
                     IconButton(onClick = onOpenNotifications) {
                         Icon(Icons.Default.Notifications, "Notifications")
                     }
@@ -926,32 +919,6 @@ private fun DateHeader(date: String) {
             modifier = Modifier.weight(1f),
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
         )
-    }
-}
-
-@Composable
-private fun CallOverlay(
-    activeCall: ActiveCallUi,
-    onMessageFromWidget: (String) -> Unit,
-    onEndCall: () -> Unit,
-    onAttachController: (CallWebViewController?) -> Unit
-) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        val controller = CallWebViewHost(
-            widgetUrl = activeCall.widgetUrl,
-            onMessageFromWidget = onMessageFromWidget,
-            widgetBaseUrl = activeCall.widgetBaseUrl,
-            onClosed = onEndCall,
-            modifier = Modifier.fillMaxSize()
-        )
-
-        LaunchedEffect(controller) {
-            onAttachController(controller)
-        }
-
-        DisposableEffect(Unit) {
-            onDispose { onAttachController(null) }
-        }
     }
 }
 

@@ -16,8 +16,8 @@ import org.json.JSONObject
 import java.util.concurrent.atomic.AtomicReference
 import androidx.core.net.toUri
 
-private const val HOST = WebViewAssetLoader.DEFAULT_DOMAIN
-private val ALLOWED_ORIGIN_RULES = setOf("*")
+private fun allowedOrigins(widgetBaseUrl: String?): Set<String> =
+    setOf("*") // HACK: using baseUrl for element call embedded crashes app, DO NOT USE
 
 // Element-specific actions that the SDK doesn't handle
 private val ELEMENT_SPECIFIC_ACTIONS = setOf(
@@ -26,11 +26,12 @@ private val ELEMENT_SPECIFIC_ACTIONS = setOf(
     "io.element.close",
     "io.element.tile_layout",
     "io.element.spotlight_layout",
+    "io.element.minimize",
     "set_always_on_screen",
     "im.vector.hangup"
 )
 
-@SuppressLint("SetJavaScriptEnabled")
+@SuppressLint("SetJavaScriptEnabled", "ComposableNaming")
 @Composable
 actual fun CallWebViewHost(
     widgetUrl: String,
@@ -38,6 +39,7 @@ actual fun CallWebViewHost(
     onClosed: () -> Unit,
     widgetBaseUrl: String?,
     modifier: Modifier,
+    onAttachController: (CallWebViewController?) -> Unit
 ): CallWebViewController {
     val context = LocalContext.current
     val webViewRef = remember { AtomicReference<WebView?>(null) }
@@ -50,7 +52,8 @@ actual fun CallWebViewHost(
             val response = JSONObject(originalMessage).apply {
                 put("response", JSONObject())
             }
-            val script = "postMessage(${response}, '*')"
+            val origin = "*" // HACK: Same as above
+            val script = "postMessage(${response}, '$origin')"
             Log.d("WidgetBridge", "Sending Element response: ${response.toString().take(100)}")
             webView.post { webView.evaluateJavascript(script, null) }
         } catch (e: Exception) {
@@ -76,6 +79,10 @@ actual fun CallWebViewHost(
                         Log.d("WidgetBridge", "Call ended by widget")
                         onClosed()
                     }
+                    "io.element.minimize" -> {
+                        Log.d("WidgetBridge", "Minimize requested by widget")
+                        onMessageFromWidget(message)
+                    }
                 }
                 return
             }
@@ -96,7 +103,8 @@ actual fun CallWebViewHost(
                 }
                 Log.d("WidgetBridge", "Native → Widget: ${message.take(200)}")
 
-                val script = "postMessage($message, '*')"
+                val origin = "*" // HACK: Same as above
+                val script = "postMessage($message, '$origin')"
                 webView.post {
                     webView.evaluateJavascript(script) { result ->
                         Log.d("WidgetBridge", "postMessage result: $result")
@@ -109,6 +117,17 @@ actual fun CallWebViewHost(
                 webViewRef.set(null)
                 onClosed()
             }
+        }
+    }
+
+    LaunchedEffect(controller) {
+        onAttachController(controller)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            onAttachController(null)
+            webViewRef.get()?.destroy()
         }
     }
 
@@ -141,6 +160,7 @@ actual fun CallWebViewHost(
                 settings.builtInZoomControls = false
                 settings.displayZoomControls = false
                 settings.setGeolocationEnabled(false)
+                @Suppress("DEPRECATION")
                 settings.databaseEnabled = true
 
                 val webViewInstance = this
@@ -149,7 +169,7 @@ actual fun CallWebViewHost(
                     WebViewCompat.addWebMessageListener(
                         this,
                         "elementX",
-                        ALLOWED_ORIGIN_RULES
+                        setOf("*") //HACK, The origin rules is not yet supported!: allowedOrigins(widgetBaseUrl)
                     ) { _, message, _, _, _ ->
                         val payload = message.data ?: return@addWebMessageListener
                         handleWidgetMessage(webViewInstance, payload)
@@ -228,7 +248,7 @@ actual fun CallWebViewHost(
 
     DisposableEffect(Unit) {
         onDispose {
-            webViewRef.get()?.destroy()
+            webViewRef.get()?.destroy() // not doing this would make future calls run on an dead thread
         }
     }
 

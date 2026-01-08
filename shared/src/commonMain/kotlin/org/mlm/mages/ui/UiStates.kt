@@ -107,7 +107,7 @@ data class RoomUiState(
     val roomSearchNextOffset: Int? = null,
     val isRoomSearching: Boolean = false,
     val hasRoomSearched: Boolean = false,
-    val activeCall: ActiveCallUi? = null,
+    val hasActiveCall: Boolean = false,
 
     val isSelectionMode: Boolean = false,
     val selectedEventIds: Set<String> = emptySet(),
@@ -285,10 +285,4 @@ data class SearchUiState(
     // For scoped search
     val scopedRoomId: String? = null,
     val scopedRoomName: String? = null
-)
-
-data class ActiveCallUi(
-    val sessionId: ULong,
-    val widgetUrl: String,
-    val widgetBaseUrl: String?,
 )
