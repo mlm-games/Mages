@@ -45,6 +45,21 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="2.1.2" date="2026-01-09" type="stable">
+      <description>
+        <ul>
+          <li>Do not show call notification by default</li>
+          <li>Add resize handler for minimized call overlay</li>
+          <li>Fix call notification deep link</li>
+          <li>fix intent scheme logic for links</li>
+          <li>Notifications consistenancy improvements</li>
+          <li>Decrease icon's roundedness, and improve timeline caching (account-specific)</li>
+          <li>Add dynamic colors option (Android 12+ only)</li>
+          <li>Do not show the room name in notifications for dm rooms (revert)</li>
+          <li>Working element calls, on android (theming and minimize action needs to be wired)</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.1.1" date="2026-01-07" type="stable">
       <description>
         <ul>

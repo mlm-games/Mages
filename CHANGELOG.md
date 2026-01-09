@@ -1,3 +1,16 @@
+## v2.1.2
+
+- Do not show call notification by default
+- Add resize handler for minimized call overlay
+- Fix call notification deep link
+- fix intent scheme logic for links
+- Notifications consistenancy improvements
+- Decrease icon's roundedness, and improve timeline caching (account-specific)
+- Add dynamic colors option (Android 12+ only)
+- Do not show the room name in notifications for dm rooms (revert)
+- Working element calls, on android (theming and minimize action needs to be wired)
+
+
 ## v2.1.1
 
 - Fix go back logic for adding an account, change security icon to settigns icon, and remove unused logic from security screen)
