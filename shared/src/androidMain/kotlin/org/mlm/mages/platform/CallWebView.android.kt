@@ -1,13 +1,19 @@
 package org.mlm.mages.platform
 
 import android.annotation.SuppressLint
+import android.graphics.Color
+import android.graphics.Outline
 import android.util.Log
+import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.webkit.*
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
@@ -16,6 +22,8 @@ import androidx.webkit.WebViewFeature
 import org.json.JSONObject
 import java.util.concurrent.atomic.AtomicReference
 import androidx.core.net.toUri
+import org.koin.compose.koinInject
+import org.mlm.mages.ui.components.snackbar.SnackbarManager
 
 private fun allowedOrigins(widgetBaseUrl: String?): Set<String> =
     setOf("*") // HACK: using baseUrl for element call embedded crashes app, DO NOT USE
@@ -27,8 +35,7 @@ private val ELEMENT_SPECIFIC_ACTIONS = setOf(
     "io.element.close",
     "io.element.tile_layout",
     "io.element.spotlight_layout",
-    "io.element.minimize",
-    "set_always_on_screen",
+    "minimize",
     "im.vector.hangup"
 )
 
@@ -46,6 +53,7 @@ actual fun CallWebViewHost(
     val context = LocalContext.current
     val activity = LocalActivity.current
     val webViewRef = remember { AtomicReference<WebView?>(null) }
+    val density = LocalDensity.current
 
     Log.d("WidgetBridge", "Loading URL: $widgetUrl")
 
@@ -72,7 +80,7 @@ actual fun CallWebViewHost(
 
             Log.d("WidgetBridge", "Widget → Native: api=$api, action=$action")
 
-            if (api == "fromWidget" && action in ELEMENT_SPECIFIC_ACTIONS) {
+            if (action in ELEMENT_SPECIFIC_ACTIONS) {
                 Log.d("WidgetBridge", "Handling Element-specific action locally: $action")
 
                 sendElementActionResponse(webView, message)
@@ -82,7 +90,7 @@ actual fun CallWebViewHost(
                     "io.element.close", "im.vector.hangup" -> {
                         onClosed()
                     }
-                    "io.element.minimize" -> {
+                    "minimize" -> {
                         onMinimizeRequested()
                     }
                     else -> {}
@@ -114,6 +122,10 @@ actual fun CallWebViewHost(
                     }
                 }
             }
+
+            override fun close() {
+                // Jvm only
+            }
         }
     }
 
@@ -143,6 +155,18 @@ actual fun CallWebViewHost(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
+
+                clipToOutline = true
+                clipChildren = true
+
+                outlineProvider = object : ViewOutlineProvider() {
+                    override fun getOutline(view: View, outline: Outline) {
+                        val cornerRadius = with(density) { 16.dp.toPx() }
+                        outline.setRoundRect(0, 0, view.width, view.height, cornerRadius)
+                    }
+                }
+
+                setBackgroundColor(Color.TRANSPARENT)
 
                 WebView.setWebContentsDebuggingEnabled(true)
 
@@ -234,6 +258,11 @@ actual fun CallWebViewHost(
                     override fun onPageFinished(view: WebView?, url: String?) {
                         super.onPageFinished(view, url)
                         Log.d("WidgetBridge", "Page finished: $url")
+
+                        view?.evaluateJavascript(
+                            "controls.onBackButtonPressed = () => { elementX.postMessage(JSON.stringify({api:'fromWidget',action:'minimize'})) }",
+                            null
+                        )
                     }
                 }
 
@@ -241,7 +270,11 @@ actual fun CallWebViewHost(
                 loadUrl(widgetUrl)
             }
         },
-        update = { webView -> webViewRef.set(webView) }
+        update = { webView ->
+            webViewRef.set(webView)
+            // for minimize/restore
+            webView.invalidateOutline()
+        }
     )
 
     return controller
