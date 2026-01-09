@@ -43,6 +43,7 @@ sealed class TimelineDiff<out T> {
     data class UpdateByItemId<T>(val itemId: String, val item: T) : TimelineDiff<T>()
     data class RemoveByItemId<T>(val itemId: String) : TimelineDiff<T>()
     data class UpsertByItemId<T>(val itemId: String, val item: T) : TimelineDiff<T>()
+    data class Prepend<T>(val item: T) : TimelineDiff<T>()
 }
 enum class SasPhase { Created, Requested, Ready, Accepted, Started, Emojis, Confirmed, Cancelled, Failed, Done }
 

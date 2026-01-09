@@ -1,6 +1,7 @@
 use js_int::UInt;
 use matrix_sdk::authentication::oauth::registration::language_tags::LanguageTag;
 use matrix_sdk::reqwest::Url;
+use matrix_sdk::ruma::events::{AnySyncMessageLikeEvent, AnySyncTimelineEvent};
 use matrix_sdk::search_index::SearchIndexStoreKind;
 use matrix_sdk::{
     EncryptionState, PredecessorRoom, RoomDisplayName, SuccessorRoom,
@@ -22,6 +23,7 @@ use matrix_sdk::{
     widget::{VirtualElementCallWidgetConfig, VirtualElementCallWidgetProperties},
 };
 use matrix_sdk_base::notification_settings::RoomNotificationMode as RsMode;
+use matrix_sdk_ui::notification_client::NotificationItem;
 use matrix_sdk_ui::{
     eyeball_im::Vector,
     timeline::{AttachmentConfig, AttachmentSource, TimelineDetails, TimelineEventItemId},
@@ -291,6 +293,15 @@ pub struct DownloadResult {
     pub bytes: u64,
 }
 
+#[derive(Clone, uniffi::Enum)]
+pub enum NotificationKind {
+    Message,
+    CallRing,
+    CallNotify,
+    CallInvite,
+    StateEvent,
+}
+
 #[derive(Clone, Record)]
 pub struct RenderedNotification {
     pub room_id: String,
@@ -302,6 +313,9 @@ pub struct RenderedNotification {
     pub is_noisy: bool,
     pub has_mention: bool,
     pub ts_ms: u64,
+    pub is_dm: bool,
+    pub kind: NotificationKind,
+    pub expires_at_ms: Option<u64>,
 }
 
 #[derive(Clone, Record)]
@@ -829,6 +843,8 @@ pub struct Client {
     widget_handles: Mutex<HashMap<u64, WidgetDriverHandle>>,
     widget_driver_tasks: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     widget_recv_tasks: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
+
+    timeline_mgr: TimelineManager,
 }
 
 #[derive(Clone, Enum)]
@@ -904,7 +920,7 @@ macro_rules! with_timeline_async {
                 Ok(r) => r,
                 Err(_) => return false,
             };
-            let tl = match get_timeline_for(&$self.inner, &rid).await {
+            let tl = match $self.timeline_mgr.timeline_for(&rid).await {
                 Some(t) => t,
                 None => return false,
             };
@@ -983,6 +999,8 @@ impl Client {
             })
             .map_err(|e| FfiError::Msg(format!("failed to build client: {e}")))?;
 
+        let timeline_mgr = TimelineManager::new(inner.clone());
+
         let (send_tx, mut send_rx) = tokio::sync::mpsc::unbounded_channel::<SendUpdate>();
         let this = Self {
             inner: ManuallyDrop::new(inner),
@@ -1011,6 +1029,7 @@ impl Client {
             widget_recv_tasks: Mutex::new(HashMap::new()),
 
             app_in_foreground: Arc::new(AtomicBool::new(false)),
+            timeline_mgr,
         };
 
         {
@@ -1100,7 +1119,7 @@ impl Client {
                 if let Some(mut stream) = client.encryption().room_keys_received_stream().await {
                     while let Some(batch) = stream.next().await {
                         let Ok(infos) = batch else { continue };
-                        use std::collections::HashMap;
+                        use HashMap;
                         let mut by_room: HashMap<OwnedRoomId, Vec<String>> = HashMap::new();
                         for info in infos {
                             by_room
@@ -1244,7 +1263,7 @@ impl Client {
                 return vec![];
             };
 
-            let Some(timeline) = get_timeline_for(&self.inner, &room_id).await else {
+            let Some(timeline) = self.timeline_mgr.timeline_for(&room_id).await else {
                 return vec![];
             };
 
@@ -1277,6 +1296,7 @@ impl Client {
 
     pub fn observe_timeline(&self, room_id: String, observer: Box<dyn TimelineObserver>) -> u64 {
         let client = self.inner_clone();
+        let mgr = self.timeline_mgr.clone();
         let Ok(room_id) = OwnedRoomId::try_from(room_id) else {
             return 0;
         };
@@ -1285,7 +1305,7 @@ impl Client {
         let me = client.user_id().map(|u| u.to_string()).unwrap_or_default();
 
         sub_manager!(self, timeline_subs, async move {
-            let Some(tl) = get_timeline_for(&client, &room_id).await else {
+            let Some(tl) = mgr.timeline_for(&room_id).await else {
                 return;
             };
 
@@ -1321,8 +1341,24 @@ impl Client {
 
             while let Some(diffs) = stream.next().await {
                 for diff in diffs {
-                    if let Some(mapped) = map_vec_diff(diff, &room_id, &tl, &me) {
-                        let _ = std::panic::catch_unwind(AssertUnwindSafe(|| obs.on_diff(mapped)));
+                    match diff {
+                        // Kotlin ignores these, and mapping can't safely represent Remove-by-index,
+                        // so force a Reset to prevent drift.
+                        VectorDiff::Remove { .. }
+                        | VectorDiff::PopBack
+                        | VectorDiff::PopFront
+                        | VectorDiff::Truncate { .. }
+                        | VectorDiff::Clear => {
+                            emit_timeline_reset(&obs, &tl, &room_id, &me).await;
+                        }
+
+                        other => {
+                            if let Some(mapped) = map_vec_diff(other, &room_id, &tl, &me) {
+                                let _ = std::panic::catch_unwind(AssertUnwindSafe(|| {
+                                    obs.on_diff(mapped)
+                                }));
+                            }
+                        }
                     }
                 }
             }
@@ -1504,7 +1540,7 @@ impl Client {
             let Ok(room_id) = OwnedRoomId::try_from(room_id) else {
                 return false;
             };
-            let Some(timeline) = get_timeline_for(&self.inner, &room_id).await else {
+            let Some(timeline) = self.timeline_mgr.timeline_for(&room_id).await else {
                 return false;
             };
 
@@ -1558,9 +1594,6 @@ impl Client {
         for (_, h) in self.live_location_subs.lock().unwrap().drain() {
             h.abort();
         }
-
-        TIMELINES.lock().unwrap().clear();
-
         for (_, h) in self.widget_driver_tasks.lock().unwrap().drain() {
             h.abort();
         }
@@ -1568,6 +1601,7 @@ impl Client {
             h.abort();
         }
         self.widget_handles.lock().unwrap().clear();
+        self.timeline_mgr.clear();
     }
 
     pub fn logout(&self) -> bool {
@@ -1963,7 +1997,7 @@ impl Client {
             let Ok(uid) = user_id.parse::<OwnedUserId>() else {
                 return false;
             };
-            let Some(tl) = get_timeline_for(&self.inner, &rid).await else {
+            let Some(tl) = self.timeline_mgr.timeline_for(&rid).await else {
                 return false;
             };
             let latest_opt = tl.latest_user_read_receipt_timeline_event_id(&uid).await;
@@ -2034,7 +2068,7 @@ impl Client {
             let Ok(rid) = OwnedRoomId::try_from(room_id) else {
                 return false;
             };
-            let Some(tl) = get_timeline_for(&self.inner, &rid).await else {
+            let Some(tl) = self.timeline_mgr.timeline_for(&rid).await else {
                 return false;
             };
 
@@ -2068,7 +2102,7 @@ impl Client {
             let Ok(rid) = ruma::OwnedRoomId::try_from(room_id) else {
                 return false;
             };
-            let Some(tl) = get_timeline_for(&self.inner, &rid).await else {
+            let Some(tl) = self.timeline_mgr.timeline_for(&rid).await else {
                 return false;
             };
 
@@ -2535,13 +2569,14 @@ impl Client {
     pub fn enqueue_text(&self, room_id: String, body: String, txn_id: Option<String>) -> String {
         let client_txn = txn_id.unwrap_or_else(|| format!("mages-{}", now_ms()));
 
+        let mgr = self.timeline_mgr.clone();
         let tx = self.send_tx.clone();
-        let client = self.inner_clone();
-        let mut handles = self.send_handles_by_txn.lock().unwrap().clone();
         let txn_id = client_txn.clone();
+
+        let mut handles = self.send_handles_by_txn.lock().unwrap().clone();
         RT.spawn(async move {
             use matrix_sdk::ruma::events::room::message::RoomMessageEventContent as Msg;
-            // Emit "Sending" (best-effort continuity with previous observer).
+
             let _ = tx.send(SendUpdate {
                 room_id: room_id.clone(),
                 txn_id: txn_id.clone(),
@@ -2554,7 +2589,7 @@ impl Client {
             let Ok(rid) = OwnedRoomId::try_from(room_id.clone()) else {
                 let _ = tx.send(SendUpdate {
                     room_id,
-                    txn_id: txn_id,
+                    txn_id,
                     attempts: 0,
                     state: SendState::Failed,
                     event_id: None,
@@ -2563,46 +2598,47 @@ impl Client {
                 return;
             };
 
-            if let Some(timeline) = get_timeline_for(&client, &rid).await {
-                match timeline.send(Msg::text_plain(body.clone()).into()).await {
-                    Ok(handle) => {
-                        // Map protocol txn id (if we can see it now) -> handle, for future precise retry.
-                        if let Some(latest) = timeline.latest_event().await {
-                            if latest.event_id().is_none() {
-                                if let Some(proto_txn) = latest.transaction_id() {
-                                    handles.insert(proto_txn.to_string(), handle);
-                                }
-                            }
-                        }
-                        let _ = tx.send(SendUpdate {
-                            room_id: rid.to_string(),
-                            txn_id: txn_id,
-                            attempts: 0,
-                            state: SendState::Sent,
-                            event_id: None,
-                            error: None,
-                        });
-                    }
-                    Err(e) => {
-                        let _ = tx.send(SendUpdate {
-                            room_id: rid.to_string(),
-                            txn_id: txn_id,
-                            attempts: 0,
-                            state: SendState::Failed,
-                            event_id: None,
-                            error: Some(e.to_string()),
-                        });
-                    }
-                }
-            } else {
+            let Some(timeline) = mgr.timeline_for(&rid).await else {
                 let _ = tx.send(SendUpdate {
                     room_id: rid.to_string(),
-                    txn_id: txn_id,
+                    txn_id,
                     attempts: 0,
                     state: SendState::Failed,
                     event_id: None,
                     error: Some("room/timeline not found".into()),
                 });
+                return;
+            };
+
+            match timeline.send(Msg::text_plain(body).into()).await {
+                Ok(handle) => {
+                    if let Some(latest) = timeline.latest_event().await {
+                        if latest.event_id().is_none() {
+                            if let Some(proto_txn) = latest.transaction_id() {
+                                handles.insert(proto_txn.to_string(), handle);
+                            }
+                        }
+                    }
+
+                    let _ = tx.send(SendUpdate {
+                        room_id: rid.to_string(),
+                        txn_id,
+                        attempts: 0,
+                        state: SendState::Sent,
+                        event_id: None,
+                        error: None,
+                    });
+                }
+                Err(e) => {
+                    let _ = tx.send(SendUpdate {
+                        room_id: rid.to_string(),
+                        txn_id,
+                        attempts: 0,
+                        state: SendState::Failed,
+                        event_id: None,
+                        error: Some(e.to_string()),
+                    });
+                }
             }
         });
 
@@ -2985,7 +3021,7 @@ impl Client {
                 };
             };
 
-            let Some(tl) = get_timeline_for(&self.inner, &rid).await else {
+            let Some(tl) = self.timeline_mgr.timeline_for(&rid).await else {
                 return OwnReceipt {
                     event_id: None,
                     ts_ms: None,
@@ -3076,6 +3112,8 @@ impl Client {
         let obs: std::sync::Arc<dyn RoomListObserver> = std::sync::Arc::from(observer);
         let svc_slot = self.sync_service.clone();
         let client = self.inner_clone();
+        let mgr = self.timeline_mgr.clone();
+
         let store_dir = self.store_dir.clone();
         let id = self.next_sub_id();
 
@@ -3174,7 +3212,7 @@ impl Client {
                                 let member_count = member_count_u64.min(u32::MAX as u64) as u32;
                                 let topic = room.topic();
 
-                                let latest_event: Option<LatestRoomEvent> = latest_room_event_for(&client, room).await;
+                                let latest_event: Option<LatestRoomEvent> = latest_room_event_for(&mgr, room).await;
 
                                 snapshot.push(RoomListEntry {
                                     room_id: room.room_id().to_string(),
@@ -3535,15 +3573,10 @@ impl Client {
                 }
             };
 
-            info!("fetch_notification: room_id={}, event_id={}", rid, eid);
-
             let nc = match NotificationClient::new(self.inner_clone(), process_setup).await {
                 Ok(v) => v,
                 Err(e) => {
-                    warn!(
-                        "NotificationClient::new failed for room_id={}, event_id={}: {e:?}",
-                        rid, eid
-                    );
+                    warn!("NotificationClient::new failed: {e:?}");
                     return Ok(None);
                 }
             };
@@ -3551,54 +3584,18 @@ impl Client {
             let status = match nc.get_notification(&rid, &eid).await {
                 Ok(s) => s,
                 Err(e) => {
-                    warn!(
-                        "NotificationClient::get_notification failed for room_id={}, event_id={}: {e:?}",
-                        rid, eid
-                    );
+                    warn!("get_notification failed: {e:?}");
                     return Ok(None);
                 }
             };
 
             match status {
                 NotificationStatus::Event(item) => {
-                    let room_name = item.room_computed_display_name.clone();
-                    let sender_user_id = item.event.sender().to_string();
-                    let ts_ms: u64 = notification_event_ts_ms(&item.event);
-
-                    let mut sender = item
-                        .sender_display_name
-                        .clone()
-                        .unwrap_or_else(|| item.event.sender().localpart().to_string());
-
-                    let mut body = String::from("New event");
-                    if let NotificationEvent::Timeline(ev) = &item.event {
-                        if let ruma::events::AnySyncTimelineEvent::MessageLike(
-                            ruma::events::AnySyncMessageLikeEvent::RoomMessage(m),
-                        ) = ev.as_ref()
-                        {
-                            if let Some(orig) = m.as_original() {
-                                sender = item
-                                    .sender_display_name
-                                    .clone()
-                                    .unwrap_or_else(|| orig.sender.localpart().to_string());
-                                body = orig.content.body().to_string();
-                            }
-                        }
-                    }
-
-                    Ok(Some(RenderedNotification {
-                        room_id: rid.to_string(),
-                        event_id: eid.to_string(),
-                        room_name,
-                        sender,
-                        sender_user_id,
-                        body,
-                        is_noisy: item.is_noisy.unwrap_or(false),
-                        has_mention: item.has_mention.unwrap_or(false),
-                        ts_ms,
-                    }))
+                    Ok(map_notification_item_to_rendered(&rid, &eid, &item))
                 }
-                NotificationStatus::EventFilteredOut | NotificationStatus::EventNotFound => Ok(None),
+                NotificationStatus::EventFilteredOut | NotificationStatus::EventNotFound => {
+                    Ok(None)
+                }
             }
         })
     }
@@ -3630,6 +3627,7 @@ impl Client {
             };
 
             let mut out = Vec::new();
+
             for room in self
                 .inner
                 .joined_rooms()
@@ -3637,6 +3635,7 @@ impl Client {
                 .take(max_rooms as usize)
             {
                 let rid = room.room_id().to_owned();
+
                 let Ok(tl) = room.timeline().await else {
                     continue;
                 };
@@ -3644,14 +3643,17 @@ impl Client {
 
                 for it in items.iter().rev() {
                     let Some(ev) = it.as_event() else { continue };
+
                     let ts: u64 = ev.timestamp().0.into();
                     if ts <= since_ts_ms {
                         break;
                     }
 
-                    let Some(eid) = ev.event_id() else { continue };
+                    let Some(eid_ref) = ev.event_id() else {
+                        continue;
+                    };
 
-                    let status = match nc.get_notification(&rid, eid).await {
+                    let status = match nc.get_notification(&rid, eid_ref).await {
                         Ok(s) => s,
                         Err(_) => continue,
                     };
@@ -3660,45 +3662,14 @@ impl Client {
                         continue;
                     };
 
-                    let room_name = item.room_computed_display_name.clone();
-                    let sender_user_id = item.event.sender().to_string();
-                    let ts_ms: u64 = notification_event_ts_ms(&item.event);
+                    // `eid_ref` is &EventId; convert to OwnedEventId for our helper
+                    let eid = eid_ref.to_owned();
 
-                    let mut sender = item
-                        .sender_display_name
-                        .clone()
-                        .unwrap_or_else(|| item.event.sender().localpart().to_string());
-
-                    let mut body = String::from("New event");
-                    if let NotificationEvent::Timeline(tev) = &item.event {
-                        if let ruma::events::AnySyncTimelineEvent::MessageLike(
-                            ruma::events::AnySyncMessageLikeEvent::RoomMessage(m),
-                        ) = tev.as_ref()
-                        {
-                            if let Some(orig) = m.as_original() {
-                                sender = item
-                                    .sender_display_name
-                                    .clone()
-                                    .unwrap_or_else(|| orig.sender.localpart().to_string());
-                                body = orig.content.body().to_string();
-                            }
+                    if let Some(rendered) = map_notification_item_to_rendered(&rid, &eid, &item) {
+                        out.push(rendered);
+                        if out.len() as u32 >= max_events {
+                            return Ok(out);
                         }
-                    }
-
-                    out.push(RenderedNotification {
-                        room_id: rid.to_string(),
-                        event_id: eid.to_string(),
-                        room_name,
-                        sender,
-                        sender_user_id,
-                        body,
-                        is_noisy: item.is_noisy.unwrap_or(false),
-                        has_mention: item.has_mention.unwrap_or(false),
-                        ts_ms,
-                    });
-
-                    if out.len() as u32 >= max_events {
-                        return Ok(out);
                     }
                 }
             }
@@ -3759,7 +3730,7 @@ impl Client {
                 Err(_) => return vec![],
             };
 
-            let Some(tl) = get_timeline_for(&self.inner, &rid).await else {
+            let Some(tl) = self.timeline_mgr.timeline_for(&rid).await else {
                 return vec![];
             };
             let Some(item) = tl.item_by_event_id(&eid).await else {
@@ -3793,34 +3764,35 @@ impl Client {
         RT.block_on(async {
             let mut results: HashMap<String, Vec<ReactionSummary>> = HashMap::new();
 
-            // Process in parallel with limited concurrency
-            let semaphore = Arc::new(tokio::sync::Semaphore::new(5));
-            let mut handles = Vec::new();
+            let mgr = self.timeline_mgr.clone();
+            let client = self.inner_clone();
 
-            for event_id in event_ids {
-                if event_id.is_empty() {
+            let semaphore = Arc::new(tokio::sync::Semaphore::new(5));
+            let mut joins = Vec::new();
+
+            for eid in event_ids {
+                if eid.is_empty() {
                     continue;
                 }
 
-                let rid = room_id.clone();
-                let eid = event_id.clone();
+                let rid_str = room_id.clone();
                 let sem = semaphore.clone();
-                let client = self.inner_clone();
+                let mgr2 = mgr.clone();
+                let client2 = client.clone();
 
-                let handle = tokio::spawn(async move {
+                joins.push(tokio::spawn(async move {
                     let _permit = sem.acquire().await.ok()?;
 
-                    let Ok(room_id) = OwnedRoomId::try_from(rid) else {
-                        return None;
-                    };
+                    let rid = OwnedRoomId::try_from(rid_str).ok()?;
+                    let tl = mgr2.timeline_for(&rid).await?;
 
-                    let tl = get_timeline_for(&client, &room_id).await?;
-                    let Ok(event_id_parsed) = ruma::OwnedEventId::try_from(eid.clone()) else {
-                        return None;
-                    };
+                    let eid_parsed = ruma::OwnedEventId::try_from(eid.clone()).ok()?;
 
-                    let item = tl.item_by_event_id(&event_id_parsed).await?;
-                    let my_user_id = client.user_id();
+                    // Best-effort: ensure details are fetched
+                    let _ = tl.fetch_details_for_event(eid_parsed.as_ref()).await;
+
+                    let item = tl.item_by_event_id(&eid_parsed).await?;
+                    let my_user_id = client2.user_id();
 
                     let mut summaries = Vec::new();
                     if let Some(reactions) = item.content().reactions() {
@@ -3829,7 +3801,6 @@ impl Client {
                             let me = my_user_id
                                 .map(|me| senders.keys().any(|sender| sender == me))
                                 .unwrap_or(false);
-
                             summaries.push(ReactionSummary {
                                 key: key.clone(),
                                 count,
@@ -3843,14 +3814,12 @@ impl Client {
                     } else {
                         Some((eid, summaries))
                     }
-                });
-
-                handles.push(handle);
+                }));
             }
 
-            for handle in handles {
-                if let Ok(Some((event_id, summaries))) = handle.await {
-                    results.insert(event_id, summaries);
+            for j in joins {
+                if let Ok(Some((eid, sums))) = j.await {
+                    results.insert(eid, sums);
                 }
             }
 
@@ -3898,8 +3867,7 @@ impl Client {
         let h_updates = RT.spawn(async move {
             let mut rx = client_updates.send_queue().subscribe();
 
-            let mut attempts: std::collections::HashMap<String, u32> =
-                std::collections::HashMap::new();
+            let mut attempts: HashMap<String, u32> = HashMap::new();
 
             loop {
                 let upd = match rx.recv().await {
@@ -4067,7 +4035,7 @@ impl Client {
             let Ok(root) = ruma::OwnedEventId::try_from(root_event_id) else {
                 return false;
             };
-            let Some(tl) = get_timeline_for(&self.inner, &rid).await else {
+            let Some(tl) = self.timeline_mgr.timeline_for(&rid).await else {
                 return false;
             };
 
@@ -4129,7 +4097,9 @@ impl Client {
             let mut out: Vec<MessageEvent> = Vec::new();
 
             // Include the root first (mapped via timeline for consistent formatting)
-            if let Some(root_ev) = map_event_id_via_timeline(&self.inner, &rid, &root).await {
+            if let Some(root_ev) =
+                map_event_id_via_timeline(&self.timeline_mgr, &self.inner, &rid, &root).await
+            {
                 out.push(root_ev);
             }
 
@@ -4137,7 +4107,9 @@ impl Client {
             for raw in resp.chunk.iter() {
                 if let Ok(ml) = raw.deserialize() {
                     let eid = ml.event_id().to_owned();
-                    if let Some(mev) = map_event_id_via_timeline(&self.inner, &rid, &eid).await {
+                    if let Some(mev) =
+                        map_event_id_via_timeline(&self.timeline_mgr, &self.inner, &rid, &eid).await
+                    {
                         out.push(mev);
                     }
                 }
@@ -4205,7 +4177,9 @@ impl Client {
                     if let Ok(ml) = raw.deserialize() {
                         let eid = ml.event_id().to_owned();
                         count += 1;
-                        if let Some(mev) = map_event_id_via_timeline(&self.inner, &rid, &eid).await
+                        if let Some(mev) =
+                            map_event_id_via_timeline(&self.timeline_mgr, &self.inner, &rid, &eid)
+                                .await
                         {
                             if latest.map_or(true, |l| mev.timestamp_ms > l) {
                                 latest = Some(mev.timestamp_ms);
@@ -5187,7 +5161,9 @@ impl Client {
                 .get_room(&rid)
                 .ok_or_else(|| FfiError::Msg("room not found".into()))?;
 
-            let tl = get_timeline_for(&self.inner, &rid)
+            let tl = self
+                .timeline_mgr
+                .timeline_for(&rid)
                 .await
                 .ok_or_else(|| FfiError::Msg("timeline not available".into()))?;
 
@@ -5198,10 +5174,7 @@ impl Client {
                 .await
                 .map_err(|e| FfiError::Msg(e.to_string()))?;
 
-            let mut member_map: std::collections::HashMap<
-                String,
-                (Option<String>, Option<String>),
-            > = std::collections::HashMap::new();
+            let mut member_map: HashMap<String, (Option<String>, Option<String>)> = HashMap::new();
 
             for m in members {
                 member_map.insert(
@@ -5230,8 +5203,7 @@ impl Client {
                 return Ok(vec![]);
             };
 
-            let mut best_ts: std::collections::HashMap<String, u64> =
-                std::collections::HashMap::new();
+            let mut best_ts: HashMap<String, u64> = HashMap::new();
 
             for item in items.iter().skip(target_idx) {
                 let Some(ev) = item.as_event() else { continue };
@@ -5359,7 +5331,9 @@ impl Client {
             let mut hits = Vec::with_capacity(event_ids.len());
 
             for eid in event_ids.iter() {
-                if let Some(mev) = map_event_id_via_timeline(&self.inner, &rid, eid).await {
+                if let Some(mev) =
+                    map_event_id_via_timeline(&self.timeline_mgr, &self.inner, &rid, eid).await
+                {
                     hits.push(SearchHit {
                         room_id: rid.to_string(),
                         event_id: mev.event_id.clone(),
@@ -5711,7 +5685,75 @@ impl Client {
     }
 }
 
-// ---------- Helpers ----------
+#[derive(Clone)]
+struct TimelineManager {
+    client: SdkClient,
+    timelines: Arc<Mutex<HashMap<OwnedRoomId, Arc<Timeline>>>>,
+    members_fetched: Arc<Mutex<HashSet<OwnedRoomId>>>,
+}
+
+impl TimelineManager {
+    fn new(client: SdkClient) -> Self {
+        Self {
+            client,
+            timelines: Arc::new(Mutex::new(HashMap::new())),
+            members_fetched: Arc::new(Mutex::new(HashSet::new())),
+        }
+    }
+
+    fn clear(&self) {
+        self.timelines.lock().unwrap().clear();
+        self.members_fetched.lock().unwrap().clear();
+    }
+
+    async fn timeline_for(&self, room_id: &OwnedRoomId) -> Option<Arc<Timeline>> {
+        // Fast path: reuse existing timeline for this room (for THIS account/client).
+        if let Some(tl) = self.timelines.lock().unwrap().get(room_id).cloned() {
+            let should_fetch = {
+                let mut s = self.members_fetched.lock().unwrap();
+                if s.contains(room_id) {
+                    false
+                } else {
+                    s.insert(room_id.clone());
+                    true
+                }
+            };
+            if should_fetch {
+                let tlc = tl.clone();
+                tokio::spawn(async move {
+                    let _ = tlc.fetch_members().await;
+                });
+            }
+            return Some(tl);
+        }
+
+        // Slow path: create timeline
+        let room = self.client.get_room(room_id)?;
+        let tl = Arc::new(room.timeline().await.ok()?);
+
+        let _ = tl.paginate_backwards(INITIAL_BACK_PAGINATION).await;
+
+        {
+            let mut s = self.members_fetched.lock().unwrap();
+            if !s.contains(room_id) {
+                s.insert(room_id.clone());
+                let tlc = tl.clone();
+                tokio::spawn(async move {
+                    let _ = tlc.fetch_members().await;
+                });
+            }
+        }
+
+        self.timelines
+            .lock()
+            .unwrap()
+            .insert(room_id.clone(), tl.clone());
+
+        Some(tl)
+    }
+}
+
+// Helpers
 
 fn build_unstable_poll_content(
     def: &PollDefinition,
@@ -5739,59 +5781,6 @@ fn build_unstable_poll_content(
         def.question.clone(),
         block,
     ))
-}
-
-static TIMELINES: Lazy<Mutex<HashMap<OwnedRoomId, Arc<Timeline>>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
-
-static TIMELINE_MEMBERS_FETCHED: Lazy<Mutex<HashSet<OwnedRoomId>>> =
-    Lazy::new(|| Mutex::new(HashSet::new()));
-
-async fn get_timeline_for(client: &SdkClient, room_id: &OwnedRoomId) -> Option<Arc<Timeline>> {
-    // reuse existing timeline for this room
-    if let Some(tl) = TIMELINES.lock().unwrap().get(room_id).cloned() {
-        // ensure member fetch has been triggered once
-        let should_fetch = {
-            let mut s = TIMELINE_MEMBERS_FETCHED.lock().unwrap();
-            if s.contains(room_id) {
-                false
-            } else {
-                s.insert(room_id.clone());
-                true
-            }
-        };
-        if should_fetch {
-            let tlc = tl.clone();
-            tokio::spawn(async move {
-                let _ = tlc.fetch_members().await;
-            });
-        }
-        return Some(tl);
-    }
-
-    // Slow path: create a new timeline
-    let room = client.get_room(room_id)?;
-    let tl = Arc::new(room.timeline().await.ok()?);
-
-    let _ = tl.paginate_backwards(INITIAL_BACK_PAGINATION).await;
-
-    // trigger member fetch once per room
-    {
-        let mut s = TIMELINE_MEMBERS_FETCHED.lock().unwrap();
-        if !s.contains(room_id) {
-            s.insert(room_id.clone());
-            let tlc = tl.clone();
-            tokio::spawn(async move {
-                let _ = tlc.fetch_members().await;
-            });
-        }
-    }
-
-    TIMELINES
-        .lock()
-        .unwrap()
-        .insert(room_id.clone(), tl.clone());
-    Some(tl)
 }
 
 fn map_sender_profile(
@@ -5900,6 +5889,10 @@ fn map_timeline_event(
         _ => {
             body = render_timeline_text(ev);
         }
+    }
+
+    if body.trim().is_empty() {
+        return None;
     }
 
     let (sender_display_name, sender_avatar_url) =
@@ -6069,14 +6062,14 @@ fn enc_to_record(ef: &EncryptedFile) -> EncFile {
 }
 
 async fn map_event_id_via_timeline(
+    mgr: &TimelineManager,
     client: &SdkClient,
     rid: &ruma::OwnedRoomId,
     eid: &ruma::OwnedEventId,
 ) -> Option<MessageEvent> {
-    let Some(tl) = get_timeline_for(client, rid).await else {
-        return None;
-    };
+    let tl = mgr.timeline_for(rid).await?;
     let _ = tl.fetch_details_for_event(eid.as_ref()).await;
+
     let item = tl.item_by_event_id(eid).await?;
     let item_id = match item.identifier() {
         TimelineEventItemId::EventId(id) => id.to_string(),
@@ -6092,14 +6085,17 @@ fn render_timeline_text(ev: &EventTimelineItem) -> String {
         TimelineItemContent::MembershipChange(change) => render_membership_change(ev, change),
         TimelineItemContent::ProfileChange(change) => render_profile_change(ev, change),
         TimelineItemContent::OtherState(state) => render_other_state(ev, state),
+
         TimelineItemContent::FailedToParseMessageLike { event_type, .. } => {
             format!("Unsupported message-like event: {}", event_type)
         }
         TimelineItemContent::FailedToParseState { event_type, .. } => {
             format!("Unsupported state event: {}", event_type)
         }
-        TimelineItemContent::CallInvite => "Started a call".to_string(),
-        TimelineItemContent::RtcNotification => "Call notification".to_string(),
+
+        // don’t show call signalling messages
+        TimelineItemContent::CallInvite => String::new(),
+        TimelineItemContent::RtcNotification => String::new(),
     }
 }
 
@@ -6217,12 +6213,13 @@ fn render_message_text(msg: &matrix_sdk_ui::timeline::Message) -> String {
     }
 }
 
-async fn latest_room_event_for(client: &SdkClient, room: &Room) -> Option<LatestRoomEvent> {
-    use matrix_sdk::ruma::events::room::message::MessageType;
-
+async fn latest_room_event_for(mgr: &TimelineManager, room: &Room) -> Option<LatestRoomEvent> {
     let rid = room.room_id().to_owned();
-    let tl = get_timeline_for(client, &rid).await?;
-    let ev = tl.latest_event().await?;
+    let tl = mgr.timeline_for(&rid).await?;
+
+    // Walk backwards to find first “real” item (skip call signalling, filtered states, blanks)
+    let items = tl.items().await;
+    let ev = items.iter().rev().find_map(|it| it.as_event())?;
 
     let ts: u64 = ev.timestamp().0.into();
     let event_id = ev.event_id().map(|e| e.to_string()).unwrap_or_default();
@@ -6234,10 +6231,15 @@ async fn latest_room_event_for(client: &SdkClient, room: &Room) -> Option<Latest
     let mut is_encrypted = false;
     let body: Option<String>;
 
+    use matrix_sdk::ruma::events::room::message::MessageType;
+
     match ev.content() {
         TimelineItemContent::MsgLike(ml) => match &ml.kind {
             MsgLikeKind::Message(m) => {
                 let text = render_message_text(m);
+                if text.trim().is_empty() {
+                    return None;
+                }
                 body = Some(text);
 
                 match m.msgtype() {
@@ -6245,10 +6247,10 @@ async fn latest_room_event_for(client: &SdkClient, room: &Room) -> Option<Latest
                     MessageType::Video(_) => msgtype = Some("m.video".to_owned()),
                     MessageType::Audio(_) => msgtype = Some("m.audio".to_owned()),
                     MessageType::File(_) => msgtype = Some("m.file".to_owned()),
-                    MessageType::Location(_) => msgtype = Some("m.location".to_owned()),
+                    MessageType::Text(_) => msgtype = Some("m.text".to_owned()),
                     MessageType::Notice(_) => msgtype = Some("m.notice".to_owned()),
                     MessageType::Emote(_) => msgtype = Some("m.emote".to_owned()),
-                    MessageType::Text(_) => msgtype = Some("m.text".to_owned()),
+                    MessageType::Location(_) => msgtype = Some("m.location".to_owned()),
                     _ => {}
                 }
             }
@@ -6272,17 +6274,13 @@ async fn latest_room_event_for(client: &SdkClient, room: &Room) -> Option<Latest
                 body = Some("Custom event".to_owned());
             }
         },
-        TimelineItemContent::CallInvite => {
-            event_type = "m.call.invite".to_owned();
-            body = None;
-        }
-        TimelineItemContent::RtcNotification => {
-            event_type = "m.rtc.notification".to_owned();
-            body = None;
-        }
-        // Membership changes, profile changes, other state events..
+        TimelineItemContent::CallInvite => return None,
+        TimelineItemContent::RtcNotification => return None,
         _ => {
-            let text = render_timeline_text(&ev);
+            let text = render_timeline_text(ev);
+            if text.trim().is_empty() {
+                return None;
+            }
             body = Some(text);
         }
     }
@@ -6385,10 +6383,16 @@ fn render_other_state(ev: &EventTimelineItem, s: &matrix_sdk_ui::timeline::Other
     use matrix_sdk_ui::timeline::AnyOtherFullStateEventContent as A;
 
     let actor = ev.sender().to_string();
+    let ty = s.content().event_type().to_string();
+
+    // Drop MatrixRTC membership state spam
+    if ty == "org.matrix.msc3401.call.member" || ty == "m.call.member" || ty == "m.rtc.member" {
+        return String::new();
+    }
+
     match s.content() {
         A::RoomName(c) => {
             let mut name = "";
-
             if let ruma::events::FullStateEventContent::Original { content, .. } = c {
                 name = &content.name;
             }
@@ -6406,10 +6410,7 @@ fn render_other_state(ev: &EventTimelineItem, s: &matrix_sdk_ui::timeline::Other
         A::RoomPinnedEvents(_) => format!("{actor} updated pinned events"),
         A::RoomPowerLevels(_) => format!("{actor} changed power levels"),
         A::RoomCanonicalAlias(_) => format!("{actor} changed the main address"),
-        _ => {
-            let ty = s.content().event_type().to_string();
-            format!("{actor} updated state: {ty}")
-        }
+        _ => format!("{actor} updated state: {ty}"),
     }
 }
 
@@ -6545,6 +6546,28 @@ fn map_vec_diff(
     }
 }
 
+async fn emit_timeline_reset(
+    obs: &Arc<dyn TimelineObserver>,
+    tl: &Arc<Timeline>,
+    rid: &OwnedRoomId,
+    me: &str,
+) {
+    let items = tl.items().await;
+    let mapped: Vec<_> = items
+        .iter()
+        .filter_map(|it| {
+            it.as_event().and_then(|ei| {
+                fetch_reply_if_needed(ei, tl);
+                map_timeline_event(ei, rid.as_str(), Some(&it.unique_id().0.to_string()), me)
+            })
+        })
+        .collect();
+
+    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        obs.on_diff(TimelineDiffKind::Reset { values: mapped })
+    }));
+}
+
 fn map_poll_state(state: &matrix_sdk_ui::timeline::PollState, me: &str) -> PollData {
     let results = state.results();
 
@@ -6630,6 +6653,131 @@ fn load_or_create_search_index_key(store_dir: &PathBuf) -> String {
 
     let _ = std::fs::write(&path, &key);
     key
+}
+
+fn should_filter_notification_event(ev: &AnySyncTimelineEvent) -> bool {
+    match ev {
+        AnySyncTimelineEvent::State(_) => true,
+        _ => false,
+    }
+}
+
+fn classify_notification_kind_and_expiry(
+    ev: &AnySyncTimelineEvent,
+) -> (NotificationKind, Option<u64>) {
+    use ruma::events::rtc::notification::NotificationType as RtcType;
+
+    match ev {
+        AnySyncTimelineEvent::MessageLike(m) => match m {
+            AnySyncMessageLikeEvent::RtcNotification(rtc) => {
+                if let Some(o) = rtc.as_original() {
+                    let expires_at_ms: u64 = o
+                        .content
+                        .expiration_ts(o.origin_server_ts, None)
+                        .get()
+                        .into();
+
+                    let kind = match o.content.notification_type {
+                        RtcType::Ring => NotificationKind::CallRing,
+                        _ => NotificationKind::CallNotify,
+                    };
+                    (kind, Some(expires_at_ms))
+                } else {
+                    (NotificationKind::CallNotify, None)
+                }
+            }
+            AnySyncMessageLikeEvent::CallNotify(_) => (NotificationKind::CallNotify, None),
+            AnySyncMessageLikeEvent::CallInvite(_) => (NotificationKind::CallInvite, None),
+            _ => (NotificationKind::Message, None),
+        },
+        AnySyncTimelineEvent::State(_) => (NotificationKind::StateEvent, None),
+        // _ => (NotificationKind::Message, None),
+    }
+}
+
+fn map_notification_item_to_rendered(
+    rid: &ruma::OwnedRoomId,
+    eid: &ruma::OwnedEventId,
+    item: &NotificationItem,
+) -> Option<RenderedNotification> {
+    let room_name = item.room_computed_display_name.clone();
+    let sender_user_id = item.event.sender().to_string();
+    let ts_ms: u64 = notification_event_ts_ms(&item.event);
+    let is_dm = item.is_direct_message_room;
+
+    let mut sender = item
+        .sender_display_name
+        .clone()
+        .unwrap_or_else(|| item.event.sender().localpart().to_string());
+
+    let mut body = "New event".to_owned();
+    let mut kind = NotificationKind::Message;
+    let mut expires_at_ms: Option<u64> = None;
+
+    if let NotificationEvent::Timeline(tl) = &item.event {
+        let ev = tl.as_ref();
+
+        if should_filter_notification_event(ev) {
+            return None;
+        }
+
+        let (k, exp) = classify_notification_kind_and_expiry(ev);
+        kind = k;
+        expires_at_ms = exp;
+
+        match ev {
+            AnySyncTimelineEvent::MessageLike(msg) => match msg {
+                AnySyncMessageLikeEvent::RoomMessage(m) => {
+                    if let Some(orig) = m.as_original() {
+                        sender = item
+                            .sender_display_name
+                            .clone()
+                            .unwrap_or_else(|| orig.sender.localpart().to_string());
+                        body = orig.content.body().to_owned();
+                    }
+                }
+                AnySyncMessageLikeEvent::CallNotify(notify) => {
+                    if let Some(orig) = notify.as_original() {
+                        sender = item
+                            .sender_display_name
+                            .clone()
+                            .unwrap_or_else(|| orig.sender.localpart().to_string());
+                    }
+                    body = "Incoming call".to_owned();
+                }
+                AnySyncMessageLikeEvent::CallInvite(invite) => {
+                    if let Some(orig) = invite.as_original() {
+                        sender = item
+                            .sender_display_name
+                            .clone()
+                            .unwrap_or_else(|| orig.sender.localpart().to_string());
+                    }
+                    body = "Incoming call".to_owned();
+                }
+                AnySyncMessageLikeEvent::RtcNotification(_) => {
+                    // TODO?: When to Ring or Notify
+                    body = "Incoming call".to_owned();
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+    }
+
+    Some(RenderedNotification {
+        room_id: rid.to_string(),
+        event_id: eid.to_string(),
+        room_name,
+        sender,
+        sender_user_id,
+        body,
+        is_noisy: item.is_noisy.unwrap_or(false),
+        has_mention: item.has_mention.unwrap_or(false),
+        is_dm,
+        ts_ms,
+        kind,
+        expires_at_ms,
+    })
 }
 
 #[export(callback_interface)]

@@ -90,10 +90,7 @@ class RustMatrixPort : MatrixPort {
                         if (items.isNotEmpty()) TimelineDiff.Append(items) else null
                     }
                     is TimelineDiffKind.PushBack -> TimelineDiff.Append(listOf(diff.value.toModel()))
-                    is TimelineDiffKind.PushFront -> {
-                        val item = diff.value.toModel()
-                        TimelineDiff.UpsertByItemId(item.itemId, item)
-                    }
+                    is TimelineDiffKind.PushFront -> TimelineDiff.Prepend(diff.value.toModel())
                     is TimelineDiffKind.UpdateByItemId -> TimelineDiff.UpdateByItemId(diff.itemId, diff.value.toModel())
                     is TimelineDiffKind.RemoveByItemId -> TimelineDiff.RemoveByItemId(diff.itemId)
                     is TimelineDiffKind.UpsertByItemId -> TimelineDiff.UpsertByItemId(diff.itemId, diff.value.toModel())

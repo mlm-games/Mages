@@ -85,6 +85,35 @@ fun RoomScreen(
 
     var didInitialScroll by rememberSaveable { mutableStateOf(false) }
 
+
+    val events = state.events
+
+    // you always have exactly 1 header item (load_earlier OR start_of_conversation)
+    fun listIndexForEventIndex(eventIndex: Int): Int = eventIndex + 1
+    fun lastListIndex(): Int = if (events.isEmpty()) 0 else listIndexForEventIndex(events.lastIndex)
+
+
+    val isNearBottom by remember(listState, events) {
+        derivedStateOf {
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+            events.isNotEmpty() && lastVisible >= lastListIndex() - 3
+        }
+    }
+
+    val lastOutgoingIndex = remember(events, state.myUserId) {
+        if (state.myUserId == null) -1 else events.indexOfLast { it.sender == state.myUserId }
+    }
+
+    val seenByNames = remember(events, lastOutgoingIndex, state.myUserId) {
+        if (lastOutgoingIndex >= 0 && state.myUserId != null) {
+            events.drop(lastOutgoingIndex + 1)
+                .filter { it.sender != state.myUserId }
+                .map { it.sender }
+                .distinct()
+                .map { sender -> sender.substringAfter('@').substringBefore(':').ifBlank { sender } }
+        } else emptyList()
+    }
+
     LaunchedEffect(state.hasTimelineSnapshot, state.events.size, pendingJumpEventId) {
         if (!state.hasTimelineSnapshot || state.events.isEmpty()) return@LaunchedEffect
         if (pendingJumpEventId != null) return@LaunchedEffect
@@ -93,7 +122,7 @@ fun RoomScreen(
             listState.firstVisibleItemIndex == 0 &&
             listState.firstVisibleItemScrollOffset == 0
         ) {
-            listState.scrollToItem(state.events.lastIndex)
+            listState.scrollToItem(lastListIndex())
             didInitialScroll = true
         }
     }
@@ -146,29 +175,6 @@ fun RoomScreen(
         }
     }
 
-    val events = state.events
-
-    val isNearBottom by remember(listState, events) {
-        derivedStateOf {
-            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-            events.isNotEmpty() && lastVisible >= events.lastIndex - 3
-        }
-    }
-
-    val lastOutgoingIndex = remember(events, state.myUserId) {
-        if (state.myUserId == null) -1 else events.indexOfLast { it.sender == state.myUserId }
-    }
-
-    val seenByNames = remember(events, lastOutgoingIndex, state.myUserId) {
-        if (lastOutgoingIndex >= 0 && state.myUserId != null) {
-            events.drop(lastOutgoingIndex + 1)
-                .filter { it.sender != state.myUserId }
-                .map { it.sender }
-                .distinct()
-                .map { sender -> sender.substringAfter('@').substringBefore(':').ifBlank { sender } }
-        } else emptyList()
-    }
-
     LaunchedEffect(events.lastOrNull()?.itemId, isNearBottom) {
         val last = events.lastOrNull() ?: return@LaunchedEffect
         if (isNearBottom) viewModel.markReadHere(last)
@@ -176,12 +182,9 @@ fun RoomScreen(
 
     LaunchedEffect(events.size) {
         if (isNearBottom && events.isNotEmpty()) {
-            listState.animateScrollToItem(events.lastIndex)
+            listState.animateScrollToItem(lastListIndex())
         }
     }
-
-    // you always have exactly 1 header item (load_earlier OR start_of_conversation)
-    fun listIndexForEventIndex(eventIndex: Int): Int = eventIndex + 1
 
     LaunchedEffect(
         pendingJumpEventId,
@@ -281,7 +284,7 @@ fun RoomScreen(
                 ExtendedFloatingActionButton(
                     onClick = {
                         scope.launch {
-                            listState.animateScrollToItem(events.lastIndex.coerceAtLeast(0))
+                            listState.animateScrollToItem(lastListIndex().coerceAtLeast(0))
                         }
                     },
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer,

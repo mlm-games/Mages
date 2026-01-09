@@ -1079,97 +1079,34 @@ class RoomViewModel(
     }
 
     private fun processDiff(diff: TimelineDiff<MessageEvent>) {
-        when (diff) {
-            is TimelineDiff.Reset -> {
-                hasTimelineSnapshot = true
-                val all = diff.items
-                updateState {
-                    copy(
-                        allEvents = all,
-                        events = all.withoutThreadReplies().dedupByItemId(),
-                        hasTimelineSnapshot = true,
-                    )
-                }
-                postProcessNewEvents(diff.items)
-            }
+        var delta: List<MessageEvent> = emptyList()
+        var didClear = false
 
-            is TimelineDiff.Clear -> {
-                updateState {
-                    copy(
-                        allEvents = emptyList(),
-                        events = emptyList(),
-                        hasTimelineSnapshot = false,
-                    )
-                }
-            }
+        updateState {
+            val r = TimelineListReducer.apply(
+                current = allEvents,
+                diff = diff,
+                idOf = { it.itemId },
+                timeOf = { it.timestampMs },
+                tieOf = { it.itemId },
+            )
+            delta = r.delta
+            didClear = r.cleared
 
-            is TimelineDiff.Append -> {
-                updateState {
-                    val newAll = allEvents + diff.items
-                    copy(
-                        allEvents = newAll,
-                        events = newAll.withoutThreadReplies().dedupByItemId(),
-                        hasTimelineSnapshot = hasTimelineSnapshot,
-                    )
+            val newAll = r.list
+            copy(
+                allEvents = newAll,
+                events = newAll.withoutThreadReplies().dedupByItemId(),
+                hasTimelineSnapshot = when {
+                    r.reset -> true
+                    r.cleared -> false
+                    else -> hasTimelineSnapshot
                 }
-                postProcessNewEvents(diff.items)
-            }
+            )
+        }
 
-            is TimelineDiff.UpdateByItemId -> {
-                updateState {
-                    val index = allEvents.indexOfFirst { it.itemId == diff.itemId }
-                    if (index == -1) {
-                        this
-                    } else {
-                        val mutable = allEvents.toMutableList()
-                        mutable[index] = diff.item
-                        val newAll = mutable.toList()
-                        copy(
-                            allEvents = newAll,
-                            events = newAll.withoutThreadReplies().dedupByItemId(),
-                            hasTimelineSnapshot = hasTimelineSnapshot,
-                        )
-                    }
-                }
-                postProcessNewEvents(listOf(diff.item))
-            }
-
-            is TimelineDiff.RemoveByItemId -> {
-                updateState {
-                    val newAll = allEvents.filter { it.itemId != diff.itemId }
-                    if (newAll.size == allEvents.size) {
-                        this
-                    } else {
-                        copy(
-                            allEvents = newAll,
-                            events = newAll.withoutThreadReplies().dedupByItemId(),
-                            hasTimelineSnapshot = hasTimelineSnapshot,
-                        )
-                    }
-                }
-            }
-
-            is TimelineDiff.UpsertByItemId -> {
-                updateState {
-                    val index = allEvents.indexOfFirst { it.itemId == diff.itemId }
-                    val newAll = if (index == -1) {
-                        val insertIndex = allEvents.indexOfFirst { it.timestampMs > diff.item.timestampMs }
-                        if (insertIndex == -1) {
-                            allEvents + diff.item
-                        } else {
-                            allEvents.toMutableList().apply { add(insertIndex, diff.item) }
-                        }
-                    } else {
-                        allEvents.toMutableList().apply { this[index] = diff.item }
-                    }
-                    copy(
-                        allEvents = newAll,
-                        events = newAll.withoutThreadReplies().dedupByItemId(),
-                        hasTimelineSnapshot = hasTimelineSnapshot,
-                    )
-                }
-                postProcessNewEvents(listOf(diff.item))
-            }
+        if (!didClear && delta.isNotEmpty()) {
+            postProcessNewEvents(delta)
         }
 
         recomputeDerived()

@@ -4,21 +4,21 @@
     android:height="108dp"
     android:viewportWidth="128"
     android:viewportHeight="128">
-  <group android:scaleX="0.68"
-      android:scaleY="0.68"
-      android:translateX="20.48"
-      android:translateY="20.48">
+  <group android:scaleX="0.77"
+      android:scaleY="0.77"
+      android:translateX="14.72"
+      android:translateY="14.72">
     <path
-        android:pathData="M126.55,25.45L126.55,102.55A24,24 0,0 1,102.55 126.55L25.45,126.55A24,24 0,0 1,1.45 102.55L1.45,25.45A24,24 0,0 1,25.45 1.45L102.55,1.45A24,24 0,0 1,126.55 25.45z"
+        android:pathData="M128,24.55L128,103.45A24.55,24.55 0,0 1,103.45 128L24.55,128A24.55,24.55 0,0 1,-0 103.45L-0,24.55A24.55,24.55 0,0 1,24.55 0L103.45,0A24.55,24.55 0,0 1,128 24.55z"
         android:strokeLineJoin="round"
-        android:strokeWidth="2.89119"
+        android:strokeWidth="2.95801"
         android:strokeColor="#00000000"
         android:strokeLineCap="round">
       <aapt:attr name="android:fillColor">
         <gradient
             android:centerX="64"
             android:centerY="64"
-            android:gradientRadius="64"
+            android:gradientRadius="65.48"
             android:type="radial">
           <item android:offset="0" android:color="#E6240B36"/>
           <item android:offset="1" android:color="#FF5D1575"/>

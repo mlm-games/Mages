@@ -97,6 +97,13 @@ class ThreadViewModel(
                 }
             }
 
+            is TimelineDiff.Prepend -> {
+                val event = diff.item
+                if (event.eventId == rootEventId || event.threadRootEventId == rootEventId) {
+                    upsertSingleEvent(event)
+                }
+            }
+
             is TimelineDiff.UpdateByItemId -> {
                 val event = diff.item
                 if (event.eventId == rootEventId || event.threadRootEventId == rootEventId) {
@@ -224,13 +231,9 @@ class ThreadViewModel(
                         // Update existing
                         copy(replies = replies.toMutableList().apply { this[idx] = event })
                     } else {
-                        // Insert new, sorted by timestamp
-                        val insertIdx = replies.indexOfFirst { it.timestampMs > event.timestampMs }
-                        val newReplies = if (insertIdx == -1) {
-                            replies + event
-                        } else {
-                            replies.toMutableList().apply { add(insertIdx, event) }
-                        }
+                        val newReplies = (replies + event)
+                            .distinctBy { it.itemId }
+                            .sortedBy { it.timestampMs }
                         copy(replies = newReplies)
                     }
                 }
