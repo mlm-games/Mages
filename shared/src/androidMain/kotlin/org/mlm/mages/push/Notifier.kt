@@ -69,7 +69,7 @@ object AndroidNotificationHelper : KoinComponent {
             "$callerName is calling in $roomName"
         }
 
-        val notification = NotificationCompat.Builder(ctx, AppNotificationChannels.CHANNEL_CALLS)
+        val builder = NotificationCompat.Builder(ctx, AppNotificationChannels.CHANNEL_CALLS)
             .setSmallIcon(R.drawable.ic_notif_status_bar)
             .setContentTitle(title)
             .setContentText(text)
@@ -89,11 +89,13 @@ object AndroidNotificationHelper : KoinComponent {
                 "Answer",
                 joinIntent
             )
-            .setFullScreenIntent(fullScreenIntent, true)
             .setTimeoutAfter(60_000)
-            .build()
 
-        mgr.notify(notifId, notification)
+        fullScreenIntent?.let {
+            builder.setFullScreenIntent(it, true)
+        }
+
+        mgr.notify(notifId, builder.build())
     }
 
     fun cancelCallNotification(ctx: Context, roomId: String) {
@@ -108,7 +110,14 @@ object AndroidNotificationHelper : KoinComponent {
         roomName: String,
         callerName: String,
         eventId: String?
-    ): PendingIntent {
+    ): PendingIntent? {
+        val settingsRepo: SettingsRepository<AppSettings> by inject()
+        val showCallScreen = runBlocking { settingsRepo.flow.first().showIncomingCallScreen }
+
+        if (!showCallScreen) {
+            return null
+        }
+
         // reflection to avoid direct dependency
         val intent = try {
             val activityClass = Class.forName("org.mlm.mages.activities.IncomingCallActivity")

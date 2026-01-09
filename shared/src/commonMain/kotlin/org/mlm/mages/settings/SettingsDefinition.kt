@@ -140,8 +140,19 @@ data class AppSettings(
     @Setting(
         category = Calls::class,
         type = Toggle::class,
+        title = "Show call screen",
+        description = "Show full-screen incoming call UI",
+        dependsOn = "callNotificationsEnabled",
+        platforms = [SettingPlatform.ANDROID]
+    )
+    val showIncomingCallScreen: Boolean = false,
+
+    @Setting(
+        category = Calls::class,
+        type = Toggle::class,
         title = "Call notifications",
         description = "Incoming call notifications",
+        platforms = [SettingPlatform.ANDROID]
     )
     val callNotificationsEnabled: Boolean = true,
 
