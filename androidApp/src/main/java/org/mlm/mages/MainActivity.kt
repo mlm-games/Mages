@@ -1,6 +1,5 @@
 package org.mlm.mages
 
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -43,9 +42,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-
-        ensureCallNotificationChannel()
-        ensureMessageChannels()
 
         MagesPaths.init(this)
 
@@ -160,48 +156,5 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-    }
-
-    private fun ensureCallNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val mgr = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-            val channel = NotificationChannel(
-                "calls",
-                "Calls",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Incoming calls"
-                setSound(null, null) // TODO: sound configurable later
-                enableVibration(true)
-            }
-            mgr.createNotificationChannel(channel)
-        }
-    }
-
-    private fun ensureMessageChannels() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val mgr = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-
-        val normal = NotificationChannel(
-            "messages",
-            "Messages",
-            NotificationManager.IMPORTANCE_DEFAULT
-        ).apply {
-            description = "Message notifications"
-            enableVibration(true)
-        }
-
-        val silent = NotificationChannel(
-            "messages_silent",
-            "Messages (Silent)",
-            NotificationManager.IMPORTANCE_DEFAULT
-        ).apply {
-            description = "Message notifications (no sound)"
-            setSound(null, null)
-            enableVibration(false)
-        }
-
-        mgr.createNotificationChannel(normal)
-        mgr.createNotificationChannel(silent)
     }
 }

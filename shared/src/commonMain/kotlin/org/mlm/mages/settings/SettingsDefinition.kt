@@ -138,6 +138,54 @@ data class AppSettings(
     val elementCallUrl: String = "",
 
     @Setting(
+        category = Calls::class,
+        type = Toggle::class,
+        title = "Call notifications",
+        description = "Incoming call notifications",
+    )
+    val callNotificationsEnabled: Boolean = true,
+
+    @Setting(
+        category = Notifications::class,
+        type = Button::class,
+        title = "System notification settings",
+        description = "Open Android notification settings for Mages",
+        platforms = [SettingPlatform.ANDROID],
+    )
+    @ActionHandler(OpenSystemNotificationSettingsAction::class)
+    val openSystemNotificationSettings: Unit = Unit,
+
+    @Setting(
+        category = Notifications::class,
+        type = Button::class,
+        title = "Select UnifiedPush distributor",
+        description = "Choose the app that delivers pushes (gcompat/sunup/ntfy/etc.)",
+        platforms = [SettingPlatform.ANDROID],
+    )
+    @ActionHandler(SelectUnifiedPushDistributorAction::class)
+    val selectUnifiedPushDistributor: Unit = Unit,
+
+    @Setting(
+        category = Notifications::class,
+        type = Button::class,
+        title = "Re-register UnifiedPush",
+        description = "Fix push issues after update/reboot or distributor change",
+        platforms = [SettingPlatform.ANDROID],
+    )
+    @ActionHandler(ReRegisterUnifiedPushAction::class)
+    val reRegisterUnifiedPush: Unit = Unit,
+
+    @Setting(
+        category = Notifications::class,
+        type = Button::class,
+        title = "Copy UnifiedPush endpoint",
+        description = "For debugging; shows what endpoint is registered",
+        platforms = [SettingPlatform.ANDROID],
+    )
+    @ActionHandler(CopyUnifiedPushEndpointAction::class)
+    val copyUnifiedPushEndpoint: Unit = Unit,
+
+    @Setting(
         title = "Media cache max size (MB)",
         description = "Limit media cache size; 0 = SDK default",
         category = Storage::class,
@@ -171,3 +219,8 @@ data class AppSettings(
     @Persisted
     val lastOpenedRoomId: String? = null,
 )
+
+object OpenSystemNotificationSettingsAction : SettingAction
+object SelectUnifiedPushDistributorAction : SettingAction
+object ReRegisterUnifiedPushAction : SettingAction
+object CopyUnifiedPushEndpointAction : SettingAction

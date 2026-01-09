@@ -17,40 +17,51 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
     private val service: MatrixService by inject()
 
     override fun onReceive(context: Context, intent: Intent) {
+        AppNotificationChannels.ensureCreated(context)
+
         val pending = goAsync()
 
         CoroutineScope(Dispatchers.IO).launch {
+            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+            val roomId = intent.getStringExtra(EXTRA_ROOM_ID)
+            val eventId = intent.getStringExtra(EXTRA_EVENT_ID)
+            val notifId = intent.getIntExtra(EXTRA_NOTIF_ID, 0)
+
             try {
-                val roomId = intent.getStringExtra(EXTRA_ROOM_ID) ?: return@launch
-                val eventId = intent.getStringExtra(EXTRA_EVENT_ID) ?: return@launch
-                val notifId = intent.getIntExtra(EXTRA_NOTIF_ID, 0)
-
-                runCatching { service.initFromDisk() }
-                val port = service.portOrNull
-                if (port == null || !service.isLoggedIn()) return@launch
-
                 when (intent.action) {
-                    ACTION_MARK_READ -> {
-                        port.markFullyReadAt(roomId, eventId)
+                    ACTION_DECLINE_CALL -> {
+                        if (roomId != null) AndroidNotificationHelper.cancelCallNotification(context, roomId)
+                        // also cancel whatever notifId was passed (call notif id)
                     }
 
-                    ACTION_REPLY -> {
-                        val text = RemoteInput.getResultsFromIntent(intent)
-                            ?.getCharSequence(KEY_TEXT_REPLY)
-                            ?.toString()
-                            ?.trim()
-                            .orEmpty()
+                    ACTION_MARK_READ, ACTION_REPLY -> {
+                        if (roomId == null || eventId == null) return@launch
 
-                        if (text.isNotBlank()) {
-                            port.reply(roomId, eventId, text)
-                            port.markFullyReadAt(roomId, eventId)
+                        runCatching { service.initFromDisk() }
+                        val port = service.portOrNull
+
+                        if (port != null && service.isLoggedIn()) {
+                            when (intent.action) {
+                                ACTION_MARK_READ -> port.markFullyReadAt(roomId, eventId)
+                                ACTION_REPLY -> {
+                                    val text = RemoteInput.getResultsFromIntent(intent)
+                                        ?.getCharSequence(KEY_TEXT_REPLY)
+                                        ?.toString()
+                                        ?.trim()
+                                        .orEmpty()
+
+                                    if (text.isNotBlank()) {
+                                        port.reply(roomId, eventId, text)
+                                        port.markFullyReadAt(roomId, eventId)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
-
-                val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                if (notifId != 0) nm.cancel(notifId)
             } finally {
+                if (notifId != 0) nm.cancel(notifId)
                 pending.finish()
             }
         }
@@ -59,6 +70,7 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
     companion object {
         const val ACTION_MARK_READ = "org.mlm.mages.ACTION_MARK_READ"
         const val ACTION_REPLY = "org.mlm.mages.ACTION_REPLY"
+        const val ACTION_DECLINE_CALL = "org.mlm.mages.ACTION_DECLINE_CALL"
 
         const val EXTRA_ROOM_ID = "roomId"
         const val EXTRA_EVENT_ID = "eventId"

@@ -18,24 +18,26 @@ import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.shared.R
 
 object AndroidNotificationHelper : KoinComponent {
-    private const val CHANNEL_MESSAGES = "messages"
-    private const val CHANNEL_CALLS = "calls"
-
     data class NotificationText(val title: String, val body: String)
 
     fun showSingleEvent(ctx: Context, n: NotificationText, roomId: String, eventId: String) {
+        AppNotificationChannels.ensureCreated(ctx)
+
         val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val settingsRepo: SettingsRepository<AppSettings> by inject()
         val soundEnabled = runBlocking { settingsRepo.flow.first().notificationSound }
-        val channelId = if (soundEnabled) "messages" else "messages_silent"
+
+        val channelId = if (soundEnabled)
+            AppNotificationChannels.CHANNEL_MESSAGES
+        else
+            AppNotificationChannels.CHANNEL_MESSAGES_SILENT
 
         val notifId = (roomId + eventId).hashCode()
 
-        val notification = NotificationCompat.Builder(ctx, CHANNEL_MESSAGES)
+        val notification = NotificationCompat.Builder(ctx, channelId)
             .setSmallIcon(R.drawable.ic_notif_status_bar)
             .setContentTitle(n.title)
             .setContentText(n.body)
-            .setChannelId(channelId)
             .setStyle(NotificationCompat.BigTextStyle().bigText(n.body))
             .setContentIntent(createOpenIntent(ctx, roomId, eventId, notifId))
             .addAction(createReplyAction(ctx, roomId, eventId, notifId))
@@ -67,7 +69,7 @@ object AndroidNotificationHelper : KoinComponent {
             "$callerName is calling in $roomName"
         }
 
-        val notification = NotificationCompat.Builder(ctx, CHANNEL_CALLS)
+        val notification = NotificationCompat.Builder(ctx, AppNotificationChannels.CHANNEL_CALLS)
             .setSmallIcon(R.drawable.ic_notif_status_bar)
             .setContentTitle(title)
             .setContentText(text)
