@@ -35,20 +35,39 @@
             android:exported="true"
             android:name=".MainActivity"
             android:supportsPictureInPicture="true"
+            android:resizeableActivity="true"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Custom app scheme -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="mages" />
-                <data android:host="room" />
-                <data android:scheme="https" />
-                <data android:host="matrix.to" />
-                <data android:pathPrefix="/#/" />
+                <data
+                    android:scheme="mages"
+                    android:host="room" />
+            </intent-filter>
+
+            <!-- matrix.to -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:host="matrix.to" android:scheme="https" />
+                <uri-relative-filter-group>
+                    <data android:pathPrefix="/" />
+                    <data android:fragment="/" />
+                </uri-relative-filter-group>
+            </intent-filter>
+
+            <!-- matrix: URIs -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="matrix" />
             </intent-filter>
         </activity>
@@ -138,7 +157,8 @@
         </service>
         <service
             android:name=".push.RaiseToForegroundService"
-            android:exported="true">
+            android:exported="true"
+            tools:ignore="ExportedService">
             <intent-filter>
                 <action android:name="org.unifiedpush.android.connector.RAISE_TO_FOREGROUND" />
             </intent-filter>
