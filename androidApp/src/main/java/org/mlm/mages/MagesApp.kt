@@ -48,12 +48,12 @@ class MagesApp : Application() {
         }
 
         ActionRegistry.register(SelectUnifiedPushDistributorAction::class) {
-            // Shows the UnifiedPush distributor picker dialog.
+            // Doesn't seem to do anything.
             PushManager.registerWithDialog(this, PREF_INSTANCE)
         }
 
         ActionRegistry.register(ReRegisterUnifiedPushAction::class) {
-            // Re-register UP + reconcile Matrix pusher.
+            // Need to show a snackbar message, though it is internal (toast handling).
             UnifiedPush.register(this, PREF_INSTANCE)
             PusherReconciler.ensureServerPusherRegistered(this, PREF_INSTANCE)
         }

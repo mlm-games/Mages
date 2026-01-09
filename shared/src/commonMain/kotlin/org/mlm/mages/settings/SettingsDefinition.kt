@@ -145,25 +145,25 @@ data class AppSettings(
     )
     val callNotificationsEnabled: Boolean = true,
 
-    @Setting(
-        category = Notifications::class,
-        type = Button::class,
-        title = "System notification settings",
-        description = "Open Android notification settings for Mages",
-        platforms = [SettingPlatform.ANDROID],
-    )
-    @ActionHandler(OpenSystemNotificationSettingsAction::class)
-    val openSystemNotificationSettings: Unit = Unit,
+//    @Setting(
+//        category = Notifications::class,
+//        type = Button::class,
+//        title = "System notification settings",
+//        description = "Open Android notification settings for Mages",
+//        platforms = [SettingPlatform.ANDROID],
+//    )
+//    @ActionHandler(OpenSystemNotificationSettingsAction::class)
+//    val openSystemNotificationSettings: Unit = Unit,
 
-    @Setting(
-        category = Notifications::class,
-        type = Button::class,
-        title = "Select UnifiedPush distributor",
-        description = "Choose the app that delivers pushes (gcompat/sunup/ntfy/etc.)",
-        platforms = [SettingPlatform.ANDROID],
-    )
-    @ActionHandler(SelectUnifiedPushDistributorAction::class)
-    val selectUnifiedPushDistributor: Unit = Unit,
+//    @Setting(
+//        category = Notifications::class,
+//        type = Button::class,
+//        title = "Select UnifiedPush distributor",
+//        description = "Choose the app that delivers pushes (gcompat/sunup/ntfy/etc.)",
+//        platforms = [SettingPlatform.ANDROID],
+//    )
+//    @ActionHandler(SelectUnifiedPushDistributorAction::class)
+//    val selectUnifiedPushDistributor: Unit = Unit,
 
     @Setting(
         category = Notifications::class,
