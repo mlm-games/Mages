@@ -76,16 +76,16 @@ actual fun CallWebViewHost(
                 Log.d("WidgetBridge", "Handling Element-specific action locally: $action")
 
                 sendElementActionResponse(webView, message)
+                onMessageFromWidget(message)
 
                 when (action) {
                     "io.element.close", "im.vector.hangup" -> {
-                        Log.d("WidgetBridge", "Call ended by widget")
                         onClosed()
                     }
                     "io.element.minimize" -> {
-                        Log.d("WidgetBridge", "Minimize requested by widget")
                         onMinimizeRequested()
                     }
+                    else -> {}
                 }
                 return
             }
@@ -114,12 +114,6 @@ actual fun CallWebViewHost(
                     }
                 }
             }
-
-            override fun close() {
-                webViewRef.get()?.destroy()
-                webViewRef.set(null)
-                onClosed()
-            }
         }
     }
 
@@ -130,6 +124,7 @@ actual fun CallWebViewHost(
     DisposableEffect(Unit) {
         onDispose {
             onAttachController(null)
+            webViewRef.set(null)
             webViewRef.get()?.destroy()
         }
     }
@@ -248,12 +243,6 @@ actual fun CallWebViewHost(
         },
         update = { webView -> webViewRef.set(webView) }
     )
-
-    DisposableEffect(Unit) {
-        onDispose {
-            webViewRef.get()?.destroy() // not doing this would make future calls run on an dead thread
-        }
-    }
 
     return controller
 }
