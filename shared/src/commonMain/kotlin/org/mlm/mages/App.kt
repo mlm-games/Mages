@@ -182,7 +182,7 @@ private fun AppContent(deepLinks: Flow<DeepLinkAction>?) {
         val openUrl: (String) -> Boolean = remember(uriHandler) {
             { url -> runCatching { uriHandler.openUri(url); true }.getOrDefault(false) }
         }
-
+        val callOverlayActive = callManager.isInCall()
         Scaffold(
             snackbarHost = {
                 LauncherSnackbarHost(hostState = snackbarHostState, manager = snackbarManager)
@@ -201,6 +201,14 @@ private fun AppContent(deepLinks: Flow<DeepLinkAction>?) {
                     val top = backStack.lastOrNull()
                     val isInitialLogin = top == Route.Login && backStack.size == 1
                     val isRoomsRoot = top == Route.Rooms
+
+                    when {
+                        callOverlayActive -> {
+                            callManager.setMinimized(true)
+                            // Handle via or put it in here to not go back
+                        }
+                    }
+
                     val blockBack = isInitialLogin || isRoomsRoot
                     if (!blockBack && backStack.size > 1) backStack.removeAt(backStack.lastIndex)
                 },

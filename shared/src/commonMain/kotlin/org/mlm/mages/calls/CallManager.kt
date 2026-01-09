@@ -16,6 +16,9 @@ data class GlobalCallState(
     val minimized: Boolean = false,
     val pipX: Float = 24f,
     val pipY: Float = 120f,
+    val pipW: Float = 220f,
+    val pipH: Float = 140f,
+
 )
 
 class CallManager(
@@ -36,6 +39,10 @@ class CallManager(
 
     fun movePip(x: Float, y: Float) {
         _call.value = _call.value?.copy(pipX = x, pipY = y)
+    }
+
+    fun resizePip(wDp: Float, hDp: Float) {
+        _call.value = _call.value?.copy(pipW = wDp, pipH = hDp)
     }
 
     fun attachController(c: CallWebViewController?) {

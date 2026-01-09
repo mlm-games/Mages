@@ -42,6 +42,7 @@ object TimelineListReducer {
             }
 
             is TimelineDiff.Clear -> Result(list = emptyList(), cleared = true)
+            // TODO and FIXME: Currently clears full timeline for calls.
 
             is TimelineDiff.Append -> {
                 val list = current.toMutableList()
