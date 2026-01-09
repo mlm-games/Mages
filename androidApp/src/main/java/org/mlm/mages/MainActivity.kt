@@ -13,8 +13,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import io.github.mlmgames.settings.core.SettingsRepository
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.mlm.mages.di.KoinApp
@@ -34,9 +34,8 @@ import org.unifiedpush.android.connector.UnifiedPush
 
 class MainActivity : AppCompatActivity() {
 
-    private val deepLinkActions = MutableSharedFlow<DeepLinkAction>(extraBufferCapacity = 1)
-    private val deepLinks = deepLinkActions.asSharedFlow()
-
+    private val deepLinkActions = Channel<DeepLinkAction>(capacity = Channel.BUFFERED)
+    private val deepLinks = deepLinkActions.receiveAsFlow()
     private val service: MatrixService by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -115,15 +114,13 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
 
-                    lifecycleScope.launch {
-                        deepLinkActions.emit(
-                            DeepLinkAction(
-                                roomId = roomId,
-                                eventId = eventId,
-                                joinCall = joinCall
-                            )
+                    deepLinkActions.trySend(
+                        DeepLinkAction(
+                            roomId = roomId,
+                            eventId = eventId,
+                            joinCall = joinCall
                         )
-                    }
+                    )
                 }
                 return
             }
@@ -143,15 +140,13 @@ class MainActivity : AppCompatActivity() {
                         service = service,
                         link = link,
                     ) { roomId, eventId ->
-                        launch {
-                            deepLinkActions.emit(
-                                DeepLinkAction(
-                                    roomId = roomId,
-                                    eventId = eventId,
-                                    joinCall = false
-                                )
+                        deepLinkActions.trySend(
+                            DeepLinkAction(
+                                roomId = roomId,
+                                eventId = eventId,
+                                joinCall = false
                             )
-                        }
+                        )
                     }
                 }
             }

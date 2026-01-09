@@ -38,6 +38,7 @@ actual fun CallWebViewHost(
     widgetUrl: String,
     onMessageFromWidget: (String) -> Unit,
     onClosed: () -> Unit,
+    onMinimizeRequested: () -> Unit,
     widgetBaseUrl: String?,
     modifier: Modifier,
     onAttachController: (CallWebViewController?) -> Unit
@@ -83,8 +84,7 @@ actual fun CallWebViewHost(
                     }
                     "io.element.minimize" -> {
                         Log.d("WidgetBridge", "Minimize requested by widget")
-                        onMessageFromWidget(message)
-//                        activity?.enterPip()
+                        onMinimizeRequested()
                     }
                 }
                 return

@@ -81,53 +81,14 @@ fun GlobalCallOverlay(
             widgetUrl = s.widgetUrl,
             widgetBaseUrl = s.widgetBaseUrl,
             modifier = webViewModifier,
-            onMessageFromWidget = { msg ->
-                if (msg.contains("\"action\":\"io.element.minimize\"") ||
-                    msg.contains("minimize", ignoreCase = true)) {
-                    callManager.setMinimized(true)
-                } else {
-                    callManager.onMessageFromWidget(msg)
-                }
-            },
+            onMessageFromWidget = { msg -> callManager.onMessageFromWidget(msg) },
             onClosed = { callManager.endCall() },
-            onAttachController = { callManager.attachController(it) }
+            onAttachController = { callManager.attachController(it) },
+            onMinimizeRequested = { callManager.setMinimized(true) }
         )
 
         // Full-screen top bar controls
-        if (!isMin) {
-            Surface(
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                tonalElevation = 3.dp,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-            ) {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        s.roomName,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    IconButton(onClick = { callManager.setMinimized(true) }) {
-                        Icon(Icons.Default.PictureInPicture, contentDescription = "Minimize")
-                    }
-                    IconButton(onClick = { callManager.endCall() }) {
-                        Icon(
-                            Icons.Default.CallEnd,
-                            contentDescription = "End call",
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-            }
-        } else {
+        if (isMin) {
             // Minimized PiP controls - positioned above the PiP window
             Surface(
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,

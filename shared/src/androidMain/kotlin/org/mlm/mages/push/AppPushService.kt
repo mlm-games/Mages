@@ -66,13 +66,14 @@ class AppPushService : PushService(), KoinComponent {
             return
         }
 
-        // Show a lightweight notification immediately, then enrich via WorkManager
+        // Show a lightweight notification immediately, then enrich via WorkManager.
+        // Disabled since it doesn't work well for call notifs
         for ((roomId, eventId) in pairs.take(3)) {
-            AndroidNotificationHelper.showSingleEvent(
-                this,
-                AndroidNotificationHelper.NotificationText("New message", "You have a new message"),
-                roomId, eventId
-            )
+//            AndroidNotificationHelper.showSingleEvent(
+//                this,
+//                AndroidNotificationHelper.NotificationText("New message", "You have a new message"),
+//                roomId, eventId
+//            )
             enqueueEnrich(roomId, eventId)
         }
     }

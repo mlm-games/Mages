@@ -39,6 +39,7 @@ actual fun CallWebViewHost(
     widgetUrl: String,
     onMessageFromWidget: (String) -> Unit,
     onClosed: () -> Unit,
+    onMinimizeRequested: () -> Unit,
     widgetBaseUrl: String?,
     modifier: Modifier,
     onAttachController: (CallWebViewController?) -> Unit
@@ -67,10 +68,6 @@ actual fun CallWebViewHost(
     return controller
 }
 
-/* -------------------------------------------------------------------------- */
-/*  JCEF controller                                                            */
-/* -------------------------------------------------------------------------- */
-
 private class JcefCallWebViewController(
     private val onMessageFromWidget: (String) -> Unit,
     private val onClosed: () -> Unit
@@ -88,10 +85,6 @@ private class JcefCallWebViewController(
     @Volatile private var router: CefMessageRouter? = null
 
     private val pendingToWidget = ConcurrentLinkedQueue<String>()
-
-    /* ---------------------------------------------------------------------- */
-    /*  Lifecycle                                                              */
-    /* ---------------------------------------------------------------------- */
 
     suspend fun load(url: String) {
         if (disposed.get()) return
@@ -138,10 +131,6 @@ private class JcefCallWebViewController(
         }
     }
 
-    /* ---------------------------------------------------------------------- */
-    /*  Widget → Rust  (with Element-specific action handling)                 */
-    /* ---------------------------------------------------------------------- */
-
     private fun handleWidgetMessage(message: String) {
         try {
             val json = JSONObject(message)
@@ -185,10 +174,6 @@ private class JcefCallWebViewController(
         }
     }
 
-    /* ---------------------------------------------------------------------- */
-    /*  Rust → Widget                                                          */
-    /* ---------------------------------------------------------------------- */
-
     override fun sendToWidget(message: String) {
         if (disposed.get()) return
 
@@ -204,10 +189,6 @@ private class JcefCallWebViewController(
         val js = "postMessage($message, '*')"
         b.mainFrame.executeJavaScript(js, b.mainFrame.url, 0)
     }
-
-    /* ---------------------------------------------------------------------- */
-    /*  Setup                                                                  */
-    /* ---------------------------------------------------------------------- */
 
     private fun createBrowser(app: org.cef.CefApp) {
         val cl = app.createClient()
@@ -278,10 +259,6 @@ private class JcefCallWebViewController(
         container.revalidate()
         container.repaint()
     }
-
-    /* ---------------------------------------------------------------------- */
-    /*  JS bridge (matching Android/Element X implementation)                  */
-    /* ---------------------------------------------------------------------- */
 
     private fun injectBridge(frame: CefFrame) {
         // Match Element X's message filtering logic exactly

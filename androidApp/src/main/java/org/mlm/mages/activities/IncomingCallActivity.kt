@@ -75,12 +75,9 @@ import kotlin.math.roundToInt
 
 private enum class CallSwipeValue { Center, Answer, Decline }
 
-@OptIn(ExperimentalAtomicApi::class)
 class IncomingCallActivity : ComponentActivity() {
 
     private val callManager: CallManager by inject()
-    private val actionTaken = AtomicBoolean(false)
-
     private var ringtone: Ringtone? = null
     private var vibrator: Vibrator? = null
 

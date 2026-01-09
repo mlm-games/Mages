@@ -20,7 +20,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.mlmgames.settings.core.annotations.SettingPlatform
@@ -28,8 +27,6 @@ import io.github.mlmgames.settings.core.platform.currentPlatform
 import kotlinx.coroutines.launch
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.SendState
-import org.mlm.mages.platform.CallWebViewController
-import org.mlm.mages.platform.CallWebViewHost
 import org.mlm.mages.platform.*
 import org.mlm.mages.ui.components.AttachmentData
 import org.mlm.mages.ui.components.RoomUpgradeBanner
