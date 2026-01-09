@@ -39,47 +39,41 @@ fun GlobalCallOverlay(
 
         val density = LocalDensity.current
 
-        var offsetX by remember(s.minimized) { mutableFloatStateOf(s.pipX) }
-        var offsetY by remember(s.minimized) { mutableFloatStateOf(s.pipY) }
+        var offsetX by remember { mutableFloatStateOf(s.pipX) }
+        var offsetY by remember { mutableFloatStateOf(s.pipY) }
 
-        var localPipW by remember(s.minimized) { mutableFloatStateOf(s.pipW) }
-        var localPipH by remember(s.minimized) { mutableFloatStateOf(s.pipH) }
+        var localPipW by remember { mutableFloatStateOf(s.pipW) }
+        var localPipH by remember { mutableFloatStateOf(s.pipH) }
 
-        // Sync when it changes externally
-        LaunchedEffect(s.pipX, s.pipY) {
+        LaunchedEffect(s.minimized) {
             offsetX = s.pipX
             offsetY = s.pipY
-        }
-
-        LaunchedEffect(s.pipW, s.pipH) {
             localPipW = s.pipW
             localPipH = s.pipH
         }
 
-        val pipWidthDp = localPipW.dp
-        val pipHeightDp = localPipH.dp
-        val pipWidthPx = with(density) { pipWidthDp.toPx() }
-        val pipHeightPx = with(density) { pipHeightDp.toPx() }
+        val pipWidthPx by remember { derivedStateOf { with(density) { localPipW.dp.toPx() } } }
+        val pipHeightPx by remember { derivedStateOf { with(density) { localPipH.dp.toPx() } } }
 
         val webViewModifier = if (!isMin) {
             Modifier.fillMaxSize()
         } else {
             Modifier
                 .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
-                .size(pipWidthDp, pipHeightDp)
+                .size(localPipW.dp, localPipH.dp)
                 .shadow(8.dp, RoundedCornerShape(16.dp))
                 .clip(RoundedCornerShape(16.dp))
-                .pointerInput(Unit) {
+                .pointerInput(maxWidth, maxHeight) {
                     detectDragGestures(
                         onDragEnd = {
                             callManager.movePip(offsetX, offsetY)
                         },
                         onDrag = { change, dragAmount ->
                             change.consume()
-                            val currentPipWidthPx = localPipW.dp.toPx()
-                            val currentPipHeightPx = localPipH.dp.toPx()
-                            offsetX = (offsetX + dragAmount.x).coerceIn(0f, maxWidth - currentPipWidthPx)
-                            offsetY = (offsetY + dragAmount.y).coerceIn(0f, maxHeight - currentPipHeightPx)
+                            val currentW = localPipW.dp.toPx()
+                            val currentH = localPipH.dp.toPx()
+                            offsetX = (offsetX + dragAmount.x).coerceIn(0f, maxWidth - currentW)
+                            offsetY = (offsetY + dragAmount.y).coerceIn(0f, maxHeight - currentH)
                         }
                     )
                 }
@@ -98,17 +92,14 @@ fun GlobalCallOverlay(
 
         // Minimized PiP controls
         if (isMin) {
+            val controlBarOffsetY = (offsetY - with(density) { 48.dp.toPx() }).roundToInt().coerceAtLeast(0)
+
             Surface(
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 shape = RoundedCornerShape(12.dp),
                 tonalElevation = 4.dp,
                 modifier = Modifier
-                    .offset {
-                        IntOffset(
-                            offsetX.roundToInt(),
-                            (offsetY - with(density) { 48.dp.toPx() }).roundToInt().coerceAtLeast(0)
-                        )
-                    }
+                    .offset { IntOffset(offsetX.roundToInt(), controlBarOffsetY) }
             ) {
                 Row(
                     Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -141,34 +132,37 @@ fun GlobalCallOverlay(
             }
 
             // Resize handle
+            val handleSize = 24.dp
+            val handleSizePx = with(density) { handleSize.toPx() }
+            val minWPx = with(density) { 160.dp.toPx() }
+            val minHPx = with(density) { 100.dp.toPx() }
+            val maxWPx = maxWidth * 0.9f
+            val maxHPx = maxHeight * 0.9f
+
             Box(
                 modifier = Modifier
                     .offset {
                         IntOffset(
-                            (offsetX + pipWidthPx - with(density) { 24.dp.toPx() }).roundToInt(),
-                            (offsetY + pipHeightPx - with(density) { 24.dp.toPx() }).roundToInt()
+                            (offsetX + pipWidthPx - handleSizePx).roundToInt(),
+                            (offsetY + pipHeightPx - handleSizePx).roundToInt()
                         )
                     }
-                    .size(24.dp)
+                    .size(handleSize)
                     .clip(RoundedCornerShape(bottomEnd = 16.dp))
                     .background(Color.White.copy(alpha = 0.3f))
-                    .pointerInput(localPipW, localPipH) { // Key on dimensions!
+                    .pointerInput(density, maxWidth, maxHeight) { // Stable keys only
                         detectDragGestures(
                             onDragEnd = {
                                 callManager.resizePip(localPipW, localPipH)
                             },
                             onDrag = { change, dragAmount ->
                                 change.consume()
-                                val minW = 160.dp.toPx()
-                                val minH = 100.dp.toPx()
-                                val maxW = maxWidth * 0.9f
-                                val maxH = maxHeight * 0.9f
 
                                 val currentWPx = localPipW.dp.toPx()
                                 val currentHPx = localPipH.dp.toPx()
 
-                                val newWPx = (currentWPx + dragAmount.x).coerceIn(minW, maxW)
-                                val newHPx = (currentHPx + dragAmount.y).coerceIn(minH, maxH)
+                                val newWPx = (currentWPx + dragAmount.x).coerceIn(minWPx, maxWPx)
+                                val newHPx = (currentHPx + dragAmount.y).coerceIn(minHPx, maxHPx)
 
                                 localPipW = newWPx.toDp().value
                                 localPipH = newHPx.toDp().value
