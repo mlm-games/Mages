@@ -93,10 +93,22 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore.preferences.core)
     implementation(libs.kmp.settings.core)
+    implementation(libs.koin.compose)
+    implementation(libs.material.icons.extended)
     implementation(libs.element.call.embedded)
 
     implementation(libs.connector)
     implementation(libs.connector.ui)
+    implementation(libs.androidx.foundation)
+
+    val composeBom = platform("androidx.compose:compose-bom:2025.12.00")
+    implementation(composeBom)
+    androidTestImplementation(composeBom)
+
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.activity.compose)
 }
 
 apkDist {

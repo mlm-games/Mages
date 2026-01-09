@@ -1,21 +1,26 @@
 package org.mlm.mages.nav
 
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
 import androidx.navigation3.scene.Scene
 import androidx.savedstate.serialization.SavedStateConfiguration
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
+import org.mlm.mages.calls.CallManager
+import org.mlm.mages.matrix.CallIntent
 
 const val NAV_ANIM_DURATION = 450
 
@@ -53,12 +58,51 @@ fun <T : NavKey> NavBackStack<T>.popUntil(predicate: (T) -> Boolean) {
     }
 }
 
+data class DeepLinkAction(
+    val roomId: String,
+    val eventId: String? = null,
+    val joinCall: Boolean = false
+)
+
 // Deep links: push Room keys when links arrive
 @Composable
-fun BindDeepLinks(backStack: NavBackStack<NavKey>, deepLinks: Flow<String>?) {
-    androidx.compose.runtime.LaunchedEffect(deepLinks) {
-        deepLinks?.collectLatest { roomId ->
-            backStack.add(Route.Room(roomId = roomId, name = roomId))
+fun BindDeepLinks(
+    backStack: NavBackStack<NavKey>,
+    deepLinks: Flow<DeepLinkAction>?,
+    callManager: CallManager,
+    widgetTheme: String,
+    languageTag: String,
+    elementCallUrl: String?
+) {
+    LaunchedEffect(deepLinks) {
+        deepLinks?.collectLatest { action ->
+            backStack.add(Route.Room(
+                roomId = action.roomId,
+                name = action.roomId, // Will be updated by RoomViewModel
+                eventId = action.eventId
+            ))
+
+            if (action.joinCall && !callManager.isInCall(action.roomId)) {
+                // Retry in case room isn't available yet right after restore.
+                repeat(10) { attempt ->
+                    val ok = runCatching {
+                        callManager.startOrJoinCall(
+                            roomId = action.roomId,
+                            roomName = action.roomId,
+                            intent = CallIntent.JoinExisting,
+                            elementCallUrl = elementCallUrl,
+                            languageTag = languageTag,
+                            theme = widgetTheme,
+                            onToWidget = { msg -> callManager.onToWidgetFromSdk(msg) }
+                        )
+                    }.getOrDefault(false)
+
+                    if (ok) return@collectLatest
+
+                    // backoff
+                    delay(400L + attempt * 150L)
+                }
+            }
         }
     }
 }
@@ -68,7 +112,7 @@ fun BindDeepLinks(backStack: NavBackStack<NavKey>, deepLinks: Flow<String>?) {
  * This avoids trying to read private NavEntry.key and keeps the exact fade you had.
  */
 fun loginEntryFadeMetadata(): Map<String, Any> {
-    val fade: androidx.compose.animation.AnimatedContentTransitionScope<Scene<*>>.() -> ContentTransform = {
+    val fade: AnimatedContentTransitionScope<Scene<*>>.() -> ContentTransform = {
         fadeIn(tween(NAV_ANIM_DURATION)) togetherWith fadeOut(tween(NAV_ANIM_DURATION))
     }
     return NavDisplay.transitionSpec { fade() } +

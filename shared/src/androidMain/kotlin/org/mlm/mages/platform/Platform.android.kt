@@ -1,5 +1,7 @@
 package org.mlm.mages.platform
 
+import android.app.Activity
+import android.app.PictureInPictureParams
 import android.os.Build
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -33,5 +35,13 @@ actual fun getDynamicColorScheme(darkTheme: Boolean, useDynamicColors: Boolean):
         }
     } else {
         null
+    }
+}
+
+fun Activity.enterPip() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        enterPictureInPictureMode(
+            PictureInPictureParams.Builder().build()
+        )
     }
 }

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.util.Log
 import android.view.ViewGroup
 import android.webkit.*
+import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -42,6 +43,7 @@ actual fun CallWebViewHost(
     onAttachController: (CallWebViewController?) -> Unit
 ): CallWebViewController {
     val context = LocalContext.current
+    val activity = LocalActivity.current
     val webViewRef = remember { AtomicReference<WebView?>(null) }
 
     Log.d("WidgetBridge", "Loading URL: $widgetUrl")
@@ -82,6 +84,7 @@ actual fun CallWebViewHost(
                     "io.element.minimize" -> {
                         Log.d("WidgetBridge", "Minimize requested by widget")
                         onMessageFromWidget(message)
+//                        activity?.enterPip()
                     }
                 }
                 return

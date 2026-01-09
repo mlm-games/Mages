@@ -6,7 +6,7 @@ android-minSdk = "24"
 android-targetSdk = "36"
 coilCompose = "3.3.0"
 componentsResources = "1.10.0-rc02"
-connector = "3.1.2"
+connector = "3.2.0"
 dbusJavaCore = "5.2.0"
 dbusJavaTransportNativeUnixsocket = "5.2.0"
 elementCallEmbedded = "0.16.3"
@@ -48,10 +48,16 @@ koin = "4.1.1"
 kmpSettingsCore = "0.4.2"
 ksp = "2.3.4"
 apkDist = "0.5.2"
+material3Version = "1.4.0"
+uiVersion = "1.10.0"
+foundationVersion = "1.10.0"
 
 [libraries]
 adaptive-navigation3 = { module = "org.jetbrains.compose.material3.adaptive:adaptive-navigation3", version.ref = "adaptiveNavigation3" }
 androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
+androidx-compose-foundation = { module = "androidx.compose.foundation:foundation" }
+androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
+androidx-compose-ui = { module = "androidx.compose.ui:ui" }
 androidx-datastore-preferences-core = { module = "androidx.datastore:datastore-preferences-core", version.ref = "datastorePreferencesCore" }
 androidx-webkit = { module = "androidx.webkit:webkit", version.ref = "webkit" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workRuntimeKtx" }
@@ -100,6 +106,9 @@ koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 kmp-settings-core = { module = "io.github.mlm-games:kmp-settings-core", version.ref = "kmpSettingsCore" }
 kmp-settings-ksp = { module = "io.github.mlm-games:kmp-settings-ksp", version.ref = "kmpSettingsCore" }
 kmp-settings-ui-compose = { module = "io.github.mlm-games:kmp-settings-ui-compose", version.ref = "kmpSettingsCore" }
+androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

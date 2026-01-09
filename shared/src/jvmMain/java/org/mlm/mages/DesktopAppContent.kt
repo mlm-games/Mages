@@ -9,14 +9,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import org.mlm.mages.nav.DeepLinkAction
 import org.mlm.mages.platform.BindNotifications
 import org.mlm.mages.settings.AppSettings
 import javax.swing.SwingUtilities
 
 @Composable
 fun DesktopAppContent(
-    deepLinks: Flow<String>,
-    deepLinkRoomIds: MutableSharedFlow<String>,
+    deepLinks: Flow<DeepLinkAction>,
+    deepLinkEmitter: MutableSharedFlow<DeepLinkAction>,
     scope: CoroutineScope
 ) {
     val service: MatrixService = koinInject()
@@ -38,7 +39,7 @@ fun DesktopAppContent(
     LaunchedEffect(service) {
         DesktopNotifActions.openRoom = { roomId ->
             SwingUtilities.invokeLater { /* showWindow = true handled elsewhere */ }
-            deepLinkRoomIds.tryEmit(roomId)
+            deepLinkEmitter.tryEmit(DeepLinkAction(roomId = roomId))
         }
 
         DesktopNotifActions.markRead = { roomId, eventId ->
@@ -61,6 +62,7 @@ fun DesktopAppContent(
             }
         }
     }
+
     BindNotifications(service = service, settingsRepo)
 
     App(settingsRepo, deepLinks)

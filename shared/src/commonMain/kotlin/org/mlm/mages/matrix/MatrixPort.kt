@@ -111,6 +111,14 @@ data class CallInvite(
     val tsMs: Long
 )
 
+enum class NotificationKind {
+    Message,
+    CallRing,
+    CallNotify,
+    CallInvite,
+    StateEvent
+}
+
 data class RenderedNotification(
     val roomId: String,
     val eventId: String,
@@ -121,6 +129,9 @@ data class RenderedNotification(
     val hasMention: Boolean,
     val senderUserId: String,
     val tsMs: Long,
+    val isDm: Boolean,
+    val kind: NotificationKind,
+    val expiresAtMs: Long?
 )
 
 data class UnreadStats(val messages: Long, val notifications: Long, val mentions: Long)

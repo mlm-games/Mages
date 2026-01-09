@@ -17,6 +17,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import mages.shared.generated.resources.Res
 import org.mlm.mages.di.KoinApp
+import org.mlm.mages.nav.DeepLinkAction
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.Notifier
 import org.mlm.mages.platform.SettingsProvider
@@ -33,13 +34,11 @@ fun main() = application {
         runBlocking { settingsRepo.flow.first().startInTray }
     }
 
-    val settings = settingsRepo.flow.collectAsState(AppSettings()).value
-
     var startInTray by remember { mutableStateOf(initialStartInTray) }
     var showWindow by remember { mutableStateOf(!startInTray) }
 
-    val deepLinkRoomIds = remember { MutableSharedFlow<String>(extraBufferCapacity = 8) }
-    val deepLinks = remember { deepLinkRoomIds.asSharedFlow() }
+    val deepLinkEmitter = remember { MutableSharedFlow<DeepLinkAction>(extraBufferCapacity = 8) }
+    val deepLinks = remember { deepLinkEmitter.asSharedFlow() }
 
     val scope = rememberCoroutineScope()
 
@@ -147,7 +146,7 @@ fun main() = application {
         KoinApp(settingsRepo) {
             DesktopAppContent(
                 deepLinks = deepLinks,
-                deepLinkRoomIds = deepLinkRoomIds,
+                deepLinkEmitter = deepLinkEmitter,
                 scope = scope
             )
         }

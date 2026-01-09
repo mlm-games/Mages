@@ -707,6 +707,9 @@ class RustMatrixPort : MatrixPort {
                             hasMention = n.hasMention,
                             senderUserId = n.senderUserId,
                             tsMs = n.tsMs.toLong(),
+                            isDm = n.isDm,
+                            kind = n.kind.toKotlin(),
+                            expiresAtMs = n.expiresAtMs?.toLong()
                         )
                     }
                 }
@@ -737,7 +740,10 @@ class RustMatrixPort : MatrixPort {
                     isNoisy = n.isNoisy,
                     hasMention = n.hasMention,
                     senderUserId = n.senderUserId,
-                    tsMs = n.tsMs.toLong()
+                    tsMs = n.tsMs.toLong(),
+                    isDm = n.isDm,
+                    kind = n.kind.toKotlin(),
+                    expiresAtMs = n.expiresAtMs?.toLong()
                 )
             }
     }
@@ -1380,6 +1386,15 @@ private fun mages.RoomDirectoryVisibility.toKotlin(): RoomDirectoryVisibility = 
     mages.RoomDirectoryVisibility.PUBLIC -> RoomDirectoryVisibility.Public
     mages.RoomDirectoryVisibility.PRIVATE -> RoomDirectoryVisibility.Private
 }
+
+private fun mages.NotificationKind.toKotlin(): NotificationKind = when (this) {
+    mages.NotificationKind.MESSAGE -> NotificationKind.Message
+    mages.NotificationKind.CALL_RING -> NotificationKind.CallRing
+    mages.NotificationKind.CALL_NOTIFY -> NotificationKind.CallNotify
+    mages.NotificationKind.CALL_INVITE -> NotificationKind.CallInvite
+    mages.NotificationKind.STATE_EVENT -> NotificationKind.StateEvent
+}
+
 
 private fun mages.SearchPage.toKotlin(): SearchPage =
     SearchPage(

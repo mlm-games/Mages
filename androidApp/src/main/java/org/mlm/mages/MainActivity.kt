@@ -10,6 +10,8 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -17,11 +19,13 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.mlm.mages.di.KoinApp
+import org.mlm.mages.nav.DeepLinkAction
 import org.mlm.mages.nav.MatrixLink
 import org.mlm.mages.nav.handleMatrixLink
 import org.mlm.mages.nav.parseMatrixLink
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.SettingsProvider
+import org.mlm.mages.push.AndroidNotificationHelper
 import org.mlm.mages.push.PREF_INSTANCE
 import org.mlm.mages.push.PushManager
 import org.mlm.mages.push.PusherReconciler
@@ -31,8 +35,8 @@ import org.unifiedpush.android.connector.UnifiedPush
 
 class MainActivity : AppCompatActivity() {
 
-    private val deepLinkRoomIds = MutableSharedFlow<String>(extraBufferCapacity = 1)
-    private val deepLinks = deepLinkRoomIds.asSharedFlow()
+    private val deepLinkActions = MutableSharedFlow<DeepLinkAction>(extraBufferCapacity = 1)
+    private val deepLinks = deepLinkActions.asSharedFlow()
 
     private val service: MatrixService by inject()
 
@@ -57,6 +61,12 @@ class MainActivity : AppCompatActivity() {
         ) {
             requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1001)
         }
+
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller.hide(WindowInsetsCompat.Type.statusBars())
+
 
         UnifiedPush.tryUseCurrentOrDefaultDistributor(this) { success ->
             val saved = UnifiedPush.getSavedDistributor(this)
@@ -96,14 +106,33 @@ class MainActivity : AppCompatActivity() {
 
             if (uri.scheme == "mages" && uri.host == "room") {
                 val roomId = uri.getQueryParameter("id")
+                val eventId = uri.getQueryParameter("event")
+                val joinCall = uri.getQueryParameter("join_call") == "1"
+
                 if (!roomId.isNullOrBlank()) {
+                    if (joinCall) {
+                        AndroidNotificationHelper.cancelCallNotification(this, roomId)
+                        // Also cancel the placeholder "New message"s, doesn't seem to work?
+                        if (!eventId.isNullOrBlank()) {
+                            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+                            nm.cancel((roomId + eventId).hashCode())
+                        }
+                    }
+
                     lifecycleScope.launch {
-                        deepLinkRoomIds.emit(roomId)
+                        deepLinkActions.emit(
+                            DeepLinkAction(
+                                roomId = roomId,
+                                eventId = eventId,
+                                joinCall = joinCall
+                            )
+                        )
                     }
                 }
                 return
             }
 
+            // Handles matrix.to and matrix: links
             val url = uri.toString()
             val link = parseMatrixLink(url)
             if (link !is MatrixLink.Unsupported) {
@@ -117,8 +146,16 @@ class MainActivity : AppCompatActivity() {
                     handleMatrixLink(
                         service = service,
                         link = link,
-                    ) { roomId, _ ->
-                        launch { deepLinkRoomIds.emit(roomId) }
+                    ) { roomId, eventId ->
+                        launch {
+                            deepLinkActions.emit(
+                                DeepLinkAction(
+                                    roomId = roomId,
+                                    eventId = eventId,
+                                    joinCall = false
+                                )
+                            )
+                        }
                     }
                 }
             }

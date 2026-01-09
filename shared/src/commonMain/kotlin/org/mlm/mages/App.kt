@@ -57,7 +57,7 @@ val LocalMessageFontSize = staticCompositionLocalOf { 16f }
 @Composable
 fun App(
     settingsRepository: SettingsRepository<AppSettings>,
-    deepLinks: Flow<String>? = null
+    deepLinks: Flow<DeepLinkAction>? = null
 ) {
     val settings by settingsRepository.flow.collectAsState(AppSettings())
 
@@ -68,7 +68,7 @@ fun App(
 
 @Suppress("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-private fun AppContent(deepLinks: Flow<String>?) {
+private fun AppContent(deepLinks: Flow<DeepLinkAction>?) {
     val service: MatrixService = koinInject()
     val accountStore: AccountStore = koinInject()
     val settingsRepository: SettingsRepository<AppSettings> = koinInject()
@@ -110,8 +110,8 @@ private fun AppContent(deepLinks: Flow<String>?) {
         else -> isSystemInDarkTheme()
     }
     val widgetTheme = if (isDark) "dark" else "light"
-
     val languageTag = Locale.getDefault().toLanguageTag()
+    val elementCallUrl = settings.elementCallUrl.trim().ifBlank { null }
 
     MainTheme(
         darkTheme = isDark,
@@ -127,7 +127,14 @@ private fun AppContent(deepLinks: Flow<String>?) {
         val backStack: NavBackStack<NavKey> =
             rememberNavBackStack(navSavedStateConfiguration, initialRoute)
 
-        BindDeepLinks(backStack, deepLinks)
+        BindDeepLinks(
+            backStack = backStack,
+            deepLinks = deepLinks,
+            callManager = callManager,
+            widgetTheme = widgetTheme,
+            languageTag = languageTag,
+            elementCallUrl = elementCallUrl
+        )
 
         BindLifecycle(service)
         BindNotifications(service, settingsRepository)
@@ -138,7 +145,6 @@ private fun AppContent(deepLinks: Flow<String>?) {
                 backStack.add(Route.Login)
                 return@LaunchedEffect
             } else {
-                // If account becomes active, go to Rooms
                 if (backStack.lastOrNull() == Route.Login) {
                     backStack.replaceTop(Route.Rooms)
                 }
@@ -220,6 +226,7 @@ private fun AppContent(deepLinks: Flow<String>?) {
                             isAddingAccount = isAddingAccount
                         )
                     }
+
                     entry<Route.Rooms> {
                         val viewModel: RoomsViewModel = koinViewModel()
 
@@ -290,7 +297,6 @@ private fun AppContent(deepLinks: Flow<String>?) {
                         )
                     }
 
-
                     entry<Route.Security> {
                         val quitApp = rememberQuitApp()
                         val viewModel: SecurityViewModel = koinViewModel()
@@ -318,7 +324,6 @@ private fun AppContent(deepLinks: Flow<String>?) {
                             backStack = backStack,
                             onOpenAccountSwitcher = { showAccountSwitcher = true }
                         )
-
 
                         if (showAccountSwitcher) {
                             AccountSwitcherSheet(
@@ -456,7 +461,6 @@ private fun AppContent(deepLinks: Flow<String>?) {
                                     is SpacesViewModel.Event.ShowError -> {
                                         snackbarManager.show("Error: $event.message")
                                     }
-
                                     else -> {}
                                 }
                             }
@@ -546,6 +550,7 @@ private fun AppContent(deepLinks: Flow<String>?) {
                             }
                         )
                     }
+
                     entry<Route.MediaGallery> { key ->
                         val viewModel: MediaGalleryViewModel = koinViewModel(
                             parameters = { parametersOf(key.roomId) }
@@ -588,6 +593,7 @@ private fun AppContent(deepLinks: Flow<String>?) {
                 }
             )
         }
+
         if (verState.sasFlowId != null && verState.sasPhase != null) {
             val showAcceptRequest =
                 verState.sasIncoming && verState.sasPhase == SasPhase.Requested
