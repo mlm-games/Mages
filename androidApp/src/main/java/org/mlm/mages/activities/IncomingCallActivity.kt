@@ -309,27 +309,27 @@ private fun IncomingCallScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.padding(bottom = 12.dp)
                 ) {
-                    ElevatedSuggestionChip(
-                        onClick = { /* TODO: quick reply */ },
-                        label = { Text("Message") },
-                        icon = {
-                            Icon(
-                                painter = painterResource(id = R.drawable.outline_business_messages_24),
-                                contentDescription = null
-                            )
-                        }
-                    )
-                    ElevatedFilterChip(
-                        selected = false,
-                        onClick = { /* TODO: silence ring */ },
-                        label = { Text("Mute") },
-                        leadingIcon = {
-                            Icon(
-                                painter = painterResource(id = R.drawable.outline_music_off_24),
-                                contentDescription = null
-                            )
-                        }
-                    )
+//                    ElevatedSuggestionChip(
+//                        onClick = { /* TODO: quick reply */ },
+//                        label = { Text("Message") },
+//                        icon = {
+//                            Icon(
+//                                painter = painterResource(id = R.drawable.outline_business_messages_24),
+//                                contentDescription = null
+//                            )
+//                        }
+//                    )
+//                    ElevatedFilterChip(
+//                        selected = false,
+//                        onClick = { /* TODO: silence ring */ },
+//                        label = { Text("Mute") },
+//                        leadingIcon = {
+//                            Icon(
+//                                painter = painterResource(id = R.drawable.outline_music_off_24),
+//                                contentDescription = null
+//                            )
+//                        }
+//                    )
                 }
 
                 if (talkBackOn) {
