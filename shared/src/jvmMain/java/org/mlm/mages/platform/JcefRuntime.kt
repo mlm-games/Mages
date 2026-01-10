@@ -38,16 +38,16 @@ internal object JcefRuntime {
             if (os.contains("linux")) {
                 builder.addJcefArgs("--change-stack-guard-on-fork=disable")
 
-                builder.addJcefArgs("--no-sandbox")
-                builder.addJcefArgs("--disable-setuid-sandbox")
-                builder.addJcefArgs("--disable-seccomp-filter-sandbox")
+//                builder.addJcefArgs("--no-sandbox")
+//                builder.addJcefArgs("--disable-setuid-sandbox")
+//                builder.addJcefArgs("--disable-seccomp-filter-sandbox")
 
-                builder.addJcefArgs("--ozone-platform=wayland")
-                builder.addJcefArgs("--disable-features=UseOzonePlatform,WaylandWindowDecorations")
+                builder.addJcefArgs("--ozone-platform=x11")
+//                builder.addJcefArgs("--disable-features=UseOzonePlatform,WaylandWindowDecorations")
 
-                builder.addJcefArgs("--disable-gpu")
-                builder.addJcefArgs("--disable-gpu-compositing")
-                builder.addJcefArgs("--use-gl=swiftshader")
+//                builder.addJcefArgs("--disable-gpu")
+//                builder.addJcefArgs("--disable-gpu-compositing")
+//                builder.addJcefArgs("--use-gl=swiftshader")
 
                 builder.addJcefArgs("--disable-dev-shm-usage")
             }

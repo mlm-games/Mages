@@ -68,8 +68,6 @@ import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.IntOffset
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
-import kotlin.concurrent.atomics.AtomicBoolean
-import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -141,7 +139,7 @@ class IncomingCallActivity : ComponentActivity() {
         }
 
         val pattern = longArrayOf(0, 1000, 500, 1000, 500)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             vibrator?.vibrate(
                 VibrationEffect.createWaveform(pattern, 0),
                 VibrationAttributes.Builder()

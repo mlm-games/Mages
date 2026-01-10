@@ -5,32 +5,36 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.SwingPanel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.cef.CefApp
 import org.cef.CefClient
 import org.cef.CefSettings
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
 import org.cef.browser.CefMessageRouter
 import org.cef.callback.CefQueryCallback
-import org.cef.handler.CefDisplayHandlerAdapter
-import org.cef.handler.CefLoadHandlerAdapter
-import org.cef.handler.CefMessageRouterHandlerAdapter
+import org.cef.handler.*
 import org.cef.network.CefRequest
 import org.json.JSONObject
 import java.awt.BorderLayout
 import java.awt.Component
+import java.net.URLEncoder
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
 
+// Element-specific actions that the SDK doesn't handle
 private val ELEMENT_SPECIFIC_ACTIONS = setOf(
     "io.element.device_mute",
     "io.element.join",
     "io.element.close",
     "io.element.tile_layout",
     "io.element.spotlight_layout",
-    "set_always_on_screen",
+    "minimize",
     "im.vector.hangup"
 )
 
@@ -45,19 +49,30 @@ actual fun CallWebViewHost(
     onAttachController: (CallWebViewController?) -> Unit
 ): CallWebViewController {
 
+    println("[CallWebViewHost] widgetUrl=$widgetUrl")
+
     val controller = remember {
         JcefCallWebViewController(
             onMessageFromWidget = onMessageFromWidget,
-            onClosed = onClosed
+            onClosed = onClosed,
+            onMinimizeRequested = onMinimizeRequested
         )
     }
 
+    LaunchedEffect(controller) {
+        onAttachController(controller)
+    }
+
     LaunchedEffect(widgetUrl) {
+        println("[CallWebViewHost] LaunchedEffect loading: $widgetUrl")
         controller.load(widgetUrl)
     }
 
     DisposableEffect(Unit) {
-        onDispose { controller.close() }
+        onDispose {
+            onAttachController(null)
+            controller.close()
+        }
     }
 
     SwingPanel(
@@ -70,14 +85,17 @@ actual fun CallWebViewHost(
 
 private class JcefCallWebViewController(
     private val onMessageFromWidget: (String) -> Unit,
-    private val onClosed: () -> Unit
+    private val onClosed: () -> Unit,
+    private val onMinimizeRequested: () -> Unit,
 ) : CallWebViewController {
 
-    private val closed = AtomicBoolean(false)
     private val disposed = AtomicBoolean(false)
+    private val closedCallbackFired = AtomicBoolean(false)
+    private val browserReady = CountDownLatch(1)
+    private val pendingUrl = AtomicReference<String?>(null)
 
     val container: JPanel = JPanel(BorderLayout()).apply {
-        add(JLabel("Starting call…"), BorderLayout.CENTER)
+        add(JLabel("Starting call (or downloading webview for first launch)..."), BorderLayout.CENTER)
     }
 
     @Volatile private var client: CefClient? = null
@@ -87,26 +105,71 @@ private class JcefCallWebViewController(
     private val pendingToWidget = ConcurrentLinkedQueue<String>()
 
     suspend fun load(url: String) {
-        if (disposed.get()) return
+        println("[JcefController] load() called with: $url")
 
-        val app = withContext(Dispatchers.IO) {
+        if (disposed.get()) {
+            println("[JcefController] Already disposed, skipping load")
+            return
+        }
+
+        val fixedUrl = fixParentUrl(url)
+        println("[JcefController] Fixed URL: $fixedUrl")
+
+        val app: CefApp = withContext(Dispatchers.IO) {
             JcefRuntime.getOrInit()
         }
 
-        withContext(Dispatchers.Main) {
-            if (disposed.get()) return@withContext
+        pendingUrl.set(fixedUrl)
 
-            if (browser == null) {
-                createBrowser(app)
+        withContext(Dispatchers.Main) {
+            if (disposed.get()) {
+                println("[JcefController] Disposed during init, skipping")
+                return@withContext
             }
 
-            browser?.loadURL(url)
+            if (browser == null) {
+                println("[JcefController] Creating browser...")
+                createBrowser(app)
+            }
+        }
+
+        withContext(Dispatchers.IO) {
+            println("[JcefController] Waiting for browser ready...")
+            val ready = browserReady.await(5, TimeUnit.SECONDS)
+            if (!ready) {
+                println("[JcefController] WARNING: Browser ready timeout, trying anyway")
+            }
+        }
+
+        withContext(Dispatchers.Main) {
+            val urlToLoad = pendingUrl.get()
+            if (urlToLoad != null && !disposed.get()) {
+                println("[JcefController] Browser ready, now loading: $urlToLoad")
+                browser?.loadURL(urlToLoad)
+            }
         }
     }
 
+    private fun fixParentUrl(url: String): String {
+        val hashIndex = url.indexOf('#')
+        if (hashIndex < 0) return url
+
+        val baseUrl = url.take(hashIndex)
+        val fragment = url.substring(hashIndex + 1)
+
+        val fixedFragment = fragment.replace(
+            Regex("""parentUrl=[^&]+"""),
+            "parentUrl=${URLEncoder.encode(baseUrl, "UTF-8")}"
+        )
+
+        return "$baseUrl#$fixedFragment"
+    }
+
     override fun close() {
-        if (!closed.compareAndSet(false, true)) return
-        disposed.set(true)
+        println("[JcefController] close() called")
+        if (!disposed.compareAndSet(false, true)) return
+
+        browserReady.countDown()
 
         SwingUtilities.invokeLater {
             runCatching { browser?.close(true) }
@@ -123,78 +186,115 @@ private class JcefCallWebViewController(
             client = null
 
             container.removeAll()
-            container.add(JLabel("Call closed"), BorderLayout.CENTER)
+            container.add(JLabel("Call view disposed"), BorderLayout.CENTER)
             container.revalidate()
             container.repaint()
-
-            onClosed()
         }
     }
 
+    private fun fireClosedOnce() {
+        if (closedCallbackFired.compareAndSet(false, true)) onClosed()
+    }
+
+    /**
+     * Handle messages from the widget.
+     * Mirrors the Android implementation exactly.
+     */
     private fun handleWidgetMessage(message: String) {
         try {
             val json = JSONObject(message)
             val api = json.optString("api")
             val action = json.optString("action")
 
-            println("[WidgetBridge-JVM] Widget → Native: api=$api, action=$action")
+            println("[WidgetBridge] Widget → Native: api=$api, action=$action")
 
-            if (api == "fromWidget" && action in ELEMENT_SPECIFIC_ACTIONS) {
-                println("[WidgetBridge-JVM] Handling Element-specific action locally: $action")
+            if (action in ELEMENT_SPECIFIC_ACTIONS) {
+                println("[WidgetBridge] Handling Element-specific action locally: $action")
 
-                // Send success response back to widget
+                // Send response back to widget (same as Android)
                 sendElementActionResponse(message)
 
-                // Handle specific actions that need app-level behavior
+                // Forward to SDK for state tracking (same as Android)
+                onMessageFromWidget(message)
+
+                // Handle specific actions
                 when (action) {
                     "io.element.close", "im.vector.hangup" -> {
-                        println("[WidgetBridge-JVM] Call ended by widget")
-                        close()
+                        fireClosedOnce()
+                    }
+                    "minimize" -> {
+                        onMinimizeRequested()
                     }
                 }
-                return // Don't forward to SDK
+                return
             }
 
-            // Forward all other messages to SDK
+            // Forward non-Element actions to SDK
             onMessageFromWidget(message)
         } catch (e: Exception) {
-            println("[WidgetBridge-JVM] Error parsing message, forwarding anyway: ${e.message}")
+            println("[WidgetBridge] Error parsing message, forwarding anyway: ${e.message}")
             onMessageFromWidget(message)
         }
     }
 
+    /**
+     * Send response for Element-specific actions.
+     * Mirrors Android: adds "response" field to original message.
+     */
     private fun sendElementActionResponse(originalMessage: String) {
         try {
+            // Same as Android: add response to original message
             val response = JSONObject(originalMessage).apply {
                 put("response", JSONObject())
             }
-            sendToWidget(response.toString())
+
+            println("[WidgetBridge] Sending Element response: ${response.toString().take(100)}")
+
+            // Post the response to the widget
+            postMessageToWidget(response.toString())
         } catch (e: Exception) {
-            println("[WidgetBridge-JVM] Failed to send response: ${e.message}")
+            println("[WidgetBridge] Failed to send response: ${e.message}")
         }
     }
 
+    /**
+     * Called by Matrix SDK to send messages to widget.
+     */
     override fun sendToWidget(message: String) {
         if (disposed.get()) return
+        println("[WidgetBridge] Native → Widget: ${message.take(200)}")
+        postMessageToWidget(message)
+    }
 
-        val b = browser
-        if (b == null) {
-            pendingToWidget.add(message)
+    /**
+     * Post a message to the widget via window.postMessage.
+     * Mirrors Android's evaluateJavascript("postMessage(...)")
+     */
+    private fun postMessageToWidget(jsonMessage: String) {
+        val b = browser ?: run {
+            println("[WidgetBridge] Browser null, queuing message")
+            pendingToWidget.add(jsonMessage)
             return
         }
 
-        println("[WidgetBridge-JVM] Native → Widget: ${message.take(200)}")
+        val frame = b.mainFrame ?: run {
+            println("[WidgetBridge] MainFrame null, queuing message")
+            pendingToWidget.add(jsonMessage)
+            return
+        }
 
-        // Use postMessage like Element X does
-        val js = "postMessage($message, '*')"
-        b.mainFrame.executeJavaScript(js, b.mainFrame.url, 0)
+        // Same as Android: postMessage(jsonObject, '*')
+        // We need to pass the JSON object directly, not as a string
+        val js = "postMessage($jsonMessage, '*')"
+
+        frame.executeJavaScript(js, b.url ?: "", 0)
     }
 
-    private fun createBrowser(app: org.cef.CefApp) {
-        val cl = app.createClient()
+    private fun createBrowser(app: CefApp) {
+        println("[JcefController] createBrowser()")
 
-        val routerCfg =
-            CefMessageRouter.CefMessageRouterConfig("elementX", "elementXCancel")
+        val cl = app.createClient()
+        val routerCfg = CefMessageRouter.CefMessageRouterConfig("elementX", "elementXCancel")
         val r = CefMessageRouter.create(routerCfg)
 
         r.addHandler(object : CefMessageRouterHandlerAdapter() {
@@ -215,23 +315,50 @@ private class JcefCallWebViewController(
         cl.addMessageRouter(r)
 
         cl.addLoadHandler(object : CefLoadHandlerAdapter() {
-            override fun onLoadStart(
-                browser: CefBrowser,
-                frame: CefFrame,
-                transitionType: CefRequest.TransitionType
-            ) {
+            override fun onLoadStart(browser: CefBrowser, frame: CefFrame, transitionType: CefRequest.TransitionType) {
+                println("[JcefController] onLoadStart: ${frame.url} (isMain=${frame.isMain})")
                 if (!frame.isMain) return
-                // Inject bridge early (like Android's onPageStarted)
-                injectBridge(frame)
+
+                if (frame.url != "about:blank") {
+                    // Inject bridge at page start (same as Android onPageStarted)
+                    injectBridge(frame)
+                }
             }
 
-            override fun onLoadEnd(
+            override fun onLoadEnd(browser: CefBrowser, frame: CefFrame, httpStatusCode: Int) {
+                println("[JcefController] onLoadEnd: ${frame.url} (status=$httpStatusCode, isMain=${frame.isMain})")
+                if (!frame.isMain) return
+
+                if (frame.url == "about:blank") {
+                    println("[JcefController] Browser ready (about:blank loaded)")
+                    browserReady.countDown()
+                } else {
+                    // Page finished (same as Android onPageFinished)
+                    println("[WidgetBridge] Page finished: ${frame.url}")
+
+                    // Inject back button handler
+                    injectBackButtonHandler(frame)
+
+                    // Apply desktop layout fix
+                    injectDesktopLayoutFix(frame)
+
+                    // Force resize
+                    SwingUtilities.invokeLater { forceResize() }
+
+                    // Flush pending messages
+                    flushPendingToWidget()
+                }
+            }
+
+            override fun onLoadError(
                 browser: CefBrowser,
                 frame: CefFrame,
-                httpStatusCode: Int
+                errorCode: CefLoadHandler.ErrorCode,
+                errorText: String,
+                failedUrl: String
             ) {
-                if (!frame.isMain) return
-                flushPendingToWidget()
+                println("[JcefController] onLoadError: $failedUrl - $errorCode: $errorText")
+                browserReady.countDown()
             }
         })
 
@@ -243,58 +370,173 @@ private class JcefCallWebViewController(
                 source: String,
                 line: Int
             ): Boolean {
-                println("[WebViewConsole-JVM] [$level] $source:$line $message")
+                println("[WebViewConsole] [$level] $source:$line $message")
+                return false
+            }
+
+            override fun onAddressChange(browser: CefBrowser, frame: CefFrame, url: String) {
+                println("[JcefController] Address changed to: $url")
+            }
+        })
+
+        cl.addRequestHandler(object : CefRequestHandlerAdapter() {
+            override fun onBeforeBrowse(
+                browser: CefBrowser,
+                frame: CefFrame,
+                request: CefRequest,
+                userGesture: Boolean,
+                isRedirect: Boolean
+            ): Boolean {
+                println("[JcefController] onBeforeBrowse: ${request.url}")
                 return false
             }
         })
 
         val b = cl.createBrowser("about:blank", false, false)
-
         client = cl
         browser = b
         router = r
 
         container.removeAll()
-        container.add(b.uiComponent as Component, BorderLayout.CENTER)
+        val browserComponent = b.uiComponent as Component
+        container.add(browserComponent, BorderLayout.CENTER)
         container.revalidate()
         container.repaint()
+
+        println("[JcefController] Browser component added to container")
     }
 
+    /**
+     * Inject the message bridge.
+     * Mirrors Android's onPageStarted script exactly.
+     */
     private fun injectBridge(frame: CefFrame) {
-        // Match Element X's message filtering logic exactly
+        println("[JcefController] Injecting bridge into: ${frame.url}")
+
+        // This is the EXACT same logic as Android
+        val js = """
+            window.addEventListener('message', function(event) {
+                let message = {data: event.data, origin: event.origin};
+                if (message.data.response && message.data.api == "toWidget"
+                    || !message.data.response && message.data.api == "fromWidget") {
+                    let json = JSON.stringify(event.data);
+                    console.log('message sent: ' + json.substring(0, 100));
+                    elementX({request: json, persistent: false, onSuccess: function(){}, onFailure: function(){}});
+                } else {
+                    console.log('message received (ignored): ' + JSON.stringify(event.data).substring(0, 100));
+                }
+            });
+        """.trimIndent()
+
+        frame.executeJavaScript(js, frame.url, 0)
+    }
+
+    /**
+     * Inject back button handler.
+     * Mirrors Android's onPageFinished script.
+     */
+    private fun injectBackButtonHandler(frame: CefFrame) {
+        val js = """
+            if (typeof controls !== 'undefined') {
+                controls.onBackButtonPressed = function() {
+                    elementX({
+                        request: JSON.stringify({api:'fromWidget', action:'minimize'}),
+                        persistent: false,
+                        onSuccess: function(){},
+                        onFailure: function(){}
+                    });
+                };
+                console.log('[MagesBridge] Back button handler installed');
+            } else {
+                console.log('[MagesBridge] controls not available');
+            }
+        """.trimIndent()
+
+        frame.executeJavaScript(js, frame.url, 0)
+    }
+
+    private fun injectDesktopLayoutFix(frame: CefFrame) {
+        println("[JcefController] Injecting desktop layout fix...")
+
         val js = """
             (function() {
-                if (window.__MagesBridgeInstalled) return;
-                window.__MagesBridgeInstalled = true;
-
-                window.addEventListener('message', function(event) {
-                    try {
-                        var message = {data: event.data, origin: event.origin};
-                        // Forward fromWidget requests (no response) and toWidget responses (has response)
-                        if (message.data.response && message.data.api == "toWidget"
-                            || !message.data.response && message.data.api == "fromWidget") {
-                            var json = JSON.stringify(event.data);
-                            console.log('message sent: ' + json);
-                            if (typeof window.elementX === "function") {
-                                window.elementX({request: json});
-                            }
-                        } else {
-                            console.log('message received (ignored): ' + JSON.stringify(event.data));
-                        }
-                    } catch (e) {
-                        console.error('Bridge error:', e);
+                if (window.__MagesDesktopFixApplied) return;
+                window.__MagesDesktopFixApplied = true;
+                
+                console.log('[MagesBridge] Applying desktop layout fix...');
+                console.log('[MagesBridge] Window size:', window.innerWidth, 'x', window.innerHeight);
+                
+                var viewport = document.querySelector('meta[name="viewport"]');
+                if (viewport) {
+                    viewport.setAttribute('content', 'width=device-width, initial-scale=1.0');
+                }
+                
+                var style = document.createElement('style');
+                style.id = 'mages-desktop-fix';
+                style.textContent = `
+                    html, body {
+                        width: 100% !important;
+                        height: 100% !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        overflow: hidden !important;
                     }
-                });
+                    #root {
+                        width: 100% !important;
+                        height: 100% !important;
+                        display: flex !important;
+                        flex-direction: column !important;
+                    }
+                    #root > * {
+                        flex: 1 1 auto !important;
+                        width: 100% !important;
+                        min-height: 0 !important;
+                    }
+                    [class*="CallView"], [class*="LobbyView"], [class*="InCallView"] {
+                        max-width: none !important;
+                        width: 100% !important;
+                        height: 100% !important;
+                    }
+                `;
+                document.head.appendChild(style);
+                
+                setTimeout(function() {
+                    window.dispatchEvent(new Event('resize'));
+                    console.log('[MagesBridge] Resize dispatched, size:', window.innerWidth, 'x', window.innerHeight);
+                }, 100);
+                
+                new ResizeObserver(function() {
+                    window.dispatchEvent(new Event('resize'));
+                }).observe(document.body);
+                
+                console.log('[MagesBridge] Desktop fix applied');
             })();
         """.trimIndent()
 
         frame.executeJavaScript(js, frame.url, 0)
     }
 
+    private fun forceResize() {
+        val b = browser ?: return
+        val comp = b.uiComponent ?: return
+        val size = container.size
+
+        if (size.width > 0 && size.height > 0) {
+            println("[JcefController] Forcing resize to ${size.width}x${size.height}")
+            comp.setSize(size.width, size.height)
+            container.revalidate()
+            container.repaint()
+            b.mainFrame?.executeJavaScript("window.dispatchEvent(new Event('resize'));", "", 0)
+        }
+    }
+
     private fun flushPendingToWidget() {
+        var count = 0
         while (true) {
             val msg = pendingToWidget.poll() ?: break
-            sendToWidget(msg)
+            postMessageToWidget(msg)
+            count++
         }
+        if (count > 0) println("[JcefController] Flushed $count pending messages")
     }
 }

@@ -37,7 +37,7 @@ compose.desktop {
             vendor = "MLM Games"
             appResourcesRootDir.set(project.layout.projectDirectory.dir("resources"))
 
-            modules("java.instrument", "jdk.security.auth", "jdk.unsupported")
+            modules("java.instrument", "jdk.security.auth", "jdk.unsupported", "jdk.httpserver")
 
             linux {
                 iconFile.set(project.file("../fastlane/metadata/android/en-US/images/icon.png"))
@@ -49,3 +49,30 @@ compose.desktop {
         }
     }
 }
+
+// ================ Element Call Embedded Assets
+val elementCallAar by configurations.creating {
+    isTransitive = false
+}
+
+dependencies {
+    elementCallAar(libs.element.call.embedded)
+}
+
+val elementCallResDir = layout.buildDirectory.dir("generated/element-call/resources")
+
+val extractElementCall by tasks.registering(Copy::class) {
+    from({ elementCallAar.files.map { zipTree(it) } }) {
+        include("assets/element-call/**")
+        eachFile { path = path.removePrefix("assets/") } // -> element-call/...
+    }
+    into(elementCallResDir)
+    includeEmptyDirs = false
+}
+
+sourceSets["main"].resources.srcDir(elementCallResDir)
+
+tasks.named("processResources") {
+    dependsOn(extractElementCall)
+}
+// =============== End Element Call
