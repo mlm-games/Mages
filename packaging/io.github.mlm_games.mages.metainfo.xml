@@ -45,6 +45,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="2.2.1" date="2026-01-10" type="stable">
+      <description>
+        <ul>
+          <li>fix clearing of events after ending a call</li>
+          <li>Fix back pagination to only consider visible events</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.1.4" date="2026-01-10" type="stable">
       <description>
         <ul>

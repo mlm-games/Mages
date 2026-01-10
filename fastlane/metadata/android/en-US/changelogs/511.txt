@@ -1,0 +1,2 @@
+- fix clearing of events after ending a call
+- Fix back pagination to only consider visible events

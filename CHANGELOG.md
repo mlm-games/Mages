@@ -1,3 +1,9 @@
+## v2.2.1
+
+- fix clearing of events after ending a call
+- Fix back pagination to only consider visible events
+
+
 ## v2.1.4
 
 - Update release notes for v2.1.3
