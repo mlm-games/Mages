@@ -21,6 +21,8 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import io.github.mlmgames.settings.core.SettingsRepository
+import io.github.mlmgames.settings.core.annotations.SettingPlatform
+import io.github.mlmgames.settings.core.platform.currentPlatform
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -33,6 +35,7 @@ import org.mlm.mages.matrix.SasPhase
 import org.mlm.mages.nav.*
 import org.mlm.mages.platform.BindLifecycle
 import org.mlm.mages.platform.BindNotifications
+import org.mlm.mages.platform.platformEmbeddedElementCallUrlOrNull
 import org.mlm.mages.platform.rememberFileOpener
 import org.mlm.mages.platform.rememberQuitApp
 import org.mlm.mages.settings.AppSettings
@@ -111,7 +114,8 @@ private fun AppContent(deepLinks: Flow<DeepLinkAction>?) {
     }
     val widgetTheme = if (isDark) "dark" else "light"
     val languageTag = Locale.getDefault().toLanguageTag()
-    val elementCallUrl = settings.elementCallUrl.trim().ifBlank { null }
+    val elementCallUrl = settings.elementCallUrl.trim().ifBlank { platformEmbeddedElementCallUrlOrNull() }
+
 
     MainTheme(
         darkTheme = isDark,
@@ -182,7 +186,8 @@ private fun AppContent(deepLinks: Flow<DeepLinkAction>?) {
         val openUrl: (String) -> Boolean = remember(uriHandler) {
             { url -> runCatching { uriHandler.openUri(url); true }.getOrDefault(false) }
         }
-        val callOverlayActive = callManager.isInCall()
+        val callState by callManager.call.collectAsState()
+        val callOverlayActive = callState != null
         Scaffold(
             snackbarHost = {
                 LauncherSnackbarHost(hostState = snackbarHostState, manager = snackbarManager)
@@ -207,10 +212,13 @@ private fun AppContent(deepLinks: Flow<DeepLinkAction>?) {
                             callManager.setMinimized(true)
                             // Handle via or put it in here to not go back
                         }
+                        isInitialLogin || isRoomsRoot -> {
+                        // block back
+                        }
+                        backStack.size > 1 -> {
+                            backStack.removeAt(backStack.lastIndex)
+                        }
                     }
-
-                    val blockBack = isInitialLogin || isRoomsRoot
-                    if (!blockBack && backStack.size > 1) backStack.removeAt(backStack.lastIndex)
                 },
                 entryProvider = entryProvider {
 

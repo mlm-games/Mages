@@ -22,8 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.github.mlmgames.settings.core.annotations.SettingPlatform
-import io.github.mlmgames.settings.core.platform.currentPlatform
 import kotlinx.coroutines.launch
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.SendState
@@ -48,6 +46,7 @@ import org.mlm.mages.ui.viewmodel.RoomViewModel
 import java.io.File
 import java.nio.file.Files
 
+@Suppress("NewApi")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomScreen(
@@ -236,7 +235,7 @@ fun RoomScreen(
                     onOpenMembers = viewModel::showMembers,
                     onOpenSearch = viewModel::showRoomSearch,
                     onStartCall = onStartCall,
-                    hasActiveCall = state.hasActiveCall,
+                    hasActiveCall = state.hasActiveCallForRoom,
                 )
             }
         },
@@ -605,12 +604,10 @@ private fun RoomTopBar(
                     }
                 },
                 actions = {
-                    if (currentPlatform == SettingPlatform.ANDROID) {
-                        IconButton(onClick = onStartCall) {
-                            if (hasActiveCall) {
-                                Icon(Icons.AutoMirrored.Filled.CallMerge, "Join call")
-                            } else Icon(Icons.Default.Call, "Start call")
-                        }
+                    IconButton(onClick = onStartCall) {
+                        if (hasActiveCall) {
+                            Icon(Icons.AutoMirrored.Filled.CallMerge, "Join call")
+                        } else Icon(Icons.Default.Call, "Start call")
                     }
                     IconButton(onClick = onOpenNotifications) {
                         Icon(Icons.Default.Notifications, "Notifications")

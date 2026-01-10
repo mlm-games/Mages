@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.CallIntent
+import org.mlm.mages.matrix.CallWidgetObserver
 import org.mlm.mages.platform.CallWebViewController
 
 data class GlobalCallState(
@@ -82,7 +83,7 @@ class CallManager(
             elementCallUrl = elementCallUrl,
             languageTag = languageTag,
             theme = theme,
-            observer = object : org.mlm.mages.matrix.CallWidgetObserver {
+            observer = object : CallWidgetObserver {
                 override fun onToWidget(message: String) = onToWidget(message)
             }
         ) ?: return false

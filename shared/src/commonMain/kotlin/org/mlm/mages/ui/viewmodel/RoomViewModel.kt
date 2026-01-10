@@ -116,7 +116,13 @@ class RoomViewModel(
         }
 
         launch {
-           updateState { copy(hasActiveCall = callManager.isInCall()) }
+            callManager.call.collect { callState ->
+                updateState {
+                    copy(
+                        hasActiveCallForRoom = callState?.roomId == currentState.roomId
+                    )
+                }
+            }
         }
     }
 

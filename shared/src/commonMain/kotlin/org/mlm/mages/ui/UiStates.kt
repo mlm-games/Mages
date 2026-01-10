@@ -107,7 +107,7 @@ data class RoomUiState(
     val roomSearchNextOffset: Int? = null,
     val isRoomSearching: Boolean = false,
     val hasRoomSearched: Boolean = false,
-    val hasActiveCall: Boolean = false,
+    val hasActiveCallForRoom: Boolean = false,
 
     val isSelectionMode: Boolean = false,
     val selectedEventIds: Set<String> = emptySet(),
