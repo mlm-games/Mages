@@ -1,0 +1,2 @@
+- Back minimizes call instead of navigating back
+- Fix webview not being destroyed on android

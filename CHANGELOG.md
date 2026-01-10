@@ -1,3 +1,9 @@
+## v2.1.3
+
+- Back minimizes call instead of navigating back
+- Fix webview not being destroyed on android
+
+
 ## v2.1.2
 
 - Do not show call notification by default
