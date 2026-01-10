@@ -136,8 +136,8 @@ actual fun CallWebViewHost(
     DisposableEffect(Unit) {
         onDispose {
             onAttachController(null)
-            webViewRef.set(null)
-            webViewRef.get()?.destroy()
+            val wv = webViewRef.getAndSet(null)
+            wv?.destroy()
         }
     }
 
