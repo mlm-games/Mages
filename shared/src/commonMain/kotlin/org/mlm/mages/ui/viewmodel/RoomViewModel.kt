@@ -1090,6 +1090,11 @@ class RoomViewModel(
         var didClear = false
 
         updateState {
+            val resetValues = (diff as? TimelineDiff.Reset)?.items
+            if (resetValues != null && resetValues.isEmpty() && allEvents.isNotEmpty()) {
+                return@updateState this
+            }
+
             val r = TimelineListReducer.apply(
                 current = allEvents,
                 diff = diff,

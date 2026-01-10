@@ -1,3 +1,4 @@
+use futures_util::StreamExt;
 use js_int::UInt;
 use matrix_sdk::authentication::oauth::registration::language_tags::LanguageTag;
 use matrix_sdk::reqwest::Url;
@@ -50,7 +51,7 @@ use tracing_subscriber::{EnvFilter, fmt};
 use uniffi::{Enum, Object, Record, export, setup_scaffolding};
 use uuid::Uuid;
 
-use futures_util::StreamExt;
+
 use matrix_sdk::{
     Client as SdkClient, OwnedServerName, Room, RoomMemberships, SessionTokens,
     authentication::matrix::MatrixSession,
@@ -143,10 +144,14 @@ use matrix_sdk::widget::{
     Capabilities, CapabilitiesProvider, ClientProperties, Intent as WidgetIntent, WidgetDriver,
     WidgetDriverHandle, WidgetSettings,
 };
-use std::panic::AssertUnwindSafe;
+use std::panic::{AssertUnwindSafe, catch_unwind};
 
 // UniFFI macro-first setup
 setup_scaffolding!();
+
+const MIN_VISIBLE_AFTER_RESET: usize = 20;
+const BACKFILL_CHUNK: u16 = 50;
+const MAX_BACKFILL_ROUNDS: u8 = 8;
 
 // Types exposed to Kotlin
 #[derive(Clone, Record)]
@@ -1044,9 +1049,7 @@ impl Client {
                     };
                     for obs in list {
                         let upd_clone = upd.clone();
-                        let _ = std::panic::catch_unwind(AssertUnwindSafe(move || {
-                            obs.on_update(upd_clone)
-                        }));
+                        let _ = catch_unwind(AssertUnwindSafe(move || obs.on_update(upd_clone)));
                     }
                 }
             });
@@ -1313,21 +1316,7 @@ impl Client {
 
             let (items, mut stream) = tl.subscribe().await;
 
-            // Initial snapshot
-            let initial: Vec<_> = items
-                .iter()
-                .filter_map(|it| {
-                    it.as_event().and_then(|ei| {
-                        map_timeline_event(
-                            ei,
-                            room_id.as_str(),
-                            Some(&it.unique_id().0.to_string()),
-                            &me,
-                        )
-                    })
-                })
-                .collect();
-            obs.on_diff(TimelineDiffKind::Reset { values: initial });
+            emit_timeline_reset_filled(&obs, &tl, &room_id, &me).await;
 
             // Fetch missing reply details
             for it in items.iter() {
@@ -1344,21 +1333,17 @@ impl Client {
             while let Some(diffs) = stream.next().await {
                 for diff in diffs {
                     match diff {
-                        // Kotlin ignores these, and mapping can't safely represent Remove-by-index,
-                        // so force a Reset to prevent drift.
                         VectorDiff::Remove { .. }
                         | VectorDiff::PopBack
                         | VectorDiff::PopFront
                         | VectorDiff::Truncate { .. }
                         | VectorDiff::Clear => {
-                            emit_timeline_reset(&obs, &tl, &room_id, &me).await;
+                            emit_timeline_reset_filled(&obs, &tl, &room_id, &me).await;
                         }
 
                         other => {
                             if let Some(mapped) = map_vec_diff(other, &room_id, &tl, &me) {
-                                let _ = std::panic::catch_unwind(AssertUnwindSafe(|| {
-                                    obs.on_diff(mapped)
-                                }));
+                                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_diff(mapped)));
                             }
                         }
                     }
@@ -1411,7 +1396,7 @@ impl Client {
                             info!("verification_inbox: got to-device request flow_id={} from {} / {}",
                                   flow_id, from_user, from_device);
 
-                            let _ = std::panic::catch_unwind(AssertUnwindSafe(|| {
+                            let _ = catch_unwind(AssertUnwindSafe(|| {
                                 obs.on_request(flow_id, from_user, from_device);
                             }));
                         } else {
@@ -1436,7 +1421,7 @@ impl Client {
                                     info!("verification_inbox: got in-room request flow_id={} from {}",
                                           flow_id, from_user);
 
-                                    let _ = std::panic::catch_unwind(AssertUnwindSafe(|| {
+                                    let _ = catch_unwind(AssertUnwindSafe(|| {
                                         obs.on_request(flow_id, from_user, String::new());
                                     }));
                                 }
@@ -1931,7 +1916,7 @@ impl Client {
                 names.dedup();
                 if names != last {
                     last = names.clone();
-                    let _ = std::panic::catch_unwind(AssertUnwindSafe(|| obs.on_update(names)));
+                    let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(names)));
                 }
             }
         });
@@ -1959,9 +1944,9 @@ impl Client {
                 return;
             };
             let mut stream = tl.subscribe_own_user_read_receipts_changed().await;
-            use futures_util::StreamExt;
+            
             while let Some(()) = stream.next().await {
-                let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| obs.on_changed()));
+                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_changed()));
             }
         });
         self.receipts_subs.lock().unwrap().insert(id, h);
@@ -2053,7 +2038,7 @@ impl Client {
                     is_video,
                     ts_ms: ts,
                 };
-                let _ = std::panic::catch_unwind(AssertUnwindSafe(|| obs.on_invite(invite)));
+                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_invite(invite)));
             }
         });
         self.call_subs.lock().unwrap().insert(id, h);
@@ -3073,7 +3058,7 @@ impl Client {
                 client.observe_room_events::<SyncReceiptEvent, matrix_sdk::room::Room>(&rid);
             let mut sub = stream.subscribe();
             while let Some((_ev, _room)) = sub.next().await {
-                let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| obs.on_changed()));
+                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_changed()));
             }
         });
         self.receipts_subs.lock().unwrap().insert(id, h);
@@ -3248,7 +3233,7 @@ impl Client {
                             ).await;
 
                             let obs_clone = obs.clone();
-                            let _ = std::panic::catch_unwind(AssertUnwindSafe(move || {
+                            let _ = catch_unwind(AssertUnwindSafe(move || {
                                 obs_clone.on_reset(snapshot);
                             }));
                         }
@@ -4639,9 +4624,7 @@ impl Client {
                     ts_ms: event.last_location.ts.0.into(),
                     is_live: beacon_info.is_live(),
                 };
-                let _ = std::panic::catch_unwind(AssertUnwindSafe(|| {
-                    obs.on_update(vec![info.clone()])
-                }));
+                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(vec![info.clone()])));
             }
         })
     }
@@ -5460,7 +5443,7 @@ impl Client {
             let obs = obs.clone();
             RT.spawn(async move {
                 while let Some(msg) = handle.recv().await {
-                    let _ = std::panic::catch_unwind(AssertUnwindSafe(|| {
+                    let _ = catch_unwind(AssertUnwindSafe(|| {
                         obs.on_to_widget(msg);
                     }));
                 }
@@ -5540,7 +5523,7 @@ impl Client {
         let verifs = self.verifs.clone();
 
         let h = RT.spawn(async move {
-            use futures_util::StreamExt;
+            
             use matrix_sdk::encryption::verification::{Verification, VerificationRequestState};
 
             let deadline = Instant::now() + Duration::from_secs(120);
@@ -6136,7 +6119,7 @@ async fn attach_sas_stream(
     sas: SasVerification,
     obs: Arc<dyn VerificationObserver>,
 ) {
-    use futures_util::StreamExt;
+    
 
     info!("attach_sas_stream: flow_id={}", flow_id);
 
@@ -6572,28 +6555,6 @@ fn map_vec_diff(
     }
 }
 
-async fn emit_timeline_reset(
-    obs: &Arc<dyn TimelineObserver>,
-    tl: &Arc<Timeline>,
-    rid: &OwnedRoomId,
-    me: &str,
-) {
-    let items = tl.items().await;
-    let mapped: Vec<_> = items
-        .iter()
-        .filter_map(|it| {
-            it.as_event().and_then(|ei| {
-                fetch_reply_if_needed(ei, tl);
-                map_timeline_event(ei, rid.as_str(), Some(&it.unique_id().0.to_string()), me)
-            })
-        })
-        .collect();
-
-    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        obs.on_diff(TimelineDiffKind::Reset { values: mapped })
-    }));
-}
-
 fn map_poll_state(state: &matrix_sdk_ui::timeline::PollState, me: &str) -> PollData {
     let results = state.results();
 
@@ -6707,6 +6668,73 @@ async fn count_visible_room_view(tl: &Arc<Timeline>, rid: &OwnedRoomId, me: &str
             Some(())
         })
         .count()
+}
+
+async fn is_at_timeline_start(tl: &Arc<Timeline>) -> bool {
+    let items = tl.items().await;
+    items.iter().any(|it| it.is_timeline_start())
+}
+
+async fn map_visible_room_view(
+    tl: &Arc<Timeline>,
+    rid: &OwnedRoomId,
+    me: &str,
+) -> Vec<MessageEvent> {
+    let items = tl.items().await;
+    items
+        .iter()
+        .filter_map(|it| {
+            it.as_event().and_then(|ei| {
+                fetch_reply_if_needed(ei, tl);
+                map_timeline_event(ei, rid.as_str(), Some(&it.unique_id().0.to_string()), me)
+            })
+        })
+        // room view hides thread replies
+        .filter(|ev| ev.thread_root_event_id.is_none())
+        .collect()
+}
+
+async fn backfill_until_min_visible(
+    tl: &Arc<Timeline>,
+    rid: &OwnedRoomId,
+    me: &str,
+    min_visible: usize,
+) {
+    for _ in 0..MAX_BACKFILL_ROUNDS {
+        if is_at_timeline_start(tl).await {
+            break;
+        }
+
+        let visible_now = map_visible_room_view(tl, rid, me).await.len();
+        if visible_now >= min_visible {
+            break;
+        }
+
+        // adds more events to the start of the timeline
+        let hit_start = tl.paginate_backwards(BACKFILL_CHUNK).await.unwrap_or(false);
+        if hit_start {
+            break;
+        }
+    }
+}
+
+async fn emit_timeline_reset_filled(
+    obs: &Arc<dyn TimelineObserver>,
+    tl: &Arc<Timeline>,
+    rid: &OwnedRoomId,
+    me: &str,
+) {
+    let mut mapped = map_visible_room_view(tl, rid, me).await;
+
+    // If empty/small and not at timeline start, backfill
+    if mapped.len() < MIN_VISIBLE_AFTER_RESET && !is_at_timeline_start(tl).await {
+        backfill_until_min_visible(tl, rid, me, MIN_VISIBLE_AFTER_RESET).await;
+        mapped = map_visible_room_view(tl, rid, me).await;
+    }
+
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        obs.on_diff(TimelineDiffKind::Reset { values: mapped })
+    }));
 }
 
 async fn paginate_backwards_visible(
