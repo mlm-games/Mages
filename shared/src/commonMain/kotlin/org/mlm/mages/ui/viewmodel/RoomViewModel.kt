@@ -12,6 +12,7 @@ import org.mlm.mages.calls.CallManager
 import org.mlm.mages.matrix.*
 import org.mlm.mages.platform.Notifier
 import org.mlm.mages.platform.ShareContent
+import org.mlm.mages.platform.platformEmbeddedElementCallUrlOrNull
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.ForwardableRoom
 import org.mlm.mages.ui.RoomUiState
@@ -81,7 +82,7 @@ class RoomViewModel(
 
     private val callManager: CallManager by inject()
 
-    private val prefs = settingsRepo.flow
+    private val settings = settingsRepo.flow
         .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
 
     init {
@@ -158,7 +159,7 @@ class RoomViewModel(
         updateState { copy(input = value) }
 
         // only network typing notices are gated
-        if (!prefs.value.sendTypingIndicators) return
+        if (!settings.value.sendTypingIndicators) return
 
         typingJob?.cancel()
         typingJob = launch {
@@ -293,7 +294,7 @@ class RoomViewModel(
 
     fun markReadHere(event: MessageEvent) {
         if (event.eventId.isBlank()) return
-        if (!prefs.value.sendReadReceipts) return
+        if (!settings.value.sendReadReceipts) return
 
         launch { service.markReadAt(event.roomId, event.eventId) }
     }
@@ -1003,13 +1004,13 @@ class RoomViewModel(
 
     fun startCall(intent: CallIntent = CallIntent.StartCall, languageTag: String?, theme: String?) {
         launch {
-            val callUrl = prefs.value.elementCallUrl.trim().ifBlank { null }
+            val elementCallUrl = settings.value.elementCallUrl.trim().ifBlank { platformEmbeddedElementCallUrlOrNull() }
 
             val ok = callManager.startOrJoinCall(
                 roomId = currentState.roomId,
                 roomName = currentState.roomName,
                 intent = intent,
-                elementCallUrl = callUrl,
+                elementCallUrl,
                 languageTag = languageTag,
                 theme = theme,
                 onToWidget = { msg -> callManager.onToWidgetFromSdk(msg) }

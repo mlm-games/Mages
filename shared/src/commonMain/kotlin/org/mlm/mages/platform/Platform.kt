@@ -9,3 +9,5 @@ expect fun deleteDirectory(path: String): Boolean
 
 @Composable
 expect fun getDynamicColorScheme(darkTheme: Boolean, useDynamicColors: Boolean): ColorScheme?
+
+expect fun platformEmbeddedElementCallUrlOrNull(): String?

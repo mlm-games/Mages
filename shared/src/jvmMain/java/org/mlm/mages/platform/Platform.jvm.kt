@@ -28,3 +28,5 @@ actual fun getDynamicColorScheme(
     darkTheme: Boolean,
     useDynamicColors: Boolean
 ): ColorScheme? {return null}
+
+actual fun platformEmbeddedElementCallUrlOrNull(): String? = ElementCallLocalServer.indexUrl()

@@ -45,3 +45,7 @@ fun Activity.enterPip() {
         )
     }
 }
+
+actual fun platformEmbeddedElementCallUrlOrNull(): String? {
+    return null
+}
