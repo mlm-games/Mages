@@ -2,6 +2,7 @@ use js_int::UInt;
 use matrix_sdk::authentication::oauth::registration::language_tags::LanguageTag;
 use matrix_sdk::reqwest::Url;
 use matrix_sdk::ruma::events::{AnySyncMessageLikeEvent, AnySyncTimelineEvent};
+use matrix_sdk::ruma::room_version_rules::RoomVersionRules;
 use matrix_sdk::search_index::SearchIndexStoreKind;
 use matrix_sdk::{
     EncryptionState, PredecessorRoom, RoomDisplayName, SuccessorRoom,
@@ -24,6 +25,7 @@ use matrix_sdk::{
 };
 use matrix_sdk_base::notification_settings::RoomNotificationMode as RsMode;
 use matrix_sdk_ui::notification_client::NotificationItem;
+use matrix_sdk_ui::timeline::default_event_filter;
 use matrix_sdk_ui::{
     eyeball_im::Vector,
     timeline::{AttachmentConfig, AttachmentSource, TimelineDetails, TimelineEventItemId},
@@ -1864,8 +1866,14 @@ impl Client {
     }
 
     pub fn paginate_backwards(&self, room_id: String, count: u16) -> bool {
-        with_timeline_async!(self, room_id, |tl: Arc<Timeline>, _rid| async move {
-            tl.paginate_backwards(count).await.unwrap_or(false)
+        let me = self
+            .inner
+            .user_id()
+            .map(|u| u.to_string())
+            .unwrap_or_default();
+
+        with_timeline_async!(self, room_id, move |tl: Arc<Timeline>, rid| async move {
+            paginate_backwards_visible(&tl, &rid, &me, count as usize).await
         })
     }
 
@@ -5729,7 +5737,13 @@ impl TimelineManager {
 
         // Slow path: create timeline
         let room = self.client.get_room(room_id)?;
-        let tl = Arc::new(room.timeline().await.ok()?);
+        let tl = Arc::new(
+            room.timeline_builder()
+                .event_filter(timeline_event_filter)
+                .build()
+                .await
+                .ok()?,
+        );
 
         let _ = tl.paginate_backwards(INITIAL_BACK_PAGINATION).await;
 
@@ -6213,6 +6227,18 @@ fn render_message_text(msg: &matrix_sdk_ui::timeline::Message) -> String {
     }
 }
 
+fn is_call_noise(event: &AnySyncTimelineEvent) -> bool {
+    let ty = event.event_type().to_string();
+
+    ty.starts_with("m.rtc.")
+        || ty.starts_with("m.call.")
+        || ty.starts_with("org.matrix.msc3401.call.")
+}
+
+fn timeline_event_filter(event: &AnySyncTimelineEvent, rules: &RoomVersionRules) -> bool {
+    default_event_filter(event, rules) && !is_call_noise(event)
+}
+
 async fn latest_room_event_for(mgr: &TimelineManager, room: &Room) -> Option<LatestRoomEvent> {
     let rid = room.room_id().to_owned();
     let tl = mgr.timeline_for(&rid).await?;
@@ -6660,6 +6686,53 @@ fn should_filter_notification_event(ev: &AnySyncTimelineEvent) -> bool {
         AnySyncTimelineEvent::State(_) => true,
         _ => false,
     }
+}
+
+async fn count_visible_room_view(tl: &Arc<Timeline>, rid: &OwnedRoomId, me: &str) -> usize {
+    let items = tl.items().await;
+
+    items
+        .iter()
+        .filter_map(|it| {
+            let ev = it.as_event()?;
+            let item_id = it.unique_id().0.to_string();
+
+            // Use your existing mapper so “visible” matches Kotlin.
+            let mapped = map_timeline_event(ev, rid.as_str(), Some(&item_id), me)?;
+
+            // Room view hides thread replies.
+            if mapped.thread_root_event_id.is_some() {
+                return None;
+            }
+            Some(())
+        })
+        .count()
+}
+
+async fn paginate_backwards_visible(
+    tl: &Arc<Timeline>,
+    rid: &OwnedRoomId,
+    me: &str,
+    want_more_visible: usize,
+) -> bool {
+    const CHUNK: u16 = 50;
+    const MAX_ROUNDS: u8 = 8;
+
+    let before = count_visible_room_view(tl, rid, me).await;
+    let target = before.saturating_add(want_more_visible);
+
+    let mut hit_start = false;
+
+    for _ in 0..MAX_ROUNDS {
+        hit_start = tl.paginate_backwards(CHUNK).await.unwrap_or(false);
+
+        let after = count_visible_room_view(tl, rid, me).await;
+        if after >= target || hit_start {
+            break;
+        }
+    }
+
+    hit_start
 }
 
 fn classify_notification_kind_and_expiry(

@@ -1093,9 +1093,10 @@ class RoomViewModel(
             val r = TimelineListReducer.apply(
                 current = allEvents,
                 diff = diff,
-                idOf = { it.itemId },
+                itemIdOf = { it.itemId },
+                stableIdOf = { it.stableKey() },
                 timeOf = { it.timestampMs },
-                tieOf = { it.itemId },
+                tieOf = { it.stableKey() },
             )
             delta = r.delta
             didClear = r.cleared
@@ -1103,7 +1104,7 @@ class RoomViewModel(
             val newAll = r.list
             copy(
                 allEvents = newAll,
-                events = newAll.withoutThreadReplies().dedupByItemId(),
+                events = newAll.withoutThreadReplies(),
                 hasTimelineSnapshot = when {
                     r.reset -> true
                     r.cleared -> false
@@ -1254,6 +1255,13 @@ class RoomViewModel(
 
     private fun List<MessageEvent>.dedupByItemId(): List<MessageEvent> =
         distinctBy { it.itemId }
+
+    private fun MessageEvent.stableKey(): String =
+        when {
+            eventId.isNotBlank() -> "e:$eventId"
+            !txnId.isNullOrBlank() -> "t:$txnId"
+            else -> "i:$itemId" // fallback
+        }
 
     override fun onCleared() {
         super.onCleared()

@@ -21,82 +21,106 @@ object TimelineListReducer {
     fun <T> apply(
         current: List<T>,
         diff: TimelineDiff<T>,
-        idOf: (T) -> String,
+        itemIdOf: (T) -> String,
+        stableIdOf: (T) -> String,
         timeOf: (T) -> Long,
         tieOf: (T) -> String,
     ): Result<T> {
         return when (diff) {
+
             is TimelineDiff.Reset -> {
-                // Dedup by id but preserve Reset order
-                val seen = HashSet<String>(diff.items.size)
-                val deduped = ArrayList<T>(diff.items.size)
+                val byStable = LinkedHashMap<String, T>(diff.items.size)
                 val delta = ArrayList<T>(diff.items.size)
+
                 for (it in diff.items) {
-                    val id = idOf(it)
-                    if (seen.add(id)) {
-                        deduped.add(it)
-                        delta.add(it)
-                    }
+                    val sid = stableIdOf(it)
+                    byStable[sid] = it
+                    delta.add(it)
                 }
-                Result(list = deduped, delta = delta, reset = true)
+
+                Result(
+                    list = byStable.values.toList(),
+                    delta = byStable.values.toList(),
+                    reset = true
+                )
             }
 
-            is TimelineDiff.Clear -> Result(list = emptyList(), cleared = true)
-            // TODO and FIXME: Currently clears full timeline for calls.
+            is TimelineDiff.Clear ->
+                // should never receive this, but if it does, don’t nuke user-visible history.
+                Result(list = current, cleared = false)
 
             is TimelineDiff.Append -> {
                 val list = current.toMutableList()
                 val delta = ArrayList<T>(diff.items.size)
-
                 for (item in diff.items) {
-                    val id = idOf(item)
-                    val idx = list.indexOfFirst { idOf(it) == id }
-                    if (idx >= 0) {
-                        list[idx] = item
-                    } else {
-                        list.insertSorted(item, timeOf, tieOf)
-                    }
+                    upsert(list, item, itemIdOf, stableIdOf, timeOf, tieOf)
                     delta.add(item)
                 }
                 Result(list = list, delta = delta)
             }
 
             is TimelineDiff.Prepend -> {
-                val item = diff.item
                 val list = current.toMutableList()
-                val id = idOf(item)
-                val idx = list.indexOfFirst { idOf(it) == id }
-                if (idx >= 0) list[idx] = item else list.insertSorted(item, timeOf, tieOf)
+                val item = diff.item
+                upsert(list, item, itemIdOf, stableIdOf, timeOf, tieOf)
                 Result(list = list, delta = listOf(item))
             }
 
             is TimelineDiff.UpdateByItemId -> {
-                val idx = current.indexOfFirst { idOf(it) == diff.itemId }
-                if (idx < 0) {
-                    // If we didn't have it, treat as upsert (append) to avoid losing updates
-                    Result(list = current + diff.item, delta = listOf(diff.item))
-                } else {
-                    val list = current.toMutableList().apply { this[idx] = diff.item }
-                    Result(list = list, delta = listOf(diff.item))
-                }
+                val list = current.toMutableList()
+                val item = diff.item
+                upsert(list, item, itemIdOf, stableIdOf, timeOf, tieOf)
+                Result(list = list, delta = listOf(item))
             }
 
             is TimelineDiff.UpsertByItemId -> {
                 val list = current.toMutableList()
-                val idx = list.indexOfFirst { idOf(it) == diff.itemId }
-                if (idx >= 0) {
-                    list[idx] = diff.item
-                } else {
-                    list.insertSorted(diff.item, timeOf, tieOf)
-                }
-                Result(list = list, delta = listOf(diff.item))
+                val item = diff.item
+                upsert(list, item, itemIdOf, stableIdOf, timeOf, tieOf)
+                Result(list = list, delta = listOf(item))
             }
 
             is TimelineDiff.RemoveByItemId -> {
-                val list = current.filter { idOf(it) != diff.itemId }
-                Result(list = list)
+                val removed = current.filter { itemIdOf(it) == diff.itemId }
+                val list = current.filter { itemIdOf(it) != diff.itemId }
+                Result(list = list, delta = removed)
             }
         }
+    }
+
+    private fun <T> upsert(
+        list: MutableList<T>,
+        incoming: T,
+        itemIdOf: (T) -> String,
+        stableIdOf: (T) -> String,
+        timeOf: (T) -> Long,
+        tieOf: (T) -> String,
+    ) {
+        val incomingItemId = itemIdOf(incoming)
+        val incomingStable = stableIdOf(incoming)
+
+        val idxByItem = list.indexOfFirst { itemIdOf(it) == incomingItemId }
+        if (idxByItem >= 0) {
+            val idxByStable = list.indexOfFirst { stableIdOf(it) == incomingStable }
+            if (idxByStable >= 0 && idxByStable != idxByItem) {
+                // Keep whichever position is earlier to minimize UI jumps; remove the other.
+                val keep = minOf(idxByItem, idxByStable)
+                val drop = maxOf(idxByItem, idxByStable)
+                list[keep] = incoming
+                list.removeAt(drop)
+            } else {
+                list[idxByItem] = incoming
+            }
+            return
+        }
+
+        val idxByStable = list.indexOfFirst { stableIdOf(it) == incomingStable }
+        if (idxByStable >= 0) {
+            list[idxByStable] = incoming
+            return
+        }
+
+        list.insertSorted(incoming, timeOf, tieOf)
     }
 }
 
