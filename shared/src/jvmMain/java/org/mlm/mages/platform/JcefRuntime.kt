@@ -29,27 +29,26 @@ internal object JcefRuntime {
             builder.setAppHandler(object : MavenCefAppHandlerAdapter() {})
 
             builder.cefSettings.cache_path = cacheDir.absolutePath
-
             builder.cefSettings.log_severity = CefSettings.LogSeverity.LOGSEVERITY_VERBOSE
             builder.cefSettings.log_file = File(cacheDir, "cef-debug.log").absolutePath
             builder.cefSettings.remote_debugging_port = 9222
 
+            // THIS CAUSES THE WINDOW TO NOT RECEIVE INPUTS / NOT RESIZE PROPERLY
+            builder.cefSettings.windowless_rendering_enabled = false
+
             val os = System.getProperty("os.name").lowercase()
             if (os.contains("linux")) {
-                builder.addJcefArgs("--change-stack-guard-on-fork=disable")
-
-//                builder.addJcefArgs("--no-sandbox")
-//                builder.addJcefArgs("--disable-setuid-sandbox")
-//                builder.addJcefArgs("--disable-seccomp-filter-sandbox")
-
                 builder.addJcefArgs("--ozone-platform=x11")
-//                builder.addJcefArgs("--disable-features=UseOzonePlatform,WaylandWindowDecorations")
+                builder.addJcefArgs("--disable-dev-shm-usage")
 
+                // Test flags
 //                builder.addJcefArgs("--disable-gpu")
 //                builder.addJcefArgs("--disable-gpu-compositing")
-//                builder.addJcefArgs("--use-gl=swiftshader")
-
-                builder.addJcefArgs("--disable-dev-shm-usage")
+//                builder.addJcefArgs("--disable-software-rasterizer")
+//
+//                builder.addJcefArgs("--no-sandbox")
+//                builder.addJcefArgs("--disable-setuid-sandbox")
+//                builder.addJcefArgs("--change-stack-guard-on-fork=disable")
             }
 
             builder.addJcefArgs("--enable-media-stream")
