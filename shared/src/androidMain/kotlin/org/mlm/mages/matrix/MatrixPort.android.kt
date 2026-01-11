@@ -1249,6 +1249,7 @@ class RustMatrixPort : MatrixPort {
         roomId: String,
         intent: CallIntent,
         elementCallUrl: String?,
+        parentUrl: String?,
         languageTag: String?,
         theme: String?,
         observer: CallWidgetObserver,

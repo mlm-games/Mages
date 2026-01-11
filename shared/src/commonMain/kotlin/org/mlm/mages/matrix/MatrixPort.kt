@@ -259,6 +259,7 @@ data class CallSession(
     val sessionId: ULong,
     val widgetUrl: String,
     val widgetBaseUrl: String?,
+    val parentUrl: String?,
 )
 
 interface CallWidgetObserver {
@@ -529,6 +530,7 @@ interface MatrixPort {
         roomId: String,
         intent: CallIntent,
         elementCallUrl: String? = null,
+        parentUrl: String? = null,
         languageTag: String? = null,
         theme: String? = null,
         observer: CallWidgetObserver

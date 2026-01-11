@@ -16,14 +16,12 @@ object ElementCallLocalServer {
 
     fun ensureStarted(): String {
         if (started.compareAndSet(false, true)) {
-            // Debug: Check if resources exist
             val cl = Thread.currentThread().contextClassLoader ?: javaClass.classLoader
             val indexUrl = cl.getResource("element-call/index.html")
             println("[ElementCallServer] index.html resource URL: $indexUrl")
 
             if (indexUrl == null) {
                 println("[ElementCallServer] ERROR: element-call/index.html not found on classpath!")
-                // List what's available
                 val rootUrl = cl.getResource("element-call")
                 println("[ElementCallServer] element-call folder URL: $rootUrl")
             }
@@ -44,6 +42,8 @@ object ElementCallLocalServer {
 
     fun indexUrl(): String = ensureStarted() + "/element-call/index.html"
 
+    fun parentUrl(): String = ensureStarted() + "/element-call/index.html"
+
     fun baseUrl(): String = ensureStarted()
 
     fun stop() {
@@ -59,7 +59,6 @@ object ElementCallLocalServer {
         println("[ElementCallServer] ${ex.requestMethod} $rawPath")
 
         try {
-            // Handle CORS preflight
             if (ex.requestMethod == "OPTIONS") {
                 ex.responseHeaders.add("Access-Control-Allow-Origin", "*")
                 ex.responseHeaders.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
@@ -68,18 +67,16 @@ object ElementCallLocalServer {
                 return
             }
 
-            // Map URL to resource path
             val resourcePath = when {
                 rawPath == "/" -> "element-call/index.html"
                 rawPath == "/element-call" || rawPath == "/element-call/" -> "element-call/index.html"
                 rawPath.startsWith("/element-call/") -> rawPath.removePrefix("/").let {
                     if (it == "element-call/") "element-call/index.html" else it
                 }
-                rawPath.startsWith("/") -> "element-call${rawPath}" // /assets/foo.js -> element-call/assets/foo.js
+                rawPath.startsWith("/") -> "element-call${rawPath}"
                 else -> "element-call/$rawPath"
             }
 
-            // Security check
             if (resourcePath.contains("..") || resourcePath.contains("\\")) {
                 sendText(ex, 400, "Bad path")
                 return

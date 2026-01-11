@@ -12,6 +12,7 @@ import org.mlm.mages.calls.CallManager
 import org.mlm.mages.matrix.*
 import org.mlm.mages.platform.Notifier
 import org.mlm.mages.platform.ShareContent
+import org.mlm.mages.platform.platformEmbeddedElementCallParentUrlOrNull
 import org.mlm.mages.platform.platformEmbeddedElementCallUrlOrNull
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.ForwardableRoom
@@ -1011,6 +1012,7 @@ class RoomViewModel(
                 roomName = currentState.roomName,
                 intent = intent,
                 elementCallUrl,
+                platformEmbeddedElementCallParentUrlOrNull(),
                 languageTag = languageTag,
                 theme = theme,
                 onToWidget = { msg -> callManager.onToWidgetFromSdk(msg) }

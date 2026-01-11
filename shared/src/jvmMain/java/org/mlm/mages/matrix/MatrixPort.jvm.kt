@@ -1246,6 +1246,7 @@ class RustMatrixPort : MatrixPort {
         roomId: String,
         intent: CallIntent,
         elementCallUrl: String?,
+        parentUrl: String?,  // ADD THIS
         languageTag: String?,
         theme: String?,
         observer: CallWidgetObserver,
@@ -1261,8 +1262,21 @@ class RustMatrixPort : MatrixPort {
 
         runCatching {
             withClient { cl ->
-                val info = cl.startElementCall(roomId, elementCallUrl, ffiIntent, cb, languageTag, theme)
-                CallSession(sessionId = info.sessionId, widgetUrl = info.widgetUrl, widgetBaseUrl = info.widgetBaseUrl)
+                val info = cl.startElementCall(
+                    roomId,
+                    elementCallUrl,
+                    parentUrl,
+                    ffiIntent,
+                    cb,
+                    languageTag,
+                    theme
+                )
+                CallSession(
+                    sessionId = info.sessionId,
+                    widgetUrl = info.widgetUrl,
+                    widgetBaseUrl = info.widgetBaseUrl,
+                    parentUrl = info.parentUrl
+                )
             }
         }.getOrNull()
     }

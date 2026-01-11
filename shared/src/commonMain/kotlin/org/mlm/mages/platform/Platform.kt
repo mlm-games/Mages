@@ -11,3 +11,5 @@ expect fun deleteDirectory(path: String): Boolean
 expect fun getDynamicColorScheme(darkTheme: Boolean, useDynamicColors: Boolean): ColorScheme?
 
 expect fun platformEmbeddedElementCallUrlOrNull(): String?
+
+expect fun platformEmbeddedElementCallParentUrlOrNull(): String?

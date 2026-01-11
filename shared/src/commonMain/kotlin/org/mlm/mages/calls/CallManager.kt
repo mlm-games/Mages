@@ -13,6 +13,7 @@ data class GlobalCallState(
     val roomName: String,
     val sessionId: ULong,
     val widgetUrl: String,
+    val parentUrl: String?,
     val widgetBaseUrl: String?,
     val minimized: Boolean = false,
     val pipX: Float = 24f,
@@ -71,6 +72,7 @@ class CallManager(
         roomName: String,
         intent: CallIntent,
         elementCallUrl: String?,
+        parentUrl: String?,
         languageTag: String?,
         theme: String?,
         onToWidget: (String) -> Unit,
@@ -81,6 +83,7 @@ class CallManager(
             roomId = roomId,
             intent = intent,
             elementCallUrl = elementCallUrl,
+            parentUrl = parentUrl,
             languageTag = languageTag,
             theme = theme,
             observer = object : CallWidgetObserver {
@@ -94,6 +97,7 @@ class CallManager(
             sessionId = session.sessionId,
             widgetUrl = session.widgetUrl,
             widgetBaseUrl = session.widgetBaseUrl,
+            parentUrl = session.parentUrl,
             minimized = false
         )
         return true

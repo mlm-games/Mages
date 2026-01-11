@@ -17,7 +17,6 @@ import org.cef.network.CefRequest
 import org.json.JSONObject
 import java.awt.BorderLayout
 import java.awt.Component
-import java.net.URLEncoder
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -27,7 +26,6 @@ import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
 
-// Element-specific actions that the SDK doesn't handle
 private val ELEMENT_SPECIFIC_ACTIONS = setOf(
     "io.element.device_mute",
     "io.element.join",
@@ -112,14 +110,11 @@ private class JcefCallWebViewController(
             return
         }
 
-        val fixedUrl = fixParentUrl(url)
-        println("[JcefController] Fixed URL: $fixedUrl")
-
         val app: CefApp = withContext(Dispatchers.IO) {
             JcefRuntime.getOrInit()
         }
 
-        pendingUrl.set(fixedUrl)
+        pendingUrl.set(url)
 
         withContext(Dispatchers.Main) {
             if (disposed.get()) {
@@ -148,21 +143,6 @@ private class JcefCallWebViewController(
                 browser?.loadURL(urlToLoad)
             }
         }
-    }
-
-    private fun fixParentUrl(url: String): String {
-        val hashIndex = url.indexOf('#')
-        if (hashIndex < 0) return url
-
-        val baseUrl = url.take(hashIndex)
-        val fragment = url.substring(hashIndex + 1)
-
-        val fixedFragment = fragment.replace(
-            Regex("""parentUrl=[^&]+"""),
-            "parentUrl=${URLEncoder.encode(baseUrl, "UTF-8")}"
-        )
-
-        return "$baseUrl#$fixedFragment"
     }
 
     override fun close() {
@@ -196,10 +176,6 @@ private class JcefCallWebViewController(
         if (closedCallbackFired.compareAndSet(false, true)) onClosed()
     }
 
-    /**
-     * Handle messages from the widget.
-     * Mirrors the Android implementation exactly.
-     */
     private fun handleWidgetMessage(message: String) {
         try {
             val json = JSONObject(message)
@@ -210,14 +186,9 @@ private class JcefCallWebViewController(
 
             if (action in ELEMENT_SPECIFIC_ACTIONS) {
                 println("[WidgetBridge] Handling Element-specific action locally: $action")
-
-                // Send response back to widget (same as Android)
                 sendElementActionResponse(message)
-
-                // Forward to SDK for state tracking (same as Android)
                 onMessageFromWidget(message)
 
-                // Handle specific actions
                 when (action) {
                     "io.element.close", "im.vector.hangup" -> {
                         fireClosedOnce()
@@ -229,7 +200,6 @@ private class JcefCallWebViewController(
                 return
             }
 
-            // Forward non-Element actions to SDK
             onMessageFromWidget(message)
         } catch (e: Exception) {
             println("[WidgetBridge] Error parsing message, forwarding anyway: ${e.message}")
@@ -237,39 +207,25 @@ private class JcefCallWebViewController(
         }
     }
 
-    /**
-     * Send response for Element-specific actions.
-     * Mirrors Android: adds "response" field to original message.
-     */
     private fun sendElementActionResponse(originalMessage: String) {
         try {
-            // Same as Android: add response to original message
             val response = JSONObject(originalMessage).apply {
                 put("response", JSONObject())
             }
 
             println("[WidgetBridge] Sending Element response: ${response.toString().take(100)}")
-
-            // Post the response to the widget
             postMessageToWidget(response.toString())
         } catch (e: Exception) {
             println("[WidgetBridge] Failed to send response: ${e.message}")
         }
     }
 
-    /**
-     * Called by Matrix SDK to send messages to widget.
-     */
     override fun sendToWidget(message: String) {
         if (disposed.get()) return
         println("[WidgetBridge] Native → Widget: ${message.take(200)}")
         postMessageToWidget(message)
     }
 
-    /**
-     * Post a message to the widget via window.postMessage.
-     * Mirrors Android's evaluateJavascript("postMessage(...)")
-     */
     private fun postMessageToWidget(jsonMessage: String) {
         val b = browser ?: run {
             println("[WidgetBridge] Browser null, queuing message")
@@ -283,10 +239,7 @@ private class JcefCallWebViewController(
             return
         }
 
-        // Same as Android: postMessage(jsonObject, '*')
-        // We need to pass the JSON object directly, not as a string
         val js = "postMessage($jsonMessage, '*')"
-
         frame.executeJavaScript(js, b.url ?: "", 0)
     }
 
@@ -320,7 +273,6 @@ private class JcefCallWebViewController(
                 if (!frame.isMain) return
 
                 if (frame.url != "about:blank") {
-                    // Inject bridge at page start (same as Android onPageStarted)
                     injectBridge(frame)
                 }
             }
@@ -333,19 +285,10 @@ private class JcefCallWebViewController(
                     println("[JcefController] Browser ready (about:blank loaded)")
                     browserReady.countDown()
                 } else {
-                    // Page finished (same as Android onPageFinished)
                     println("[WidgetBridge] Page finished: ${frame.url}")
-
-                    // Inject back button handler
                     injectBackButtonHandler(frame)
-
-                    // Apply desktop layout fix
                     injectDesktopLayoutFix(frame)
-
-                    // Force resize
                     SwingUtilities.invokeLater { forceResize() }
-
-                    // Flush pending messages
                     flushPendingToWidget()
                 }
             }
@@ -406,14 +349,9 @@ private class JcefCallWebViewController(
         println("[JcefController] Browser component added to container")
     }
 
-    /**
-     * Inject the message bridge.
-     * Mirrors Android's onPageStarted script exactly.
-     */
     private fun injectBridge(frame: CefFrame) {
         println("[JcefController] Injecting bridge into: ${frame.url}")
 
-        // This is the EXACT same logic as Android
         val js = """
             window.addEventListener('message', function(event) {
                 let message = {data: event.data, origin: event.origin};
@@ -431,10 +369,6 @@ private class JcefCallWebViewController(
         frame.executeJavaScript(js, frame.url, 0)
     }
 
-    /**
-     * Inject back button handler.
-     * Mirrors Android's onPageFinished script.
-     */
     private fun injectBackButtonHandler(frame: CefFrame) {
         val js = """
             if (typeof controls !== 'undefined') {

@@ -30,3 +30,5 @@ actual fun getDynamicColorScheme(
 ): ColorScheme? {return null}
 
 actual fun platformEmbeddedElementCallUrlOrNull(): String? = ElementCallLocalServer.indexUrl()
+
+actual fun platformEmbeddedElementCallParentUrlOrNull(): String? = ElementCallLocalServer.parentUrl()

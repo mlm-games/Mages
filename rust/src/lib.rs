@@ -721,6 +721,7 @@ pub struct CallSessionInfo {
     /// Fully-expanded Element Call URL to load into a WebView.
     pub widget_url: String,
     pub widget_base_url: Option<String>,
+    pub parent_url: Option<String>,
 }
 
 #[export(callback_interface)]
@@ -5358,6 +5359,7 @@ impl Client {
         &self,
         room_id: String,
         element_call_url: Option<String>,
+        parent_url: Option<String>,
         intent: ElementCallIntent,
         observer: Box<dyn CallWidgetObserver>,
         language_tag: Option<String>,
@@ -5371,24 +5373,23 @@ impl Client {
             .as_deref()
             .and_then(|s| LanguageTag::parse(s).ok());
 
-        let (widget_settings, widget_url, widget_base_url) = RT.block_on(async {
+        let (widget_settings, widget_url, widget_base_url, parent_url) = RT.block_on(async {
             let rid = OwnedRoomId::try_from(room_id.as_str())
                 .map_err(|e| FfiError::Msg(e.to_string()))?;
             let Some(room) = inner.get_room(&rid) else {
                 return Err(FfiError::Msg("room not found".into()));
             };
 
+            let resolved_parent = parent_url.unwrap_or_else(|| {
+                "https://appassets.androidplatform.net/assets/element-call/index.html".to_owned()
+            });
+
             let props = VirtualElementCallWidgetProperties {
                 element_call_url: element_call_url.unwrap_or_else(|| {
                     "https://appassets.androidplatform.net/element-call/index.html".to_owned()
                 }),
-                parent_url: Some(
-                    "https://appassets.androidplatform.net/assets/element-call/index.html"
-                        .to_owned(),
-                ),
-
+                parent_url: Some(resolved_parent.clone()),
                 widget_id: format!("mages-ecall-{}", session_id),
-
                 ..VirtualElementCallWidgetProperties::default()
             };
 
@@ -5407,7 +5408,6 @@ impl Client {
                 app_prompt: Some(false),
                 confine_to_room: Some(true),
                 hide_screensharing: Some(false),
-
                 intent: Some(widget_intent),
                 ..VirtualElementCallWidgetConfig::default()
             };
@@ -5415,7 +5415,6 @@ impl Client {
             let settings = WidgetSettings::new_virtual_element_call_widget(props, config)
                 .map_err(|e| FfiError::Msg(e.to_string()))?;
 
-            // ClientProperties: controls lang/theme/clientId in the final URL.
             let client_props = ClientProperties::new("org.mlm.mages", lang, theme);
 
             let url = settings
@@ -5425,20 +5424,17 @@ impl Client {
 
             let widget_base_url = settings.base_url().map(|u| u.to_string());
 
-            Ok::<_, FfiError>((settings, url.to_string(), widget_base_url))
+            Ok::<_, FfiError>((settings, url.to_string(), widget_base_url, Some(resolved_parent)))
         })?;
 
         let (driver, handle) = WidgetDriver::new(widget_settings);
-
         let cap_provider = ElementCallCapabilitiesProvider {};
 
-        // Handle for messages client <-> widget.
         self.widget_handles
             .lock()
             .unwrap()
             .insert(session_id, handle.clone());
 
-        // Widget -> driver -> Kotlin
         let recv_task = {
             let obs = obs.clone();
             RT.spawn(async move {
@@ -5454,7 +5450,6 @@ impl Client {
             .unwrap()
             .insert(session_id, recv_task);
 
-        // Driver main loop bound to this room.
         let inner2 = self.inner.clone();
         let room_str = room_id.clone();
         let driver_task = RT.spawn(async move {
@@ -5474,6 +5469,7 @@ impl Client {
             session_id,
             widget_url,
             widget_base_url,
+            parent_url,
         })
     }
 
@@ -6856,7 +6852,6 @@ fn map_notification_item_to_rendered(
                     body = "Incoming call".to_owned();
                 }
                 AnySyncMessageLikeEvent::RtcNotification(_) => {
-                    // TODO?: When to Ring or Notify
                     body = "Incoming call".to_owned();
                 }
                 _ => {}

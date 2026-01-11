@@ -222,17 +222,4 @@ class MatrixService(
     suspend fun spaceInviteUser(spaceId: String, userId: String): Boolean =
         runCatching { port.spaceInviteUser(spaceId, userId) }.getOrDefault(false)
 
-    suspend fun startCall(
-        roomId: String,
-        intent: CallIntent,
-        elementCallUrl: String? = null,
-        languageTag: String? = null,
-        theme: String? = null,
-        onToWidget: (String) -> Unit
-    ): CallSession? {
-        val observer = object : CallWidgetObserver {
-            override fun onToWidget(message: String) = onToWidget(message)
-        }
-        return port.startElementCall(roomId, intent, elementCallUrl, languageTag, theme, observer)
-    }
 }

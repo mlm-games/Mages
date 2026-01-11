@@ -179,6 +179,7 @@ class IncomingCallActivity : ComponentActivity() {
                 roomName = roomName,
                 intent = CallIntent.JoinExisting,
                 elementCallUrl = null,
+                parentUrl = null,
                 languageTag = Locale.getDefault().toLanguageTag(),
                 theme = "dark",
                 onToWidget = { msg -> callManager.onToWidgetFromSdk(msg) }

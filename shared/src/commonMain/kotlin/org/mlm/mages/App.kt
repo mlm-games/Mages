@@ -21,8 +21,6 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import io.github.mlmgames.settings.core.SettingsRepository
-import io.github.mlmgames.settings.core.annotations.SettingPlatform
-import io.github.mlmgames.settings.core.platform.currentPlatform
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -35,6 +33,7 @@ import org.mlm.mages.matrix.SasPhase
 import org.mlm.mages.nav.*
 import org.mlm.mages.platform.BindLifecycle
 import org.mlm.mages.platform.BindNotifications
+import org.mlm.mages.platform.platformEmbeddedElementCallParentUrlOrNull
 import org.mlm.mages.platform.platformEmbeddedElementCallUrlOrNull
 import org.mlm.mages.platform.rememberFileOpener
 import org.mlm.mages.platform.rememberQuitApp
@@ -115,6 +114,7 @@ private fun AppContent(deepLinks: Flow<DeepLinkAction>?) {
     val widgetTheme = if (isDark) "dark" else "light"
     val languageTag = Locale.getDefault().toLanguageTag()
     val elementCallUrl = settings.elementCallUrl.trim().ifBlank { platformEmbeddedElementCallUrlOrNull() }
+    val parentCallUrl = platformEmbeddedElementCallParentUrlOrNull()
 
 
     MainTheme(
@@ -132,12 +132,13 @@ private fun AppContent(deepLinks: Flow<DeepLinkAction>?) {
             rememberNavBackStack(navSavedStateConfiguration, initialRoute)
 
         BindDeepLinks(
-            backStack = backStack,
-            deepLinks = deepLinks,
-            callManager = callManager,
-            widgetTheme = widgetTheme,
-            languageTag = languageTag,
-            elementCallUrl = elementCallUrl
+            backStack,
+            deepLinks,
+            callManager,
+            widgetTheme,
+            languageTag,
+            elementCallUrl,
+            parentCallUrl
         )
 
         BindLifecycle(service)

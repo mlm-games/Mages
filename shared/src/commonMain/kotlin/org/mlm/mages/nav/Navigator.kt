@@ -72,7 +72,8 @@ fun BindDeepLinks(
     callManager: CallManager,
     widgetTheme: String,
     languageTag: String,
-    elementCallUrl: String?
+    elementCallUrl: String?,
+    parentCallUrl: String?
 ) {
     LaunchedEffect(deepLinks) {
         deepLinks?.collectLatest { action ->
@@ -91,6 +92,7 @@ fun BindDeepLinks(
                             roomName = action.roomId,
                             intent = CallIntent.JoinExisting,
                             elementCallUrl = elementCallUrl,
+                            parentUrl = parentCallUrl,
                             languageTag = languageTag,
                             theme = widgetTheme,
                             onToWidget = { msg -> callManager.onToWidgetFromSdk(msg) }

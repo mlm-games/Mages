@@ -49,3 +49,5 @@ fun Activity.enterPip() {
 actual fun platformEmbeddedElementCallUrlOrNull(): String? {
     return null
 }
+
+actual fun platformEmbeddedElementCallParentUrlOrNull(): String? = null
