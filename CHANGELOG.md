@@ -1,3 +1,10 @@
+## v2.3.1
+
+- Update build.gradle.kts
+- Desktop: Indicator for calls on first download
+- Fix the input / resize issue with jcef windows (jcef call issue fixed)
+
+
 ## v2.2.1
 
 - fix clearing of events after ending a call

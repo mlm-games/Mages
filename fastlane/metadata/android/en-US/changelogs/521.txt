@@ -1,0 +1,3 @@
+- Update build.gradle.kts
+- Desktop: Indicator for calls on first download
+- Fix the input / resize issue with jcef windows (jcef call issue fixed)
