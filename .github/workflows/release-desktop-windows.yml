@@ -27,17 +27,8 @@ env:
 
 jobs:
   build-windows:
-    strategy:
-      matrix:
-        arch: [x64, arm64]
-        include:
-          - arch: x64
-            rust_target: x86_64-pc-windows-msvc
-            runner: windows-latest
-          - arch: arm64
-            rust_target: aarch64-pc-windows-msvc
-            runner: windows-latest
-    runs-on: ${{ matrix.runner }}
+    # native ARM64 runners are not yet available on Gh
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
         with:
@@ -52,39 +43,28 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.rust_target }}
-
-      - name: Build Rust JNI
-        run: cargo build --release --manifest-path rust/Cargo.toml --target ${{ matrix.rust_target }}
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build and prepare native libraries
+      - name: Build native libraries and package
         run: |
-          ./gradlew :shared:cargoBuildDesktop :shared:copyNativeForJna :shared:genUniFFIJvm
-
-      - name: Package desktop application
-        run: |
-          ./gradlew :desktopApp:packageDistributionForCurrentOS --no-daemon
+          ./gradlew :shared:cargoBuildDesktop :shared:copyNativeForJna :shared:genUniFFIJvm :desktopApp:packageDistributionForCurrentOS --no-daemon
 
       - name: Collect desktop artifacts
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist
-          Get-ChildItem -Path desktopApp/build/compose/binaries/main -Recurse -Include *.msi,*.exe | Copy-Item -Destination dist/
-          # Rename to include architecture
-          Get-ChildItem -Path dist -File | ForEach-Object {
-            $newName = $_.BaseName + "-${{ matrix.arch }}" + $_.Extension
-            Rename-Item -Path $_.FullName -NewName $newName
+          Get-ChildItem -Path desktopApp/build/compose/binaries/main -Recurse -Include *.msi,*.exe | ForEach-Object {
+            $newName = "$($_.BaseName)-${{ inputs.version_tag }}-x64$($_.Extension)"
+            Copy-Item -Path $_.FullName -Destination "dist/$newName"
           }
           Get-ChildItem dist
 
-      - name: Upload artifacts (CI)
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-desktop-${{ matrix.arch }}
+          name: windows-desktop-x64
           path: dist/*
 
   release:
@@ -97,7 +77,10 @@ jobs:
           merge-multiple: true
           path: dist
 
-      - name: Create / Update GitHub Release
+      - name: List artifacts
+        run: ls -la dist/
+
+      - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.version_tag }}
