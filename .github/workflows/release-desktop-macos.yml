@@ -148,10 +148,9 @@ jobs:
           name: macos-desktop-${{ matrix.arch }}
           path: dist/*
 
-  # Optional: Build universal binary
   build-macos-universal:
     needs: build-macos
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
