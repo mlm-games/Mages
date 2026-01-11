@@ -2,7 +2,6 @@ package org.mlm.mages.platform
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.awt.SwingPanel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.cef.CefApp
@@ -16,13 +15,15 @@ import org.cef.handler.*
 import org.cef.network.CefRequest
 import org.json.JSONObject
 import java.awt.BorderLayout
+import java.awt.Component
+import java.awt.event.WindowAdapter
+import java.awt.event.WindowEvent
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
-import javax.swing.JLabel
-import javax.swing.JPanel
+import javax.swing.JFrame
 import javax.swing.SwingUtilities
 
 private val ELEMENT_SPECIFIC_ACTIONS = setOf(
@@ -72,11 +73,6 @@ actual fun CallWebViewHost(
         }
     }
 
-    SwingPanel(
-        modifier = modifier,
-        factory = { controller.container }
-    )
-
     return controller
 }
 
@@ -91,17 +87,12 @@ private class JcefCallWebViewController(
     private val browserReady = CountDownLatch(1)
     private val pendingUrl = AtomicReference<String?>(null)
 
-    val container: JPanel = JPanel(BorderLayout())
-
+    @Volatile private var frame: JFrame? = null
     @Volatile private var client: CefClient? = null
     @Volatile private var browser: CefBrowser? = null
     @Volatile private var router: CefMessageRouter? = null
 
     private val pendingToWidget = ConcurrentLinkedQueue<String>()
-
-    init {
-        container.add(JLabel("Starting call (or downloading webview for first launch, please wait...)"), BorderLayout.CENTER)
-    }
 
     suspend fun load(url: String) {
         println("[JcefController] load() called with: $url")
@@ -117,18 +108,29 @@ private class JcefCallWebViewController(
 
         pendingUrl.set(url)
 
-        withContext(Dispatchers.Main) {
-            if (disposed.get()) {
-                println("[JcefController] Disposed during init, skipping")
-                return@withContext
-            }
-
-            if (browser == null) {
-                println("[JcefController] Creating browser...")
-                createBrowser(app)
+        // Create browser on EDT
+        val latch = CountDownLatch(1)
+        val createTask = Runnable {
+            try {
+                if (!disposed.get() && browser == null) {
+                    println("[JcefController] Creating browser...")
+                    createBrowserInFrame(app)
+                }
+            } finally {
+                latch.countDown()
             }
         }
 
+        if (SwingUtilities.isEventDispatchThread()) {
+            createTask.run()
+        } else {
+            SwingUtilities.invokeLater(createTask)
+            withContext(Dispatchers.IO) {
+                latch.await(10, TimeUnit.SECONDS)
+            }
+        }
+
+        // Wait for browser ready
         withContext(Dispatchers.IO) {
             println("[JcefController] Waiting for browser ready...")
             val ready = browserReady.await(5, TimeUnit.SECONDS)
@@ -137,10 +139,11 @@ private class JcefCallWebViewController(
             }
         }
 
-        withContext(Dispatchers.Main) {
-            val urlToLoad = pendingUrl.get()
-            if (urlToLoad != null && !disposed.get()) {
-                println("[JcefController] Browser ready, now loading: $urlToLoad")
+        // Load URL
+        val urlToLoad = pendingUrl.get()
+        if (urlToLoad != null && !disposed.get()) {
+            println("[JcefController] Browser ready, now loading: $urlToLoad")
+            SwingUtilities.invokeLater {
                 browser?.loadURL(urlToLoad)
             }
         }
@@ -161,14 +164,15 @@ private class JcefCallWebViewController(
                 r?.dispose()
                 cl?.dispose()
             }
+            runCatching {
+                frame?.isVisible = false
+                frame?.dispose()
+            }
 
             browser = null
             router = null
             client = null
-
-            container.removeAll()
-            container.revalidate()
-            container.repaint()
+            frame = null
         }
     }
 
@@ -233,18 +237,18 @@ private class JcefCallWebViewController(
             return
         }
 
-        val frame = b.mainFrame ?: run {
+        val f = b.mainFrame ?: run {
             println("[WidgetBridge] MainFrame null, queuing message")
             pendingToWidget.add(jsonMessage)
             return
         }
 
         val js = "postMessage($jsonMessage, '*')"
-        frame.executeJavaScript(js, b.url ?: "", 0)
+        f.executeJavaScript(js, b.url ?: "", 0)
     }
 
-    private fun createBrowser(app: CefApp) {
-        println("[JcefController] createBrowser()")
+    private fun createBrowserInFrame(app: CefApp) {
+        println("[JcefController] createBrowserInFrame()")
 
         val cl = app.createClient()
         val routerCfg = CefMessageRouter.CefMessageRouterConfig("elementX", "elementXCancel")
@@ -317,16 +321,35 @@ private class JcefCallWebViewController(
         })
 
         val b = cl.createBrowser("about:blank", false, false)
+
         client = cl
         browser = b
         router = r
 
-        container.removeAll()
-        container.add(b.uiComponent, BorderLayout.CENTER)
-        container.revalidate()
-        container.repaint()
+        val jframe = JFrame("Mages - Element Call")
+        jframe.defaultCloseOperation = JFrame.DO_NOTHING_ON_CLOSE
+        jframe.setSize(900, 700)
+        jframe.setLocationRelativeTo(null)
+        jframe.layout = BorderLayout()
 
-        println("[JcefController] Browser component added to container")
+        jframe.addWindowListener(object : WindowAdapter() {
+            override fun windowClosing(e: WindowEvent?) {
+                println("[JcefController] Window closing")
+                fireClosedOnce()
+            }
+        })
+
+        val browserComponent = b.uiComponent as Component
+        browserComponent.isFocusable = true
+
+        jframe.add(browserComponent, BorderLayout.CENTER)
+        jframe.isVisible = true
+
+        browserComponent.requestFocusInWindow()
+
+        frame = jframe
+
+        println("[JcefController] Browser frame created and visible")
     }
 
     private fun injectBridge(frame: CefFrame) {
