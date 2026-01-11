@@ -14,7 +14,7 @@ on:
         type: boolean
       sign_and_notarize:
         description: "Sign and notarize (requires secrets)"
-        required: true
+        required: false
         default: false
         type: boolean
 
@@ -33,16 +33,14 @@ env:
 jobs:
   build-macos:
     strategy:
+      fail-fast: false
       matrix:
-        arch: [x64, arm64]
         include:
+          # Intel Mac - macos-13 (last Intel runner)
           - arch: x64
-            rust_target: x86_64-apple-darwin
             runner: macos-13
           - arch: arm64
-            rust_target: aarch64-apple-darwin
             runner: macos-latest
-            # fail-fast: false
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v5
@@ -58,22 +56,13 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.rust_target }}
-
-      - name: Build Rust JNI
-        run: cargo build --release --manifest-path rust/Cargo.toml --target ${{ matrix.rust_target }}
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build and prepare native libraries
+      - name: Build native libraries and package
         run: |
-          ./gradlew :shared:cargoBuildDesktop :shared:copyNativeForJna :shared:genUniFFIJvm
-
-      - name: Package desktop application
-        run: |
-          ./gradlew :desktopApp:packageDistributionForCurrentOS --no-daemon
+          ./gradlew :shared:cargoBuildDesktop :shared:copyNativeForJna :shared:genUniFFIJvm :desktopApp:packageDistributionForCurrentOS --no-daemon
 
       - name: Import signing certificate
         if: ${{ inputs.sign_and_notarize }}
@@ -101,12 +90,10 @@ jobs:
             APP_NAME=$(basename "$APP_PATH" .app)
             DMG_NAME="${APP_NAME}-${{ inputs.version_tag }}-${{ matrix.arch }}.dmg"
             
-            # Create temporary directory for DMG contents
             mkdir -p dmg-contents
             cp -R "$APP_PATH" dmg-contents/
             ln -s /Applications dmg-contents/Applications
             
-            # Create DMG
             hdiutil create -volname "$APP_NAME" \
               -srcfolder dmg-contents \
               -ov -format UDZO \
@@ -129,52 +116,24 @@ jobs:
             xcrun stapler staple "$DMG_FILE"
           fi
 
-      - name: Collect desktop artifacts
+      - name: Collect artifacts
         run: |
           mkdir -p dist
-          find desktopApp/build/compose/binaries/main -type f \( -name "*.dmg" -o -name "*.pkg" \) -exec cp {} dist/ \; 2>/dev/null || true
-          # Rename files to include architecture if not already
-          for f in dist/*; do
-            if [[ -f "$f" && ! "$f" =~ ${{ matrix.arch }} ]]; then
-              base="${f%.*}"
-              ext="${f##*.}"
-              mv "$f" "${base}-${{ matrix.arch }}.${ext}"
-            fi
+          # Copy any pkg files if they exist
+          find desktopApp/build/compose/binaries/main -type f -name "*.pkg" | while read pkg; do
+            base=$(basename "$pkg" .pkg)
+            cp "$pkg" "dist/${base}-${{ inputs.version_tag }}-${{ matrix.arch }}.pkg"
           done
           ls -la dist
 
-      - name: Upload artifacts (CI)
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macos-desktop-${{ matrix.arch }}
           path: dist/*
 
-  build-macos-universal:
-    needs: build-macos
-    runs-on: macos-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: macos-desktop-*
-          path: artifacts
-
-      - name: Create universal DMG (optional)
-        run: |
-          echo "Universal binary creation would go here"
-          echo "This requires combining x64 and arm64 binaries with lipo"
-          # For now, just pass through
-          mkdir -p dist
-          find artifacts -name "*.dmg" -exec cp {} dist/ \;
-          ls -la dist
-
-      - name: Upload universal artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-desktop-universal
-          path: dist/*
-
   release:
-    needs: [build-macos]
+    needs: build-macos
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -183,7 +142,10 @@ jobs:
           merge-multiple: true
           path: dist
 
-      - name: Create / Update GitHub Release
+      - name: List artifacts
+        run: ls -la dist/
+
+      - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.version_tag }}
