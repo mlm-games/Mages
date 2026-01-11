@@ -12,8 +12,11 @@ import java.util.concurrent.atomic.AtomicReference
 internal object JcefRuntime {
     private val appRef = AtomicReference<CefApp?>(null)
 
+    fun isInitialized(): Boolean = appRef.get() != null
+
     fun getOrInit(): CefApp {
         appRef.get()?.let { return it }
+
         synchronized(this) {
             appRef.get()?.let { return it }
 
@@ -29,7 +32,7 @@ internal object JcefRuntime {
             builder.setAppHandler(object : MavenCefAppHandlerAdapter() {})
 
             builder.cefSettings.cache_path = cacheDir.absolutePath
-            builder.cefSettings.log_severity = CefSettings.LogSeverity.LOGSEVERITY_VERBOSE
+            builder.cefSettings.log_severity = CefSettings.LogSeverity.LOGSEVERITY_WARNING
             builder.cefSettings.log_file = File(cacheDir, "cef-debug.log").absolutePath
             builder.cefSettings.remote_debugging_port = 9222
 

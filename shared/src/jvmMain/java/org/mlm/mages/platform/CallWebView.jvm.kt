@@ -14,17 +14,14 @@ import org.cef.callback.CefQueryCallback
 import org.cef.handler.*
 import org.cef.network.CefRequest
 import org.json.JSONObject
-import java.awt.BorderLayout
-import java.awt.Component
-import java.awt.event.WindowAdapter
-import java.awt.event.WindowEvent
+import java.awt.*
+import java.awt.event.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
-import javax.swing.JFrame
-import javax.swing.SwingUtilities
+import javax.swing.*
 
 private val ELEMENT_SPECIFIC_ACTIONS = setOf(
     "io.element.device_mute",
@@ -47,8 +44,6 @@ actual fun CallWebViewHost(
     onAttachController: (CallWebViewController?) -> Unit
 ): CallWebViewController {
 
-    println("[CallWebViewHost] widgetUrl=$widgetUrl")
-
     val controller = remember {
         JcefCallWebViewController(
             onMessageFromWidget = onMessageFromWidget,
@@ -61,8 +56,7 @@ actual fun CallWebViewHost(
         onAttachController(controller)
     }
 
-    LaunchedEffect(widgetUrl) {
-        println("[CallWebViewHost] LaunchedEffect loading: $widgetUrl")
+    LaunchedEffect(controller, widgetUrl) {
         controller.load(widgetUrl)
     }
 
@@ -84,8 +78,9 @@ private class JcefCallWebViewController(
 
     private val disposed = AtomicBoolean(false)
     private val closedCallbackFired = AtomicBoolean(false)
+    private val browserCreated = AtomicBoolean(false)
     private val browserReady = CountDownLatch(1)
-    private val pendingUrl = AtomicReference<String?>(null)
+    private val urlLoaded = AtomicReference<String?>(null)
 
     @Volatile private var frame: JFrame? = null
     @Volatile private var client: CefClient? = null
@@ -95,64 +90,66 @@ private class JcefCallWebViewController(
     private val pendingToWidget = ConcurrentLinkedQueue<String>()
 
     suspend fun load(url: String) {
-        println("[JcefController] load() called with: $url")
+        if (urlLoaded.get() == url || disposed.get()) return
 
-        if (disposed.get()) {
-            println("[JcefController] Already disposed, skipping load")
-            return
+        // if first time
+        val needsDownload = !JcefRuntime.isInitialized()
+        var infoDialog: JDialog? = null
+
+        if (needsDownload) {
+            SwingUtilities.invokeLater {
+                val dialog = JDialog(null as Frame?, "Mages", Dialog.ModalityType.MODELESS)
+                dialog.defaultCloseOperation = JDialog.DO_NOTHING_ON_CLOSE
+                dialog.isResizable = false
+
+                val label = JLabel("<html><div style='text-align: center; padding: 20px;'>" +
+                        "Downloading webview for calls (first time only)... <br>" +
+                        "<span style='font-size: 10px; color: gray;'>This may take a minute</span>" +
+                        "</div></html>")
+                dialog.add(label)
+                dialog.pack()
+                dialog.setLocationRelativeTo(null)
+                dialog.isVisible = true
+
+                infoDialog = dialog
+            }
         }
 
         val app: CefApp = withContext(Dispatchers.IO) {
             JcefRuntime.getOrInit()
         }
 
-        pendingUrl.set(url)
-
-        // Create browser on EDT
-        val latch = CountDownLatch(1)
-        val createTask = Runnable {
-            try {
-                if (!disposed.get() && browser == null) {
-                    println("[JcefController] Creating browser...")
-                    createBrowserInFrame(app)
-                }
-            } finally {
-                latch.countDown()
-            }
+        SwingUtilities.invokeLater {
+            infoDialog?.dispose()
         }
 
-        if (SwingUtilities.isEventDispatchThread()) {
-            createTask.run()
-        } else {
-            SwingUtilities.invokeLater(createTask)
+        if (browserCreated.compareAndSet(false, true)) {
+            val latch = CountDownLatch(1)
+            SwingUtilities.invokeLater {
+                try {
+                    if (!disposed.get()) {
+                        createBrowserInFrame(app)
+                    }
+                } finally {
+                    latch.countDown()
+                }
+            }
+
             withContext(Dispatchers.IO) {
                 latch.await(10, TimeUnit.SECONDS)
+                browserReady.await(5, TimeUnit.SECONDS)
             }
         }
 
-        // Wait for browser ready
-        withContext(Dispatchers.IO) {
-            println("[JcefController] Waiting for browser ready...")
-            val ready = browserReady.await(5, TimeUnit.SECONDS)
-            if (!ready) {
-                println("[JcefController] WARNING: Browser ready timeout, trying anyway")
-            }
-        }
-
-        // Load URL
-        val urlToLoad = pendingUrl.get()
-        if (urlToLoad != null && !disposed.get()) {
-            println("[JcefController] Browser ready, now loading: $urlToLoad")
+        if (!disposed.get() && urlLoaded.compareAndSet(null, url)) {
             SwingUtilities.invokeLater {
-                browser?.loadURL(urlToLoad)
+                browser?.loadURL(url)
             }
         }
     }
 
     override fun close() {
-        println("[JcefController] close() called")
         if (!disposed.compareAndSet(false, true)) return
-
         browserReady.countDown()
 
         SwingUtilities.invokeLater {
@@ -183,30 +180,21 @@ private class JcefCallWebViewController(
     private fun handleWidgetMessage(message: String) {
         try {
             val json = JSONObject(message)
-            val api = json.optString("api")
             val action = json.optString("action")
 
-            println("[WidgetBridge] Widget → Native: api=$api, action=$action")
-
             if (action in ELEMENT_SPECIFIC_ACTIONS) {
-                println("[WidgetBridge] Handling Element-specific action locally: $action")
                 sendElementActionResponse(message)
                 onMessageFromWidget(message)
 
                 when (action) {
-                    "io.element.close", "im.vector.hangup" -> {
-                        fireClosedOnce()
-                    }
-                    "minimize" -> {
-                        onMinimizeRequested()
-                    }
+                    "io.element.close", "im.vector.hangup" -> fireClosedOnce()
+                    "minimize" -> onMinimizeRequested()
                 }
                 return
             }
 
             onMessageFromWidget(message)
         } catch (e: Exception) {
-            println("[WidgetBridge] Error parsing message, forwarding anyway: ${e.message}")
             onMessageFromWidget(message)
         }
     }
@@ -216,29 +204,22 @@ private class JcefCallWebViewController(
             val response = JSONObject(originalMessage).apply {
                 put("response", JSONObject())
             }
-
-            println("[WidgetBridge] Sending Element response: ${response.toString().take(100)}")
             postMessageToWidget(response.toString())
-        } catch (e: Exception) {
-            println("[WidgetBridge] Failed to send response: ${e.message}")
-        }
+        } catch (_: Exception) {}
     }
 
     override fun sendToWidget(message: String) {
         if (disposed.get()) return
-        println("[WidgetBridge] Native → Widget: ${message.take(200)}")
         postMessageToWidget(message)
     }
 
     private fun postMessageToWidget(jsonMessage: String) {
         val b = browser ?: run {
-            println("[WidgetBridge] Browser null, queuing message")
             pendingToWidget.add(jsonMessage)
             return
         }
 
         val f = b.mainFrame ?: run {
-            println("[WidgetBridge] MainFrame null, queuing message")
             pendingToWidget.add(jsonMessage)
             return
         }
@@ -248,8 +229,6 @@ private class JcefCallWebViewController(
     }
 
     private fun createBrowserInFrame(app: CefApp) {
-        println("[JcefController] createBrowserInFrame()")
-
         val cl = app.createClient()
         val routerCfg = CefMessageRouter.CefMessageRouterConfig("elementX", "elementXCancel")
         val r = CefMessageRouter.create(routerCfg)
@@ -273,23 +252,17 @@ private class JcefCallWebViewController(
 
         cl.addLoadHandler(object : CefLoadHandlerAdapter() {
             override fun onLoadStart(browser: CefBrowser, frame: CefFrame, transitionType: CefRequest.TransitionType) {
-                println("[JcefController] onLoadStart: ${frame.url} (isMain=${frame.isMain})")
                 if (!frame.isMain) return
-
                 if (frame.url != "about:blank") {
                     injectBridge(frame)
                 }
             }
 
             override fun onLoadEnd(browser: CefBrowser, frame: CefFrame, httpStatusCode: Int) {
-                println("[JcefController] onLoadEnd: ${frame.url} (status=$httpStatusCode, isMain=${frame.isMain})")
                 if (!frame.isMain) return
-
                 if (frame.url == "about:blank") {
-                    println("[JcefController] Browser ready (about:blank loaded)")
                     browserReady.countDown()
                 } else {
-                    println("[WidgetBridge] Page finished: ${frame.url}")
                     injectBackButtonHandler(frame)
                     flushPendingToWidget()
                 }
@@ -302,8 +275,7 @@ private class JcefCallWebViewController(
                 errorText: String,
                 failedUrl: String
             ) {
-                println("[JcefController] onLoadError: $failedUrl - $errorCode: $errorText")
-                browserReady.countDown()
+                if (frame.isMain) browserReady.countDown()
             }
         })
 
@@ -334,37 +306,34 @@ private class JcefCallWebViewController(
 
         jframe.addWindowListener(object : WindowAdapter() {
             override fun windowClosing(e: WindowEvent?) {
-                println("[JcefController] Window closing")
                 fireClosedOnce()
+            }
+
+            override fun windowActivated(e: WindowEvent?) {
+                browser?.setFocus(true)
             }
         })
 
         val browserComponent = b.uiComponent as Component
-        browserComponent.isFocusable = true
-
-        jframe.add(browserComponent, BorderLayout.CENTER)
+        jframe.contentPane.add(browserComponent, BorderLayout.CENTER)
         jframe.isVisible = true
 
-        browserComponent.requestFocusInWindow()
+        SwingUtilities.invokeLater {
+            browserComponent.requestFocusInWindow()
+            browser?.setFocus(true)
+        }
 
         frame = jframe
-
-        println("[JcefController] Browser frame created and visible")
     }
 
     private fun injectBridge(frame: CefFrame) {
-        println("[JcefController] Injecting bridge into: ${frame.url}")
-
         val js = """
             window.addEventListener('message', function(event) {
                 let message = {data: event.data, origin: event.origin};
                 if (message.data.response && message.data.api == "toWidget"
                     || !message.data.response && message.data.api == "fromWidget") {
                     let json = JSON.stringify(event.data);
-                    console.log('message sent: ' + json.substring(0, 100));
                     elementX({request: json, persistent: false, onSuccess: function(){}, onFailure: function(){}});
-                } else {
-                    console.log('message received (ignored): ' + JSON.stringify(event.data).substring(0, 100));
                 }
             });
         """.trimIndent()
@@ -383,7 +352,6 @@ private class JcefCallWebViewController(
                         onFailure: function(){}
                     });
                 };
-                console.log('[MagesBridge] Back button handler installed');
             }
         """.trimIndent()
 
@@ -391,12 +359,9 @@ private class JcefCallWebViewController(
     }
 
     private fun flushPendingToWidget() {
-        var count = 0
         while (true) {
             val msg = pendingToWidget.poll() ?: break
             postMessageToWidget(msg)
-            count++
         }
-        if (count > 0) println("[JcefController] Flushed $count pending messages")
     }
 }
