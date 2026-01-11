@@ -90,10 +90,7 @@ class RustMatrixPort : MatrixPort {
                         if (items.isNotEmpty()) TimelineDiff.Append(items) else null
                     }
                     is TimelineDiffKind.PushBack -> TimelineDiff.Append(listOf(diff.value.toModel()))
-                    is TimelineDiffKind.PushFront -> {
-                        val item = diff.value.toModel()
-                        TimelineDiff.UpsertByItemId(item.itemId, item)
-                    }
+                    is TimelineDiffKind.PushFront -> TimelineDiff.Prepend(diff.value.toModel())
                     is TimelineDiffKind.UpdateByItemId -> TimelineDiff.UpdateByItemId(diff.itemId, diff.value.toModel())
                     is TimelineDiffKind.RemoveByItemId -> TimelineDiff.RemoveByItemId(diff.itemId)
                     is TimelineDiffKind.UpsertByItemId -> TimelineDiff.UpsertByItemId(diff.itemId, diff.value.toModel())
@@ -1249,7 +1246,7 @@ class RustMatrixPort : MatrixPort {
         roomId: String,
         intent: CallIntent,
         elementCallUrl: String?,
-        parentUrl: String?,
+        parentUrl: String?,  // ADD THIS
         languageTag: String?,
         theme: String?,
         observer: CallWidgetObserver,
@@ -1265,8 +1262,21 @@ class RustMatrixPort : MatrixPort {
 
         runCatching {
             withClient { cl ->
-                val info = cl.startElementCall(roomId, elementCallUrl, ffiIntent, cb, languageTag, theme)
-                CallSession(sessionId = info.sessionId, widgetUrl = info.widgetUrl, widgetBaseUrl = info.widgetBaseUrl)
+                val info = cl.startElementCall(
+                    roomId,
+                    elementCallUrl,
+                    parentUrl,
+                    ffiIntent,
+                    cb,
+                    languageTag,
+                    theme
+                )
+                CallSession(
+                    sessionId = info.sessionId,
+                    widgetUrl = info.widgetUrl,
+                    widgetBaseUrl = info.widgetBaseUrl,
+                    parentUrl = info.parentUrl
+                )
             }
         }.getOrNull()
     }
@@ -1395,7 +1405,6 @@ private fun mages.NotificationKind.toKotlin(): NotificationKind = when (this) {
     mages.NotificationKind.CALL_INVITE -> NotificationKind.CallInvite
     mages.NotificationKind.STATE_EVENT -> NotificationKind.StateEvent
 }
-
 
 private fun mages.SearchPage.toKotlin(): SearchPage =
     SearchPage(

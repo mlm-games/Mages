@@ -16,7 +16,6 @@ import org.cef.handler.*
 import org.cef.network.CefRequest
 import org.json.JSONObject
 import java.awt.BorderLayout
-import java.awt.Component
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -92,15 +91,17 @@ private class JcefCallWebViewController(
     private val browserReady = CountDownLatch(1)
     private val pendingUrl = AtomicReference<String?>(null)
 
-    val container: JPanel = JPanel(BorderLayout()).apply {
-        add(JLabel("Starting call (or downloading webview for first launch)..."), BorderLayout.CENTER)
-    }
+    val container: JPanel = JPanel(BorderLayout())
 
     @Volatile private var client: CefClient? = null
     @Volatile private var browser: CefBrowser? = null
     @Volatile private var router: CefMessageRouter? = null
 
     private val pendingToWidget = ConcurrentLinkedQueue<String>()
+
+    init {
+        container.add(JLabel("Starting call (or downloading webview for first launch, please wait...)"), BorderLayout.CENTER)
+    }
 
     suspend fun load(url: String) {
         println("[JcefController] load() called with: $url")
@@ -166,7 +167,6 @@ private class JcefCallWebViewController(
             client = null
 
             container.removeAll()
-            container.add(JLabel("Call view disposed"), BorderLayout.CENTER)
             container.revalidate()
             container.repaint()
         }
@@ -287,8 +287,6 @@ private class JcefCallWebViewController(
                 } else {
                     println("[WidgetBridge] Page finished: ${frame.url}")
                     injectBackButtonHandler(frame)
-                    injectDesktopLayoutFix(frame)
-                    SwingUtilities.invokeLater { forceResize() }
                     flushPendingToWidget()
                 }
             }
@@ -316,23 +314,6 @@ private class JcefCallWebViewController(
                 println("[WebViewConsole] [$level] $source:$line $message")
                 return false
             }
-
-            override fun onAddressChange(browser: CefBrowser, frame: CefFrame, url: String) {
-                println("[JcefController] Address changed to: $url")
-            }
-        })
-
-        cl.addRequestHandler(object : CefRequestHandlerAdapter() {
-            override fun onBeforeBrowse(
-                browser: CefBrowser,
-                frame: CefFrame,
-                request: CefRequest,
-                userGesture: Boolean,
-                isRedirect: Boolean
-            ): Boolean {
-                println("[JcefController] onBeforeBrowse: ${request.url}")
-                return false
-            }
         })
 
         val b = cl.createBrowser("about:blank", false, false)
@@ -341,8 +322,7 @@ private class JcefCallWebViewController(
         router = r
 
         container.removeAll()
-        val browserComponent = b.uiComponent as Component
-        container.add(browserComponent, BorderLayout.CENTER)
+        container.add(b.uiComponent, BorderLayout.CENTER)
         container.revalidate()
         container.repaint()
 
@@ -381,87 +361,10 @@ private class JcefCallWebViewController(
                     });
                 };
                 console.log('[MagesBridge] Back button handler installed');
-            } else {
-                console.log('[MagesBridge] controls not available');
             }
         """.trimIndent()
 
         frame.executeJavaScript(js, frame.url, 0)
-    }
-
-    private fun injectDesktopLayoutFix(frame: CefFrame) {
-        println("[JcefController] Injecting desktop layout fix...")
-
-        val js = """
-            (function() {
-                if (window.__MagesDesktopFixApplied) return;
-                window.__MagesDesktopFixApplied = true;
-                
-                console.log('[MagesBridge] Applying desktop layout fix...');
-                console.log('[MagesBridge] Window size:', window.innerWidth, 'x', window.innerHeight);
-                
-                var viewport = document.querySelector('meta[name="viewport"]');
-                if (viewport) {
-                    viewport.setAttribute('content', 'width=device-width, initial-scale=1.0');
-                }
-                
-                var style = document.createElement('style');
-                style.id = 'mages-desktop-fix';
-                style.textContent = `
-                    html, body {
-                        width: 100% !important;
-                        height: 100% !important;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        overflow: hidden !important;
-                    }
-                    #root {
-                        width: 100% !important;
-                        height: 100% !important;
-                        display: flex !important;
-                        flex-direction: column !important;
-                    }
-                    #root > * {
-                        flex: 1 1 auto !important;
-                        width: 100% !important;
-                        min-height: 0 !important;
-                    }
-                    [class*="CallView"], [class*="LobbyView"], [class*="InCallView"] {
-                        max-width: none !important;
-                        width: 100% !important;
-                        height: 100% !important;
-                    }
-                `;
-                document.head.appendChild(style);
-                
-                setTimeout(function() {
-                    window.dispatchEvent(new Event('resize'));
-                    console.log('[MagesBridge] Resize dispatched, size:', window.innerWidth, 'x', window.innerHeight);
-                }, 100);
-                
-                new ResizeObserver(function() {
-                    window.dispatchEvent(new Event('resize'));
-                }).observe(document.body);
-                
-                console.log('[MagesBridge] Desktop fix applied');
-            })();
-        """.trimIndent()
-
-        frame.executeJavaScript(js, frame.url, 0)
-    }
-
-    private fun forceResize() {
-        val b = browser ?: return
-        val comp = b.uiComponent ?: return
-        val size = container.size
-
-        if (size.width > 0 && size.height > 0) {
-            println("[JcefController] Forcing resize to ${size.width}x${size.height}")
-            comp.setSize(size.width, size.height)
-            container.revalidate()
-            container.repaint()
-            b.mainFrame?.executeJavaScript("window.dispatchEvent(new Event('resize'));", "", 0)
-        }
     }
 
     private fun flushPendingToWidget() {
