@@ -111,7 +111,12 @@ fun main() = application {
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            NotifierImpl.warmUp()
+            val osName = System.getProperty("os.name").lowercase()
+            if (osName.contains("linux")) {
+                NotifierImpl.warmUp()
+            } else {
+                println("Skipping NotifierImpl warmup: D-Bus is not supported on $osName")
+            }
         }
     }
 
