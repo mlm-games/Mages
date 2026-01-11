@@ -38,10 +38,11 @@ jobs:
         include:
           - arch: x64
             rust_target: x86_64-apple-darwin
-            runner: macos-latest
+            runner: macos-13
           - arch: arm64
             rust_target: aarch64-apple-darwin
             runner: macos-latest
+            # fail-fast: false
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v5
