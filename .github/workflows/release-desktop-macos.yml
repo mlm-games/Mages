@@ -1,0 +1,192 @@
+name: Desktop Releases (macOS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Version tag (e.g., 0.9.2)'
+        required: true
+        type: string
+      mark_prerelease:
+        description: "Mark as prerelease"
+        required: true
+        default: false
+        type: boolean
+      sign_and_notarize:
+        description: "Sign and notarize (requires secrets)"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: desktop-release-macos-${{ inputs.version_tag }}
+  cancel-in-progress: false
+
+env:
+  JAVA_VERSION: '21'
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  build-macos:
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+        include:
+          - arch: x64
+            rust_target: x86_64-apple-darwin
+            runner: macos-13
+          - arch: arm64
+            rust_target: aarch64-apple-darwin
+            runner: macos-14
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.version_tag }}
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: gradle
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Build Rust JNI
+        run: cargo build --release --manifest-path rust/Cargo.toml --target ${{ matrix.rust_target }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build and prepare native libraries
+        run: |
+          ./gradlew :shared:cargoBuildDesktop :shared:copyNativeForJna :shared:genUniFFIJvm
+
+      - name: Package desktop application
+        run: |
+          ./gradlew :desktopApp:packageDistributionForCurrentOS --no-daemon
+
+      - name: Import signing certificate
+        if: ${{ inputs.sign_and_notarize }}
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          p12-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+
+      - name: Sign application
+        if: ${{ inputs.sign_and_notarize }}
+        run: |
+          APP_PATH=$(find desktopApp/build/compose/binaries/main/app -name "*.app" | head -n 1)
+          if [ -n "$APP_PATH" ]; then
+            codesign --deep --force --verify --verbose \
+              --sign "${{ secrets.MACOS_SIGNING_IDENTITY }}" \
+              --options runtime \
+              "$APP_PATH"
+          fi
+
+      - name: Create DMG
+        run: |
+          mkdir -p dist
+          APP_PATH=$(find desktopApp/build/compose/binaries/main/app -name "*.app" | head -n 1)
+          if [ -n "$APP_PATH" ]; then
+            APP_NAME=$(basename "$APP_PATH" .app)
+            DMG_NAME="${APP_NAME}-${{ inputs.version_tag }}-${{ matrix.arch }}.dmg"
+            
+            # Create temporary directory for DMG contents
+            mkdir -p dmg-contents
+            cp -R "$APP_PATH" dmg-contents/
+            ln -s /Applications dmg-contents/Applications
+            
+            # Create DMG
+            hdiutil create -volname "$APP_NAME" \
+              -srcfolder dmg-contents \
+              -ov -format UDZO \
+              "dist/$DMG_NAME"
+            
+            rm -rf dmg-contents
+          fi
+
+      - name: Notarize DMG
+        if: ${{ inputs.sign_and_notarize }}
+        run: |
+          DMG_FILE=$(find dist -name "*.dmg" | head -n 1)
+          if [ -n "$DMG_FILE" ]; then
+            xcrun notarytool submit "$DMG_FILE" \
+              --apple-id "${{ secrets.MACOS_NOTARIZATION_APPLE_ID }}" \
+              --password "${{ secrets.MACOS_NOTARIZATION_PASSWORD }}" \
+              --team-id "${{ secrets.MACOS_NOTARIZATION_TEAM_ID }}" \
+              --wait
+            
+            xcrun stapler staple "$DMG_FILE"
+          fi
+
+      - name: Collect desktop artifacts
+        run: |
+          mkdir -p dist
+          find desktopApp/build/compose/binaries/main -type f \( -name "*.dmg" -o -name "*.pkg" \) -exec cp {} dist/ \; 2>/dev/null || true
+          # Rename files to include architecture if not already
+          for f in dist/*; do
+            if [[ -f "$f" && ! "$f" =~ ${{ matrix.arch }} ]]; then
+              base="${f%.*}"
+              ext="${f##*.}"
+              mv "$f" "${base}-${{ matrix.arch }}.${ext}"
+            fi
+          done
+          ls -la dist
+
+      - name: Upload artifacts (CI)
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-desktop-${{ matrix.arch }}
+          path: dist/*
+
+  # Optional: Build universal binary
+  build-macos-universal:
+    needs: build-macos
+    runs-on: macos-14
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: macos-desktop-*
+          path: artifacts
+
+      - name: Create universal DMG (optional)
+        run: |
+          echo "Universal binary creation would go here"
+          echo "This requires combining x64 and arm64 binaries with lipo"
+          # For now, just pass through
+          mkdir -p dist
+          find artifacts -name "*.dmg" -exec cp {} dist/ \;
+          ls -la dist
+
+      - name: Upload universal artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-desktop-universal
+          path: dist/*
+
+  release:
+    needs: [build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: macos-desktop-*
+          merge-multiple: true
+          path: dist
+
+      - name: Create / Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version_tag }}
+          name: ${{ inputs.version_tag }}
+          prerelease: ${{ inputs.mark_prerelease }}
+          files: dist/*

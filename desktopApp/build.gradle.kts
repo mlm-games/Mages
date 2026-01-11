@@ -30,7 +30,7 @@ compose.desktop {
         mainClass = "org.mlm.mages.DesktopMainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.AppImage, TargetFormat.Deb, TargetFormat.Rpm)
+            targetFormats(TargetFormat.AppImage, TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.Msi, TargetFormat.Dmg)
             packageName = "Mages"
             packageVersion = "9.9.9"  //android.defaultConfig.versionName
             description = "Mages Matrix Client"

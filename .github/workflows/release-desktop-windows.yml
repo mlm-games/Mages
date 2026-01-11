@@ -1,0 +1,106 @@
+name: Desktop Releases (Windows)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Version tag (e.g., 0.9.2)'
+        required: true
+        type: string
+      mark_prerelease:
+        description: "Mark as prerelease"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: desktop-release-windows-${{ inputs.version_tag }}
+  cancel-in-progress: false
+
+env:
+  JAVA_VERSION: '21'
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  build-windows:
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+        include:
+          - arch: x64
+            rust_target: x86_64-pc-windows-msvc
+            runner: windows-latest
+          - arch: arm64
+            rust_target: aarch64-pc-windows-msvc
+            runner: windows-latest
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.version_tag }}
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: gradle
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Build Rust JNI
+        run: cargo build --release --manifest-path rust/Cargo.toml --target ${{ matrix.rust_target }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build and prepare native libraries
+        run: |
+          ./gradlew :shared:cargoBuildDesktop :shared:copyNativeForJna :shared:genUniFFIJvm
+
+      - name: Package desktop application
+        run: |
+          ./gradlew :desktopApp:packageDistributionForCurrentOS --no-daemon
+
+      - name: Collect desktop artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist
+          Get-ChildItem -Path desktopApp/build/compose/binaries/main -Recurse -Include *.msi,*.exe | Copy-Item -Destination dist/
+          # Rename to include architecture
+          Get-ChildItem -Path dist -File | ForEach-Object {
+            $newName = $_.BaseName + "-${{ matrix.arch }}" + $_.Extension
+            Rename-Item -Path $_.FullName -NewName $newName
+          }
+          Get-ChildItem dist
+
+      - name: Upload artifacts (CI)
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-desktop-${{ matrix.arch }}
+          path: dist/*
+
+  release:
+    needs: build-windows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: windows-desktop-*
+          merge-multiple: true
+          path: dist
+
+      - name: Create / Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version_tag }}
+          name: ${{ inputs.version_tag }}
+          prerelease: ${{ inputs.mark_prerelease }}
+          files: dist/*
