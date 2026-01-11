@@ -7,8 +7,7 @@ actual object MagesPaths {
 
     actual fun init() {
         if (storeDir == null) {
-            val home = System.getProperty("user.home")
-            val base = File(home, ".mages/store")
+            val base = File(getAppDataDir("mages"), "store")
             if (!base.exists()) base.mkdirs()
             storeDir = base.absolutePath
         }
@@ -18,6 +17,28 @@ actual object MagesPaths {
         return storeDir ?: run {
             init()
             storeDir!!
+        }
+    }
+
+    private fun getAppDataDir(appName: String): File {
+        val os = System.getProperty("os.name").lowercase()
+
+        return when {
+            os.contains("win") -> {
+                val localAppData = System.getenv("LOCALAPPDATA")
+                    ?: System.getenv("APPDATA")
+                    ?: "${System.getProperty("user.home")}\\AppData\\Local"
+                File(localAppData, appName)
+            }
+            os.contains("mac") || os.contains("darwin") -> {
+                val home = System.getProperty("user.home")
+                File(home, "Library/Application Support/$appName")
+            }
+            else -> {
+                val dataHome = System.getenv("XDG_DATA_HOME")?.takeIf { it.isNotBlank() }
+                    ?: "${System.getProperty("user.home")}/.local/share"
+                File(dataHome, appName)
+            }
         }
     }
 }
