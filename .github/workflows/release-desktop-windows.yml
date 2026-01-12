@@ -44,12 +44,19 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Build Rust JNI (host)
+        run: cargo build --release --manifest-path rust/Cargo.toml
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build native libraries and package
+      - name: Build and prepare native libraries
         run: |
-          ./gradlew :shared:cargoBuildDesktop :shared:copyNativeForJna :shared:genUniFFIJvm :desktopApp:packageDistributionForCurrentOS --no-daemon
+          ./gradlew :shared:cargoBuildDesktop :shared:copyNativeForJna :shared:genUniFFIJvm
+
+      - name: Package desktop application
+        run: |
+          ./gradlew :desktopApp:packageDistributionForCurrentOS --no-daemon
 
       - name: Collect desktop artifacts
         shell: pwsh
