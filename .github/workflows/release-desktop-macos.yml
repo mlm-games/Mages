@@ -56,12 +56,19 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Build Rust JNI (host)
+        run: cargo build --release --manifest-path rust/Cargo.toml
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build native libraries and package
+      - name: Build and prepare native libraries
         run: |
-          ./gradlew :shared:cargoBuildDesktop :shared:copyNativeForJna :shared:genUniFFIJvm :desktopApp:packageDistributionForCurrentOS --no-daemon
+          ./gradlew :shared:cargoBuildDesktop :shared:copyNativeForJna :shared:genUniFFIJvm
+
+      - name: Package desktop application
+        run: |
+          ./gradlew :desktopApp:packageDistributionForCurrentOS --no-daemon
 
       - name: Import signing certificate
         if: ${{ inputs.sign_and_notarize }}
@@ -118,7 +125,6 @@ jobs:
       - name: Collect artifacts
         run: |
           mkdir -p dist
-          # Copy any pkg files if they exist
           find desktopApp/build/compose/binaries/main -type f -name "*.pkg" | while read pkg; do
             base=$(basename "$pkg" .pkg)
             cp "$pkg" "dist/${base}-${{ inputs.version_tag }}-${{ matrix.arch }}.pkg"
