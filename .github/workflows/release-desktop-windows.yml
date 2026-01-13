@@ -56,7 +56,7 @@ jobs:
 
       - name: Package desktop application
         run: |
-          ./gradlew :desktopApp:packageDistributionForCurrentOS --no-daemon
+          ./gradlew :desktopApp:packageMsi --no-daemon
 
       - name: Collect desktop artifacts
         shell: pwsh
