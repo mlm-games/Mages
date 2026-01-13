@@ -68,7 +68,7 @@ jobs:
 
       - name: Package desktop application
         run: |
-          ./gradlew :desktopApp:packageDistributionForCurrentOS --no-daemon
+          ./gradlew :desktopApp:packageDmg --no-daemon
 
       - name: Import signing certificate
         if: ${{ inputs.sign_and_notarize }}
