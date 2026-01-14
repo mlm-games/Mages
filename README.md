@@ -74,6 +74,13 @@ cargo build --release --manifest-path rust/Cargo.toml
 # AppImage is assembled by the desktop release workflow
 ```
 
+## Version Trackers
+
+| Platform    | Version |
+|-------------|---------|
+| F-Droid     | [![F-Droid Version](https://img.shields.io/f-droid/v/org.mlm.mages)](https://f-droid.org/packages/org.mlm.mages/) |
+| AUR         | [![AUR Version](https://img.shields.io/aur/version/mages-bin)](https://aur.archlinux.org/packages/mages-bin) |
+
 ## Contributing
 
 Issues and small PRs are welcome. Please keep changes focused and self‑contained.
