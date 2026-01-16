@@ -94,8 +94,7 @@ fun BindDeepLinks(
                             elementCallUrl = elementCallUrl,
                             parentUrl = parentCallUrl,
                             languageTag = languageTag,
-                            theme = widgetTheme,
-                            onToWidget = { msg -> callManager.onToWidgetFromSdk(msg) }
+                            theme = widgetTheme
                         )
                     }.getOrDefault(false)
 

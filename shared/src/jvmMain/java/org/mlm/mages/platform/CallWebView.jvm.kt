@@ -182,9 +182,11 @@ private class JcefCallWebViewController(
             val json = JSONObject(message)
             val action = json.optString("action")
 
+            println("[JcefCallWebView] Widget → Native: action=$action")
+
             if (action in ELEMENT_SPECIFIC_ACTIONS) {
+                println("[JcefCallWebView] Handling Element-specific action locally: $action")
                 sendElementActionResponse(message)
-                onMessageFromWidget(message)
 
                 when (action) {
                     "io.element.close", "im.vector.hangup" -> fireClosedOnce()
@@ -195,31 +197,46 @@ private class JcefCallWebViewController(
 
             onMessageFromWidget(message)
         } catch (e: Exception) {
+            println("[JcefCallWebView] Error parsing message: ${e.message}")
             onMessageFromWidget(message)
         }
     }
 
     private fun sendElementActionResponse(originalMessage: String) {
         try {
-            val response = JSONObject(originalMessage).apply {
-                put("response", JSONObject())
-            }
-            postMessageToWidget(response.toString())
-        } catch (_: Exception) {}
+            val original = JSONObject(originalMessage)
+
+            val response = JSONObject()
+            response.put("api", "toWidget")
+            response.put("widgetId", original.optString("widgetId"))
+            response.put("requestId", original.optString("requestId"))
+            response.put("action", original.optString("action"))
+            response.put("response", JSONObject())
+
+            val responseStr = response.toString()
+            println("[JcefCallWebView] Sending Element response: $responseStr")
+            postMessageToWidget(responseStr)
+        } catch (e: Exception) {
+            println("[JcefCallWebView] Failed to send response: ${e.message}")
+            e.printStackTrace()
+        }
     }
 
     override fun sendToWidget(message: String) {
         if (disposed.get()) return
+        println("[JcefCallWebView] Native → Widget: ${message.take(300)}")
         postMessageToWidget(message)
     }
 
     private fun postMessageToWidget(jsonMessage: String) {
         val b = browser ?: run {
+            println("[JcefCallWebView] Browser null, queueing message")
             pendingToWidget.add(jsonMessage)
             return
         }
 
         val f = b.mainFrame ?: run {
+            println("[JcefCallWebView] Frame null, queueing message")
             pendingToWidget.add(jsonMessage)
             return
         }
@@ -253,6 +270,7 @@ private class JcefCallWebViewController(
         cl.addLoadHandler(object : CefLoadHandlerAdapter() {
             override fun onLoadStart(browser: CefBrowser, frame: CefFrame, transitionType: CefRequest.TransitionType) {
                 if (!frame.isMain) return
+                println("[JcefCallWebView] onLoadStart: ${frame.url}")
                 if (frame.url != "about:blank") {
                     injectBridge(frame)
                 }
@@ -260,6 +278,7 @@ private class JcefCallWebViewController(
 
             override fun onLoadEnd(browser: CefBrowser, frame: CefFrame, httpStatusCode: Int) {
                 if (!frame.isMain) return
+                println("[JcefCallWebView] onLoadEnd: ${frame.url} (status: $httpStatusCode)")
                 if (frame.url == "about:blank") {
                     browserReady.countDown()
                 } else {
@@ -275,6 +294,7 @@ private class JcefCallWebViewController(
                 errorText: String,
                 failedUrl: String
             ) {
+                println("[JcefCallWebView] onLoadError: $failedUrl - $errorText")
                 if (frame.isMain) browserReady.countDown()
             }
         })
@@ -327,6 +347,7 @@ private class JcefCallWebViewController(
     }
 
     private fun injectBridge(frame: CefFrame) {
+        // This is the original working bridge - only intercepts fromWidget requests
         val js = """
             window.addEventListener('message', function(event) {
                 let message = {data: event.data, origin: event.origin};
@@ -338,6 +359,7 @@ private class JcefCallWebViewController(
             });
         """.trimIndent()
 
+        println("[JcefCallWebView] Injecting bridge into frame: ${frame.url}")
         frame.executeJavaScript(js, frame.url, 0)
     }
 
@@ -359,6 +381,7 @@ private class JcefCallWebViewController(
     }
 
     private fun flushPendingToWidget() {
+        println("[JcefCallWebView] Flushing ${pendingToWidget.size} pending messages")
         while (true) {
             val msg = pendingToWidget.poll() ?: break
             postMessageToWidget(msg)

@@ -181,8 +181,7 @@ class IncomingCallActivity : ComponentActivity() {
                 elementCallUrl = null,
                 parentUrl = null,
                 languageTag = Locale.getDefault().toLanguageTag(),
-                theme = "dark",
-                onToWidget = { msg -> callManager.onToWidgetFromSdk(msg) }
+                theme = "dark"
             )
 
             if (success) {

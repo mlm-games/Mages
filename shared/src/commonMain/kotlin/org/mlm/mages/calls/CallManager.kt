@@ -75,7 +75,6 @@ class CallManager(
         parentUrl: String?,
         languageTag: String?,
         theme: String?,
-        onToWidget: (String) -> Unit,
     ): Boolean {
         val port = service.portOrNull ?: return false
 
@@ -87,7 +86,9 @@ class CallManager(
             languageTag = languageTag,
             theme = theme,
             observer = object : CallWidgetObserver {
-                override fun onToWidget(message: String) = onToWidget(message)
+                override fun onToWidget(message: String) {
+                    onToWidgetFromSdk(message)
+                }
             }
         ) ?: return false
 

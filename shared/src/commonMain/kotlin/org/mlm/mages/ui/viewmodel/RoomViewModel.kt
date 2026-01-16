@@ -1014,8 +1014,7 @@ class RoomViewModel(
                 elementCallUrl,
                 platformEmbeddedElementCallParentUrlOrNull(),
                 languageTag = languageTag,
-                theme = theme,
-                onToWidget = { msg -> callManager.onToWidgetFromSdk(msg) }
+                theme = theme
             )
 
             if (!ok) _events.send(Event.ShowError("Failed to start call"))
