@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="2.3.2" date="2026-01-16" type="stable">
+      <description>
+        <ul>
+          <li>Add back mono icon</li>
+          <li>Add version trackers</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.3.1" date="2026-01-11" type="stable">
       <description>
         <ul>

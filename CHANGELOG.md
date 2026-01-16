@@ -1,3 +1,9 @@
+## v2.3.2
+
+- Add back mono icon
+- Add version trackers
+
+
 ## v2.3.1
 
 - Update build.gradle.kts

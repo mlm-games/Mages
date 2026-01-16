@@ -1,0 +1,2 @@
+- Add back mono icon
+- Add version trackers
