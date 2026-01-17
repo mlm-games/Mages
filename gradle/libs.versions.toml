@@ -1,6 +1,6 @@
 [versions]
 adaptiveNavigation3 = "1.3.0-alpha03"
-agp = "8.13.2"
+agp = "9.0.0"
 android-compileSdk = "36"
 android-minSdk = "24"
 android-targetSdk = "36"

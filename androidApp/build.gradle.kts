@@ -1,16 +1,15 @@
 plugins {
     alias(libs.plugins.androidApplication)
-    alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.apk.dist)
 }
 
-android {
+kotlin {
+    jvmToolchain(17)
+}
 
-    kotlin {
-        jvmToolchain(17)
-    }
+android {
 
     namespace = "org.mlm.mages"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
