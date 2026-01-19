@@ -651,7 +651,9 @@ private fun RoomBottomBar(
     onAttach: () -> Unit,
     onCancelUpload: () -> Unit,
 ) {
-    Column {
+    Column(
+        modifier = Modifier.navigationBarsPadding()
+    ) {
         ActionBanner(
             replyingTo = state.replyingTo,
             editing = state.editing,
@@ -928,7 +930,10 @@ private fun SelectionBottomBar(
     onForward: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Surface(tonalElevation = 3.dp) {
+    Surface(
+        tonalElevation = 3.dp,
+        modifier = Modifier.navigationBarsPadding()
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
