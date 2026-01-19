@@ -159,9 +159,12 @@ val jnaPlatformDir: String = run {
 
 val copyNativeForJna = tasks.register<Copy>("copyNativeForJna") {
     dependsOn(cargoBuildDesktop)
-    val nativeLib = layout.buildDirectory.dir("nativeLibs").get().file(hostLibName).asFile
-    from(nativeLib)
+    from(layout.buildDirectory.dir("nativeLibs").map { it.file(hostLibName) })
     into(file("src/jvmMain/resources/$jnaPlatformDir"))
+}
+
+tasks.named("jvmProcessResources") {
+    dependsOn(copyNativeForJna)
 }
 
 @DisableCachingByDefault(because = "Builds native code")
