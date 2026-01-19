@@ -1,0 +1,5 @@
+- Add nav bars padding (#31)
+- try fix windows build lib not being copied
+- Update README.md
+- Update README.md
+- upgrade to agp 9.0.0

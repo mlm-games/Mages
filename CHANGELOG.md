@@ -1,3 +1,12 @@
+## v2.3.3
+
+- Add nav bars padding (#31)
+- try fix windows build lib not being copied
+- Update README.md
+- Update README.md
+- upgrade to agp 9.0.0
+
+
 ## v2.3.2
 
 - Add back mono icon
