@@ -9,7 +9,7 @@ The goal was to have a cross‑platform desktop/mobile client, (initially there 
 
 ## Status 
 
-This is experimental‑stage software. If you use it, assume things may break. (haven't noticed any encryption related issues, due to it being fully handled by the battle tested sdk, though can't be sure abt it)
+This is experimental‑stage software. If you use it, assume things may break. (Do open an issue if you'd like to :)
 
 ## Features (as of the last README update)
 
@@ -19,6 +19,8 @@ This is experimental‑stage software. If you use it, assume things may break. (
 - Spaces browser
 - Simple presence / privacy settings
 - Android app and Linux desktop builds (AppImage, AUR `mages-bin`)
+- Unsigned Windows and Mac builds
+- Experimental Call Support
 
 ## Platforms
 
@@ -29,10 +31,10 @@ This is experimental‑stage software. If you use it, assume things may break. (
 - **Linux desktop**  
   - AppImage builds for x86_64 and aarch64.
   - AUR:  wraps the AppImage.
-  - Other package formats (Flatpak, Snap) may follow.
+  - Other package formats (Snap) may follow.
 
 - **Other platforms**  
-  - The UI is Compose Multiplatform. In practice, only Android + Linux AppImage are actively tested.
+  - The UI is Compose Multiplatform. In practice, only Android + Linux AppImage are actively tested. Windows and Mac are tested rarely and are not signed.
 
 ## Architecture
 
