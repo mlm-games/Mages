@@ -92,4 +92,4 @@ Issues and small PRs are welcome. Please keep changes focused and self‑contain
 
 ## License
 
-Mages is licensed under the **GNU GPL v3** (see `LICENSE`).
+Mages is licensed under the **GNU AGPL v3** (see `LICENSE`).
