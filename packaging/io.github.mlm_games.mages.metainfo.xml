@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="2.3.4" date="2026-01-22" type="stable">
+      <description>
+        <ul>
+          <li>Update readme license from GNU GPL v3 to GNU AGPL v3</li>
+          <li>Revise README for clarity and feature updates</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.3.3" date="2026-01-19" type="stable">
       <description>
         <ul>

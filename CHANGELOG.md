@@ -1,3 +1,9 @@
+## v2.3.4
+
+- Update readme license from GNU GPL v3 to GNU AGPL v3
+- Revise README for clarity and feature updates
+
+
 ## v2.3.3
 
 - Add nav bars padding (#31)

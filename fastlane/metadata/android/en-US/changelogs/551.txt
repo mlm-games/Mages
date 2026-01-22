@@ -1,0 +1,2 @@
+- Update readme license from GNU GPL v3 to GNU AGPL v3
+- Revise README for clarity and feature updates
