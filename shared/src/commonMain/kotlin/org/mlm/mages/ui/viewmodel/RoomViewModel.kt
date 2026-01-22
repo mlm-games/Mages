@@ -1230,6 +1230,8 @@ class RoomViewModel(
     }
 
     private fun prefetchThumbnailsForEvents(events: List<MessageEvent>) {
+        if (settings.value.blockMediaPreviews) return
+
         events.forEach { ev ->
             val a = ev.attachment ?: return@forEach
             if (a.kind != AttachmentKind.Image && a.kind != AttachmentKind.Video && a.thumbnailMxcUri == null) return@forEach

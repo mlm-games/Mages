@@ -1,12 +1,18 @@
 package org.mlm.mages.ui.viewmodel
 
+import androidx.lifecycle.viewModelScope
+import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
+import org.koin.core.component.inject
 import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MatrixService
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.TimelineDiff
+import org.mlm.mages.settings.AppSettings
 
 data class MediaGalleryUiState(
     val isLoading: Boolean = true,
@@ -46,6 +52,11 @@ class MediaGalleryViewModel(
     private val service: MatrixService,
     private val roomId: String
 ) : BaseViewModel<MediaGalleryUiState>(MediaGalleryUiState()) {
+
+    private val settingsRepo: SettingsRepository<AppSettings> by inject()
+
+    private val settings = settingsRepo.flow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
 
     sealed class Event {
         data class ShowError(val message: String) : Event()
@@ -233,6 +244,8 @@ class MediaGalleryViewModel(
     }
 
     private fun prefetchThumbnails(events: List<MessageEvent>) {
+        if (settings.value.blockMediaPreviews) return
+
         events.filter {
             it.attachment?.kind == AttachmentKind.Image ||
                     it.attachment?.kind == AttachmentKind.Video

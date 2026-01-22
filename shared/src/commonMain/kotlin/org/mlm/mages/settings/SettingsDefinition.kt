@@ -219,6 +219,14 @@ data class AppSettings(
     val mediaMaxFileMb: Float = 0f,
 
     @Setting(
+        title = "Block media previews",
+        description = "Don't auto-download thumbnails/previews",
+        category = Storage::class,
+        type = Toggle::class
+    )
+    val blockMediaPreviews: Boolean = false,
+
+    @Setting(
         title = "Start in tray",
         description = "Minimize to tray on launch",
         category = Advanced::class,
