@@ -73,9 +73,12 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        jniLibs {
+            useLegacyPackaging = true   // For repro: prevents recompression of .so files
+        }
     }
 
-    sourceSets["main"].jniLibs.srcDirs("src/androidMain/jniLibs")
+    sourceSets["main"].jniLibs.directories += ("src/androidMain/jniLibs")
 
     dependenciesInfo {
         includeInApk = false
