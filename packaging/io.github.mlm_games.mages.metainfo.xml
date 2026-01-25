@@ -46,6 +46,15 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="2.3.5" date="2026-01-25" type="stable">
+      <description>
+        <ul>
+          <li>version info embedding for desktop AppImages</li>
+          <li>Reduce monochrome icon size slightly</li>
+          <li>Add an option to disable media preview thumbnails (can be used for saving mobile data)</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.3.4" date="2026-01-22" type="stable">
       <description>
         <ul>

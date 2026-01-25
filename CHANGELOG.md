@@ -1,3 +1,10 @@
+## v2.3.5
+
+- version info embedding for desktop AppImages
+- Reduce monochrome icon size slightly
+- Add an option to disable media preview thumbnails (can be used for saving mobile data)
+
+
 ## v2.3.4
 
 - Update readme license from GNU GPL v3 to GNU AGPL v3

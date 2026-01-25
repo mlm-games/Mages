@@ -1,0 +1,3 @@
+- version info embedding for desktop AppImages
+- Reduce monochrome icon size slightly
+- Add an option to disable media preview thumbnails (can be used for saving mobile data)
