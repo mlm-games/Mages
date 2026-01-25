@@ -34,7 +34,7 @@ jobs:
           mkdir -p packaging/snap/builds
           mkdir -p packaging/snap/snap/gui
           cp packaging/io.github.mlm_games.mages.desktop packaging/snap/snap/gui/mages.desktop
-          cp fastlane/metadata/android/en-US/images/icon.png packaging/snap/snap/gui/icon.png
+          cp fastlane/metadata/android/en-US/images/icon-256.png packaging/snap/snap/gui/icon.png
           
           set -e
           echo "Fetch 'mages-${{ inputs.version_name }}-x86_64.AppImage'..."
