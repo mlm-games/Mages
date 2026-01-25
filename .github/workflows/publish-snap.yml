@@ -29,17 +29,17 @@ jobs:
         run: |
           [ -n "$SNAPCRAFT_STORE_CREDENTIALS" ] || { echo "Missing secret SNAPCRAFT_TOKEN" >&2; exit 1; }
 
-      - name: Fetch Linux binary (with fallback)
+      - name: Fetch Linux binary
         run: |
           mkdir -p packaging/snap/builds
           mkdir -p packaging/snap/snap/gui
           cp packaging/io.github.mlm_games.mages.desktop packaging/snap/snap/gui/mages.desktop
           cp fastlane/metadata/android/en-US/images/icon.png packaging/snap/snap/gui/icon.png
           
-          # set -e
-          # echo "Fetch 'mages-${{ inputs.version_name }}-x86_64.AppImage'..."
-          # curl -fL "https://github.com/${{ github.repository }}/releases/download/${{ inputs.version_name }}/mages-${{ inputs.version_name }}-x86_64.AppImage" -o packaging/snap/builds/mages.AppImage
-          # chmod +x packaging/snap/builds/mages.AppImage
+          set -e
+          echo "Fetch 'mages-${{ inputs.version_name }}-x86_64.AppImage'..."
+          curl -fL "https://github.com/${{ github.repository }}/releases/download/${{ inputs.version_name }}/mages-${{ inputs.version_name }}-x86_64.AppImage" -o packaging/snap/builds/mages.AppImage
+          chmod +x packaging/snap/builds/mages.AppImage
 
       - name: Update version in snapcraft.yml
         run: |

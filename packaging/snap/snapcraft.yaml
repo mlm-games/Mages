@@ -22,13 +22,12 @@ apps:
 parts:
   mages:
     plugin: dump
-    source: https://github.com/mlm-games/mages/releases/download/VERSION_PLACEHOLDER/mages-VERSION_PLACEHOLDER-x86_64.AppImage
-    source-type: http
+    source: builds/
     organize:
-      'mages-*.AppImage': bin/mages.AppImage
+      'mages.AppImage': bin/mages.AppImage
     override-build: |
       mkdir -p $SNAP/bin
-      cp mages-*.AppImage $SNAP/bin/mages.AppImage
+      cp mages.AppImage $SNAP/bin/mages.AppImage
       cat > $SNAP/bin/mages << 'EOF'
       #!/bin/sh
       exec "$SNAP/bin/mages.AppImage" "$@"
