@@ -32,7 +32,6 @@ import org.mlm.mages.matrix.Presence
 import org.mlm.mages.matrix.SasPhase
 import org.mlm.mages.nav.*
 import org.mlm.mages.platform.BindLifecycle
-import org.mlm.mages.platform.BindNotifications
 import org.mlm.mages.platform.platformEmbeddedElementCallParentUrlOrNull
 import org.mlm.mages.platform.platformEmbeddedElementCallUrlOrNull
 import org.mlm.mages.platform.rememberFileOpener
@@ -142,7 +141,6 @@ private fun AppContent(deepLinks: Flow<DeepLinkAction>?) {
         )
 
         BindLifecycle(service)
-        BindNotifications(service, settingsRepository)
 
         LaunchedEffect(activeId) {
             if (activeId == null || !service.isLoggedIn()) {

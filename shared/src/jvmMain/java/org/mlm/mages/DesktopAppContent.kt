@@ -15,8 +15,7 @@ import org.mlm.mages.settings.AppSettings
 import javax.swing.SwingUtilities
 
 @Composable
-fun DesktopAppContent(
-    deepLinks: Flow<DeepLinkAction>,
+fun DesktopBackground(
     deepLinkEmitter: MutableSharedFlow<DeepLinkAction>,
     scope: CoroutineScope
 ) {
@@ -64,6 +63,12 @@ fun DesktopAppContent(
     }
 
     BindNotifications(service = service, settingsRepo)
+}
 
+@Composable
+fun DesktopAppContent(
+    deepLinks: Flow<DeepLinkAction>
+) {
+    val settingsRepo: io.github.mlmgames.settings.core.SettingsRepository<AppSettings> = koinInject()
     App(settingsRepo, deepLinks)
 }

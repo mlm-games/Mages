@@ -120,40 +120,43 @@ fun main() = application {
         }
     }
 
-    Window(
-        onCloseRequest = { showWindow = false },
-        state = windowState,
-        visible = showWindow,
-        title = "Mages"
-    ) {
-        val window = this.window
+    KoinApp(settingsRepo) {
+        Window(
+            onCloseRequest = { showWindow = false },
+            state = windowState,
+            visible = showWindow,
+            title = "Mages"
+        ) {
+            val window = this.window
 
-        DisposableEffect(window) {
-            val listener = object : WindowFocusListener {
-                override fun windowGainedFocus(e: WindowEvent?) {
-                    Notifier.setWindowFocused(true)
+            DisposableEffect(window) {
+                val listener = object : WindowFocusListener {
+                    override fun windowGainedFocus(e: WindowEvent?) {
+                        Notifier.setWindowFocused(true)
+                    }
+
+                    override fun windowLostFocus(e: WindowEvent?) {
+                        Notifier.setWindowFocused(false)
+                    }
                 }
 
-                override fun windowLostFocus(e: WindowEvent?) {
+                window.addWindowFocusListener(listener)
+                Notifier.setWindowFocused(window.isFocused)
+
+                onDispose {
+                    window.removeWindowFocusListener(listener)
                     Notifier.setWindowFocused(false)
                 }
             }
 
-            window.addWindowFocusListener(listener)
-            Notifier.setWindowFocused(window.isFocused)
-
-            onDispose {
-                window.removeWindowFocusListener(listener)
-                Notifier.setWindowFocused(false)
-            }
-        }
-
-        KoinApp(settingsRepo) {
             DesktopAppContent(
-                deepLinks = deepLinks,
-                deepLinkEmitter = deepLinkEmitter,
-                scope = scope
+                deepLinks = deepLinks
             )
         }
+
+        DesktopBackground(
+            deepLinkEmitter = deepLinkEmitter,
+            scope = scope
+        )
     }
 }
