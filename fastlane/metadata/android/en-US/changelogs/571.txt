@@ -1,0 +1,2 @@
+- reduce the pagination load to 20 (from 50) messages at a time
+- fix duplicate notifications on Desktop

@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="2.3.6" date="2026-02-01" type="stable">
+      <description>
+        <ul>
+          <li>reduce the pagination load to 20 (from 50) messages at a time</li>
+          <li>fix duplicate notifications on Desktop</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.3.5" date="2026-01-25" type="stable">
       <description>
         <ul>

@@ -1,3 +1,9 @@
+## v2.3.6
+
+- reduce the pagination load to 20 (from 50) messages at a time
+- fix duplicate notifications on Desktop
+
+
 ## v2.3.5
 
 - version info embedding for desktop AppImages
