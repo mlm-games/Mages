@@ -99,16 +99,7 @@ fun SpacesScreen(
                         subtitle = if (state.searchQuery.isBlank())
                             "Create a space to organize your rooms"
                         else
-                            "Try a different search term",
-                        action = if (state.searchQuery.isBlank()) {
-                            {
-                                Button(onClick = viewModel::showCreateSpace) {
-                                    Icon(Icons.Default.Add, null)
-                                    Spacer(Modifier.width(Spacing.sm))
-                                    Text("Create Space")
-                                }
-                            }
-                        } else null
+                            "Try a different search term"
                     )
                 }
 
