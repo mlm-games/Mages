@@ -150,7 +150,7 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 setup_scaffolding!();
 
 const MIN_VISIBLE_AFTER_RESET: usize = 20;
-const BACKFILL_CHUNK: u16 = 50;
+const BACKFILL_CHUNK: u16 = 20;
 const MAX_BACKFILL_ROUNDS: u8 = 8;
 
 // Types exposed to Kotlin
@@ -6739,7 +6739,7 @@ async fn paginate_backwards_visible(
     me: &str,
     want_more_visible: usize,
 ) -> bool {
-    const CHUNK: u16 = 50;
+    const CHUNK: u16 = 20;
     const MAX_ROUNDS: u8 = 8;
 
     let before = count_visible_room_view(tl, rid, me).await;
