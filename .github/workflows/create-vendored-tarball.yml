@@ -1,8 +1,6 @@
 name: Create Vendored Sources Tarball
 
 on:
-  release:
-    types: [created, published]
   workflow_dispatch:
     inputs:
       version:
@@ -141,7 +139,6 @@ jobs:
           echo ""
 
       - name: Upload to release
-        if: github.event_name == 'release'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -161,16 +158,6 @@ jobs:
           asset_path: ./mages-${{ env.VERSION }}-vendored-sources.tar.gz.sha256
           asset_name: mages-${{ env.VERSION }}-vendored-sources.tar.gz.sha256
           asset_content_type: text/plain
-
-      - name: Upload artifact (manual trigger)
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
-        with:
-          name: mages-vendored-sources-${{ env.VERSION }}
-          path: |
-            mages-${{ env.VERSION }}-vendored-sources.tar.gz
-            mages-${{ env.VERSION }}-vendored-sources.tar.gz.sha256
-          retention-days: 7
 
       - name: Output results
         id: output_results
