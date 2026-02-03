@@ -46,6 +46,15 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="2.3.7" date="2026-02-03" type="stable">
+      <description>
+        <ul>
+          <li>Clarify Android and Linux build availability in README</li>
+          <li>add vendoring yml</li>
+          <li>remove duplicate "Add space" button, when no spaces exist</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.3.6" date="2026-02-01" type="stable">
       <description>
         <ul>

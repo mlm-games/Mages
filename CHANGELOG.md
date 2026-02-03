@@ -1,3 +1,10 @@
+## v2.3.7
+
+- Clarify Android and Linux build availability in README
+- add vendoring yml
+- remove duplicate "Add space" button, when no spaces exist
+
+
 ## v2.3.6
 
 - reduce the pagination load to 20 (from 50) messages at a time

@@ -1,0 +1,3 @@
+- Clarify Android and Linux build availability in README
+- add vendoring yml
+- remove duplicate "Add space" button, when no spaces exist
