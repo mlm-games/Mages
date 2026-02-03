@@ -18,7 +18,7 @@ This is experimental‑stage software. If you use it, assume things may break. (
 - End‑to‑end encryption (via matrix‑sdk)
 - Spaces browser
 - Simple presence / privacy settings
-- Android app and Linux desktop builds (AppImage, AUR `mages-bin`)
+- Android app and Linux desktop builds (Available on/as FDroid, AppImage, AUR `mages-bin`, snapcraft and flathub(WIP) )
 - Unsigned Windows and Mac builds
 - Experimental Call Support
 
