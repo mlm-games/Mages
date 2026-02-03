@@ -27,3 +27,6 @@ shared/src/jvmMain/jniLibs
 shared/src/androidMain/kotlin/mages
 shared/src/jvmMain/kotlin/mages
 shared/src/jvmMain/resources
+
+vendor/
+repo/

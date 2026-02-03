@@ -1,0 +1,185 @@
+name: Create Vendored Sources Tarball
+
+on:
+  release:
+    types: [created, published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to build (e.g., 2.4.1)'
+        required: true
+        default: ''
+
+jobs:
+  create-vendored-tarball:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: wrapper
+          cache-read-only: false
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.91.1
+          components: rustfmt, clippy
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${{ github.event.release.tag_name }}"
+          fi
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Building vendored tarball for version: ${VERSION}"
+
+      - name: Pre-build to cache Gradle dependencies
+        run: |
+          echo "Pre-building to download Gradle dependencies..."
+          ./gradlew --no-daemon :desktopApp:compileKotlin :shared:compileKotlin 2>&1 | tail -20 || true
+          echo "Gradle dependencies cached."
+
+      - name: Vendor Rust dependencies
+        run: |
+          echo "Vendoring Rust dependencies..."
+          cd rust
+          cargo vendor --versioned-dirs ../vendor 2>&1 | tee ../vendor.log
+          cd ..
+          echo ""
+          echo "Vendored dependencies stats:"
+          du -sh vendor/
+          ls vendor/ | wc -l
+          echo "packages vendored"
+
+      - name: Test offline build
+        run: |
+          echo "Testing offline build capability..."
+          cd rust
+          
+          # Create cargo config for vendor (REMOVE SIMILARLY LATER)
+          mkdir -p .cargo
+          cat > .cargo/config.toml << 'EOF'
+          [source.crates-io]
+          replace-with = "vendored-sources"
+          
+          [source."git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick"]
+          git = "https://github.com/mlm-games/matrix-rust-sdk"
+          branch = "last-tag-cpick"
+          replace-with = "vendored-sources"
+          
+          [source.vendored-sources]
+          directory = "../vendor"
+          EOF
+          
+          # Test offline compilation
+          echo "Testing cargo check --offline..."
+          cargo check --offline 2>&1 | tail -10
+          echo "✓ Offline Rust build works!"
+          cd ..
+
+      - name: Create vendored tarball
+        run: |
+          TARBALL_NAME="mages-${VERSION}-vendored-sources.tar.gz"
+          echo ""
+          echo "Creating ${TARBALL_NAME}..."
+          
+          mkdir -p vendored-pkg/mages-vendored
+          
+          echo "Copying source code..."
+          git archive --format=tar HEAD | tar -C vendored-pkg/mages-vendored -xf -
+          
+          echo "Copying vendored Rust dependencies..."
+          cp -r vendor vendored-pkg/mages-vendored/
+          
+          # FOXME: remove .cargo/config.toml for offline builds (after matrix  sdk new version is dropped)
+          mkdir -p vendored-pkg/mages-vendored/rust/.cargo
+          cat > vendored-pkg/mages-vendored/rust/.cargo/config.toml << 'EOF'
+          [source.crates-io]
+          replace-with = "vendored-sources"
+          
+          [source."git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick"]
+          git = "https://github.com/mlm-games/matrix-rust-sdk"
+          branch = "last-tag-cpick"
+          replace-with = "vendored-sources"
+          
+          [source.vendored-sources]
+          directory = "../vendor"
+          EOF
+          
+          cd vendored-pkg
+          tar czf "../${TARBALL_NAME}" mages-vendored/
+          cd ..
+          
+          sha256sum "${TARBALL_NAME}" > "${TARBALL_NAME}.sha256"
+          
+          echo ""
+          echo "File: ${TARBALL_NAME}"
+          echo "Size: $(du -h ${TARBALL_NAME} | cut -f1)"
+          echo "SHA256: $(cat ${TARBALL_NAME}.sha256 | cut -d' ' -f1)"
+          echo ""
+          echo "Contents:"
+          echo "  - Source code"
+          echo "  - Vendor directory: $(ls vendor/ | wc -l) crates"
+          echo "  - Cargo offline config"
+          echo ""
+
+      - name: Upload to release
+        if: github.event_name == 'release'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./mages-${{ env.VERSION }}-vendored-sources.tar.gz
+          asset_name: mages-${{ env.VERSION }}-vendored-sources.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload SHA256 to release
+        if: github.event_name == 'release'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./mages-${{ env.VERSION }}-vendored-sources.tar.gz.sha256
+          asset_name: mages-${{ env.VERSION }}-vendored-sources.tar.gz.sha256
+          asset_content_type: text/plain
+
+      - name: Upload artifact (manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mages-vendored-sources-${{ env.VERSION }}
+          path: |
+            mages-${{ env.VERSION }}-vendored-sources.tar.gz
+            mages-${{ env.VERSION }}-vendored-sources.tar.gz.sha256
+          retention-days: 7
+
+      - name: Output results
+        id: output_results
+        run: |
+          CHECKSUM=$(cat mages-${VERSION}-vendored-sources.tar.gz.sha256 | cut -d' ' -f1)
+          echo "sha256=${CHECKSUM}" >> $GITHUB_OUTPUT
+          echo ""
+          echo "sources:"
+          echo "  - type: archive"
+          echo "    url: https://github.com/mlm-games/mages/releases/download/${VERSION}/mages-${VERSION}-vendored-sources.tar.gz"
+          echo "    sha256: ${CHECKSUM}"
+          echo ""
