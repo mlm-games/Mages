@@ -24,7 +24,7 @@ env:
   APP_NAME: 'Mages'
   APP_SLUG: 'mages'
   APPLICATION_ID: 'org.mlm.mages'
-  JAVA_VERSION: '17'
+  JAVA_VERSION: '21'
   JAVA_DISTRIBUTION: 'temurin'
   BUILD_GRADLE_PATH: 'androidApp/build.gradle.kts'
   ANDROID_API: '36'

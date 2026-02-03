@@ -2,13 +2,12 @@ package org.mlm.mages.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -19,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,6 +30,7 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import kotlinx.coroutines.flow.distinctUntilChanged
 import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.platform.ShareContent
@@ -39,6 +40,11 @@ import org.mlm.mages.ui.viewmodel.ExtractedLink
 import org.mlm.mages.ui.viewmodel.MediaGalleryViewModel
 import org.mlm.mages.ui.viewmodel.MediaTab
 import java.io.File
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -277,9 +283,14 @@ private fun SelectionBottomBar(
     }
 }
 
+private sealed interface GalleryItem {
+    data class MonthHeader(val label: String, val key: String) : GalleryItem
+    data class Media(val event: MessageEvent) : GalleryItem
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun MediaGrid(
+fun MediaGrid(
     items: List<MessageEvent>,
     thumbnails: Map<String, String>,
     selectedIds: Set<String>,
@@ -290,33 +301,126 @@ private fun MediaGrid(
     onItemClick: (MessageEvent) -> Unit,
     onItemLongClick: (MessageEvent) -> Unit
 ) {
-    if (items.isEmpty()) {
+    val gridState = rememberLazyGridState()
+
+    // Auto-paginate when near end
+    LaunchedEffect(gridState, hitStart, isPaginating) {
+        snapshotFlow {
+            val layoutInfo = gridState.layoutInfo
+            val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val total = layoutInfo.totalItemsCount
+            Triple(lastVisible, total, isPaginating)
+        }
+            .distinctUntilChanged()
+            .collect { (lastVisible, total, loading) ->
+                if (!hitStart && !loading && total > 0 && lastVisible >= total - 8) {
+                    onLoadMore()
+                }
+            }
+    }
+
+    // Group items by month (newest first)
+    val galleryItems = remember(items) {
+        buildGalleryItems(items.sortedByDescending { it.timestampMs })
+    }
+
+    if (galleryItems.isEmpty() && hitStart) {
         EmptyTabContent(icon = Icons.Default.Image, text = "No media found")
         return
     }
 
     LazyVerticalGrid(
+        state = gridState,
         columns = GridCells.Adaptive(minSize = 110.dp),
         contentPadding = PaddingValues(Spacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        if (!hitStart) {
-            item { LoadMoreButton(isPaginating, onLoadMore) }
+        galleryItems.forEach { item ->
+            when (item) {
+                is GalleryItem.MonthHeader -> {
+                    item(
+                        key = item.key,
+                        span = { GridItemSpan(maxLineSpan) }
+                    ) {
+                        MonthHeaderRow(label = item.label)
+                    }
+                }
+
+                is GalleryItem.Media -> {
+                    item(key = item.event.eventId) {
+                        MediaGridItem(
+                            event = item.event,
+                            thumbPath = thumbnails[item.event.eventId],
+                            isSelected = item.event.eventId in selectedIds,
+                            isSelectionMode = isSelectionMode,
+                            onClick = { onItemClick(item.event) },
+                            onLongClick = { onItemLongClick(item.event) }
+                        )
+                    }
+                }
+            }
         }
 
-        items(items.reversed(), key = { it.eventId }) { event ->
-            val isSelected = event.eventId in selectedIds
-
-            MediaGridItem(
-                event = event,
-                thumbPath = thumbnails[event.eventId],
-                isSelected = isSelected,
-                isSelectionMode = isSelectionMode,
-                onClick = { onItemClick(event) },
-                onLongClick = { onItemLongClick(event) }
-            )
+        // Loading indicator at bottom (full width)
+        if (isPaginating) {
+            item(
+                key = "loading",
+                span = { GridItemSpan(maxLineSpan) }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(Spacing.lg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp
+                    )
+                }
+            }
         }
+    }
+}
+
+@Suppress("NewApi")
+private fun buildGalleryItems(sortedEvents: List<MessageEvent>): List<GalleryItem> {
+    if (sortedEvents.isEmpty()) return emptyList()
+
+    val formatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault())
+    val zoneId = ZoneId.systemDefault()
+
+    return buildList {
+        var currentMonth: String? = null
+
+        for (event in sortedEvents) {
+            val instant = Instant.ofEpochMilli(event.timestampMs)
+            val monthLabel = formatter.format(instant.atZone(zoneId))
+
+            if (monthLabel != currentMonth) {
+                currentMonth = monthLabel
+                add(GalleryItem.MonthHeader(label = monthLabel, key = "header_$monthLabel"))
+            }
+            add(GalleryItem.Media(event))
+        }
+    }
+}
+
+@Composable
+private fun MonthHeaderRow(label: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = Spacing.sm)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+        )
     }
 }
 
@@ -333,21 +437,18 @@ private fun MediaGridItem(
     Box(
         modifier = Modifier
             .aspectRatio(1f)
-            .clip(MaterialTheme.shapes.small)
-            .then(
-                if (isSelected) Modifier.border(
-                    3.dp,
-                    MaterialTheme.colorScheme.primary,
-                    MaterialTheme.shapes.small
-                ) else Modifier
-            )
+            .clip(MaterialTheme.shapes.extraSmall)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
             )
     ) {
+        // Thumbnail or placeholder
         Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
                 if (thumbPath != null) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalPlatformContext.current)
@@ -356,76 +457,111 @@ private fun MediaGridItem(
                             .build(),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxSize()
                     )
                 } else {
-                    PlaceholderIcon(event.attachment?.kind)
+                    Icon(
+                        imageVector = if (event.attachment?.kind == AttachmentKind.Video)
+                            Icons.Default.VideoFile else Icons.Default.Image,
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
                 }
+            }
+        }
 
-                // Video play icon
-                if (event.attachment?.kind == AttachmentKind.Video) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                        shape = CircleShape,
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    }
+        // Video indicator
+        if (event.attachment?.kind == AttachmentKind.Video) {
+            Surface(
+                color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
+                shape = CircleShape,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(32.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.surface,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
+            }
 
-                // Selection checkbox
-                AnimatedVisibility(
-                    visible = isSelectionMode,
+            // Duration badge
+            event.attachment!!.durationMs?.let { ms ->
+                Surface(
+                    color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.7f),
+                    shape = MaterialTheme.shapes.extraSmall,
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(4.dp),
-                    enter = scaleIn(),
-                    exit = scaleOut()
+                        .align(Alignment.BottomEnd)
+                        .padding(4.dp)
                 ) {
-                    Surface(
-                        color = if (isSelected)
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                        shape = CircleShape,
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            if (isSelected) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        }
+                    Text(
+                        text = formatDuration(ms),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.surface,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        }
+
+        // Selection overlay
+        AnimatedVisibility(
+            visible = isSelectionMode,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.TopEnd).padding(6.dp)
+        ) {
+            Surface(
+                color = if (isSelected)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                shape = CircleShape,
+                shadowElevation = 2.dp,
+                modifier = Modifier.size(24.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    if (isSelected) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
             }
         }
+
+        // Selection tint overlay
+        if (isSelected) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+            )
+        }
     }
 }
 
-@Composable
-private fun PlaceholderIcon(kind: AttachmentKind?) {
-    Icon(
-        imageVector = when (kind) {
-            AttachmentKind.Video -> Icons.Default.VideoFile
-            AttachmentKind.File -> Icons.AutoMirrored.Filled.InsertDriveFile
-            else -> Icons.Default.Image
-        },
-        contentDescription = null,
-        modifier = Modifier.size(32.dp),
-        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-    )
+private fun formatDuration(ms: Long): String {
+    val totalSeconds = ms / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return if (minutes >= 60) {
+        val hours = minutes / 60
+        val mins = minutes % 60
+        "%d:%02d:%02d".format(hours, mins, seconds)
+    } else {
+        "%d:%02d".format(minutes, seconds)
+    }
 }
+
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -637,35 +773,46 @@ private fun LinkListItem(
 }
 
 @Composable
-private fun LoadMoreButton(isLoading: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(Spacing.md),
-        contentAlignment = Alignment.Center
-    ) {
-        OutlinedButton(onClick = onClick, enabled = !isLoading) {
-            if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                Spacer(Modifier.width(8.dp))
-            }
-            Text(if (isLoading) "Loading..." else "Load more")
-        }
-    }
+private fun LoadMoreButton(isLoading: Boolean, onClick: () -> Unit) { // HACK: Autoloaded, so not needed
+//    Box(
+//        modifier = Modifier
+//            .fillMaxWidth()
+//            .padding(Spacing.md),
+//        contentAlignment = Alignment.Center
+//    ) {
+//        OutlinedButton(onClick = onClick, enabled = !isLoading) {
+//            if (isLoading) {
+//                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+//                Spacer(Modifier.width(8.dp))
+//            }
+//            Text(if (isLoading) "Loading..." else "Load more")
+//        }
+//    }
 }
 
+
 @Composable
-private fun EmptyTabContent(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+private fun EmptyTabContent(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String
+) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
             )
-            Spacer(Modifier.height(8.dp))
-            Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

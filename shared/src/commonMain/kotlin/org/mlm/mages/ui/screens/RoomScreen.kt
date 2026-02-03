@@ -350,12 +350,6 @@ fun RoomScreen(
                         ) {
                             CircularProgressIndicator()
                         }
-                    } else if (events.isEmpty()) {
-                        EmptyState(
-                            icon = Icons.Default.ChatBubbleOutline,
-                            title = "No messages yet",
-                            subtitle = "Send a message to start the conversation"
-                        )
                     } else {
                         LazyColumn(
                             state = listState,
@@ -363,6 +357,7 @@ fun RoomScreen(
                             contentPadding = PaddingValues(vertical = 8.dp),
                             reverseLayout = false
                         ) {
+                            // Always show load more button at top (even when empty)
                             if (!state.hitStart) {
                                 item(key = "load_earlier") {
                                     LoadEarlierButton(
@@ -376,24 +371,42 @@ fun RoomScreen(
                                 }
                             }
 
-                            itemsIndexed(events, key = { _, e -> e.itemId }) { index, event ->
-                                MessageItem(
-                                    event = event,
-                                    index = index,
-                                    events = events,
-                                    state = state,
-                                    lastOutgoingIndex = lastOutgoingIndex,
-                                    seenByNames = seenByNames,
-                                    onLongPress = { sheetEvent = event },
-                                    onReact = { emoji -> viewModel.react(event, emoji) },
-                                    onOpenAttachment = {
-                                        viewModel.openAttachment(event) { path, mime ->
-                                            openExternal(path, mime)
-                                        }
-                                    },
-                                    onOpenThread = { viewModel.openThread(event) },
-                                    viewModel
-                                )
+                            if (events.isEmpty()) {
+                                // Show empty state as a list item so load more stays visible
+                                item(key = "empty_state") {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 64.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        EmptyState(
+                                            icon = Icons.Default.ChatBubbleOutline,
+                                            title = "No messages yet",
+                                            subtitle = "Send a message to start the conversation"
+                                        )
+                                    }
+                                }
+                            } else {
+                                itemsIndexed(events, key = { _, e -> e.itemId }) { index, event ->
+                                    MessageItem(
+                                        event = event,
+                                        index = index,
+                                        events = events,
+                                        state = state,
+                                        lastOutgoingIndex = lastOutgoingIndex,
+                                        seenByNames = seenByNames,
+                                        onLongPress = { sheetEvent = event },
+                                        onReact = { emoji -> viewModel.react(event, emoji) },
+                                        onOpenAttachment = {
+                                            viewModel.openAttachment(event) { path, mime ->
+                                                openExternal(path, mime)
+                                            }
+                                        },
+                                        onOpenThread = { viewModel.openThread(event) },
+                                        viewModel
+                                    )
+                                }
                             }
                         }
                     }
@@ -696,12 +709,12 @@ private fun LoadEarlierButton(isLoading: Boolean, onClick: () -> Unit) {
             .padding(Spacing.lg),
         contentAlignment = Alignment.Center
     ) {
-        OutlinedButton(onClick = onClick, enabled = !isLoading) {
-            if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                Spacer(Modifier.width(8.dp))
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+        } else {
+            OutlinedButton(onClick = onClick) {
+                Text("Load earlier messages")
             }
-            Text(if (isLoading) "Loading..." else "Load earlier messages")
         }
     }
 }

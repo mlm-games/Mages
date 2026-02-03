@@ -4,7 +4,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import org.koin.core.component.inject
@@ -12,16 +12,17 @@ import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MatrixService
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.TimelineDiff
+import org.mlm.mages.matrix.TimelineListReducer
 import org.mlm.mages.settings.AppSettings
 
 data class MediaGalleryUiState(
     val isLoading: Boolean = true,
     val isPaginatingBack: Boolean = false,
     val hitStart: Boolean = false,
+    val hasTimelineSnapshot: Boolean = false,
     val allEvents: List<MessageEvent> = emptyList(),
     val thumbnails: Map<String, String> = emptyMap(),
     val error: String? = null,
-
     val isSelectionMode: Boolean = false,
     val selectedIds: Set<String> = emptySet()
 ) {
@@ -47,6 +48,8 @@ data class ExtractedLink(
     val sender: String,
     val timestamp: Long
 )
+
+enum class MediaTab { Images, Videos, Files, Links }
 
 class MediaGalleryViewModel(
     private val service: MatrixService,
@@ -91,46 +94,56 @@ class MediaGalleryViewModel(
 
     private fun observeTimeline() {
         launch {
-            service.timelineDiffs(roomId).collectLatest { diff ->
-                when (diff) {
-                    is TimelineDiff.Reset -> {
-                        updateState {
-                            copy(
-                                isLoading = false,
-                                allEvents = diff.items.filter { hasMediaOrLink(it) }
-                            )
-                        }
-                        prefetchThumbnails(diff.items)
-                    }
-                    is TimelineDiff.Append -> {
-                        val mediaItems = diff.items.filter { hasMediaOrLink(it) }
-                        updateState { copy(allEvents = allEvents + mediaItems) }
-                        prefetchThumbnails(diff.items)
-                    }
-                    is TimelineDiff.UpdateByItemId -> {
-                        if (hasMediaOrLink(diff.item)) {
-                            updateState {
-                                val idx = allEvents.indexOfFirst { it.itemId == diff.itemId }
-                                if (idx >= 0) {
-                                    copy(allEvents = allEvents.toMutableList().apply { set(idx, diff.item) })
-                                } else {
-                                    copy(allEvents = allEvents + diff.item)
-                                }
-                            }
-                        }
-                    }
-                    is TimelineDiff.RemoveByItemId -> {
-                        updateState {
-                            copy(
-                                allEvents = allEvents.filter { it.itemId != diff.itemId },
-                                selectedIds = selectedIds - diff.itemId
-                            )
-                        }
-                    }
-                    else -> {}
-                }
-            }
+            service.timelineDiffs(roomId)
+                .buffer(capacity = Channel.BUFFERED)
+                .collect { diff -> processDiff(diff) }
         }
+    }
+
+    private fun processDiff(diff: TimelineDiff<MessageEvent>) {
+        val result = TimelineListReducer.apply(
+            current = currentState.allEvents,
+            diff = diff,
+            itemIdOf = { it.itemId },
+            stableIdOf = { it.stableKey() },
+            timeOf = { it.timestampMs },
+            tieOf = { it.stableKey() }
+        )
+
+        // Filter to only media/link items
+        val filtered = result.list.filter { hasMediaOrLink(it) }
+
+        // Handle removals affecting selection
+        val validSelectedIds = if (diff is TimelineDiff.RemoveByItemId) {
+            currentState.selectedIds - diff.itemId
+        } else {
+            currentState.selectedIds
+        }
+
+        updateState {
+            copy(
+                isLoading = false,
+                hasTimelineSnapshot = when {
+                    result.reset -> true
+                    result.cleared -> false
+                    else -> hasTimelineSnapshot
+                },
+                allEvents = filtered,
+                selectedIds = validSelectedIds,
+                isSelectionMode = validSelectedIds.isNotEmpty()
+            )
+        }
+
+        // Prefetch thumbnails for new items
+        if (result.delta.isNotEmpty()) {
+            prefetchThumbnails(result.delta)
+        }
+    }
+
+    private fun MessageEvent.stableKey(): String = when {
+        eventId.isNotBlank() -> "e:$eventId"
+        !txnId.isNullOrBlank() -> "t:$txnId"
+        else -> "i:$itemId"
     }
 
     fun loadMore() {
@@ -138,8 +151,12 @@ class MediaGalleryViewModel(
 
         launch {
             updateState { copy(isPaginatingBack = true) }
-            val hitStart = runSafe { service.paginateBack(roomId, 50) } ?: false
-            updateState { copy(isPaginatingBack = false, hitStart = hitStart) }
+            try {
+                val hitStart = runSafe { service.paginateBack(roomId, 50) } ?: false
+                updateState { copy(hitStart = hitStart) }
+            } finally {
+                updateState { copy(isPaginatingBack = false) }
+            }
         }
     }
 
@@ -168,7 +185,9 @@ class MediaGalleryViewModel(
         }
         updateState {
             copy(
-                selectedIds = selectedIds + items.map { it.eventId }.toSet(),
+                selectedIds = selectedIds + items.mapNotNull {
+                    it.eventId.takeIf { id -> id.isNotBlank() }
+                }.toSet(),
                 isSelectionMode = true
             )
         }
@@ -179,6 +198,7 @@ class MediaGalleryViewModel(
     }
 
     fun enterSelectionMode(eventId: String) {
+        if (eventId.isBlank()) return
         updateState {
             copy(
                 isSelectionMode = true,
@@ -214,11 +234,13 @@ class MediaGalleryViewModel(
     }
 
     fun forwardSelected() {
-        val selected = currentState.selectedEvents.map { event -> event.eventId }
+        val selected = currentState.selectedEvents
+            .mapNotNull { it.eventId.takeIf { id -> id.isNotBlank() } }
         if (selected.isEmpty()) return
 
         launch {
             _events.send(Event.OpenForwardPicker(selected))
+            clearSelection()
         }
     }
 
@@ -247,9 +269,10 @@ class MediaGalleryViewModel(
         if (settings.value.blockMediaPreviews) return
 
         events.filter {
-            it.attachment?.kind == AttachmentKind.Image ||
-                    it.attachment?.kind == AttachmentKind.Video
+            val kind = it.attachment?.kind
+            kind == AttachmentKind.Image || kind == AttachmentKind.Video
         }.forEach { event ->
+            if (event.eventId.isBlank()) return@forEach
             if (currentState.thumbnails.containsKey(event.eventId)) return@forEach
 
             launch {
@@ -262,5 +285,3 @@ class MediaGalleryViewModel(
         }
     }
 }
-
-enum class MediaTab { Images, Videos, Files, Links }

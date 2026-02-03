@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.matrix.SpaceInfo
+import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.components.core.LoadMoreButton
 import org.mlm.mages.ui.components.core.SectionHeader
@@ -261,26 +262,13 @@ private fun SpaceChildItem(
             { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         },
         leadingContent = {
-            Surface(
-                color = if (child.isSpace)
-                    MaterialTheme.colorScheme.secondaryContainer
-                else
-                    MaterialTheme.colorScheme.surfaceVariant,
-                shape = MaterialTheme.shapes.small,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Icon(
-                        if (child.isSpace) Icons.Default.Workspaces
-                        else Icons.Default.Tag,
-                        null,
-                        tint = if (child.isSpace)
-                            MaterialTheme.colorScheme.onSecondaryContainer
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+            val displayName = child.name ?: child.alias ?: child.roomId
+            Avatar(
+                name = displayName,
+                avatarPath = child.avatarUrl,
+                size = 40.dp,
+                shape = MaterialTheme.shapes.small
+            )
         },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
