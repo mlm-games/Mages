@@ -45,40 +45,26 @@ jobs:
       - name: Vendor Rust dependencies
         run: |
           mkdir -p .cargo
-          # Configure cargo to vendor to a local directory
           cargo vendor --versioned-dirs vendor > .cargo/config.toml
 
       - name: Vendor Gradle Dependencies
         run: |
-          # Create a local directory for Gradle cache
           mkdir -p gradle-deps
-          
           export GRADLE_USER_HOME=$(pwd)/gradle-deps
           
-          echo "Downloading Gradle distribution and dependencies..."
-          ./gradlew :desktopApp:assemble --no-daemon --info
-          
-          echo "Cleaning up build artifacts..."
+          ./gradlew :desktopApp:createDistributable --no-daemon
           ./gradlew clean --no-daemon
-          rm -rf desktopApp/build shared/build rust/target
+          rm -rf rust/target desktopApp/build shared/build
           
-          echo "Sanitizing Gradle Cache..."
           find gradle-deps -name "*.lock" -delete
-          find gradle-deps -name "*.bin" -delete
-          rm -rf gradle-deps/daemon
-          rm -rf gradle-deps/kotlin-profile
+          rm -rf gradle-deps/daemon gradle-deps/.tmp gradle-deps/kotlin-profile
 
       - name: Create Fat Tarball
         run: |
           TARBALL_NAME="mages-${VERSION}-vendored-sources.tar.gz"
-          
-          # Create a clean directory for packaging
           mkdir -p package/mages
           
-          # Copy source code (excluding git history)
           git archive --format=tar HEAD | tar -C package/mages -xf -
-          
-          # Copy the vendored dependencies we just created
           cp -r vendor package/mages/
           cp -r .cargo package/mages/
           cp -r gradle-deps package/mages/
@@ -88,14 +74,13 @@ jobs:
           cd ..
           
           sha256sum "${TARBALL_NAME}" > "${TARBALL_NAME}.sha256"
-          
           echo "SHA256: $(cat ${TARBALL_NAME}.sha256)"
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.version_tag }}
-          name: ${{ inputs.version_tag }}
+          tag_name: ${{ inputs.version }}
+          name: ${{ inputs.version }}
           files: |
             mages-${{ env.VERSION }}-vendored-sources.tar.gz
             mages-${{ env.VERSION }}-vendored-sources.tar.gz.sha256
