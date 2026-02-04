@@ -119,8 +119,9 @@ fun SpaceDetailScreen(
                                 )
                             }
                             items(state.subspaces, key = { "sub_${it.roomId}" }) { child ->
+                                val resolvedAvatar = state.avatarPathByRoomId[child.roomId] ?: child.avatarUrl
                                 SpaceChildItem(
-                                    child = child,
+                                    child = child.copy(avatarUrl = resolvedAvatar),
                                     onClick = { viewModel.openChild(child) }
                                 )
                             }
@@ -134,8 +135,9 @@ fun SpaceDetailScreen(
                                 )
                             }
                             items(state.rooms, key = { "room_${it.roomId}" }) { child ->
+                                val resolvedAvatar = state.avatarPathByRoomId[child.roomId] ?: child.avatarUrl
                                 SpaceChildItem(
-                                    child = child,
+                                    child = child.copy(avatarUrl = resolvedAvatar),
                                     onClick = { viewModel.openChild(child) }
                                 )
                             }

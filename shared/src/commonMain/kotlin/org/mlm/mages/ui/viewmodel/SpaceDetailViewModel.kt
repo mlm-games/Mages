@@ -45,10 +45,11 @@ class SpaceDetailViewModel(
 
     fun openChild(child: SpaceChildInfo) {
         launch {
+            val displayName = child.name ?: child.alias ?: child.roomId
             if (child.isSpace) {
-                _events.send(Event.OpenSpace(child.roomId, child.name ?: child.alias ?: child.roomId))
+                _events.send(Event.OpenSpace(child.roomId, displayName))
             } else {
-                _events.send(Event.OpenRoom(child.roomId, child.name ?: child.alias ?: child.roomId))
+                _events.send(Event.OpenRoom(child.roomId, displayName))
             }
         }
     }
@@ -57,14 +58,12 @@ class SpaceDetailViewModel(
 
     private fun loadSpaceInfo() {
         launch {
-            // Try to get space info from the spaces list
             val spaces = runSafe { service.mySpaces() } ?: emptyList()
             val space = spaces.find { it.roomId == currentState.spaceId }
             
             if (space != null) {
                 updateState { copy(space = space) }
             } else {
-                // Create a minimal SpaceInfo from what we know
                 updateState { 
                     copy(
                         space = SpaceInfo(
@@ -108,7 +107,6 @@ class SpaceDetailViewModel(
             )
 
             if (page != null) {
-                // Filter out the space itself
                 val children = page.children.filter { it.roomId != currentState.spaceId }
                 
                 val newHierarchy = if (from == null) {
@@ -117,7 +115,22 @@ class SpaceDetailViewModel(
                     (currentState.hierarchy + children).distinctBy { it.roomId }
                 }
 
-                // Separate rooms and subspaces
+                // Prefetch avatars
+                newHierarchy.forEach { child ->
+                    child.avatarUrl?.let { url ->
+                        if (url.startsWith("mxc://")) {
+                            launch {
+                                val path = service.avatars.resolve(url, px = 64, crop = true)
+                                if (path != null) {
+                                    updateState { 
+                                        copy(avatarPathByRoomId = avatarPathByRoomId + (child.roomId to path))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 val (subspaces, rooms) = newHierarchy.partition { it.isSpace }
 
                 updateState {

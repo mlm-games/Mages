@@ -207,6 +207,7 @@ data class SpaceDetailUiState(
     val isLoading: Boolean = false,
     val isLoadingMore: Boolean = false,
     val error: String? = null,
+    val avatarPathByRoomId: Map<String, String> = emptyMap(),
 )
 
 data class SpaceSettingsUiState(
