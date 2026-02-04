@@ -3,9 +3,15 @@ name: Create Vendored Sources Tarball
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Version tag (e.g., 2.3.6)'
+      version_tag:
+        description: 'Version tag (e.g., 3.4.5)'
         required: true
+        type: string
+      mark_prerelease:
+        description: "Mark as prerelease"
+        required: true
+        default: false
+        type: boolean
   release:
     types: [published]
 
@@ -35,7 +41,7 @@ jobs:
         id: get_version
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ github.event.inputs.version }}"
+            VERSION="${{ inputs.version_tag }}"
           else
             VERSION="${{ github.event.release.tag_name }}"
           fi
@@ -154,8 +160,9 @@ jobs:
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.version }}
-          name: ${{ inputs.version }}
+          tag_name: ${{ inputs.version_tag }}
+          name: ${{ inputs.version_tag }}
+          prerelease: ${{ inputs.mark_prerelease }}
           files: |
             mages-${{ env.VERSION }}-vendored-sources.tar.gz
             mages-${{ env.VERSION }}-vendored-sources.tar.gz.sha256

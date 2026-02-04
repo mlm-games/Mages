@@ -194,7 +194,7 @@ jobs:
           done
           
       - name: Upload artifacts (CI only)
-        if: inputs.upload_releases == false || github.event_name != 'workflow_dispatch'
+        if: github.event_name != 'workflow_dispatch' || inputs.upload_releases == false
         uses: actions/upload-artifact@v4
         with:
           name: android-${{ needs.prepare-version.outputs.version_name }}

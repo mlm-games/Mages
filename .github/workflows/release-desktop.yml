@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version_tag:
-        description: 'Version tag (e.g., 0.9.2)'
+        description: 'Version tag (e.g., 3.4.5)'
         required: true
         type: string
       mark_prerelease:
@@ -151,7 +151,74 @@ jobs:
               workflow_id: 'aur-upload.yml',
               ref: 'main',
               inputs: {
-                version_name: '${{ inputs.version_tag }}'
+                version_tag: '${{ inputs.version_tag }}'
               }
             });
             core.info('Triggered AUR upload for ${{ inputs.version_tag }}');
+
+      - name: Dispatch publish-snap.yml
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'publish-snap.yml',
+              ref: 'main',
+              inputs: {
+                version_tag: '${{ inputs.version_tag }}'
+              }
+            });
+            core.info('Triggered Snapcraft publish for ${{ inputs.version_tag }}');
+
+      - name: Dispatch create-vendored-tarball.yml
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'create-vendored-tarball.yml',
+              ref: 'main',
+              inputs: {
+                version_tag: '${{ inputs.version_tag }}',
+                mark_prerelease: '${{ inputs.mark_prerelease }}'
+              }
+            });
+            core.info('Triggered vendored tarball creation for ${{ inputs.version_tag }}');
+
+      - name: Dispatch release-desktop-macos.yml
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'release-desktop-macos.yml',
+              ref: 'main',
+              inputs: {
+                version_tag: '${{ inputs.version_tag }}',
+                mark_prerelease: '${{ inputs.mark_prerelease }}'
+              }
+            });
+            core.info('Triggered macOS desktop release for ${{ inputs.version_tag }}');
+
+      - name: Dispatch release-desktop-windows.yml
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'release-desktop-windows.yml',
+              ref: 'main',
+              inputs: {
+                version_tag: '${{ inputs.version_tag }}',
+                mark_prerelease: '${{ inputs.mark_prerelease }}'
+              }
+            });
+            core.info('Triggered Windows desktop release for ${{ inputs.version_tag }}');

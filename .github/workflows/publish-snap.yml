@@ -3,12 +3,13 @@ name: Publish to Snapcraft
 on:
   workflow_dispatch:
     inputs:
-      version_name:
-        description: 'Version name (e.g., 0.2.7)'
+      version_tag:
+        description: 'Version tag (e.g., 3.4.5)'
         required: true
+        type: string
 
 concurrency:
-  group: snap-${{ inputs.version_name }}
+  group: snap-${{ inputs.version_tag }}
   cancel-in-progress: false
 
 jobs:
@@ -21,7 +22,7 @@ jobs:
 
       - name: Preflight | Check release tag
         run: |
-          curl -fsSL "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ inputs.version_name }}" >/dev/null
+          curl -fsSL "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ inputs.version_tag }}" >/dev/null
 
       - name: Preflight | Check secret
         env:
@@ -37,14 +38,14 @@ jobs:
           cp fastlane/metadata/android/en-US/images/icon-256.png packaging/snap/snap/gui/icon.png
           
           set -e
-          echo "Fetch 'mages-${{ inputs.version_name }}-x86_64.AppImage'..."
-          curl -fL "https://github.com/${{ github.repository }}/releases/download/${{ inputs.version_name }}/mages-${{ inputs.version_name }}-x86_64.AppImage" -o packaging/snap/builds/mages.AppImage
+          echo "Fetch 'mages-${{ inputs.version_tag }}-x86_64.AppImage'..."
+          curl -fL "https://github.com/${{ github.repository }}/releases/download/${{ inputs.version_tag }}/mages-${{ inputs.version_tag }}-x86_64.AppImage" -o packaging/snap/builds/mages.AppImage
           chmod +x packaging/snap/builds/mages.AppImage
 
       - name: Update version in snapcraft.yml
         run: |
-          sed -i "s/^version: .*/version: '${{ inputs.version_name }}'/" packaging/snap/snapcraft.yaml
-          sed -i "s|VERSION_PLACEHOLDER|${{ inputs.version_name }}|g" packaging/snap/snapcraft.yaml
+          sed -i "s/^version: .*/version: '${{ inputs.version_tag }}'/" packaging/snap/snapcraft.yaml
+          sed -i "s|VERSION_PLACEHOLDER|${{ inputs.version_tag }}|g" packaging/snap/snapcraft.yaml
           echo "packaging/snap/snapcraft.yaml version updated"
           cat packaging/snap/snapcraft.yaml | grep -E "^version:|source:"
 

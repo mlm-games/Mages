@@ -3,9 +3,10 @@ name: Publish to AUR
 on:
   workflow_dispatch:
     inputs:
-      version_name:
-        description: 'Version name (e.g., 0.7.0)'
+      version_tag:
+        description: 'Version tag (e.g., 3.4.5)'
         required: true
+        type: string
 
 jobs:
   update-aur:
@@ -18,7 +19,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="${{ inputs.version_name }}"
+          VERSION="${{ inputs.version_tag }}"
           mkdir -p downloads
           
           # Try both with and without 'v' prefix for release tag
@@ -44,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="${{ inputs.version_name }}"
+          VERSION="${{ inputs.version_tag }}"
           X64_HASH=$(sha256sum "downloads/mages-${VERSION}-x86_64.AppImage" | cut -d ' ' -f 1)
           ARM64_HASH=$(sha256sum "downloads/mages-${VERSION}-aarch64.AppImage" | cut -d ' ' -f 1)
           echo "x64_hash=$X64_HASH" >> "$GITHUB_OUTPUT"
@@ -54,7 +55,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="${{ inputs.version_name }}"
+          VERSION="${{ inputs.version_tag }}"
           X64_HASH="${{ steps.checksums.outputs.x64_hash }}"
           ARM64_HASH="${{ steps.checksums.outputs.arm64_hash }}"
           
@@ -124,4 +125,4 @@ jobs:
           commit_username: MLM-stuff
           commit_email: gfxoxinzh@mozmail.com
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          commit_message: "Update to v${{ inputs.version_name }}"
+          commit_message: "Update to v${{ inputs.version_tag }}"
