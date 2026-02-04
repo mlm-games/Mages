@@ -1,3 +1,10 @@
+## v2.4.3
+
+- avatar handling for spaces
+- try fixing flathub screen share (and cam)
+- Add View all option for pinned messages
+
+
 ## v2.4.2
 
 - Add "Report content" and Pins support

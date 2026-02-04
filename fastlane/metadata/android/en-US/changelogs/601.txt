@@ -1,0 +1,3 @@
+- avatar handling for spaces
+- try fixing flathub screen share (and cam)
+- Add View all option for pinned messages
