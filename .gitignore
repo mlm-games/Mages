@@ -31,3 +31,4 @@ shared/src/jvmMain/resources
 vendor/
 repo/
 gradle-deps/
+vendor-uniffi/

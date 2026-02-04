@@ -1,0 +1,12 @@
+# [source.crates-io]
+# replace-with = "vendored-sources"
+
+# [source."git+https://github.com/mlm-games/matrix-rust-sdk?branch=last-tag-cpick"]
+# git = "https://github.com/mlm-games/matrix-rust-sdk"
+# branch = "last-tag-cpick"
+# replace-with = "vendored-sources"
+
+# [source.vendored-sources]
+# directory = "vendor"
+
+# WILL BE REPLACED IN YML

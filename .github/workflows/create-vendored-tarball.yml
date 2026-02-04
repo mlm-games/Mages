@@ -18,7 +18,6 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
-          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.version }}
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
@@ -44,20 +43,96 @@ jobs:
 
       - name: Vendor Rust dependencies
         run: |
-          mkdir -p .cargo
-          cargo vendor --versioned-dirs vendor > .cargo/config.toml
+          set -e
+          
+          mkdir -p .cargo vendor
+          
+          echo " Vendor main project"
+          cd rust
+          cargo vendor --versioned-dirs ../vendor 2>&1 | tee /tmp/vendor-main.txt
+          cd ..
+          
+          echo "Main vendor: $(ls vendor | wc -l) packages"
+          
+          echo ""
+          echo " Vendor uniffi-bindgen"
+          mkdir -p /tmp/vendor-uniffi
+          cd rust/uniffi-bindgen
+          cargo vendor --versioned-dirs /tmp/vendor-uniffi 2>&1 | tee /tmp/vendor-uniffi.txt
+          cd ../..
+          
+          echo ""
+          echo " Merge uniffi deps"
+          cp -r /tmp/vendor-uniffi/* vendor/ 2>/dev/null || true
+          
+          echo "Merged vendor: $(ls vendor | wc -l) packages"
+          
+          echo ""
+          echo " Create config.toml"
+          sed -n '/^To use vendored sources/,$p' /tmp/vendor-main.txt | tail -n +3 > .cargo/config.toml
+          sed -i 's|directory = "../vendor"|directory = "vendor"|g' .cargo/config.toml
+          
+          cat .cargo/config.toml
 
-      - name: Vendor Gradle Dependencies
+      - name: Vendor Gradle Dependencies (ALL platforms)
         run: |
+          set -e
+          
           mkdir -p gradle-deps
           export GRADLE_USER_HOME=$(pwd)/gradle-deps
           
+          echo " Building for current platform"
           ./gradlew :desktopApp:createDistributable --no-daemon
+          
+          echo " Downloading linux-arm64 compose deps"
+          
+          # Create a temp project to fetch ARM64 deps
+          mkdir -p /tmp/fetch-project
+          cat > /tmp/fetch-project/settings.gradle.kts << 'EOF'
+          rootProject.name = "fetch-deps"
+          EOF
+          
+          cat > /tmp/fetch-project/build.gradle.kts << 'EOF'
+          plugins {
+              id("java")
+          }
+          
+          repositories {
+              mavenCentral()
+              google()
+              maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+          }
+          
+          val composeArm64 by configurations.creating
+          val composeX64 by configurations.creating
+          
+          dependencies {
+              composeArm64("org.jetbrains.compose.desktop:desktop-jvm-linux-arm64:1.10.0-rc02")
+              composeX64("org.jetbrains.compose.desktop:desktop-jvm-linux-x64:1.10.0-rc02")
+          }
+          
+          tasks.register("fetch") {
+              doLast {
+                  configurations["composeArm64"].resolve()
+                  configurations["composeX64"].resolve()
+                  println("Downloaded all platform deps")
+              }
+          }
+          EOF
+          
+          cd /tmp/fetch-project
+          gradle --no-daemon fetch
+          cd -
+          
+          echo " Cleaning up"
           ./gradlew clean --no-daemon
           rm -rf rust/target desktopApp/build shared/build
           
           find gradle-deps -name "*.lock" -delete
           rm -rf gradle-deps/daemon gradle-deps/.tmp gradle-deps/kotlin-profile
+          
+          echo " Gradle cache size"
+          du -sh gradle-deps
 
       - name: Create Fat Tarball
         run: |
