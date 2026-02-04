@@ -46,6 +46,19 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="2.4.2" date="2026-02-04" type="stable">
+      <description>
+        <ul>
+          <li>Add "Report content" and Pins support</li>
+          <li>Shift flathub builds locally</li>
+          <li>update media and files screen to seperate by month, show "load more" in empty rooms, add avatar for space detail screen, and other misc changes</li>
+          <li>fix vendored tarball</li>
+          <li>update vendor tarball yml</li>
+          <li>bump back to 21 (for fdroid deb. migration)</li>
+          <li>Update create-vendored-tarball workflow</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.3.7" date="2026-02-03" type="stable">
       <description>
         <ul>

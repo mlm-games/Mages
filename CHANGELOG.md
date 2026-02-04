@@ -1,3 +1,14 @@
+## v2.4.2
+
+- Add "Report content" and Pins support
+- Shift flathub builds locally
+- update media and files screen to seperate by month, show "load more" in empty rooms, add avatar for space detail screen, and other misc changes
+- fix vendored tarball
+- update vendor tarball yml
+- bump back to 21 (for fdroid deb. migration)
+- Update create-vendored-tarball workflow
+
+
 ## v2.3.7
 
 - Clarify Android and Linux build availability in README
