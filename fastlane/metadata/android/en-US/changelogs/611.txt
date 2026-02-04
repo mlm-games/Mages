@@ -1,0 +1,2 @@
+- hide option to change title and topic if power levels are low
+- Resolve room names in spaces (lazy)

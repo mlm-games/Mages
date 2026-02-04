@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="2.4.4" date="2026-02-04" type="stable">
+      <description>
+        <ul>
+          <li>hide option to change title and topic if power levels are low</li>
+          <li>Resolve room names in spaces (lazy)</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.4.3" date="2026-02-04" type="stable">
       <description>
         <ul>

@@ -1,3 +1,9 @@
+## v2.4.4
+
+- hide option to change title and topic if power levels are low
+- Resolve room names in spaces (lazy)
+
+
 ## v2.4.3
 
 - avatar handling for spaces
