@@ -119,7 +119,9 @@ data class RoomUiState(
     val canPin: Boolean = false,
     
     val pinnedEventIds: List<String> = emptyList(),
-    
+    val showPinnedMessagesSheet: Boolean = false,
+
+    // Report dialog
     val showReportDialog: Boolean = false,
     val reportingEvent: MessageEvent? = null,
 )

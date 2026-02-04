@@ -563,8 +563,20 @@ fun RoomScreen(
         PinnedMessageBanner(
             pinnedEventIds = state.pinnedEventIds,
             events = state.allEvents,
-            onViewAll = { /* TODO: Open pinned messages sheet */ },
-            onDismiss = { /* TODO: Temporarily hide banner */ }
+            onViewAll = viewModel::showPinnedMessagesSheet,
+        )
+    }
+
+    if (state.showPinnedMessagesSheet) {
+        PinnedMessagesSheet(
+            pinnedEventIds = state.pinnedEventIds,
+            events = state.allEvents,
+            onEventClick = { event -> 
+                viewModel.jumpToEvent(event.eventId)
+                viewModel.hidePinnedMessagesSheet()
+            },
+            onUnpin = { viewModel.unpinEvent(it) },
+            onDismiss = viewModel::hidePinnedMessagesSheet
         )
     }
 

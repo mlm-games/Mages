@@ -373,7 +373,17 @@ class RoomViewModel(
         }
     }
 
-    //  Pagination
+    // Pinned Messages Sheet
+
+    fun showPinnedMessagesSheet() {
+        updateState { copy(showPinnedMessagesSheet = true) }
+    }
+
+    fun hidePinnedMessagesSheet() {
+        updateState { copy(showPinnedMessagesSheet = false) }
+    }
+
+    // Pagination
 
     fun paginateBack() {
         val s = currentState
@@ -852,6 +862,13 @@ class RoomViewModel(
 
         launch {
             _events.send(Event.JumpToEvent(eid))
+        }
+    }
+
+    fun jumpToEvent(eventId: String) {
+        if (eventId.isBlank()) return
+        launch {
+            _events.send(Event.JumpToEvent(eventId))
         }
     }
 

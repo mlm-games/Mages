@@ -1,16 +1,13 @@
 package org.mlm.mages.ui.components.core
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.MessageEvent
@@ -23,8 +20,7 @@ import org.mlm.mages.ui.theme.Spacing
 fun PinnedMessageBanner(
     pinnedEventIds: List<String>,
     events: List<MessageEvent>,
-    onViewAll: () -> Unit,
-    onDismiss: () -> Unit
+    onViewAll: () -> Unit
 ) {
     // Find the first pinned event that we have in our events list
     val pinnedEvent = pinnedEventIds.firstNotNullOfOrNull { pinnedId ->
@@ -70,33 +66,21 @@ fun PinnedMessageBanner(
                     )
                 }
 
-//                if (pinnedEventIds.size > 1) {
-//                    TextButton(
-//                        onClick = onViewAll,
-//                        colors = ButtonDefaults.textButtonColors(
-//                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-//                        )
-//                    ) {
-//                        Text("View all ${pinnedEventIds.size}")
-//                        Icon(
-//                            imageVector = Icons.Default.ExpandMore,
-//                            contentDescription = null,
-//                            modifier = Modifier.size(16.dp)
-//                        )
-//                    }
-//                }
-//
-//                IconButton(
-//                    onClick = onDismiss,
-//                    modifier = Modifier.size(32.dp)
-//                ) {
-//                    Icon(
-//                        imageVector = Icons.Default.Close,
-//                        contentDescription = "Dismiss",
-//                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-//                        modifier = Modifier.size(18.dp)
-//                    )
-//                }
+                if (pinnedEventIds.size > 1) {
+                    TextButton(
+                        onClick = onViewAll,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    ) {
+                        Text("View all ${pinnedEventIds.size}")
+                        Icon(
+                            imageVector = Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
             }
 
             HorizontalDivider(
