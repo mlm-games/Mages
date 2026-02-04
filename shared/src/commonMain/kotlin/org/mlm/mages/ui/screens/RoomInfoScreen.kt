@@ -210,7 +210,9 @@ fun RoomInfoScreen(
                                 }
                             }
                         },
-                        isSaving = state.isSaving
+                        isSaving = state.isSaving,
+                        enabled = state.canEditName,
+                        helperText = if (!state.canEditName) "You don't have permission to change the room name" else null
                     )
                 }
 
@@ -229,7 +231,9 @@ fun RoomInfoScreen(
                             }
                         },
                         isSaving = state.isSaving,
-                        singleLine = false
+                        singleLine = false,
+                        enabled = state.canEditTopic,
+                        helperText = if (!state.canEditTopic) "You don't have permission to change the topic" else null
                     )
                 }
 
@@ -242,6 +246,7 @@ fun RoomInfoScreen(
                             profile = profile,
                             visibility = state.directoryVisibility,
                             isAdminBusy = state.isAdminBusy,
+                            canManageSettings = state.canManageSettings,
                             onSetVisibility = {
                                 scope.launch {
                                     val target = if (state.directoryVisibility == RoomDirectoryVisibility.Public)
@@ -478,7 +483,9 @@ private fun EditableField(
     onValueChange: (String) -> Unit,
     onSave: () -> Unit,
     isSaving: Boolean,
-    singleLine: Boolean = true
+    singleLine: Boolean = true,
+    enabled: Boolean = true,
+    helperText: String? = null
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(
@@ -487,23 +494,34 @@ private fun EditableField(
             label = { Text(label) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = singleLine,
-            enabled = !isSaving
+            enabled = enabled && !isSaving,
+            readOnly = !enabled,
+            supportingText = helperText?.let { { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) } },
+            colors = OutlinedTextFieldDefaults.colors(
+                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                disabledSupportingTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         )
 
-        Button(
-            onClick = onSave,
-            enabled = !isSaving,
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .fillMaxWidth()
-        ) {
-            if (isSaving) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text("Save")
+        if (enabled) {
+            Button(
+                onClick = onSave,
+                enabled = !isSaving && value.isNotBlank(),
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .fillMaxWidth()
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Save")
+                }
             }
         }
     }
@@ -514,6 +532,7 @@ private fun PrivacySection(
     profile: RoomProfile,
     visibility: RoomDirectoryVisibility?,
     isAdminBusy: Boolean,
+    canManageSettings: Boolean,
     onSetVisibility: () -> Unit,
     onEnableEncryption: () -> Unit,
 ) {
@@ -532,20 +551,35 @@ private fun PrivacySection(
             val checked = visibility == RoomDirectoryVisibility.Public
             Switch(
                 checked = checked,
-                enabled = !isAdminBusy,
+                enabled = canManageSettings && !isAdminBusy,
                 onCheckedChange = { onSetVisibility() }
+            )
+        }
+
+        if (!canManageSettings) {
+            Text(
+                text = "You don't have the permission to change privacy settings",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
         if (!profile.isEncrypted) {
             Button(
                 onClick = onEnableEncryption,
-                enabled = !isAdminBusy,
+                enabled = canManageSettings && !isAdminBusy,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Default.Lock, null)
                 Spacer(Modifier.width(8.dp))
                 Text("Enable encryption")
+            }
+            if (!canManageSettings) {
+                Text(
+                    text = "You don't have the permission to enable encryption",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

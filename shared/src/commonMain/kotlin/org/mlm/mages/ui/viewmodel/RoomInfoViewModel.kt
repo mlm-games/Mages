@@ -33,6 +33,12 @@ data class RoomInfoUiState(
 
     val notificationMode: RoomNotificationMode? = null,
     val isLoadingNotificationMode: Boolean = false,
+
+    // Power level permissions
+    val myPowerLevel: Long = 0L,
+    val canEditName: Boolean = false,
+    val canEditTopic: Boolean = false,
+    val canManageSettings: Boolean = false,
 )
 
 class RoomInfoViewModel(
@@ -73,6 +79,19 @@ class RoomInfoViewModel(
             val successor = runSafe { service.port.roomSuccessor(roomId) }
             val predecessor = runSafe { service.port.roomPredecessor(roomId) }
 
+            // Fetch power level and calculate permissions
+            val myUserId = service.port.whoami() ?: ""
+            val powerLevel = if (myUserId.isNotBlank()) {
+                runSafe { service.port.getUserPowerLevel(roomId, myUserId) } ?: 0L
+            } else {
+                0L
+            }
+            // Matrix defaults: state_default = 50 for name/topic changes
+            val canEditName = powerLevel >= 50
+            val canEditTopic = powerLevel >= 50
+            // Managing settings (visibility, encryption) typically requires higher power
+            val canManageSettings = powerLevel >= 100
+
             updateState {
                 copy(
                     profile = profile,
@@ -85,7 +104,11 @@ class RoomInfoViewModel(
                     directoryVisibility = vis,
                     successor = successor,
                     predecessor = predecessor,
-                    error = if (profile == null) "Failed to load room info" else null
+                    error = if (profile == null) "Failed to load room info" else null,
+                    myPowerLevel = powerLevel,
+                    canEditName = canEditName,
+                    canEditTopic = canEditTopic,
+                    canManageSettings = canManageSettings
                 )
             }
 
