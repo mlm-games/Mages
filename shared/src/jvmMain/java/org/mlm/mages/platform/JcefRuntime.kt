@@ -40,9 +40,21 @@ internal object JcefRuntime {
             builder.cefSettings.windowless_rendering_enabled = false
 
             val os = System.getProperty("os.name").lowercase()
+            val isFlatpak = System.getenv("FLATPAK_ID") != null
+
             if (os.contains("linux")) {
                 builder.addJcefArgs("--ozone-platform=x11")
                 builder.addJcefArgs("--disable-dev-shm-usage")
+
+                if (isFlatpak) {
+                    // Forces JCEF to use the PipeWire Portal for sharing even when UI is X11
+                    builder.addJcefArgs("--enable-webrtc-pipewire-capturer")
+
+                    builder.addJcefArgs("--no-sandbox")
+                    builder.addJcefArgs("--disable-setuid-sandbox")
+
+                    builder.addJcefArgs("--use-fake-ui-for-media-stream")
+                }
 
                 // Test flags
 //                builder.addJcefArgs("--disable-gpu")
