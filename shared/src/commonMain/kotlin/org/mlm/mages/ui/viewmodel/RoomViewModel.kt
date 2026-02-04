@@ -91,7 +91,8 @@ class RoomViewModel(
     }
 
     private fun initialize() {
-        updateState { copy(myUserId = service.port.whoami()) }
+        val myUserId = service.port.whoami()
+        updateState { copy(myUserId = myUserId) }
         observeTimeline()
         observeTyping()
         observeOwnReceipt()
@@ -99,6 +100,8 @@ class RoomViewModel(
         observeReceipts()
         loadNotificationMode()
         loadUpgradeInfo()
+        loadPowerLevel(myUserId)
+        loadPinnedEvents()
 
         launch {
             dmPeer = runSafe { service.port.dmPeerUserId(currentState.roomId) }
@@ -266,6 +269,106 @@ class RoomViewModel(
             val ok = if (triedPrecise) true else service.sendMessage(currentState.roomId, event.body.trim())
             if (!ok) {
                 _events.send(Event.ShowError("Retry failed"))
+            }
+        }
+    }
+
+    private fun loadPowerLevel(myUserId: String?) {
+        if (myUserId == null) return
+        launch {
+            val powerLevel = runSafe { service.port.getUserPowerLevel(currentState.roomId, myUserId) } ?: 0L
+            
+            // Matrix defaults -> kick=50, ban=50, redact=50, state_default=50
+            val canRedactOthers = powerLevel >= 50
+            val canKick = powerLevel >= 50
+            val canBan = powerLevel >= 50
+            val canPin = powerLevel >= 50
+            
+            updateState { 
+                copy(
+                    myPowerLevel = powerLevel,
+                    canRedactOthers = canRedactOthers,
+                    canKick = canKick,
+                    canBan = canBan,
+                    canPin = canPin
+                )
+            }
+        }
+    }
+
+    //  Pinned Events
+
+    private fun loadPinnedEvents() {
+        launch {
+            val pinned = runSafe { service.port.getPinnedEvents(currentState.roomId) } ?: emptyList()
+            updateState { copy(pinnedEventIds = pinned) }
+        }
+    }
+
+    fun pinEvent(event: MessageEvent) {
+        if (!currentState.canPin) {
+            launch { _events.send(Event.ShowError("You don't have permission to pin messages")) }
+            return
+        }
+        if (event.eventId.isBlank()) return
+        launch {
+            val currentPinned = currentState.pinnedEventIds.toMutableList()
+            if (event.eventId !in currentPinned) {
+                currentPinned.add(0, event.eventId) // Add to front
+                val ok = runSafe { service.port.setPinnedEvents(currentState.roomId, currentPinned) } ?: false
+                if (ok) {
+                    updateState { copy(pinnedEventIds = currentPinned) }
+                    _events.send(Event.ShowError("Message pinned"))
+                } else {
+                    _events.send(Event.ShowError("Failed to pin message"))
+                }
+            }
+        }
+    }
+
+    fun unpinEvent(event: MessageEvent) {
+        if (!currentState.canPin) {
+            launch { _events.send(Event.ShowError("You don't have permission to unpin messages")) }
+            return
+        }
+        if (event.eventId.isBlank()) return
+        launch {
+            val currentPinned = currentState.pinnedEventIds.toMutableList()
+            if (event.eventId in currentPinned) {
+                currentPinned.remove(event.eventId)
+                val ok = runSafe { service.port.setPinnedEvents(currentState.roomId, currentPinned) } ?: false
+                if (ok) {
+                    updateState { copy(pinnedEventIds = currentPinned) }
+                    _events.send(Event.ShowError("Message unpinned"))
+                } else {
+                    _events.send(Event.ShowError("Failed to unpin message"))
+                }
+            }
+        }
+    }
+
+    //  Report Content
+
+    fun showReportDialog(event: MessageEvent) {
+        updateState { copy(showReportDialog = true, reportingEvent = event) }
+    }
+
+    fun hideReportDialog() {
+        updateState { copy(showReportDialog = false, reportingEvent = null) }
+    }
+
+    fun reportContent(event: MessageEvent, reason: String, blockUser: Boolean = false) {
+        if (event.eventId.isBlank()) return
+        launch {
+            val ok = runSafe { service.port.reportContent(currentState.roomId, event.eventId, reason) } ?: false
+            if (ok) {
+                if (blockUser) {
+                    runSafe { service.port.ignoreUser(event.sender) }
+                }
+                _events.send(Event.ShowError("Report submitted"))
+                hideReportDialog()
+            } else {
+                _events.send(Event.ShowError("Failed to submit report"))
             }
         }
     }

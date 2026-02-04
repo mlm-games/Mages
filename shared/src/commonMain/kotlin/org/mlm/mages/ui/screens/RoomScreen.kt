@@ -34,6 +34,7 @@ import org.mlm.mages.ui.components.composer.ActionBanner
 import org.mlm.mages.ui.components.composer.MessageComposer
 import org.mlm.mages.ui.components.core.*
 import org.mlm.mages.ui.components.dialogs.InviteUserDialog
+import org.mlm.mages.ui.components.dialogs.ReportContentDialog
 import org.mlm.mages.ui.components.message.MessageBubble
 import org.mlm.mages.ui.components.message.MessageStatusLine
 import org.mlm.mages.ui.components.message.SeenByChip
@@ -495,7 +496,7 @@ fun RoomScreen(
             onBan = { reason -> viewModel.banUser(member.userId, reason) },
             onUnban = { reason -> viewModel.unbanUser(member.userId, reason) },
             onIgnore = { viewModel.ignoreUser(member.userId) },
-            canModerate = true, // TODO: Check actual power levels
+            canModerate = state.canKick || state.canBan,
             isBanned = member.membership == "ban"
         )
     }
@@ -509,13 +510,20 @@ fun RoomScreen(
 
     sheetEvent?.let { event ->
         val isMine = event.sender == state.myUserId
+        val isPinned = event.eventId in state.pinnedEventIds
         MessageActionSheet(
             event = event,
             isMine = isMine,
+            canDeleteOthers = state.canRedactOthers,
+            canPin = state.canPin,
+            isPinned = isPinned,
             onDismiss = { sheetEvent = null },
             onReply = { viewModel.startReply(event); sheetEvent = null },
             onEdit = { viewModel.startEdit(event); sheetEvent = null },
             onDelete = { viewModel.delete(event); sheetEvent = null },
+            onPin = { viewModel.pinEvent(event) },
+            onUnpin = { viewModel.unpinEvent(event) },
+            onReport = { viewModel.showReportDialog(event) },
             onReact = { emoji -> viewModel.react(event, emoji) },
             onMarkReadHere = { viewModel.markReadHere(event); sheetEvent = null },
             onReplyInThread = { viewModel.openThread(event); sheetEvent = null },
@@ -548,6 +556,25 @@ fun RoomScreen(
             onLoadMore = viewModel::loadMoreRoomSearchResults,
             hasMore = state.roomSearchNextOffset != null,
             onDismiss = viewModel::hideRoomSearch
+        )
+    }
+
+    if (state.pinnedEventIds.isNotEmpty()) {
+        PinnedMessageBanner(
+            pinnedEventIds = state.pinnedEventIds,
+            events = state.allEvents,
+            onViewAll = { /* TODO: Open pinned messages sheet */ },
+            onDismiss = { /* TODO: Temporarily hide banner */ }
+        )
+    }
+
+    if (state.showReportDialog && state.reportingEvent != null) {
+        ReportContentDialog(
+            event = state.reportingEvent!!,
+            onReport = { reason, blockUser -> 
+                viewModel.reportContent(state.reportingEvent!!, reason, blockUser)
+            },
+            onDismiss = viewModel::hideReportDialog
         )
     }
 }

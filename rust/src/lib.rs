@@ -2,6 +2,7 @@ use futures_util::StreamExt;
 use js_int::UInt;
 use matrix_sdk::authentication::oauth::registration::language_tags::LanguageTag;
 use matrix_sdk::reqwest::Url;
+use matrix_sdk::ruma::events::room::power_levels::UserPowerLevel;
 use matrix_sdk::ruma::events::{AnySyncMessageLikeEvent, AnySyncTimelineEvent};
 use matrix_sdk::ruma::room_version_rules::RoomVersionRules;
 use matrix_sdk::search_index::SearchIndexStoreKind;
@@ -65,7 +66,7 @@ use matrix_sdk::{
             room::{Visibility, create_room::v3::RoomPreset},
         },
         events::room::{
-            EncryptedFile, MediaSource, name::RoomNameEventContent, topic::RoomTopicEventContent,
+            EncryptedFile, MediaSource, name::RoomNameEventContent, pinned_events::RoomPinnedEventsEventContent, topic::RoomTopicEventContent,
         },
         push::HttpPusherData,
         room::RoomType,
@@ -1878,6 +1879,43 @@ impl Client {
         })
     }
 
+    pub fn report_content(&self, room_id: String, event_id: String, reason: String) -> bool {
+        RT.block_on(async {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return false;
+            };
+            let Some(room) = self.inner.get_room(&rid) else {
+                return false;
+            };
+            let Ok(eid) = EventId::parse(&event_id) else {
+                return false;
+            };
+            room.report_content(eid, None, Some(reason)).await.is_ok()
+        })
+    }
+
+    pub fn get_user_power_level(&self, room_id: String, user_id: String) -> i64 {
+        RT.block_on(async {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return -1;
+            };
+            let Some(room) = self.inner.get_room(&rid) else {
+                return -1;
+            };
+            let Ok(uid) = UserId::parse(&user_id) else {
+                return -1;
+            };
+            match room.get_user_power_level(&uid).await {
+                Ok(level) => match level {
+                    UserPowerLevel::Infinite => i64::MAX,
+                    UserPowerLevel::Int(int_val) => int_val.into(),
+                    _ => -1, // Handle any future variants
+                },
+                Err(_) => -1,
+            }
+        })
+    }
+
     pub fn observe_typing(&self, room_id: String, observer: Box<dyn TypingObserver>) -> u64 {
         let client = self.inner_clone();
         let Ok(rid) = OwnedRoomId::try_from(room_id) else {
@@ -2788,6 +2826,39 @@ impl Client {
             room.send_state_event(RoomTopicEventContent::new(topic))
                 .await
                 .is_ok()
+        })
+    }
+
+    // Get list of pinned event IDs in a room
+    pub fn get_pinned_events(&self, room_id: String) -> Vec<String> {
+        RT.block_on(async {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return Vec::new();
+            };
+            let Some(room) = self.inner.get_room(&rid) else {
+                return Vec::new();
+            };
+            room.pinned_event_ids()
+                .map(|ids| ids.iter().map(|id| id.to_string()).collect())
+                .unwrap_or_default()
+        })
+    }
+
+    // note: replaces entire list
+    pub fn set_pinned_events(&self, room_id: String, event_ids: Vec<String>) -> bool {
+        RT.block_on(async {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return false;
+            };
+            let Some(room) = self.inner.get_room(&rid) else {
+                return false;
+            };
+            let parsed_ids: Vec<_> = event_ids
+                .iter()
+                .filter_map(|id| EventId::parse(id).ok())
+                .collect();
+            let content = RoomPinnedEventsEventContent::new(parsed_ids);
+            room.send_state_event(content).await.is_ok()
         })
     }
 

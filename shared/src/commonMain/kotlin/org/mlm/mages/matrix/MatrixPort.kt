@@ -337,6 +337,14 @@ interface MatrixPort {
     suspend fun reply(roomId: String, inReplyToEventId: String, body: String): Boolean
     suspend fun edit(roomId: String, targetEventId: String, newBody: String): Boolean
     suspend fun redact(roomId: String, eventId: String, reason: String? = null): Boolean
+    
+    suspend fun reportContent(roomId: String, eventId: String, reason: String): Boolean
+    
+    suspend fun getUserPowerLevel(roomId: String, userId: String): Long
+    
+    suspend fun getPinnedEvents(roomId: String): List<String>
+    suspend fun setPinnedEvents(roomId: String, eventIds: List<String>): Boolean
+    
     fun observeTyping(roomId: String, onUpdate: (List<String>) -> Unit): ULong
 
     fun startSupervisedSync(observer: SyncObserver)

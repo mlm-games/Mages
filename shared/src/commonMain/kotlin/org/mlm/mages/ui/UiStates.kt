@@ -111,6 +111,17 @@ data class RoomUiState(
 
     val isSelectionMode: Boolean = false,
     val selectedEventIds: Set<String> = emptySet(),
+    
+    val myPowerLevel: Long = 0L,
+    val canRedactOthers: Boolean = false,
+    val canKick: Boolean = false,
+    val canBan: Boolean = false,
+    val canPin: Boolean = false,
+    
+    val pinnedEventIds: List<String> = emptyList(),
+    
+    val showReportDialog: Boolean = false,
+    val reportingEvent: MessageEvent? = null,
 )
 
 

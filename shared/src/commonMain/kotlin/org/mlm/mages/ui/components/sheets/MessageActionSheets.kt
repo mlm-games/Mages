@@ -32,11 +32,17 @@ private val quickReactions = listOf("👍", "❤️", "😂", "😮", "😢", "�
 fun MessageActionSheet(
     event: MessageEvent,
     isMine: Boolean,
+    canDeleteOthers: Boolean = false,
+    canPin: Boolean = false,
+    isPinned: Boolean = false,
     onDismiss: () -> Unit,
     onReply: () -> Unit,
     onEdit: () -> Unit,
     onSelect: () -> Unit,
     onDelete: () -> Unit,
+    onPin: (() -> Unit)? = null,
+    onUnpin: (() -> Unit)? = null,
+    onReport: (() -> Unit)? = null,
     onReact: (String) -> Unit,
     onMarkReadHere: () -> Unit,
     onReplyInThread: (() -> Unit)? = null,
@@ -69,10 +75,21 @@ fun MessageActionSheet(
             if (isMine && event.sendState != SendState.Failed && event.eventId.isNotBlank()) {
                 ActionItem(Icons.Default.Edit, "Edit") { onEdit(); onDismiss() }
             }
-            if (isMine) {
+            if (isMine || (canDeleteOthers && event.eventId.isNotBlank())) {
                 ActionItem(Icons.Default.Delete, "Delete", MaterialTheme.colorScheme.error) { onDelete(); onDismiss() }
             }
+            if (canPin && event.eventId.isNotBlank()) {
+                if (isPinned && onUnpin != null) {
+                    ActionItem(Icons.Default.PushPin, "Unpin") { onUnpin(); onDismiss() }
+                } else if (!isPinned && onPin != null) {
+                    ActionItem(Icons.Default.PushPin, "Pin") { onPin(); onDismiss() }
+                }
+            }
             ActionItem(Icons.Default.Deselect, "Select") { onSelect(); onDismiss() }
+            HorizontalDivider(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm))
+            if (onReport != null && event.eventId.isNotBlank()) {
+                ActionItem(Icons.Default.Flag, "Report", MaterialTheme.colorScheme.error) { onReport(); onDismiss() }
+            }
         }
     }
 }

@@ -289,6 +289,26 @@ class RustMatrixPort : MatrixPort {
             runCatching { withClient { it.redact(roomId, eventId, reason) } }.getOrDefault(false)
         }
 
+    override suspend fun reportContent(roomId: String, eventId: String, reason: String): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.reportContent(roomId, eventId, reason) } }.getOrDefault(false)
+        }
+
+    override suspend fun getUserPowerLevel(roomId: String, userId: String): Long =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.getUserPowerLevel(roomId, userId).toLong() } }.getOrDefault(-1L)
+        }
+
+    override suspend fun getPinnedEvents(roomId: String): List<String> =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.getPinnedEvents(roomId) } }.getOrDefault(emptyList())
+        }
+
+    override suspend fun setPinnedEvents(roomId: String, eventIds: List<String>): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.setPinnedEvents(roomId, eventIds) } }.getOrDefault(false)
+        }
+
     override fun observeTyping(roomId: String, onUpdate: (List<String>) -> Unit): ULong {
         return runBlocking(Dispatchers.IO) {
             val obs = object : mages.TypingObserver {
