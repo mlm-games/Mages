@@ -168,6 +168,42 @@ class SpaceSettingsViewModel(
             if (page != null) {
                 // Filter out the space itself
                 val children = page.children.filter { it.roomId != currentState.spaceId }
+
+                // Fetch room profiles for names
+                children.filter { !it.isSpace && it.name.isNullOrBlank() }.forEach { child ->
+                    launch {
+                        val profile = runSafe { service.port.roomProfile(child.roomId) }
+                        if (profile != null && profile.name.isNotBlank()) {
+                            updateState {
+                                val updatedChildren = children.map { existing ->
+                                    if (existing.roomId == child.roomId && existing.name.isNullOrBlank()) {
+                                        existing.copy(name = profile.name)
+                                    } else {
+                                        existing
+                                    }
+                                }
+                                copy(children = updatedChildren)
+                            }
+                        }
+                    }
+                }
+
+                // Prefetch avatars
+                children.forEach { child ->
+                    child.avatarUrl?.let { url ->
+                        if (url.startsWith("mxc://")) {
+                            launch {
+                                val path = service.avatars.resolve(url, px = 64, crop = true)
+                                if (path != null) {
+                                    updateState {
+                                        copy(avatarPathByRoomId = avatarPathByRoomId + (child.roomId to path))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 updateState { copy(children = children, isLoading = false) }
             } else {
                 updateState { copy(isLoading = false, error = "Failed to load children") }

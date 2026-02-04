@@ -218,6 +218,7 @@ data class SpaceSettingsUiState(
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
     val error: String? = null,
+    val avatarPathByRoomId: Map<String, String> = emptyMap(),
 
     // Dialogs
     val showAddRoom: Boolean = false,

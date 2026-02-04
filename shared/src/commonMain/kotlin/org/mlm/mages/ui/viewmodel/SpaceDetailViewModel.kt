@@ -115,6 +115,30 @@ class SpaceDetailViewModel(
                     (currentState.hierarchy + children).distinctBy { it.roomId }
                 }
 
+                // Fetch room profiles for names (Matrix space hierarchy returns summaries without names)
+                newHierarchy.filter { !it.isSpace && it.name.isNullOrBlank() }.forEach { child ->
+                    launch {
+                        val profile = runSafe { service.port.roomProfile(child.roomId) }
+                        if (profile != null && profile.name.isNotBlank()) {
+                            updateState {
+                                val updatedHierarchy = hierarchy.map { existing ->
+                                    if (existing.roomId == child.roomId && existing.name.isNullOrBlank()) {
+                                        existing.copy(name = profile.name)
+                                    } else {
+                                        existing
+                                    }
+                                }
+                                val (subspaces, rooms) = updatedHierarchy.partition { it.isSpace }
+                                copy(
+                                    hierarchy = updatedHierarchy,
+                                    subspaces = subspaces,
+                                    rooms = rooms
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // Prefetch avatars
                 newHierarchy.forEach { child ->
                     child.avatarUrl?.let { url ->

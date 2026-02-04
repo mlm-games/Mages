@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import org.mlm.mages.RoomSummary
 import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.matrix.SpaceInfo
+import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.SpaceSettingsViewModel
 
@@ -137,8 +138,9 @@ fun SpaceSettingsScreen(
                 }
 
                 items(state.children, key = { it.roomId }) { child ->
+                    val resolvedAvatar = state.avatarPathByRoomId[child.roomId] ?: child.avatarUrl
                     ChildRoomItem(
-                        child = child,
+                        child = child.copy(avatarUrl = resolvedAvatar),
                         onRemove = { viewModel.removeChild(child.roomId) },
                         isRemoving = state.isSaving
                     )
@@ -231,10 +233,11 @@ private fun ChildRoomItem(
     onRemove: () -> Unit,
     isRemoving: Boolean
 ) {
+    val displayName = child.name ?: child.alias ?: child.roomId
     ListItem(
         headlineContent = {
             Text(
-                child.name ?: child.alias ?: child.roomId,
+                displayName,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -243,22 +246,12 @@ private fun ChildRoomItem(
             { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         },
         leadingContent = {
-            Surface(
-                color = if (child.isSpace)
-                    MaterialTheme.colorScheme.secondaryContainer
-                else
-                    MaterialTheme.colorScheme.surfaceVariant,
-                shape = MaterialTheme.shapes.small,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Icon(
-                        if (child.isSpace) Icons.Default.Workspaces
-                        else Icons.Default.Tag,
-                        null
-                    )
-                }
-            }
+            Avatar(
+                name = displayName,
+                avatarPath = child.avatarUrl,
+                size = 40.dp,
+                shape = MaterialTheme.shapes.small
+            )
         },
         trailingContent = {
             IconButton(onClick = onRemove, enabled = !isRemoving) {
