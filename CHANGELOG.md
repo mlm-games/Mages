@@ -1,3 +1,9 @@
+## v2.4.6
+
+- rem legacy packaging, and update ndk ver (test fdroid build)
+- bump from rc-02 to rel. for M. Compose
+
+
 ## v2.4.5
 
 - Improve room info screen

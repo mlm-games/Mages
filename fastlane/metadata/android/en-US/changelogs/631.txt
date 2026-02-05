@@ -1,0 +1,2 @@
+- rem legacy packaging, and update ndk ver (test fdroid build)
+- bump from rc-02 to rel. for M. Compose

@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="2.4.6" date="2026-02-05" type="stable">
+      <description>
+        <ul>
+          <li>rem legacy packaging, and update ndk ver (test fdroid build)</li>
+          <li>bump from rc-02 to rel. for M. Compose</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.4.5" date="2026-02-05" type="stable">
       <description>
         <ul>
