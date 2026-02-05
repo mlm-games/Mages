@@ -447,7 +447,8 @@ fun RoomScreen(
             onPickDocument = { picker.pick("*/*") },
             onDismiss = viewModel::hideAttachmentPicker,
             onCreatePoll = viewModel::showPollCreator,
-            onShareLocation = viewModel::showLiveLocation
+            // TODO: Add Live Location sharing after Element X implements it (same org's team)
+            // onShareLocation = viewModel::showLiveLocation
         )
     }
 
@@ -458,14 +459,14 @@ fun RoomScreen(
         )
     }
 
-    if (state.showLiveLocation) {
-        LiveLocationSheet(
-            isCurrentlySharing = viewModel.isCurrentlyShareingLocation,
-            onStartSharing = viewModel::startLiveLocation,
-            onStopSharing = viewModel::stopLiveLocation,
-            onDismiss = viewModel::hideLiveLocation
-        )
-    }
+    // if (state.showLiveLocation) {
+    //     LiveLocationSheet(
+    //         isCurrentlySharing = viewModel.isCurrentlyShareingLocation,
+    //         onStartSharing = viewModel::startLiveLocation,
+    //         onStopSharing = viewModel::stopLiveLocation,
+    //         onDismiss = viewModel::hideLiveLocation
+    //     )
+    // }
 
     if (state.showNotificationSettings) {
         RoomNotificationSheet(
