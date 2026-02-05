@@ -13,10 +13,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import org.mlm.mages.matrix.RoomDirectoryVisibility
 import org.mlm.mages.matrix.RoomProfile
 import org.mlm.mages.ui.components.dialogs.ConfirmationDialog
+import org.mlm.mages.ui.components.settings.*
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.RoomInfoUiState
 import org.mlm.mages.ui.viewmodel.RoomInfoViewModel
@@ -29,7 +29,6 @@ fun RoomInfoRoute(
     onOpenMediaGallery: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
@@ -56,14 +55,14 @@ fun RoomInfoRoute(
         onRefresh = viewModel::refresh,
         onNameChange = viewModel::updateName,
         onTopicChange = viewModel::updateTopic,
-        onSaveName = { viewModel.saveName() },
-        onSaveTopic = { viewModel.saveTopic() },
-        onToggleFavourite = { viewModel.toggleFavourite() },
-        onToggleLowPriority = { viewModel.toggleLowPriority() },
-        onLeave = { viewModel.leave() },
+        onSaveName = viewModel::saveName,
+        onSaveTopic = viewModel::saveTopic,
+        onToggleFavourite = viewModel::toggleFavourite,
+        onToggleLowPriority = viewModel::toggleLowPriority,
+        onLeave = viewModel::leave,
         onLeaveSuccess = onLeaveSuccess,
-        onSetVisibility = { v -> viewModel.setDirectoryVisibility(v) },
-        onEnableEncryption = { viewModel.enableEncryption() },
+        onSetVisibility = viewModel::setDirectoryVisibility,
+        onEnableEncryption = viewModel::enableEncryption,
         onOpenRoom = { roomId -> viewModel.openRoom(roomId) },
         onOpenMediaGallery = onOpenMediaGallery
     )
@@ -78,18 +77,17 @@ fun RoomInfoScreen(
     onRefresh: () -> Unit,
     onNameChange: (String) -> Unit,
     onTopicChange: (String) -> Unit,
-    onSaveName: suspend () -> Boolean,
-    onSaveTopic: suspend () -> Boolean,
-    onToggleFavourite: suspend () -> Boolean,
-    onToggleLowPriority: suspend () -> Boolean,
-    onLeave: suspend () -> Boolean,
+    onSaveName: () -> Unit,
+    onSaveTopic: () -> Unit,
+    onToggleFavourite: () -> Unit,
+    onToggleLowPriority: () -> Unit,
+    onLeave: () -> Unit,
     onLeaveSuccess: () -> Unit,
-    onSetVisibility: suspend (RoomDirectoryVisibility) -> Boolean,
-    onEnableEncryption: suspend () -> Boolean,
+    onSetVisibility: (RoomDirectoryVisibility) -> Unit,
+    onEnableEncryption: () -> Unit,
     onOpenRoom: (String) -> Unit,
     onOpenMediaGallery: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
     var showLeaveDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -134,110 +132,80 @@ fun RoomInfoScreen(
 
                 // Priority section
                 item {
-                    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                "Room Priority",
-                                style = MaterialTheme.typography.titleSmall,
-                                modifier = Modifier.padding(bottom = 8.dp)
+                    SettingsSection(title = "Room Priority") {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = state.isFavourite,
+                                onClick = onToggleFavourite,
+                                label = { Text("Favourite") },
+                                leadingIcon = {
+                                    Icon(
+                                        if (state.isFavourite) Icons.Default.Star
+                                        else Icons.Default.StarBorder,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
+                                enabled = !state.isSaving,
+                                modifier = Modifier.weight(1f)
                             )
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                FilterChip(
-                                    selected = state.isFavourite,
-                                    onClick = {
-                                        scope.launch {
-                                            val success = onToggleFavourite()
-                                            if (!success) {
-                                                snackbarHostState.showSnackbar("Failed to update favourite")
-                                            }
-                                        }
-                                    },
-                                    label = { Text("Favourite") },
-                                    leadingIcon = {
-                                        Icon(
-                                            if (state.isFavourite) Icons.Default.Star
-                                            else Icons.Default.StarBorder,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    },
-                                    enabled = !state.isSaving,
-                                    modifier = Modifier.weight(1f)
-                                )
-
-                                FilterChip(
-                                    selected = state.isLowPriority,
-                                    onClick = {
-                                        scope.launch {
-                                            val success = onToggleLowPriority()
-                                            if (!success) {
-                                                snackbarHostState.showSnackbar("Failed to update priority")
-                                            }
-                                        }
-                                    },
-                                    label = { Text("Low Priority") },
-                                    leadingIcon = {
-                                        Icon(
-                                            if (state.isLowPriority) Icons.Default.ArrowDownward
-                                            else Icons.Default.Remove,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    },
-                                    enabled = !state.isSaving,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
+                            FilterChip(
+                                selected = state.isLowPriority,
+                                onClick = onToggleLowPriority,
+                                label = { Text("Low Priority") },
+                                leadingIcon = {
+                                    Icon(
+                                        if (state.isLowPriority) Icons.Default.ArrowDownward
+                                        else Icons.Default.Remove,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
+                                enabled = !state.isSaving,
+                                modifier = Modifier.weight(1f)
+                            )
                         }
                     }
                 }
 
                 // Edit name
                 item {
-                    EditableField(
-                        label = "Room name",
-                        value = state.editedName,
-                        onValueChange = onNameChange,
-                        onSave = {
-                            scope.launch {
-                                val success = onSaveName()
-                                if (!success) {
-                                    snackbarHostState.showSnackbar("Failed to update name")
-                                }
-                            }
-                        },
-                        isSaving = state.isSaving,
-                        enabled = state.canEditName,
-                        helperText = if (!state.canEditName) "You don't have permission to change the room name" else null
-                    )
-                }
+                    SettingsSection(title = "Room Details") {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            EditableSettingField(
+                                label = "Room name",
+                                value = state.editedName,
+                                onValueChange = onNameChange,
+                                onSave = onSaveName,
+                                enabled = state.canEditName,
+                                isSaving = state.isSaving,
+                                helperText = if (!state.canEditName) "You don't have permission to change the room name" else null
+                            )
 
-                // Edit topic
-                item {
-                    EditableField(
-                        label = "Topic",
-                        value = state.editedTopic,
-                        onValueChange = onTopicChange,
-                        onSave = {
-                            scope.launch {
-                                val success = onSaveTopic()
-                                if (!success) {
-                                    snackbarHostState.showSnackbar("Failed to update topic")
-                                }
-                            }
-                        },
-                        isSaving = state.isSaving,
-                        singleLine = false,
-                        enabled = state.canEditTopic,
-                        helperText = if (!state.canEditTopic) "You don't have permission to change the topic" else null
-                    )
-                }
+                            HorizontalDivider()
 
-                item { HorizontalDivider() }
+                            EditableSettingField(
+                                label = "Topic",
+                                value = state.editedTopic,
+                                onValueChange = onTopicChange,
+                                onSave = onSaveTopic,
+                                enabled = state.canEditTopic,
+                                isSaving = state.isSaving,
+                                singleLine = false,
+                                helperText = if (!state.canEditTopic) "You don't have permission to change the topic" else null
+                            )
+                        }
+                    }
+                }
 
                 // Misc section
                 item {
@@ -247,33 +215,16 @@ fun RoomInfoScreen(
                             visibility = state.directoryVisibility,
                             isAdminBusy = state.isAdminBusy,
                             canManageSettings = state.canManageSettings,
-                            onSetVisibility = {
-                                scope.launch {
-                                    val target = if (state.directoryVisibility == RoomDirectoryVisibility.Public)
-                                        RoomDirectoryVisibility.Private
-                                    else
-                                        RoomDirectoryVisibility.Public
-                                    val ok = onSetVisibility(target)
-                                    if (!ok) {
-                                        snackbarHostState.showSnackbar("Failed to update visibility")
-                                    }
-                                }
-                            },
-                            onEnableEncryption = {
-                                scope.launch {
-                                    val ok = onEnableEncryption()
-                                    if (!ok) {
-                                        snackbarHostState.showSnackbar("Failed to enable encryption")
-                                    }
-                                }
-                            }
+                            onSetVisibility = onSetVisibility,
+                            onEnableEncryption = onEnableEncryption
                         )
                     }
                 }
 
+                // Media & Files
                 item {
                     ElevatedCard(
-                        onClick = { onOpenMediaGallery() },
+                        onClick = onOpenMediaGallery,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -306,8 +257,6 @@ fun RoomInfoScreen(
                     }
                 }
 
-                item { HorizontalDivider() }
-
                 // Leave room button
                 item {
                     Button(
@@ -339,14 +288,7 @@ fun RoomInfoScreen(
                 isDestructive = true,
                 onConfirm = {
                     showLeaveDialog = false
-                    scope.launch {
-                        val success = onLeave()
-                        if (success) {
-                            onLeaveSuccess()
-                        } else {
-                            snackbarHostState.showSnackbar("Failed to leave room")
-                        }
-                    }
+                    onLeave()
                 },
                 onDismiss = { showLeaveDialog = false }
             )
@@ -477,108 +419,57 @@ private fun RoomHeader(
 }
 
 @Composable
-private fun EditableField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    onSave: () -> Unit,
-    isSaving: Boolean,
-    singleLine: Boolean = true,
-    enabled: Boolean = true,
-    helperText: String? = null
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            label = { Text(label) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = singleLine,
-            enabled = enabled && !isSaving,
-            readOnly = !enabled,
-            supportingText = helperText?.let { { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) } },
-            colors = OutlinedTextFieldDefaults.colors(
-                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                disabledSupportingTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        )
-
-        if (enabled) {
-            Button(
-                onClick = onSave,
-                enabled = !isSaving && value.isNotBlank(),
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .fillMaxWidth()
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text("Save")
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun MiscSection(
     profile: RoomProfile,
     visibility: RoomDirectoryVisibility?,
     isAdminBusy: Boolean,
     canManageSettings: Boolean,
-    onSetVisibility: () -> Unit,
+    onSetVisibility: (RoomDirectoryVisibility) -> Unit,
     onEnableEncryption: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Misc", style = MaterialTheme.typography.titleMedium)
+    SettingsSection(title = "Misc") {
+        val isPublic = visibility == RoomDirectoryVisibility.Public
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                "Listed in room directory",
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyMedium
-            )
-            val checked = visibility == RoomDirectoryVisibility.Public
-            Switch(
-                checked = checked,
-                enabled = canManageSettings && !isAdminBusy,
-                onCheckedChange = { onSetVisibility() }
-            )
-        }
-
-        if (!canManageSettings) {
-            Text(
-                text = "You don't have the permission to change privacy settings",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        SettingSwitchRow(
+            icon = Icons.Default.Public,
+            title = "Listed in room directory",
+            subtitle = if (!canManageSettings) "You don't have permission to change this" else null,
+            checked = isPublic,
+            enabled = canManageSettings && !isAdminBusy,
+            onCheckedChange = { checked ->
+                onSetVisibility(
+                    if (checked) RoomDirectoryVisibility.Public
+                    else RoomDirectoryVisibility.Private
+                )
+            }
+        )
 
         if (!profile.isEncrypted) {
-            Button(
-                onClick = onEnableEncryption,
-                enabled = canManageSettings && !isAdminBusy,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Lock, null)
-                Spacer(Modifier.width(8.dp))
-                Text("Enable encryption")
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            Box(modifier = Modifier.padding(16.dp)) {
+                Button(
+                    onClick = onEnableEncryption,
+                    enabled = canManageSettings && !isAdminBusy,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (isAdminBusy) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(Icons.Default.Lock, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Enable encryption")
+                    }
+                }
             }
             if (!canManageSettings) {
                 Text(
                     text = "You don't have the permission to enable encryption",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
         }
