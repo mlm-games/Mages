@@ -239,10 +239,10 @@ fun RoomInfoScreen(
 
                 item { HorizontalDivider() }
 
-                // Privacy section
+                // Misc section
                 item {
                     state.profile?.let { profile ->
-                        PrivacySection(
+                        MiscSection(
                             profile = profile,
                             visibility = state.directoryVisibility,
                             isAdminBusy = state.isAdminBusy,
@@ -528,7 +528,7 @@ private fun EditableField(
 }
 
 @Composable
-private fun PrivacySection(
+private fun MiscSection(
     profile: RoomProfile,
     visibility: RoomDirectoryVisibility?,
     isAdminBusy: Boolean,
@@ -537,7 +537,7 @@ private fun PrivacySection(
     onEnableEncryption: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Privacy", style = MaterialTheme.typography.titleMedium)
+        Text("Misc", style = MaterialTheme.typography.titleMedium)
 
         Row(
             modifier = Modifier.fillMaxWidth(),
