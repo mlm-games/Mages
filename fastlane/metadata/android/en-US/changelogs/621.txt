@@ -1,0 +1,2 @@
+- Improve room info screen
+- Make media gallery auto paginate for all 4 tabs (remove load more)

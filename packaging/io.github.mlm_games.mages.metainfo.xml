@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="2.4.5" date="2026-02-05" type="stable">
+      <description>
+        <ul>
+          <li>Improve room info screen</li>
+          <li>Make media gallery auto paginate for all 4 tabs (remove load more)</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.4.4" date="2026-02-04" type="stable">
       <description>
         <ul>

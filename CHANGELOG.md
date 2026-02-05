@@ -1,3 +1,9 @@
+## v2.4.5
+
+- Improve room info screen
+- Make media gallery auto paginate for all 4 tabs (remove load more)
+
+
 ## v2.4.4
 
 - hide option to change title and topic if power levels are low
