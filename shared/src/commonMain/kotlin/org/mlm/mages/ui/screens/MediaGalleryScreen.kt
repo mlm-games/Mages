@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -30,7 +31,6 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import kotlinx.coroutines.flow.distinctUntilChanged
 import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.platform.ShareContent
@@ -303,29 +303,44 @@ fun MediaGrid(
 ) {
     val gridState = rememberLazyGridState()
 
-    // Auto-paginate when near end
-    LaunchedEffect(gridState, hitStart, isPaginating) {
-        snapshotFlow {
-            val layoutInfo = gridState.layoutInfo
-            val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            val total = layoutInfo.totalItemsCount
-            Triple(lastVisible, total, isPaginating)
-        }
-            .distinctUntilChanged()
-            .collect { (lastVisible, total, loading) ->
-                if (!hitStart && !loading && total > 0 && lastVisible >= total - 8) {
-                    onLoadMore()
-                }
-            }
-    }
-
     // Group items by month (newest first)
     val galleryItems = remember(items) {
         buildGalleryItems(items.sortedByDescending { it.timestampMs })
     }
 
-    if (galleryItems.isEmpty() && hitStart) {
-        EmptyTabContent(icon = Icons.Default.Image, text = "No media found")
+    val shouldPaginate by remember {
+        derivedStateOf {
+            val layoutInfo = gridState.layoutInfo
+            val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+            val total = layoutInfo.totalItemsCount
+            !hitStart && !isPaginating && total > 0 && lastVisible >= total - 8
+        }
+    }
+
+    LaunchedEffect(shouldPaginate) {
+        if (shouldPaginate) {
+            onLoadMore()
+        }
+    }
+
+    // Auto-paginate when empty and not hit start yet
+    LaunchedEffect(galleryItems.isEmpty(), hitStart, isPaginating) {
+        if (galleryItems.isEmpty() && !hitStart && !isPaginating) {
+            onLoadMore()
+        }
+    }
+
+    if (galleryItems.isEmpty()) {
+        if (hitStart) {
+            EmptyTabContent(icon = Icons.Default.Image, text = "No media found")
+        } else {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
         return
     }
 
@@ -575,19 +590,48 @@ private fun FilesList(
     onItemClick: (MessageEvent) -> Unit,
     onItemLongClick: (MessageEvent) -> Unit
 ) {
+    val listState = rememberLazyListState()
+
+    val shouldPaginate by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+            val total = layoutInfo.totalItemsCount
+            !hitStart && !isPaginating && total > 0 && lastVisible >= total - 8
+        }
+    }
+
+    LaunchedEffect(shouldPaginate) {
+        if (shouldPaginate) {
+            onLoadMore()
+        }
+    }
+
+    LaunchedEffect(items.isEmpty(), hitStart, isPaginating) {
+        if (items.isEmpty() && !hitStart && !isPaginating) {
+            onLoadMore()
+        }
+    }
+
     if (items.isEmpty()) {
-        EmptyTabContent(icon = Icons.Default.Folder, text = "No files found")
+        if (hitStart) {
+            EmptyTabContent(icon = Icons.Default.Folder, text = "No files found")
+        } else {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
         return
     }
 
     LazyColumn(
+        state = listState,
         contentPadding = PaddingValues(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        if (!hitStart) {
-            item { LoadMoreButton(isPaginating, onLoadMore) }
-        }
-
         items(items.reversed(), key = { it.eventId }) { event ->
             val isSelected = event.eventId in selectedIds
 
@@ -598,6 +642,19 @@ private fun FilesList(
                 onClick = { onItemClick(event) },
                 onLongClick = { onItemLongClick(event) }
             )
+        }
+
+        if (isPaginating) {
+            item(key = "loading") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(Spacing.lg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                }
+            }
         }
     }
 }
@@ -701,21 +758,64 @@ private fun LinksList(
     onLoadMore: () -> Unit,
     onLinkClick: (String) -> Unit
 ) {
+    val listState = rememberLazyListState()
+
+    val shouldPaginate by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+            val total = layoutInfo.totalItemsCount
+            !hitStart && !isPaginating && total > 0 && lastVisible >= total - 8
+        }
+    }
+
+    LaunchedEffect(shouldPaginate) {
+        if (shouldPaginate) {
+            onLoadMore()
+        }
+    }
+
+    // Auto-paginate when empty and not hit start yet
+    LaunchedEffect(links.isEmpty(), hitStart, isPaginating) {
+        if (links.isEmpty() && !hitStart && !isPaginating) {
+            onLoadMore()
+        }
+    }
+
     if (links.isEmpty()) {
-        EmptyTabContent(icon = Icons.Default.Link, text = "No links found")
+        if (hitStart) {
+            EmptyTabContent(icon = Icons.Default.Link, text = "No links found")
+        } else {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
         return
     }
 
     LazyColumn(
+        state = listState,
         contentPadding = PaddingValues(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        if (!hitStart) {
-            item { LoadMoreButton(isPaginating, onLoadMore) }
-        }
-
         items(links, key = { "${it.eventId}_${it.url}" }) { link ->
             LinkListItem(link = link, onClick = { onLinkClick(link.url) })
+        }
+
+        if (isPaginating) {
+            item(key = "loading") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(Spacing.lg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                }
+            }
         }
     }
 }
@@ -770,24 +870,6 @@ private fun LinkListItem(
             )
         }
     }
-}
-
-@Composable
-private fun LoadMoreButton(isLoading: Boolean, onClick: () -> Unit) { // HACK: Autoloaded, so not needed
-//    Box(
-//        modifier = Modifier
-//            .fillMaxWidth()
-//            .padding(Spacing.md),
-//        contentAlignment = Alignment.Center
-//    ) {
-//        OutlinedButton(onClick = onClick, enabled = !isLoading) {
-//            if (isLoading) {
-//                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-//                Spacer(Modifier.width(8.dp))
-//            }
-//            Text(if (isLoading) "Loading..." else "Load more")
-//        }
-//    }
 }
 
 
