@@ -56,6 +56,9 @@ jobs:
 
       - name: Install AppImage tools
         run: |
+          sudo apt update
+          sudo apt install -y zsync
+
           if [ "${{ matrix.arch }}" = "aarch64" ]; then
             APPIMAGETOOL_URL="https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-aarch64.AppImage"
           else
