@@ -113,7 +113,7 @@ jobs:
       - name: Collect desktop artifacts
         run: |
           mkdir -p dist
-          find desktopApp/build/compose/binaries/main -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) -exec cp {} dist/ \;
+          find desktopApp/build/compose/binaries/main -type f \( -name "*.deb" -o -name "*.rpm" \) -exec cp {} dist/ \;
           ls -la dist
 
       - name: Upload artifacts (CI)
