@@ -1,3 +1,11 @@
+## v2.5.1
+
+- fix thread replies again
+- Let message bubbles take 80% of available width
+- Use the Material 3 Expressive theme
+- Initial translation handling (es)
+
+
 ## v2.4.6
 
 - rem legacy packaging, and update ndk ver (test fdroid build)

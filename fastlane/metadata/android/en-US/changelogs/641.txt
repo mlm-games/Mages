@@ -1,0 +1,4 @@
+- fix thread replies again
+- Let message bubbles take 80% of available width
+- Use the Material 3 Expressive theme
+- Initial translation handling (es)

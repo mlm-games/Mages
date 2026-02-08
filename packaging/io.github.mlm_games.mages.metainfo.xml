@@ -46,6 +46,16 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="2.5.1" date="2026-02-08" type="stable">
+      <description>
+        <ul>
+          <li>fix thread replies again</li>
+          <li>Let message bubbles take 80% of available width</li>
+          <li>Use the Material 3 Expressive theme</li>
+          <li>Initial translation handling (es)</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.4.6" date="2026-02-05" type="stable">
       <description>
         <ul>
