@@ -6761,6 +6761,23 @@ async fn map_visible_room_view(
         .collect()
 }
 
+async fn map_room_view_all(
+    tl: &Arc<Timeline>,
+    rid: &OwnedRoomId,
+    me: &str,
+) -> Vec<MessageEvent> {
+    let items = tl.items().await;
+    items
+        .iter()
+        .filter_map(|it| {
+            it.as_event().and_then(|ei| {
+                fetch_reply_if_needed(ei, tl);
+                map_timeline_event(ei, rid.as_str(), Some(&it.unique_id().0.to_string()), me)
+            })
+        })
+        .collect()
+}
+
 async fn backfill_until_min_visible(
     tl: &Arc<Timeline>,
     rid: &OwnedRoomId,
@@ -6791,13 +6808,15 @@ async fn emit_timeline_reset_filled(
     rid: &OwnedRoomId,
     me: &str,
 ) {
-    let mut mapped = map_visible_room_view(tl, rid, me).await;
+    let mut visible = map_visible_room_view(tl, rid, me).await;
 
     // If empty/small and not at timeline start, backfill
-    if mapped.len() < MIN_VISIBLE_AFTER_RESET && !is_at_timeline_start(tl).await {
+    if visible.len() < MIN_VISIBLE_AFTER_RESET && !is_at_timeline_start(tl).await {
         backfill_until_min_visible(tl, rid, me, MIN_VISIBLE_AFTER_RESET).await;
-        mapped = map_visible_room_view(tl, rid, me).await;
+        visible = map_visible_room_view(tl, rid, me).await;
     }
+
+    let mapped = map_room_view_all(tl, rid, me).await;
 
     let _ = catch_unwind(AssertUnwindSafe(|| {
         obs.on_diff(TimelineDiffKind::Reset { values: mapped })
