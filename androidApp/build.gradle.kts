@@ -19,7 +19,7 @@ android {
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 631
-        versionName = "2.4.6"
+        versionName = "2.5.0"
 
         // have to keep versionName here for fdroid, do not change
 
