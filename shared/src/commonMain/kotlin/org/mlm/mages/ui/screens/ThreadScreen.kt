@@ -377,7 +377,7 @@ private fun ThreadRootMessage(
             .fillMaxWidth()
             .padding(Spacing.md),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         ),
         shape = RoundedCornerShape(16.dp),
         onClick = onLongPress
@@ -438,7 +438,7 @@ private fun ThreadRootMessage(
 
             Surface(
                 color = if (isMine)
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                    MaterialTheme.colorScheme.primaryContainer
                 else
                     MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(12.dp),
@@ -586,7 +586,7 @@ private fun ThreadReactionChipsRow(
                 color = if (chip.mine)
                     MaterialTheme.colorScheme.primaryContainer
                 else
-                    MaterialTheme.colorScheme.surfaceVariant,
+                        MaterialTheme.colorScheme.surfaceContainerLow,
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Row(
@@ -627,9 +627,9 @@ private fun ThreadComposer(
             AnimatedVisibility(visible = hasAction) {
                 Surface(
                     color = if (isEditing)
-                        MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                        MaterialTheme.colorScheme.tertiaryContainer
                     else
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    MaterialTheme.colorScheme.surfaceContainerLow,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -725,7 +725,7 @@ private fun ThreadComposer(
                             MaterialTheme.colorScheme.tertiary
                         else
                             MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
                     )
                 )
 
@@ -744,7 +744,7 @@ private fun ThreadComposer(
                             MaterialTheme.colorScheme.onTertiary
                         else
                             MaterialTheme.colorScheme.onPrimary,
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                         disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 ) {
@@ -768,7 +768,7 @@ private fun EmptyThreadView() {
             modifier = Modifier.padding(Spacing.xxl)
         ) {
             Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant,
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
                 shape = CircleShape,
                 modifier = Modifier.size(80.dp)
             ) {

@@ -422,7 +422,7 @@ fun RoomScreen(
             if (isDragging) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                    color = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Surface(
@@ -857,7 +857,7 @@ private fun MessageItem(
                 }
             )
             .then(
-                if (isSelected) Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                if (isSelected) Modifier.background(MaterialTheme.colorScheme.primaryContainer)
                 else Modifier
             )
     ) {
@@ -962,10 +962,10 @@ private fun DateHeader(date: String) {
     ) {
         HorizontalDivider(
             modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+            color = MaterialTheme.colorScheme.outlineVariant
         )
         Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
             shape = MaterialTheme.shapes.small,
             modifier = Modifier.padding(horizontal = Spacing.md)
         ) {
@@ -978,7 +978,7 @@ private fun DateHeader(date: String) {
         }
         HorizontalDivider(
             modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+            color = MaterialTheme.colorScheme.outlineVariant
         )
     }
 }

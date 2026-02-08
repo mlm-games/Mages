@@ -458,7 +458,7 @@ private fun MediaGridItem(
             )
     ) {
         // Thumbnail or placeholder
-        Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.fillMaxSize()
@@ -479,7 +479,7 @@ private fun MediaGridItem(
                             Icons.Default.VideoFile else Icons.Default.Image,
                         contentDescription = null,
                         modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -534,7 +534,7 @@ private fun MediaGridItem(
                 color = if (isSelected)
                     MaterialTheme.colorScheme.primary
                 else
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                    MaterialTheme.colorScheme.surfaceContainerLow,
                 shape = CircleShape,
                 shadowElevation = 2.dp,
                 modifier = Modifier.size(24.dp)
@@ -557,7 +557,7 @@ private fun MediaGridItem(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                    .background(MaterialTheme.colorScheme.primaryContainer)
             )
         }
     }
@@ -886,7 +886,7 @@ private fun EmptyTabContent(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.height(12.dp))
             Text(

@@ -296,7 +296,7 @@ private fun DeviceCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (device.verified)
-                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                MaterialTheme.colorScheme.secondaryContainer
             else
                 MaterialTheme.colorScheme.surfaceContainer
         )

@@ -123,7 +123,7 @@ fun SearchScreen(
                             )
                             HorizontalDivider(
                                 modifier = Modifier.padding(horizontal = Spacing.lg),
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                color = MaterialTheme.colorScheme.outlineVariant
                             )
                         }
                         

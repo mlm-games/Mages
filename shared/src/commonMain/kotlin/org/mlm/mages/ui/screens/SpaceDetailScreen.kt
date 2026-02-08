@@ -165,7 +165,7 @@ private fun SpaceHeaderCard(space: SpaceInfo) {
             .fillMaxWidth()
             .padding(Spacing.lg),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         )
     ) {
         Column(modifier = Modifier.padding(Spacing.lg)) {

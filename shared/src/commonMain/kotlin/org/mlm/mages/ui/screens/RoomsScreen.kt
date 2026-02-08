@@ -165,7 +165,7 @@ fun RoomsScreen(
                             if (index > 0) {
                                 HorizontalDivider(
                                     modifier = Modifier.padding(horizontal = Spacing.lg),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                    color = MaterialTheme.colorScheme.outlineVariant
                                 )
                             }
                             val resolved = state.roomAvatarPath[item.roomId] ?: item.avatarUrl
@@ -193,7 +193,7 @@ fun RoomsScreen(
                             if (index > 0) {
                                 HorizontalDivider(
                                     modifier = Modifier.padding(horizontal = Spacing.lg),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                    color = MaterialTheme.colorScheme.outlineVariant
                                 )
                             }
                             val resolved = state.roomAvatarPath[item.roomId] ?: item.avatarUrl
@@ -219,7 +219,7 @@ fun RoomsScreen(
                             if (index > 0) {
                                 HorizontalDivider(
                                     modifier = Modifier.padding(horizontal = Spacing.lg),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                    color = MaterialTheme.colorScheme.outlineVariant
                                 )
                             }
                             val resolved = state.roomAvatarPath[item.roomId] ?: item.avatarUrl
