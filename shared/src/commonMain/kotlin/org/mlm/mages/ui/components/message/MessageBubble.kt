@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -27,11 +28,11 @@ import org.mlm.mages.matrix.PollData
 import org.mlm.mages.matrix.ReactionChip
 import org.mlm.mages.matrix.SendState
 import org.mlm.mages.ui.components.core.MarkdownText
-import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatDuration
 import org.mlm.mages.ui.util.formatTime
 import java.io.File
+import kotlin.math.min
 
 @Composable
 fun MessageBubble(
@@ -74,58 +75,61 @@ fun MessageBubble(
             )
         }
 
-        Surface(
-            color = if (isMine) MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.secondaryContainer,
-            shape = bubbleShape(isMine, grouped),
-            tonalElevation = if (isMine) 3.dp else 1.dp,
-            modifier = Modifier
-                .widthIn(max = Sizes.bubbleMaxWidth)
-                .combinedClickable(onClick = {}, onLongClick = onLongPress)
-        ) {
-            Column(Modifier.padding(Spacing.md)) {
-                if (!replyPreview.isNullOrBlank()) {
-                    ReplyPreview(replySender, replyPreview)
-                    Spacer(Modifier.height(Spacing.sm))
-                }
+        BubbleWidthWrapper(fractionOfParent = 0.8f) {
+            Surface(
+                color = if (isMine) MaterialTheme.colorScheme.primaryContainer
+                else MaterialTheme.colorScheme.secondaryContainer,
+                shape = bubbleShape(isMine, grouped),
+                tonalElevation = if (isMine) 3.dp else 1.dp,
+                modifier = Modifier
+                    .combinedClickable(onClick = {}, onLongClick = onLongPress)
+            ) {
+                Column(Modifier.padding(Spacing.md)) {
+                    if (!replyPreview.isNullOrBlank()) {
+                        ReplyPreview(replySender, replyPreview)
+                        Spacer(Modifier.height(Spacing.sm))
+                    }
 
-                AttachmentThumbnail(thumbPath, attachmentKind, durationMs, isMine, onOpenAttachment)
-
-                if (poll != null) {
-                    PollBubble(
-                        poll = poll,
-                        isMine = isMine,
-                        onVote = { optId -> onVote?.invoke(optId) },
-                        onEndPoll = { onEndPoll?.invoke() }
+                    AttachmentThumbnail(
+                        thumbPath, attachmentKind, durationMs, isMine, onOpenAttachment
                     )
-                } else if (body.isNotBlank()) {
-                    MarkdownText(
-                        text = body,
-                        color = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
 
-                if (isEdited) {
+                    if (poll != null) {
+                        PollBubble(
+                            poll = poll,
+                            isMine = isMine,
+                            onVote = { optId -> onVote?.invoke(optId) },
+                            onEndPoll = { onEndPoll?.invoke() }
+                        )
+                    } else if (body.isNotBlank()) {
+                        MarkdownText(
+                            text = body,
+                            color = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    if (isEdited) {
+                        Text(
+                            text = "(edited)",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = (if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
+                            else MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.6f),
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+
                     Text(
-                        text = "(edited)",
+                        text = formatTime(timestamp),
                         style = MaterialTheme.typography.labelSmall,
                         color = (if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
-                        else MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.6f),
-                        modifier = Modifier.padding(top = 2.dp)
+                        else MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.7f),
+                        modifier = Modifier.padding(top = Spacing.xs)
                     )
-                }
 
-                Text(
-                    text = formatTime(timestamp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = (if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
-                    else MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.7f),
-                    modifier = Modifier.padding(top = Spacing.xs)
-                )
-
-                if (isMine && sendState == SendState.Failed) {
-                    FailedIndicator()
+                    if (isMine && sendState == SendState.Failed) {
+                        FailedIndicator()
+                    }
                 }
             }
         }
@@ -188,6 +192,7 @@ private fun AttachmentThumbnail(
     if (attachmentKind == AttachmentKind.File) {
         Box(
             modifier = Modifier
+                .fillMaxWidth()
                 .clip(RoundedCornerShape(10.dp))
                 .background(contentColor.copy(alpha = 0.08f))
                 .border(1.dp, contentColor.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
@@ -227,7 +232,9 @@ private fun AttachmentThumbnail(
     if (thumbPath != null) {
         Box(
             modifier = Modifier
-                .widthIn(max = Sizes.bubbleMaxWidth)
+                .widthIn(max = 600.dp)
+//                .fillMaxWidth()
+                .heightIn(max = 300.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .clickable(enabled = onOpen != null) { onOpen?.invoke() }
         ) {
@@ -237,8 +244,11 @@ private fun AttachmentThumbnail(
                     .crossfade(true)
                     .build(),
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth()
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxWidth()
+//                    .widthIn(max = 600.dp)
+                    .heightIn(max = 300.dp)
             )
 
             if (attachmentKind == AttachmentKind.Video && durationMs != null) {
@@ -295,5 +305,24 @@ private fun FailedIndicator() {
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.error
         )
+    }
+}
+
+@Composable
+fun BubbleWidthWrapper(
+    modifier: Modifier = Modifier,
+    fractionOfParent: Float = 0.8f,
+    content: @Composable () -> Unit
+) {
+    Layout(content = content, modifier = modifier) { measurables, constraints ->
+        val maxAllowed = (constraints.maxWidth * fractionOfParent).toInt()
+        val childConstraints = constraints.copy(
+            minWidth = 0,
+            maxWidth = min(maxAllowed, constraints.maxWidth)
+        )
+        val placeable = measurables.first().measure(childConstraints)
+        layout(placeable.width, placeable.height) {
+            placeable.place(0, 0)
+        }
     }
 }
