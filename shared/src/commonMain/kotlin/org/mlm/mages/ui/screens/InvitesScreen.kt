@@ -15,6 +15,8 @@ import org.mlm.mages.matrix.RoomProfile
 import org.mlm.mages.ui.components.core.StatusBanner
 import org.mlm.mages.ui.components.core.BannerType
 import org.mlm.mages.ui.viewmodel.InvitesViewModel
+import org.jetbrains.compose.resources.stringResource
+import mages.shared.generated.resources.*
 
 @Composable
 fun InvitesRoute(
@@ -55,15 +57,15 @@ fun InvitesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Invites") },
+                title = { Text(stringResource(Res.string.invites)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
                     }
                 },
                 actions = {
                     IconButton(enabled = !busy, onClick = onRefresh) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(Res.string.refresh))
                     }
                 }
             )
@@ -85,7 +87,7 @@ fun InvitesScreen(
 
             if (invites.isEmpty() && !busy) {
                 Text(
-                    "No pending invites",
+                    stringResource(Res.string.no_pending_invites),
                     modifier = Modifier.padding(16.dp)
                 )
             } else {
@@ -109,7 +111,7 @@ fun InvitesScreen(
                                 trailingContent = {
                                     Row {
                                         TextButton(onClick = { onDecline(inv.roomId) }) {
-                                            Text("Decline")
+                                            Text(stringResource(Res.string.decline))
                                         }
                                         Spacer(Modifier.width(8.dp))
                                         Button(
@@ -119,7 +121,7 @@ fun InvitesScreen(
                                                 }
                                             }
                                         ) {
-                                            Text("Accept")
+                                            Text(stringResource(Res.string.accept))
                                         }
                                     }
                                 }

@@ -22,6 +22,8 @@ import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.components.core.ShimmerList
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.SpacesViewModel
+import org.jetbrains.compose.resources.stringResource
+import mages.shared.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,15 +37,15 @@ fun SpacesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Spaces", fontWeight = FontWeight.SemiBold) },
+                title = { Text(stringResource(Res.string.spaces), fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = viewModel::refresh, enabled = !state.isLoading) {
-                        Icon(Icons.Default.Refresh, "Refresh")
+                        Icon(Icons.Default.Refresh, stringResource(Res.string.refresh))
                     }
                 }
             )
@@ -56,7 +58,7 @@ fun SpacesScreen(
             ) {
                 Icon(Icons.Default.Add, null)
                 Spacer(Modifier.width(Spacing.sm))
-                Text("Create Space")
+                Text(stringResource(Res.string.create_space))
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -73,12 +75,12 @@ fun SpacesScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-                placeholder = { Text("Search spaces...") },
+                placeholder = { Text(stringResource(Res.string.search_spaces)) },
                 leadingIcon = { Icon(Icons.Default.Search, null) },
                 trailingIcon = {
                     if (state.searchQuery.isNotEmpty()) {
                         IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                            Icon(Icons.Default.Clear, "Clear")
+                            Icon(Icons.Default.Clear, stringResource(Res.string.clear))
                         }
                     }
                 },
@@ -94,12 +96,12 @@ fun SpacesScreen(
                 state.filteredSpaces.isEmpty() -> {
                     EmptyState(
                         icon = Icons.Default.Workspaces,
-                        title = if (state.searchQuery.isBlank()) "No spaces yet"
-                        else "No spaces found",
+                        title = if (state.searchQuery.isBlank()) stringResource(Res.string.no_spaces_yet)
+                        else stringResource(Res.string.no_spaces_found),
                         subtitle = if (state.searchQuery.isBlank())
-                            "Create a space to organize your rooms"
+                            stringResource(Res.string.create_space_subtitle)
                         else
-                            "Try a different search term"
+                            stringResource(Res.string.try_different_search)
                     )
                 }
 
@@ -193,7 +195,7 @@ private fun SpaceCard(
                     if (space.isEncrypted) {
                         Icon(
                             Icons.Default.Lock,
-                            "Encrypted",
+                            stringResource(Res.string.encrypted),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -201,7 +203,7 @@ private fun SpaceCard(
                     if (space.isPublic) {
                         Icon(
                             Icons.Default.Public,
-                            "Public",
+                            stringResource(Res.string.public),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.tertiary
                         )
@@ -221,7 +223,7 @@ private fun SpaceCard(
                 Spacer(Modifier.height(Spacing.xs))
 
                 Text(
-                    "${space.memberCount} members",
+                    stringResource(Res.string.members, space.memberCount),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -266,7 +268,7 @@ private fun CreateSpaceSheet(
             verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
             Text(
-                "Create Space",
+                stringResource(Res.string.create_space),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -292,8 +294,8 @@ private fun CreateSpaceSheet(
             OutlinedTextField(
                 value = name,
                 onValueChange = onNameChange,
-                label = { Text("Space name *") },
-                placeholder = { Text("My Awesome Space") },
+                label = { Text(stringResource(Res.string.space_name)) },
+                placeholder = { Text(stringResource(Res.string.space_name_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 enabled = !isCreating
@@ -302,8 +304,8 @@ private fun CreateSpaceSheet(
             OutlinedTextField(
                 value = topic,
                 onValueChange = onTopicChange,
-                label = { Text("Topic (optional)") },
-                placeholder = { Text("What is this space about?") },
+                label = { Text(stringResource(Res.string.topic_optional)) },
+                placeholder = { Text(stringResource(Res.string.topic_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 4,
@@ -330,13 +332,13 @@ private fun CreateSpaceSheet(
                     Spacer(Modifier.width(Spacing.md))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            if (isPublic) "Public Space" else "Private Space",
+                            if (isPublic) stringResource(Res.string.public_space) else stringResource(Res.string.private_space),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            if (isPublic) "Anyone can find and join"
-                            else "Only invited users can join",
+                            if (isPublic) stringResource(Res.string.anyone_can_find_and_join)
+                            else stringResource(Res.string.only_invited_users_can_join),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -351,7 +353,7 @@ private fun CreateSpaceSheet(
 
             // Invitees
             Text(
-                "Invite users (optional)",
+                stringResource(Res.string.invite_users_optional),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Medium
             )
@@ -364,7 +366,7 @@ private fun CreateSpaceSheet(
                 OutlinedTextField(
                     value = inviteeInput,
                     onValueChange = { inviteeInput = it },
-                    label = { Text("@user:server") },
+                    label = { Text(stringResource(Res.string.user_placeholder)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     enabled = !isCreating,
@@ -385,7 +387,7 @@ private fun CreateSpaceSheet(
                     },
                     enabled = inviteeInput.startsWith("@") && ":" in inviteeInput && !isCreating
                 ) {
-                    Icon(Icons.Default.Add, "Add")
+                    Icon(Icons.Default.Add, stringResource(Res.string.add))
                 }
             }
 
@@ -405,7 +407,7 @@ private fun CreateSpaceSheet(
                                     modifier = Modifier.size(18.dp),
                                     enabled = !isCreating
                                 ) {
-                                    Icon(Icons.Default.Close, "Remove", Modifier.size(14.dp))
+                                    Icon(Icons.Default.Close, stringResource(Res.string.remove), Modifier.size(14.dp))
                                 }
                             }
                         )
@@ -432,7 +434,7 @@ private fun CreateSpaceSheet(
                 } else {
                     Icon(Icons.Default.Add, null)
                     Spacer(Modifier.width(Spacing.sm))
-                    Text("Create Space", fontWeight = FontWeight.Medium)
+                    Text(stringResource(Res.string.create_space), fontWeight = FontWeight.Medium)
                 }
             }
         }

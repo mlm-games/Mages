@@ -25,6 +25,8 @@ import org.mlm.mages.ui.components.core.StatusBanner
 import org.mlm.mages.ui.components.core.BannerType
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.RoomsViewModel
+import org.jetbrains.compose.resources.stringResource
+import mages.shared.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,9 +94,9 @@ fun RoomsScreen(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ) {
-                    Icon(Icons.Default.KeyboardArrowUp, "Scroll to top")
+                    Icon(Icons.Default.KeyboardArrowUp, stringResource(Res.string.scroll_to_top))
                     Spacer(Modifier.width(8.dp))
-                    Text("New activity")
+                    Text(stringResource(Res.string.new_activity))
                 }
             }
         }
@@ -107,14 +109,14 @@ fun RoomsScreen(
             !hasAnyRooms && state.offlineBanner != null -> {
                 EmptyState(
                     icon = Icons.Default.CloudOff,
-                    title = state.offlineBanner ?: "Offline",
-                    subtitle = "Connect to the internet to load rooms. If you've opened this account before, your last room list will appear here instantly.",
+                    title = state.offlineBanner ?: stringResource(Res.string.offline),
+                    subtitle = stringResource(Res.string.connect_to_internet),
                     modifier = Modifier.padding(innerPadding),
                     action = {
                         Button(onClick = viewModel::refresh) {
                             Icon(Icons.Default.Refresh, null)
                             Spacer(Modifier.width(Spacing.sm))
-                            Text("Retry")
+                            Text(stringResource(Res.string.retry))
                         }
                     }
                 )
@@ -123,18 +125,18 @@ fun RoomsScreen(
             !hasAnyRooms -> {
                 EmptyState(
                     icon = Icons.Default.MeetingRoom,
-                    title = "No rooms found",
+                    title = stringResource(Res.string.no_rooms_found),
                     subtitle = if (state.roomSearchQuery.isBlank())
-                        "Join a room to start chatting"
+                        stringResource(Res.string.join_a_room)
                     else
-                        "No rooms match \"${state.roomSearchQuery}\"",
+                        stringResource(Res.string.no_rooms_match, state.roomSearchQuery),
                     modifier = Modifier.padding(innerPadding),
                     action = if (state.roomSearchQuery.isBlank()) {
                         {
                             Button(onClick = onOpenDiscover) {
                                 Icon(Icons.Default.Search, null)
                                 Spacer(Modifier.width(Spacing.sm))
-                                Text("Discover Rooms")
+                                Text(stringResource(Res.string.discover_rooms))
                             }
                         }
                     } else null
@@ -152,7 +154,7 @@ fun RoomsScreen(
                     if (state.favouriteItems.isNotEmpty()) {
                         item(key = "header_favourites") {
                             SectionHeader(
-                                title = "Favourites",
+                                title = stringResource(Res.string.favourites),
                                 count = state.favouriteItems.size,
                                 icon = Icons.Default.Star
                             )
@@ -179,7 +181,7 @@ fun RoomsScreen(
                         if (state.favouriteItems.isNotEmpty()) {
                             item(key = "header_rooms") {
                                 SectionHeader(
-                                    title = "Rooms",
+                                    title = stringResource(Res.string.rooms),
                                     count = state.normalItems.size,
                                     icon = Icons.Default.ChatBubble
                                 )
@@ -206,7 +208,7 @@ fun RoomsScreen(
                     if (state.lowPriorityItems.isNotEmpty()) {
                         item(key = "header_low_priority") {
                             SectionHeader(
-                                title = "Low Priority",
+                                title = stringResource(Res.string.low_priority),
                                 count = state.lowPriorityItems.size,
                                 icon = Icons.Default.ArrowDownward
                             )
@@ -254,25 +256,25 @@ private fun RoomsTopBar(
 ) {
     Column {
         TopAppBar(
-            title = { Text("Rooms", fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            title = { Text(stringResource(Res.string.rooms), fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis) },
             actions = {
                 IconButton(onClick = onOpenSpaces) {
-                    Icon(Icons.Default.Workspaces, "Spaces")
+                    Icon(Icons.Default.Workspaces, stringResource(Res.string.spaces))
                 }
                 IconButton(onClick = onOpenSecurity) {
-                    Icon(Icons.Default.Settings, "Settings")
+                    Icon(Icons.Default.Settings, stringResource(Res.string.settings))
                 }
                 IconButton(onClick = onOpenDiscover) {
-                    Icon(Icons.Default.Explore, "Discover")
+                    Icon(Icons.Default.Explore, stringResource(Res.string.discover))
                 }
                 IconButton(onClick = onOpenInvites) {
-                    Icon(Icons.Default.Mail, "Invites")
+                    Icon(Icons.Default.Mail, stringResource(Res.string.invites))
                 }
                 IconButton(onClick = onOpenCreateRoom) {
-                    Icon(Icons.Default.Add, "New Room")
+                    Icon(Icons.Default.Add, stringResource(Res.string.new_room))
                 }
                 IconButton(onClick = onOpenSearch) {
-                    Icon(Icons.Default.Search, "Search messages")
+                    Icon(Icons.Default.Search, stringResource(Res.string.search_messages))
                 }
             }
         )
@@ -301,12 +303,12 @@ private fun RoomsTopBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-            placeholder = { Text("Search rooms...") },
+            placeholder = { Text(stringResource(Res.string.search_rooms)) },
             leadingIcon = { Icon(Icons.Default.Search, null) },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = { onSearchChange("") }) {
-                        Icon(Icons.Default.Clear, "Clear search")
+                        Icon(Icons.Default.Clear, stringResource(Res.string.clear_search))
                     }
                 }
             },
@@ -324,7 +326,7 @@ private fun RoomsTopBar(
             FilterChip(
                 selected = unreadOnly,
                 onClick = onToggleUnreadOnly,
-                label = { Text("Unread only") },
+                label = { Text(stringResource(Res.string.unread_only)) },
                 leadingIcon = if (unreadOnly) {
                     { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
                 } else null

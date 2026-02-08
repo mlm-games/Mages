@@ -15,10 +15,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import mages.shared.generated.resources.*
 import org.mlm.mages.matrix.SasPhase
 import org.mlm.mages.ui.animation.AnimationSpecs
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun SasDialog(
@@ -54,7 +56,7 @@ fun SasDialog(
                     MaterialTheme.colorScheme.primary
                 )
                 Spacer(Modifier.height(Spacing.lg))
-                Text("Verify Device", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(stringResource(Res.string.verify_device), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
 
                 if (otherUser.isNotBlank() || otherDevice.isNotBlank()) {
                     Spacer(Modifier.height(Spacing.sm))
@@ -124,7 +126,7 @@ private fun SasPhaseContent(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 CircularProgressIndicator()
                 Spacer(Modifier.height(Spacing.sm))
-                Text("Preparing verification…")
+                Text(stringResource(Res.string.preparing_verification))
             }
         }
 
@@ -144,7 +146,7 @@ private fun SasPhaseContent(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator()
                     Spacer(Modifier.height(Spacing.sm))
-                    Text("Waiting for acceptance…")
+                    Text(stringResource(Res.string.waiting_for_acceptance))
                 }
             }
         }
@@ -281,14 +283,14 @@ private fun SasActions(
             SasPhase.Requested -> {
                 if (showAcceptRequest) {
                     OutlinedButton(onClick = onCancel, enabled = !actionInFlight, modifier = Modifier.weight(1f)) {
-                        Text("Reject")
+                        Text(stringResource(Res.string.reject))
                     }
                     Button(onClick = onAcceptOrContinue, enabled = !actionInFlight, modifier = Modifier.weight(1f)) {
-                        Text("Accept")
+                        Text(stringResource(Res.string.accept))
                     }
                 } else {
                     OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
-                        Text("Cancel request")
+                        Text(stringResource(Res.string.cancel))
                     }
                 }
             }
@@ -296,14 +298,14 @@ private fun SasActions(
             SasPhase.Ready, SasPhase.Started -> {
                 if (showContinue) {
                     OutlinedButton(onClick = onCancel, enabled = !actionInFlight, modifier = Modifier.weight(1f)) {
-                        Text("Cancel")
+                        Text(stringResource(Res.string.cancel))
                     }
                     Button(onClick = onAcceptOrContinue, enabled = !actionInFlight, modifier = Modifier.weight(1f)) {
-                        Text(if (actionInFlight) "Continuing…" else "Continue")
+                        Text(if (actionInFlight) stringResource(Res.string.sending) else stringResource(Res.string.next))
                     }
                 } else {
                     OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
-                        Text("Cancel")
+                        Text(stringResource(Res.string.cancel))
                     }
                 }
             }
@@ -312,26 +314,26 @@ private fun SasActions(
             SasPhase.Created,
             SasPhase.Confirmed -> {
                 OutlinedButton(onClick = onCancel, enabled = !actionInFlight, modifier = Modifier.fillMaxWidth()) {
-                    Text("Cancel")
+                    Text(stringResource(Res.string.cancel))
                 }
             }
 
             SasPhase.Emojis -> {
-                OutlinedButton(onClick = onCancel, Modifier.weight(1f)) { Text("They don't match") }
-                Button(onClick = onConfirm, Modifier.weight(1f)) { Text("They match") }
+                OutlinedButton(onClick = onCancel, Modifier.weight(1f)) { Text(stringResource(Res.string.they_dont_match)) }
+                Button(onClick = onConfirm, Modifier.weight(1f)) { Text(stringResource(Res.string.they_match)) }
             }
 
             SasPhase.Done -> {
-                Button(onClick = onCancel, Modifier.fillMaxWidth()) { Text("Close") }
+                Button(onClick = onCancel, Modifier.fillMaxWidth()) { Text(stringResource(Res.string.close)) }
             }
 
             SasPhase.Failed,
             SasPhase.Cancelled -> {
-                OutlinedButton(onClick = onCancel, Modifier.fillMaxWidth()) { Text("Close") }
+                OutlinedButton(onClick = onCancel, Modifier.fillMaxWidth()) { Text(stringResource(Res.string.close)) }
             }
 
             else -> {
-                OutlinedButton(onClick = onCancel, Modifier.fillMaxWidth()) { Text("Cancel") }
+                OutlinedButton(onClick = onCancel, Modifier.fillMaxWidth()) { Text(stringResource(Res.string.cancel)) }
             }
         }
     }

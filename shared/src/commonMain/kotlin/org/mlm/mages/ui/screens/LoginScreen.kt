@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.LoginViewModel
+import org.jetbrains.compose.resources.stringResource
+import mages.shared.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,10 +95,10 @@ fun LoginScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = when {
-                            ssoInProgress -> "Waiting for SSO..."
-                            isBusy -> "Connecting..."
-                            isAddingAccount -> "Add Account"
-                            else -> "Welcome to Mages"
+                            ssoInProgress -> stringResource(Res.string.waiting_for_sso)
+                            isBusy -> stringResource(Res.string.connecting)
+                            isAddingAccount -> stringResource(Res.string.add_account)
+                            else -> stringResource(Res.string.welcome_to_mages)
                         },
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
@@ -105,9 +107,9 @@ fun LoginScreen(
                     Spacer(Modifier.height(8.dp))
                     Text(
                         text = when {
-                            ssoInProgress -> "Complete login in your browser"
-                            isBusy -> "Please wait"
-                            else -> "Sign in to your Matrix account"
+                            ssoInProgress -> stringResource(Res.string.complete_login_in_browser)
+                            isBusy -> stringResource(Res.string.please_wait)
+                            else -> stringResource(Res.string.sign_in_to_your_matrix_account)
                         },
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -136,8 +138,8 @@ fun LoginScreen(
                     OutlinedTextField(
                         value = state.user,
                         onValueChange = viewModel::setUser,
-                        label = { Text("Username") },
-                        placeholder = { Text("@user:matrix.org") },
+                        label = { Text(stringResource(Res.string.username)) },
+                        placeholder = { Text(stringResource(Res.string.username_placeholder)) },
                         leadingIcon = { Icon(Icons.Default.Person, null) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !state.isBusy,
@@ -159,8 +161,8 @@ fun LoginScreen(
                     OutlinedTextField(
                         value = state.pass,
                         onValueChange = viewModel::setPass,
-                        label = { Text("Password") },
-                        placeholder = { Text("Enter your password") },
+                        label = { Text(stringResource(Res.string.password)) },
+                        placeholder = { Text(stringResource(Res.string.enter_your_password)) },
                         leadingIcon = { Icon(Icons.Default.Lock, null) },
                         trailingIcon = {
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -206,7 +208,7 @@ fun LoginScreen(
                         ) {
                             Icon(Icons.Default.Close, null)
                             Spacer(Modifier.width(Spacing.sm))
-                            Text("Cancel SSO")
+                            Text(stringResource(Res.string.cancel_sso))
                         }
                     } else {
                         OutlinedButton(
@@ -216,7 +218,7 @@ fun LoginScreen(
                         ) {
                             Icon(Icons.Default.OpenInBrowser, null)
                             Spacer(Modifier.width(Spacing.sm))
-                            Text("Continue with SSO")
+                            Text(stringResource(Res.string.continue_with_sso))
                         }
                     }
 
@@ -225,8 +227,8 @@ fun LoginScreen(
                         OutlinedTextField(
                             value = state.homeserver,
                             onValueChange = viewModel::setHomeserver,
-                            label = { Text("Homeserver") },
-                            placeholder = { Text("https://matrix.org") },
+                            label = { Text(stringResource(Res.string.homeserver)) },
+                            placeholder = { Text(stringResource(Res.string.homeserver_placeholder)) },
                             leadingIcon = { Icon(Icons.Default.Home, null) },
                             modifier = Modifier.fillMaxWidth(),
                             enabled = !state.isBusy,
@@ -250,8 +252,8 @@ fun LoginScreen(
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            if (showAdvanced) "Hide advanced options"
-                            else "Show advanced options"
+                            if (showAdvanced) stringResource(Res.string.hide_advanced_options)
+                            else stringResource(Res.string.show_advanced_options)
                         )
                     }
 
@@ -279,7 +281,7 @@ fun LoginScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(Modifier.width(8.dp))
-                            Text("Sign In", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                            Text(stringResource(Res.string.sign_in), fontSize = 16.sp, fontWeight = FontWeight.Medium)
                         }
                     }
 

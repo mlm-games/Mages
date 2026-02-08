@@ -19,6 +19,8 @@ import org.mlm.mages.ui.components.core.StatusBanner
 import org.mlm.mages.ui.components.core.BannerType
 import org.mlm.mages.ui.viewmodel.DiscoverUi
 import org.mlm.mages.ui.viewmodel.DiscoverViewModel
+import org.jetbrains.compose.resources.stringResource
+import mages.shared.generated.resources.*
 
 @Composable
 fun DiscoverRoute(
@@ -69,10 +71,10 @@ fun DiscoverScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Discover") },
+                title = { Text(stringResource(Res.string.discover)) },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
                     }
                 }
             )
@@ -89,8 +91,8 @@ fun DiscoverScreen(
                 value = state.query,
                 onValueChange = onQuery,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Search users or public rooms") },
-                placeholder = { Text("e.g., #linux:matrix.org or @user:server.com") },
+                label = { Text(stringResource(Res.string.search_users_or_rooms)) },
+                placeholder = { Text(stringResource(Res.string.search_placeholder)) },
                 singleLine = true,
                 leadingIcon = {
                     Icon(Icons.Default.Search, contentDescription = null)
@@ -98,7 +100,7 @@ fun DiscoverScreen(
                 trailingIcon = {
                     if (state.query.isNotEmpty()) {
                         IconButton(onClick = { onQuery("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear")
+                            Icon(Icons.Default.Clear, contentDescription = stringResource(Res.string.clear))
                         }
                     }
                 }
@@ -134,7 +136,7 @@ fun DiscoverScreen(
                 if (state.users.isNotEmpty()) {
                     item(key = "users_header") {
                         Text(
-                            "Users",
+                            stringResource(Res.string.users),
                             style = MaterialTheme.typography.titleSmall,
                             modifier = Modifier.padding(top = 8.dp)
                         )
@@ -159,11 +161,11 @@ fun DiscoverScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                "Public rooms on ${state.directoryServer}",
+                                stringResource(Res.string.public_rooms_on, state.directoryServer),
                                 style = MaterialTheme.typography.titleSmall
                             )
                             Text(
-                                "${state.rooms.size} found",
+                                stringResource(Res.string.found, state.rooms.size),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -195,7 +197,7 @@ fun DiscoverScreen(
                                             modifier = Modifier.size(18.dp)
                                         )
                                         Spacer(Modifier.width(8.dp))
-                                        Text("Load more rooms")
+                                        Text(stringResource(Res.string.load_more_rooms))
                                     }
                                 }
                             }
@@ -247,7 +249,7 @@ private fun DirectoryServerSelector(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            "Directory:",
+            stringResource(Res.string.directory),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -286,7 +288,7 @@ private fun DirectoryServerSelector(
                                 Text(server)
                                 if (server == homeServer) {
                                     Text(
-                                        "(home)",
+                                        stringResource(Res.string.home),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.primary
                                     )
@@ -312,7 +314,7 @@ private fun DirectoryServerSelector(
                 HorizontalDivider()
 
                 DropdownMenuItem(
-                    text = { Text("Add custom server...") },
+                    text = { Text(stringResource(Res.string.add_custom_server)) },
                     onClick = {
                         expanded = false
                         showCustomDialog = true
@@ -345,18 +347,18 @@ private fun CustomServerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add custom server") },
+        title = { Text(stringResource(Res.string.add_custom_server_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Enter the homeserver domain to search its public room directory.",
+                    stringResource(Res.string.enter_homeserver_domain),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 OutlinedTextField(
                     value = serverInput,
                     onValueChange = { serverInput = it },
-                    label = { Text("Server domain") },
-                    placeholder = { Text("e.g., libera.chat") },
+                    label = { Text(stringResource(Res.string.server_domain)) },
+                    placeholder = { Text(stringResource(Res.string.server_domain_placeholder)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -367,12 +369,12 @@ private fun CustomServerDialog(
                 onClick = { onConfirm(serverInput) },
                 enabled = serverInput.isNotBlank()
             ) {
-                Text("Add")
+                Text(stringResource(Res.string.add_server))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(Res.string.cancel))
             }
         }
     )
@@ -398,7 +400,7 @@ private fun DirectJoinCard(
                 )
             },
             supportingContent = {
-                Text("Join this room directly by alias/ID")
+                Text(stringResource(Res.string.join_this_room))
             },
             leadingContent = {
                 Icon(
@@ -412,7 +414,7 @@ private fun DirectJoinCard(
                     onClick = onJoin,
                     enabled = !isBusy
                 ) {
-                    Text("Join")
+                    Text(stringResource(Res.string.join))
                 }
             },
             colors = ListItemDefaults.colors(
@@ -442,7 +444,7 @@ private fun UserListItem(
             },
             trailingContent = {
                 TextButton(onClick = onMessage) {
-                    Text("Message")
+                    Text(stringResource(Res.string.message))
                 }
             }
         )
@@ -493,7 +495,7 @@ private fun RoomListItem(
             },
             trailingContent = {
                 TextButton(onClick = onJoin) {
-                    Text("Join")
+                    Text(stringResource(Res.string.join))
                 }
             }
         )
@@ -522,11 +524,11 @@ private fun EmptySearchState(query: String) {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                "No results for \"$query\"",
+                stringResource(Res.string.no_results_for, query),
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                "Try a different search term or directory server",
+                stringResource(Res.string.try_different_search_term),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -549,32 +551,32 @@ private fun SearchHintCard() {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                "Search tips",
+                stringResource(Res.string.search_tips),
                 style = MaterialTheme.typography.titleMedium
             )
 
             SearchHintRow(
                 icon = Icons.Default.Tag,
                 example = "#linux:matrix.org",
-                description = "Join a room by its full alias"
+                description = stringResource(Res.string.join_room_by_alias)
             )
 
             SearchHintRow(
                 icon = Icons.Default.Person,
                 example = "@username:server.com",
-                description = "Start a DM with a user"
+                description = stringResource(Res.string.start_dm_with_user)
             )
 
             SearchHintRow(
                 icon = Icons.Default.Search,
                 example = "programming",
-                description = "Search for rooms by topic"
+                description = stringResource(Res.string.search_rooms_by_topic)
             )
 
             SearchHintRow(
                 icon = Icons.Default.Link,
                 example = "https://matrix.to/#/...",
-                description = "Paste a matrix.to link"
+                description = stringResource(Res.string.paste_matrix_link)
             )
         }
     }

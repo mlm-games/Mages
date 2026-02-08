@@ -44,6 +44,8 @@ import org.mlm.mages.ui.util.formatDate
 import org.mlm.mages.ui.util.formatTime
 import org.mlm.mages.ui.util.formatTypingText
 import org.mlm.mages.ui.viewmodel.RoomViewModel
+import org.jetbrains.compose.resources.stringResource
+import mages.shared.generated.resources.*
 import java.io.File
 import java.nio.file.Files
 
@@ -185,6 +187,8 @@ fun RoomScreen(
         }
     }
 
+    val errorMessage = stringResource(Res.string.couldnt_find_message)
+
     LaunchedEffect(
         pendingJumpEventId,
         state.hasTimelineSnapshot,
@@ -211,7 +215,7 @@ fun RoomScreen(
         } else if (state.hitStart || jumpAttempts >= 30) {
             pendingJumpEventId = null
             jumpAttempts = 0
-            snackbarHostState.showSnackbar("Couldn’t find that message in loaded history.")
+            snackbarHostState.showSnackbar(errorMessage)
         }
     }
 
@@ -289,9 +293,9 @@ fun RoomScreen(
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                     contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                 ) {
-                    Icon(Icons.Default.KeyboardArrowDown, "Scroll to bottom")
+                    Icon(Icons.Default.KeyboardArrowDown, stringResource(Res.string.scroll_to_bottom))
                     Spacer(Modifier.width(8.dp))
-                    Text("Jump to bottom")
+                    Text(stringResource(Res.string.jump_to_bottom))
                 }
             }
         },
@@ -383,8 +387,8 @@ fun RoomScreen(
                                     ) {
                                         EmptyState(
                                             icon = Icons.Default.ChatBubbleOutline,
-                                            title = "No messages yet",
-                                            subtitle = "Send a message to start the conversation"
+                                            title = stringResource(Res.string.no_messages_yet),
+                                            subtitle = stringResource(Res.string.send_message_to_start)
                                         )
                                     }
                                 }
@@ -426,7 +430,7 @@ fun RoomScreen(
                             shape = RoundedCornerShape(16.dp)
                         ) {
                             Text(
-                                text = "Drop file to send",
+                                text = stringResource(Res.string.drop_file_to_send),
                                 modifier = Modifier.padding(24.dp),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -653,26 +657,26 @@ private fun RoomTopBar(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = onStartCall) {
                         if (hasActiveCall) {
-                            Icon(Icons.AutoMirrored.Filled.CallMerge, "Join call")
-                        } else Icon(Icons.Default.Call, "Start call")
+                            Icon(Icons.AutoMirrored.Filled.CallMerge, stringResource(Res.string.join_call))
+                        } else Icon(Icons.Default.Call, stringResource(Res.string.start_call))
                     }
                     IconButton(onClick = onOpenNotifications) {
-                        Icon(Icons.Default.Notifications, "Notifications")
+                        Icon(Icons.Default.Notifications, stringResource(Res.string.notifications_room))
                     }
                     IconButton(onClick = onOpenMembers) {
-                        Icon(Icons.Default.People, "Members")
+                        Icon(Icons.Default.People, stringResource(Res.string.members_room))
                     }
                     IconButton(onClick = onOpenInfo) {
-                        Icon(Icons.Default.Info, "Room info")
+                        Icon(Icons.Default.Info, stringResource(Res.string.room_info_short))
                     }
                     IconButton(onClick = onOpenSearch) {
-                        Icon(Icons.Default.Search, "Search")
+                        Icon(Icons.Default.Search, stringResource(Res.string.search_room))
                     }
                 }
             )
@@ -683,7 +687,7 @@ private fun RoomTopBar(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        "Offline - Messages will be queued",
+                        stringResource(Res.string.offline_queued),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         modifier = Modifier.padding(vertical = 4.dp, horizontal = Spacing.lg)
@@ -753,7 +757,7 @@ private fun LoadEarlierButton(isLoading: Boolean, onClick: () -> Unit) {
             CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
         } else {
             OutlinedButton(onClick = onClick) {
-                Text("Load earlier messages")
+                Text(stringResource(Res.string.load_earlier_messages))
             }
         }
     }
@@ -770,7 +774,7 @@ private fun StartOfConversationChip() {
         AssistChip(
             onClick = {},
             enabled = false,
-            label = { Text("Beginning of conversation") }
+            label = { Text(stringResource(Res.string.beginning_of_conversation)) }
         )
     }
 }
@@ -902,7 +906,7 @@ private fun MessageItem(
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    text = if (threadCount == 1) "1 reply" else "$threadCount replies",
+                    text = if (threadCount == 1) stringResource(Res.string.reply) else stringResource(Res.string.replies, threadCount),
                     style = MaterialTheme.typography.labelMedium
                 )
             }
@@ -915,28 +919,28 @@ private fun MessageItem(
     if (index == lastOutgoingIndex && lastOutgoingIndex >= 0) {
         val lastOutgoing = events.getOrNull(lastOutgoingIndex)
         if (lastOutgoing != null) {
-            val statusText = when (lastOutgoing.sendState) {
-                SendState.Sending, SendState.Retrying -> "Sending…"
-                SendState.Enqueued -> "Queued"
-                SendState.Failed -> "Failed to send"
-                SendState.Sent -> {
-                    if (state.lastOutgoingRead) {
-                        "Seen ${formatTime(lastOutgoing.timestampMs)}"
-                    } else {
-                        "Delivered"
-                    }
-                }
-                null -> {
-                    // sendState is null - check if we have an eventId
-                    if (lastOutgoing.eventId.isBlank()) {
-                        "Sending…"
-                    } else if (state.lastOutgoingRead) {
-                        "Seen ${formatTime(lastOutgoing.timestampMs)}"
-                    } else {
-                        "Delivered"
-                    }
+        val statusText = when (lastOutgoing.sendState) {
+            SendState.Sending, SendState.Retrying -> stringResource(Res.string.sending)
+            SendState.Enqueued -> stringResource(Res.string.queued)
+            SendState.Failed -> stringResource(Res.string.failed_to_send)
+            SendState.Sent -> {
+                if (state.lastOutgoingRead) {
+                    stringResource(Res.string.seen, formatTime(lastOutgoing.timestampMs))
+                } else {
+                    stringResource(Res.string.delivered)
                 }
             }
+            null -> {
+                if (lastOutgoing.eventId.isBlank()) {
+                    stringResource(Res.string.sending)
+                } else if (state.lastOutgoingRead) {
+                    stringResource(Res.string.seen, formatTime(lastOutgoing.timestampMs))
+                } else {
+                    stringResource(Res.string.delivered)
+                }
+            }
+        }
+
             MessageStatusLine(text = statusText, isMine = true)
         }
         if (!state.isDm && seenByNames.isNotEmpty()) {
@@ -994,17 +998,17 @@ private fun SelectionBottomBar(
             TextButton(onClick = onShare) {
                 Icon(Icons.Default.Share, null)
                 Spacer(Modifier.width(6.dp))
-                Text("Share")
+                Text(stringResource(Res.string.share))
             }
             TextButton(onClick = onForward) {
                 Icon(Icons.AutoMirrored.Filled.Forward, null)
                 Spacer(Modifier.width(6.dp))
-                Text("Forward")
+                Text(stringResource(Res.string.forward))
             }
             TextButton(onClick = onDelete) {
                 Icon(Icons.Default.Delete, null)
                 Spacer(Modifier.width(6.dp))
-                Text("Delete")
+                Text(stringResource(Res.string.delete))
             }
         }
     }

@@ -30,6 +30,8 @@ import org.mlm.mages.ui.components.dialogs.RecoveryDialog
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.popBack
 import org.mlm.mages.ui.viewmodel.SecurityViewModel
+import org.jetbrains.compose.resources.stringResource
+import mages.shared.generated.resources.*
 import kotlin.reflect.KClass
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,17 +55,17 @@ fun SecurityScreen(
         topBar = {
             Column {
                 TopAppBar(
-                    title = { Text("Security & Settings", fontWeight = FontWeight.SemiBold) },
+                    title = { Text(stringResource(Res.string.security_settings), fontWeight = FontWeight.SemiBold) },
                     navigationIcon = {
                         IconButton(onClick = { backStack.popBack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
                         }
                     },
                     actions = {
                         IconButton(onClick = onOpenAccountSwitcher) {
                             Icon(
                                 Icons.Default.SwitchAccount,
-                                "Account",
+                                stringResource(Res.string.account),
                             )
                         }
                     }
@@ -73,19 +75,19 @@ fun SecurityScreen(
                     Tab(
                         selected = state.selectedTab == 0,
                         onClick = { viewModel.setSelectedTab(0) },
-                        text = { Text("Devices") },
+                        text = { Text(stringResource(Res.string.devices)) },
                         icon = { Icon(Icons.Default.Devices, null) }
                     )
                     Tab(
                         selected = state.selectedTab == 1,
                         onClick = { viewModel.setSelectedTab(1) },
-                        text = { Text("Privacy") },
+                        text = { Text(stringResource(Res.string.privacy)) },
                         icon = { Icon(Icons.Default.PrivacyTip, null) }
                     )
                     Tab(
                         selected = state.selectedTab == 2,
                         onClick = { viewModel.setSelectedTab(2) },
-                        text = { Text("Settings") },
+                        text = { Text(stringResource(Res.string.settings_tab)) },
                         icon = { Icon(Icons.Default.Settings, null) }
                     )
                 }
@@ -143,13 +145,13 @@ fun SecurityScreen(
         AlertDialog(
             onDismissRequest = { showVerifyUserDialog = false },
             icon = { Icon(Icons.Default.VerifiedUser, null) },
-            title = { Text("Verify User") },
+            title = { Text(stringResource(Res.string.verify_user)) },
             text = {
                 OutlinedTextField(
                     value = verifyUserId,
                     onValueChange = { verifyUserId = it },
-                    label = { Text("User ID") },
-                    placeholder = { Text("@user:server.com") },
+                    label = { Text(stringResource(Res.string.user_id)) },
+                    placeholder = { Text(stringResource(Res.string.user_id_placeholder)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -165,12 +167,12 @@ fun SecurityScreen(
                     },
                     enabled = verifyUserId.startsWith("@") && ":" in verifyUserId
                 ) {
-                    Text("Verify")
+                    Text(stringResource(Res.string.verify))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showVerifyUserDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(Res.string.cancel))
                 }
             }
         )
@@ -198,13 +200,13 @@ private fun DevicesTab(
             ) {
                 ActionCard(
                     icon = Icons.Default.Key,
-                    title = "Recovery",
+                    title = stringResource(Res.string.recovery),
                     onClick = onOpenRecovery,
                     modifier = Modifier.weight(1f)
                 )
                 ActionCard(
                     icon = Icons.Default.VerifiedUser,
-                    title = "Verify User",
+                    title = stringResource(Res.string.verify_user),
                     onClick = onVerifyUser,
                     modifier = Modifier.weight(1f)
                 )
@@ -220,7 +222,7 @@ private fun DevicesTab(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Your Devices",
+                    stringResource(Res.string.your_devices),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium
                 )
@@ -231,7 +233,7 @@ private fun DevicesTab(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Icon(Icons.Default.Refresh, "Refresh")
+                        Icon(Icons.Default.Refresh, stringResource(Res.string.refresh))
                     }
                 }
             }
@@ -241,8 +243,8 @@ private fun DevicesTab(
             item {
                 EmptyState(
                     icon = Icons.Default.DevicesOther,
-                    title = "No devices found",
-                    subtitle = "Try refreshing the list"
+                    title = stringResource(Res.string.no_devices_found),
+                    subtitle = stringResource(Res.string.try_refreshing)
                 )
             }
         }
@@ -334,7 +336,7 @@ private fun DeviceCard(
 
             if (!device.verified) {
                 FilledTonalButton(onClick = onVerify) {
-                    Text("Verify")
+                    Text(stringResource(Res.string.verify))
                 }
             } else {
                 Icon(
@@ -357,14 +359,14 @@ private fun PrivacyTab(
             .fillMaxSize()
             .padding(Spacing.lg)
     ) {
-        Text("Ignored Users", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(Res.string.ignored_users), style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(Spacing.md))
 
         if (ignoredUsers.isEmpty()) {
             EmptyState(
                 icon = Icons.Default.Block,
-                title = "No ignored users",
-                subtitle = "Users you ignore won't be able to message you"
+                title = stringResource(Res.string.no_ignored_users),
+                subtitle = stringResource(Res.string.ignored_users_subtitle)
             )
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -380,7 +382,7 @@ private fun PrivacyTab(
                             Spacer(Modifier.width(Spacing.md))
                             Text(mxid, Modifier.weight(1f))
                             TextButton(onClick = { onUnignore(mxid) }) {
-                                Text("Unignore")
+                                Text(stringResource(Res.string.unignore))
                             }
                         }
                     }
@@ -414,13 +416,13 @@ private fun SettingsTab(
             onAction = onSettingAction,
             modifier = Modifier.fillMaxSize(),
             categoryConfigs = listOf(
-                CategoryConfig(Account::class, "Account"),
-                CategoryConfig(Appearance::class, "Appearance"),
-                CategoryConfig(Notifications::class, "Notifications"),
-                CategoryConfig(Privacy::class, "Privacy"),
-                CategoryConfig(Calls::class, "Calls"),
-                CategoryConfig(Storage::class, "Storage"),
-                CategoryConfig(Advanced::class, "Advanced"),
+                CategoryConfig(Account::class, stringResource(Res.string.account)),
+                CategoryConfig(Appearance::class, stringResource(Res.string.appearance)),
+                CategoryConfig(Notifications::class, stringResource(Res.string.notifications)),
+                CategoryConfig(Privacy::class, stringResource(Res.string.privacy)),
+                CategoryConfig(Calls::class, stringResource(Res.string.privacy)),
+                CategoryConfig(Storage::class, stringResource(Res.string.storage)),
+                CategoryConfig(Advanced::class, stringResource(Res.string.advanced)),
             ),
             snackbarHostState = snackbarHostState
         )
