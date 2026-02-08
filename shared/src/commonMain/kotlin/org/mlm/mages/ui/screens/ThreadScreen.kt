@@ -178,7 +178,7 @@ fun ThreadScreen(
                 .padding(padding)
         ) {
             AnimatedVisibility(visible = state.isLoading && !state.hasInitialLoad) {
-                LinearProgressIndicator(
+                LinearWavyProgressIndicator(
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -193,7 +193,7 @@ fun ThreadScreen(
                 !state.hasInitialLoad && state.isLoading -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator()
+                            LoadingIndicator()
                             Spacer(Modifier.height(Spacing.lg))
                             Text(
                                 "Loading thread...",

@@ -76,7 +76,7 @@ fun MessageBubble(
 
         Surface(
             color = if (isMine) MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.surfaceVariant,
+            else MaterialTheme.colorScheme.secondaryContainer,
             shape = bubbleShape(isMine, grouped),
             tonalElevation = if (isMine) 3.dp else 1.dp,
             modifier = Modifier

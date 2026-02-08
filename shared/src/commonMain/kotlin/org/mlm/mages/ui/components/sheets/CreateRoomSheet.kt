@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.ui.theme.Spacing
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateRoomSheet(onCreate: (name: String?, topic: String?, invitees: List<String>) -> Unit, onDismiss: () -> Unit) {
     var name by remember { mutableStateOf("") }

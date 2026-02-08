@@ -28,7 +28,6 @@ import org.mlm.mages.ui.viewmodel.RoomsViewModel
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomsScreen(
     viewModel: RoomsViewModel = koinViewModel(),
@@ -237,7 +236,6 @@ fun RoomsScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RoomsTopBar(
     offlineBanner: String?,
@@ -293,7 +291,7 @@ private fun RoomsTopBar(
         }
 
         AnimatedVisibility(visible = isLoading) {
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
         }
 
         // Search bar

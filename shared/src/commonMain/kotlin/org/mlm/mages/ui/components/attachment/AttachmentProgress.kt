@@ -17,7 +17,7 @@ import org.mlm.mages.ui.util.formatBytes
 fun AttachmentProgress(fileName: String, progress: Float, totalSize: Long, onCancel: () -> Unit, modifier: Modifier = Modifier) {
     Card(modifier = modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm)) {
         Row(modifier = Modifier.fillMaxWidth().padding(Spacing.lg), verticalAlignment = Alignment.CenterVertically) {
-            CircularProgressIndicator(progress = { progress }, modifier = Modifier.size(Sizes.iconLarge), strokeWidth = 3.dp)
+            LoadingIndicator(progress = { progress }, modifier = Modifier.size(Sizes.iconLarge))
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
                 Text(fileName, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -25,6 +25,6 @@ fun AttachmentProgress(fileName: String, progress: Float, totalSize: Long, onCan
             }
             IconButton(onClick = onCancel) { Icon(Icons.Default.Close, "Cancel") }
         }
-        LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+        LinearWavyProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
     }
 }

@@ -97,7 +97,7 @@ fun SearchScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator()
+                        LoadingIndicator()
                     }
                 }
                 
@@ -135,7 +135,7 @@ fun SearchScreen(
                                         .padding(Spacing.lg),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                    LoadingIndicator(modifier = Modifier.size(24.dp))
                                 }
                             }
                         }
@@ -204,11 +204,10 @@ private fun SearchTopBar(
                         }
                     }
                     if (isSearching) {
-                        CircularProgressIndicator(
+                        LoadingIndicator(
                             modifier = Modifier
                                 .size(24.dp)
-                                .padding(end = 12.dp),
-                            strokeWidth = 2.dp
+                                .padding(end = 12.dp)
                         )
                     }
                 }
@@ -224,7 +223,7 @@ private fun SearchTopBar(
         )
         
         AnimatedVisibility(visible = isSearching) {
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
         }
     }
 }

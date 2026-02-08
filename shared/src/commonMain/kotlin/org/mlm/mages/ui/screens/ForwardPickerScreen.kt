@@ -94,7 +94,7 @@ fun ForwardPickerScreen(
             when {
                 state.isLoading -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                        LoadingIndicator()
                     }
                 }
                 state.filteredRooms.isEmpty() -> {

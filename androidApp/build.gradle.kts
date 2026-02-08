@@ -24,7 +24,7 @@ android {
         // have to keep versionName here for fdroid, do not change
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        
+
         val enableApkSplits = (providers.gradleProperty("enableApkSplits").orNull ?: "true").toBoolean()
         val includeUniversalApk = (providers.gradleProperty("includeUniversalApk").orNull ?: "true").toBoolean()
         val targetAbi = providers.gradleProperty("targetAbi").orNull
@@ -34,7 +34,7 @@ android {
                 isEnable = enableApkSplits
                 reset()
                 if (enableApkSplits) {
-                    if (targetAbi != null) include(targetAbi) 
+                    if (targetAbi != null) include(targetAbi)
                     else include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
                 }
                 isUniversalApk = includeUniversalApk && enableApkSplits
@@ -68,7 +68,7 @@ android {
             applicationIdSuffix = ".debug"
         }
     }
-    
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -100,9 +100,7 @@ dependencies {
     implementation(libs.connector.ui)
     implementation(libs.androidx.foundation)
 
-    val composeBom = platform("androidx.compose:compose-bom:2025.12.00")
-    implementation(composeBom)
-    androidTestImplementation(composeBom)
+    implementation(platform(libs.androidx.compose.bom))
 
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.foundation)

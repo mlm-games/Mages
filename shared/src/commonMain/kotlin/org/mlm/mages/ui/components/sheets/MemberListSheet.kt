@@ -61,7 +61,7 @@ fun MemberListSheet(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    LoadingIndicator()
                 }
             } else {
                 LazyColumn(

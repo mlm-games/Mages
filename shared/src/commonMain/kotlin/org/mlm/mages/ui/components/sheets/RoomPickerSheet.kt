@@ -77,7 +77,7 @@ fun RoomPickerSheet(
             when {
                 isLoading -> {
                     Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                        LoadingIndicator()
                     }
                 }
                 rooms.isEmpty() -> {

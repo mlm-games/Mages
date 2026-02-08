@@ -85,7 +85,7 @@ fun RoomSearchSheet(
                             .height(200.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator()
+                        LoadingIndicator()
                     }
                 }
 
@@ -164,9 +164,8 @@ fun RoomSearchSheet(
                                     enabled = !isSearching
                                 ) {
                                     if (isSearching) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(16.dp),
-                                            strokeWidth = 2.dp
+                                        LoadingIndicator(
+                                            modifier = Modifier.size(16.dp)
                                         )
                                         Spacer(Modifier.width(Spacing.sm))
                                     }

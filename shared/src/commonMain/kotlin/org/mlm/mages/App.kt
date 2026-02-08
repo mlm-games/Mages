@@ -3,12 +3,11 @@ package org.mlm.mages
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,6 +50,7 @@ import org.mlm.mages.ui.theme.MainTheme
 import org.mlm.mages.ui.util.popBack
 import org.mlm.mages.ui.viewmodel.*
 import org.mlm.mages.verification.VerificationCoordinator
+import androidx.compose.ui.platform.LocalLocale
 import java.util.Locale
 
 val LocalMessageFontSize = staticCompositionLocalOf { 16f }
@@ -91,11 +91,11 @@ private fun AppContent(deepLinks: Flow<DeepLinkAction>?) {
     val verState by verification.state.collectAsState()
 
     if (!initDone) {
-        Surface(color = darkColorScheme().surface) {
+        Surface {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
-            ) { CircularProgressIndicator() }
+            ) { CircularWavyProgressIndicator() }
         }
         return
     }
@@ -111,7 +111,7 @@ private fun AppContent(deepLinks: Flow<DeepLinkAction>?) {
         else -> isSystemInDarkTheme()
     }
     val widgetTheme = if (isDark) "dark" else "light"
-    val languageTag = Locale.getDefault().toLanguageTag()
+    val languageTag = Locale.getDefault().toLanguageTag() // Using the observable version causes a crash
     val elementCallUrl = settings.elementCallUrl.trim().ifBlank { platformEmbeddedElementCallUrlOrNull() }
     val parentCallUrl = platformEmbeddedElementCallParentUrlOrNull()
 

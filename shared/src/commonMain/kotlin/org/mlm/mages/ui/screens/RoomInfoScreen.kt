@@ -115,7 +115,7 @@ fun RoomInfoScreen(
                     .padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                LoadingIndicator()
             }
         } else {
             LazyColumn(

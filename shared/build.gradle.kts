@@ -11,6 +11,14 @@ plugins {
 
 kotlin {
     jvmToolchain(21)
+    compilerOptions {
+        optIn.set(listOf(
+            "androidx.compose.material3.ExperimentalMaterial3Api",
+            "androidx.compose.material3.ExperimentalMaterial3ExpressiveApi",
+            "androidx.compose.foundation.ExperimentalFoundationApi",
+            "androidx.compose.foundation.layout.ExperimentalLayoutApi"
+        ))
+    }
 
     androidLibrary {
         namespace = "org.mlm.mages.shared"
@@ -24,6 +32,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            implementation(project.dependencies.platform(libs.androidx.compose.bom))
             implementation(libs.navigation3.ui)
             implementation(libs.lifecycle.viewmodel.navigation3)
             implementation(libs.adaptive.navigation3)
@@ -78,7 +87,7 @@ kotlin {
             implementation(libs.slf4j.simple)
             implementation(libs.systemtray)
             implementation(libs.jcefmaven)
-            implementation("org.json:json:20231013")
+            implementation(libs.json)
         }
     }
 }

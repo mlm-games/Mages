@@ -34,7 +34,6 @@ import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.*
 import kotlin.reflect.KClass
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SecurityScreen(
     viewModel: SecurityViewModel,
@@ -71,7 +70,7 @@ fun SecurityScreen(
                     }
                 )
 
-                TabRow(selectedTabIndex = state.selectedTab) {
+                PrimaryTabRow(selectedTabIndex = state.selectedTab) {
                     Tab(
                         selected = state.selectedTab == 0,
                         onClick = { viewModel.setSelectedTab(0) },
@@ -228,9 +227,8 @@ private fun DevicesTab(
                 )
                 IconButton(onClick = onRefresh, enabled = !isLoading) {
                     if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
+                        LoadingIndicator(
+                            modifier = Modifier.size(20.dp)
                         )
                     } else {
                         Icon(Icons.Default.Refresh, stringResource(Res.string.refresh))
@@ -255,7 +253,6 @@ private fun DevicesTab(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ActionCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -267,7 +264,7 @@ private fun ActionCard(
         onClick = onClick,
         modifier = modifier,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
         )
     ) {
         Column(
@@ -301,7 +298,7 @@ private fun DeviceCard(
             containerColor = if (device.verified)
                 MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
             else
-                MaterialTheme.colorScheme.surface
+                MaterialTheme.colorScheme.surfaceContainer
         )
     ) {
         Row(

@@ -1,4 +1,3 @@
-// src/commonMain/kotlin/org/mlm/mages/ui/screens/DiscoverScreen.kt
 package org.mlm.mages.ui.screens
 
 import androidx.compose.foundation.layout.*
@@ -53,7 +52,6 @@ fun DiscoverRoute(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiscoverScreen(
     state: DiscoverUi,
@@ -69,9 +67,13 @@ fun DiscoverScreen(
     val scope = rememberCoroutineScope()
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(Res.string.discover)) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                ),
                 navigationIcon = {
                     IconButton(onClick = onClose) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
@@ -115,7 +117,7 @@ fun DiscoverScreen(
             )
 
             if (state.isBusy && !state.isPaging) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
 
             LazyColumn(
@@ -188,7 +190,7 @@ fun DiscoverScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (state.isPaging) {
-                                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                    LoadingIndicator(modifier = Modifier.size(24.dp))
                                 } else {
                                     OutlinedButton(onClick = onLoadMore) {
                                         Icon(

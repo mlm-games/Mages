@@ -124,7 +124,7 @@ fun MediaGalleryScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            TabRow(selectedTabIndex = selectedTab.ordinal) {
+            SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
                 MediaTab.entries.forEach { tab ->
                     val count = when (tab) {
                         MediaTab.Images -> state.images.size
@@ -143,7 +143,7 @@ fun MediaGalleryScreen(
             when {
                 state.isLoading -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                        LoadingIndicator()
                     }
                 }
                 else -> {
@@ -338,7 +338,7 @@ fun MediaGrid(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                LoadingIndicator()
             }
         }
         return
@@ -389,9 +389,8 @@ fun MediaGrid(
                         .padding(Spacing.lg),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp
+                    LoadingIndicator(
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }

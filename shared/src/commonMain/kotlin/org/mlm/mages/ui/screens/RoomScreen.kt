@@ -50,7 +50,6 @@ import java.io.File
 import java.nio.file.Files
 
 @Suppress("NewApi")
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomScreen(
     viewModel: RoomViewModel,
@@ -220,6 +219,7 @@ fun RoomScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         topBar = {
             if (state.isSelectionMode) {
                 SelectionTopBar(
@@ -247,7 +247,7 @@ fun RoomScreen(
         bottomBar = {
             Column {
                 if (progressText != null) {
-                    Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
+                    Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
                         Text(
                             text = progressText!!,
                             modifier = Modifier.padding(12.dp),
@@ -353,7 +353,7 @@ fun RoomScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator()
+                            CircularWavyProgressIndicator()
                         }
                     } else {
                         LazyColumn(
@@ -596,7 +596,6 @@ fun RoomScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RoomTopBar(
     roomName: String,
@@ -612,7 +611,7 @@ private fun RoomTopBar(
     onOpenSearch: () -> Unit,
     onStartCall: () -> Unit,
 ) {
-    Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 2.dp) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shadowElevation = 2.dp) {
         Column {
             TopAppBar(
                 title = {
@@ -678,7 +677,10 @@ private fun RoomTopBar(
                     IconButton(onClick = onOpenSearch) {
                         Icon(Icons.Default.Search, stringResource(Res.string.search_room))
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                )
             )
 
             AnimatedVisibility(visible = isOffline) {
@@ -754,7 +756,7 @@ private fun LoadEarlierButton(isLoading: Boolean, onClick: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         if (isLoading) {
-            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+            CircularWavyProgressIndicator(modifier = Modifier.size(24.dp))
         } else {
             OutlinedButton(onClick = onClick) {
                 Text(stringResource(Res.string.load_earlier_messages))
@@ -988,6 +990,7 @@ private fun SelectionBottomBar(
     onDelete: () -> Unit,
 ) {
     Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
         tonalElevation = 3.dp,
         modifier = Modifier.navigationBarsPadding()
     ) {

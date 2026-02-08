@@ -27,7 +27,6 @@ import org.mlm.mages.ui.theme.Spacing
 
 private val quickReactions = listOf("👍", "❤️", "😂", "😮", "😢", "🎉", "🔥", "💀")
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MessageActionSheet(
     event: MessageEvent,

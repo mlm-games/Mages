@@ -52,9 +52,8 @@ fun InviteUserDialog(
                 enabled = userId.isNotBlank() && userId.contains("@") && userId.contains(":") && !isLoading
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp
+                    LoadingIndicator(
+                        modifier = Modifier.size(16.dp)
                     )
                     Spacer(Modifier.width(Spacing.sm))
                 }

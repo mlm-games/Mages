@@ -15,7 +15,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.accounts.MatrixAccount
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountSwitcherSheet(
     accounts: List<MatrixAccount>,

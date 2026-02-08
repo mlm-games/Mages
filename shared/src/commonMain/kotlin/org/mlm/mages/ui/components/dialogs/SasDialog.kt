@@ -124,7 +124,7 @@ private fun SasPhaseContent(
     when (phase) {
         SasPhase.Created -> {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator()
+                LoadingIndicator()
                 Spacer(Modifier.height(Spacing.sm))
                 Text(stringResource(Res.string.preparing_verification))
             }
@@ -144,7 +144,7 @@ private fun SasPhaseContent(
                 }
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator()
+                    LoadingIndicator()
                     Spacer(Modifier.height(Spacing.sm))
                     Text(stringResource(Res.string.waiting_for_acceptance))
                 }
@@ -165,7 +165,7 @@ private fun SasPhaseContent(
                 }
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator()
+                    LoadingIndicator()
                     Spacer(Modifier.height(Spacing.sm))
                     Text("Continuing…")
                 }
@@ -174,7 +174,7 @@ private fun SasPhaseContent(
 
         SasPhase.Accepted -> {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator()
+                LoadingIndicator()
                 Spacer(Modifier.height(Spacing.sm))
                 Text("Waiting for the other device…", textAlign = TextAlign.Center)
             }
@@ -194,7 +194,7 @@ private fun SasPhaseContent(
 
         SasPhase.Confirmed -> {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator()
+                LoadingIndicator()
                 Spacer(Modifier.height(Spacing.sm))
                 Text("Confirmed. Finishing…", textAlign = TextAlign.Center)
             }

@@ -26,7 +26,6 @@ import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomListItem(
     item: RoomListItemUi,
@@ -36,7 +35,7 @@ fun RoomListItem(
     Surface(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface
+        color = MaterialTheme.colorScheme.surfaceContainer
     ) {
         Row(
             modifier = Modifier

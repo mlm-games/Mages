@@ -81,7 +81,7 @@ fun SpaceDetailScreen(
                 .padding(padding)
         ) {
             AnimatedVisibility(visible = state.isLoading && state.hierarchy.isEmpty()) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
 
             state.space?.let { space ->
@@ -94,7 +94,7 @@ fun SpaceDetailScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator()
+                        LoadingIndicator()
                     }
                 }
 

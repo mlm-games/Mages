@@ -41,7 +41,6 @@ fun InvitesRoute(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InvitesScreen(
     invites: List<RoomProfile>,
@@ -55,9 +54,13 @@ fun InvitesScreen(
     val scope = rememberCoroutineScope()
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(Res.string.invites)) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
@@ -77,7 +80,7 @@ fun InvitesScreen(
                 .padding(pad)
         ) {
             if (busy) {
-                LinearProgressIndicator(Modifier.fillMaxWidth())
+                LinearWavyProgressIndicator(Modifier.fillMaxWidth())
             }
 
             StatusBanner(
@@ -96,7 +99,11 @@ fun InvitesScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(invites, key = { it.roomId }) { inv ->
-                        ElevatedCard {
+                        ElevatedCard(
+                            colors = CardDefaults.elevatedCardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer
+                            )
+                        ) {
                             ListItem(
                                 headlineContent = { Text(inv.name) },
                                 supportingContent = {

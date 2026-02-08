@@ -41,7 +41,7 @@ fun RoomNotificationSheet(
                         .padding(Spacing.xl),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    LoadingIndicator()
                 }
             } else {
                 NotificationOption(

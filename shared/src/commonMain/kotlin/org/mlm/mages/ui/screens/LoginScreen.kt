@@ -31,7 +31,6 @@ import org.mlm.mages.ui.viewmodel.LoginViewModel
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel,
@@ -49,8 +48,8 @@ fun LoginScreen(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.surface,
-                        MaterialTheme.colorScheme.surfaceVariant
+                        MaterialTheme.colorScheme.surfaceContainerLowest,
+                        MaterialTheme.colorScheme.surfaceContainer
                     )
                 )
             )
@@ -65,7 +64,6 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Logo
             Surface(
                 color = MaterialTheme.colorScheme.primaryContainer,
                 shape = MaterialTheme.shapes.extraLarge,
@@ -120,7 +118,6 @@ fun LoginScreen(
 
             Spacer(Modifier.height(40.dp))
 
-            // Login card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -269,10 +266,8 @@ fun LoginScreen(
                         shape = MaterialTheme.shapes.large
                     ) {
                         if (state.isBusy && !state.ssoInProgress) {
-                            CircularProgressIndicator(
+                            CircularWavyProgressIndicator(
                                 modifier = Modifier.size(24.dp),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                strokeWidth = 2.dp
                             )
                         } else {
                             Icon(

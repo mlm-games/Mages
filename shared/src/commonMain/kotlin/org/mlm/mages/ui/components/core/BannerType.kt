@@ -54,9 +54,8 @@ fun StatusBanner(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (type == BannerType.LOADING) {
-                    CircularProgressIndicator(
+                    LoadingIndicator(
                         modifier = Modifier.size(12.dp),
-                        strokeWidth = 2.dp,
                         color = contentColor
                     )
                 } else if (icon != null) {
