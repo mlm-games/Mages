@@ -60,9 +60,9 @@ jobs:
           sudo apt install -y zsync
 
           if [ "${{ matrix.arch }}" = "aarch64" ]; then
-            APPIMAGETOOL_URL="https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-aarch64.AppImage"
+            APPIMAGETOOL_URL="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-aarch64.AppImage"
           else
-            APPIMAGETOOL_URL="https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+            APPIMAGETOOL_URL="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
           fi
           wget "$APPIMAGETOOL_URL" -O appimagetool.AppImage
           chmod +x appimagetool.AppImage
