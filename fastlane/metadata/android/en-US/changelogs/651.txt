@@ -1,0 +1,3 @@
+- (Android) pass a diff. color to markdown text for better monochrome contrast
+- Fix no results string
+- Fix no rooms match string

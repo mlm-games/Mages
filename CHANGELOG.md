@@ -1,3 +1,10 @@
+## v2.5.2
+
+- (Android) pass a diff. color to markdown text for better monochrome contrast
+- Fix no results string
+- Fix no rooms match string
+
+
 ## v2.5.1
 
 - fix thread replies again
