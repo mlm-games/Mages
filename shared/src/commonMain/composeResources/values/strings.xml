@@ -29,7 +29,7 @@
     <string name="retry">Retry</string>
     <string name="no_rooms_found">No rooms found</string>
     <string name="join_a_room">Join a room to start chatting</string>
-    <string name="no_rooms_match">No rooms match \"%1$s\"</string>
+    <string name="no_rooms_match">No rooms match "%1$s"</string>
     <string name="discover_rooms">Discover Rooms</string>
     <string name="search_rooms">Search rooms...</string>
     <string name="unread_only">Unread only</string>
