@@ -150,7 +150,6 @@ private fun ReplyPreview(sender: String?, body: String) {
     Surface(
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
         shape = RoundedCornerShape(8.dp),
-        modifier = Modifier.fillMaxWidth()
     ) {
         Row(modifier = Modifier.padding(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
             Box(
