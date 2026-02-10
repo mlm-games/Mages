@@ -113,8 +113,8 @@ jobs:
           val composeX64 by configurations.creating
           
           dependencies {
-              composeArm64("org.jetbrains.compose.desktop:desktop-jvm-linux-arm64:1.10.0-rc02")
-              composeX64("org.jetbrains.compose.desktop:desktop-jvm-linux-x64:1.10.0-rc02")
+              composeArm64("org.jetbrains.compose.desktop:desktop-jvm-linux-arm64:1.10.0")
+              composeX64("org.jetbrains.compose.desktop:desktop-jvm-linux-x64:1.10.0")
           }
           
           tasks.register("fetch") {
@@ -164,5 +164,5 @@ jobs:
           name: ${{ inputs.version_tag }}
           prerelease: ${{ inputs.mark_prerelease }}
           files: |
-            mages-${{ env.VERSION }}-vendored-sources.tar.gz
-            mages-${{ env.VERSION }}-vendored-sources.tar.gz.sha256
+            mages-${{ inputs.version_tag }}-vendored-sources.tar.gz
+            mages-${{ inputs.version_tag }}-vendored-sources.tar.gz.sha256
