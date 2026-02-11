@@ -449,7 +449,7 @@ interface MatrixPort {
     suspend fun acceptInvite(roomId: String): Boolean
     suspend fun leaveRoom(roomId: String): Boolean
 
-    suspend fun createRoom(name: String?, topic: String?, invitees: List<String>): String?
+    suspend fun createRoom(name: String?, topic: String?, invitees: List<String>, isPublic: Boolean, roomAlias: String?): String?
     suspend fun setRoomName(roomId: String, name: String): Boolean
     suspend fun setRoomTopic(roomId: String, topic: String): Boolean
 

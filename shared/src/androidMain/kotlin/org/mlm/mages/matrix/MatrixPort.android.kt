@@ -863,9 +863,11 @@ class RustMatrixPort : MatrixPort {
     }
 
     override suspend fun createRoom(
-        name: String?, topic: String?, invitees: List<String>
+        name: String?, topic: String?, invitees: List<String>, isPublic: Boolean, roomAlias: String?
     ): String? = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.createRoom(name, topic, invitees) } }.getOrNull()
+        runCatching { withClient { it.createRoom(name, topic, invitees, isPublic, roomAlias) } }
+            .onFailure { println("createRoom failed: ${it.message}") }
+            .getOrNull()
     }
 
     override suspend fun setRoomName(roomId: String, name: String): Boolean =

@@ -2780,17 +2780,38 @@ impl Client {
         name: Option<String>,
         topic: Option<String>,
         invitees: Vec<String>,
+        is_public: bool,
+        room_alias: Option<String>,
     ) -> Result<String, FfiError> {
-        RT.block_on(async {
-            // Build create room request (private visibility)
+        RT.block_on(async move {
+            use ruma::{api::client::room::Visibility, api::client::room::create_room::v3 as create_room_v3};
+
             let mut req = create_room_v3::Request::new();
-            req.preset = Some(RoomPreset::PrivateChat.into());
-            req.visibility = Visibility::Private;
+            req.visibility = if is_public {
+                Visibility::Public
+            } else {
+                Visibility::Private
+            };
+            req.preset = Some(if is_public {
+                create_room_v3::RoomPreset::PublicChat
+            } else {
+                create_room_v3::RoomPreset::PrivateChat
+            });
             if let Some(n) = &name {
                 req.name = Some(n.clone());
             }
             if let Some(t) = &topic {
                 req.topic = Some(t.clone());
+            }
+            if let Some(alias) = &room_alias {
+                let normalized = if alias.starts_with('#') {
+                    alias.trim_start_matches('#')
+                } else {
+                    alias
+                }.split(':').next().unwrap_or(alias).to_string();
+                if !normalized.is_empty() {
+                    req.room_alias_name = Some(normalized);
+                }
             }
             if !invitees.is_empty() {
                 let parsed = invitees
@@ -2801,7 +2822,6 @@ impl Client {
                 req.invite = parsed;
             }
 
-            // NOTE: If you want encryption-by-default, see small fix below.
             let resp = self
                 .inner
                 .send(req)
