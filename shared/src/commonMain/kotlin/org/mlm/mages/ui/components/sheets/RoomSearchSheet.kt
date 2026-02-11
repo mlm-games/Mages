@@ -19,7 +19,6 @@ import org.mlm.mages.matrix.SearchHit
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatTime
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomSearchSheet(
     query: String,

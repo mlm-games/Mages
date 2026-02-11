@@ -12,7 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import org.mlm.mages.ui.theme.Spacing
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AttachmentPicker(
     onPickImage: () -> Unit,

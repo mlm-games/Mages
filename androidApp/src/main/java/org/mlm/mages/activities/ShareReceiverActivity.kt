@@ -153,7 +153,6 @@ sealed class SharedContent {
 
 data class SharedFile(val uri: Uri, val mimeType: String, val fileName: String)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ShareReceiverScreen(
     sharedContent: SharedContent,

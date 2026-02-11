@@ -17,7 +17,6 @@ import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.RoomPowerLevels
 import org.mlm.mages.ui.theme.Spacing
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PowerLevelsSheet(
     members: List<MemberSummary>,

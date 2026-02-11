@@ -25,7 +25,6 @@ import org.mlm.mages.ui.viewmodel.SpacesViewModel
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SpacesScreen(
     viewModel: SpacesViewModel,
@@ -142,7 +141,6 @@ fun SpacesScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SpaceCard(
     space: SpaceInfo,

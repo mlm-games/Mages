@@ -20,7 +20,6 @@ import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatTime
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PinnedMessagesSheet(
     pinnedEventIds: List<String>,

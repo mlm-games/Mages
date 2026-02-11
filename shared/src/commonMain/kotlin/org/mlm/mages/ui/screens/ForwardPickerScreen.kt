@@ -18,7 +18,6 @@ import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.ForwardPickerViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForwardPickerScreen(
     viewModel: ForwardPickerViewModel,

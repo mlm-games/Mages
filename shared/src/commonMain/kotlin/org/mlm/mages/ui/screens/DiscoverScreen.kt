@@ -233,7 +233,6 @@ fun DiscoverScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DirectoryServerSelector(
     currentServer: String,

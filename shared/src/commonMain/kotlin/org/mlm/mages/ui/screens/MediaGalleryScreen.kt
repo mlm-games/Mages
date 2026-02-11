@@ -46,7 +46,6 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MediaGalleryScreen(
     viewModel: MediaGalleryViewModel,
@@ -220,7 +219,6 @@ fun MediaGalleryScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SelectionTopBar(
     selectedCount: Int,

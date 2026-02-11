@@ -19,7 +19,6 @@ import org.mlm.mages.MessageEvent
 import org.mlm.mages.ui.ForwardableRoom
 import org.mlm.mages.ui.theme.Spacing
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomPickerSheet(
     event: MessageEvent,

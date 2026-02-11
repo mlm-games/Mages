@@ -25,7 +25,6 @@ import org.mlm.mages.ui.components.core.SectionHeader
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.SpaceDetailViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SpaceDetailScreen(
     viewModel: SpaceDetailViewModel,

@@ -24,7 +24,6 @@ import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatTime
 import org.mlm.mages.ui.viewmodel.SearchViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
     viewModel: SearchViewModel,
@@ -159,7 +158,6 @@ fun SearchScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SearchTopBar(
     query: String,

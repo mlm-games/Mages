@@ -84,7 +84,6 @@ fun RoomInfoRoute(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomInfoScreen(
     state: RoomInfoUiState,
@@ -323,9 +322,18 @@ fun RoomInfoScreen(
                 }
 
                 item {
-                    ReportSection(
-                        onReportRoom = { showReportDialog = true }
-                    )
+                    Button(
+                        onClick = { showReportDialog = true },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Report, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Report this room")
+                    }
                 }
 
                 // Leave room button
@@ -846,28 +854,6 @@ private fun PowerLevelsSection(
                         Text("Permissions")
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ReportSection(
-    onReportRoom: () -> Unit
-) {
-    SettingsSection(title = "Misc") {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Button(
-                onClick = onReportRoom,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Report, null)
-                Spacer(Modifier.width(8.dp))
-                Text("Report this room")
             }
         }
     }

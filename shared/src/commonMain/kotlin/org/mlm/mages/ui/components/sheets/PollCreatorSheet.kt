@@ -14,7 +14,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.ui.theme.Spacing
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PollCreatorSheet(
     onCreatePoll: (question: String, answers: List<String>) -> Unit,

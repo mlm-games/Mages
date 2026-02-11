@@ -26,7 +26,6 @@ import org.mlm.mages.matrix.RoomPowerLevelChanges
 import org.mlm.mages.matrix.RoomPowerLevels
 import org.mlm.mages.ui.theme.Spacing
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GranularPermissionsSheet(
     powerLevels: RoomPowerLevels?,

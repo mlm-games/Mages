@@ -13,7 +13,6 @@ import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.ui.theme.Spacing
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomNotificationSheet(
     currentMode: RoomNotificationMode?,

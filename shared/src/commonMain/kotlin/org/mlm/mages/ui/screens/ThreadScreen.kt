@@ -85,7 +85,6 @@ fun ThreadRoute(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThreadScreen(
     state: ThreadUiState,
@@ -303,7 +302,6 @@ fun ThreadScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ThreadTopBar(
     messageCount: Int,
