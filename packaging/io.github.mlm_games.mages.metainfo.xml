@@ -32,8 +32,8 @@
   <url type="bugtracker">https://github.com/mlm-games/mages/issues</url>
   <url type="vcs-browser">https://github.com/mlm-games/mages</url>
   <branding>
-    <color type="primary" scheme_preference="light">#7c4dff</color>
-    <color type="primary" scheme_preference="dark">#512da8</color>
+    <color type="primary" scheme_preference="light">#e0c3fc</color>
+    <color type="primary" scheme_preference="dark">#3b1054</color>
   </branding>
   <screenshots>
     <screenshot type="default">
