@@ -289,9 +289,9 @@ class RustMatrixPort : MatrixPort {
             runCatching { withClient { it.redact(roomId, eventId, reason) } }.getOrDefault(false)
         }
 
-    override suspend fun reportContent(roomId: String, eventId: String, reason: String): Boolean =
+    override suspend fun reportContent(roomId: String, eventId: String, score: Int?, reason: String?): Boolean =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.reportContent(roomId, eventId, reason) } }.getOrDefault(false)
+            runCatching { withClient { it.reportContent(roomId, eventId, score, reason) } }.isSuccess
         }
 
     override suspend fun getUserPowerLevel(roomId: String, userId: String): Long =
@@ -847,7 +847,10 @@ class RustMatrixPort : MatrixPort {
                         p.memberCount.toLong(),
                         p.isEncrypted,
                         p.isDm,
-                        p.avatarUrl
+                        p.avatarUrl,
+                        p.canonicalAlias,
+                        p.altAliases,
+                        p.roomVersion
                     )
                 }
             }
@@ -890,6 +893,9 @@ class RustMatrixPort : MatrixPort {
                 it.isEncrypted,
                 it.isDm,
                 it.avatarUrl,
+                it.canonicalAlias,
+                it.altAliases,
+                it.roomVersion,
             )
         }
     }
@@ -1104,6 +1110,106 @@ class RustMatrixPort : MatrixPort {
         visibility: RoomDirectoryVisibility
     ): Boolean = withContext(Dispatchers.IO) {
         runCatching { withClient { it.setRoomDirectoryVisibility(roomId, visibility.toFfi()) } }.isSuccess
+    }
+
+    override suspend fun publishRoomAlias(roomId: String, alias: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.publishRoomAlias(roomId, alias) } }.getOrDefault(false)
+    }
+
+    override suspend fun unpublishRoomAlias(roomId: String, alias: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.unpublishRoomAlias(roomId, alias) } }.getOrDefault(false)
+    }
+
+    override suspend fun setRoomCanonicalAlias(roomId: String, alias: String?, altAliases: List<String>): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.setRoomCanonicalAlias(roomId, alias, altAliases) } }.isSuccess
+        }
+
+    override suspend fun roomAliases(roomId: String): List<String> = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.roomAliases(roomId) } }.getOrDefault(emptyList())
+    }
+
+    override suspend fun roomJoinRule(roomId: String): RoomJoinRule? = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.roomJoinRule(roomId) } }.getOrNull()?.toKotlin()
+    }
+
+    override suspend fun setRoomJoinRule(roomId: String, rule: RoomJoinRule): Boolean = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.setRoomJoinRule(roomId, rule.toFfi()) } }.isSuccess
+    }
+
+    override suspend fun roomHistoryVisibility(roomId: String): RoomHistoryVisibility? = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.roomHistoryVisibility(roomId) } }.getOrNull()?.toKotlin()
+    }
+
+    override suspend fun setRoomHistoryVisibility(roomId: String, visibility: RoomHistoryVisibility): Boolean = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.setRoomHistoryVisibility(roomId, visibility.toFfi()) } }.isSuccess
+    }
+
+    override suspend fun roomPowerLevels(roomId: String): RoomPowerLevels? = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.roomPowerLevels(roomId) } }.getOrNull()?.let {
+            RoomPowerLevels(
+                users = it.users,
+                usersDefault = it.usersDefault,
+                events = it.events,
+                eventsDefault = it.eventsDefault,
+                stateDefault = it.stateDefault,
+                ban = it.ban,
+                kick = it.kick,
+                redact = it.redact,
+                invite = it.invite,
+                roomName = it.roomName,
+                roomAvatar = it.roomAvatar,
+                roomTopic = it.roomTopic,
+                roomCanonicalAlias = it.roomCanonicalAlias,
+                roomHistoryVisibility = it.roomHistoryVisibility,
+                roomJoinRules = it.roomJoinRules,
+                roomPowerLevels = it.roomPowerLevels,
+                spaceChild = it.spaceChild
+            )
+        }
+    }
+
+    override suspend fun canUserBan(roomId: String, userId: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.canUserBan(roomId, userId) } }.getOrDefault(false)
+    }
+
+    override suspend fun canUserInvite(roomId: String, userId: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.canUserInvite(roomId, userId) } }.getOrDefault(false)
+    }
+
+    override suspend fun canUserRedactOther(roomId: String, userId: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.canUserRedactOther(roomId, userId) } }.getOrDefault(false)
+    }
+
+    override suspend fun updatePowerLevelForUser(roomId: String, userId: String, powerLevel: Long): Boolean = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.updatePowerLevelForUser(roomId, userId, powerLevel) } }.isSuccess
+    }
+
+    override suspend fun applyPowerLevelChanges(roomId: String, changes: RoomPowerLevelChanges): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            withClient {
+                it.applyPowerLevelChanges(
+                    roomId,
+                    mages.RoomPowerLevelChanges(
+                        changes.usersDefault,
+                        changes.eventsDefault,
+                        changes.stateDefault,
+                        changes.ban,
+                        changes.kick,
+                        changes.redact,
+                        changes.invite,
+                        changes.roomName,
+                        changes.roomAvatar,
+                        changes.roomTopic,
+                        changes.spaceChild
+                    )
+                )
+            }
+        }.isSuccess
+    }
+
+    override suspend fun reportRoom(roomId: String, reason: String?): Boolean = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.reportRoom(roomId, reason) } }.isSuccess
     }
 
     override suspend fun banUser(roomId: String, userId: String, reason: String?): Boolean =
@@ -1418,6 +1524,36 @@ private fun RoomDirectoryVisibility.toFfi(): mages.RoomDirectoryVisibility = whe
 private fun mages.RoomDirectoryVisibility.toKotlin(): RoomDirectoryVisibility = when (this) {
     mages.RoomDirectoryVisibility.PUBLIC -> RoomDirectoryVisibility.Public
     mages.RoomDirectoryVisibility.PRIVATE -> RoomDirectoryVisibility.Private
+}
+
+private fun RoomJoinRule.toFfi(): mages.RoomJoinRule = when (this) {
+    RoomJoinRule.Public -> mages.RoomJoinRule.PUBLIC
+    RoomJoinRule.Invite -> mages.RoomJoinRule.INVITE
+    RoomJoinRule.Knock -> mages.RoomJoinRule.KNOCK
+    RoomJoinRule.Restricted -> mages.RoomJoinRule.RESTRICTED
+    RoomJoinRule.KnockRestricted -> mages.RoomJoinRule.KNOCK_RESTRICTED
+}
+
+private fun mages.RoomJoinRule.toKotlin(): RoomJoinRule = when (this) {
+    mages.RoomJoinRule.PUBLIC -> RoomJoinRule.Public
+    mages.RoomJoinRule.INVITE -> RoomJoinRule.Invite
+    mages.RoomJoinRule.KNOCK -> RoomJoinRule.Knock
+    mages.RoomJoinRule.RESTRICTED -> RoomJoinRule.Restricted
+    mages.RoomJoinRule.KNOCK_RESTRICTED -> RoomJoinRule.KnockRestricted
+}
+
+private fun RoomHistoryVisibility.toFfi(): mages.RoomHistoryVisibility = when (this) {
+    RoomHistoryVisibility.Invited -> mages.RoomHistoryVisibility.INVITED
+    RoomHistoryVisibility.Joined -> mages.RoomHistoryVisibility.JOINED
+    RoomHistoryVisibility.Shared -> mages.RoomHistoryVisibility.SHARED
+    RoomHistoryVisibility.WorldReadable -> mages.RoomHistoryVisibility.WORLD_READABLE
+}
+
+private fun mages.RoomHistoryVisibility.toKotlin(): RoomHistoryVisibility = when (this) {
+    mages.RoomHistoryVisibility.INVITED -> RoomHistoryVisibility.Invited
+    mages.RoomHistoryVisibility.JOINED -> RoomHistoryVisibility.Joined
+    mages.RoomHistoryVisibility.SHARED -> RoomHistoryVisibility.Shared
+    mages.RoomHistoryVisibility.WORLD_READABLE -> RoomHistoryVisibility.WorldReadable
 }
 
 private fun mages.NotificationKind.toKotlin(): NotificationKind = when (this) {

@@ -342,6 +342,9 @@ pub struct RoomProfile {
     pub is_encrypted: bool,
     pub is_dm: bool,
     pub avatar_url: Option<String>,
+    pub canonical_alias: Option<String>,
+    pub alt_aliases: Vec<String>,
+    pub room_version: Option<String>,
 }
 
 #[derive(Clone, Debug, Record)]
@@ -670,6 +673,43 @@ pub enum RoomHistoryVisibility {
     Joined,
     Shared,
     WorldReadable,
+}
+
+#[derive(Clone, Record)]
+pub struct RoomPowerLevels {
+    pub users: HashMap<String, i64>,
+    pub users_default: i64,
+    pub events: HashMap<String, i64>,
+    pub events_default: i64,
+    pub state_default: i64,
+    pub ban: i64,
+    pub kick: i64,
+    pub redact: i64,
+    pub invite: i64,
+    // Granular state event permissions
+    pub room_name: i64,
+    pub room_avatar: i64,
+    pub room_topic: i64,
+    pub room_canonical_alias: i64,
+    pub room_history_visibility: i64,
+    pub room_join_rules: i64,
+    pub room_power_levels: i64,
+    pub space_child: i64,
+}
+
+#[derive(Clone, Record)]
+pub struct RoomPowerLevelChanges {
+    pub users_default: Option<i64>,
+    pub events_default: Option<i64>,
+    pub state_default: Option<i64>,
+    pub ban: Option<i64>,
+    pub kick: Option<i64>,
+    pub redact: Option<i64>,
+    pub invite: Option<i64>,
+    pub room_name: Option<i64>,
+    pub room_avatar: Option<i64>,
+    pub room_topic: Option<i64>,
+    pub space_child: Option<i64>,
 }
 
 #[derive(Clone, Record)]
@@ -1879,21 +1919,6 @@ impl Client {
         })
     }
 
-    pub fn report_content(&self, room_id: String, event_id: String, reason: String) -> bool {
-        RT.block_on(async {
-            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
-                return false;
-            };
-            let Some(room) = self.inner.get_room(&rid) else {
-                return false;
-            };
-            let Ok(eid) = EventId::parse(&event_id) else {
-                return false;
-            };
-            room.report_content(eid, None, Some(reason)).await.is_ok()
-        })
-    }
-
     pub fn get_user_power_level(&self, room_id: String, user_id: String) -> i64 {
         RT.block_on(async {
             let Ok(rid) = OwnedRoomId::try_from(room_id) else {
@@ -2719,6 +2744,12 @@ impl Client {
 
                 let mut avatar_url = room.avatar_url().map(|mxc| mxc.to_string());
 
+                let canonical_alias = room.canonical_alias().map(|a| a.to_string());
+
+                let alt_aliases: Vec<String> = room.alt_aliases().iter().map(|a| a.to_string()).collect();
+
+                let room_version = room.version().map(|v| v.to_string());
+
                 //If no room avatar, and it's a DM → use the other user's avatar
                 if avatar_url.is_none() && is_dm {
                     if let Some(me) = self.inner.user_id() {
@@ -2742,6 +2773,9 @@ impl Client {
                     is_encrypted,
                     is_dm,
                     avatar_url,
+                    canonical_alias,
+                    alt_aliases,
+                    room_version,
                 });
             }
             Ok(out)
@@ -2909,6 +2943,12 @@ impl Client {
 
             let mut avatar_url = room.avatar_url().map(|mxc| mxc.to_string());
 
+            let canonical_alias = room.canonical_alias().map(|a| a.to_string());
+
+            let alt_aliases: Vec<String> = room.alt_aliases().iter().map(|a| a.to_string()).collect();
+
+            let room_version = room.version().map(|v| v.to_string());
+
             //If no room avatar, and it's a DM → use the other user's avatar
             if avatar_url.is_none() && is_dm {
                 if let Some(me) = self.inner.user_id() {
@@ -2932,6 +2972,9 @@ impl Client {
                 is_encrypted,
                 is_dm,
                 avatar_url,
+                canonical_alias,
+                alt_aliases,
+                room_version,
             }))
         })
     }
@@ -4795,6 +4838,32 @@ impl Client {
         })
     }
 
+    pub fn room_aliases(&self, room_id: String) -> Vec<String> {
+        RT.block_on(async {
+            let Ok(rid) = OwnedRoomId::try_from(room_id.as_str()) else {
+                return Vec::new();
+            };
+            let Some(room) = self.inner.get_room(&rid) else {
+                return Vec::new();
+            };
+
+            let mut aliases = Vec::new();
+
+            if let Some(canonical) = room.canonical_alias() {
+                aliases.push(canonical.to_string());
+            }
+
+            for alt in room.alt_aliases() {
+                let alt_str = alt.to_string();
+                if !aliases.contains(&alt_str) {
+                    aliases.push(alt_str);
+                }
+            }
+
+            aliases
+        })
+    }
+
     pub fn set_room_directory_visibility(
         &self,
         room_id: String,
@@ -4843,6 +4912,292 @@ impl Client {
                 Visibility::Private => RoomDirectoryVisibility::Private,
                 _ => RoomDirectoryVisibility::Private,
             })
+        })
+    }
+
+    pub fn room_join_rule(&self, room_id: String) -> Result<RoomJoinRule, FfiError> {
+        RT.block_on(async {
+            use ruma::events::room::join_rules::JoinRule;
+
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return Err(FfiError::Msg("bad room id".into()));
+            };
+            let Some(room) = self.inner.get_room(&rid) else {
+                return Err(FfiError::Msg("room not found".into()));
+            };
+
+            let join_rule = room.join_rule();
+
+            Ok(match join_rule {
+                Some(JoinRule::Public) => RoomJoinRule::Public,
+                Some(JoinRule::Invite) => RoomJoinRule::Invite,
+                Some(JoinRule::Knock) => RoomJoinRule::Knock,
+                Some(JoinRule::Restricted(_)) => RoomJoinRule::Restricted,
+                Some(JoinRule::KnockRestricted(_)) => RoomJoinRule::KnockRestricted,
+                _ => RoomJoinRule::Invite,
+            })
+        })
+    }
+
+    pub fn set_room_join_rule(&self, room_id: String, rule: RoomJoinRule) -> Result<(), FfiError> {
+        RT.block_on(async {
+            use ruma::events::room::join_rules::{JoinRule, Restricted, AllowRule};
+
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return Err(FfiError::Msg("bad room id".into()));
+            };
+            let Some(room) = self.inner.get_room(&rid) else {
+                return Err(FfiError::Msg("room not found".into()));
+            };
+
+            let join_rule = match rule {
+                RoomJoinRule::Public => JoinRule::Public,
+                RoomJoinRule::Invite => JoinRule::Invite,
+                RoomJoinRule::Knock => JoinRule::Knock,
+                RoomJoinRule::Restricted => JoinRule::Restricted(Restricted::new(vec![])),
+                RoomJoinRule::KnockRestricted => JoinRule::KnockRestricted(Restricted::new(vec![])),
+            };
+
+            room.privacy_settings()
+                .update_join_rule(join_rule)
+                .await
+                .map_err(|e| FfiError::Msg(e.to_string()))
+        })
+    }
+
+    pub fn room_history_visibility(&self, room_id: String) -> Result<RoomHistoryVisibility, FfiError> {
+        RT.block_on(async {
+            use ruma::events::room::history_visibility::HistoryVisibility;
+
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return Err(FfiError::Msg("bad room id".into()));
+            };
+            let Some(room) = self.inner.get_room(&rid) else {
+                return Err(FfiError::Msg("room not found".into()));
+            };
+
+            let visibility = room.history_visibility_or_default();
+
+            Ok(match visibility {
+                HistoryVisibility::Invited => RoomHistoryVisibility::Invited,
+                HistoryVisibility::Joined => RoomHistoryVisibility::Joined,
+                HistoryVisibility::Shared => RoomHistoryVisibility::Shared,
+                HistoryVisibility::WorldReadable => RoomHistoryVisibility::WorldReadable,
+                _ => RoomHistoryVisibility::Joined,
+            })
+        })
+    }
+
+    pub fn set_room_history_visibility(&self, room_id: String, visibility: RoomHistoryVisibility) -> Result<(), FfiError> {
+        RT.block_on(async {
+            use ruma::events::room::history_visibility::HistoryVisibility;
+
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return Err(FfiError::Msg("bad room id".into()));
+            };
+            let Some(room) = self.inner.get_room(&rid) else {
+                return Err(FfiError::Msg("room not found".into()));
+            };
+
+            let vis = match visibility {
+                RoomHistoryVisibility::Invited => HistoryVisibility::Invited,
+                RoomHistoryVisibility::Joined => HistoryVisibility::Joined,
+                RoomHistoryVisibility::Shared => HistoryVisibility::Shared,
+                RoomHistoryVisibility::WorldReadable => HistoryVisibility::WorldReadable,
+            };
+
+            room.privacy_settings()
+                .update_room_history_visibility(vis)
+                .await
+                .map_err(|e| FfiError::Msg(e.to_string()))
+        })
+    }
+
+    pub fn room_power_levels(&self, room_id: String) -> Result<RoomPowerLevels, FfiError> {
+        RT.block_on(async {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return Err(FfiError::Msg("bad room id".into()));
+            };
+            let Some(room) = self.inner.get_room(&rid) else {
+                return Err(FfiError::Msg("room not found".into()));
+            };
+
+            let levels = room.power_levels().await.map_err(|e| FfiError::Msg(e.to_string()))?;
+
+            let mut users = HashMap::new();
+            for (user_id, level) in levels.users.iter() {
+                users.insert(user_id.to_string(), (*level).into());
+            }
+
+            let mut events = HashMap::new();
+            for (event_type, level) in levels.events.iter() {
+                events.insert(event_type.to_string(), (*level).into());
+            }
+
+            let state_default: i64 = levels.state_default.into();
+
+            Ok(RoomPowerLevels {
+                users,
+                users_default: levels.users_default.into(),
+                events,
+                events_default: levels.events_default.into(),
+                state_default,
+                ban: levels.ban.into(),
+                kick: levels.kick.into(),
+                redact: levels.redact.into(),
+                invite: levels.invite.into(),
+                // State event permissions
+                room_name: get_event_level(&levels, "m.room.name", state_default),
+                room_avatar: get_event_level(&levels, "m.room.avatar", state_default),
+                room_topic: get_event_level(&levels, "m.room.topic", state_default),
+                room_canonical_alias: get_event_level(&levels, "m.room.canonical_alias", state_default),
+                room_history_visibility: get_event_level(&levels, "m.room.history_visibility", state_default),
+                room_join_rules: get_event_level(&levels, "m.room.join_rules", state_default),
+                room_power_levels: get_event_level(&levels, "m.room.power_levels", state_default),
+                space_child: get_event_level(&levels, "m.space.child", state_default),
+            })
+        })
+    }
+
+    pub fn can_user_ban(&self, room_id: String, user_id: String) -> Result<bool, FfiError> {
+        RT.block_on(async {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return Err(FfiError::Msg("bad room id".into()));
+            };
+            let Some(room) = self.inner.get_room(&rid) else {
+                return Err(FfiError::Msg("room not found".into()));
+            };
+
+            let Ok(uid) = OwnedUserId::try_from(user_id) else {
+                return Err(FfiError::Msg("bad user id".into()));
+            };
+
+            let levels = room.power_levels().await.map_err(|e| FfiError::Msg(e.to_string()))?;
+            Ok(levels.user_can_ban(&uid))
+        })
+    }
+
+    pub fn can_user_invite(&self, room_id: String, user_id: String) -> Result<bool, FfiError> {
+        RT.block_on(async {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return Err(FfiError::Msg("bad room id".into()));
+            };
+            let Some(room) = self.inner.get_room(&rid) else {
+                return Err(FfiError::Msg("room not found".into()));
+            };
+
+            let Ok(uid) = OwnedUserId::try_from(user_id) else {
+                return Err(FfiError::Msg("bad user id".into()));
+            };
+
+            let levels = room.power_levels().await.map_err(|e| FfiError::Msg(e.to_string()))?;
+            Ok(levels.user_can_invite(&uid))
+        })
+    }
+
+    pub fn can_user_redact_other(&self, room_id: String, user_id: String) -> Result<bool, FfiError> {
+        RT.block_on(async {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return Err(FfiError::Msg("bad room id".into()));
+            };
+            let Some(room) = self.inner.get_room(&rid) else {
+                return Err(FfiError::Msg("room not found".into()));
+            };
+
+            let Ok(uid) = OwnedUserId::try_from(user_id) else {
+                return Err(FfiError::Msg("bad user id".into()));
+            };
+
+            let levels = room.power_levels().await.map_err(|e| FfiError::Msg(e.to_string()))?;
+            Ok(levels.user_can_redact_event_of_other(&uid))
+        })
+    }
+
+    pub fn update_power_level_for_user(&self, room_id: String, user_id: String, power_level: i64) -> Result<(), FfiError> {
+        RT.block_on(async {
+            use ruma::Int;
+
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return Err(FfiError::Msg("bad room id".into()));
+            };
+            let Some(room) = self.inner.get_room(&rid) else {
+                return Err(FfiError::Msg("room not found".into()));
+            };
+
+            let uid = UserId::parse(&user_id).map_err(|e| FfiError::Msg(e.to_string()))?;
+
+            let level = Int::new(power_level).ok_or_else(|| FfiError::Msg("invalid power level".into()))?;
+
+            let updates: Vec<(&UserId, Int)> = vec![(&uid, level)];
+
+            room.update_power_levels(updates).await.map_err(|e| FfiError::Msg(e.to_string()))?;
+            Ok(())
+        })
+    }
+
+    pub fn report_content(&self, room_id: String, event_id: String, score: Option<i32>, reason: Option<String>) -> Result<(), FfiError> {
+        RT.block_on(async {
+            use matrix_sdk::room::ReportedContentScore;
+
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return Err(FfiError::Msg("bad room id".into()));
+            };
+            let Some(room) = self.inner.get_room(&rid) else {
+                return Err(FfiError::Msg("room not found".into()));
+            };
+
+            let Ok(eid) = EventId::parse(event_id) else {
+                return Err(FfiError::Msg("bad event id".into()));
+            };
+
+            let score = score.and_then(|s| ReportedContentScore::try_from(s).ok());
+
+            room.report_content(eid, score, reason).await.map_err(|e| FfiError::Msg(e.to_string()))?;
+            Ok(())
+        })
+    }
+
+    pub fn report_room(&self, room_id: String, reason: Option<String>) -> Result<(), FfiError> {
+        RT.block_on(async {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return Err(FfiError::Msg("bad room id".into()));
+            };
+            let Some(room) = self.inner.get_room(&rid) else {
+                return Err(FfiError::Msg("room not found".into()));
+            };
+
+            let reason = reason.unwrap_or_default();
+            room.report_room(reason).await.map_err(|e| FfiError::Msg(e.to_string()))?;
+            Ok(())
+        })
+    }
+
+    pub fn apply_power_level_changes(&self, room_id: String, changes: RoomPowerLevelChanges) -> Result<(), FfiError> {
+        RT.block_on(async {
+            use matrix_sdk::room::power_levels::RoomPowerLevelChanges as SdkRoomPowerLevelChanges;
+
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return Err(FfiError::Msg("bad room id".into()));
+            };
+            let Some(room) = self.inner.get_room(&rid) else {
+                return Err(FfiError::Msg("room not found".into()));
+            };
+
+            let sdk_changes = SdkRoomPowerLevelChanges {
+                users_default: changes.users_default,
+                events_default: changes.events_default,
+                state_default: changes.state_default,
+                ban: changes.ban,
+                kick: changes.kick,
+                redact: changes.redact,
+                invite: changes.invite,
+                room_name: changes.room_name,
+                room_avatar: changes.room_avatar,
+                room_topic: changes.room_topic,
+                space_child: changes.space_child,
+            };
+
+            room.apply_power_level_changes(sdk_changes).await.map_err(|e| FfiError::Msg(e.to_string()))
         })
     }
 
@@ -4969,57 +5324,6 @@ impl Client {
                 presence,
                 status_msg: resp.status_msg,
             })
-        })
-    }
-
-    pub fn set_room_join_rule(&self, room_id: String, rule: RoomJoinRule) -> Result<(), FfiError> {
-        RT.block_on(async {
-            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
-                return Err(FfiError::Msg("bad room id".into()));
-            };
-            let Some(room) = self.inner.get_room(&rid) else {
-                return Err(FfiError::Msg("room not found".into()));
-            };
-
-            let join = match rule {
-                RoomJoinRule::Public => JoinRule::Public,
-                RoomJoinRule::Invite => JoinRule::Invite,
-                RoomJoinRule::Knock => JoinRule::Knock,
-                RoomJoinRule::Restricted => JoinRule::Restricted(Restricted::default()),
-                RoomJoinRule::KnockRestricted => JoinRule::KnockRestricted(Restricted::default()),
-            };
-
-            room.privacy_settings()
-                .update_join_rule(join)
-                .await
-                .map_err(|e| FfiError::Msg(e.to_string()))
-        })
-    }
-
-    pub fn set_room_history_visibility(
-        &self,
-        room_id: String,
-        vis: RoomHistoryVisibility,
-    ) -> Result<(), FfiError> {
-        RT.block_on(async {
-            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
-                return Err(FfiError::Msg("bad room id".into()));
-            };
-            let Some(room) = self.inner.get_room(&rid) else {
-                return Err(FfiError::Msg("room not found".into()));
-            };
-
-            let hv = match vis {
-                RoomHistoryVisibility::Invited => HistoryVisibility::Invited,
-                RoomHistoryVisibility::Joined => HistoryVisibility::Joined,
-                RoomHistoryVisibility::Shared => HistoryVisibility::Shared,
-                RoomHistoryVisibility::WorldReadable => HistoryVisibility::WorldReadable,
-            };
-
-            room.privacy_settings()
-                .update_room_history_visibility(hv)
-                .await
-                .map_err(|e| FfiError::Msg(e.to_string()))
         })
     }
 
@@ -5598,6 +5902,13 @@ impl Client {
         self.widget_handles.lock().unwrap().remove(&session_id);
         any
     }
+}
+
+// Helper function to get power level for specific event types
+fn get_event_level(levels: &ruma::events::room::power_levels::RoomPowerLevels, event_type: &str, default: i64) -> i64 {
+    use ruma::events::TimelineEventType;
+    let timeline_type = TimelineEventType::from(event_type);
+    levels.events.get(&timeline_type).map(|&l| l.into()).unwrap_or(default)
 }
 
 impl Client {

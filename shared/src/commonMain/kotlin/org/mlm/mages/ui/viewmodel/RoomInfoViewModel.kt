@@ -10,7 +10,11 @@ import kotlinx.coroutines.flow.update
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.RoomDirectoryVisibility
+import org.mlm.mages.matrix.RoomHistoryVisibility
+import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.RoomNotificationMode
+import org.mlm.mages.matrix.RoomPowerLevelChanges
+import org.mlm.mages.matrix.RoomPowerLevels
 import org.mlm.mages.matrix.RoomPredecessorInfo
 import org.mlm.mages.matrix.RoomProfile
 import org.mlm.mages.matrix.RoomUpgradeInfo
@@ -27,6 +31,8 @@ data class RoomInfoUiState(
     val isLowPriority: Boolean = false,
 
     val directoryVisibility: RoomDirectoryVisibility? = null,
+    val joinRule: RoomJoinRule? = null,
+    val historyVisibility: RoomHistoryVisibility? = null,
     val isAdminBusy: Boolean = false,
     val successor: RoomUpgradeInfo? = null,
     val predecessor: RoomPredecessorInfo? = null,
@@ -36,9 +42,13 @@ data class RoomInfoUiState(
 
     // Power level permissions
     val myPowerLevel: Long = 0L,
+    val powerLevels: RoomPowerLevels? = null,
     val canEditName: Boolean = false,
     val canEditTopic: Boolean = false,
     val canManageSettings: Boolean = false,
+    val canBan: Boolean = false,
+    val canInvite: Boolean = false,
+    val canRedact: Boolean = false,
 )
 
 class RoomInfoViewModel(
@@ -76,6 +86,8 @@ class RoomInfoViewModel(
             )
 
             val vis = runSafe { service.port.roomDirectoryVisibility(roomId) }
+            val joinRule = runSafe { service.port.roomJoinRule(roomId) }
+            val historyVis = runSafe { service.port.roomHistoryVisibility(roomId) }
             val successor = runSafe { service.port.roomSuccessor(roomId) }
             val predecessor = runSafe { service.port.roomPredecessor(roomId) }
 
@@ -86,6 +98,10 @@ class RoomInfoViewModel(
             } else {
                 0L
             }
+            val powerLevels = runSafe { service.port.roomPowerLevels(roomId) }
+            val canBan = runSafe { service.port.canUserBan(roomId, myUserId) } ?: false
+            val canInvite = runSafe { service.port.canUserInvite(roomId, myUserId) } ?: false
+            val canRedact = runSafe { service.port.canUserRedactOther(roomId, myUserId) } ?: false
             // Matrix defaults: state_default = 50 for name/topic changes
             val canEditName = powerLevel >= 50
             val canEditTopic = powerLevel >= 50
@@ -102,13 +118,19 @@ class RoomInfoViewModel(
                     isFavourite = tags?.first ?: false,
                     isLowPriority = tags?.second ?: false,
                     directoryVisibility = vis,
+                    joinRule = joinRule,
+                    historyVisibility = historyVis,
                     successor = successor,
                     predecessor = predecessor,
                     error = if (profile == null) "Failed to load room info" else null,
                     myPowerLevel = powerLevel,
+                    powerLevels = powerLevels,
                     canEditName = canEditName,
                     canEditTopic = canEditTopic,
-                    canManageSettings = canManageSettings
+                    canManageSettings = canManageSettings,
+                    canBan = canBan,
+                    canInvite = canInvite,
+                    canRedact = canRedact
                 )
             }
 
@@ -267,6 +289,123 @@ class RoomInfoViewModel(
                 _events.send(Event.ShowSuccess("Encryption enabled"))
             } else {
                 _events.send(Event.ShowError("Failed to enable encryption"))
+            }
+        }
+    }
+
+    fun setJoinRule(rule: RoomJoinRule) {
+        if (!currentState.canManageSettings) {
+            launch { _events.send(Event.ShowError("You don't have permission to change join rules")) }
+            return
+        }
+
+        launch {
+            updateState { copy(isAdminBusy = true) }
+            val ok = runSafe { service.port.setRoomJoinRule(roomId, rule) } ?: false
+            updateState { copy(isAdminBusy = false) }
+            if (ok) {
+                refresh()
+                _events.send(Event.ShowSuccess("Join rule updated"))
+            } else {
+                _events.send(Event.ShowError("Failed to update join rule"))
+            }
+        }
+    }
+
+    fun setHistoryVisibility(visibility: RoomHistoryVisibility) {
+        if (!currentState.canManageSettings) {
+            launch { _events.send(Event.ShowError("You don't have permission to change history visibility")) }
+            return
+        }
+
+        launch {
+            updateState { copy(isAdminBusy = true) }
+            val ok = runSafe { service.port.setRoomHistoryVisibility(roomId, visibility) } ?: false
+            updateState { copy(isAdminBusy = false) }
+            if (ok) {
+                refresh()
+                _events.send(Event.ShowSuccess("History visibility updated"))
+            } else {
+                _events.send(Event.ShowError("Failed to update history visibility"))
+            }
+        }
+    }
+
+    fun updateCanonicalAlias(alias: String?, altAliases: List<String>) {
+        if (!currentState.canManageSettings) {
+            launch { _events.send(Event.ShowError("You don't have permission to change room aliases")) }
+            return
+        }
+
+        launch {
+            updateState { copy(isAdminBusy = true) }
+            val ok = runSafe { service.port.setRoomCanonicalAlias(roomId, alias, altAliases) } ?: false
+            updateState { copy(isAdminBusy = false) }
+            if (ok) {
+                refresh()
+                _events.send(Event.ShowSuccess("Room aliases updated"))
+            } else {
+                _events.send(Event.ShowError("Failed to update room aliases"))
+            }
+        }
+    }
+
+    fun updatePowerLevel(userId: String, powerLevel: Long) {
+        if (!currentState.canManageSettings) {
+            launch { _events.send(Event.ShowError("You don't have permission to change power levels")) }
+            return
+        }
+
+        launch {
+            updateState { copy(isAdminBusy = true) }
+            val ok = runSafe { service.port.updatePowerLevelForUser(roomId, userId, powerLevel) } ?: false
+            updateState { copy(isAdminBusy = false) }
+            if (ok) {
+                refresh()
+                _events.send(Event.ShowSuccess("Power level updated"))
+            } else {
+                _events.send(Event.ShowError("Failed to update power level"))
+            }
+        }
+    }
+
+    fun applyPowerLevelChanges(changes: RoomPowerLevelChanges) {
+        if (!currentState.canManageSettings) {
+            launch { _events.send(Event.ShowError("You don't have permission to change permissions")) }
+            return
+        }
+
+        launch {
+            updateState { copy(isAdminBusy = true) }
+            val ok = runSafe { service.port.applyPowerLevelChanges(roomId, changes) } ?: false
+            updateState { copy(isAdminBusy = false) }
+            if (ok) {
+                refresh()
+                _events.send(Event.ShowSuccess("Permissions updated"))
+            } else {
+                _events.send(Event.ShowError("Failed to update permissions"))
+            }
+        }
+    }
+
+    fun reportContent(eventId: String, score: Int?, reason: String?) {
+        launch {
+            val ok = runSafe { service.port.reportContent(roomId, eventId, score, reason) } ?: false
+            if (ok) {
+                _events.send(Event.ShowSuccess("Content reported"))
+            } else {
+                _events.send(Event.ShowError("Failed to report content"))
+            }
+        }
+    }
+
+    fun reportRoom(reason: String?) {
+        launch {
+            val ok = runSafe { service.port.reportRoom(roomId, reason) } ?: false
+            if (ok) {
+                _events.send(Event.ShowSuccess("Room reported"))
+            } else {
+                _events.send(Event.ShowError("Failed to report room"))
             }
         }
     }

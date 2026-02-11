@@ -146,7 +146,59 @@ data class RoomProfile(
     val memberCount: Long,
     val isEncrypted: Boolean,
     val isDm: Boolean,
-    val avatarUrl: String?
+    val avatarUrl: String?,
+    val canonicalAlias: String?,
+    val altAliases: List<String>,
+    val roomVersion: String?
+)
+
+enum class RoomJoinRule {
+    Public,
+    Invite,
+    Knock,
+    Restricted,
+    KnockRestricted
+}
+
+enum class RoomHistoryVisibility {
+    Invited,
+    Joined,
+    Shared,
+    WorldReadable
+}
+
+data class RoomPowerLevels(
+    val users: Map<String, Long>,
+    val usersDefault: Long,
+    val events: Map<String, Long>,
+    val eventsDefault: Long,
+    val stateDefault: Long,
+    val ban: Long,
+    val kick: Long,
+    val redact: Long,
+    val invite: Long,
+    val roomName: Long,
+    val roomAvatar: Long,
+    val roomTopic: Long,
+    val roomCanonicalAlias: Long,
+    val roomHistoryVisibility: Long,
+    val roomJoinRules: Long,
+    val roomPowerLevels: Long,
+    val spaceChild: Long
+)
+
+data class RoomPowerLevelChanges(
+    val usersDefault: Long? = null,
+    val eventsDefault: Long? = null,
+    val stateDefault: Long? = null,
+    val ban: Long? = null,
+    val kick: Long? = null,
+    val redact: Long? = null,
+    val invite: Long? = null,
+    val roomName: Long? = null,
+    val roomAvatar: Long? = null,
+    val roomTopic: Long? = null,
+    val spaceChild: Long? = null
 )
 
 data class LatestRoomEvent(
@@ -337,9 +389,6 @@ interface MatrixPort {
     suspend fun reply(roomId: String, inReplyToEventId: String, body: String): Boolean
     suspend fun edit(roomId: String, targetEventId: String, newBody: String): Boolean
     suspend fun redact(roomId: String, eventId: String, reason: String? = null): Boolean
-    
-    suspend fun reportContent(roomId: String, eventId: String, reason: String): Boolean
-    
     suspend fun getUserPowerLevel(roomId: String, userId: String): Long
     
     suspend fun getPinnedEvents(roomId: String): List<String>
@@ -510,6 +559,26 @@ interface MatrixPort {
 
     suspend fun roomDirectoryVisibility(roomId: String): RoomDirectoryVisibility?
     suspend fun setRoomDirectoryVisibility(roomId: String, visibility: RoomDirectoryVisibility): Boolean
+    suspend fun publishRoomAlias(roomId: String, alias: String): Boolean
+    suspend fun unpublishRoomAlias(roomId: String, alias: String): Boolean
+    suspend fun setRoomCanonicalAlias(roomId: String, alias: String?, altAliases: List<String>): Boolean
+    suspend fun roomAliases(roomId: String): List<String>
+
+    suspend fun roomJoinRule(roomId: String): RoomJoinRule?
+    suspend fun setRoomJoinRule(roomId: String, rule: RoomJoinRule): Boolean
+    suspend fun roomHistoryVisibility(roomId: String): RoomHistoryVisibility?
+    suspend fun setRoomHistoryVisibility(roomId: String, visibility: RoomHistoryVisibility): Boolean
+
+    suspend fun roomPowerLevels(roomId: String): RoomPowerLevels?
+    suspend fun canUserBan(roomId: String, userId: String): Boolean
+    suspend fun canUserInvite(roomId: String, userId: String): Boolean
+    suspend fun canUserRedactOther(roomId: String, userId: String): Boolean
+    suspend fun updatePowerLevelForUser(roomId: String, userId: String, powerLevel: Long): Boolean
+    suspend fun applyPowerLevelChanges(roomId: String, changes: RoomPowerLevelChanges): Boolean
+
+    suspend fun reportContent(roomId: String, eventId: String, score: Int?, reason: String?): Boolean
+    suspend fun reportRoom(roomId: String, reason: String?): Boolean
+
     suspend fun banUser(roomId: String, userId: String, reason: String? = null): Boolean
     suspend fun unbanUser(roomId: String, userId: String, reason: String? = null): Boolean
     suspend fun kickUser(roomId: String, userId: String, reason: String? = null): Boolean

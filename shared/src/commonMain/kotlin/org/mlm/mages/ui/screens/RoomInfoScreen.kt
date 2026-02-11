@@ -14,8 +14,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.RoomDirectoryVisibility
+import org.mlm.mages.matrix.RoomHistoryVisibility
+import org.mlm.mages.matrix.RoomJoinRule
+import org.mlm.mages.matrix.RoomPowerLevelChanges
+import org.mlm.mages.matrix.RoomPowerLevels
 import org.mlm.mages.matrix.RoomProfile
+import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.ui.components.dialogs.ConfirmationDialog
+import org.mlm.mages.ui.components.sheets.GranularPermissionsSheet
+import org.mlm.mages.ui.components.sheets.PowerLevelsSheet
+import org.mlm.mages.ui.components.sheets.ReportContentDialog
+import org.mlm.mages.ui.components.sheets.RoomAliasesSheet
 import org.mlm.mages.ui.components.settings.*
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.RoomInfoUiState
@@ -63,6 +72,13 @@ fun RoomInfoRoute(
         onLeaveSuccess = onLeaveSuccess,
         onSetVisibility = viewModel::setDirectoryVisibility,
         onEnableEncryption = viewModel::enableEncryption,
+        onSetJoinRule = viewModel::setJoinRule,
+        onSetHistoryVisibility = viewModel::setHistoryVisibility,
+        onUpdateAliases = viewModel::updateCanonicalAlias,
+        onUpdatePowerLevel = viewModel::updatePowerLevel,
+        onApplyPowerLevelChanges = viewModel::applyPowerLevelChanges,
+        onReportContent = viewModel::reportContent,
+        onReportRoom = viewModel::reportRoom,
         onOpenRoom = { roomId -> viewModel.openRoom(roomId) },
         onOpenMediaGallery = onOpenMediaGallery
     )
@@ -85,10 +101,23 @@ fun RoomInfoScreen(
     onLeaveSuccess: () -> Unit,
     onSetVisibility: (RoomDirectoryVisibility) -> Unit,
     onEnableEncryption: () -> Unit,
+    onSetJoinRule: (RoomJoinRule) -> Unit,
+    onSetHistoryVisibility: (RoomHistoryVisibility) -> Unit,
+    onUpdateAliases: (String?, List<String>) -> Unit,
+    onUpdatePowerLevel: (String, Long) -> Unit,
+    onApplyPowerLevelChanges: (RoomPowerLevelChanges) -> Unit,
+    onReportContent: (String, Int?, String?) -> Unit,
+    onReportRoom: (String?) -> Unit,
     onOpenRoom: (String) -> Unit,
     onOpenMediaGallery: () -> Unit
 ) {
     var showLeaveDialog by remember { mutableStateOf(false) }
+    var showAliasesSheet by remember { mutableStateOf(false) }
+    var showPowerLevelsSheet by remember { mutableStateOf(false) }
+    var showGranularPermissionsSheet by remember { mutableStateOf(false) }
+    var showReportDialog by remember { mutableStateOf(false) }
+    var showJoinRuleDropdown by remember { mutableStateOf(false) }
+    var showHistoryVisibilityDropdown by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -207,6 +236,42 @@ fun RoomInfoScreen(
                     }
                 }
 
+                item {
+                    RoomSettingsSection(
+                        roomVersion = state.profile?.roomVersion,
+                        joinRule = state.joinRule,
+                        historyVisibility = state.historyVisibility,
+                        isAdminBusy = state.isAdminBusy,
+                        canManageSettings = state.canManageSettings,
+                        onSetJoinRule = onSetJoinRule,
+                        onSetHistoryVisibility = onSetHistoryVisibility,
+                        showJoinRuleDropdown = { showJoinRuleDropdown = true },
+                        showHistoryVisibilityDropdown = { showHistoryVisibilityDropdown = true }
+                    )
+                }
+
+                item {
+                    AliasesSection(
+                        canonicalAlias = state.profile?.canonicalAlias,
+                        altAliases = state.profile?.altAliases ?: emptyList(),
+                        isAdminBusy = state.isAdminBusy,
+                        canManageSettings = state.canManageSettings,
+                        onEditAliases = { showAliasesSheet = true }
+                    )
+                }
+
+                item {
+                    PowerLevelsSection(
+                        myPowerLevel = state.myPowerLevel,
+                        powerLevels = state.powerLevels,
+                        members = state.members,
+                        isAdminBusy = state.isAdminBusy,
+                        canManageSettings = state.canManageSettings,
+                        onManagePowerLevels = { showPowerLevelsSheet = true },
+                        onEditPermissions = { showGranularPermissionsSheet = true }
+                    )
+                }
+
                 // Misc section
                 item {
                     state.profile?.let { profile ->
@@ -257,6 +322,12 @@ fun RoomInfoScreen(
                     }
                 }
 
+                item {
+                    ReportSection(
+                        onReportRoom = { showReportDialog = true }
+                    )
+                }
+
                 // Leave room button
                 item {
                     Button(
@@ -291,6 +362,75 @@ fun RoomInfoScreen(
                     onLeave()
                 },
                 onDismiss = { showLeaveDialog = false }
+            )
+        }
+
+        // Aliases editing sheet
+        if (showAliasesSheet) {
+            RoomAliasesSheet(
+                canonicalAlias = state.profile?.canonicalAlias,
+                altAliases = state.profile?.altAliases ?: emptyList(),
+                onUpdate = { canonical, alts ->
+                    onUpdateAliases(canonical, alts)
+                    showAliasesSheet = false
+                },
+                onDismiss = { showAliasesSheet = false }
+            )
+        }
+
+        // Power levels management sheet
+        if (showPowerLevelsSheet) {
+            PowerLevelsSheet(
+                members = state.members,
+                powerLevels = state.powerLevels,
+                myPowerLevel = state.myPowerLevel,
+                onUpdatePowerLevel = onUpdatePowerLevel,
+                onDismiss = { showPowerLevelsSheet = false }
+            )
+        }
+
+        // Granular permissions sheet
+        if (showGranularPermissionsSheet) {
+            GranularPermissionsSheet(
+                powerLevels = state.powerLevels,
+                myPowerLevel = state.myPowerLevel,
+                onUpdatePowerLevels = onApplyPowerLevelChanges,
+                onDismiss = { showGranularPermissionsSheet = false }
+            )
+        }
+
+        // Report content dialog
+        if (showReportDialog) {
+            ReportContentDialog(
+                onReport = { reason ->
+                    onReportRoom(reason)
+                    showReportDialog = false
+                },
+                onDismiss = { showReportDialog = false }
+            )
+        }
+
+        // Join Rule Dropdown
+        if (showJoinRuleDropdown) {
+            JoinRuleDropdown(
+                currentRule = state.joinRule,
+                onSelect = { rule ->
+                    onSetJoinRule(rule)
+                    showJoinRuleDropdown = false
+                },
+                onDismiss = { showJoinRuleDropdown = false }
+            )
+        }
+
+        // History Visibility Dropdown
+        if (showHistoryVisibilityDropdown) {
+            HistoryVisibilityDropdown(
+                currentVisibility = state.historyVisibility,
+                onSelect = { visibility ->
+                    onSetHistoryVisibility(visibility)
+                    showHistoryVisibilityDropdown = false
+                },
+                onDismiss = { showHistoryVisibilityDropdown = false }
             )
         }
 
@@ -366,6 +506,14 @@ private fun RoomHeader(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     overflow = TextOverflow.Ellipsis
                 )
+                profile.canonicalAlias?.let { alias ->
+                    Text(
+                        text = alias,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }
@@ -475,3 +623,333 @@ private fun MiscSection(
         }
     }
 }
+
+@Composable
+private fun RoomSettingsSection(
+    roomVersion: String?,
+    joinRule: RoomJoinRule?,
+    historyVisibility: RoomHistoryVisibility?,
+    isAdminBusy: Boolean,
+    canManageSettings: Boolean,
+    onSetJoinRule: (RoomJoinRule) -> Unit,
+    onSetHistoryVisibility: (RoomHistoryVisibility) -> Unit,
+    showJoinRuleDropdown: () -> Unit,
+    showHistoryVisibilityDropdown: () -> Unit
+) {
+    SettingsSection(title = "Room Settings") {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Room Version
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Room Version",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    roomVersion ?: "Unknown",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Join Rule
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Who can join",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        joinRule?.name ?: "Unknown",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (canManageSettings) {
+                    TextButton(
+                        onClick = showJoinRuleDropdown,
+                        enabled = !isAdminBusy
+                    ) {
+                        Text("Change")
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // History Visibility
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Message history",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        historyVisibility?.displayName ?: "Unknown",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (canManageSettings) {
+                    TextButton(
+                        onClick = showHistoryVisibilityDropdown,
+                        enabled = !isAdminBusy
+                    ) {
+                        Text("Change")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AliasesSection(
+    canonicalAlias: String?,
+    altAliases: List<String>,
+    isAdminBusy: Boolean,
+    canManageSettings: Boolean,
+    onEditAliases: () -> Unit
+) {
+    SettingsSection(title = "Room Addresses") {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Canonical Alias
+            if (canonicalAlias != null) {
+                Text(
+                    "Primary address",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    canonicalAlias,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(Modifier.height(12.dp))
+            }
+
+            // Alternative Aliases
+            if (altAliases.isNotEmpty()) {
+                Text(
+                    "Alternative addresses (${altAliases.size})",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                altAliases.take(3).forEach { alias ->
+                    Text(
+                        alias,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                if (altAliases.size > 3) {
+                    Text(
+                        "+${altAliases.size - 3} more",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+            }
+
+            // Edit button
+            if (canManageSettings) {
+                Button(
+                    onClick = onEditAliases,
+                    enabled = !isAdminBusy,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Edit, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Edit addresses")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PowerLevelsSection(
+    myPowerLevel: Long,
+    powerLevels: RoomPowerLevels?,
+    members: List<MemberSummary>,
+    isAdminBusy: Boolean,
+    canManageSettings: Boolean,
+    onManagePowerLevels: () -> Unit,
+    onEditPermissions: () -> Unit
+) {
+    SettingsSection(title = "Permissions & Roles") {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // My power level
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Your role",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    getRoleName(myPowerLevel),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Member count with custom power levels
+            val membersWithCustomPower = powerLevels?.users?.size ?: 0
+            if (membersWithCustomPower > 0) {
+                Text(
+                    "$membersWithCustomPower members have custom permissions",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(12.dp))
+            }
+
+            // Action buttons
+            if (canManageSettings) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = onManagePowerLevels,
+                        enabled = !isAdminBusy,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.People, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Users")
+                    }
+                    Button(
+                        onClick = onEditPermissions,
+                        enabled = !isAdminBusy,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.AdminPanelSettings, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Permissions")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReportSection(
+    onReportRoom: () -> Unit
+) {
+    SettingsSection(title = "Misc") {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Button(
+                onClick = onReportRoom,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Report, null)
+                Spacer(Modifier.width(8.dp))
+                Text("Report this room")
+            }
+        }
+    }
+}
+
+@Composable
+private fun JoinRuleDropdown(
+    currentRule: RoomJoinRule?,
+    onSelect: (RoomJoinRule) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val options = listOf(
+        RoomJoinRule.Public to "Public - Anyone can join",
+        RoomJoinRule.Invite to "Invite only - Only invited users can join",
+        RoomJoinRule.Knock to "Knock - Users can request to join"
+    )
+
+    DropdownMenu(
+        expanded = true,
+        onDismissRequest = onDismiss
+    ) {
+        options.forEach { (rule, label) ->
+            DropdownMenuItem(
+                text = { Text(label) },
+                onClick = { onSelect(rule) },
+                leadingIcon = if (currentRule == rule) {
+                    { Icon(Icons.Default.Check, null) }
+                } else null
+            )
+        }
+    }
+}
+
+@Composable
+private fun HistoryVisibilityDropdown(
+    currentVisibility: RoomHistoryVisibility?,
+    onSelect: (RoomHistoryVisibility) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val options = listOf(
+        RoomHistoryVisibility.WorldReadable to "Anyone",
+        RoomHistoryVisibility.Shared to "All members",
+        RoomHistoryVisibility.Joined to "Members since they joined",
+        RoomHistoryVisibility.Invited to "Members since they were invited"
+    )
+
+    DropdownMenu(
+        expanded = true,
+        onDismissRequest = onDismiss
+    ) {
+        options.forEach { (visibility, label) ->
+            DropdownMenuItem(
+                text = { Text(label) },
+                onClick = { onSelect(visibility) },
+                leadingIcon = if (currentVisibility == visibility) {
+                    { Icon(Icons.Default.Check, null) }
+                } else null
+            )
+        }
+    }
+}
+
+private fun getRoleName(powerLevel: Long): String = when {
+    powerLevel >= 100 -> "Admin"
+    powerLevel >= 50 -> "Moderator"
+    powerLevel > 0 -> "Custom"
+    else -> "User"
+}
+
+private val RoomJoinRule.name: String
+    get() = when (this) {
+        RoomJoinRule.Public -> "Public"
+        RoomJoinRule.Invite -> "Invite only"
+        RoomJoinRule.Knock -> "Knock"
+        RoomJoinRule.Restricted -> "Restricted"
+        RoomJoinRule.KnockRestricted -> "Knock + Restricted"
+    }
+
+private val RoomHistoryVisibility.displayName: String
+    get() = when (this) {
+        RoomHistoryVisibility.WorldReadable -> "Visible to anyone"
+        RoomHistoryVisibility.Shared -> "Visible to all members"
+        RoomHistoryVisibility.Joined -> "Since joined"
+        RoomHistoryVisibility.Invited -> "Since invited"
+    }

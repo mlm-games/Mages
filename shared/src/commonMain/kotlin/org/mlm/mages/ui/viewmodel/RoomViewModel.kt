@@ -360,7 +360,7 @@ class RoomViewModel(
     fun reportContent(event: MessageEvent, reason: String, blockUser: Boolean = false) {
         if (event.eventId.isBlank()) return
         launch {
-            val ok = runSafe { service.port.reportContent(currentState.roomId, event.eventId, reason) } ?: false
+            val ok = runSafe { service.port.reportContent(currentState.roomId, event.eventId, null, reason) } ?: false
             if (ok) {
                 if (blockUser) {
                     runSafe { service.port.ignoreUser(event.sender) }
