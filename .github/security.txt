@@ -1,0 +1,9 @@
+# Security Policy for Mages
+Contact: mailto:mlm.gamestudio@gmail.com
+Contact: https://matrix.to/#/@mlmistaken:matrix.org
+Contact: https://matrix.to/#/#mages-sec-support:matrix.org
+Expires: 2027-02-10T08:00:00.000Z
+Preferred-Languages: en
+Canonical: https://github.com/mlm-games/Mages/raw/main/.github/security.txt
+Policy: https://github.com/mlm-games/Mages/blob/main/.github/SECURITY.md
+Acknowledgments: https://github.com/mlm-games/Mages#security
