@@ -2,11 +2,11 @@
 <component type="desktop-application">
   <id>io.github.mlm_games.mages</id>
   <name>Mages</name>
-  <summary>Experimental Matrix chat client</summary>
+  <summary>Encrypted chat client for Matrix</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-only</project_license>
   <developer id="io.github.mlm_games">
-    <name>MLM-stuff</name>
+    <name>MLM Games</name>
   </developer>
   <description>
     <p>
