@@ -38,6 +38,8 @@ import org.mlm.mages.ui.components.dialogs.ReportContentDialog
 import org.mlm.mages.ui.components.message.MessageBubble
 import org.mlm.mages.ui.components.message.MessageStatusLine
 import org.mlm.mages.ui.components.message.SeenByChip
+import org.koin.compose.koinInject
+import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.sheets.*
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatDate
@@ -65,7 +67,7 @@ fun RoomScreen(
     val scope = rememberCoroutineScope()
     val shareHandler = rememberShareHandler()
     var progressText by remember { mutableStateOf<String?>(null) }
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarManager: SnackbarManager = koinInject()
     val listState = rememberLazyListState()
 
     var pendingJumpEventId by rememberSaveable(initialScrollToEventId) {
@@ -132,11 +134,11 @@ fun RoomScreen(
             when (event) {
                 is RoomViewModel.Event.ShowError -> {
                     progressText = null
-                    snackbarHostState.showSnackbar(event.message)
+                    snackbarManager.showError(event.message)
                 }
                 is RoomViewModel.Event.ShowSuccess -> {
                     progressText = null
-                    snackbarHostState.showSnackbar(event.message)
+                    snackbarManager.show(event.message)
                 }
                 is RoomViewModel.Event.NavigateToThread -> {
                     onNavigateToThread(event.roomId, event.eventId, event.roomName)
@@ -214,7 +216,7 @@ fun RoomScreen(
         } else if (state.hitStart || jumpAttempts >= 30) {
             pendingJumpEventId = null
             jumpAttempts = 0
-            snackbarHostState.showSnackbar(errorMessage)
+            snackbarManager.showError(errorMessage)
         }
     }
 
@@ -299,7 +301,7 @@ fun RoomScreen(
                 }
             }
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { snackbarManager.snackbarHost() }
     ) { innerPadding ->
 
         // File Drop Zone

@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.SpaceInfo
 import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.components.core.ShimmerList
+import org.koin.compose.koinInject
+import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.SpacesViewModel
 import org.jetbrains.compose.resources.stringResource
@@ -31,7 +33,7 @@ fun SpacesScreen(
     onBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarManager: SnackbarManager = koinInject()
 
     Scaffold(
         topBar = {
@@ -60,7 +62,7 @@ fun SpacesScreen(
                 Text(stringResource(Res.string.create_space))
             }
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { snackbarManager.snackbarHost() }
     ) { padding ->
         Column(
             modifier = Modifier

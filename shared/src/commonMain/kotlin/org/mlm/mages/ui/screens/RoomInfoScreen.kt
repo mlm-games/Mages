@@ -27,6 +27,8 @@ import org.mlm.mages.ui.components.sheets.ReportContentDialog
 import org.mlm.mages.ui.components.sheets.RoomAliasesSheet
 import org.mlm.mages.ui.components.settings.*
 import org.mlm.mages.ui.theme.Spacing
+import org.koin.compose.koinInject
+import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.viewmodel.RoomInfoUiState
 import org.mlm.mages.ui.viewmodel.RoomInfoViewModel
 
@@ -38,7 +40,7 @@ fun RoomInfoRoute(
     onOpenMediaGallery: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarManager: SnackbarManager = koinInject()
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -48,10 +50,10 @@ fun RoomInfoRoute(
                     // handled in App.kt
                 }
                 is RoomInfoViewModel.Event.ShowError -> {
-                    snackbarHostState.showSnackbar(event.message)
+                    snackbarManager.showError(event.message)
                 }
                 is RoomInfoViewModel.Event.ShowSuccess -> {
-                    snackbarHostState.showSnackbar(event.message)
+                    snackbarManager.show(event.message)
                 }
             }
         }
@@ -59,7 +61,6 @@ fun RoomInfoRoute(
 
     RoomInfoScreen(
         state = state,
-        snackbarHostState = snackbarHostState,
         onBack = onBack,
         onRefresh = viewModel::refresh,
         onNameChange = viewModel::updateName,
@@ -87,7 +88,6 @@ fun RoomInfoRoute(
 @Composable
 fun RoomInfoScreen(
     state: RoomInfoUiState,
-    snackbarHostState: SnackbarHostState,
     onBack: () -> Unit,
     onRefresh: () -> Unit,
     onNameChange: (String) -> Unit,
@@ -133,8 +133,7 @@ fun RoomInfoScreen(
                     }
                 }
             )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        }
     ) { padding ->
         if (state.isLoading && state.profile == null) {
             Box(
@@ -442,10 +441,11 @@ fun RoomInfoScreen(
             )
         }
 
-        // Error handling
+        val snackbarManager: SnackbarManager = koinInject()
+
         LaunchedEffect(state.error) {
             state.error?.let {
-                snackbarHostState.showSnackbar(it)
+                snackbarManager.showError(it)
             }
         }
     }

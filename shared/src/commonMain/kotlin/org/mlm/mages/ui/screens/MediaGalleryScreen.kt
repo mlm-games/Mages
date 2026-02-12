@@ -31,6 +31,7 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import org.koin.compose.koinInject
 import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.platform.ShareContent
@@ -39,6 +40,7 @@ import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.ExtractedLink
 import org.mlm.mages.ui.viewmodel.MediaGalleryViewModel
 import org.mlm.mages.ui.viewmodel.MediaTab
+import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import java.io.File
 import java.time.Instant
 import java.time.ZoneId
@@ -57,16 +59,16 @@ fun MediaGalleryScreen(
     val uriHandler = LocalUriHandler.current
     val shareHandler = rememberShareHandler()
     var selectedTab by remember { mutableStateOf(MediaTab.Images) }
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarManager: SnackbarManager = koinInject()
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 is MediaGalleryViewModel.Event.ShowError -> {
-                    snackbarHostState.showSnackbar(event.message)
+                    snackbarManager.showError(event.message)
                 }
                 is MediaGalleryViewModel.Event.ShowSuccess -> {
-                    snackbarHostState.showSnackbar(event.message)
+                    snackbarManager.show(event.message)
                 }
                 is MediaGalleryViewModel.Event.ShareFiles -> {
                     shareHandler(
@@ -116,7 +118,7 @@ fun MediaGalleryScreen(
                 )
             }
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { snackbarManager.snackbarHost() }
     ) { padding ->
         Column(
             modifier = Modifier

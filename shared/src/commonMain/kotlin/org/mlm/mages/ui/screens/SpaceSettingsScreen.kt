@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import org.mlm.mages.RoomSummary
 import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.matrix.SpaceInfo
+import org.koin.compose.koinInject
+import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.SpaceSettingsViewModel
@@ -29,11 +31,11 @@ fun SpaceSettingsScreen(
     onBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarManager: SnackbarManager = koinInject()
 
     LaunchedEffect(state.error) {
         state.error?.let {
-            snackbarHostState.showSnackbar(it)
+            snackbarManager.showError(it)
             viewModel.clearError()
         }
     }
@@ -54,7 +56,7 @@ fun SpaceSettingsScreen(
                 }
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { snackbarManager.snackbarHost() }
     ) { padding ->
         Column(
             modifier = Modifier

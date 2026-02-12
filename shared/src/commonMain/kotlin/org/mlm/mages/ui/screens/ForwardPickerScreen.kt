@@ -14,6 +14,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import org.koin.compose.koinInject
+import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.ForwardPickerViewModel
@@ -25,7 +27,7 @@ fun ForwardPickerScreen(
     onForwardComplete: (targetRoomId: String, targetRoomName: String) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarManager: SnackbarManager = koinInject()
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -34,7 +36,7 @@ fun ForwardPickerScreen(
                     onForwardComplete(event.roomId, event.roomName)
                 }
                 is ForwardPickerViewModel.Event.ShowError -> {
-                    snackbarHostState.showSnackbar(event.message)
+                    snackbarManager.showError(event.message)
                 }
                 is ForwardPickerViewModel.Event.ShowProgress -> {
                     // Could show progress snackbar
@@ -63,7 +65,7 @@ fun ForwardPickerScreen(
                 }
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { snackbarManager.snackbarHost() }
     ) { padding ->
         Column(
             modifier = Modifier
