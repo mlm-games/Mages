@@ -22,11 +22,14 @@ import io.github.mlmgames.settings.core.SettingsSchema
 import io.github.mlmgames.settings.core.annotations.SettingAction
 import io.github.mlmgames.settings.ui.AutoSettingsScreen
 import io.github.mlmgames.settings.ui.CategoryConfig
+import org.koin.compose.koinInject
 import org.mlm.mages.matrix.DeviceSummary
 import org.mlm.mages.matrix.Presence
 import org.mlm.mages.settings.*
 import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.components.dialogs.RecoveryDialog
+import org.mlm.mages.ui.components.snackbar.SnackbarManager
+import org.mlm.mages.ui.components.snackbar.snackbarHost
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.popBack
 import org.mlm.mages.ui.viewmodel.SecurityViewModel
@@ -42,12 +45,13 @@ fun SecurityScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val settings by viewModel.settings.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarManager: SnackbarManager = koinInject()
+    val settingsSnackbarHostState = remember { SnackbarHostState() }
     var verifyUserId by remember { mutableStateOf("") }
     var showVerifyUserDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.error) {
-        state.error?.let { snackbarHostState.showSnackbar(it) }
+        state.error?.let { snackbarManager.showError(it) }
     }
 
     Scaffold(
@@ -92,7 +96,7 @@ fun SecurityScreen(
                 }
             }
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { snackbarManager.snackbarHost() }
     ) { padding ->
         AnimatedContent(
             targetState = state.selectedTab,
@@ -123,7 +127,7 @@ fun SecurityScreen(
                     onSavePresence = viewModel::savePresence,
                     onSettingChange = viewModel::updateSetting,
                     onSettingAction = viewModel::executeSettingAction,
-                    snackbarHostState = snackbarHostState
+                    snackbarHostState = settingsSnackbarHostState
                 )
             }
         }

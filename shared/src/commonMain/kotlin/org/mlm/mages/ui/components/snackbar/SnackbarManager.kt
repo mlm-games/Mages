@@ -1,9 +1,17 @@
 package org.mlm.mages.ui.components.snackbar
 
 import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 
 class SnackbarManager {
     // Buffer so events aren't lost if emitted quickly (e.g., rapid actions)
@@ -49,4 +57,28 @@ class SnackbarManager {
             )
         )
     }
+}
+
+@Suppress("ComposableNaming")
+@Composable
+fun SnackbarManager.snackbarHost() {
+    val hostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(this) {
+        events.collect { event ->
+            val result = hostState.showSnackbar(
+                message = event.message,
+                actionLabel = event.actionLabel,
+                withDismissAction = event.withDismissAction,
+                duration = event.duration
+            )
+
+            if (result == SnackbarResult.ActionPerformed && event.onAction != null) {
+                scope.launch { event.onAction.invoke() }
+            }
+        }
+    }
+
+    SnackbarHost(hostState = hostState)
 }

@@ -48,6 +48,7 @@ import org.mlm.mages.ui.util.formatTypingText
 import org.mlm.mages.ui.viewmodel.RoomViewModel
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.*
+import org.mlm.mages.ui.components.snackbar.snackbarHost
 import java.io.File
 import java.nio.file.Files
 

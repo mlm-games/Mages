@@ -25,7 +25,7 @@ ui = "1.10.0"
 uiToolingPreview = "1.10.0"
 up-fcm = "3.0.0"
 up-ui = "1.1.0"
-androidx-activity = "1.12.3"
+androidx-activity = "1.12.4"
 androidx-appcompat = "1.7.1"
 androidx-core = "1.17.0"
 androidx-espresso = "3.7.0"
@@ -52,7 +52,7 @@ apkDist = "0.5.2"
 material3Version = "1.4.0"
 uiVersion = "1.10.0"
 foundationVersion = "1.10.0"
-composeBom = "2026.01.01"
+composeBom = "2026.02.00"
 
 [libraries]
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom-alpha", version.ref = "composeBom" }

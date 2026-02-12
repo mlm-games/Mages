@@ -22,6 +22,7 @@ import org.mlm.mages.matrix.SpaceInfo
 import org.koin.compose.koinInject
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.core.Avatar
+import org.mlm.mages.ui.components.snackbar.snackbarHost
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.SpaceSettingsViewModel
 

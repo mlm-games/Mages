@@ -33,6 +33,7 @@ import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.ui.ForwardableRoom
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
+import org.mlm.mages.ui.components.snackbar.snackbarHost
 import org.mlm.mages.ui.theme.MainTheme
 import org.mlm.mages.ui.theme.Spacing
 import java.io.File
@@ -162,13 +163,13 @@ private fun ShareReceiverScreen(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current.applicationContext
+    val snackbarManager: SnackbarManager = koinInject()
 
     var rooms by remember { mutableStateOf<List<ForwardableRoom>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var isSending by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         rooms = withContext(Dispatchers.IO) {
@@ -192,7 +193,7 @@ private fun ShareReceiverScreen(
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
-            snackbarHostState.showSnackbar(it)
+            snackbarManager.showError(it)
             errorMessage = null
         }
     }
@@ -210,7 +211,7 @@ private fun ShareReceiverScreen(
                 }
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { snackbarManager.snackbarHost() }
     ) { padding ->
         Column(
             modifier = Modifier.fillMaxSize().padding(padding)

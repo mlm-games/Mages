@@ -26,6 +26,7 @@ import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.SpacesViewModel
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.*
+import org.mlm.mages.ui.components.snackbar.snackbarHost
 
 @Composable
 fun SpacesScreen(

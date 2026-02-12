@@ -41,6 +41,7 @@ import org.mlm.mages.ui.viewmodel.ExtractedLink
 import org.mlm.mages.ui.viewmodel.MediaGalleryViewModel
 import org.mlm.mages.ui.viewmodel.MediaTab
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
+import org.mlm.mages.ui.components.snackbar.snackbarHost
 import java.io.File
 import java.time.Instant
 import java.time.ZoneId
