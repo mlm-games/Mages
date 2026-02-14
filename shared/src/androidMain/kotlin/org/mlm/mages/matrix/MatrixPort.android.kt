@@ -289,6 +289,11 @@ class RustMatrixPort : MatrixPort {
             runCatching { withClient { it.redact(roomId, eventId, reason) } }.getOrDefault(false)
         }
 
+    override suspend fun reportContent(roomId: String, eventId: String, score: Int?, reason: String?): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.reportContent(roomId, eventId, score, reason) } }.isSuccess
+        }
+
     override suspend fun getUserPowerLevel(roomId: String, userId: String): Long =
         withContext(Dispatchers.IO) {
             runCatching { withClient { it.getUserPowerLevel(roomId, userId).toLong() } }.getOrDefault(-1L)
@@ -842,7 +847,10 @@ class RustMatrixPort : MatrixPort {
                         p.memberCount.toLong(),
                         p.isEncrypted,
                         p.isDm,
-                        p.avatarUrl
+                        p.avatarUrl,
+                        p.canonicalAlias,
+                        p.altAliases,
+                        p.roomVersion
                     )
                 }
             }
@@ -1198,10 +1206,6 @@ class RustMatrixPort : MatrixPort {
                 )
             }
         }.isSuccess
-    }
-
-    override suspend fun reportContent(roomId: String, eventId: String, score: Int?, reason: String?): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.reportContent(roomId, eventId, score, reason) } }.isSuccess
     }
 
     override suspend fun reportRoom(roomId: String, reason: String?): Boolean = withContext(Dispatchers.IO) {
