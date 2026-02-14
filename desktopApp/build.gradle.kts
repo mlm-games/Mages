@@ -39,6 +39,22 @@ compose.desktop {
 
             modules("java.instrument", "jdk.security.auth", "jdk.unsupported", "jdk.httpserver")
 
+            jvmArgs("-Djna.library.path=") // the desktopApp:run path reset when exporting?
+
+            windows {
+                iconFile.set(project.file("../packaging/icon.ico"))
+                menuGroup = "Mages"
+                shortcut = true
+                dirChooser = true
+                perUserInstall = true
+            }
+
+            macOS {
+                iconFile.set(project.file("../packaging/icon.icns"))
+                bundleID = "org.mlm.mages"
+                appCategory = "public.app-category.social-networking"
+            }
+
             linux {
                 iconFile.set(project.file("../fastlane/metadata/android/en-US/images/icon.png"))
                 packageName = "mages"

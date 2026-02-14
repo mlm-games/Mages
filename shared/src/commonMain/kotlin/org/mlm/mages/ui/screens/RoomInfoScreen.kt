@@ -514,7 +514,7 @@ private fun RoomHeader(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     overflow = TextOverflow.Ellipsis
                 )
-                profile.canonicalAlias?.let { alias ->
+                profile.canonicalAlias?.let { alias -> // Remove if excessive (issue)
                     Text(
                         text = alias,
                         style = MaterialTheme.typography.bodySmall,
