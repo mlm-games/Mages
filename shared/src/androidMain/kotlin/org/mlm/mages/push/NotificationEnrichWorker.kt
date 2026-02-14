@@ -98,12 +98,21 @@ class NotificationEnrichWorker(
                 // Replace placeholder with a call notification.
                 nm.cancel(notifId)
 
+                val callerAvatarPath = runCatching {
+                    val members = port.listMembers(roomId)
+                    val sender = members.find { it.userId == rendered.senderUserId }
+                    sender?.avatarUrl?.let { avatarUrl ->
+                        service.avatars.resolve(avatarUrl, px = 256, crop = true)
+                    }
+                }.getOrNull()
+
                 AndroidNotificationHelper.showIncomingCall(
                     applicationContext,
                     roomId = roomId,
                     eventId = eventId,
                     callerName = rendered.sender,
-                    roomName = rendered.roomName
+                    roomName = rendered.roomName,
+                    callerAvatarPath = callerAvatarPath
                 )
                 return Result.success()
             }

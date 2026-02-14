@@ -43,12 +43,17 @@ import org.mlm.mages.calls.CallManager
 import org.mlm.mages.matrix.CallIntent
 import org.mlm.mages.push.AndroidNotificationHelper
 import org.mlm.mages.ui.theme.MainTheme
+import org.mlm.mages.ui.components.core.Avatar
 import java.util.Locale
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.FlingBehavior
@@ -56,9 +61,16 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.gestures.animateToWithDecay
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
@@ -66,6 +78,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.IntOffset
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlin.math.abs
@@ -92,8 +105,8 @@ class IncomingCallActivity : ComponentActivity() {
             @Suppress("DEPRECATION")
             window.addFlags(
                 WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-                WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
+                        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                        WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
             )
         }
 
@@ -115,7 +128,7 @@ class IncomingCallActivity : ComponentActivity() {
                 IncomingCallScreen(
                     roomName = roomName,
                     callerName = callerName,
-                    callerAvatarUrl = callerAvatarUrl,
+                    callerAvatarPath = callerAvatarUrl,
                     onAccept = {
                         stopRinging()
                         acceptCall(roomId, roomName, eventId)
@@ -154,11 +167,11 @@ class IncomingCallActivity : ComponentActivity() {
         try {
             val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
             ringtone = RingtoneManager.getRingtone(this, ringtoneUri)
-            
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 ringtone?.isLooping = true
             }
-            
+
             ringtone?.play()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -185,15 +198,17 @@ class IncomingCallActivity : ComponentActivity() {
             )
 
             if (success) {
-                val intent = Intent(this@IncomingCallActivity, MainActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    data = Uri.Builder()
-                        .scheme("mages")
-                        .authority("room")
-                        .appendQueryParameter("id", roomId)
-                        .appendQueryParameter("join_call", "1")
-                        .build()
-                }
+                val intent =
+                    Intent(this@IncomingCallActivity, MainActivity::class.java).apply {
+                        flags =
+                            Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        data = Uri.Builder()
+                            .scheme("mages")
+                            .authority("room")
+                            .appendQueryParameter("id", roomId)
+                            .appendQueryParameter("join_call", "1")
+                            .build()
+                    }
                 startActivity(intent)
             }
 
@@ -215,7 +230,7 @@ class IncomingCallActivity : ComponentActivity() {
         const val EXTRA_ROOM_ID = "room_id"
         const val EXTRA_ROOM_NAME = "room_name"
         const val EXTRA_CALLER_NAME = "caller_name"
-        const val EXTRA_CALLER_AVATAR = "caller_avatar"
+        const val EXTRA_CALLER_AVATAR = "caller_avatar_path"
         const val EXTRA_EVENT_ID = "event_id"
 
         fun createIntent(
@@ -239,11 +254,12 @@ class IncomingCallActivity : ComponentActivity() {
         }
     }
 }
+
 @Composable
 private fun IncomingCallScreen(
     roomName: String,
     callerName: String,
-    callerAvatarUrl: String?,
+    callerAvatarPath: String?,
     onAccept: () -> Unit,
     onDecline: () -> Unit
 ) {
@@ -278,7 +294,7 @@ private fun IncomingCallScreen(
                         scheme.tertiary.copy(alpha = 0.12f),
                         scheme.surface
                     ),
-                    center = androidx.compose.ui.geometry.Offset(
+                    center = Offset(
                         x = 0.2f + 0.6f * bgShift,
                         y = 0.15f + 0.35f * (1f - bgShift)
                     )
@@ -292,46 +308,20 @@ private fun IncomingCallScreen(
                 .padding(horizontal = 22.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            TopBannerExpressive()
+            TopBanner()
 
-            CallerHeroExpressive(
+            CallerHero(
                 callerName = callerName,
                 roomName = roomName,
+                callerAvatarPath = callerAvatarPath
             )
 
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.padding(bottom = 12.dp)
-                ) {
-//                    ElevatedSuggestionChip(
-//                        onClick = { /* TODO: quick reply */ },
-//                        label = { Text("Message") },
-//                        icon = {
-//                            Icon(
-//                                painter = painterResource(id = R.drawable.outline_business_messages_24),
-//                                contentDescription = null
-//                            )
-//                        }
-//                    )
-//                    ElevatedFilterChip(
-//                        selected = false,
-//                        onClick = { /* TODO: silence ring */ },
-//                        label = { Text("Mute") },
-//                        leadingIcon = {
-//                            Icon(
-//                                painter = painterResource(id = R.drawable.outline_music_off_24),
-//                                contentDescription = null
-//                            )
-//                        }
-//                    )
-                }
-
                 if (talkBackOn) {
-                    BigButtonsRowExpressive(
+                    BigButtonsRow(
                         enabled = !handlingAction,
                         onDecline = {
                             handlingAction = true
@@ -343,7 +333,7 @@ private fun IncomingCallScreen(
                         }
                     )
                 } else {
-                    SwipeToAnswerOrDeclineExpressive(
+                    SwipeToAnswerOrDecline(
                         enabled = !handlingAction,
                         callerName = callerName,
                         onAnswer = {
@@ -355,12 +345,6 @@ private fun IncomingCallScreen(
                             onDecline()
                         }
                     )
-//                    Spacer(Modifier.height(10.dp))
-//                    Text(
-//                        text = "Swipe right to answer • left to decline",
-//                        style = MaterialTheme.typography.bodyMedium,
-//                        color = scheme.onSurfaceVariant
-//                    )
                 }
 
                 Spacer(Modifier.height(6.dp))
@@ -369,21 +353,45 @@ private fun IncomingCallScreen(
 
         AnimatedVisibility(
             visible = handlingAction,
-            modifier = Modifier.align(Alignment.Center)
+            enter = fadeIn(tween(200)) + scaleIn(
+                initialScale = 0.85f,
+                animationSpec = tween(300, easing = FastOutSlowInEasing)
+            ),
+            exit = fadeOut(tween(150)),
+            modifier = Modifier.fillMaxSize()
         ) {
-            ConnectingOverlayExpressive()
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(scheme.scrim.copy(alpha = 0.45f)),
+                contentAlignment = Alignment.Center
+            ) {
+                ConnectingOverlay()
+            }
         }
     }
 }
-
 @Composable
-private fun TopBannerExpressive() {
-    Row(
+private fun TopBanner() {
+    var elapsedSeconds by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000)
+            elapsedSeconds++
+        }
+    }
+    val timerText = remember(elapsedSeconds) {
+        val m = elapsedSeconds / 60
+        val s = elapsedSeconds % 60
+        "%d:%02d".format(m, s)
+    }
+
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         AssistChip(
-            onClick = { /* maybe go to room? */ },
+            onClick = { },
             label = { Text("Incoming call", fontWeight = FontWeight.SemiBold) },
             leadingIcon = {
                 Icon(
@@ -392,13 +400,20 @@ private fun TopBannerExpressive() {
                 )
             }
         )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = "Ringing for $timerText",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
 @Composable
-private fun CallerHeroExpressive(
+private fun CallerHero(
     callerName: String,
-    roomName: String
+    roomName: String,
+    callerAvatarPath: String?
 ) {
     val scheme = MaterialTheme.colorScheme
 
@@ -422,6 +437,25 @@ private fun CallerHeroExpressive(
         label = "breathe"
     )
 
+    val ring1 by t.animateFloat(
+        initialValue = 0f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            tween(2400, easing = LinearOutSlowInEasing), RepeatMode.Restart
+        ), label = "ring1"
+    )
+    val ring2 by t.animateFloat(
+        initialValue = 0f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            tween(2400, 800, easing = LinearOutSlowInEasing), RepeatMode.Restart
+        ), label = "ring2"
+    )
+    val ring3 by t.animateFloat(
+        initialValue = 0f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            tween(2400, 1600, easing = LinearOutSlowInEasing), RepeatMode.Restart
+        ), label = "ring3"
+    )
+
     val avatarShape = RoundedCornerShape(
         topStart = 44.dp,
         topEnd = 26.dp,
@@ -434,6 +468,26 @@ private fun CallerHeroExpressive(
         modifier = Modifier.fillMaxWidth()
     ) {
         Box(contentAlignment = Alignment.Center) {
+            listOf(ring1, ring2, ring3).forEach { progress ->
+                val ringScale = 1f + progress * 0.6f
+                val ringAlpha = (1f - progress).coerceIn(0f, 0.35f)
+                Box(
+                    modifier = Modifier
+                        .size(182.dp)
+                        .scale(ringScale)
+                        .alpha(ringAlpha)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.radialGradient(
+                                listOf(
+                                    scheme.primary.copy(alpha = 0.3f),
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                )
+            }
+
             Box(
                 modifier = Modifier
                     .size(182.dp)
@@ -452,25 +506,17 @@ private fun CallerHeroExpressive(
                     .alpha(0.95f)
             )
 
-            Surface(
+            Avatar(
+                name = callerName,
+                avatarPath = callerAvatarPath,
+                size = 132.dp,
                 shape = avatarShape,
-                tonalElevation = 10.dp,
-                shadowElevation = 14.dp,
-                color = scheme.surfaceContainerHigh,
+                containerColor = scheme.surfaceContainerHigh,
+                contentColor = scheme.onSurface,
                 modifier = Modifier
-                    .size(132.dp)
                     .rotate(wobble * 0.6f)
                     .scale(breathe)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = callerName.trim().take(2).uppercase(),
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = scheme.onSurface
-                    )
-                }
-            }
+            )
         }
 
         Spacer(Modifier.height(18.dp))
@@ -499,7 +545,7 @@ private fun CallerHeroExpressive(
 }
 
 @Composable
-private fun BigButtonsRowExpressive(
+private fun BigButtonsRow(
     enabled: Boolean,
     onDecline: () -> Unit,
     onAccept: () -> Unit
@@ -553,11 +599,13 @@ private fun BigButtonsRowExpressive(
 }
 
 @Composable
-private fun ConnectingOverlayExpressive() {
+private fun ConnectingOverlay() {
     ElevatedCard(
         shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 10.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        ),
         modifier = Modifier.padding(24.dp)
     ) {
         Row(
@@ -566,13 +614,17 @@ private fun ConnectingOverlayExpressive() {
         ) {
             CircularProgressIndicator(strokeWidth = 3.dp, modifier = Modifier.size(22.dp))
             Spacer(Modifier.size(12.dp))
-            Text("Connecting…", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                "Connecting…",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }
 
 @Composable
-private fun SwipeToAnswerOrDeclineExpressive(
+private fun SwipeToAnswerOrDecline(
     enabled: Boolean,
     callerName: String,
     onAnswer: () -> Unit,
@@ -638,6 +690,7 @@ private fun SwipeToAnswerOrDeclineExpressive(
 
     val rawOffset = state.offset.takeUnless { it.isNaN() } ?: 0f
     val progress = (abs(rawOffset) / swipeRangePx).coerceIn(0f, 1f)
+    val isAnswerDirection = rawOffset > 0f
 
     val hintAlpha by animateFloatAsState(
         targetValue = 1f - (progress * 1.1f).coerceIn(0f, 1f),
@@ -650,6 +703,40 @@ private fun SwipeToAnswerOrDeclineExpressive(
         animationSpec = tween(120, easing = FastOutSlowInEasing),
         label = "knobScale"
     )
+
+    val knobTint by remember {
+        derivedStateOf {
+            when {
+                rawOffset > 0f -> lerp(scheme.surface, answerColor, progress.coerceIn(0f, 1f))
+                rawOffset < 0f -> lerp(scheme.surface, declineColor, progress.coerceIn(0f, 1f))
+                else -> scheme.surface
+            }
+        }
+    }
+
+    val knobIconTint by remember {
+        derivedStateOf {
+            when {
+                progress > 0.5f && isAnswerDirection -> Color(0xFF06210F)
+                progress > 0.5f && !isAnswerDirection -> scheme.onError
+                else -> scheme.onSurface
+            }
+        }
+    }
+
+    val infTransition = rememberInfiniteTransition(label = "arrows")
+    val arrowBounce by infTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 8f,
+        animationSpec = infiniteRepeatable(
+            tween(600, easing = FastOutSlowInEasing),
+            RepeatMode.Reverse
+        ),
+        label = "arrowBounce"
+    )
+
+    val trackCornerPx = with(density) { 30.dp.toPx() }
+    val trailColor = if (isAnswerDirection) answerColor else declineColor
 
     ElevatedCard(
         modifier = modifier
@@ -692,6 +779,20 @@ private fun SwipeToAnswerOrDeclineExpressive(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .drawBehind {
+                    if (progress > 0.01f) {
+                        val centerX = size.width / 2f
+                        val centerY = size.height / 2f
+                        val trailWidth = abs(rawOffset)
+                        val trailLeft = if (isAnswerDirection) centerX else centerX - trailWidth
+                        drawRoundRect(
+                            color = trailColor.copy(alpha = 0.18f * progress),
+                            topLeft = Offset(trailLeft, 0f),
+                            size = Size(trailWidth, size.height),
+                            cornerRadius = CornerRadius(trackCornerPx)
+                        )
+                    }
+                }
                 .anchoredDraggable(
                     state = state,
                     orientation = Orientation.Horizontal,
@@ -712,18 +813,32 @@ private fun SwipeToAnswerOrDeclineExpressive(
                     Icon(
                         painter = painterResource(id = R.drawable.outline_chevron_left_24),
                         contentDescription = null,
-                        tint = scheme.onSurfaceVariant
+                        tint = declineColor.copy(alpha = 0.7f),
+                        modifier = Modifier.graphicsLayer {
+                            translationX = -arrowBounce
+                        }
                     )
-                    Spacer(Modifier.size(6.dp))
-                    Text("Decline", color = scheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.size(4.dp))
+                    Text(
+                        "Decline",
+                        color = scheme.onSurfaceVariant,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Answer", color = scheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.size(6.dp))
+                    Text(
+                        "Answer",
+                        color = scheme.onSurfaceVariant,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.size(4.dp))
                     Icon(
                         painter = painterResource(id = R.drawable.outline_chevron_right_24),
                         contentDescription = null,
-                        tint = scheme.onSurfaceVariant
+                        tint = answerColor.copy(alpha = 0.7f),
+                        modifier = Modifier.graphicsLayer {
+                            translationX = arrowBounce
+                        }
                     )
                 }
             }
@@ -732,7 +847,11 @@ private fun SwipeToAnswerOrDeclineExpressive(
                 shape = RoundedCornerShape(22.dp),
                 tonalElevation = 8.dp,
                 shadowElevation = 12.dp,
-                color = scheme.surface,
+                color = knobTint,
+                border = if (progress > 0.15f) BorderStroke(
+                    2.dp,
+                    trailColor.copy(alpha = (progress * 0.5f).coerceAtMost(0.4f))
+                ) else null,
                 modifier = Modifier
                     .size(knobSize)
                     .scale(knobScale)
@@ -742,7 +861,7 @@ private fun SwipeToAnswerOrDeclineExpressive(
                     Icon(
                         painter = painterResource(id = R.drawable.outline_phone_in_talk_24),
                         contentDescription = null,
-                        tint = scheme.onSurface
+                        tint = knobIconTint
                     )
                 }
             }
@@ -760,9 +879,10 @@ private fun rememberTalkBackOn(): Boolean {
     var talkBackOn by remember { mutableStateOf(mgr.isTouchExplorationEnabled) }
 
     DisposableEffect(mgr) {
-        val listener = AccessibilityManager.TouchExplorationStateChangeListener { enabled ->
-            talkBackOn = enabled
-        }
+        val listener =
+            AccessibilityManager.TouchExplorationStateChangeListener { enabled ->
+                talkBackOn = enabled
+            }
         mgr.addTouchExplorationStateChangeListener(listener)
         onDispose { mgr.removeTouchExplorationStateChangeListener(listener) }
     }

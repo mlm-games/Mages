@@ -5,8 +5,10 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.RemoteInput
 import io.github.mlmgames.settings.core.SettingsRepository
@@ -53,12 +55,13 @@ object AndroidNotificationHelper : KoinComponent {
         roomId: String,
         eventId: String,
         callerName: String,
-        roomName: String
+        roomName: String,
+        callerAvatarPath: String? = null
     ) {
         val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val notifId = ("call_$roomId").hashCode()
 
-        val fullScreenIntent = createFullScreenCallIntent(ctx, roomId, roomName, callerName, eventId)
+        val fullScreenIntent = createFullScreenCallIntent(ctx, roomId, roomName, callerName, eventId, callerAvatarPath)
         val joinIntent = createCallJoinIntent(ctx, roomId, eventId, notifId)
         val declineIntent = createCallDeclineIntent(ctx, roomId, notifId)
 
@@ -91,6 +94,17 @@ object AndroidNotificationHelper : KoinComponent {
             )
             .setTimeoutAfter(60_000)
 
+        callerAvatarPath?.let { path ->
+            runCatching {
+                val file = java.io.File(path)
+                if (file.exists()) {
+                    BitmapFactory.decodeFile(path)?.let { bitmap ->
+                        builder.setLargeIcon(bitmap)
+                    }
+                }
+            }
+        }
+
         fullScreenIntent?.let {
             builder.setFullScreenIntent(it, true)
         }
@@ -109,13 +123,18 @@ object AndroidNotificationHelper : KoinComponent {
         roomId: String,
         roomName: String,
         callerName: String,
-        eventId: String?
+        eventId: String?,
+        callerAvatarPath: String? = null
     ): PendingIntent? {
         val settingsRepo: SettingsRepository<AppSettings> by inject()
         val showCallScreen = runBlocking { settingsRepo.flow.first().showIncomingCallScreen }
 
         if (!showCallScreen) {
             return null
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            requestFullScreenNotificationPermission(ctx)
         }
 
         // reflection to avoid direct dependency
@@ -126,6 +145,7 @@ object AndroidNotificationHelper : KoinComponent {
                 putExtra("room_name", roomName)
                 putExtra("caller_name", callerName)
                 putExtra("event_id", eventId)
+                putExtra("caller_avatar_path", callerAvatarPath)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                         Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
                         Intent.FLAG_ACTIVITY_NO_USER_ACTION
@@ -255,5 +275,17 @@ object AndroidNotificationHelper : KoinComponent {
             .addRemoteInput(remoteInput)
             .setAllowGeneratedReplies(true)
             .build()
+    }
+
+    private fun requestFullScreenNotificationPermission(ctx: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            runCatching {
+                val intent = Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
+                    data = Uri.parse("package:${ctx.packageName}")
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                ctx.startActivity(intent)
+            }
+        }
     }
 }
