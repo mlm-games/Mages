@@ -1,3 +1,12 @@
+## v2.6.1
+
+- Add start menu icons for Windows and MacOS
+- Add power levels, and perms management to room info screen (initial)
+- Add an option to set room alias when creating a room
+- move actually to 1.10.0
+- fix replies taking full width
+
+
 ## v2.5.2
 
 - (Android) pass a diff. color to markdown text for better monochrome contrast
