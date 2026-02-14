@@ -46,6 +46,18 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="2.6.2" date="2026-02-14" type="stable">
+      <description>
+        <ul>
+          <li>Update release notes for v2.6.1</li>
+          <li>Add start menu icons for Windows and MacOS</li>
+          <li>Add power levels, and perms management to room info screen (initial)</li>
+          <li>Add an option to set room alias when creating a room</li>
+          <li>move actually to 1.10.0</li>
+          <li>fix replies taking full width</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.6.1" date="2026-02-14" type="stable">
       <description>
         <ul>
