@@ -7,6 +7,14 @@ plugins {
 
 kotlin {
     jvmToolchain(21)
+    compilerOptions {
+        optIn.set(listOf(
+            "androidx.compose.material3.ExperimentalMaterial3Api",
+            "androidx.compose.material3.ExperimentalMaterial3ExpressiveApi",
+            "androidx.compose.foundation.ExperimentalFoundationApi",
+            "androidx.compose.foundation.layout.ExperimentalLayoutApi"
+        ))
+    }
 }
 
 android {
