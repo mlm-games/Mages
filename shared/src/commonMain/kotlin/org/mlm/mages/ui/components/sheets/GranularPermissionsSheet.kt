@@ -1,9 +1,7 @@
 package org.mlm.mages.ui.components.sheets
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.Message
@@ -20,8 +18,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.RoomPowerLevelChanges
 import org.mlm.mages.matrix.RoomPowerLevels
 import org.mlm.mages.ui.theme.Spacing
@@ -33,7 +31,7 @@ fun GranularPermissionsSheet(
     onUpdatePowerLevels: (RoomPowerLevelChanges) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var selectedTab by remember { mutableStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("General", "Messages", "Room Settings", "Advanced")
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -234,7 +232,7 @@ private fun AdvancedPermissionsTab(
 @Composable
 private fun PermissionSliderRow(
     label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     value: Long,
     canEdit: Boolean,
     onValueChange: (Long) -> Unit

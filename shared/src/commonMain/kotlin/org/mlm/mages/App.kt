@@ -272,20 +272,15 @@ private fun AppContent(deepLinks: Flow<DeepLinkAction>?) {
 
                         if (showCreateRoom) {
                             CreateRoomSheet(
+                                matrixPort = service.port,
                                 onCreate = { name, topic, invitees, isPublic, roomAlias ->
                                     scope.launch {
-                                        val normalizedAlias = roomAlias?.let { alias ->
-                                            val cleaned = alias.trim()
-                                                .removePrefix("#")
-                                                .substringBefore(":")
-                                            if (cleaned.isNotEmpty()) cleaned else null
-                                        }
-                                        val roomId = service.port.createRoom(name, topic, invitees, isPublic, normalizedAlias)
+                                        val roomId = service.port.createRoom(name, topic, invitees, isPublic, roomAlias)
                                         if (roomId != null) {
                                             showCreateRoom = false
                                             backStack.add(Route.Room(roomId, name ?: roomId))
                                         } else {
-                                            snackbarManager.show("Error: Failed to create room")
+                                            throw IllegalStateException("Failed to create room")
                                         }
                                     }
                                 },
