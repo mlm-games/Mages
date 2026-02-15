@@ -80,14 +80,13 @@ fun RoomScreen(
     val openExternal = rememberFileOpener()
 
     val picker = rememberFilePicker { data ->
-        if (data != null) viewModel.sendAttachment(data)
+        if (data != null) viewModel.attachFile(data)
         viewModel.hideAttachmentPicker()
     }
 
-    // Initialize clipboard attachment handler
     val clipboardHandler = rememberClipboardAttachmentHandler()
 
-    // Check if clipboard has attachment when picker opens (not constantly)
+    // Check when picker opens (not constantly)
     var clipboardHasAttachment by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.showAttachmentPicker) {
@@ -290,6 +289,9 @@ fun RoomScreen(
                         onCancelEdit = viewModel::cancelEdit,
                         onAttach = viewModel::showAttachmentPicker,
                         onCancelUpload = viewModel::cancelAttachmentUpload,
+                        onRemoveAttachment = viewModel::removeAttachment,
+                        clipboardHandler = clipboardHandler,
+                        onAttachmentPasted = { viewModel.attachFile(it) },
                     )
                 }
             }
@@ -335,7 +337,7 @@ fun RoomScreen(
                                 val file = File(path)
                                 if (file.exists()) {
                                     val mime = Files.probeContentType(file.toPath()) ?: "application/octet-stream"
-                                    viewModel.sendAttachment(
+                                    viewModel.attachFile(
                                         AttachmentData(
                                             path = path,
                                             fileName = file.name,
@@ -469,7 +471,7 @@ fun RoomScreen(
                 {
                     scope.launch {
                         clipboardHandler.getAttachment()?.let {
-                            viewModel.sendAttachment(it)
+                            viewModel.attachFile(it)
                         }
                     }
                 }
@@ -734,6 +736,9 @@ private fun RoomBottomBar(
     onCancelEdit: () -> Unit,
     onAttach: () -> Unit,
     onCancelUpload: () -> Unit,
+    onRemoveAttachment: () -> Unit,
+    clipboardHandler: org.mlm.mages.platform.ClipboardAttachmentHandler? = null,
+    onAttachmentPasted: ((org.mlm.mages.ui.components.AttachmentData) -> Unit)? = null,
 ) {
     Column(
         modifier = Modifier.navigationBarsPadding()
@@ -768,6 +773,9 @@ private fun RoomBottomBar(
             onCancelEdit = onCancelEdit,
             onAttach = onAttach,
             onCancelUpload = onCancelUpload,
+            onRemoveAttachment = onRemoveAttachment,
+            clipboardHandler = clipboardHandler,
+            onAttachmentPasted = onAttachmentPasted,
         )
     }
 }

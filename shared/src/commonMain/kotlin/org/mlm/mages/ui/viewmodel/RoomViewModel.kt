@@ -179,7 +179,29 @@ class RoomViewModel(
 
     fun send() {
         val s = currentState
-        if (s.input.isBlank()) return
+        val attachment = s.currentAttachment
+        val hasText = s.input.isNotBlank()
+
+        if (!hasText && attachment == null) return
+
+        if (attachment != null && !s.isUploadingAttachment) {
+            updateState { copy(currentAttachment = null) }
+            sendAttachmentInternal(attachment)
+            if (hasText) {
+                val text = s.input.trim()
+                updateState { copy(input = "") }
+                launch {
+                    val replyTo = s.replyingTo
+                    if (replyTo != null) {
+                        service.reply(s.roomId, replyTo.eventId, text)
+                    } else {
+                        service.sendMessage(s.roomId, text)
+                    }
+                    updateState { copy(replyingTo = null) }
+                }
+            }
+            return
+        }
 
         launch {
             val text = s.input.trim()
@@ -197,6 +219,19 @@ class RoomViewModel(
                 _events.send(Event.ShowError(if (replyTo != null) "Reply failed" else "Send failed"))
             }
         }
+    }
+
+    fun attachFile(data: AttachmentData) {
+        updateState {
+            copy(
+                currentAttachment = data,
+                showAttachmentPicker = false
+            )
+        }
+    }
+
+    fun removeAttachment() {
+        updateState { copy(currentAttachment = null) }
     }
 
     //  Reply/Edit
@@ -416,6 +451,10 @@ class RoomViewModel(
     //  Attachments
 
     fun sendAttachment(data: AttachmentData) {
+        attachFile(data)
+    }
+
+    private fun sendAttachmentInternal(data: AttachmentData) {
         if (currentState.isUploadingAttachment) return
 
         updateState {

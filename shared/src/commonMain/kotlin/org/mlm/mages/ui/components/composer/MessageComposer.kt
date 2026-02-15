@@ -1,19 +1,25 @@
 package org.mlm.mages.ui.components.composer
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import org.mlm.mages.MessageEvent
+import org.mlm.mages.platform.ClipboardAttachmentHandler
+import org.mlm.mages.platform.pasteInterceptor
 import org.mlm.mages.ui.components.AttachmentData
-import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 
 @Composable
@@ -32,46 +38,108 @@ fun MessageComposer(
     modifier: Modifier = Modifier,
     onAttach: (() -> Unit)? = null,
     onCancelUpload: (() -> Unit)? = null,
+    onRemoveAttachment: (() -> Unit)? = null,
+    clipboardHandler: ClipboardAttachmentHandler? = null,
+    onAttachmentPasted: ((AttachmentData) -> Unit)? = null,
 ) {
-    Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 3.dp, modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(Spacing.sm),
-            verticalAlignment = Alignment.Bottom
-        ) {
-            AnimatedVisibility(visible = onAttach != null && !isUploadingAttachment) {
-                IconButton(onClick = { onAttach?.invoke() }) {
-                    Icon(Icons.Default.AttachFile, "Attach", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    val scope = rememberCoroutineScope()
+
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 3.dp,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column {
+            AnimatedVisibility(
+                visible = currentAttachment != null && !isUploadingAttachment,
+            ) {
+                currentAttachment?.let { attachment ->
+                    InputChip(
+                        selected = true,
+                        onClick = { },
+                        label = { Text(attachment.fileName, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        trailingIcon = {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Remove attachment",
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clickable { onRemoveAttachment?.invoke() }
+                            )
+                        },
+                        colors = InputChipDefaults.inputChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        ),
+                        border = null,
+                        modifier = Modifier.padding(start = Spacing.lg, top = Spacing.sm)
+                    )
                 }
             }
 
-            OutlinedTextField(
-                value = value,
-                onValueChange = onValueChange,
-                modifier = Modifier.weight(1f),
-                enabled = enabled && !isUploadingAttachment,
-                placeholder = { ComposerPlaceholder(isUploadingAttachment, isOffline, editing, replyingTo) },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                ),
-                shape = RoundedCornerShape(24.dp),
-                maxLines = 5
-            )
-
-            Spacer(Modifier.width(Spacing.sm))
-
-            FilledIconButton(
-                onClick = onSend,
-                enabled = enabled && value.isNotBlank() && !isUploadingAttachment,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Spacing.sm),
+                verticalAlignment = Alignment.Bottom
             ) {
-                if (isUploadingAttachment) {
-                    CircularProgressIndicator(modifier = Modifier.size(Sizes.iconMedium), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                } else {
-                    Icon(Icons.AutoMirrored.Filled.Send, "Send")
+                AnimatedVisibility(visible = onAttach != null && !isUploadingAttachment) {
+                    IconButton(onClick = { onAttach?.invoke() }) {
+                        Icon(
+                            Icons.Default.AttachFile,
+                            "Attach",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                val textFieldModifier = Modifier
+                    .weight(1f)
+                    .then(
+                        if (clipboardHandler != null && onAttachmentPasted != null) {
+                            Modifier.pasteInterceptor {
+                                if (clipboardHandler.hasAttachment()) {
+                                    scope.launch {
+                                        clipboardHandler.getAttachment()?.let(onAttachmentPasted)
+                                    }
+                                    true
+                                } else false
+                            }
+                        } else Modifier
+                    )
+
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    modifier = textFieldModifier,
+                    enabled = enabled && !isUploadingAttachment,
+                    placeholder = { ComposerPlaceholder(isUploadingAttachment, isOffline, editing, replyingTo) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    shape = RoundedCornerShape(24.dp),
+                    maxLines = 5
+                )
+
+                Spacer(Modifier.width(Spacing.sm))
+
+                FilledIconButton(
+                    onClick = onSend,
+                    enabled = enabled && (value.isNotBlank() || currentAttachment != null) && !isUploadingAttachment,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                    )
+                ) {
+                    if (isUploadingAttachment) {
+                        CircularProgressIndicator(modifier = Modifier.size(Sizes.iconMedium), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                    } else {
+                        Icon(Icons.AutoMirrored.Filled.Send, "Send")
+                    }
                 }
             }
         }
