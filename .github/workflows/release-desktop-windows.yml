@@ -29,6 +29,8 @@ jobs:
   build-windows:
     # native ARM64 runners are not yet available on Gh
     runs-on: windows-latest
+    env:
+      APP_VERSION: ${{ inputs.version_tag }}
     steps:
       - uses: actions/checkout@v5
         with:
