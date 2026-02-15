@@ -41,6 +41,8 @@ jobs:
           - arch: arm64
             runner: macos-latest
     runs-on: ${{ matrix.runner }}
+    env:
+      APP_VERSION: ${{ inputs.version_tag }}
     steps:
       - uses: actions/checkout@v5
         with:
