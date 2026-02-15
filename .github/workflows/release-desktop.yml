@@ -37,7 +37,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-          ref: ${{ inputs.version_tag }}  # Checkout the tag
+          # ref: ${{ inputs.version_tag }}  # Checkout the tag
 
       - uses: actions/setup-java@v5
         with:
@@ -84,17 +84,13 @@ jobs:
           if [ -d "$APPDIR" ]; then
             mkdir -p dist
             
-            cat > "$APPDIR/mages.desktop" <<EOF
-          [Desktop Entry]
-          Name=Mages
-          Comment=Mages matrix client (desktop)
-          MimeType=x-scheme-handler/matrix;
-          Exec=Mages %u
-          Icon=mages
-          Terminal=false
-          Type=Application
-          Categories=Network;InstantMessaging;
-          EOF
+            # adjust Exec and Icon for AppImage (flathub's)
+            sed -e 's|Exec=mages|Exec=Mages|' \
+                -e 's|Icon=io.github.mlm_games.mages|Icon=mages|' \
+                packaging/io.github.mlm_games.mages.desktop > "$APPDIR/mages.desktop"
+            
+            mkdir -p "$APPDIR/usr/share/metainfo"
+            cp packaging/io.github.mlm_games.mages.metainfo.xml "$APPDIR/usr/share/metainfo/mages.appdata.xml"
             
             cat > "$APPDIR/AppRun" <<'EOF'
           #!/bin/sh
@@ -111,6 +107,9 @@ jobs:
             ln -sf lib/Mages.png "$APPDIR/.DirIcon"
             
             ARCH=${{ matrix.arch }} appimagetool -u "gh-releases-zsync|mlm-games|mages|latest|mages-*-${{ matrix.arch }}.AppImage.zsync" "$APPDIR" "dist/mages-${{ inputs.version_tag }}-${{ matrix.arch }}.AppImage"
+            
+            # Move zsync file to dist/
+            mv *.zsync dist/ 2>/dev/null || true
           fi
 
       - name: Collect desktop artifacts
