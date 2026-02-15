@@ -21,6 +21,7 @@ data class MediaGalleryUiState(
     val hitStart: Boolean = false,
     val hasTimelineSnapshot: Boolean = false,
     val allEvents: List<MessageEvent> = emptyList(),
+    val links: List<ExtractedLink> = emptyList(),
     val thumbnails: Map<String, String> = emptyMap(),
     val error: String? = null,
     val isSelectionMode: Boolean = false,
@@ -73,6 +74,25 @@ class MediaGalleryViewModel(
 
     private val urlRegex = Regex("""https?://[^\s<>"{}|\\^`\[\]]+""")
 
+    private fun cleanExtractedUrl(raw: String): String {
+        var url = raw
+        val trailing = charArrayOf('.', ',', ';', ':', '!', '?', '\'')
+        while (url.isNotEmpty()) {
+            val last = url.last()
+            url = when (last) {
+                in trailing -> url.dropLast(1)
+                ')' if url.count { it == ')' } > url.count { it == '(' } ->
+                    url.dropLast(1)
+
+                ']' if url.count { it == ']' } > url.count { it == '[' } ->
+                    url.dropLast(1)
+
+                else -> break
+            }
+        }
+        return url
+    }
+
     val links: List<ExtractedLink>
         get() = currentState.allEvents
             .filter { it.attachment == null }
@@ -110,19 +130,32 @@ class MediaGalleryViewModel(
             tieOf = { it.stableKey() }
         )
 
-        // Filter to only media/link items
         val filtered = result.list.filter { hasMediaOrLink(it) }
 
-        // Handle removals affecting selection
         val validSelectedIds = if (diff is TimelineDiff.RemoveByItemId) {
             currentState.selectedIds - diff.itemId
         } else {
             currentState.selectedIds
         }
 
+        val extractedLinks = filtered
+            .filter { it.attachment == null }
+            .flatMap { event ->
+                urlRegex.findAll(event.body).map { match ->
+                    ExtractedLink(
+                        url = cleanExtractedUrl(match.value),
+                        eventId = event.eventId,
+                        sender = event.sender,
+                        timestamp = event.timestampMs
+                    )
+                }
+            }
+            .distinctBy { it.url }
+
         updateState {
             copy(
                 isLoading = false,
+                links = extractedLinks,
                 hasTimelineSnapshot = when {
                     result.reset -> true
                     result.cleared -> false

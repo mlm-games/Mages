@@ -211,10 +211,10 @@ object NotifierImpl {
             .replace("'", "&apos;")
 
     private fun linkifyMarkup(s: String): String {
-        val r = Regex("""(https?://\S+)""")
+        val r = Regex("""(https?://[^\s<>&]*(?:&amp;[^\s<>&]*)*)""")
         return r.replace(s) { m ->
-            val url = m.value
-            """<a href="$url">$url</a>"""
+            val trimmed = m.value.trimEnd('.', ',', ';', ':', '!', '?')
+            """<a href="$trimmed">$trimmed</a>"""
         }
     }
 
