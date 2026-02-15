@@ -115,8 +115,6 @@ fun RoomInfoScreen(
     var showPowerLevelsSheet by remember { mutableStateOf(false) }
     var showGranularPermissionsSheet by remember { mutableStateOf(false) }
     var showReportDialog by remember { mutableStateOf(false) }
-    var showJoinRuleDropdown by remember { mutableStateOf(false) }
-    var showHistoryVisibilityDropdown by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -242,9 +240,7 @@ fun RoomInfoScreen(
                         isAdminBusy = state.isAdminBusy,
                         canManageSettings = state.canManageSettings,
                         onSetJoinRule = onSetJoinRule,
-                        onSetHistoryVisibility = onSetHistoryVisibility,
-                        showJoinRuleDropdown = { showJoinRuleDropdown = true },
-                        showHistoryVisibilityDropdown = { showHistoryVisibilityDropdown = true }
+                        onSetHistoryVisibility = onSetHistoryVisibility
                     )
                 }
 
@@ -414,30 +410,6 @@ fun RoomInfoScreen(
                     showReportDialog = false
                 },
                 onDismiss = { showReportDialog = false }
-            )
-        }
-
-        // Join Rule Dropdown
-        if (showJoinRuleDropdown) {
-            JoinRuleDropdown(
-                currentRule = state.joinRule,
-                onSelect = { rule ->
-                    onSetJoinRule(rule)
-                    showJoinRuleDropdown = false
-                },
-                onDismiss = { showJoinRuleDropdown = false }
-            )
-        }
-
-        // History Visibility Dropdown
-        if (showHistoryVisibilityDropdown) {
-            HistoryVisibilityDropdown(
-                currentVisibility = state.historyVisibility,
-                onSelect = { visibility ->
-                    onSetHistoryVisibility(visibility)
-                    showHistoryVisibilityDropdown = false
-                },
-                onDismiss = { showHistoryVisibilityDropdown = false }
             )
         }
 
@@ -640,10 +612,11 @@ private fun RoomSettingsSection(
     isAdminBusy: Boolean,
     canManageSettings: Boolean,
     onSetJoinRule: (RoomJoinRule) -> Unit,
-    onSetHistoryVisibility: (RoomHistoryVisibility) -> Unit,
-    showJoinRuleDropdown: () -> Unit,
-    showHistoryVisibilityDropdown: () -> Unit
+    onSetHistoryVisibility: (RoomHistoryVisibility) -> Unit
 ) {
+    var showJoinRuleDropdown by remember { mutableStateOf(false) }
+    var showHistoryVisibilityDropdown by remember { mutableStateOf(false) }
+
     SettingsSection(title = "Room Settings") {
         Column(modifier = Modifier.padding(16.dp)) {
             // Room Version
@@ -666,58 +639,94 @@ private fun RoomSettingsSection(
             Spacer(Modifier.height(16.dp))
 
             // Join Rule
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            ExposedDropdownMenuBox(
+                expanded = showJoinRuleDropdown,
+                onExpandedChange = { showJoinRuleDropdown = it }
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "Who can join",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        joinRule?.name ?: "Unknown",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (canManageSettings) {
-                    TextButton(
-                        onClick = showJoinRuleDropdown,
-                        enabled = !isAdminBusy
-                    ) {
-                        Text("Change")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Who can join",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            joinRule?.displayName ?: "Unknown",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
+                    if (canManageSettings) {
+                        TextButton(
+                            onClick = { showJoinRuleDropdown = true },
+                            enabled = !isAdminBusy,
+                            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable)
+                        ) {
+                            Text("Change")
+                        }
+                    }
+                }
+
+                if (canManageSettings) {
+                    JoinRuleDropdown(
+                        currentRule = joinRule,
+                        expanded = showJoinRuleDropdown,
+                        onSelect = {
+                            onSetJoinRule(it)
+                            showJoinRuleDropdown = false
+                        },
+                        onDismiss = { showJoinRuleDropdown = false }
+                    )
                 }
             }
 
             Spacer(Modifier.height(16.dp))
 
             // History Visibility
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            ExposedDropdownMenuBox(
+                expanded = showHistoryVisibilityDropdown,
+                onExpandedChange = { showHistoryVisibilityDropdown = it }
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "Message history",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        historyVisibility?.displayName ?: "Unknown",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (canManageSettings) {
-                    TextButton(
-                        onClick = showHistoryVisibilityDropdown,
-                        enabled = !isAdminBusy
-                    ) {
-                        Text("Change")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Message history",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            historyVisibility?.displayName ?: "Unknown",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
+                    if (canManageSettings) {
+                        TextButton(
+                            onClick = { showHistoryVisibilityDropdown = true },
+                            enabled = !isAdminBusy,
+                            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable)
+                        ) {
+                            Text("Change")
+                        }
+                    }
+                }
+
+                if (canManageSettings) {
+                    HistoryVisibilityDropdown(
+                        currentVisibility = historyVisibility,
+                        expanded = showHistoryVisibilityDropdown,
+                        onSelect = {
+                            onSetHistoryVisibility(it)
+                            showHistoryVisibilityDropdown = false
+                        },
+                        onDismiss = { showHistoryVisibilityDropdown = false }
+                    )
                 }
             }
         }
@@ -862,6 +871,7 @@ private fun PowerLevelsSection(
 @Composable
 private fun JoinRuleDropdown(
     currentRule: RoomJoinRule?,
+    expanded: Boolean,
     onSelect: (RoomJoinRule) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -872,7 +882,7 @@ private fun JoinRuleDropdown(
     )
 
     DropdownMenu(
-        expanded = true,
+        expanded = expanded,
         onDismissRequest = onDismiss
     ) {
         options.forEach { (rule, label) ->
@@ -890,6 +900,7 @@ private fun JoinRuleDropdown(
 @Composable
 private fun HistoryVisibilityDropdown(
     currentVisibility: RoomHistoryVisibility?,
+    expanded: Boolean,
     onSelect: (RoomHistoryVisibility) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -901,7 +912,7 @@ private fun HistoryVisibilityDropdown(
     )
 
     DropdownMenu(
-        expanded = true,
+        expanded = expanded,
         onDismissRequest = onDismiss
     ) {
         options.forEach { (visibility, label) ->
@@ -923,7 +934,7 @@ private fun getRoleName(powerLevel: Long): String = when {
     else -> "User"
 }
 
-private val RoomJoinRule.name: String
+private val RoomJoinRule.displayName: String
     get() = when (this) {
         RoomJoinRule.Public -> "Public"
         RoomJoinRule.Invite -> "Invite only"
