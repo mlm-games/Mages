@@ -50,8 +50,6 @@
       <description>
         <ul>
           <li>Android: Try forwarding avatar to call screen</li>
-          <li>Update release notes for v2.6.2</li>
-          <li>Update release notes for v2.6.1</li>
           <li>Add start menu icons for Windows and MacOS</li>
           <li>Add power levels, and perms management to room info screen (initial)</li>
           <li>Add an option to set room alias when creating a room</li>
