@@ -31,7 +31,7 @@ fun MessageComposer(
     onCancelEdit: () -> Unit,
     modifier: Modifier = Modifier,
     onAttach: (() -> Unit)? = null,
-    onCancelUpload: (() -> Unit)? = null
+    onCancelUpload: (() -> Unit)? = null,
 ) {
     Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 3.dp, modifier = modifier.fillMaxWidth()) {
         Row(

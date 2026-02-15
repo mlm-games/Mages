@@ -17,6 +17,7 @@ fun AttachmentPicker(
     onPickImage: () -> Unit,
     onPickVideo: () -> Unit,
     onPickDocument: () -> Unit,
+    onPasteFromClipboard: (() -> Unit)?,
     onDismiss: () -> Unit,
     onCreatePoll: (() -> Unit)? = null,
     onShareLocation: (() -> Unit)? = null,
@@ -28,6 +29,15 @@ fun AttachmentPicker(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)
             )
+
+            if (onPasteFromClipboard != null) {
+                AttachmentOption(
+                    Icons.Default.ContentPaste,
+                    "Paste from clipboard",
+                    "Send copied image or file"
+                ) { onPasteFromClipboard(); onDismiss() }
+                HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.sm))
+            }
 
             // Media section
             AttachmentOption(

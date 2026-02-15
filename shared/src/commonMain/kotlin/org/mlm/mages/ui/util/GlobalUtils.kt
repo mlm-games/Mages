@@ -45,5 +45,25 @@ fun mimeToExtension(mime: String?): String = when (mime) {
         ?: "bin"
 }
 
+
+fun guessMimeType(fileName: String): String {
+    return when {
+        fileName.endsWith(".jpg", ignoreCase = true) || fileName.endsWith(".jpeg", ignoreCase = true) -> "image/jpeg"
+        fileName.endsWith(".png", ignoreCase = true) -> "image/png"
+        fileName.endsWith(".gif", ignoreCase = true) -> "image/gif"
+        fileName.endsWith(".webp", ignoreCase = true) -> "image/webp"
+        fileName.endsWith(".svg", ignoreCase = true) -> "image/svg+xml"
+        fileName.endsWith(".mp4", ignoreCase = true) -> "video/mp4"
+        fileName.endsWith(".webm", ignoreCase = true) -> "video/webm"
+        fileName.endsWith(".mov", ignoreCase = true) -> "video/quicktime"
+        fileName.endsWith(".pdf", ignoreCase = true) -> "application/pdf"
+        fileName.endsWith(".doc", ignoreCase = true) || fileName.endsWith(".docx", ignoreCase = true) -> "application/msword"
+        fileName.endsWith(".txt", ignoreCase = true) -> "text/plain"
+        fileName.endsWith(".zip", ignoreCase = true) -> "application/zip"
+        else -> "application/octet-stream"
+    }
+}
+
+
 @OptIn(ExperimentalTime::class)
 fun nowMs(): Long = Clock.System.now().toEpochMilliseconds()

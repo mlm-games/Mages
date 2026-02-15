@@ -27,6 +27,7 @@ import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.SendState
 import org.mlm.mages.platform.*
 import org.mlm.mages.ui.components.AttachmentData
+import androidx.compose.runtime.rememberCoroutineScope
 import org.mlm.mages.ui.components.RoomUpgradeBanner
 import org.mlm.mages.ui.components.attachment.AttachmentPicker
 import org.mlm.mages.ui.components.attachment.AttachmentProgress
@@ -81,6 +82,18 @@ fun RoomScreen(
     val picker = rememberFilePicker { data ->
         if (data != null) viewModel.sendAttachment(data)
         viewModel.hideAttachmentPicker()
+    }
+
+    // Initialize clipboard attachment handler
+    val clipboardHandler = rememberClipboardAttachmentHandler()
+
+    // Check if clipboard has attachment when picker opens (not constantly)
+    var clipboardHasAttachment by remember { mutableStateOf(false) }
+
+    LaunchedEffect(state.showAttachmentPicker) {
+        if (state.showAttachmentPicker) {
+            clipboardHasAttachment = clipboardHandler.hasAttachment()
+        }
     }
 
     var isDragging by remember { mutableStateOf(false) }
@@ -452,6 +465,15 @@ fun RoomScreen(
             onPickImage = { picker.pick("image/*") },
             onPickVideo = { picker.pick("video/*") },
             onPickDocument = { picker.pick("*/*") },
+            onPasteFromClipboard = if (clipboardHasAttachment) {
+                {
+                    scope.launch {
+                        clipboardHandler.getAttachment()?.let {
+                            viewModel.sendAttachment(it)
+                        }
+                    }
+                }
+            } else null,
             onDismiss = viewModel::hideAttachmentPicker,
             onCreatePoll = viewModel::showPollCreator,
             // TODO: Add Live Location sharing after Element X implements it (same org's team)
@@ -745,7 +767,7 @@ private fun RoomBottomBar(
             onCancelReply = onCancelReply,
             onCancelEdit = onCancelEdit,
             onAttach = onAttach,
-            onCancelUpload = onCancelUpload
+            onCancelUpload = onCancelUpload,
         )
     }
 }
