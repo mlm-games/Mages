@@ -76,7 +76,7 @@ jobs:
           version-file-path: './fastlane/metadata/android/en-US/changelogs/${{ steps.ver.outputs.version_code }}.txt'
           version-code: '${{ steps.ver.outputs.version_code }}'
           metainfo-path: './packaging/io.github.mlm_games.mages.metainfo.xml'  # TODO: Change here when copying
-          exclude-patterns: 'chore:,ci:,docs:,build:,Bump version,Merge pull request,[skip ci]'
+          exclude-patterns: 'chore:,ci:,docs:,build:,Bump version,Merge pull request,[skip ci], Update '
           auto-commit: 'true'
           commit-message: 'Update release notes for v{{version}}'
         env:
