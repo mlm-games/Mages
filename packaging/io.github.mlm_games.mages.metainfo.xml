@@ -46,6 +46,16 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="2.7.2" date="2026-02-15" type="stable">
+      <description>
+        <ul>
+          <li>Add ctrl + V support for desktop</li>
+          <li>Add clipboard handling (attachment sheet has an extra button for pastables)</li>
+          <li>better url handling for desktop notifications, and media gallery links</li>
+          <li>Fix room info dropdowns not being aligned to the location, and use better room join rule display names</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.7.1" date="2026-02-15" type="stable">
       <description>
         <ul>
