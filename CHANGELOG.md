@@ -1,3 +1,11 @@
+## v2.7.1
+
+- Add ctrl + V support for desktop
+- Add clipboard handling (attachment sheet has an extra button for pastables)
+- better url handling for desktop notifications, and media gallery links
+- Fix room info dropdowns not being aligned to the location, and use better room join rule display names
+
+
 ## v2.6.4
 
 
