@@ -119,10 +119,9 @@ val cargoBuildAndroid = tasks.register<CargoNdkTask>("cargoBuildAndroid") {
     jniOut.set(layout.projectDirectory.dir("src/androidMain/jniLibs"))
 }
 
-val cargoBuildDesktop = tasks.register<CargoHostTask>("cargoBuildDesktop") {
+val cargoBuildDesktop = tasks.register<CargoBuildOnlyTask>("cargoBuildDesktop") {
     cargoBin.set(cargoBinDefault)
     rustDir.set(rustDirDefault)
-    jniOut.set(layout.buildDirectory.dir("nativeLibs"))
 }
 
 val uniffiAndroidOut = layout.buildDirectory.dir("generated/uniffi/androidMain/kotlin")
@@ -167,7 +166,7 @@ val jnaPlatformDir: String = run {
 
 val copyNativeForJna = tasks.register<Copy>("copyNativeForJna") {
     dependsOn(cargoBuildDesktop)
-    from(layout.buildDirectory.dir("nativeLibs").map { it.file(hostLibName) })
+    from(rustDirDefault.file("target/release/$hostLibName"))
     into(file("src/jvmMain/resources/$jnaPlatformDir"))
 }
 
@@ -176,17 +175,14 @@ tasks.named("jvmProcessResources") {
 }
 
 @DisableCachingByDefault(because = "Builds native code")
-abstract class CargoHostTask @Inject constructor(private val execOps: ExecOperations) : DefaultTask() {
+abstract class CargoBuildOnlyTask @Inject constructor(private val execOps: ExecOperations) : DefaultTask() {
     @get:Input abstract val cargoBin: Property<String>
     @get:InputDirectory abstract val rustDir: DirectoryProperty
-    @get:OutputDirectory abstract val jniOut: DirectoryProperty
     @TaskAction fun run() {
-        val rustDirFile = rustDir.get().asFile
-        execOps.exec { workingDir = rustDirFile; commandLine(cargoBin.get(), "build", "--release") }
-        val outDir = jniOut.get().asFile; outDir.mkdirs()
-        val os = OperatingSystem.current()
-        val libName = if (os.isMacOsX) "libmages_ffi.dylib" else if (os.isWindows) "mages_ffi.dll" else "libmages_ffi.so"
-        rustDirFile.resolve("target/release/$libName").copyTo(outDir.resolve(libName), overwrite = true)
+        execOps.exec {
+            workingDir = rustDir.get().asFile
+            commandLine(cargoBin.get(), "build", "--release")
+        }
     }
 }
 

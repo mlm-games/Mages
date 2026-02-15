@@ -22,11 +22,6 @@ dependencies {
 
 compose.desktop {
     application {
-        run {
-            val sharedLibDirProvider = project(":shared").layout.buildDirectory.dir("nativeLibs")
-            dependsOn(":shared:cargoBuildDesktop")
-            jvmArgs("-Djna.library.path=${sharedLibDirProvider.get().asFile.absolutePath}")
-        }
         mainClass = "org.mlm.mages.DesktopMainKt"
 
         nativeDistributions {
@@ -38,8 +33,6 @@ compose.desktop {
             appResourcesRootDir.set(project.layout.projectDirectory.dir("resources"))
 
             modules("java.instrument", "jdk.security.auth", "jdk.unsupported", "jdk.httpserver")
-
-            jvmArgs("-Djna.library.path=") // the desktopApp:run path reset when exporting?
 
             windows {
                 iconFile.set(project.file("../packaging/icon.ico"))
