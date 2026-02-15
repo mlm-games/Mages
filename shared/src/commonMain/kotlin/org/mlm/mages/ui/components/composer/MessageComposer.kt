@@ -20,6 +20,7 @@ import org.mlm.mages.MessageEvent
 import org.mlm.mages.platform.ClipboardAttachmentHandler
 import org.mlm.mages.platform.pasteInterceptor
 import org.mlm.mages.ui.components.AttachmentData
+import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 
 @Composable
