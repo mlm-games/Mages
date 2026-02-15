@@ -85,12 +85,15 @@ jobs:
             mkdir -p dist
             
             # adjust Exec and Icon for AppImage (flathub's)
+            mkdir -p "$APPDIR/usr/share/applications"
             sed -e 's|Exec=mages|Exec=Mages|' \
                 -e 's|Icon=io.github.mlm_games.mages|Icon=mages|' \
-                packaging/io.github.mlm_games.mages.desktop > "$APPDIR/mages.desktop"
+                packaging/io.github.mlm_games.mages.desktop > "$APPDIR/usr/share/applications/io.github.mlm_games.mages.desktop"
             
             mkdir -p "$APPDIR/usr/share/metainfo"
-            cp packaging/io.github.mlm_games.mages.metainfo.xml "$APPDIR/usr/share/metainfo/mages.appdata.xml"
+            cp packaging/io.github.mlm_games.mages.metainfo.xml "$APPDIR/usr/share/metainfo/io.github.mlm_games.mages.metainfo.xml"
+            
+            cp "$APPDIR/usr/share/applications/io.github.mlm_games.mages.desktop" "$APPDIR/io.github.mlm_games.mages.desktop"
             
             cat > "$APPDIR/AppRun" <<'EOF'
           #!/bin/sh
