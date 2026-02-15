@@ -32,19 +32,16 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(project.dependencies.platform(libs.androidx.compose.bom))
+            implementation(libs.compose.ui)
+            implementation(libs.compose.foundation)
+            implementation(libs.compose.material3)
+            implementation(libs.compose.ui.tooling.preview)
+
             implementation(libs.navigation3.ui)
             implementation(libs.lifecycle.viewmodel.navigation3)
             implementation(libs.adaptive.navigation3)
-
-            implementation(libs.runtime)
-            implementation(libs.foundation)
-            implementation(libs.material3)
-            implementation(libs.material.icons.extended)
-            implementation(libs.ui)
-            implementation(libs.ui.tooling.preview)
-            implementation(libs.components.resources)
-
+            implementation(libs.compose.material.icons.extended)
+            implementation(libs.compose.components.resources)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.androidx.datastore.preferences.core)
@@ -54,17 +51,18 @@ kotlin {
             implementation(libs.uri.kmp)
             implementation(libs.multiplatform.markdown.renderer)
             implementation(libs.multiplatform.markdown.renderer.m3)
-
             implementation(libs.kmp.settings.ui.compose)
             implementation(libs.kmp.settings.core)
-
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.coil.compose)
             implementation(libs.koin.compose.navigation3)
         }
+
         androidMain.dependencies {
+            implementation(project.dependencies.platform(libs.androidx.compose.bom))
+
             implementation(libs.androidx.activity.compose)
             //noinspection UseTomlInstead
             implementation("net.java.dev.jna:jna:${libs.versions.jna.get()}@aar")
@@ -77,6 +75,7 @@ kotlin {
             implementation(libs.koin.android)
             implementation(libs.androidx.webkit)
         }
+
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.net.jna)

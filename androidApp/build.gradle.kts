@@ -93,20 +93,6 @@ android {
 
 dependencies {
     implementation(project(":shared"))
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.koin.android)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.lifecycle.runtimeCompose)
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.datastore.preferences.core)
-    implementation(libs.kmp.settings.core)
-    implementation(libs.koin.compose)
-    implementation(libs.material.icons.extended)
-    implementation(libs.element.call.embedded)
-
-    implementation(libs.connector)
-    implementation(libs.connector.ui)
-    implementation(libs.androidx.foundation)
 
     implementation(platform(libs.androidx.compose.bom))
 
@@ -114,7 +100,20 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtimeCompose)
+
+    implementation(libs.koin.android)
+    implementation(libs.koin.compose)
+    implementation(libs.androidx.datastore.preferences.core)
+    implementation(libs.kmp.settings.core)
     implementation(libs.coil.compose)
+    implementation(libs.element.call.embedded)
+    implementation(libs.connector)
+    implementation(libs.connector.ui)
+
+    implementation(libs.compose.material.icons.extended)
 }
 
 apkDist {
