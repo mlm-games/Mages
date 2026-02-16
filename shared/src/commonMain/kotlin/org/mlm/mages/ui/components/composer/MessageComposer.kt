@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.platform.ClipboardAttachmentHandler
 import org.mlm.mages.platform.pasteInterceptor
+import org.mlm.mages.platform.sendShortcutHandler
 import org.mlm.mages.ui.components.AttachmentData
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
@@ -42,6 +43,7 @@ fun MessageComposer(
     onRemoveAttachment: (() -> Unit)? = null,
     clipboardHandler: ClipboardAttachmentHandler? = null,
     onAttachmentPasted: ((AttachmentData) -> Unit)? = null,
+    enterSendsMessage: Boolean = false,
 ) {
     val scope = rememberCoroutineScope()
 
@@ -107,6 +109,11 @@ fun MessageComposer(
                                 } else false
                             }
                         } else Modifier
+                    )
+                    .sendShortcutHandler(
+                        enabled = enabled && !isUploadingAttachment,
+                        enterSendsMessage = enterSendsMessage,
+                        onSend = onSend
                     )
 
                 OutlinedTextField(

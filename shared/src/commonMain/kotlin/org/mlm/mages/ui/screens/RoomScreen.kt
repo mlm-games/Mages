@@ -52,6 +52,8 @@ import mages.shared.generated.resources.*
 import org.mlm.mages.ui.components.snackbar.snackbarHost
 import java.io.File
 import java.nio.file.Files
+import io.github.mlmgames.settings.core.SettingsRepository
+import org.mlm.mages.settings.AppSettings
 
 @Suppress("NewApi")
 @Composable
@@ -71,6 +73,8 @@ fun RoomScreen(
     var progressText by remember { mutableStateOf<String?>(null) }
     val snackbarManager: SnackbarManager = koinInject()
     val listState = rememberLazyListState()
+    val settingsRepository: SettingsRepository<AppSettings> = koinInject()
+    val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
 
     var pendingJumpEventId by rememberSaveable(initialScrollToEventId) {
         mutableStateOf(initialScrollToEventId)
@@ -292,6 +296,7 @@ fun RoomScreen(
                         onRemoveAttachment = viewModel::removeAttachment,
                         clipboardHandler = clipboardHandler,
                         onAttachmentPasted = { viewModel.attachFile(it) },
+                        enterSendsMessage = settings.enterSendsMessage,
                     )
                 }
             }
@@ -737,8 +742,9 @@ private fun RoomBottomBar(
     onAttach: () -> Unit,
     onCancelUpload: () -> Unit,
     onRemoveAttachment: () -> Unit,
-    clipboardHandler: org.mlm.mages.platform.ClipboardAttachmentHandler? = null,
-    onAttachmentPasted: ((org.mlm.mages.ui.components.AttachmentData) -> Unit)? = null,
+    clipboardHandler: ClipboardAttachmentHandler? = null,
+    onAttachmentPasted: ((AttachmentData) -> Unit)? = null,
+    enterSendsMessage: Boolean = false,
 ) {
     Column(
         modifier = Modifier.navigationBarsPadding()
@@ -776,6 +782,7 @@ private fun RoomBottomBar(
             onRemoveAttachment = onRemoveAttachment,
             clipboardHandler = clipboardHandler,
             onAttachmentPasted = onAttachmentPasted,
+            enterSendsMessage = enterSendsMessage,
         )
     }
 }

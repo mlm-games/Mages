@@ -42,6 +42,9 @@ import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatTime
 import org.mlm.mages.ui.viewmodel.ThreadViewModel
+import io.github.mlmgames.settings.core.SettingsRepository
+import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.platform.sendShortcutHandler
 
 @Composable
 fun ThreadRoute(
@@ -51,6 +54,8 @@ fun ThreadRoute(
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
     val snackbarManager: SnackbarManager = koinInject()
+    val settingsRepository: SettingsRepository<AppSettings> = koinInject()
+    val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -82,6 +87,7 @@ fun ThreadRoute(
         onStartEdit = viewModel::startEdit,
         onCancelEdit = viewModel::cancelEdit,
         onDelete = { ev -> viewModel.delete(ev) },
+        enterSendsMessage = settings.enterSendsMessage,
     )
 }
 
@@ -99,6 +105,7 @@ fun ThreadScreen(
     onStartEdit: (MessageEvent) -> Unit,
     onCancelEdit: () -> Unit,
     onDelete: suspend (MessageEvent) -> Boolean,
+    enterSendsMessage: Boolean = false,
 ) {
     val scope = rememberCoroutineScope()
     var sheetEvent by remember { mutableStateOf<MessageEvent?>(null) }
@@ -144,7 +151,8 @@ fun ThreadScreen(
                 editingEvent = state.editingEvent,
                 onCancelReply = onCancelReply,
                 onCancelEdit = onCancelEdit,
-                onSend = onSend
+                onSend = onSend,
+                enterSendsMessage = enterSendsMessage,
             )
         },
         floatingActionButton = {
@@ -614,7 +622,8 @@ private fun ThreadComposer(
     editingEvent: MessageEvent?,
     onCancelReply: () -> Unit,
     onCancelEdit: () -> Unit,
-    onSend: () -> Unit
+    onSend: () -> Unit,
+    enterSendsMessage: Boolean = false,
 ) {
     val isEditing = editingEvent != null
     val hasAction = replyTo != null || isEditing
@@ -706,7 +715,13 @@ private fun ThreadComposer(
                 OutlinedTextField(
                     value = input,
                     onValueChange = onInputChange,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .sendShortcutHandler(
+                            enabled = true,
+                            enterSendsMessage = enterSendsMessage,
+                            onSend = onSend
+                        ),
                     placeholder = {
                         Text(
                             when {
