@@ -62,7 +62,6 @@ class MainActivity : AppCompatActivity() {
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        controller.hide(WindowInsetsCompat.Type.statusBars())
 
 
         UnifiedPush.tryUseCurrentOrDefaultDistributor(this) { success ->
