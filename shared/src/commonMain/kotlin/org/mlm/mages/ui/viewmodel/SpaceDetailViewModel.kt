@@ -63,6 +63,11 @@ class SpaceDetailViewModel(
             
             if (space != null) {
                 updateState { copy(space = space) }
+                val mxc = space.avatarUrl
+                if (!mxc.isNullOrBlank() && mxc.startsWith("mxc://")) {
+                    val path = runSafe { service.avatars.resolve(mxc, px = 96, crop = true) }
+                    if (path != null) updateState { copy(spaceAvatarPath = path) }
+                }
             } else {
                 updateState { 
                     copy(
@@ -72,7 +77,8 @@ class SpaceDetailViewModel(
                             topic = null,
                             memberCount = 0,
                             isEncrypted = false,
-                            isPublic = false
+                            isPublic = false,
+                            avatarUrl = null
                         )
                     ) 
                 }

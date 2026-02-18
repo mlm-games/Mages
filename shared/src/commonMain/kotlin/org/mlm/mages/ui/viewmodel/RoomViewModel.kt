@@ -1318,6 +1318,7 @@ class RoomViewModel(
         receiptsToken = service.port.observeReceipts(currentState.roomId, object : ReceiptsObserver {
             override fun onChanged() {
                 recomputeReadStatuses()
+                refreshSeenBy()
             }
         })
     }
@@ -1388,6 +1389,7 @@ class RoomViewModel(
         updateState { copy(lastIncomingFromOthersTs = lastIncoming) }
 
         if (s.isDm) recomputeReadStatuses()
+        else refreshSeenBy()
     }
 
     private fun recomputeReadStatuses() {
@@ -1406,6 +1408,24 @@ class RoomViewModel(
                 service.port.isEventReadBy(s.roomId, lastOutgoing.eventId, peer)
             } ?: false
             updateState { copy(lastOutgoingRead = read) }
+        }
+    }
+
+    private fun refreshSeenBy() {
+        val s = currentState
+        if (s.isDm) return
+        val me = s.myUserId ?: return
+        val lastOutgoing = s.events.lastOrNull { it.sender == me } ?: run {
+            updateState { copy(seenByEntries = emptyList()) }
+            return
+        }
+        launch {
+            val entries = runSafe {
+                withContext(Dispatchers.IO) {
+                    service.port.seenByForEvent(s.roomId, lastOutgoing.eventId, 10)
+                }
+            } ?: emptyList()
+            updateState { copy(seenByEntries = entries) }
         }
     }
 

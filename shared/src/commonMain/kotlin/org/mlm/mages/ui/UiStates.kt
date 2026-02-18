@@ -12,6 +12,7 @@ import org.mlm.mages.matrix.RoomPredecessorInfo
 import org.mlm.mages.matrix.RoomUpgradeInfo
 import org.mlm.mages.matrix.SasPhase
 import org.mlm.mages.matrix.SearchHit
+import org.mlm.mages.matrix.SeenByEntry
 import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.matrix.SpaceInfo
 import org.mlm.mages.ui.components.AttachmentData
@@ -124,6 +125,8 @@ data class RoomUiState(
     // Report dialog
     val showReportDialog: Boolean = false,
     val reportingEvent: MessageEvent? = null,
+
+    val seenByEntries: List<SeenByEntry> = emptyList(),
 )
 
 
@@ -208,6 +211,7 @@ data class SpaceDetailUiState(
     val isLoadingMore: Boolean = false,
     val error: String? = null,
     val avatarPathByRoomId: Map<String, String> = emptyMap(),
+    val spaceAvatarPath: String? = null,
 )
 
 data class SpaceSettingsUiState(
@@ -219,11 +223,13 @@ data class SpaceSettingsUiState(
     val isSaving: Boolean = false,
     val error: String? = null,
     val avatarPathByRoomId: Map<String, String> = emptyMap(),
+    val spaceAvatarPath: String? = null,
 
     // Dialogs
     val showAddRoom: Boolean = false,
     val showInviteUser: Boolean = false,
     val inviteUserId: String = "",
+    val showLeaveConfirm: Boolean = false,
 )
 
 data class ThreadUiState(

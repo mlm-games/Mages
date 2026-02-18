@@ -516,6 +516,7 @@ pub struct SpaceInfo {
     pub member_count: u64,
     pub is_encrypted: bool,
     pub is_public: bool,
+    pub avatar_url: Option<String>,
 }
 
 #[derive(Clone, Record)]
@@ -4376,6 +4377,7 @@ impl Client {
                     member_count,
                     is_encrypted,
                     is_public,
+                    avatar_url: room.avatar_url().map(|mxc| mxc.to_string()),
                 });
             }
 

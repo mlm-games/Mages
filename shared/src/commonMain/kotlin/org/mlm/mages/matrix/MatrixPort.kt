@@ -255,7 +255,8 @@ data class SpaceInfo(
     val topic: String?,
     val memberCount: Long,
     val isEncrypted: Boolean,
-    val isPublic: Boolean
+    val isPublic: Boolean,
+    val avatarUrl: String? = null
 )
 
 data class SpaceChildInfo(

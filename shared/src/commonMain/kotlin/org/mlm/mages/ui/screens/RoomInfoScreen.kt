@@ -26,6 +26,7 @@ import org.mlm.mages.ui.components.sheets.PowerLevelsSheet
 import org.mlm.mages.ui.components.sheets.ReportContentDialog
 import org.mlm.mages.ui.components.sheets.RoomAliasesSheet
 import org.mlm.mages.ui.components.settings.*
+import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.theme.Spacing
 import org.koin.compose.koinInject
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
@@ -436,21 +437,12 @@ private fun RoomHeader(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(64.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = if (profile.isDm) Icons.Default.Person
-                        else Icons.Default.People,
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
+            Avatar(
+                name = profile.name,
+                avatarPath = profile.avatarUrl,
+                size = 64.dp,
+                shape = MaterialTheme.shapes.medium
+            )
 
             Column(modifier = Modifier.weight(1f)) {
                 Row(

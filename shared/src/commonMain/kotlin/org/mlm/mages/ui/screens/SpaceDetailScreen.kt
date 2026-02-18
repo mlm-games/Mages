@@ -87,7 +87,7 @@ fun SpaceDetailScreen(
             }
 
             state.space?.let { space ->
-                SpaceHeaderCard(space = space)
+                SpaceHeaderCard(space = space, avatarPath = state.spaceAvatarPath)
             }
 
             when {
@@ -161,7 +161,7 @@ fun SpaceDetailScreen(
 }
 
 @Composable
-private fun SpaceHeaderCard(space: SpaceInfo) {
+private fun SpaceHeaderCard(space: SpaceInfo, avatarPath: String?) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -172,20 +172,11 @@ private fun SpaceHeaderCard(space: SpaceInfo) {
     ) {
         Column(modifier = Modifier.padding(Spacing.lg)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = CircleShape,
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Default.Workspaces,
-                            null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                }
+                Avatar(
+                    name = space.name,
+                    avatarPath = avatarPath,
+                    size = 56.dp
+                )
 
                 Spacer(Modifier.width(Spacing.lg))
 

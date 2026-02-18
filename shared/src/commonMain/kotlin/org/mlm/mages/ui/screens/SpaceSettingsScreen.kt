@@ -5,9 +5,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,7 +29,8 @@ import org.mlm.mages.ui.viewmodel.SpaceSettingsViewModel
 @Composable
 fun SpaceSettingsScreen(
     viewModel: SpaceSettingsViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onLeaveSuccess: () -> Unit = onBack
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarManager: SnackbarManager = koinInject()
@@ -38,6 +39,16 @@ fun SpaceSettingsScreen(
         state.error?.let {
             snackbarManager.showError(it)
             viewModel.clearError()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is SpaceSettingsViewModel.Event.ShowError -> snackbarManager.showError(event.message)
+                is SpaceSettingsViewModel.Event.ShowSuccess -> snackbarManager.show(event.message)
+                SpaceSettingsViewModel.Event.LeaveSuccess -> onLeaveSuccess()
+            }
         }
     }
 
@@ -76,7 +87,7 @@ fun SpaceSettingsScreen(
                 // Space info header
                 state.space?.let { space ->
                     item(key = "header") {
-                        SpaceInfoHeader(space = space)
+                        SpaceInfoHeader(space = space, avatarPath = state.spaceAvatarPath)
                     }
                 }
 
@@ -115,6 +126,24 @@ fun SpaceSettingsScreen(
                         },
                         modifier = Modifier.clickable(enabled = !state.isSaving) {
                             viewModel.showInviteDialog()
+                        }
+                    )
+                }
+
+                item(key = "action_leave") {
+                    ListItem(
+                        headlineContent = {
+                            Text("Leave space", color = MaterialTheme.colorScheme.error)
+                        },
+                        leadingContent = {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ExitToApp,
+                                null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        },
+                        modifier = Modifier.clickable(enabled = !state.isSaving) {
+                            viewModel.showLeaveConfirm()
                         }
                     )
                 }
@@ -170,10 +199,27 @@ fun SpaceSettingsScreen(
             isSaving = state.isSaving
         )
     }
+
+    if (state.showLeaveConfirm) {
+        AlertDialog(
+            onDismissRequest = viewModel::hideLeaveConfirm,
+            title = { Text("Leave space") },
+            text = { Text("Are you sure you want to leave this space?") },
+            confirmButton = {
+                TextButton(
+                    onClick = viewModel::leaveSpace,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("Leave") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::hideLeaveConfirm) { Text("Cancel") }
+            }
+        )
+    }
 }
 
 @Composable
-private fun SpaceInfoHeader(space: SpaceInfo) {
+private fun SpaceInfoHeader(space: SpaceInfo, avatarPath: String?) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -188,19 +234,11 @@ private fun SpaceInfoHeader(space: SpaceInfo) {
                 .padding(Spacing.lg),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = CircleShape,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Default.Workspaces,
-                        null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
+            Avatar(
+                name = space.name,
+                avatarPath = avatarPath,
+                size = 48.dp
+            )
             Spacer(Modifier.width(Spacing.lg))
             Column(modifier = Modifier.weight(1f)) {
                 Text(

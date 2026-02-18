@@ -523,22 +523,14 @@ private fun AppContent(deepLinks: Flow<DeepLinkAction>?) {
                             parameters = { parametersOf(key.spaceId) }
                         )
 
-                        LaunchedEffect(Unit) {
-                            viewModel.events.collect { event ->
-                                when (event) {
-                                    is SpaceSettingsViewModel.Event.ShowError -> {
-                                        snackbarManager.show("Error: $event.message")
-                                    }
-                                    is SpaceSettingsViewModel.Event.ShowSuccess -> {
-                                        snackbarManager.show(event.message)
-                                    }
-                                }
-                            }
-                        }
-
                         SpaceSettingsScreen(
                             viewModel = viewModel,
-                            onBack = backStack::popBack
+                            onBack = backStack::popBack,
+                            onLeaveSuccess = {
+                                // Pop noth SpaceSettings and SpaceDetail to return to room list
+                                backStack.popBack()
+                                backStack.popBack()
+                            }
                         )
                     }
 

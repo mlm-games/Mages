@@ -128,14 +128,10 @@ fun RoomScreen(
         if (state.myUserId == null) -1 else events.indexOfLast { it.sender == state.myUserId }
     }
 
-    val seenByNames = remember(events, lastOutgoingIndex, state.myUserId) {
-        if (lastOutgoingIndex >= 0 && state.myUserId != null) {
-            events.drop(lastOutgoingIndex + 1)
-                .filter { it.sender != state.myUserId }
-                .map { it.sender }
-                .distinct()
-                .map { sender -> sender.substringAfter('@').substringBefore(':').ifBlank { sender } }
-        } else emptyList()
+    val seenByNames = remember(state.seenByEntries) {
+        state.seenByEntries.map { entry ->
+            entry.displayName ?: entry.userId.substringAfter('@').substringBefore(':').ifBlank { entry.userId }
+        }
     }
 
     LaunchedEffect(state.hasTimelineSnapshot, state.events.size, pendingJumpEventId) {

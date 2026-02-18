@@ -16,6 +16,7 @@ class SpaceSettingsViewModel(
     sealed class Event {
         data class ShowError(val message: String) : Event()
         data class ShowSuccess(val message: String) : Event()
+        object LeaveSuccess : Event()
     }
 
     private val _events = Channel<Event>(Channel.BUFFERED)
@@ -139,6 +140,32 @@ class SpaceSettingsViewModel(
         updateState { copy(error = null) }
     }
 
+    fun showLeaveConfirm() {
+        updateState { copy(showLeaveConfirm = true) }
+    }
+
+    fun hideLeaveConfirm() {
+        updateState { copy(showLeaveConfirm = false) }
+    }
+
+    fun leaveSpace() {
+        launch(
+            onError = { t ->
+                updateState { copy(isSaving = false, showLeaveConfirm = false) }
+                launch { _events.send(Event.ShowError(t.message ?: "Failed to leave space")) }
+            }
+        ) {
+            updateState { copy(isSaving = true, showLeaveConfirm = false) }
+            val ok = service.port.leaveRoom(currentState.spaceId)
+            updateState { copy(isSaving = false) }
+            if (ok) {
+                _events.send(Event.LeaveSuccess)
+            } else {
+                _events.send(Event.ShowError("Failed to leave space"))
+            }
+        }
+    }
+
     //  Private Methods 
 
     private fun loadSpaceInfo() {
@@ -146,6 +173,11 @@ class SpaceSettingsViewModel(
             val spaces = runSafe { service.mySpaces() } ?: emptyList()
             val space = spaces.find { it.roomId == currentState.spaceId }
             updateState { copy(space = space) }
+            val mxc = space?.avatarUrl
+            if (!mxc.isNullOrBlank() && mxc.startsWith("mxc://")) {
+                val path = runSafe { service.avatars.resolve(mxc, px = 96, crop = true) }
+                if (path != null) updateState { copy(spaceAvatarPath = path) }
+            }
         }
     }
 
