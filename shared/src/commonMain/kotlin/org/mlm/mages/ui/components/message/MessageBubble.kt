@@ -57,7 +57,8 @@ fun MessageBubble(
     isEdited: Boolean = false,
     poll: PollData? = null,
     onVote: ((String) -> Unit)? = null,
-    onEndPoll: (() -> Unit)? = null
+    onEndPoll: (() -> Unit)? = null,
+    onReplyPreviewClick: (() -> Unit)? = null
 ) {
     Column(
         modifier = modifier
@@ -86,7 +87,7 @@ fun MessageBubble(
             ) {
                 Column(Modifier.padding(Spacing.md)) {
                     if (!replyPreview.isNullOrBlank()) {
-                        ReplyPreview(replySender, replyPreview)
+                        ReplyPreview(replySender, replyPreview, onReplyPreviewClick)
                         Spacer(Modifier.height(Spacing.sm))
                     }
 
@@ -146,10 +147,11 @@ private fun bubbleShape(isMine: Boolean, grouped: Boolean) = RoundedCornerShape(
 )
 
 @Composable
-private fun ReplyPreview(sender: String?, body: String) {
+private fun ReplyPreview(sender: String?, body: String, onClick: (() -> Unit)? = null) {
     Surface(
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
         shape = RoundedCornerShape(8.dp),
+        modifier = if (onClick != null) Modifier.clickable { onClick() } else Modifier
     ) {
         Row(modifier = Modifier.padding(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
             Box(

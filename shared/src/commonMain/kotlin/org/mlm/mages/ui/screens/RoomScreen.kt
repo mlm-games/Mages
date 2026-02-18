@@ -3,6 +3,7 @@ package org.mlm.mages.ui.screens
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -13,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.CallMerge
 import androidx.compose.material.icons.automirrored.filled.Forward
+import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -20,6 +22,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -425,6 +430,7 @@ fun RoomScreen(
                                         lastOutgoingIndex = lastOutgoingIndex,
                                         seenByNames = seenByNames,
                                         onLongPress = { sheetEvent = event },
+                                        onReply = { viewModel.startReply(event) },
                                         onReact = { emoji -> viewModel.react(event, emoji) },
                                         onOpenAttachment = {
                                             viewModel.openAttachment(event) { path, mime ->
@@ -830,6 +836,7 @@ private fun MessageItem(
     lastOutgoingIndex: Int,
     seenByNames: List<String>,
     onLongPress: () -> Unit,
+    onReply: () -> Unit,
     onReact: (String) -> Unit,
     onOpenAttachment: () -> Unit,
     onOpenThread: () -> Unit,
@@ -882,6 +889,12 @@ private fun MessageItem(
 
     val isSelected = state.isSelectionMode && event.eventId in state.selectedEventIds
 
+    // Swipe-to-reply state
+    var swipeOffsetPx by remember { mutableFloatStateOf(0f) }
+    val density = LocalDensity.current
+    val swipeThresholdPx = remember(density) { with(density) { 72.dp.toPx() } }
+    var replyTriggered by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -900,7 +913,53 @@ private fun MessageItem(
                 if (isSelected) Modifier.background(MaterialTheme.colorScheme.primaryContainer)
                 else Modifier
             )
+            .pointerInput(state.isSelectionMode) {
+                if (state.isSelectionMode) return@pointerInput
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        if (swipeOffsetPx >= swipeThresholdPx && !replyTriggered) {
+                            replyTriggered = true
+                            onReply()
+                        }
+                        swipeOffsetPx = 0f
+                        replyTriggered = false
+                    },
+                    onDragCancel = {
+                        swipeOffsetPx = 0f
+                        replyTriggered = false
+                    },
+                    onHorizontalDrag = { _, dragAmount ->
+                        // Only allow right-swipe (positive) for others, left-swipe (negative) for mine
+                        val newOffset = if (isMine) {
+                            (swipeOffsetPx - dragAmount).coerceAtLeast(0f)
+                        } else {
+                            (swipeOffsetPx + dragAmount).coerceAtLeast(0f)
+                        }
+                        swipeOffsetPx = newOffset.coerceAtMost(swipeThresholdPx * 1.2f)
+                    }
+                )
+            }
     ) {
+        // Reply icon shown behind the bubble during swipe
+        val iconAlpha = (swipeOffsetPx / swipeThresholdPx).coerceIn(0f, 1f)
+        if (iconAlpha > 0.05f) {
+            Box(
+                modifier = Modifier
+                    .align(if (isMine) Alignment.CenterEnd else Alignment.CenterStart)
+                    .padding(horizontal = Spacing.lg),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Reply,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = iconAlpha),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
+        val bubbleOffset = if (isMine) -swipeOffsetPx else swipeOffsetPx
+        Box(modifier = Modifier.graphicsLayer { translationX = bubbleOffset }) {
 
         MessageBubble(
             isMine = isMine,
@@ -927,9 +986,13 @@ private fun MessageItem(
             },
             onEndPoll = {
                 viewModel.endPoll(event.eventId)
+            },
+            onReplyPreviewClick = event.replyToEventId?.let { rid ->
+                { viewModel.jumpToEvent(rid) }
             }
         )
-    }
+        } // end bubble offset Box
+    } // end outer Box
 
     val threadCount = state.threadCount[event.eventId]
 
