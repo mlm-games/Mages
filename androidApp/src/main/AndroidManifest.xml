@@ -147,6 +147,13 @@
             android:turnScreenOn="true"
             android:theme="@style/Theme.AppCompat.DayNight.NoActionBar" />
 
+        <activity
+            android:name=".activities.DistributorPickerActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.AppCompat.DayNight.Dialog" />
+
 
         <service
             android:name=".push.AppPushService"

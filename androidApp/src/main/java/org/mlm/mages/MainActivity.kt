@@ -1,16 +1,18 @@
 package org.mlm.mages
 
+import android.Manifest
 import android.app.NotificationManager
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import io.github.mlmgames.settings.core.SettingsRepository
@@ -18,6 +20,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
+import org.mlm.mages.activities.DistributorPickerActivity
 import org.mlm.mages.di.KoinApp
 import org.mlm.mages.nav.DeepLinkAction
 import org.mlm.mages.nav.MatrixLink
@@ -27,7 +30,6 @@ import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.SettingsProvider
 import org.mlm.mages.push.AndroidNotificationHelper
 import org.mlm.mages.push.PREF_INSTANCE
-import org.mlm.mages.push.PushManager
 import org.mlm.mages.push.PusherReconciler
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
@@ -38,6 +40,14 @@ class MainActivity : AppCompatActivity() {
     private val deepLinkActions = Channel<DeepLinkAction>(capacity = Channel.BUFFERED)
     private val deepLinks = deepLinkActions.receiveAsFlow()
     private val service: MatrixService by inject()
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            initUnifiedPush()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -53,24 +63,32 @@ class MainActivity : AppCompatActivity() {
             handleIntent(intent)
         }
 
-        if (Build.VERSION.SDK_INT >= 33 &&
-            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) {
-            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1001)
+        if (Build.VERSION.SDK_INT >= 33) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED
+            ) {
+                initUnifiedPush()
+            } else {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        } else {
+            initUnifiedPush()
         }
 
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
 
+        setContent {
+            KoinApp(settingsRepository) {
+                App(settingsRepository, deepLinks)
+            }
+        }
+    }
 
+    private fun initUnifiedPush() {
         UnifiedPush.tryUseCurrentOrDefaultDistributor(this) { success ->
-            val saved = UnifiedPush.getSavedDistributor(this)
-            val dists = UnifiedPush.getDistributors(this)
-            Log.i(
-                "UP-Mages",
-                "tryUseCurrentOrDefaultDistributor success=$success, savedDistributor=$saved, distributors=$dists"
-            )
+            Log.i("UP-Mages", "tryUseCurrentOrDefaultDistributor success=$success")
 
             if (success) {
                 UnifiedPush.register(this, PREF_INSTANCE)
@@ -78,13 +96,7 @@ class MainActivity : AppCompatActivity() {
                     runCatching { PusherReconciler.ensureServerPusherRegistered(this@MainActivity) }
                 }
             } else {
-                PushManager.registerWithDialog(this, PREF_INSTANCE)
-            }
-        }
-
-        setContent {
-            KoinApp(settingsRepository) {
-                App(settingsRepository, deepLinks)
+                startActivity(Intent(this, DistributorPickerActivity::class.java))
             }
         }
     }

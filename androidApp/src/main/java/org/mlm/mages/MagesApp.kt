@@ -11,6 +11,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
+import org.mlm.mages.activities.DistributorPickerActivity
 import org.mlm.mages.di.appModules
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.SettingsProvider
@@ -48,12 +49,13 @@ class MagesApp : Application() {
         }
 
         ActionRegistry.register(SelectUnifiedPushDistributorAction::class) {
-            // Doesn't seem to do anything.
-            PushManager.registerWithDialog(this, PREF_INSTANCE)
+            val intent = Intent(this, DistributorPickerActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
         }
 
         ActionRegistry.register(ReRegisterUnifiedPushAction::class) {
-            // Need to show a snackbar message, though it is internal (toast handling).
             UnifiedPush.register(this, PREF_INSTANCE)
             PusherReconciler.ensureServerPusherRegistered(this, PREF_INSTANCE)
         }

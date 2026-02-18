@@ -166,15 +166,15 @@ data class AppSettings(
 //    @ActionHandler(OpenSystemNotificationSettingsAction::class)
 //    val openSystemNotificationSettings: Unit = Unit,
 
-//    @Setting(
-//        category = Notifications::class,
-//        type = Button::class,
-//        title = "Select UnifiedPush distributor",
-//        description = "Choose the app that delivers pushes (gcompat/sunup/ntfy/etc.)",
-//        platforms = [SettingPlatform.ANDROID],
-//    )
-//    @ActionHandler(SelectUnifiedPushDistributorAction::class)
-//    val selectUnifiedPushDistributor: Unit = Unit,
+    @Setting(
+        category = Notifications::class,
+        type = Button::class,
+        title = "Select UnifiedPush distributor",
+        description = "Choose the app that delivers pushes (gcompat/sunup/ntfy/etc.)",
+        platforms = [SettingPlatform.ANDROID],
+    )
+    @ActionHandler(SelectUnifiedPushDistributorAction::class)
+    val selectUnifiedPushDistributor: Unit = Unit,
 
     @Setting(
         category = Notifications::class,

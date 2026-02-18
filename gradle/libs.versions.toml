@@ -75,7 +75,6 @@ androidx-webkit = { module = "androidx.webkit:webkit", version.ref = "webkit" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workRuntimeKtx" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCompose" }
 connector = { module = "org.unifiedpush.android:connector", version.ref = "connector" }
-connector-ui = { module = "org.unifiedpush.android:connector-ui", version.ref = "up-ui" }
 dbus-java-transport-native-unixsocket = { module = "com.github.hypfvieh:dbus-java-transport-native-unixsocket", version.ref = "dbusJavaTransportNativeUnixsocket" }
 dbus-java-core = { module = "com.github.hypfvieh:dbus-java-core", version.ref = "dbusJavaCore" }
 element-call-embedded = { module = "io.element.android:element-call-embedded", version.ref = "elementCallEmbedded" }

@@ -68,7 +68,6 @@ kotlin {
             implementation("net.java.dev.jna:jna:${libs.versions.jna.get()}@aar")
             implementation(libs.okio)
             implementation(libs.connector)
-            implementation(libs.connector.ui)
             implementation(libs.androidx.core.ktx)
             implementation(libs.androidx.work.runtime.ktx)
             implementation(libs.androidx.browser)
