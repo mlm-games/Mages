@@ -6,6 +6,7 @@ import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
+import kotlinx.serialization.json.Json
 import org.koin.core.component.inject
 import org.mlm.mages.*
 import org.mlm.mages.calls.CallManager
@@ -72,6 +73,7 @@ class RoomViewModel(
     private var dmPeer: String? = null
     private var uploadJob: Job? = null
     private var typingJob: Job? = null
+    private var draftJob: Job? = null
     private var hasTimelineSnapshot = false
     private var searchJob: Job? = null
 
@@ -80,6 +82,8 @@ class RoomViewModel(
     private val checkedThreadRootsViaApi = mutableSetOf<String>()
 
     private val settingsRepo: SettingsRepository<AppSettings> by inject()
+
+    private val json: Json by inject()
 
     private val callManager: CallManager by inject()
 
@@ -105,7 +109,13 @@ class RoomViewModel(
 
         launch {
             dmPeer = runSafe { service.port.dmPeerUserId(currentState.roomId) }
-            settingsRepo.update { it.copy(lastOpenedRoomId = currentState.roomId) }
+            val roomId = currentState.roomId
+            settingsRepo.update { it.copy(lastOpenedRoomId = roomId) }
+
+            val savedDraft = loadDraft(roomId)
+            if (!savedDraft.isNullOrBlank()) {
+                updateState { copy(input = savedDraft) }
+            }
 
             val profile = runSafe { service.port.roomProfile(currentState.roomId) }
             if (profile != null) {
@@ -162,6 +172,12 @@ class RoomViewModel(
     fun setInput(value: String) {
         updateState { copy(input = value) }
 
+        draftJob?.cancel()
+        draftJob = launch {
+            delay(1000)
+            saveDraft(currentState.roomId, value)
+        }
+
         // only network typing notices are gated
         if (!settings.value.sendTypingIndicators) return
 
@@ -190,7 +206,9 @@ class RoomViewModel(
             if (hasText) {
                 val text = s.input.trim()
                 updateState { copy(input = "") }
+                draftJob?.cancel()
                 launch {
+                    saveDraft(s.roomId, "")
                     val replyTo = s.replyingTo
                     if (replyTo != null) {
                         service.reply(s.roomId, replyTo.eventId, text)
@@ -215,6 +233,8 @@ class RoomViewModel(
 
             if (ok) {
                 updateState { copy(input = "", replyingTo = null) }
+                draftJob?.cancel()
+                saveDraft(currentState.roomId, "")
             } else {
                 _events.send(Event.ShowError(if (replyTo != null) "Reply failed" else "Send failed"))
             }
@@ -1429,6 +1449,28 @@ class RoomViewModel(
             !txnId.isNullOrBlank() -> "t:$txnId"
             else -> "i:$itemId" // fallback
         }
+
+    //  Draft helpers
+
+    private suspend fun loadDraft(roomId: String): String? {
+        val raw = settingsRepo.flow.first().roomDraftsJson
+        if (raw.isBlank()) return null
+        return try {
+            json.decodeFromString<Map<String, String>>(raw)[roomId]
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private suspend fun saveDraft(roomId: String, text: String) {
+        settingsRepo.update { settings ->
+            val current: Map<String, String> = if (settings.roomDraftsJson.isBlank()) emptyMap() else {
+                try { json.decodeFromString(settings.roomDraftsJson) } catch (_: Exception) { emptyMap() }
+            }
+            val updated = if (text.isBlank()) current - roomId else current + (roomId to text)
+            settings.copy(roomDraftsJson = json.encodeToString(updated))
+        }
+    }
 
     override fun onCleared() {
         super.onCleared()

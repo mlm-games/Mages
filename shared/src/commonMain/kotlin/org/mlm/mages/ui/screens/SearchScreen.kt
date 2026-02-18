@@ -18,6 +18,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import mages.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.matrix.SearchHit
 import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.theme.Spacing
@@ -103,8 +105,8 @@ fun SearchScreen(
                 state.hasSearched && state.results.isEmpty() -> {
                     EmptyState(
                         icon = Icons.Default.SearchOff,
-                        title = "No results",
-                        subtitle = "No messages found for \"${state.query}\""
+                        title = stringResource(Res.string.search_no_results),
+                        subtitle = stringResource(Res.string.search_no_messages_for, state.query)
                     )
                 }
                 
@@ -147,7 +149,7 @@ fun SearchScreen(
                                         .fillMaxWidth()
                                         .padding(Spacing.lg)
                                 ) {
-                                    Text("Load more results")
+                                    Text(stringResource(Res.string.search_load_more))
                                 }
                             }
                         }
@@ -172,7 +174,7 @@ private fun SearchTopBar(
         TopAppBar(
             title = {
                 Text(
-                    text = if (scopedRoomName != null) "Search in $scopedRoomName" else "Search messages",
+                    text = if (scopedRoomName != null) stringResource(Res.string.search_in_room, scopedRoomName) else stringResource(Res.string.search_messages),
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -180,7 +182,7 @@ private fun SearchTopBar(
             },
             navigationIcon = {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
                 }
             }
         )
@@ -192,7 +194,7 @@ private fun SearchTopBar(
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
                 .focusRequester(focusRequester),
-            placeholder = { Text("Search messages...") },
+            placeholder = { Text(stringResource(Res.string.search_messages_placeholder)) },
             leadingIcon = { Icon(Icons.Default.Search, null) },
             trailingIcon = {
                 Row {
@@ -230,8 +232,8 @@ private fun SearchTopBar(
 private fun SearchPlaceholder(isScoped: Boolean) {
     EmptyState(
         icon = Icons.Default.Search,
-        title = if (isScoped) "Search this room" else "Search all messages",
-        subtitle = "Enter at least 2 characters to search"
+        title = if (isScoped) stringResource(Res.string.search_this_room) else stringResource(Res.string.search_all_messages),
+        subtitle = stringResource(Res.string.search_min_chars)
     )
 }
 

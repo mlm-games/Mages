@@ -43,10 +43,8 @@ class MainActivity : AppCompatActivity() {
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            initUnifiedPush()
-        }
+    ) { _ ->
+        initUnifiedPush()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

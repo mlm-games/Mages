@@ -238,6 +238,9 @@ data class AppSettings(
     @Persisted
     val lastOpenedRoomId: String? = null,
 
+    @Persisted
+    val roomDraftsJson: String = "",
+
     @Setting(
         title = "Enter sends message",
         description = "When enabled, pressing Enter will send the message and Shift+Enter will insert a new line",

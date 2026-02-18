@@ -40,6 +40,14 @@
     <string name="invites">Invitaciones</string>
     <string name="new_room">Nueva sala</string>
     <string name="search_messages">Buscar mensajes</string>
+    <string name="search_in_room">Buscar en %1$s</string>
+    <string name="search_messages_placeholder">Buscar mensajes...</string>
+    <string name="search_no_results">Sin resultados</string>
+    <string name="search_no_messages_for">No se encontraron mensajes para "%1$s"</string>
+    <string name="search_load_more">Cargar más resultados</string>
+    <string name="search_this_room">Buscar en esta sala</string>
+    <string name="search_all_messages">Buscar todos los mensajes</string>
+    <string name="search_min_chars">Ingresa al menos 2 caracteres para buscar</string>
     <string name="clear_search">Limpiar búsqueda</string>
 
     <string name="no_pending_invites">Sin invitaciones pendientes</string>
