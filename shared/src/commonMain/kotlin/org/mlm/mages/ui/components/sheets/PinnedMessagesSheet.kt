@@ -18,6 +18,7 @@ import org.mlm.mages.MessageEvent
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
+import org.mlm.mages.ui.theme.Limits
 import org.mlm.mages.ui.util.formatTime
 
 @Composable
@@ -145,7 +146,7 @@ private fun PinnedMessageItem(
                 Spacer(Modifier.height(Spacing.xs))
 
                 Text(
-                    text = event.body.take(150),
+                    text = event.body.take(Limits.previewCharsLong),
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis

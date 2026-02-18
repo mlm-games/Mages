@@ -18,6 +18,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.shared.R
+import androidx.core.net.toUri
 
 object AndroidNotificationHelper : KoinComponent {
     data class NotificationText(val title: String, val body: String)
@@ -36,6 +37,14 @@ object AndroidNotificationHelper : KoinComponent {
 
         val notifId = (roomId + eventId).hashCode()
 
+        val activeMessageCount = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            mgr.activeNotifications.count {
+                it.notification.channelId == AppNotificationChannels.CHANNEL_MESSAGES ||
+                it.notification.channelId == AppNotificationChannels.CHANNEL_MESSAGES_SILENT
+            }
+        } else 0
+        val badgeCount = activeMessageCount + 1
+
         val notification = NotificationCompat.Builder(ctx, channelId)
             .setSmallIcon(R.drawable.ic_notif_status_bar)
             .setContentTitle(n.title)
@@ -44,6 +53,7 @@ object AndroidNotificationHelper : KoinComponent {
             .setContentIntent(createOpenIntent(ctx, roomId, eventId, notifId))
             .addAction(createReplyAction(ctx, roomId, eventId, notifId))
             .addAction(createMarkReadAction(ctx, roomId, eventId, notifId))
+            .setNumber(badgeCount)
             .setAutoCancel(true)
             .build()
 
@@ -281,7 +291,7 @@ object AndroidNotificationHelper : KoinComponent {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             runCatching {
                 val intent = Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
-                    data = Uri.parse("package:${ctx.packageName}")
+                    data = "package:${ctx.packageName}".toUri()
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
                 }
                 ctx.startActivity(intent)

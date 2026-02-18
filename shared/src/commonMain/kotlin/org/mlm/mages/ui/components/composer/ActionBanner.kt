@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.ui.theme.Spacing
+import org.mlm.mages.ui.theme.Limits
 
 @Composable
 fun ActionBanner(replyingTo: MessageEvent?, editing: MessageEvent?, onCancelReply: () -> Unit, onCancelEdit: () -> Unit) {
@@ -17,7 +18,7 @@ fun ActionBanner(replyingTo: MessageEvent?, editing: MessageEvent?, onCancelRepl
                 Row(Modifier.fillMaxWidth().padding(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
                     Text("Replying to ${replyingTo.sender}: ", style = MaterialTheme.typography.labelMedium)
                     Spacer(Modifier.width(Spacing.xs))
-                    Text(replyingTo.body.take(80), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                    Text(replyingTo.body.take(Limits.previewCharsShort), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
                     TextButton(onClick = onCancelReply) { Text("Cancel") }
                 }
             }

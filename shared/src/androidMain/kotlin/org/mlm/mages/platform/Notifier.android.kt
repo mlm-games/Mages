@@ -42,11 +42,16 @@ actual object Notifier {
             }
         }
 
+        val activeCount = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            mgr.activeNotifications.count { it.notification.channelId == CHANNEL_ID }
+        } else 0
+
         val n = NotificationCompat.Builder(ctx, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_monochrome)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setNumber(activeCount + 1)
             .setAutoCancel(true)
             .build()
 

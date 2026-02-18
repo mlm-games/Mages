@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.SearchHit
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatTime
+import mages.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun RoomSearchSheet(
@@ -55,7 +57,7 @@ fun RoomSearchSheet(
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.lg)
                     .focusRequester(focusRequester),
-                placeholder = { Text("Search in this room...") },
+                placeholder = { Text(stringResource(Res.string.search_in_this_room)) },
                 leadingIcon = { Icon(Icons.Default.Search, null) },
                 trailingIcon = {
                     if (query.isNotEmpty()) {
@@ -104,7 +106,7 @@ fun RoomSearchSheet(
                             )
                             Spacer(Modifier.height(Spacing.md))
                             Text(
-                                "No results found",
+                                stringResource(Res.string.search_no_results_found),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -114,7 +116,7 @@ fun RoomSearchSheet(
 
                 results.isNotEmpty() -> {
                     Text(
-                        text = "${results.size} results",
+                        text = stringResource(Res.string.search_results_count, results.size),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = Spacing.lg)
@@ -168,7 +170,7 @@ fun RoomSearchSheet(
                                         )
                                         Spacer(Modifier.width(Spacing.sm))
                                     }
-                                    Text("Load more")
+                                    Text(stringResource(Res.string.search_load_more))
                                 }
                             }
                         }
@@ -183,7 +185,7 @@ fun RoomSearchSheet(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "Enter at least 2 characters to search",
+                            stringResource(Res.string.search_min_chars),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

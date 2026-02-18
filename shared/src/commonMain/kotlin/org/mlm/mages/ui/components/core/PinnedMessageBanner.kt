@@ -12,6 +12,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.ui.theme.Spacing
+import org.mlm.mages.ui.theme.Limits
 
 /**
  * Currently displays the first pinned message with option to view all added later.
@@ -58,7 +59,7 @@ fun PinnedMessageBanner(
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                     Text(
-                        text = pinnedEvent.body.take(80),
+                        text = pinnedEvent.body.take(Limits.previewCharsShort),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                         maxLines = 1,

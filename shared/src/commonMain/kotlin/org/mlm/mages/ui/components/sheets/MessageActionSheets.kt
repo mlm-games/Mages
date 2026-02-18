@@ -10,7 +10,7 @@ import androidx.compose.material.icons.automirrored.filled.Forward
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.SendState
 import org.mlm.mages.ui.theme.Spacing
+import org.mlm.mages.ui.theme.Limits
 
 private val quickReactions = listOf("👍", "❤️", "😂", "😮", "😢", "🎉", "🔥", "💀")
 
@@ -49,12 +50,24 @@ fun MessageActionSheet(
     onForward: (() -> Unit)? = null,
 ) {
     val clipboard = LocalClipboardManager.current
+    var showEmojiPicker by remember { mutableStateOf(false) }
+
+    if (showEmojiPicker) {
+        EmojiPickerSheet(
+            onEmojiSelected = { emoji -> onReact(emoji); onDismiss() },
+            onDismiss = { showEmojiPicker = false }
+        )
+        return
+    }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(bottom = Spacing.xxl)) {
             MessagePreview(event)
             Spacer(Modifier.height(Spacing.lg))
-            QuickReactionsRow(onReact = { emoji -> onReact(emoji); onDismiss() })
+            QuickReactionsRow(
+                onReact = { emoji -> onReact(emoji); onDismiss() },
+                onOpenPicker = { showEmojiPicker = true }
+            )
             Spacer(Modifier.height(Spacing.lg))
             HorizontalDivider(Modifier.padding(horizontal = Spacing.lg))
             Spacer(Modifier.height(Spacing.sm))
@@ -99,19 +112,26 @@ private fun MessagePreview(event: MessageEvent) {
         Column(Modifier.padding(Spacing.md)) {
             Text(event.sender, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(Spacing.xs))
-            Text(event.body.take(150), style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            Text(event.body.take(Limits.previewCharsLong), style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)
         }
     }
 }
 
 @Composable
-private fun QuickReactionsRow(onReact: (String) -> Unit) {
+private fun QuickReactionsRow(onReact: (String) -> Unit, onOpenPicker: () -> Unit) {
     Text("Quick reactions", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = Spacing.lg), fontWeight = FontWeight.Medium)
     Spacer(Modifier.height(Spacing.sm))
     LazyRow(contentPadding = PaddingValues(horizontal = Spacing.lg), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         items(quickReactions) { emoji ->
             Surface(onClick = { onReact(emoji) }, shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.size(48.dp)) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(emoji, fontSize = 20.sp) }
+            }
+        }
+        item {
+            Surface(onClick = onOpenPicker, shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.size(48.dp)) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Add, contentDescription = "More emoji", modifier = Modifier.size(20.dp))
+                }
             }
         }
     }

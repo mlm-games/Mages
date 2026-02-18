@@ -22,6 +22,7 @@ import org.mlm.mages.ui.LastMessageType
 import org.mlm.mages.ui.RoomListItemUi
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.theme.Spacing
+import org.mlm.mages.ui.theme.Limits
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -58,7 +59,7 @@ fun RoomListItem(
                             .offset(x = 4.dp, y = (-4).dp)
                     ) {
                         Text(
-                            if (item.unreadCount > 99) "99+" else item.unreadCount.toString(),
+                        if (item.unreadCount > Limits.unreadBadgeCap) "${Limits.unreadBadgeCap}+" else item.unreadCount.toString(),
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
@@ -177,7 +178,7 @@ private fun formatMessagePreview(
 
     return when (type) {
         LastMessageType.Text -> {
-            val text = body?.take(100)?.replace('\n', ' ') ?: "No messages yet"
+            val text = body?.take(Limits.previewCharsMedium)?.replace('\n', ' ') ?: "No messages yet"
             MessagePreview(text = senderPrefix + text)
         }
         LastMessageType.Image -> MessagePreview(
@@ -219,7 +220,7 @@ private fun formatMessagePreview(
             text = senderPrefix + "Message deleted"
         )
         LastMessageType.Unknown -> MessagePreview(
-            text = body?.take(100)?.replace('\n', ' ') ?: "Message"
+            text = body?.take(Limits.previewCharsMedium)?.replace('\n', ' ') ?: "Message"
         )
     }
 }

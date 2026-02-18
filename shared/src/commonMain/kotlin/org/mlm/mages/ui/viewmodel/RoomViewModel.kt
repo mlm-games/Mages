@@ -17,6 +17,7 @@ import org.mlm.mages.platform.platformEmbeddedElementCallParentUrlOrNull
 import org.mlm.mages.platform.platformEmbeddedElementCallUrlOrNull
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.ForwardableRoom
+import org.mlm.mages.ui.theme.Durations
 import org.mlm.mages.ui.RoomUiState
 import org.mlm.mages.ui.components.AttachmentData
 import org.mlm.mages.ui.util.mimeToExtension
@@ -174,7 +175,7 @@ class RoomViewModel(
 
         draftJob?.cancel()
         draftJob = launch {
-            delay(1000)
+            delay(Durations.draftSaveDebounce)
             saveDraft(currentState.roomId, value)
         }
 
@@ -187,7 +188,7 @@ class RoomViewModel(
                 runSafe { service.port.setTyping(currentState.roomId, false) }
             } else {
                 runSafe { service.port.setTyping(currentState.roomId, true) }
-                delay(4000)
+                delay(Durations.typingTimeout)
                 runSafe { service.port.setTyping(currentState.roomId, false) }
             }
         }
