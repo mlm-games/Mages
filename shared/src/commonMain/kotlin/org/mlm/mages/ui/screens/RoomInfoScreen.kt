@@ -24,7 +24,10 @@ import org.mlm.mages.matrix.RoomPowerLevels
 import org.mlm.mages.matrix.RoomProfile
 import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.ui.components.dialogs.ConfirmationDialog
+import org.mlm.mages.ui.components.dialogs.InviteUserDialog
 import org.mlm.mages.ui.components.sheets.GranularPermissionsSheet
+import org.mlm.mages.ui.components.sheets.MemberActionsSheet
+import org.mlm.mages.ui.components.sheets.MemberListSheet
 import org.mlm.mages.ui.components.sheets.PowerLevelsSheet
 import org.mlm.mages.ui.components.sheets.ReportContentDialog
 import org.mlm.mages.ui.components.sheets.RoomAliasesSheet
@@ -77,7 +80,19 @@ fun RoomInfoRoute(
         onApplyPowerLevelChanges = viewModel::applyPowerLevelChanges,
         onReportRoom = viewModel::reportRoom,
         onOpenRoom = viewModel::openRoom,
-        onOpenMediaGallery = onOpenMediaGallery
+        onOpenMediaGallery = onOpenMediaGallery,
+        onShowMembers = viewModel::showMembers,
+        onHideMembers = viewModel::hideMembers,
+        onSelectMember = viewModel::selectMemberForAction,
+        onClearSelectedMember = viewModel::clearSelectedMember,
+        onKickUser = viewModel::kickUser,
+        onBanUser = viewModel::banUser,
+        onUnbanUser = viewModel::unbanUser,
+        onIgnoreUser = viewModel::ignoreUser,
+        onStartDm = viewModel::startDmWith,
+        onShowInviteDialog = viewModel::showInviteDialog,
+        onHideInviteDialog = viewModel::hideInviteDialog,
+        onInviteUser = viewModel::inviteUser
     )
 }
 
@@ -102,7 +117,19 @@ fun RoomInfoScreen(
     onApplyPowerLevelChanges: (RoomPowerLevelChanges) -> Unit,
     onReportRoom: (String?) -> Unit,
     onOpenRoom: (String) -> Unit,
-    onOpenMediaGallery: () -> Unit
+    onOpenMediaGallery: () -> Unit,
+    onShowMembers: () -> Unit,
+    onHideMembers: () -> Unit,
+    onSelectMember: (MemberSummary) -> Unit,
+    onClearSelectedMember: () -> Unit,
+    onKickUser: (String, String?) -> Unit,
+    onBanUser: (String, String?) -> Unit,
+    onUnbanUser: (String, String?) -> Unit,
+    onIgnoreUser: (String) -> Unit,
+    onStartDm: (String) -> Unit,
+    onShowInviteDialog: () -> Unit,
+    onHideInviteDialog: () -> Unit,
+    onInviteUser: (String) -> Unit
 ) {
     var showLeaveDialog by remember { mutableStateOf(false) }
     var showAliasesSheet by remember { mutableStateOf(false) }
@@ -214,7 +241,7 @@ fun RoomInfoScreen(
                             icon = Icons.Default.People,
                             title = "Members",
                             subtitle = "${state.members.size} members",
-                            onClick = { showPowerLevelsSheet = true }
+                            onClick = onShowMembers
                         )
                         HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                         SettingsNavRow(
@@ -314,6 +341,13 @@ fun RoomInfoScreen(
                                 title = "Room permissions",
                                 subtitle = "Configure what each role can do",
                                 onClick = { showGranularPermissionsSheet = true }
+                            )
+                            HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
+                            SettingsNavRow(
+                                icon = Icons.Default.Shield,
+                                title = "Manage roles",
+                                subtitle = "Change member power levels",
+                                onClick = { showPowerLevelsSheet = true }
                             )
                             HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                             SettingsNavRow(
@@ -432,6 +466,38 @@ fun RoomInfoScreen(
             ReportContentDialog(
                 onReport = { reason -> onReportRoom(reason); showReportDialog = false },
                 onDismiss = { showReportDialog = false }
+            )
+        }
+
+        if (state.showMembers) {
+            MemberListSheet(
+                members = state.members,
+                isLoading = false,
+                myUserId = state.myUserId,
+                onDismiss = onHideMembers,
+                onMemberClick = onSelectMember,
+                onInvite = onShowInviteDialog
+            )
+        }
+
+        state.selectedMemberForAction?.let { member ->
+            MemberActionsSheet(
+                member = member,
+                onDismiss = onClearSelectedMember,
+                onStartDm = { onStartDm(member.userId) },
+                onKick = { reason -> onKickUser(member.userId, reason) },
+                onBan = { reason -> onBanUser(member.userId, reason) },
+                onUnban = { reason -> onUnbanUser(member.userId, reason) },
+                onIgnore = { onIgnoreUser(member.userId) },
+                canModerate = state.canKick || state.canBan,
+                isBanned = member.membership == "ban"
+            )
+        }
+
+        if (state.showInviteDialog) {
+            InviteUserDialog(
+                onInvite = onInviteUser,
+                onDismiss = onHideInviteDialog
             )
         }
     }

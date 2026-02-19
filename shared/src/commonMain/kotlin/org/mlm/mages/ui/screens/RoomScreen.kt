@@ -39,7 +39,6 @@ import org.mlm.mages.ui.components.attachment.AttachmentProgress
 import org.mlm.mages.ui.components.composer.ActionBanner
 import org.mlm.mages.ui.components.composer.MessageComposer
 import org.mlm.mages.ui.components.core.*
-import org.mlm.mages.ui.components.dialogs.InviteUserDialog
 import org.mlm.mages.ui.components.dialogs.ReportContentDialog
 import org.mlm.mages.ui.components.message.MessageBubble
 import org.mlm.mages.ui.components.message.MessageStatusLine
@@ -258,7 +257,6 @@ fun RoomScreen(
                     onBack = onBack,
                     onOpenInfo = onOpenInfo,
                     onOpenNotifications = viewModel::showNotificationSettings,
-                    onOpenMembers = viewModel::showMembers,
                     onOpenSearch = viewModel::showRoomSearch,
                     onStartCall = onStartCall,
                     hasActiveCall = state.hasActiveCallForRoom,
@@ -516,38 +514,6 @@ fun RoomScreen(
         )
     }
 
-    if (state.showMembers) {
-        MemberListSheet(
-            members = state.members,
-            isLoading = state.isLoadingMembers,
-            myUserId = state.myUserId,
-            onDismiss = viewModel::hideMembers,
-            onMemberClick = viewModel::selectMemberForAction,
-            onInvite = viewModel::showInviteDialog
-        )
-    }
-
-    state.selectedMemberForAction?.let { member ->
-        MemberActionsSheet(
-            member = member,
-            onDismiss = viewModel::clearSelectedMember,
-            onStartDm = { viewModel.startDmWith(member.userId) },
-            onKick = { reason -> viewModel.kickUser(member.userId, reason) },
-            onBan = { reason -> viewModel.banUser(member.userId, reason) },
-            onUnban = { reason -> viewModel.unbanUser(member.userId, reason) },
-            onIgnore = { viewModel.ignoreUser(member.userId) },
-            canModerate = state.canKick || state.canBan,
-            isBanned = member.membership == "ban"
-        )
-    }
-
-    if (state.showInviteDialog) {
-        InviteUserDialog(
-            onInvite = viewModel::inviteUser,
-            onDismiss = viewModel::hideInviteDialog
-        )
-    }
-
     sheetEvent?.let { event ->
         val isMine = event.sender == state.myUserId
         val isPinned = event.eventId in state.pinnedEventIds
@@ -642,7 +608,6 @@ private fun RoomTopBar(
     onBack: () -> Unit,
     onOpenInfo: () -> Unit,
     onOpenNotifications: () -> Unit,
-    onOpenMembers: () -> Unit,
     onOpenSearch: () -> Unit,
     onStartCall: () -> Unit,
 ) {
@@ -702,9 +667,6 @@ private fun RoomTopBar(
                     }
                     IconButton(onClick = onOpenNotifications) {
                         Icon(Icons.Default.Notifications, stringResource(Res.string.notifications_room))
-                    }
-                    IconButton(onClick = onOpenMembers) {
-                        Icon(Icons.Default.People, stringResource(Res.string.members_room))
                     }
                     IconButton(onClick = onOpenInfo) {
                         Icon(Icons.Default.Info, stringResource(Res.string.room_info_short))
@@ -829,7 +791,7 @@ private fun MessageItem(
     event: MessageEvent,
     index: Int,
     events: List<MessageEvent>,
-    state: org.mlm.mages.ui.RoomUiState,
+    state: RoomUiState,
     lastOutgoingIndex: Int,
     seenByNames: List<String>,
     onLongPress: () -> Unit,

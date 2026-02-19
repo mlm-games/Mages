@@ -40,7 +40,6 @@ data class RoomInfoUiState(
     val notificationMode: RoomNotificationMode? = null,
     val isLoadingNotificationMode: Boolean = false,
 
-    // Power level permissions
     val myPowerLevel: Long = 0L,
     val powerLevels: RoomPowerLevels? = null,
     val canEditName: Boolean = false,
@@ -49,6 +48,12 @@ data class RoomInfoUiState(
     val canBan: Boolean = false,
     val canInvite: Boolean = false,
     val canRedact: Boolean = false,
+    val canKick: Boolean = false,
+
+    val myUserId: String? = null,
+    val showMembers: Boolean = false,
+    val selectedMemberForAction: MemberSummary? = null,
+    val showInviteDialog: Boolean = false,
 )
 
 class RoomInfoViewModel(
@@ -102,10 +107,9 @@ class RoomInfoViewModel(
             val canBan = runSafe { service.port.canUserBan(roomId, myUserId) } ?: false
             val canInvite = runSafe { service.port.canUserInvite(roomId, myUserId) } ?: false
             val canRedact = runSafe { service.port.canUserRedactOther(roomId, myUserId) } ?: false
-            // Matrix defaults: state_default = 50 for name/topic changes
+            val canKick = powerLevel >= 50
             val canEditName = powerLevel >= 50
             val canEditTopic = powerLevel >= 50
-            // Managing settings (visibility, encryption) typically requires higher power
             val canManageSettings = powerLevel >= 100
 
             updateState {
@@ -130,7 +134,9 @@ class RoomInfoViewModel(
                     canManageSettings = canManageSettings,
                     canBan = canBan,
                     canInvite = canInvite,
-                    canRedact = canRedact
+                    canRedact = canRedact,
+                    canKick = canKick,
+                    myUserId = myUserId
                 )
             }
 
@@ -429,6 +435,95 @@ class RoomInfoViewModel(
         launch {
             val profile = runSafe { service.port.roomProfile(roomId) }
             _events.send(Event.OpenRoom(roomId, profile?.name ?: roomId))
+        }
+    }
+
+    fun showMembers() = updateState { copy(showMembers = true) }
+
+    fun hideMembers() = updateState { copy(showMembers = false, selectedMemberForAction = null) }
+
+    fun selectMemberForAction(member: MemberSummary) = updateState { copy(selectedMemberForAction = member) }
+
+    fun clearSelectedMember() = updateState { copy(selectedMemberForAction = null) }
+
+    fun showInviteDialog() = updateState { copy(showInviteDialog = true) }
+
+    fun hideInviteDialog() = updateState { copy(showInviteDialog = false) }
+
+    fun kickUser(userId: String, reason: String? = null) {
+        launch {
+            val ok = runSafe { service.port.kickUser(roomId, userId, reason) } ?: false
+            if (ok) {
+                updateState { copy(selectedMemberForAction = null) }
+                refresh()
+                _events.send(Event.ShowSuccess("User removed from room"))
+            } else {
+                _events.send(Event.ShowError("Failed to remove user"))
+            }
+        }
+    }
+
+    fun banUser(userId: String, reason: String? = null) {
+        launch {
+            val ok = runSafe { service.port.banUser(roomId, userId, reason) } ?: false
+            if (ok) {
+                updateState { copy(selectedMemberForAction = null) }
+                refresh()
+                _events.send(Event.ShowSuccess("User banned"))
+            } else {
+                _events.send(Event.ShowError("Failed to ban user"))
+            }
+        }
+    }
+
+    fun unbanUser(userId: String, reason: String? = null) {
+        launch {
+            val ok = runSafe { service.port.unbanUser(roomId, userId, reason) } ?: false
+            if (ok) {
+                updateState { copy(selectedMemberForAction = null) }
+                refresh()
+                _events.send(Event.ShowSuccess("User unbanned"))
+            } else {
+                _events.send(Event.ShowError("Failed to unban user"))
+            }
+        }
+    }
+
+    fun ignoreUser(userId: String) {
+        launch {
+            val ok = runSafe { service.port.ignoreUser(userId) } ?: false
+            if (ok) {
+                updateState { copy(selectedMemberForAction = null) }
+                _events.send(Event.ShowSuccess("User ignored"))
+            } else {
+                _events.send(Event.ShowError("Failed to ignore user"))
+            }
+        }
+    }
+
+    fun startDmWith(userId: String) {
+        launch {
+            val dmRoomId = runSafe { service.port.ensureDm(userId) }
+            if (dmRoomId != null) {
+                updateState { copy(selectedMemberForAction = null, showMembers = false) }
+                val profile = runSafe { service.port.roomProfile(dmRoomId) }
+                _events.send(Event.OpenRoom(dmRoomId, profile?.name ?: userId))
+            } else {
+                _events.send(Event.ShowError("Failed to start conversation"))
+            }
+        }
+    }
+
+    fun inviteUser(userId: String) {
+        launch {
+            val ok = runSafe { service.port.inviteUser(roomId, userId) } ?: false
+            if (ok) {
+                updateState { copy(showInviteDialog = false) }
+                refresh()
+                _events.send(Event.ShowSuccess("Invitation sent"))
+            } else {
+                _events.send(Event.ShowError("Failed to send invitation"))
+            }
         }
     }
 }

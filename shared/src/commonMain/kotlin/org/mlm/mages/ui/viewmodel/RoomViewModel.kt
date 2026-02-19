@@ -156,20 +156,6 @@ class RoomViewModel(
     fun showNotificationSettings() = updateState { copy(showNotificationSettings = true) }
     fun hideNotificationSettings() = updateState { copy(showNotificationSettings = false) }
 
-    fun showMembers() {
-        updateState { copy(showMembers = true, isLoadingMembers = true) }
-        loadMembers()
-    }
-    fun hideMembers() = updateState { copy(showMembers = false, selectedMemberForAction = null) }
-
-    fun selectMemberForAction(member: MemberSummary) = updateState { copy(selectedMemberForAction = member) }
-    fun clearSelectedMember() = updateState { copy(selectedMemberForAction = null) }
-
-    fun showInviteDialog() = updateState { copy(showInviteDialog = true) }
-    fun hideInviteDialog() = updateState { copy(showInviteDialog = false) }
-
-    //  Message Input
-
     fun setInput(value: String) {
         updateState { copy(input = value) }
 
@@ -932,107 +918,6 @@ class RoomViewModel(
         }
     }
 
-    //  Members & Moderation
-
-    private fun loadMembers() {
-        launch {
-            val members = runSafe { service.port.listMembers(currentState.roomId) } ?: emptyList()
-            updateState { copy(members = members, isLoadingMembers = false) }
-
-            members.forEach { m ->
-                val mxc = m.avatarUrl ?: return@forEach
-                if (!mxc.startsWith("mxc://")) return@forEach
-
-                launch {
-                    val path = service.avatars.resolve(mxc, px = 64, crop = true) ?: return@launch
-                    updateState {
-                        copy(
-                            members = this.members.map { mm ->
-                                if (mm.userId == m.userId) mm.copy(avatarUrl = path) else mm
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    fun kickUser(userId: String, reason: String? = null) {
-        launch {
-            val ok = service.port.kickUser(currentState.roomId, userId, reason)
-            if (ok) {
-                updateState { copy(selectedMemberForAction = null) }
-                loadMembers()
-                _events.send(Event.ShowSuccess("User removed from room"))
-            } else {
-                _events.send(Event.ShowError("Failed to remove user"))
-            }
-        }
-    }
-
-    fun banUser(userId: String, reason: String? = null) {
-        launch {
-            val ok = service.port.banUser(currentState.roomId, userId, reason)
-            if (ok) {
-                updateState { copy(selectedMemberForAction = null) }
-                loadMembers()
-                _events.send(Event.ShowSuccess("User banned"))
-            } else {
-                _events.send(Event.ShowError("Failed to ban user"))
-            }
-        }
-    }
-
-    fun unbanUser(userId: String, reason: String? = null) {
-        launch {
-            val ok = service.port.unbanUser(currentState.roomId, userId, reason)
-            if (ok) {
-                updateState { copy(selectedMemberForAction = null) }
-                loadMembers()
-                _events.send(Event.ShowSuccess("User unbanned"))
-            } else {
-                _events.send(Event.ShowError("Failed to unban user"))
-            }
-        }
-    }
-
-    fun inviteUser(userId: String) {
-        launch {
-            val ok = service.port.inviteUser(currentState.roomId, userId)
-            if (ok) {
-                updateState { copy(showInviteDialog = false) }
-                loadMembers()
-                _events.send(Event.ShowSuccess("Invitation sent"))
-            } else {
-                _events.send(Event.ShowError("Failed to invite user"))
-            }
-        }
-    }
-
-    fun ignoreUser(userId: String) {
-        launch {
-            val ok = service.port.ignoreUser(userId)
-            if (ok) {
-                updateState { copy(selectedMemberForAction = null) }
-                _events.send(Event.ShowSuccess("User ignored"))
-            } else {
-                _events.send(Event.ShowError("Failed to ignore user"))
-            }
-        }
-    }
-
-    fun startDmWith(userId: String) {
-        launch {
-            val dmId = runSafe { service.port.ensureDm(userId) }
-            if (dmId != null) {
-                updateState { copy(selectedMemberForAction = null, showMembers = false) }
-                _events.send(Event.NavigateToRoom(dmId, userId))
-            } else {
-                _events.send(Event.ShowError("Failed to start conversation"))
-            }
-        }
-    }
-
     fun startForward(event: MessageEvent) {
         updateState {
             copy(
@@ -1343,37 +1228,8 @@ class RoomViewModel(
     private fun observeLiveLocation() {
         val token = service.port.observeLiveLocation(currentState.roomId) { shares ->
             updateState { copy(liveLocationShares = shares.associateBy { it.userId }) }
-
-            val active = shares.filter { it.isLive }.map { it.userId }.toSet()
-            if (active.isNotEmpty()) {
-                ensureAvatarsForUsers(active)
-            }
         }
         updateState { copy(liveLocationSubToken = token) }
-    }
-
-    private fun ensureAvatarsForUsers(userIds: Set<String>) {
-        launch {
-            if (currentState.members.isEmpty()) {
-                val members = runSafe { service.port.listMembers(currentState.roomId) } ?: emptyList()
-                updateState { copy(members = members) }
-            }
-
-            val targets = currentState.members.filter { it.userId in userIds }
-            targets.forEach { m ->
-                val mxc = m.avatarUrl ?: return@forEach
-                if (!mxc.startsWith("mxc://")) return@forEach
-
-                val path = service.avatars.resolve(mxc, px = 48, crop = true) ?: return@forEach
-                updateState {
-                    copy(
-                        members = this.members.map { mm ->
-                            if (mm.userId == m.userId) mm.copy(avatarUrl = path) else mm
-                        }
-                    )
-                }
-            }
-        }
     }
 
     private fun recomputeDerived() {

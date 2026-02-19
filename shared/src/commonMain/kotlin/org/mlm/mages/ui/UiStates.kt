@@ -4,7 +4,6 @@ import org.mlm.mages.MessageEvent
 import org.mlm.mages.RoomSummary
 import org.mlm.mages.matrix.DeviceSummary
 import org.mlm.mages.matrix.LiveLocationShare
-import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.Presence
 import org.mlm.mages.matrix.ReactionChip
 import org.mlm.mages.matrix.RoomNotificationMode
@@ -84,16 +83,10 @@ data class RoomUiState(
     val successor: RoomUpgradeInfo? = null,
     val predecessor: RoomPredecessorInfo? = null,
 
-    val members: List<MemberSummary> = emptyList(),
-    val isLoadingMembers: Boolean = false,
-
     val showAttachmentPicker: Boolean = false,
     val showPollCreator: Boolean = false,
     val showLiveLocation: Boolean = false,
     val showNotificationSettings: Boolean = false,
-    val showMembers: Boolean = false,
-    val selectedMemberForAction: MemberSummary? = null,
-    val showInviteDialog: Boolean = false,
 
     val showForwardPicker: Boolean = false,
     val forwardingEvent: MessageEvent? = null,
