@@ -34,7 +34,7 @@ This is experimental‑stage software. If you use it, assume things may break. (
   - Other package formats (Snap) may follow.
 
 - **Other platforms**  
-  - The UI is Compose Multiplatform. In practice, only Android + Linux AppImage are actively tested. Windows and Mac are tested rarely and are not signed.
+  - The UI is Compose Multiplatform. In practice, only Android and Linux's AppImages are actively tested. Windows and Mac are tested rarely and are not signed.
 
 ## Architecture
 
