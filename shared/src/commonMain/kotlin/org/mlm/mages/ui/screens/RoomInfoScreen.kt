@@ -11,6 +11,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.RoomDirectoryVisibility
@@ -47,15 +50,9 @@ fun RoomInfoRoute(
         viewModel.events.collect { event ->
             when (event) {
                 RoomInfoViewModel.Event.LeaveSuccess -> onLeaveSuccess()
-                is RoomInfoViewModel.Event.OpenRoom -> {
-                    // handled in App.kt
-                }
-                is RoomInfoViewModel.Event.ShowError -> {
-                    snackbarManager.showError(event.message)
-                }
-                is RoomInfoViewModel.Event.ShowSuccess -> {
-                    snackbarManager.show(event.message)
-                }
+                is RoomInfoViewModel.Event.OpenRoom -> { /* handled in App.kt */ }
+                is RoomInfoViewModel.Event.ShowError -> snackbarManager.showError(event.message)
+                is RoomInfoViewModel.Event.ShowSuccess -> snackbarManager.show(event.message)
             }
         }
     }
@@ -71,7 +68,6 @@ fun RoomInfoRoute(
         onToggleFavourite = viewModel::toggleFavourite,
         onToggleLowPriority = viewModel::toggleLowPriority,
         onLeave = viewModel::leave,
-        onLeaveSuccess = onLeaveSuccess,
         onSetVisibility = viewModel::setDirectoryVisibility,
         onEnableEncryption = viewModel::enableEncryption,
         onSetJoinRule = viewModel::setJoinRule,
@@ -79,9 +75,8 @@ fun RoomInfoRoute(
         onUpdateAliases = viewModel::updateCanonicalAlias,
         onUpdatePowerLevel = viewModel::updatePowerLevel,
         onApplyPowerLevelChanges = viewModel::applyPowerLevelChanges,
-        onReportContent = viewModel::reportContent,
         onReportRoom = viewModel::reportRoom,
-        onOpenRoom = { roomId -> viewModel.openRoom(roomId) },
+        onOpenRoom = viewModel::openRoom,
         onOpenMediaGallery = onOpenMediaGallery
     )
 }
@@ -98,7 +93,6 @@ fun RoomInfoScreen(
     onToggleFavourite: () -> Unit,
     onToggleLowPriority: () -> Unit,
     onLeave: () -> Unit,
-    onLeaveSuccess: () -> Unit,
     onSetVisibility: (RoomDirectoryVisibility) -> Unit,
     onEnableEncryption: () -> Unit,
     onSetJoinRule: (RoomJoinRule) -> Unit,
@@ -106,7 +100,6 @@ fun RoomInfoScreen(
     onUpdateAliases: (String?, List<String>) -> Unit,
     onUpdatePowerLevel: (String, Long) -> Unit,
     onApplyPowerLevelChanges: (RoomPowerLevelChanges) -> Unit,
-    onReportContent: (String, Int?, String?) -> Unit,
     onReportRoom: (String?) -> Unit,
     onOpenRoom: (String) -> Unit,
     onOpenMediaGallery: () -> Unit
@@ -116,6 +109,11 @@ fun RoomInfoScreen(
     var showPowerLevelsSheet by remember { mutableStateOf(false) }
     var showGranularPermissionsSheet by remember { mutableStateOf(false) }
     var showReportDialog by remember { mutableStateOf(false) }
+    var showAdvanced by remember { mutableStateOf(false) }
+    val snackbarManager: SnackbarManager = koinInject()
+    val clipboard = LocalClipboardManager.current
+
+    LaunchedEffect(state.error) { state.error?.let { snackbarManager.showError(it) } }
 
     Scaffold(
         topBar = {
@@ -135,225 +133,265 @@ fun RoomInfoScreen(
         }
     ) { padding ->
         if (state.isLoading && state.profile == null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 LoadingIndicator()
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier.fillMaxSize().padding(padding),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Room header
                 item {
-                    RoomHeader(state, onOpenRoom)
+                    ProfileHeader(state)
                 }
 
-                // Priority section
-                item {
-                    SettingsSection(title = "Room Priority") {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            FilterChip(
-                                selected = state.isFavourite,
-                                onClick = onToggleFavourite,
-                                label = { Text("Favourite") },
-                                leadingIcon = {
-                                    Icon(
-                                        if (state.isFavourite) Icons.Default.Star
-                                        else Icons.Default.StarBorder,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                },
-                                enabled = !state.isSaving,
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            FilterChip(
-                                selected = state.isLowPriority,
-                                onClick = onToggleLowPriority,
-                                label = { Text("Low Priority") },
-                                leadingIcon = {
-                                    Icon(
-                                        if (state.isLowPriority) Icons.Default.ArrowDownward
-                                        else Icons.Default.Remove,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                },
-                                enabled = !state.isSaving,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
+                state.successor?.let { successor ->
+                    item {
+                        UpgradeBanner(
+                            title = "This room has been upgraded",
+                            reason = successor.reason,
+                            buttonText = "Go to new room",
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            onAction = { onOpenRoom(successor.roomId) }
+                        )
                     }
                 }
-
-                // Edit name
-                item {
-                    SettingsSection(title = "Room Details") {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            EditableSettingField(
-                                label = "Room name",
-                                value = state.editedName,
-                                onValueChange = onNameChange,
-                                onSave = onSaveName,
-                                enabled = state.canEditName,
-                                isSaving = state.isSaving,
-                                helperText = if (!state.canEditName) "You don't have permission to change the room name" else null
-                            )
-
-                            HorizontalDivider()
-
-                            EditableSettingField(
-                                label = "Topic",
-                                value = state.editedTopic,
-                                onValueChange = onTopicChange,
-                                onSave = onSaveTopic,
-                                enabled = state.canEditTopic,
-                                isSaving = state.isSaving,
-                                singleLine = false,
-                                helperText = if (!state.canEditTopic) "You don't have permission to change the topic" else null
-                            )
-                        }
-                    }
-                }
-
-                item {
-                    RoomSettingsSection(
-                        roomVersion = state.profile?.roomVersion,
-                        joinRule = state.joinRule,
-                        historyVisibility = state.historyVisibility,
-                        isAdminBusy = state.isAdminBusy,
-                        canManageSettings = state.canManageSettings,
-                        onSetJoinRule = onSetJoinRule,
-                        onSetHistoryVisibility = onSetHistoryVisibility
-                    )
-                }
-
-                item {
-                    AliasesSection(
-                        canonicalAlias = state.profile?.canonicalAlias,
-                        altAliases = state.profile?.altAliases ?: emptyList(),
-                        isAdminBusy = state.isAdminBusy,
-                        canManageSettings = state.canManageSettings,
-                        onEditAliases = { showAliasesSheet = true }
-                    )
-                }
-
-                item {
-                    PowerLevelsSection(
-                        myPowerLevel = state.myPowerLevel,
-                        powerLevels = state.powerLevels,
-                        members = state.members,
-                        isAdminBusy = state.isAdminBusy,
-                        canManageSettings = state.canManageSettings,
-                        onManagePowerLevels = { showPowerLevelsSheet = true },
-                        onEditPermissions = { showGranularPermissionsSheet = true }
-                    )
-                }
-
-                // Misc section
-                item {
-                    state.profile?.let { profile ->
-                        MiscSection(
-                            profile = profile,
-                            visibility = state.directoryVisibility,
-                            isAdminBusy = state.isAdminBusy,
-                            canManageSettings = state.canManageSettings,
-                            onSetVisibility = onSetVisibility,
-                            onEnableEncryption = onEnableEncryption
+                state.predecessor?.let { predecessor ->
+                    item {
+                        UpgradeBanner(
+                            title = "Upgraded from another room",
+                            buttonText = "Open previous room",
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            onAction = { onOpenRoom(predecessor.roomId) }
                         )
                     }
                 }
 
-                // Media & Files
                 item {
-                    ElevatedCard(
-                        onClick = onOpenMediaGallery,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.PhotoLibrary,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
+                    QuickActions(
+                        isFavourite = state.isFavourite,
+                        isLowPriority = state.isLowPriority,
+                        isSaving = state.isSaving,
+                        onToggleFavourite = onToggleFavourite,
+                        onToggleLowPriority = onToggleLowPriority
+                    )
+                }
+
+                if (state.canEditName || state.canEditTopic) {
+                    item {
+                        SettingsGroup {
+                            if (state.canEditName) {
+                                EditableSettingField(
+                                    label = "Room name",
+                                    value = state.editedName,
+                                    onValueChange = onNameChange,
+                                    onSave = onSaveName,
+                                    enabled = true,
+                                    isSaving = state.isSaving
                                 )
-                                Text(
-                                    "Media & Files",
-                                    style = MaterialTheme.typography.bodyLarge
+                                if (state.canEditTopic) {
+                                    HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
+                                }
+                            }
+                            if (state.canEditTopic) {
+                                EditableSettingField(
+                                    label = "Topic",
+                                    value = state.editedTopic,
+                                    onValueChange = onTopicChange,
+                                    onSave = onSaveTopic,
+                                    enabled = true,
+                                    isSaving = state.isSaving,
+                                    singleLine = false
                                 )
                             }
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    }
+                }
+
+                item {
+                    SettingsGroup {
+                        SettingsNavRow(
+                            icon = Icons.Default.People,
+                            title = "Members",
+                            subtitle = "${state.members.size} members",
+                            onClick = { showPowerLevelsSheet = true }
+                        )
+                        HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
+                        SettingsNavRow(
+                            icon = Icons.Default.PhotoLibrary,
+                            title = "Media & Files",
+                            onClick = onOpenMediaGallery
+                        )
+                    }
+                }
+
+                val showSecuritySection = state.profile?.let { it.isEncrypted || state.canManageSettings } == true
+                if (showSecuritySection) {
+                    item {
+                        SettingsGroupHeader("Security & Access")
+                        SettingsGroup {
+                            state.profile?.let { profile ->
+                                if (profile.isEncrypted) {
+                                    SettingsInfoRow(
+                                        icon = Icons.Default.Lock,
+                                        title = "Encryption",
+                                        value = "Enabled"
+                                    )
+                                    if (state.canManageSettings) {
+                                        HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
+                                    }
+                                } else if (state.canManageSettings) {
+                                    SettingsActionRow(
+                                        icon = Icons.Default.LockOpen,
+                                        title = "Encryption",
+                                        subtitle = "Not enabled",
+                                        actionText = "Enable",
+                                        enabled = !state.isAdminBusy,
+                                        onClick = onEnableEncryption
+                                    )
+                                    HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
+                                }
+
+                                if (state.canManageSettings) {
+                                    SettingsDropdownRow(
+                                        icon = Icons.Default.MeetingRoom,
+                                        label = "Who can join",
+                                        currentValue = state.joinRule,
+                                        displayName = { it.displayName },
+                                        options = listOf(
+                                            RoomJoinRule.Public to "Public — Anyone can join",
+                                            RoomJoinRule.Invite to "Invite only",
+                                            RoomJoinRule.Knock to "Knock — Request to join"
+                                        ),
+                                        enabled = !state.isAdminBusy,
+                                        canChange = true,
+                                        onSelect = onSetJoinRule
+                                    )
+                                    HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
+                                    SettingsDropdownRow(
+                                        icon = Icons.Default.History,
+                                        label = "Message history",
+                                        currentValue = state.historyVisibility,
+                                        displayName = { it.displayName },
+                                        options = listOf(
+                                            RoomHistoryVisibility.WorldReadable to "Anyone",
+                                            RoomHistoryVisibility.Shared to "All members",
+                                            RoomHistoryVisibility.Joined to "Since joined",
+                                            RoomHistoryVisibility.Invited to "Since invited"
+                                        ),
+                                        enabled = !state.isAdminBusy,
+                                        canChange = true,
+                                        onSelect = onSetHistoryVisibility
+                                    )
+                                    HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
+                                    SettingSwitchRow(
+                                        icon = Icons.Default.Public,
+                                        title = "Listed in room directory",
+                                        checked = state.directoryVisibility == RoomDirectoryVisibility.Public,
+                                        enabled = !state.isAdminBusy,
+                                        onCheckedChange = { checked ->
+                                            onSetVisibility(if (checked) RoomDirectoryVisibility.Public else RoomDirectoryVisibility.Private)
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (state.canManageSettings) {
+                    item {
+                        SettingsGroupHeader("Permissions")
+                        SettingsGroup {
+                            SettingsInfoRow(
+                                icon = Icons.Default.Badge,
+                                title = "Your role",
+                                value = getRoleName(state.myPowerLevel)
+                            )
+                            HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
+                            SettingsNavRow(
+                                icon = Icons.Default.AdminPanelSettings,
+                                title = "Room permissions",
+                                subtitle = "Configure what each role can do",
+                                onClick = { showGranularPermissionsSheet = true }
+                            )
+                            HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
+                            SettingsNavRow(
+                                icon = Icons.Default.Edit,
+                                title = "Room addresses",
+                                subtitle = state.profile?.canonicalAlias ?: "No primary address",
+                                onClick = { showAliasesSheet = true }
                             )
                         }
                     }
                 }
 
                 item {
-                    Button(
-                        onClick = { showReportDialog = true },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.Report, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Report this room")
+                    SettingsGroupHeader("Advanced")
+                    SettingsGroup {
+                        SettingsNavRow(
+                            icon = if (showAdvanced) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            title = if (showAdvanced) "Hide advanced" else "Show advanced",
+                            onClick = { showAdvanced = !showAdvanced }
+                        )
+                        if (showAdvanced) {
+                            HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
+                            SettingsInfoRow(
+                                icon = Icons.Default.Info,
+                                title = "Room version",
+                                value = state.profile?.roomVersion ?: "Unknown"
+                            )
+                            state.profile?.roomId?.let { roomId ->
+                                HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
+                                SettingsCopyRow(
+                                    icon = Icons.Default.Tag,
+                                    title = "Room ID",
+                                    value = roomId,
+                                    onCopy = { clipboard.setText(AnnotatedString(roomId)) }
+                                )
+                            }
+                            state.profile?.canonicalAlias?.let { alias ->
+                                HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
+                                SettingsCopyRow(
+                                    icon = Icons.Default.AlternateEmail,
+                                    title = "Primary address",
+                                    value = alias,
+                                    onCopy = { clipboard.setText(AnnotatedString(alias)) }
+                                )
+                            }
+                            val altCount = state.profile?.altAliases?.size ?: 0
+                            if (altCount > 0) {
+                                HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
+                                SettingsInfoRow(
+                                    icon = Icons.Default.Link,
+                                    title = "Alternative addresses",
+                                    value = "$altCount"
+                                )
+                            }
+                        }
                     }
                 }
 
-                // Leave room button
                 item {
-                    Button(
-                        onClick = { showLeaveDialog = true },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            if (state.profile?.isDm == true) "End conversation"
-                            else "Leave room"
+                    Spacer(Modifier.height(Spacing.lg))
+                    SettingsGroup {
+                        SettingsDangerRow(
+                            icon = Icons.Default.Report,
+                            title = "Report this room",
+                            onClick = { showReportDialog = true }
+                        )
+                        HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
+                        SettingsDangerRow(
+                            icon = Icons.AutoMirrored.Filled.ExitToApp,
+                            title = if (state.profile?.isDm == true) "End conversation" else "Leave room",
+                            onClick = { showLeaveDialog = true }
                         )
                     }
+                    Spacer(Modifier.height(Spacing.lg))
                 }
             }
         }
 
-        // Leave confirmation dialog
         if (showLeaveDialog) {
             ConfirmationDialog(
                 title = "Leave room?",
@@ -361,28 +399,18 @@ fun RoomInfoScreen(
                 confirmText = "Leave",
                 icon = Icons.Default.Warning,
                 isDestructive = true,
-                onConfirm = {
-                    showLeaveDialog = false
-                    onLeave()
-                },
+                onConfirm = { showLeaveDialog = false; onLeave() },
                 onDismiss = { showLeaveDialog = false }
             )
         }
-
-        // Aliases editing sheet
         if (showAliasesSheet) {
             RoomAliasesSheet(
                 canonicalAlias = state.profile?.canonicalAlias,
                 altAliases = state.profile?.altAliases ?: emptyList(),
-                onUpdate = { canonical, alts ->
-                    onUpdateAliases(canonical, alts)
-                    showAliasesSheet = false
-                },
+                onUpdate = { canonical, alts -> onUpdateAliases(canonical, alts); showAliasesSheet = false },
                 onDismiss = { showAliasesSheet = false }
             )
         }
-
-        // Power levels management sheet
         if (showPowerLevelsSheet) {
             PowerLevelsSheet(
                 members = state.members,
@@ -392,8 +420,6 @@ fun RoomInfoScreen(
                 onDismiss = { showPowerLevelsSheet = false }
             )
         }
-
-        // Granular permissions sheet
         if (showGranularPermissionsSheet) {
             GranularPermissionsSheet(
                 powerLevels = state.powerLevels,
@@ -402,527 +428,386 @@ fun RoomInfoScreen(
                 onDismiss = { showGranularPermissionsSheet = false }
             )
         }
-
-        // Report content dialog
         if (showReportDialog) {
             ReportContentDialog(
-                onReport = { reason ->
-                    onReportRoom(reason)
-                    showReportDialog = false
-                },
+                onReport = { reason -> onReportRoom(reason); showReportDialog = false },
                 onDismiss = { showReportDialog = false }
             )
         }
-
-        val snackbarManager: SnackbarManager = koinInject()
-
-        LaunchedEffect(state.error) {
-            state.error?.let {
-                snackbarManager.showError(it)
-            }
-        }
     }
 }
 
+
 @Composable
-private fun RoomHeader(
-    state: RoomInfoUiState,
-    onOpenRoom: (String) -> Unit
-) {
+private fun ProfileHeader(state: RoomInfoUiState) {
     val profile = state.profile ?: return
 
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Avatar(
+            name = profile.name,
+            avatarPath = profile.avatarUrl,
+            size = 80.dp,
+            shape = MaterialTheme.shapes.large
+        )
+        Spacer(Modifier.height(Spacing.md))
         Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = profile.name,
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (profile.isEncrypted) {
+                Icon(Icons.Default.Lock, "Encrypted", Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+            }
+        }
+        profile.canonicalAlias?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+        if (profile.topic?.isNotBlank() == true) {
+            Spacer(Modifier.height(Spacing.sm))
+            Text(
+                text = profile.topic,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 32.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun QuickActions(
+    isFavourite: Boolean,
+    isLowPriority: Boolean,
+    isSaving: Boolean,
+    onToggleFavourite: () -> Unit,
+    onToggleLowPriority: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+    ) {
+        FilterChip(
+            selected = isFavourite,
+            onClick = onToggleFavourite,
+            label = { Text("Favourite") },
+            leadingIcon = {
+                Icon(
+                    if (isFavourite) Icons.Default.Star else Icons.Default.StarBorder,
+                    null, Modifier.size(18.dp)
+                )
+            },
+            enabled = !isSaving
+        )
+        FilterChip(
+            selected = isLowPriority,
+            onClick = onToggleLowPriority,
+            label = { Text("Low Priority") },
+            leadingIcon = {
+                Icon(
+                    if (isLowPriority) Icons.Default.ArrowDownward else Icons.Default.Remove,
+                    null, Modifier.size(18.dp)
+                )
+            },
+            enabled = !isSaving
+        )
+    }
+}
+
+@Composable
+private fun UpgradeBanner(
+    title: String,
+    reason: String? = null,
+    buttonText: String,
+    containerColor: androidx.compose.ui.graphics.Color,
+    onAction: () -> Unit
+) {
+    ElevatedCard(
+        colors = CardDefaults.elevatedCardColors(containerColor = containerColor),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.xs)
+    ) {
+        Column(Modifier.padding(Spacing.md)) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            reason?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(it, style = MaterialTheme.typography.bodySmall)
+            }
+            Spacer(Modifier.height(8.dp))
+            TextButton(onClick = onAction) { Text(buttonText) }
+        }
+    }
+}
+
+/** Groups settings rows inside a card with consistent padding. */
+@Composable
+private fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.md, vertical = Spacing.xs)
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = Spacing.xs),
+            content = content
+        )
+    }
+}
+
+@Composable
+private fun SettingsGroupHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = Spacing.lg, top = Spacing.md, bottom = Spacing.xs)
+    )
+}
+
+/** A row that shows icon + title + subtitle and navigates on click. */
+@Composable
+private fun SettingsNavRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String? = null,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.md, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Avatar(
-                name = profile.name,
-                avatarPath = profile.avatarUrl,
-                size = 64.dp,
-                shape = MaterialTheme.shapes.medium
-            )
-
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = profile.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (profile.isEncrypted) {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = "Encrypted",
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    if (state.isFavourite) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = "Favourite",
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.tertiary
-                        )
-                    }
+            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
+            Spacer(Modifier.width(Spacing.md))
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyLarge)
+                subtitle?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+            }
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** A row showing a label and a static value. */
+@Composable
+private fun SettingsInfoRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    value: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.md, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
+        Spacer(Modifier.width(Spacing.md))
+        Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** A row with a value that can be copied (tap anywhere to copy). */
+@Composable
+private fun SettingsCopyRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    value: String,
+    onCopy: () -> Unit
+) {
+    Surface(
+        onClick = onCopy,
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.md, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
+            Spacer(Modifier.width(Spacing.md))
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    profile.roomId,
+                    value,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                profile.canonicalAlias?.let { alias -> // Remove if excessive (issue)
-                    Text(
-                        text = alias,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
             }
-        }
-    }
-
-    Column(Modifier.fillMaxWidth()) {
-        if (state.successor != null) {
-            ElevatedCard(
-                colors = CardDefaults.elevatedCardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    Text(
-                        "This room has been upgraded",
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    state.successor.reason?.let {
-                        Spacer(Modifier.height(4.dp))
-                        Text(it, style = MaterialTheme.typography.bodySmall)
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    TextButton(onClick = { onOpenRoom(state.successor.roomId) }) {
-                        Text("Go to new room")
-                    }
-                }
-            }
-            Spacer(Modifier.height(Spacing.md))
-        }
-
-        if (state.predecessor != null) {
-            ElevatedCard(
-                colors = CardDefaults.elevatedCardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    Text(
-                        "Upgraded from another room",
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    TextButton(onClick = { onOpenRoom(state.predecessor.roomId) }) {
-                        Text("Open previous room")
-                    }
-                }
-            }
-            Spacer(Modifier.height(Spacing.md))
+            Icon(Icons.Default.ContentCopy, "Copy", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
         }
     }
 }
 
+/** A row with icon + title + optional subtitle, with an action button on the right. */
 @Composable
-private fun MiscSection(
-    profile: RoomProfile,
-    visibility: RoomDirectoryVisibility?,
-    isAdminBusy: Boolean,
-    canManageSettings: Boolean,
-    onSetVisibility: (RoomDirectoryVisibility) -> Unit,
-    onEnableEncryption: () -> Unit,
+private fun SettingsActionRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String? = null,
+    actionText: String,
+    enabled: Boolean = true,
+    onClick: () -> Unit
 ) {
-    SettingsSection(title = "Misc") {
-        val isPublic = visibility == RoomDirectoryVisibility.Public
-
-        SettingSwitchRow(
-            icon = Icons.Default.Public,
-            title = "Listed in room directory",
-            subtitle = if (!canManageSettings) "You don't have permission to change this" else null,
-            checked = isPublic,
-            enabled = canManageSettings && !isAdminBusy,
-            onCheckedChange = { checked ->
-                onSetVisibility(
-                    if (checked) RoomDirectoryVisibility.Public
-                    else RoomDirectoryVisibility.Private
-                )
-            }
-        )
-
-        if (!profile.isEncrypted) {
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-            Box(modifier = Modifier.padding(16.dp)) {
-                Button(
-                    onClick = onEnableEncryption,
-                    enabled = canManageSettings && !isAdminBusy,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (isAdminBusy) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Icon(Icons.Default.Lock, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Enable encryption")
-                    }
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.md, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
+            Spacer(Modifier.width(Spacing.md))
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyLarge)
+                subtitle?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            if (!canManageSettings) {
-                Text(
-                    text = "You don't have the permission to enable encryption",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
+            Text(actionText, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
         }
     }
 }
 
+/** A destructive action row (red tinted). */
 @Composable
-private fun RoomSettingsSection(
-    roomVersion: String?,
-    joinRule: RoomJoinRule?,
-    historyVisibility: RoomHistoryVisibility?,
-    isAdminBusy: Boolean,
-    canManageSettings: Boolean,
-    onSetJoinRule: (RoomJoinRule) -> Unit,
-    onSetHistoryVisibility: (RoomHistoryVisibility) -> Unit
+private fun SettingsDangerRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    onClick: () -> Unit
 ) {
-    var showJoinRuleDropdown by remember { mutableStateOf(false) }
-    var showHistoryVisibilityDropdown by remember { mutableStateOf(false) }
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.md, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(24.dp))
+            Spacer(Modifier.width(Spacing.md))
+            Text(
+                title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.error)
+        }
+    }
+}
 
-    SettingsSection(title = "Room Settings") {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Room Version
+/** Dropdown setting row with icon, matching the grouped list style. */
+@Composable
+private fun <T> SettingsDropdownRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    currentValue: T?,
+    displayName: (T) -> String,
+    options: List<Pair<T, String>>,
+    enabled: Boolean,
+    canChange: Boolean,
+    onSelect: (T) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { if (canChange) expanded = it }
+    ) {
+        Surface(
+            onClick = { if (canChange && enabled) expanded = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+            shape = MaterialTheme.shapes.medium
+        ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.md, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "Room Version",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    roomVersion ?: "Unknown",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // Join Rule
-            ExposedDropdownMenuBox(
-                expanded = showJoinRuleDropdown,
-                onExpandedChange = { showJoinRuleDropdown = it }
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "Who can join",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            joinRule?.displayName ?: "Unknown",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    if (canManageSettings) {
-                        TextButton(
-                            onClick = { showJoinRuleDropdown = true },
-                            enabled = !isAdminBusy,
-                            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable)
-                        ) {
-                            Text("Change")
-                        }
-                    }
-                }
-
-                if (canManageSettings) {
-                    JoinRuleDropdown(
-                        currentRule = joinRule,
-                        expanded = showJoinRuleDropdown,
-                        onSelect = {
-                            onSetJoinRule(it)
-                            showJoinRuleDropdown = false
-                        },
-                        onDismiss = { showJoinRuleDropdown = false }
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // History Visibility
-            ExposedDropdownMenuBox(
-                expanded = showHistoryVisibilityDropdown,
-                onExpandedChange = { showHistoryVisibilityDropdown = it }
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "Message history",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            historyVisibility?.displayName ?: "Unknown",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    if (canManageSettings) {
-                        TextButton(
-                            onClick = { showHistoryVisibilityDropdown = true },
-                            enabled = !isAdminBusy,
-                            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable)
-                        ) {
-                            Text("Change")
-                        }
-                    }
-                }
-
-                if (canManageSettings) {
-                    HistoryVisibilityDropdown(
-                        currentVisibility = historyVisibility,
-                        expanded = showHistoryVisibilityDropdown,
-                        onSelect = {
-                            onSetHistoryVisibility(it)
-                            showHistoryVisibilityDropdown = false
-                        },
-                        onDismiss = { showHistoryVisibilityDropdown = false }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AliasesSection(
-    canonicalAlias: String?,
-    altAliases: List<String>,
-    isAdminBusy: Boolean,
-    canManageSettings: Boolean,
-    onEditAliases: () -> Unit
-) {
-    SettingsSection(title = "Room Addresses") {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Canonical Alias
-            if (canonicalAlias != null) {
-                Text(
-                    "Primary address",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    canonicalAlias,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Spacer(Modifier.height(12.dp))
-            }
-
-            // Alternative Aliases
-            if (altAliases.isNotEmpty()) {
-                Text(
-                    "Alternative addresses (${altAliases.size})",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                altAliases.take(3).forEach { alias ->
+                Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
+                Spacer(Modifier.width(Spacing.md))
+                Column(Modifier.weight(1f)) {
+                    Text(label, style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        alias,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-                if (altAliases.size > 3) {
-                    Text(
-                        "+${altAliases.size - 3} more",
+                        currentValue?.let(displayName) ?: "Unknown",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Spacer(Modifier.height(12.dp))
+                if (canChange) {
+                    Icon(
+                        Icons.Default.ArrowDropDown,
+                        null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-
-            // Edit button
-            if (canManageSettings) {
-                Button(
-                    onClick = onEditAliases,
-                    enabled = !isAdminBusy,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.Edit, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Edit addresses")
+        }
+        if (canChange) {
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                options.forEach { (value, text) ->
+                    DropdownMenuItem(
+                        text = { Text(text) },
+                        onClick = { onSelect(value); expanded = false },
+                        leadingIcon = if (currentValue == value) {
+                            { Icon(Icons.Default.Check, null) }
+                        } else null
+                    )
                 }
             }
         }
     }
 }
 
-@Composable
-private fun PowerLevelsSection(
-    myPowerLevel: Long,
-    powerLevels: RoomPowerLevels?,
-    members: List<MemberSummary>,
-    isAdminBusy: Boolean,
-    canManageSettings: Boolean,
-    onManagePowerLevels: () -> Unit,
-    onEditPermissions: () -> Unit
-) {
-    SettingsSection(title = "Permissions & Roles") {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // My power level
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "Your role",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    getRoleName(myPowerLevel),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            // Member count with custom power levels
-            val membersWithCustomPower = powerLevels?.users?.size ?: 0
-            if (membersWithCustomPower > 0) {
-                Text(
-                    "$membersWithCustomPower members have custom permissions",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(12.dp))
-            }
-
-            // Action buttons
-            if (canManageSettings) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Button(
-                        onClick = onManagePowerLevels,
-                        enabled = !isAdminBusy,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.Default.People, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Users")
-                    }
-                    Button(
-                        onClick = onEditPermissions,
-                        enabled = !isAdminBusy,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.Default.AdminPanelSettings, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Permissions")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun JoinRuleDropdown(
-    currentRule: RoomJoinRule?,
-    expanded: Boolean,
-    onSelect: (RoomJoinRule) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val options = listOf(
-        RoomJoinRule.Public to "Public - Anyone can join",
-        RoomJoinRule.Invite to "Invite only - Only invited users can join",
-        RoomJoinRule.Knock to "Knock - Users can request to join"
-    )
-
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = onDismiss
-    ) {
-        options.forEach { (rule, label) ->
-            DropdownMenuItem(
-                text = { Text(label) },
-                onClick = { onSelect(rule) },
-                leadingIcon = if (currentRule == rule) {
-                    { Icon(Icons.Default.Check, null) }
-                } else null
-            )
-        }
-    }
-}
-
-@Composable
-private fun HistoryVisibilityDropdown(
-    currentVisibility: RoomHistoryVisibility?,
-    expanded: Boolean,
-    onSelect: (RoomHistoryVisibility) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val options = listOf(
-        RoomHistoryVisibility.WorldReadable to "Anyone",
-        RoomHistoryVisibility.Shared to "All members",
-        RoomHistoryVisibility.Joined to "Members since they joined",
-        RoomHistoryVisibility.Invited to "Members since they were invited"
-    )
-
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = onDismiss
-    ) {
-        options.forEach { (visibility, label) ->
-            DropdownMenuItem(
-                text = { Text(label) },
-                onClick = { onSelect(visibility) },
-                leadingIcon = if (currentVisibility == visibility) {
-                    { Icon(Icons.Default.Check, null) }
-                } else null
-            )
-        }
-    }
-}
 
 private fun getRoleName(powerLevel: Long): String = when {
     powerLevel >= 100 -> "Admin"
     powerLevel >= 50 -> "Moderator"
-    powerLevel > 0 -> "Custom"
+    powerLevel > 0 -> "Custom ($powerLevel)"
     else -> "User"
 }
 

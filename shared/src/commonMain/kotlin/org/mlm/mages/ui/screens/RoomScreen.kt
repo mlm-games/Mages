@@ -59,6 +59,7 @@ import java.io.File
 import java.nio.file.Files
 import io.github.mlmgames.settings.core.SettingsRepository
 import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.ui.RoomUiState
 
 @Suppress("NewApi")
 @Composable
@@ -736,7 +737,7 @@ private fun RoomTopBar(
 
 @Composable
 private fun RoomBottomBar(
-    state: org.mlm.mages.ui.RoomUiState,
+    state: RoomUiState,
     onSetInput: (String) -> Unit,
     onSend: () -> Unit,
     onCancelReply: () -> Unit,

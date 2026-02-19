@@ -138,6 +138,28 @@ private fun QuickReactionsRow(onReact: (String) -> Unit, onOpenPicker: () -> Uni
 }
 
 @Composable
-private fun ActionItem(icon: ImageVector, text: String, color: Color = MaterialTheme.colorScheme.onSurface, onClick: () -> Unit) {
-    ListItem(headlineContent = { Text(text, color = color) }, leadingContent = { Icon(icon, null, tint = color) }, modifier = Modifier.clickable { onClick() })
+private fun ActionItem(
+    icon: ImageVector,
+    text: String,
+    color: Color = MaterialTheme.colorScheme.onSurface,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        color = Color.Transparent,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        ListItem(
+            headlineContent = { Text(text, color = color) },
+            leadingContent = {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(24.dp)
+                )
+            },
+            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        )
+    }
 }
