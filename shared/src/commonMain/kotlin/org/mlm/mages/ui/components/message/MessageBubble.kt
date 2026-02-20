@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -40,7 +41,9 @@ fun MessageBubble(
     body: String,
     sender: String?,
     timestamp: Long,
-    grouped: Boolean,
+    groupedWithPrev: Boolean,
+    groupedWithNext: Boolean,
+    isDm: Boolean,
     modifier: Modifier = Modifier,
     reactionChips: List<ReactionChip> = emptyList(),
     eventId: String? = null,
@@ -49,6 +52,8 @@ fun MessageBubble(
     sendState: SendState? = null,
     thumbPath: String? = null,
     attachmentKind: AttachmentKind? = null,
+    attachmentWidth: Int? = null,
+    attachmentHeight: Int? = null,
     durationMs: Long? = null,
     lastReadByOthersTs: Long? = null,
     onLongPress: (() -> Unit)? = null,
@@ -58,15 +63,20 @@ fun MessageBubble(
     poll: PollData? = null,
     onVote: ((String) -> Unit)? = null,
     onEndPoll: (() -> Unit)? = null,
-    onReplyPreviewClick: (() -> Unit)? = null
+    onReplyPreviewClick: (() -> Unit)? = null,
+    threadCount: Int? = null,
+    onOpenThread: (() -> Unit)? = null
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.md, vertical = if (grouped) 2.dp else 6.dp),
+            .padding(
+                horizontal = Spacing.md,
+                vertical = if (groupedWithPrev) 1.dp else 3.dp
+            ),
         horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
     ) {
-        if (!isMine && !grouped && !sender.isNullOrBlank()) {
+        if (!isMine && !isDm && !groupedWithPrev && !sender.isNullOrBlank()) {
             Text(
                 text = sender,
                 style = MaterialTheme.typography.labelSmall,
@@ -76,23 +86,29 @@ fun MessageBubble(
             )
         }
 
-        BubbleWidthWrapper(fractionOfParent = 0.8f) {
+        BubbleWidthWrapper(fractionOfParent = 0.75f) {
             Surface(
                 color = if (isMine) MaterialTheme.colorScheme.primaryContainer
                 else MaterialTheme.colorScheme.secondaryContainer,
-                shape = bubbleShape(isMine, grouped),
+                shape = bubbleShape(isMine, groupedWithPrev, groupedWithNext),
                 tonalElevation = if (isMine) 3.dp else 1.dp,
                 modifier = Modifier
                     .combinedClickable(onClick = {}, onLongClick = onLongPress)
             ) {
                 Column(Modifier.padding(Spacing.md)) {
                     if (!replyPreview.isNullOrBlank()) {
-                        ReplyPreview(replySender, replyPreview, onReplyPreviewClick)
+                        ReplyPreview(isMine, replySender, replyPreview, onReplyPreviewClick)
                         Spacer(Modifier.height(Spacing.sm))
                     }
 
                     AttachmentThumbnail(
-                        thumbPath, attachmentKind, durationMs, isMine, onOpenAttachment
+                        thumbPath = thumbPath,
+                        attachmentKind = attachmentKind,
+                        durationMs = durationMs,
+                        isMine = isMine,
+                        onOpen = onOpenAttachment,
+                        attachmentWidth = attachmentWidth,
+                        attachmentHeight = attachmentHeight
                     )
 
                     if (poll != null) {
@@ -135,30 +151,51 @@ fun MessageBubble(
             }
         }
 
-        ReactionChipsRow(chips = reactionChips, onClick = onReact)
+        if (reactionChips.isNotEmpty()) {
+            ReactionChipsRow(
+                chips = reactionChips,
+                onClick = onReact,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+        }
+
+        if (threadCount != null && threadCount > 0 && onOpenThread != null) {
+            if (reactionChips.isNotEmpty()) {
+                Spacer(Modifier.height(2.dp))
+            }
+            ThreadIndicator(
+                count = threadCount,
+                onClick = onOpenThread
+            )
+        }
     }
 }
 
-private fun bubbleShape(isMine: Boolean, grouped: Boolean) = RoundedCornerShape(
-    topStart = if (!isMine && grouped) 4.dp else 16.dp,
-    topEnd = if (isMine && grouped) 4.dp else 16.dp,
-    bottomStart = if (isMine) 16.dp else 4.dp,
-    bottomEnd = if (!isMine) 16.dp else 4.dp
+private fun bubbleShape(isMine: Boolean, groupedWithPrev: Boolean, groupedWithNext: Boolean) = RoundedCornerShape(
+    topStart = if (!isMine && groupedWithPrev) 4.dp else 16.dp,
+    topEnd = if (isMine && groupedWithPrev) 4.dp else 16.dp,
+    bottomStart = if (!isMine && groupedWithNext) 4.dp else 16.dp,
+    bottomEnd = if (isMine && groupedWithNext) 4.dp else 16.dp
 )
 
 @Composable
-private fun ReplyPreview(sender: String?, body: String, onClick: (() -> Unit)? = null) {
+private fun ReplyPreview(isMine: Boolean, sender: String?, body: String, onClick: (() -> Unit)? = null) {
     Surface(
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
         shape = RoundedCornerShape(8.dp),
         modifier = if (onClick != null) Modifier.clickable { onClick() } else Modifier
     ) {
-        Row(modifier = Modifier.padding(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier
+                .padding(Spacing.sm)
+                .heightIn(min = 32.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Box(
                 modifier = Modifier
-                    .width(3.dp)
-                    .height(24.dp)
-                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
+                    .width(2.dp)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(1.dp))
             )
             Spacer(Modifier.width(Spacing.sm))
             Text(
@@ -181,7 +218,9 @@ private fun AttachmentThumbnail(
     attachmentKind: AttachmentKind?,
     durationMs: Long?,
     isMine: Boolean,
-    onOpen: (() -> Unit)?
+    onOpen: (() -> Unit)?,
+    attachmentWidth: Int? = null,
+    attachmentHeight: Int? = null
 ) {
     if (attachmentKind == null) return
 
@@ -231,11 +270,17 @@ private fun AttachmentThumbnail(
     }
 
     if (thumbPath != null) {
+        val aspectRatio = if ((attachmentWidth ?: 0) > 0 && (attachmentHeight ?: 0) > 0) {
+            attachmentWidth!!.toFloat() / attachmentHeight!!.toFloat()
+        } else null
+
         Box(
             modifier = Modifier
-                .widthIn(max = 600.dp)
-//                .fillMaxWidth()
-                .heightIn(max = 300.dp)
+                .heightIn(min = 120.dp, max = 300.dp)
+                .sizeIn(maxHeight = 300.dp)
+                .then(
+                    if (aspectRatio != null) Modifier.aspectRatio(aspectRatio) else Modifier
+                )
                 .clip(RoundedCornerShape(8.dp))
                 .clickable(enabled = onOpen != null) { onOpen?.invoke() }
         ) {
@@ -248,7 +293,6 @@ private fun AttachmentThumbnail(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
-//                    .widthIn(max = 600.dp)
                     .heightIn(min = 120.dp, max = 300.dp)
             )
 
@@ -272,6 +316,34 @@ private fun AttachmentThumbnail(
             )
         }
         Spacer(Modifier.height(6.dp))
+    }
+}
+
+@Composable
+private fun ThreadIndicator(
+    count: Int,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Forum,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp)
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = if (count == 1) "Reply" else "$count replies",
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
     }
 }
 

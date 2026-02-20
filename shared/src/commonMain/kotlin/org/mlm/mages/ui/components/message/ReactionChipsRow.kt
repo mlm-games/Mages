@@ -7,7 +7,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.ReactionChip
-import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 
 @Composable
@@ -18,7 +17,8 @@ fun ReactionChipsRow(
 ) {
     if (chips.isEmpty()) return
     FlowRow(
-        modifier = modifier.padding(top = Spacing.xs).widthIn(max = Sizes.bubbleMaxWidth),
+        modifier = modifier
+            .padding(top = 2.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {

@@ -39,6 +39,7 @@ data class RoomInfoUiState(
 
     val notificationMode: RoomNotificationMode? = null,
     val isLoadingNotificationMode: Boolean = false,
+    val showNotificationSettings: Boolean = false,
 
     val myPowerLevel: Long = 0L,
     val powerLevels: RoomPowerLevels? = null,
@@ -75,6 +76,30 @@ class RoomInfoViewModel(
         refresh()
     }
 
+    fun showNotificationSettings() = updateState { copy(showNotificationSettings = true) }
+
+    fun hideNotificationSettings() = updateState { copy(showNotificationSettings = false) }
+
+    fun setNotificationMode(mode: RoomNotificationMode) {
+        launch {
+            updateState { copy(isLoadingNotificationMode = true) }
+            val ok = service.port.setRoomNotificationMode(roomId, mode)
+            if (ok) {
+                updateState {
+                    copy(
+                        notificationMode = mode,
+                        showNotificationSettings = false,
+                        isLoadingNotificationMode = false
+                    )
+                }
+                _events.send(Event.ShowSuccess("Notification settings updated"))
+            } else {
+                updateState { copy(isLoadingNotificationMode = false) }
+                _events.send(Event.ShowError("Failed to update notifications"))
+            }
+        }
+    }
+
     fun refresh() {
         launch(onError = {
             updateState { copy(isLoading = false, error = it.message ?: "Failed to load room info") }
@@ -95,6 +120,8 @@ class RoomInfoViewModel(
             val historyVis = runSafe { service.port.roomHistoryVisibility(roomId) }
             val successor = runSafe { service.port.roomSuccessor(roomId) }
             val predecessor = runSafe { service.port.roomPredecessor(roomId) }
+            updateState { copy(isLoadingNotificationMode = true) }
+            val notificationMode = runSafe { service.port.roomNotificationMode(roomId) }
 
             // Fetch power level and calculate permissions
             val myUserId = service.port.whoami() ?: ""
@@ -136,7 +163,9 @@ class RoomInfoViewModel(
                     canInvite = canInvite,
                     canRedact = canRedact,
                     canKick = canKick,
-                    myUserId = myUserId
+                    myUserId = myUserId,
+                    notificationMode = notificationMode,
+                    isLoadingNotificationMode = false
                 )
             }
 

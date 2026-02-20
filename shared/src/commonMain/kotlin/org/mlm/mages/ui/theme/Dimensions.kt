@@ -18,7 +18,6 @@ object Sizes {
     val iconSmall = 16.dp
     val iconMedium = 24.dp
     val iconLarge = 40.dp
-    val bubbleMaxWidth = 340.dp
     val touchTarget = 48.dp
 }
 

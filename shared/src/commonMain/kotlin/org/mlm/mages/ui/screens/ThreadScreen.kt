@@ -260,13 +260,19 @@ fun ThreadScreen(
                                     prevEvent.sender == event.sender &&
                                     (event.timestampMs - prevEvent.timestampMs) < 300_000
 
+                            val nextEvent = state.replies.getOrNull(index + 1)
+                            val groupedWithNext = nextEvent != null &&
+                                    nextEvent.sender == event.sender &&
+                                    (nextEvent.timestampMs - event.timestampMs) < 300_000
+
                             ThreadReplyMessage(
                                 event = event,
                                 isMine = event.sender == myUserId,
                                 reactionChips = state.reactionChips[event.eventId] ?: emptyList(),
                                 onReact = { emoji -> onReact(event, emoji) },
                                 onLongPress = { sheetEvent = event },
-                                grouped = shouldGroup
+                                grouped = shouldGroup,
+                                groupedWithNext = groupedWithNext
                             )
                         }
                     }
@@ -432,11 +438,6 @@ private fun ThreadRootMessage(
                         color = if (isMine) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurface
                     )
-                    Text(
-                        formatTime(event.timestampMs),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
             }
 
@@ -533,7 +534,8 @@ private fun ThreadReplyMessage(
     reactionChips: List<ReactionChip>,
     onReact: (String) -> Unit,
     onLongPress: () -> Unit,
-    grouped: Boolean = false
+    grouped: Boolean = false,
+    groupedWithNext: Boolean = false
 ) {
     Row(
         modifier = Modifier
@@ -563,7 +565,9 @@ private fun ThreadReplyMessage(
                 body = event.body,
                 sender = if (grouped) null else event.senderDisplayName,
                 timestamp = event.timestampMs,
-                grouped = grouped,
+                groupedWithPrev = grouped,
+                groupedWithNext = groupedWithNext,
+                isDm = false,
                 reactionChips = reactionChips,
                 eventId = event.eventId,
                 onReact = onReact,
@@ -571,7 +575,11 @@ private fun ThreadReplyMessage(
                 replyPreview = event.replyToBody,
                 replySender = event.replyToSenderDisplayName,
                 sendState = event.sendState,
-                isEdited = event.isEdited
+                isEdited = event.isEdited,
+                attachmentKind = event.attachment?.kind,
+                attachmentWidth = event.attachment?.width,
+                attachmentHeight = event.attachment?.height,
+                durationMs = event.attachment?.durationMs
             )
         }
     }

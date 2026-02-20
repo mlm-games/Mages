@@ -1,6 +1,9 @@
 package org.mlm.mages.ui.screens
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -24,9 +27,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import kotlinx.coroutines.launch
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.SendState
@@ -239,7 +244,7 @@ fun RoomScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.92f),
         topBar = {
             if (state.isSelectionMode) {
                 SelectionTopBar(
@@ -256,7 +261,6 @@ fun RoomScreen(
                     isOffline = state.isOffline,
                     onBack = onBack,
                     onOpenInfo = onOpenInfo,
-                    onOpenNotifications = viewModel::showNotificationSettings,
                     onOpenSearch = viewModel::showRoomSearch,
                     onStartCall = onStartCall,
                     hasActiveCall = state.hasActiveCallForRoom,
@@ -607,7 +611,6 @@ private fun RoomTopBar(
     hasActiveCall: Boolean,
     onBack: () -> Unit,
     onOpenInfo: () -> Unit,
-    onOpenNotifications: () -> Unit,
     onOpenSearch: () -> Unit,
     onStartCall: () -> Unit,
 ) {
@@ -664,9 +667,6 @@ private fun RoomTopBar(
                         if (hasActiveCall) {
                             Icon(Icons.AutoMirrored.Filled.CallMerge, stringResource(Res.string.join_call))
                         } else Icon(Icons.Default.Call, stringResource(Res.string.start_call))
-                    }
-                    IconButton(onClick = onOpenNotifications) {
-                        Icon(Icons.Default.Notifications, stringResource(Res.string.notifications_room))
                     }
                     IconButton(onClick = onOpenInfo) {
                         Icon(Icons.Default.Info, stringResource(Res.string.room_info_short))
@@ -816,24 +816,16 @@ private fun MessageItem(
     val myId = state.myUserId
     val isFromMe = myId != null && event.sender == myId
 
-    if (!isFromMe) {
-        if (lastReadTs != null) {
-            val prev = events.getOrNull(index - 1)
-            val prevIsFromMe = prev != null && myId != null && prev.sender == myId
-            val prevTs = prev?.timestampMs
+    if (!isFromMe && lastReadTs != null) {
+        val prev = events.getOrNull(index - 1)
+        val prevIsFromMe = prev != null && myId != null && prev.sender == myId
+        val prevTs = prev?.timestampMs
 
-            val justCrossed = timestamp > lastReadTs &&
-                    (prev == null || prevIsFromMe || (prevTs != null && prevTs <= lastReadTs))
+        val justCrossed = timestamp > lastReadTs &&
+                (prev == null || prevIsFromMe || (prevTs != null && prevTs <= lastReadTs))
 
-            if (justCrossed) {
-                UnreadDivider()
-            }
-        } else {
-            val prev = events.getOrNull(index - 1)
-            val prevIsFromOther = prev != null && (myId == null || prev.sender != myId)
-            if (!prevIsFromOther) {
-                UnreadDivider()
-            }
+        if (justCrossed) {
+            UnreadDivider()
         }
     }
 
@@ -843,6 +835,7 @@ private fun MessageItem(
     val shouldGroup = prevEvent != null &&
             prevEvent.sender == event.sender &&
             prevDate == eventDate
+    val nextEvent = events.getOrNull(index + 1)
 
     val isMine = event.sender == state.myUserId
 
@@ -850,9 +843,16 @@ private fun MessageItem(
 
     // Swipe-to-reply state
     var swipeOffsetPx by remember { mutableFloatStateOf(0f) }
+    val animatedSwipeOffsetPx by animateFloatAsState(
+        targetValue = swipeOffsetPx,
+        animationSpec = tween(durationMillis = 180, easing = LinearOutSlowInEasing),
+        label = "replySwipeOffset"
+    )
     val density = LocalDensity.current
     val swipeThresholdPx = remember(density) { with(density) { 72.dp.toPx() } }
     var replyTriggered by remember { mutableStateOf(false) }
+    var hapticTriggered by remember { mutableStateOf(false) }
+    val haptics = LocalHapticFeedback.current
 
     Box(
         modifier = Modifier
@@ -882,10 +882,12 @@ private fun MessageItem(
                         }
                         swipeOffsetPx = 0f
                         replyTriggered = false
+                        hapticTriggered = false
                     },
                     onDragCancel = {
                         swipeOffsetPx = 0f
                         replyTriggered = false
+                        hapticTriggered = false
                     },
                     onHorizontalDrag = { _, dragAmount ->
                         // Only allow right-swipe (positive) for others, left-swipe (negative) for mine
@@ -895,12 +897,19 @@ private fun MessageItem(
                             (swipeOffsetPx + dragAmount).coerceAtLeast(0f)
                         }
                         swipeOffsetPx = newOffset.coerceAtMost(swipeThresholdPx * 1.2f)
+
+                        if (swipeOffsetPx >= swipeThresholdPx && !hapticTriggered) {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            hapticTriggered = true
+                        } else if (swipeOffsetPx < swipeThresholdPx && hapticTriggered) {
+                            hapticTriggered = false
+                        }
                     }
                 )
             }
     ) {
         // Reply icon shown behind the bubble during swipe
-        val iconAlpha = (swipeOffsetPx / swipeThresholdPx).coerceIn(0f, 1f)
+    val iconAlpha = (animatedSwipeOffsetPx / swipeThresholdPx).coerceIn(0f, 1f)
         if (iconAlpha > 0.05f) {
             Box(
                 modifier = Modifier
@@ -917,7 +926,7 @@ private fun MessageItem(
             }
         }
 
-        val bubbleOffset = if (isMine) -swipeOffsetPx else swipeOffsetPx
+        val bubbleOffset = if (isMine) -animatedSwipeOffsetPx else animatedSwipeOffsetPx
         Box(modifier = Modifier.graphicsLayer { translationX = bubbleOffset }) {
 
         MessageBubble(
@@ -925,7 +934,11 @@ private fun MessageItem(
             body = event.body,
             sender = event.senderDisplayName,
             timestamp = timestamp,
-            grouped = shouldGroup,
+            groupedWithPrev = shouldGroup,
+            groupedWithNext = nextEvent != null &&
+                nextEvent.sender == event.sender &&
+                formatDate(nextEvent.timestampMs) == eventDate,
+            isDm = state.isDm,
             reactionChips = chips,
             eventId = event.eventId,
             onLongPress = onLongPress,
@@ -933,6 +946,8 @@ private fun MessageItem(
             lastReadByOthersTs = state.lastIncomingFromOthersTs,
             thumbPath = state.thumbByEvent[event.eventId],
             attachmentKind = event.attachment?.kind,
+            attachmentWidth = event.attachment?.width,
+            attachmentHeight = event.attachment?.height,
             durationMs = event.attachment?.durationMs,
             onOpenAttachment = onOpenAttachment,
             replyPreview = event.replyToBody,
@@ -948,36 +963,13 @@ private fun MessageItem(
             },
             onReplyPreviewClick = event.replyToEventId?.let { rid ->
                 { viewModel.jumpToEvent(rid) }
-            }
+            },
+            threadCount = state.threadCount[event.eventId],
+            onOpenThread = onOpenThread
         )
         } // end bubble offset Box
     } // end outer Box
-
-    val threadCount = state.threadCount[event.eventId]
-
-    if (event.eventId.isNotBlank() && threadCount != null && threadCount > 0) {
-        Row(
-            horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-        ) {
-            TextButton(onClick = onOpenThread) {
-                Icon(
-                    imageVector = Icons.Default.Forum,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(Modifier.width(4.dp))
-                Text(
-                    text = if (threadCount == 1) stringResource(Res.string.reply) else stringResource(Res.string.replies, threadCount),
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
-        }
-    }
-
-    Spacer(Modifier.height(2.dp))
+    Spacer(Modifier.height(1.dp))
 
     // Read / send status for last outgoing message
     if (index == lastOutgoingIndex && lastOutgoingIndex >= 0) {

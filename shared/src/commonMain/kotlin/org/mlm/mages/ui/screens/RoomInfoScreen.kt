@@ -31,13 +31,17 @@ import org.mlm.mages.ui.components.sheets.MemberListSheet
 import org.mlm.mages.ui.components.sheets.PowerLevelsSheet
 import org.mlm.mages.ui.components.sheets.ReportContentDialog
 import org.mlm.mages.ui.components.sheets.RoomAliasesSheet
+import org.mlm.mages.ui.components.sheets.RoomNotificationSheet
 import org.mlm.mages.ui.components.settings.*
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.theme.Spacing
 import org.koin.compose.koinInject
+import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.viewmodel.RoomInfoUiState
 import org.mlm.mages.ui.viewmodel.RoomInfoViewModel
+import org.mlm.mages.matrix.displayName
+import org.mlm.mages.ui.components.sheets.RoomNotificationSheet
 
 @Composable
 fun RoomInfoRoute(
@@ -81,6 +85,9 @@ fun RoomInfoRoute(
         onReportRoom = viewModel::reportRoom,
         onOpenRoom = viewModel::openRoom,
         onOpenMediaGallery = onOpenMediaGallery,
+        onShowNotificationSettings = viewModel::showNotificationSettings,
+        onHideNotificationSettings = viewModel::hideNotificationSettings,
+        onSetNotificationMode = viewModel::setNotificationMode,
         onShowMembers = viewModel::showMembers,
         onHideMembers = viewModel::hideMembers,
         onSelectMember = viewModel::selectMemberForAction,
@@ -118,6 +125,9 @@ fun RoomInfoScreen(
     onReportRoom: (String?) -> Unit,
     onOpenRoom: (String) -> Unit,
     onOpenMediaGallery: () -> Unit,
+    onShowNotificationSettings: () -> Unit,
+    onHideNotificationSettings: () -> Unit,
+    onSetNotificationMode: (RoomNotificationMode) -> Unit,
     onShowMembers: () -> Unit,
     onHideMembers: () -> Unit,
     onSelectMember: (MemberSummary) -> Unit,
@@ -242,6 +252,13 @@ fun RoomInfoScreen(
                             title = "Members",
                             subtitle = "${state.members.size} members",
                             onClick = onShowMembers
+                        )
+                        HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
+                        SettingsNavRow(
+                            icon = Icons.Default.Notifications,
+                            title = "Notifications",
+                            subtitle = state.notificationMode?.displayName ?: "Default",
+                            onClick = onShowNotificationSettings
                         )
                         HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                         SettingsNavRow(
@@ -435,6 +452,15 @@ fun RoomInfoScreen(
                 isDestructive = true,
                 onConfirm = { showLeaveDialog = false; onLeave() },
                 onDismiss = { showLeaveDialog = false }
+            )
+        }
+
+        if (state.showNotificationSettings) {
+            RoomNotificationSheet(
+                currentMode = state.notificationMode,
+                isLoading = state.isLoadingNotificationMode,
+                onModeChange = onSetNotificationMode,
+                onDismiss = onHideNotificationSettings
             )
         }
         if (showAliasesSheet) {

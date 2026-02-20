@@ -64,6 +64,13 @@ enum class RoomNotificationMode {
     Mute
 }
 
+val RoomNotificationMode.displayName: String
+    get() = when (this) {
+        RoomNotificationMode.AllMessages -> "All messages"
+        RoomNotificationMode.MentionsAndKeywordsOnly -> "Mentions only"
+        RoomNotificationMode.Mute -> "Muted"
+    }
+
 enum class Presence {
     Online,
     Offline,

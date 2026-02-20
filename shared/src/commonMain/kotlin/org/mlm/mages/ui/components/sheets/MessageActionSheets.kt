@@ -25,6 +25,7 @@ import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.SendState
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.theme.Limits
+import org.mlm.mages.ui.util.formatTime
 
 private val quickReactions = listOf("👍", "❤️", "😂", "😮", "😢", "🎉", "🔥", "💀")
 
@@ -110,7 +111,15 @@ fun MessageActionSheet(
 private fun MessagePreview(event: MessageEvent) {
     Surface(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm), shape = MaterialTheme.shapes.medium) {
         Column(Modifier.padding(Spacing.md)) {
-            Text(event.sender, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(event.sender, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+                Spacer(Modifier.width(Spacing.sm))
+                Text(
+                    formatTime(event.timestampMs),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Spacer(Modifier.height(Spacing.xs))
             Text(event.body.take(Limits.previewCharsLong), style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)
         }
