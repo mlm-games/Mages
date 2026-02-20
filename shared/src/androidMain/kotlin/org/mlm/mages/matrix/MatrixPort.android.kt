@@ -1443,7 +1443,8 @@ private fun mages.MessageEvent.toModel() = MessageEvent(
     senderAvatarUrl = senderAvatarUrl,
     senderDisplayName = senderDisplayName,
     replyToSenderDisplayName = replyToSenderDisplayName,
-    pollData = pollData?.toModel()
+    pollData = pollData?.toModel(),
+    reactions = reactions.map { ReactionChip(it.key, it.count.toInt(), it.me) }
 )
 
 private fun mages.SendState.toKotlin(): SendState = when (this) {

@@ -178,12 +178,6 @@ class ThreadViewModel(
                 error = null
             )
         }
-
-        // Fetch reactions for new events
-        val eventIds = newEvents.mapNotNull { it.eventId.takeIf { id -> id.isNotBlank() } }
-        if (eventIds.isNotEmpty()) {
-            launch { fetchReactionsBatch(eventIds) }
-        }
     }
 
     /**
@@ -206,11 +200,6 @@ class ThreadViewModel(
                     }
                 }
             }
-        }
-
-        // Refresh reactions if event has an eventId
-        if (event.eventId.isNotBlank()) {
-            launch { refreshReactionsFor(event.eventId) }
         }
     }
 
@@ -238,10 +227,6 @@ class ThreadViewModel(
                     }
                 }
             }
-        }
-
-        if (event.eventId.isNotBlank()) {
-            launch { refreshReactionsFor(event.eventId) }
         }
     }
 
@@ -303,12 +288,6 @@ class ThreadViewModel(
                     hasInitialLoad = true
                 )
             }
-
-            // Fetch reactions for all messages
-            val eventIds = allMessages.mapNotNull { it.eventId.takeIf { id -> id.isNotBlank() } }
-            if (eventIds.isNotEmpty()) {
-                fetchReactionsBatch(eventIds)
-            }
         }
     }
 
@@ -348,12 +327,6 @@ class ThreadViewModel(
                     isLoading = false
                 )
             }
-
-            // Fetch reactions for new messages
-            val eventIds = newReplies.mapNotNull { it.eventId.takeIf { id -> id.isNotBlank() } }
-            if (eventIds.isNotEmpty()) {
-                fetchReactionsBatch(eventIds)
-            }
         }
     }
 
@@ -364,8 +337,6 @@ class ThreadViewModel(
         if (event.eventId.isBlank()) return
         launch {
             runSafe { service.port.react(roomId, event.eventId, emoji) }
-            delay(300)
-            refreshReactionsFor(event.eventId)
         }
     }
 
@@ -464,40 +435,6 @@ class ThreadViewModel(
         }
 
         return ok
-    }
-
-    /**
-     * Fetch reactions for multiple events in a batch.
-     */
-    private suspend fun fetchReactionsBatch(eventIds: List<String>) {
-        val results = runSafe {
-            service.port.reactionsBatch(roomId, eventIds)
-        } ?: return
-
-        updateState {
-            copy(
-                reactionChips = reactionChips.toMutableMap().apply {
-                    results.forEach { (eventId, chips) ->
-                        if (chips.isNotEmpty()) put(eventId, chips) else remove(eventId)
-                    }
-                }
-            )
-        }
-    }
-
-    /**
-     * Refresh reactions for a single event.
-     */
-    private suspend fun refreshReactionsFor(eventId: String) {
-        if (eventId.isBlank()) return
-        val chips = runSafe { service.port.reactions(roomId, eventId) } ?: emptyList()
-        updateState {
-            copy(
-                reactionChips = reactionChips.toMutableMap().apply {
-                    if (chips.isNotEmpty()) put(eventId, chips) else remove(eventId)
-                }
-            )
-        }
     }
 
     override fun onCleared() {

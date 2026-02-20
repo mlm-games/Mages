@@ -239,7 +239,7 @@ fun ThreadScreen(
                                     state = state,
                                     event = root,
                                     isMine = root.sender == myUserId,
-                                    reactionChips = state.reactionChips[root.eventId] ?: emptyList(),
+                                    reactionChips = root.reactions,
                                     onReact = { emoji -> onReact(root, emoji) },
                                     onReply = { onStartReply(root) },
                                     onLongPress = { sheetEvent = root }
@@ -270,7 +270,7 @@ fun ThreadScreen(
                             ThreadReplyMessage(
                                 event = event,
                                 isMine = event.sender == myUserId,
-                                reactionChips = state.reactionChips[event.eventId] ?: emptyList(),
+                                reactionChips = event.reactions,
                                 onReact = { emoji -> onReact(event, emoji) },
                                 onLongPress = { sheetEvent = event },
                                 grouped = shouldGroup,

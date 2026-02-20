@@ -246,7 +246,9 @@ data class MemberSummary(
     val membership: String
 )
 
+@Serializable
 data class ReactionChip(val key: String, val count: Int, val mine: Boolean)
+
 data class ThreadPage(
     val rootEventId: String,
     val roomId: String,

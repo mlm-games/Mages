@@ -5,7 +5,6 @@ import org.mlm.mages.RoomSummary
 import org.mlm.mages.matrix.DeviceSummary
 import org.mlm.mages.matrix.LiveLocationShare
 import org.mlm.mages.matrix.Presence
-import org.mlm.mages.matrix.ReactionChip
 import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.matrix.RoomPredecessorInfo
 import org.mlm.mages.matrix.RoomUpgradeInfo
@@ -78,7 +77,6 @@ data class RoomUiState(
     val lastOutgoingRead: Boolean = false,
 
     val thumbByEvent: Map<String, String> = emptyMap(),
-    val reactionChips: Map<String, List<ReactionChip>> = emptyMap(),
     val threadCount: Map<String, Int> = emptyMap(),
 
     val liveLocationShares: Map<String, LiveLocationShare> = emptyMap(),
@@ -254,9 +252,7 @@ data class ThreadUiState(
 
     val editingEvent: MessageEvent? = null,
     val editInput: String = "",
-    val avatarByUserId: Map<String, String> = emptyMap(),
-
-    val reactionChips: Map<String, List<ReactionChip>> = emptyMap()
+    val avatarByUserId: Map<String, String> = emptyMap()
 ) {
     val messageCount: Int get() = (if (rootMessage != null) 1 else 0) + replies.size
 

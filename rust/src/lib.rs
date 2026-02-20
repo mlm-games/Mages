@@ -196,6 +196,7 @@ pub struct MessageEvent {
     pub thread_root_event_id: Option<String>,
     pub is_edited: bool,
     pub poll_data: Option<PollData>,
+    pub reactions: Vec<ReactionSummary>,
 }
 
 #[derive(Clone, Debug, Record)]
@@ -6197,6 +6198,22 @@ fn map_sender_profile(
     }
 }
 
+fn extract_reactions(content: &TimelineItemContent, me: &str) -> Vec<ReactionSummary> {
+    let mut reactions = Vec::new();
+    if let Some(reactions_map) = content.reactions() {
+        for (key, senders) in reactions_map.iter() {
+            let count = senders.len() as u32;
+            let me_reacted = senders.keys().any(|sender| sender.as_str() == me);
+            reactions.push(ReactionSummary {
+                key: key.clone(),
+                count,
+                me: me_reacted,
+            });
+        }
+    }
+    reactions
+}
+
 fn map_timeline_event(
     ev: &EventTimelineItem,
     room_id: &str,
@@ -6295,6 +6312,8 @@ fn map_timeline_event(
     let (sender_display_name, sender_avatar_url) =
         map_sender_profile(ev.sender(), ev.sender_profile());
 
+    let reactions = extract_reactions(ev.content(), me);
+
     Some(MessageEvent {
         item_id: item_id_str,
         event_id,
@@ -6314,6 +6333,7 @@ fn map_timeline_event(
         thread_root_event_id,
         is_edited,
         poll_data,
+        reactions,
     })
 }
 

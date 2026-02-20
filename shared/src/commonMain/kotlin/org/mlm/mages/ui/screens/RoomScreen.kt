@@ -832,7 +832,7 @@ private fun MessageItem(
     }
 
     // Message bubble
-    val chips = state.reactionChips[event.eventId] ?: emptyList()
+    val chips = event.reactions
     val prevEvent = events.getOrNull(index - 1)
     val shouldGroup = prevEvent != null &&
             prevEvent.sender == event.sender &&
@@ -911,7 +911,8 @@ private fun MessageItem(
             }
     ) {
         // Reply icon shown behind the bubble during swipe
-    val iconAlpha = (animatedSwipeOffsetPx / swipeThresholdPx).coerceIn(0f, 1f)
+       val iconAlpha = (animatedSwipeOffsetPx / swipeThresholdPx).coerceIn(0f, 1f)
+
         if (iconAlpha > 0.05f) {
             Box(
                 modifier = Modifier

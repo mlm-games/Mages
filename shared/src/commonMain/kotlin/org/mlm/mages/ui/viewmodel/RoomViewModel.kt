@@ -285,7 +285,6 @@ class RoomViewModel(
         if (event.eventId.isBlank()) return
         launch {
             runSafe { service.port.react(currentState.roomId, event.eventId, emoji) }
-            refreshReactionsFor(event.eventId)
         }
     }
 
@@ -1012,13 +1011,6 @@ class RoomViewModel(
     private fun postProcessNewEvents(newEvents: List<MessageEvent>) {
         val visible = newEvents.filter { it.threadRootEventId == null }
 
-        // Fetch reactions for recent events
-        visible.takeLast(10).forEach { ev ->
-            if (ev.eventId.isNotBlank()) {
-                launch { refreshReactionsFor(ev.eventId) }
-            }
-        }
-
         // Recompute thread counts from all events in timeline
         recomputeThreadCountsFromTimeline()
 
@@ -1327,16 +1319,6 @@ class RoomViewModel(
                     }
                 }
             }
-        }
-    }
-
-    private suspend fun refreshReactionsFor(eventId: String) {
-        if (eventId.isBlank()) return
-        val chips = runSafe { service.port.reactions(currentState.roomId, eventId) } ?: emptyList()
-        updateState {
-            copy(reactionChips = reactionChips.toMutableMap().apply {
-                if (chips.isNotEmpty()) put(eventId, chips) else remove(eventId)
-            })
         }
     }
 
