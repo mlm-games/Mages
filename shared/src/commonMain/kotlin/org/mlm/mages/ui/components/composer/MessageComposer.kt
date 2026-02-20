@@ -85,8 +85,8 @@ fun MessageComposer(
                             )
                         },
                         colors = InputChipDefaults.inputChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            selectedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            selectedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         border = null,
                         modifier = Modifier.padding(start = Spacing.lg, top = Spacing.sm)
