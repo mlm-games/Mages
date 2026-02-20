@@ -115,12 +115,18 @@ actual fun BindNotifications(
                 // Use server push evaluation
                 if (!n.isNoisy) continue
 
+                val avatarPath = runCatching {
+                    val profile = port.roomProfile(n.roomId)
+                    service.avatars.resolve(profile?.avatarUrl, px = 96, crop = true)
+                }.getOrNull()
+
                 NotifierImpl.notifyMatrixEvent(
                     title = n.roomName,
                     body = "${n.sender}: ${n.body}",
                     roomId = n.roomId,
                     eventId = n.eventId,
-                    hasMention = n.hasMention
+                    hasMention = n.hasMention,
+                    iconPath = avatarPath
                 )
             }
 

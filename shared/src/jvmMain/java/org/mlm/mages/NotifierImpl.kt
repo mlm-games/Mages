@@ -122,7 +122,8 @@ object NotifierImpl {
         roomId: String,
         eventId: String,
         hasMention: Boolean = false,
-        desktopEntry: String? = "mages"
+        desktopEntry: String? = "mages",
+        iconPath: String? = null
     ) {
         val c = ensure() ?: return
 
@@ -135,6 +136,7 @@ object NotifierImpl {
         val hints = HashMap<String, Variant<*>>()
 
         desktopEntry?.let { hints["desktop-entry"] = Variant(it) }
+        iconPath?.let { hints["image-path"] = Variant(it) }
 
         hints["urgency"] = Variant((if (hasMention) 2 else 1).toByte())
 
