@@ -82,6 +82,8 @@ cargo build --release --manifest-path rust/Cargo.toml
 |-------------|---------|
 | F-Droid     | [![F-Droid Version](https://img.shields.io/f-droid/v/org.mlm.mages)](https://f-droid.org/packages/org.mlm.mages/) |
 | AUR         | [![AUR Version](https://img.shields.io/aur/version/mages-bin)](https://aur.archlinux.org/packages/mages-bin) |
+| Flathub    | [![Flathub Version](https://img.shields.io/flathub/v/io.github.mlm_games.mages)](https://flathub.org/apps/io.github.mlm_games.mages) |
+| Snap Store | [![Snapcraft Version](https://img.shields.io/snapcraft/v/mages/latest/stable)](https://snapcraft.io/mages) |
 
 ## Contributing
 
