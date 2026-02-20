@@ -399,6 +399,32 @@ class RoomViewModel(
         updateState { copy(showReportDialog = false, reportingEvent = null) }
     }
 
+    fun showMessageInfo(event: MessageEvent) {
+        updateState { copy(showMessageInfo = true, messageInfoEvent = event) }
+        if (event.eventId.isBlank()) {
+            updateState { copy(messageInfoEntries = emptyList()) }
+            return
+        }
+        launch {
+            val entries = runSafe {
+                withContext(Dispatchers.IO) {
+                    service.port.seenByForEvent(currentState.roomId, event.eventId, 20)
+                }
+            } ?: emptyList()
+            updateState { copy(messageInfoEntries = entries) }
+        }
+    }
+
+    fun hideMessageInfo() {
+        updateState {
+            copy(
+                showMessageInfo = false,
+                messageInfoEvent = null,
+                messageInfoEntries = emptyList()
+            )
+        }
+    }
+
     fun reportContent(event: MessageEvent, reason: String, blockUser: Boolean = false) {
         if (event.eventId.isBlank()) return
         launch {

@@ -120,6 +120,9 @@ data class RoomUiState(
     val reportingEvent: MessageEvent? = null,
 
     val seenByEntries: List<SeenByEntry> = emptyList(),
+    val showMessageInfo: Boolean = false,
+    val messageInfoEvent: MessageEvent? = null,
+    val messageInfoEntries: List<SeenByEntry> = emptyList(),
 )
 
 

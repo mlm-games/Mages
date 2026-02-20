@@ -133,12 +133,6 @@ fun RoomScreen(
         if (state.myUserId == null) -1 else events.indexOfLast { it.sender == state.myUserId }
     }
 
-    val seenByNames = remember(state.seenByEntries) {
-        state.seenByEntries.map { entry ->
-            entry.displayName ?: entry.userId.substringAfter('@').substringBefore(':').ifBlank { entry.userId }
-        }
-    }
-
     LaunchedEffect(state.hasTimelineSnapshot, state.events.size, pendingJumpEventId) {
         if (!state.hasTimelineSnapshot || state.events.isEmpty()) return@LaunchedEffect
         if (pendingJumpEventId != null) return@LaunchedEffect
@@ -427,7 +421,6 @@ fun RoomScreen(
                                         events = events,
                                         state = state,
                                         lastOutgoingIndex = lastOutgoingIndex,
-                                        seenByNames = seenByNames,
                                         onLongPress = { sheetEvent = event },
                                         onReply = { viewModel.startReply(event) },
                                         onReact = { emoji -> viewModel.react(event, emoji) },
@@ -518,6 +511,15 @@ fun RoomScreen(
         )
     }
 
+    val messageInfoEvent = state.messageInfoEvent
+    if (state.showMessageInfo && messageInfoEvent != null) {
+        MessageInfoSheet(
+            event = messageInfoEvent,
+            readers = state.messageInfoEntries,
+            onDismiss = viewModel::hideMessageInfo
+        )
+    }
+
     sheetEvent?.let { event ->
         val isMine = event.sender == state.myUserId
         val isPinned = event.eventId in state.pinnedEventIds
@@ -534,6 +536,7 @@ fun RoomScreen(
             onPin = { viewModel.pinEvent(event) },
             onUnpin = { viewModel.unpinEvent(event) },
             onReport = { viewModel.showReportDialog(event) },
+            onShowMessageInfo = { viewModel.showMessageInfo(event) },
             onReact = { emoji -> viewModel.react(event, emoji) },
             onMarkReadHere = { viewModel.markReadHere(event); sheetEvent = null },
             onReplyInThread = { viewModel.openThread(event); sheetEvent = null },
@@ -793,7 +796,6 @@ private fun MessageItem(
     events: List<MessageEvent>,
     state: RoomUiState,
     lastOutgoingIndex: Int,
-    seenByNames: List<String>,
     onLongPress: () -> Unit,
     onReply: () -> Unit,
     onReact: (String) -> Unit,
@@ -999,8 +1001,8 @@ private fun MessageItem(
 
             MessageStatusLine(text = statusText, isMine = true)
         }
-        if (!state.isDm && seenByNames.isNotEmpty()) {
-            SeenByChip(names = seenByNames)
+        if (!state.isDm && state.seenByEntries.isNotEmpty()) {
+            SeenByChip(entries = state.seenByEntries)
         }
     }
 }

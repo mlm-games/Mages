@@ -44,6 +44,7 @@ fun MessageActionSheet(
     onPin: (() -> Unit)? = null,
     onUnpin: (() -> Unit)? = null,
     onReport: (() -> Unit)? = null,
+    onShowMessageInfo: (() -> Unit)? = null,
     onReact: (String) -> Unit,
     onMarkReadHere: () -> Unit,
     onReplyInThread: (() -> Unit)? = null,
@@ -73,6 +74,9 @@ fun MessageActionSheet(
             HorizontalDivider(Modifier.padding(horizontal = Spacing.lg))
             Spacer(Modifier.height(Spacing.sm))
 
+            if (onShowMessageInfo != null) {
+                ActionItem(Icons.Default.Info, "Message info") { onShowMessageInfo(); onDismiss() }
+            }
             ActionItem(Icons.Default.ContentCopy, "Copy") { clipboard.setText(AnnotatedString(event.body)); onDismiss() }
             if (onShare != null) {
                 ActionItem(Icons.Default.Share, "Share") { onShare(); onDismiss() }

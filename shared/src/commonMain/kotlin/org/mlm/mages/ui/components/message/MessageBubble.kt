@@ -185,17 +185,12 @@ private fun ReplyPreview(isMine: Boolean, sender: String?, body: String, onClick
         shape = RoundedCornerShape(8.dp),
         modifier = if (onClick != null) Modifier.clickable { onClick() } else Modifier
     ) {
-        Row(
-            modifier = Modifier
-                .padding(Spacing.sm)
-                .heightIn(min = 32.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.padding(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
-                    .width(2.dp)
-                    .fillMaxHeight()
-                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(1.dp))
+                    .width(3.dp)
+                    .height(24.dp)
+                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
             )
             Spacer(Modifier.width(Spacing.sm))
             Text(
@@ -225,7 +220,7 @@ private fun AttachmentThumbnail(
     if (attachmentKind == null) return
 
     val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
-    else MaterialTheme.colorScheme.onSurfaceVariant
+    else MaterialTheme.colorScheme.surface
     val accentColor = if (isMine) MaterialTheme.colorScheme.primary
     else MaterialTheme.colorScheme.secondary
 
