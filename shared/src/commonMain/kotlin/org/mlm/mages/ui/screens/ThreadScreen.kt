@@ -22,7 +22,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -635,6 +637,13 @@ private fun ThreadComposer(
 ) {
     val isEditing = editingEvent != null
     val hasAction = replyTo != null || isEditing
+    var fieldValue by remember { mutableStateOf(TextFieldValue(input)) }
+
+    LaunchedEffect(input) {
+        if (input != fieldValue.text) {
+            fieldValue = TextFieldValue(input, selection = TextRange(input.length))
+        }
+    }
 
     Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 8.dp) {
         Column {
@@ -721,13 +730,21 @@ private fun ThreadComposer(
                 verticalAlignment = Alignment.Bottom
             ) {
                 OutlinedTextField(
-                    value = input,
-                    onValueChange = onInputChange,
+                    value = fieldValue,
+                    onValueChange = { updated ->
+                        fieldValue = updated
+                        onInputChange(updated.text)
+                    },
                     modifier = Modifier
                         .weight(1f)
                         .sendShortcutHandler(
                             enabled = true,
                             enterSendsMessage = enterSendsMessage,
+                            onInsertNewline = {
+                                val updated = insertNewline(fieldValue)
+                                fieldValue = updated
+                                onInputChange(updated.text)
+                            },
                             onSend = onSend
                         ),
                     placeholder = {
@@ -817,4 +834,18 @@ private fun EmptyThreadView() {
             )
         }
     }
+}
+
+private fun insertNewline(value: TextFieldValue): TextFieldValue {
+    val selection = value.selection
+    val start = selection.start.coerceAtLeast(0)
+    val end = selection.end.coerceAtLeast(0)
+    val text = value.text
+    val newText = buildString(text.length + 1) {
+        append(text, 0, start)
+        append('\n')
+        append(text, end, text.length)
+    }
+    val newCursor = start + 1
+    return TextFieldValue(newText, selection = TextRange(newCursor))
 }

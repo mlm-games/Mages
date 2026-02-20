@@ -26,18 +26,21 @@ fun Modifier.pasteInterceptor(
 fun Modifier.sendShortcutHandler(
     enabled: Boolean,
     enterSendsMessage: Boolean,
+    onInsertNewline: () -> Unit,
     onSend: () -> Unit
 ): Modifier = if (!enabled) this else this.onPreviewKeyEvent { event ->
-    if (event.type == KeyEventType.KeyDown && event.key == Key.Enter) {
+    if (event.type == KeyEventType.KeyDown && (event.key == Key.Enter || event.key == Key.NumPadEnter)) {
+        val hasModifier = event.isShiftPressed || event.isCtrlPressed || event.isMetaPressed
         if (enterSendsMessage) {
-            if (event.isShiftPressed) {
-                false
+            if (hasModifier) {
+                onInsertNewline()
+                true
             } else {
                 onSend()
                 true
             }
         } else {
-            if (event.isShiftPressed) {
+            if (hasModifier) {
                 onSend()
                 true
             } else {
