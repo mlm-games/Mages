@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.mlm.mages.RoomSummary
+import org.mlm.mages.ui.RoomTypeFilter
 import org.mlm.mages.ui.components.common.RoomListItem
 import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.components.core.SectionHeader
@@ -71,8 +72,10 @@ fun RoomsScreen(
                 isLoading = state.isLoading && state.allItems.isNotEmpty(),
                 searchQuery = state.roomSearchQuery,
                 unreadOnly = state.unreadOnly,
+                typeFilter = state.typeFilter,
                 onSearchChange = viewModel::setSearchQuery,
                 onToggleUnreadOnly = viewModel::toggleUnreadOnly,
+                onSetTypeFilter = viewModel::setTypeFilter,
                 onOpenSpaces = onOpenSpaces,
                 onOpenSecurity = onOpenSecurity,
                 onOpenDiscover = onOpenDiscover,
@@ -243,8 +246,10 @@ private fun RoomsTopBar(
     isLoading: Boolean,
     searchQuery: String,
     unreadOnly: Boolean,
+    typeFilter: RoomTypeFilter,
     onSearchChange: (String) -> Unit,
     onToggleUnreadOnly: () -> Unit,
+    onSetTypeFilter: (RoomTypeFilter) -> Unit,
     onOpenSpaces: () -> Unit,
     onOpenSecurity: () -> Unit,
     onOpenDiscover: () -> Unit,
@@ -326,6 +331,22 @@ private fun RoomsTopBar(
                 onClick = onToggleUnreadOnly,
                 label = { Text(stringResource(Res.string.unread_only)) },
                 leadingIcon = if (unreadOnly) {
+                    { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
+                } else null
+            )
+            FilterChip(
+                selected = typeFilter == RoomTypeFilter.Groups,
+                onClick = { onSetTypeFilter(RoomTypeFilter.Groups) },
+                label = { Text("Groups") },
+                leadingIcon = if (typeFilter == RoomTypeFilter.Groups) {
+                    { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
+                } else null
+            )
+            FilterChip(
+                selected = typeFilter == RoomTypeFilter.Dms,
+                onClick = { onSetTypeFilter(RoomTypeFilter.Dms) },
+                label = { Text("DMs") },
+                leadingIcon = if (typeFilter == RoomTypeFilter.Dms) {
                     { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
                 } else null
             )

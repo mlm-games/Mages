@@ -13,6 +13,7 @@ import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.RoomListEntry
 import org.mlm.mages.ui.LastMessageType
 import org.mlm.mages.ui.RoomListItemUi
+import org.mlm.mages.ui.RoomTypeFilter
 import org.mlm.mages.ui.RoomsUiState
 
 class RoomsViewModel(
@@ -83,6 +84,15 @@ class RoomsViewModel(
         recomputeGroupedRooms()
     }
 
+    fun setTypeFilter(filter: RoomTypeFilter) {
+        if (currentState.typeFilter == filter) {
+            updateState { copy(typeFilter = RoomTypeFilter.All) }
+        } else {
+            updateState { copy(typeFilter = filter) }
+        }
+        recomputeGroupedRooms()
+    }
+
     fun openRoom(room: RoomSummary) {
         launch {
             _events.send(Event.OpenRoom(room.id, room.name))
@@ -124,6 +134,7 @@ class RoomsViewModel(
             lastMessageTs = lastEvent?.timestamp
         )
     }
+
 
     private fun determineMessageType(event: LatestRoomEvent?): LastMessageType {
         if (event == null) return LastMessageType.Unknown
@@ -255,6 +266,7 @@ class RoomsViewModel(
         }
     }
 
+
     private fun recomputeGroupedRooms() {
         val s = currentState
         val query = s.roomSearchQuery.trim()
@@ -270,6 +282,12 @@ class RoomsViewModel(
 
         if (s.unreadOnly) {
             list = list.filter { it.unreadCount > 0 }
+        }
+
+        list = when (s.typeFilter) {
+            RoomTypeFilter.All -> list
+            RoomTypeFilter.Groups -> list.filter { !it.isDm }
+            RoomTypeFilter.Dms -> list.filter { it.isDm }
         }
 
         val favourites  = list.filter { it.isFavourite }

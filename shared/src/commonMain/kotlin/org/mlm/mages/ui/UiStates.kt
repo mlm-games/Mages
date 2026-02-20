@@ -33,6 +33,7 @@ data class RoomsUiState(
     val offlineBanner: String? = null,
     val syncBanner: String? = null,
     val unreadOnly: Boolean = false,
+    val typeFilter: RoomTypeFilter = RoomTypeFilter.All,
     val isLoading: Boolean = false,
     val error: String? = null,
     val favourites: Set<String> = emptySet(),
@@ -45,6 +46,12 @@ data class RoomsUiState(
 
     val roomAvatarPath: Map<String, String> = emptyMap()
 )
+
+enum class RoomTypeFilter {
+    All,
+    Groups,
+    Dms
+}
 
 data class RoomUiState(
     val roomId: String,
