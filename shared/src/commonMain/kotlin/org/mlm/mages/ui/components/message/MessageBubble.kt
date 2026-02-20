@@ -245,11 +245,11 @@ private fun AttachmentThumbnail(
                     .crossfade(true)
                     .build(),
                 contentDescription = null,
-                contentScale = ContentScale.Fit,
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
 //                    .widthIn(max = 600.dp)
-                    .heightIn(max = 300.dp)
+                    .heightIn(min = 120.dp, max = 300.dp)
             )
 
             if (attachmentKind == AttachmentKind.Video && durationMs != null) {

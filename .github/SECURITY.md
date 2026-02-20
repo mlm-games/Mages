@@ -34,9 +34,9 @@ This security policy applies to the Mages Matrix client application, including:
 ### Hall of Fame
 Thank you to the following security researchers who have responsibly disclosed vulnerabilities:
 
-| Researcher | Report | Date |
-|------------|--------|------|
-| *Add your name here* | | |
+| Researcher           | Report | Date |
+|----------------------|--------|------|
+| *Add your name here* |        |      |
 
 *Researchers who responsibly disclose security issues will be listed here.*
 
