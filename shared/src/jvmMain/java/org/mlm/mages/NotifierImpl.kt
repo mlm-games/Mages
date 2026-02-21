@@ -122,6 +122,7 @@ object NotifierImpl {
         roomId: String,
         eventId: String,
         hasMention: Boolean = false,
+        playSound: Boolean = true,
         desktopEntry: String? = "mages",
         iconPath: String? = null
     ) {
@@ -145,7 +146,7 @@ object NotifierImpl {
             hints["resident"] = Variant(true)
         }
 
-        if (hasMention && capabilities.contains("sound")) {
+        if (playSound && capabilities.contains("sound")) {
             hints["sound-name"] = Variant("message-new-instant")
         }
 

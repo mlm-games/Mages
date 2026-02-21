@@ -15,13 +15,22 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.github.mlmgames.settings.core.SettingsRepository
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.koin.core.context.GlobalContext
 import org.mlm.mages.MatrixService
 import org.mlm.mages.push.PREF_INSTANCE
 import org.mlm.mages.push.PusherReconciler
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.shared.R
+
+private fun parseNotifiedRooms(json: String): Set<String> {
+    if (json.isBlank()) return emptySet()
+    return runCatching { Json.decodeFromString<Set<String>>(json) }.getOrElse { emptySet() }
+}
 
 actual object Notifier {
     private const val CHANNEL_ID = "messages"
@@ -60,6 +69,18 @@ actual object Notifier {
 
     actual fun setCurrentRoom(roomId: String?) {
         currentRoomId = roomId
+        if (roomId != null) {
+            val ctx = appContextOrNull() ?: return
+            runBlocking {
+                val settingsRepo = SettingsProvider.get(ctx)
+                val settings = settingsRepo.flow.first()
+                val notifiedRooms = parseNotifiedRooms(settings.notifiedRoomsJson)
+                if (notifiedRooms.contains(roomId)) {
+                    val updated = notifiedRooms - roomId
+                    settingsRepo.update { it.copy(notifiedRoomsJson = Json.encodeToString(updated)) }
+                }
+            }
+        }
     }
 
     actual fun setWindowFocused(focused: Boolean) {

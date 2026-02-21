@@ -23,14 +23,12 @@ import androidx.core.net.toUri
 object AndroidNotificationHelper : KoinComponent {
     data class NotificationText(val title: String, val body: String)
 
-    fun showSingleEvent(ctx: Context, n: NotificationText, roomId: String, eventId: String) {
+    fun showSingleEvent(ctx: Context, n: NotificationText, roomId: String, eventId: String, playSound: Boolean = true) {
         AppNotificationChannels.ensureCreated(ctx)
 
         val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        val settingsRepo: SettingsRepository<AppSettings> by inject()
-        val soundEnabled = runBlocking { settingsRepo.flow.first().notificationSound }
 
-        val channelId = if (soundEnabled)
+        val channelId = if (playSound)
             AppNotificationChannels.CHANNEL_MESSAGES
         else
             AppNotificationChannels.CHANNEL_MESSAGES_SILENT

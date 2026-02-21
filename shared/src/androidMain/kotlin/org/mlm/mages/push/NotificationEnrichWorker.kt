@@ -6,11 +6,18 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.NotificationKind
 import org.mlm.mages.platform.SettingsProvider
+
+private fun parseNotifiedRooms(json: String): Set<String> {
+    if (json.isBlank()) return emptySet()
+    return runCatching { Json.decodeFromString<Set<String>>(json) }.getOrElse { emptySet() }
+}
 
 class NotificationEnrichWorker(
     appContext: Context,
@@ -118,7 +125,7 @@ class NotificationEnrichWorker(
             }
 
             NotificationKind.Message -> {
-                // If the SDK says “not noisy” or local mentions-only filter suppresses, cancel placeholder.
+                // If the SDK says "not noisy" or local mentions-only filter suppresses, cancel placeholder.
                 if (!rendered.isNoisy) {
                     nm.cancel(notifId)
                     return Result.success()
@@ -134,6 +141,23 @@ class NotificationEnrichWorker(
                     "${rendered.sender} • ${rendered.roomName}"
                 }
 
+                val playSound = if (settings.notificationSound) {
+                    if (settings.notifySoundOncePerRoom) {
+                        val notifiedRooms = parseNotifiedRooms(settings.notifiedRoomsJson)
+                        if (!notifiedRooms.contains(roomId)) {
+                            val updated = notifiedRooms + roomId
+                            settingsRepo.update { it.copy(notifiedRoomsJson = Json.encodeToString(updated)) }
+                            true
+                        } else {
+                            false
+                        }
+                    } else {
+                        true
+                    }
+                } else {
+                    false
+                }
+
                 // No need to cancel here; showSingleEvent uses the same notifId and will replace.
                 AndroidNotificationHelper.showSingleEvent(
                     applicationContext,
@@ -142,7 +166,8 @@ class NotificationEnrichWorker(
                         body = rendered.body
                     ),
                     roomId = roomId,
-                    eventId = eventId
+                    eventId = eventId,
+                    playSound = playSound
                 )
                 return Result.success()
             }

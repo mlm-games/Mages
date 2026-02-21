@@ -91,6 +91,18 @@ data class AppSettings(
     )
     val notificationSound: Boolean = true,
 
+    @Setting(
+        title = "Sound once per room",
+        description = "Only play sound for first message until you check the room",
+        category = Notifications::class,
+        type = Toggle::class,
+        dependsOn = "notificationSound"
+    )
+    val notifySoundOncePerRoom: Boolean = false,
+
+    @Persisted
+    val notifiedRoomsJson: String = "",
+
     @Persisted
     val desktopNotifBaselineMs: Long = 0L,
 

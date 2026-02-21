@@ -15,6 +15,7 @@ import kotlin.system.exitProcess
 actual object Notifier {
     private var currentRoomId: String? = null
     private var windowFocused: Boolean = true
+    private val roomsNotifiedWithSound = HashSet<String>()
 
     actual fun notifyRoom(title: String, body: String) {
         // Plain notifs without actions/context (used by other parts of the app)
@@ -23,6 +24,9 @@ actual object Notifier {
 
     actual fun setCurrentRoom(roomId: String?) {
         currentRoomId = roomId
+        if (roomId != null) {
+            roomsNotifiedWithSound.remove(roomId)
+        }
     }
 
     actual fun setWindowFocused(focused: Boolean) {
@@ -33,6 +37,16 @@ actual object Notifier {
         if (senderIsMe) return false
         if (windowFocused && currentRoomId == roomId) return false
         return true
+    }
+
+    fun shouldPlaySound(roomId: String, soundEnabled: Boolean, oncePerRoomEnabled: Boolean): Boolean {
+        if (!soundEnabled) return false
+        if (!oncePerRoomEnabled) return true
+        return roomsNotifiedWithSound.add(roomId)
+    }
+
+    fun clearNotifiedRooms() {
+        roomsNotifiedWithSound.clear()
     }
 }
 
@@ -67,6 +81,7 @@ actual fun BindNotifications(
                 firstPoll = true
                 recentlyNotified.clear()
                 lastReadByRoom.clear()
+                Notifier.clearNotifiedRooms()
                 delay(15_000L)
                 continue
             }
@@ -120,12 +135,19 @@ actual fun BindNotifications(
                     service.avatars.resolve(profile?.avatarUrl, px = 96, crop = true)
                 }.getOrNull()
 
+                val playSound = Notifier.shouldPlaySound(
+                    roomId = n.roomId,
+                    soundEnabled = settings.notificationSound,
+                    oncePerRoomEnabled = settings.notifySoundOncePerRoom
+                )
+
                 NotifierImpl.notifyMatrixEvent(
                     title = n.roomName,
                     body = "${n.sender}: ${n.body}",
                     roomId = n.roomId,
                     eventId = n.eventId,
                     hasMention = n.hasMention,
+                    playSound = playSound,
                     iconPath = avatarPath
                 )
             }
