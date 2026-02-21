@@ -132,7 +132,7 @@ fun MediaGalleryScreen(
                         MediaTab.Images -> state.images.size
                         MediaTab.Videos -> state.videos.size
                         MediaTab.Files -> state.files.size
-                        MediaTab.Links -> viewModel.links.size
+                        MediaTab.Links -> state.links.size
                     }
                     Tab(
                         selected = selectedTab == tab,
@@ -207,7 +207,7 @@ fun MediaGalleryScreen(
                             }
                         )
                         MediaTab.Links -> LinksList(
-                            links = viewModel.links,
+                            links = state.links,
                             isPaginating = state.isPaginatingBack,
                             hitStart = state.hitStart,
                             onLoadMore = viewModel::loadMore,
@@ -621,7 +621,7 @@ private fun FilesList(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                CircularWavyProgressIndicator()
             }
         }
         return
