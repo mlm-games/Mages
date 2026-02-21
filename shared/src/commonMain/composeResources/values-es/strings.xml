@@ -48,6 +48,7 @@
     <string name="search_this_room">Buscar en esta sala</string>
     <string name="search_all_messages">Buscar todos los mensajes</string>
     <string name="search_min_chars">Ingresa al menos 2 caracteres para buscar</string>
+    <string name="search_error">Error en la búsqueda</string>
     <string name="clear_search">Limpiar búsqueda</string>
     <string name="search_no_results_found">No se encontraron resultados</string>
     <string name="search_results_count">%1$d resultados</string>

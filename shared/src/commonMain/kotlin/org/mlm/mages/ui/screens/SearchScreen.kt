@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -18,6 +17,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.matrix.SearchHit
@@ -33,8 +35,12 @@ fun SearchScreen(
     onOpenResult: (roomId: String, eventId: String, roomName: String) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+    val pagingItems = viewModel.searchResults.collectAsLazyPagingItems()
     val listState = rememberLazyListState()
     val focusRequester = remember { FocusRequester() }
+
+    val isActuallySearching = state.query.length >= 2 && 
+        pagingItems.loadState.refresh is LoadState.Loading
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -43,31 +49,13 @@ fun SearchScreen(
                     onOpenResult(event.roomId, event.eventId, event.roomName)
                 }
                 is SearchViewModel.Event.ShowError -> {
-                    // Handle error if needed
                 }
             }
         }
     }
 
-    // Auto-focus search field
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
-    }
-
-    // Load more when reaching end
-    val shouldLoadMore by remember(listState, state) {
-        derivedStateOf {
-            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            lastVisible >= state.results.size - 3 && 
-                state.nextOffset != null && 
-                !state.isSearching
-        }
-    }
-
-    LaunchedEffect(shouldLoadMore) {
-        if (shouldLoadMore) {
-            viewModel.loadMore()
-        }
     }
 
     Scaffold(
@@ -75,9 +63,8 @@ fun SearchScreen(
             SearchTopBar(
                 query = state.query,
                 scopedRoomName = state.scopedRoomName,
-                isSearching = state.isSearching,
+                isSearching = isActuallySearching,
                 onQueryChange = viewModel::setQuery,
-                onSearch = viewModel::search,
                 onBack = onBack,
                 focusRequester = focusRequester
             )
@@ -89,11 +76,29 @@ fun SearchScreen(
                 .padding(innerPadding)
         ) {
             when {
-                !state.hasSearched && state.query.length < 2 -> {
+                state.query.length < 2 -> {
                     SearchPlaceholder(isScoped = state.scopedRoomId != null)
                 }
-                
-                state.isSearching && state.results.isEmpty() -> {
+
+                pagingItems.loadState.refresh is LoadState.Error -> {
+                    val error = (pagingItems.loadState.refresh as LoadState.Error).error
+                    EmptyState(
+                        icon = Icons.Default.ErrorOutline,
+                        title = stringResource(Res.string.search_error),
+                        subtitle = error.message ?: "Unknown error"
+                    )
+                }
+
+                pagingItems.itemCount == 0 &&
+                    pagingItems.loadState.refresh is LoadState.NotLoading -> {
+                    EmptyState(
+                        icon = Icons.Default.SearchOff,
+                        title = stringResource(Res.string.search_no_results),
+                        subtitle = stringResource(Res.string.search_no_messages_for, state.query)
+                    )
+                }
+
+                isActuallySearching -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -101,22 +106,18 @@ fun SearchScreen(
                         LoadingIndicator()
                     }
                 }
-                
-                state.hasSearched && state.results.isEmpty() -> {
-                    EmptyState(
-                        icon = Icons.Default.SearchOff,
-                        title = stringResource(Res.string.search_no_results),
-                        subtitle = stringResource(Res.string.search_no_messages_for, state.query)
-                    )
-                }
-                
+
                 else -> {
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
-                        items(state.results, key = { "${it.roomId}_${it.eventId}" }) { hit ->
+                        items(
+                            count = pagingItems.itemCount,
+                            key = pagingItems.itemKey { "${it.roomId}_${it.eventId}" }
+                        ) { index ->
+                            val hit = pagingItems[index] ?: return@items
                             SearchResultItem(
                                 hit = hit,
                                 showRoomName = state.scopedRoomId == null,
@@ -127,8 +128,8 @@ fun SearchScreen(
                                 color = MaterialTheme.colorScheme.outlineVariant
                             )
                         }
-                        
-                        if (state.isSearching && state.results.isNotEmpty()) {
+
+                        if (pagingItems.loadState.append is LoadState.Loading) {
                             item {
                                 Box(
                                     modifier = Modifier
@@ -137,19 +138,6 @@ fun SearchScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     LoadingIndicator(modifier = Modifier.size(24.dp))
-                                }
-                            }
-                        }
-                        
-                        if (state.nextOffset != null && !state.isSearching) {
-                            item {
-                                TextButton(
-                                    onClick = { viewModel.loadMore() },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(Spacing.lg)
-                                ) {
-                                    Text(stringResource(Res.string.search_load_more))
                                 }
                             }
                         }
@@ -167,7 +155,6 @@ private fun SearchTopBar(
     scopedRoomName: String?,
     isSearching: Boolean,
     onQueryChange: (String) -> Unit,
-    onSearch: () -> Unit,
     onBack: () -> Unit,
     focusRequester: FocusRequester
 ) {
@@ -193,7 +180,7 @@ private fun SearchTopBar(
         SearchBarDefaults.InputField(
             query = query,
             onQueryChange = onQueryChange,
-            onSearch = { onSearch() },
+            onSearch = {},
             expanded = false,
             onExpandedChange = {},
             modifier = Modifier

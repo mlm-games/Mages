@@ -20,6 +20,7 @@ material3 = "1.10.0-alpha05"
 multiplatformMarkdownRenderer = "0.39.2"
 multiplatformMarkdownRendererM3 = "0.39.2"
 navigation3Ui = "1.0.0-alpha06"
+pagingCompose = "3.4.1"
 slf4jSimple = "2.0.17"
 systemtray = "4.4"
 uiToolingPreview = "1.10.0"
@@ -56,6 +57,7 @@ androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
 androidx-compose-ui = { module = "androidx.compose.ui:ui" }
 androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 
+androidx-paging-compose = { module = "androidx.paging:paging-compose", version.ref = "pagingCompose" }
 compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
 compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "composeMultiplatform" }
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }

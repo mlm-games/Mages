@@ -296,10 +296,6 @@ data class RoomListItemUi(
 
 data class SearchUiState(
     val query: String = "",
-    val isSearching: Boolean = false,
-    val results: List<SearchHit> = emptyList(),
-    val nextOffset: Int? = null,
-    val hasSearched: Boolean = false,
     val error: String? = null,
 
     // For scoped search
