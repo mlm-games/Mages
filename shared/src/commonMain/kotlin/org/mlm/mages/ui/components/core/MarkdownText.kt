@@ -23,7 +23,11 @@ fun MarkdownText(
     onLinkClick: ((String) -> Unit)? = null
 ) {
     val fontSize = LocalMessageFontSize.current.sp
-    val effectiveStyle = style.copy(fontSize = fontSize)
+    val baseStyle = style.copy(fontSize = fontSize)
+    val codeStyle = MaterialTheme.typography.bodySmall.copy(
+        fontFamily = FontFamily.Monospace,
+        fontSize = (fontSize.value * 0.9f).sp
+    )
 
     SelectionContainer {
         Markdown(
@@ -35,11 +39,15 @@ fun MarkdownText(
                 inlineCodeBackground = color.copy(alpha = 0.1f)
             ),
             typography = markdownTypography(
-                text = effectiveStyle,
-                code = MaterialTheme.typography.bodySmall.copy(
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = (fontSize.value * 0.9f).sp
-                )
+                text = baseStyle,
+                paragraph = baseStyle,
+                bullet = baseStyle,
+                ordered = baseStyle,
+                list = baseStyle,
+                quote = baseStyle,
+                table = baseStyle,
+                inlineCode = codeStyle,
+                code = codeStyle
             )
         )
     }
