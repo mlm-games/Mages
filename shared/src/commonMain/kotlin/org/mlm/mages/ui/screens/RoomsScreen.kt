@@ -311,7 +311,7 @@ private fun RoomsTopBar(
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = { onSearchChange("") }) {
-                        Icon(Icons.Default.Clear, stringResource(Res.string.clear_search))
+                        Icon(Icons.Default.Close, stringResource(Res.string.clear_search))
                     }
                 }
             },

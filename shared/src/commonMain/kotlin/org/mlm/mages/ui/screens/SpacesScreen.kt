@@ -82,7 +82,7 @@ fun SpacesScreen(
                 trailingIcon = {
                     if (state.searchQuery.isNotEmpty()) {
                         IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                            Icon(Icons.Default.Clear, stringResource(Res.string.clear))
+                            Icon(Icons.Default.Close, stringResource(Res.string.clear))
                         }
                     }
                 },

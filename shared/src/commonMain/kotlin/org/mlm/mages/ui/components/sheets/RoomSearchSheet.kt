@@ -62,7 +62,7 @@ fun RoomSearchSheet(
                 trailingIcon = {
                     if (query.isNotEmpty()) {
                         IconButton(onClick = { onQueryChange("") }) {
-                            Icon(Icons.Default.Clear, "Clear")
+                            Icon(Icons.Default.Close, "Clear")
                         }
                     }
                 },

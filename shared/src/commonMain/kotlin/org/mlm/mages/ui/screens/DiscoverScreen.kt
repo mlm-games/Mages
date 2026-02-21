@@ -102,7 +102,7 @@ fun DiscoverScreen(
                 trailingIcon = {
                     if (state.query.isNotEmpty()) {
                         IconButton(onClick = { onQuery("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = stringResource(Res.string.clear))
+                            Icon(Icons.Default.Close, contentDescription = stringResource(Res.string.clear))
                         }
                     }
                 }

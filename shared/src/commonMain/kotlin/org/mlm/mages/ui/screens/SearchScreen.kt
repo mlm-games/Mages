@@ -160,6 +160,7 @@ fun SearchScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SearchTopBar(
     query: String,
@@ -171,57 +172,63 @@ private fun SearchTopBar(
     focusRequester: FocusRequester
 ) {
     Column {
-        TopAppBar(
-            title = {
-                Text(
-                    text = if (scopedRoomName != null) stringResource(Res.string.search_in_room, scopedRoomName) else stringResource(Res.string.search_messages),
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
+        if (scopedRoomName != null) {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(Res.string.search_in_room, scopedRoomName),
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
+                    }
                 }
-            }
-        )
-        
-        OutlinedTextField(
-            value = query,
-            onValueChange = onQueryChange,
+            )
+        }
+
+        SearchBarDefaults.InputField(
+            query = query,
+            onQueryChange = onQueryChange,
+            onSearch = { onSearch() },
+            expanded = false,
+            onExpandedChange = {},
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
                 .focusRequester(focusRequester),
             placeholder = { Text(stringResource(Res.string.search_messages_placeholder)) },
-            leadingIcon = { Icon(Icons.Default.Search, null) },
+            leadingIcon = {
+                if (scopedRoomName == null) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
+                    }
+                } else {
+                    Icon(Icons.Default.Search, null)
+                }
+            },
             trailingIcon = {
-                Row {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     if (query.isNotEmpty()) {
                         IconButton(onClick = { onQueryChange("") }) {
                             Icon(Icons.Default.Clear, "Clear")
                         }
                     }
                     if (isSearching) {
-                        LoadingIndicator(
+                        CircularProgressIndicator(
                             modifier = Modifier
                                 .size(24.dp)
-                                .padding(end = 12.dp)
+                                .padding(end = 4.dp),
+                            strokeWidth = 2.dp
                         )
                     }
                 }
-            },
-            singleLine = true,
-            shape = MaterialTheme.shapes.large,
-            keyboardActions = androidx.compose.foundation.text.KeyboardActions(
-                onSearch = { onSearch() }
-            ),
-            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                imeAction = androidx.compose.ui.text.input.ImeAction.Search
-            )
+            }
         )
-        
+
         AnimatedVisibility(visible = isSearching) {
             LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
         }
