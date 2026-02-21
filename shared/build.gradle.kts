@@ -74,6 +74,7 @@ kotlin {
             implementation(libs.androidx.browser)
             implementation(libs.koin.android)
             implementation(libs.androidx.webkit)
+            implementation(libs.embedded.fcm.distributor)
         }
 
         jvmMain.dependencies {

@@ -75,7 +75,6 @@
         <activity
             android:name=".activities.ShareReceiverActivity"
             android:exported="true"
-            android:label="@string/app_name"
             android:theme="@android:style/Theme.Material.Light.NoActionBar"
             android:taskAffinity=""
             android:excludeFromRecents="true">
@@ -182,6 +181,16 @@
         <receiver
             android:name=".push.NotificationActionReceiver"
             android:exported="false" />
+        <receiver
+            android:name=".push.EmbeddedDistributor"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="org.unifiedpush.android.distributor.feature.BYTES_MESSAGE" />
+                <action android:name="org.unifiedpush.android.distributor.REGISTER" />
+                <action android:name="org.unifiedpush.android.distributor.UNREGISTER" />
+            </intent-filter>
+        </receiver>
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"

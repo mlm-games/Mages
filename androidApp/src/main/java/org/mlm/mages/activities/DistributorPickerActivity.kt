@@ -21,16 +21,18 @@ class DistributorPickerActivity : AppCompatActivity() {
             distributors.isEmpty() -> {
                 AlertDialog.Builder(this)
                     .setTitle("No push distributor")
-                    .setMessage("Install a UnifiedPush distributor app like ntfy, Sunup, or gCompat to receive push notifications.")
+                    .setMessage("No push distributor available.")
                     .setPositiveButton("OK") { _, _ -> finish() }
                     .setOnCancelListener { finish() }
                     .show()
             }
 
             distributors.size == 1 && saved == distributors.first() -> {
+                val isEmbedded = distributors.first().contains(packageName)
+                val currentName = if (isEmbedded) "Built-in FCM (embedded)" else distributors.first()
                 AlertDialog.Builder(this)
                     .setTitle("Push service")
-                    .setMessage("Currently using: ${distributors.first()}\n\nInstall another distributor to switch.")
+                    .setMessage("Currently using: $currentName\n\nInstall another distributor like ntfy or Sunup to switch.")
                     .setPositiveButton("OK") { _, _ -> finish() }
                     .setOnCancelListener { finish() }
                     .show()

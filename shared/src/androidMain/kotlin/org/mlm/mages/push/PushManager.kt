@@ -10,10 +10,17 @@ object PushManager {
     const val DEFAULT_INSTANCE = "default"
 
     fun registerSilently(context: Context, instance: String = DEFAULT_INSTANCE) {
-        if (UnifiedPush.getSavedDistributor(context).isNullOrBlank()) {
+        val saved = UnifiedPush.getSavedDistributor(context)
+        if (!saved.isNullOrBlank()) {
+            UnifiedPush.register(context, instance)
             return
         }
-        UnifiedPush.register(context, instance)
+
+        val distributors = UnifiedPush.getDistributors(context)
+        if (distributors.size == 1) {
+            UnifiedPush.saveDistributor(context, distributors.first())
+            UnifiedPush.register(context, instance)
+        }
     }
 
     fun unregister(context: Context, instance: String = DEFAULT_INSTANCE) {
