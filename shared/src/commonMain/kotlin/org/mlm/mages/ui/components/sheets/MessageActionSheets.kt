@@ -1,10 +1,11 @@
 package org.mlm.mages.ui.components.sheets
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Forward
 import androidx.compose.material.icons.automirrored.filled.Reply
@@ -51,7 +52,7 @@ fun MessageActionSheet(
     onShare: (() -> Unit)? = null,
     onForward: (() -> Unit)? = null,
 ) {
-    val clipboard = LocalClipboardManager.current
+    val clipboardManager = LocalClipboardManager.current
     var showEmojiPicker by remember { mutableStateOf(false) }
 
     if (showEmojiPicker) {
@@ -63,7 +64,12 @@ fun MessageActionSheet(
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.fillMaxWidth().padding(bottom = Spacing.xxl)) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = Spacing.xxl)
+        ) {
             MessagePreview(event)
             Spacer(Modifier.height(Spacing.lg))
             QuickReactionsRow(
@@ -77,7 +83,10 @@ fun MessageActionSheet(
             if (onShowMessageInfo != null) {
                 ActionItem(Icons.Default.Info, "Message info") { onShowMessageInfo(); onDismiss() }
             }
-            ActionItem(Icons.Default.ContentCopy, "Copy") { clipboard.setText(AnnotatedString(event.body)); onDismiss() }
+            ActionItem(Icons.Default.ContentCopy, "Copy") {
+                clipboardManager.setText(AnnotatedString(event.body))
+                onDismiss()
+            }
             if (onShare != null) {
                 ActionItem(Icons.Default.Share, "Share") { onShare(); onDismiss() }
             }
