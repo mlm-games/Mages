@@ -1,0 +1,1 @@
+- make textlinks and md headings also react to the font size setting

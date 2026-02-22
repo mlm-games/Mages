@@ -46,6 +46,13 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="3.0.2" date="2026-02-22" type="stable">
+      <description>
+        <ul>
+          <li>make textlinks and md headings also react to the font size setting</li>
+        </ul>
+      </description>
+    </release>
     <release version="3.0.1" date="2026-02-22" type="stable">
       <description>
         <ul>

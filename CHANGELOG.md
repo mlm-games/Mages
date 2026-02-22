@@ -1,3 +1,8 @@
+## v3.0.2
+
+- make textlinks and md headings also react to the font size setting
+
+
 ## v3.0.1
 
 - add the foss embedded distributor for notifications without a fcm client
