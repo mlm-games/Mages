@@ -46,6 +46,32 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="3.0.1" date="2026-02-22" type="stable">
+      <description>
+        <ul>
+          <li>add the foss embedded distributor for notifications without a fcm client</li>
+          <li>Improve search screen UI</li>
+          <li>Fix font size not changing for messages (#44)</li>
+          <li>add sound once per room option</li>
+          <li>improve reply, and edit banner</li>
+          <li>Reactions are now handled in message events</li>
+          <li>desktop: show avatar/fp if present</li>
+          <li>Add filtering based on groups and DMs</li>
+          <li>Add a message info action to check seen by entries</li>
+          <li>condense message bubble spacers, and have reactions closer to the message</li>
+          <li>shrink images to look like other chat clients</li>
+          <li>Move members listing dropdown button to room info screen</li>
+          <li>Another room info screen overhaul</li>
+          <li>Room info screen avatar, spaces avatar, member listing, and leave button</li>
+          <li>Add swipe to reply, and the ability to click a reply to go to the message that was replied to.</li>
+          <li>Add emojis sheet to have curated emojis (like other clients), and app icon badges</li>
+          <li>Store draft messages, and other misc stuff</li>
+          <li>Have an option to change the default unifiedPush provider</li>
+          <li>Add enter handling (shift + enter now sends message by default, togglable in settings)</li>
+          <li>do not hide the status bar (#40)</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.7.2" date="2026-02-15" type="stable">
       <description>
         <ul>

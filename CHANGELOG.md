@@ -1,3 +1,27 @@
+## v3.0.1
+
+- add the foss embedded distributor for notifications without a fcm client
+- Improve search screen UI
+- Fix font size not changing for messages (#44)
+- add sound once per room option
+- improve reply, and edit banner
+- Reactions are now handled in message events
+- desktop: show avatar/fp if present
+- Add filtering based on groups and DMs
+- Add a message info action to check seen by entries
+- condense message bubble spacers, and have reactions closer to the message
+- shrink images to look like other chat clients
+- Move members listing dropdown button to room info screen
+- Another room info screen overhaul
+- Room info screen avatar, spaces avatar, member listing, and leave button
+- Add swipe to reply, and the ability to click a reply to go to the message that was replied to.
+- Add emojis sheet to have curated emojis (like other clients), and app icon badges
+- Store draft messages, and other misc stuff
+- Have an option to change the default unifiedPush provider
+- Add enter handling (shift + enter now sends message by default, togglable in settings)
+- do not hide the status bar (#40)
+
+
 ## v2.7.2
 
 - Add ctrl + V support for desktop
