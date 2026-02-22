@@ -1,5 +1,6 @@
 package org.mlm.mages.platform
 
+import io.github.vinceglb.filekit.FileKit
 import java.io.File
 
 actual object MagesPaths {
@@ -11,6 +12,8 @@ actual object MagesPaths {
             if (!base.exists()) base.mkdirs()
             storeDir = base.absolutePath
         }
+
+        FileKit.init("org.mlm.mages")
     }
 
     actual fun storeDir(): String {

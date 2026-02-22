@@ -10,6 +10,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import io.github.mlmgames.settings.core.annotations.SettingPlatform
+import io.github.mlmgames.settings.core.platform.currentPlatform
 import org.mlm.mages.ui.theme.Spacing
 
 @Composable
@@ -19,6 +21,7 @@ fun AttachmentPicker(
     onPickDocument: () -> Unit,
     onPasteFromClipboard: (() -> Unit)?,
     onDismiss: () -> Unit,
+    onCamera: (() -> Unit)? = null,
     onCreatePoll: (() -> Unit)? = null,
     onShareLocation: (() -> Unit)? = null,
 ) {
@@ -51,6 +54,14 @@ fun AttachmentPicker(
                 "Video",
                 "Share a video"
             ) { onPickVideo(); onDismiss() }
+
+            if (onCamera != null && currentPlatform == SettingPlatform.ANDROID) {
+                AttachmentOption(
+                    Icons.Default.PhotoCamera,
+                    "Camera",
+                    "Take a photo"
+                ) { onCamera(); onDismiss() }
+            }
 
             AttachmentOption(
                 Icons.AutoMirrored.Filled.InsertDriveFile,

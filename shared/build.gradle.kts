@@ -59,6 +59,9 @@ kotlin {
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.coil.compose)
             implementation(libs.koin.compose.navigation3)
+
+            implementation(libs.filekit.core)
+            implementation(libs.filekit.dialogs.compose)
         }
 
         androidMain.dependencies {

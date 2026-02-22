@@ -2,7 +2,9 @@ package org.mlm.mages.ui.components.composer
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -38,7 +40,7 @@ fun MessageComposer(
     isOffline: Boolean,
     replyingTo: MessageEvent?,
     editing: MessageEvent?,
-    currentAttachment: AttachmentData?,
+    attachments: List<AttachmentData>,
     isUploadingAttachment: Boolean,
     onValueChange: (String) -> Unit,
     onSend: () -> Unit,
@@ -47,7 +49,7 @@ fun MessageComposer(
     modifier: Modifier = Modifier,
     onAttach: (() -> Unit)? = null,
     onCancelUpload: (() -> Unit)? = null,
-    onRemoveAttachment: (() -> Unit)? = null,
+    onRemoveAttachment: ((Int) -> Unit)? = null,
     clipboardHandler: ClipboardAttachmentHandler? = null,
     onAttachmentPasted: ((AttachmentData) -> Unit)? = null,
     enterSendsMessage: Boolean = false,
@@ -68,29 +70,42 @@ fun MessageComposer(
     ) {
         Column {
             AnimatedVisibility(
-                visible = currentAttachment != null && !isUploadingAttachment,
+                visible = attachments.isNotEmpty() && !isUploadingAttachment,
             ) {
-                currentAttachment?.let { attachment ->
-                    InputChip(
-                        selected = true,
-                        onClick = { },
-                        label = { Text(attachment.fileName, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        trailingIcon = {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "Remove attachment",
-                                modifier = Modifier
-                                    .size(18.dp)
-                                    .clickable { onRemoveAttachment?.invoke() }
-                            )
-                        },
-                        colors = InputChipDefaults.inputChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                            selectedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        border = null,
-                        modifier = Modifier.padding(start = Spacing.lg, top = Spacing.sm)
-                    )
+                Row(
+                    modifier = Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(start = Spacing.lg, top = Spacing.sm, end = Spacing.lg),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    attachments.forEachIndexed { index, attachment ->
+                        InputChip(
+                            selected = true,
+                            onClick = { },
+                            label = {
+                                Text(
+                                    attachment.fileName,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.widthIn(max = 160.dp)
+                                )
+                            },
+                            trailingIcon = {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Remove attachment",
+                                    modifier = Modifier
+                                        .size(18.dp)
+                                        .clickable { onRemoveAttachment?.invoke(index) }
+                                )
+                            },
+                            colors = InputChipDefaults.inputChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                selectedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            border = null,
+                        )
+                    }
                 }
             }
 
@@ -117,7 +132,7 @@ fun MessageComposer(
                             Modifier.pasteInterceptor {
                                 if (clipboardHandler.hasAttachment()) {
                                     scope.launch {
-                                        clipboardHandler.getAttachment()?.let(onAttachmentPasted)
+                                        clipboardHandler.getAttachments().forEach { onAttachmentPasted(it) }
                                     }
                                     true
                                 } else false
@@ -143,7 +158,9 @@ fun MessageComposer(
                     },
                     modifier = textFieldModifier,
                     enabled = enabled && !isUploadingAttachment,
-                    placeholder = { ComposerPlaceholder(isUploadingAttachment, isOffline, editing, replyingTo) },
+                    placeholder = {
+                        ComposerPlaceholder(isUploadingAttachment, isOffline, editing, replyingTo)
+                    },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
@@ -158,7 +175,9 @@ fun MessageComposer(
 
                 FilledIconButton(
                     onClick = onSend,
-                    enabled = enabled && (value.isNotBlank() || currentAttachment != null) && !isUploadingAttachment,
+                    enabled = enabled
+                            && (value.isNotBlank() || attachments.isNotEmpty())
+                            && !isUploadingAttachment,
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -166,7 +185,11 @@ fun MessageComposer(
                     )
                 ) {
                     if (isUploadingAttachment) {
-                        CircularProgressIndicator(modifier = Modifier.size(Sizes.iconMedium), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(Sizes.iconMedium),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
                     } else {
                         Icon(Icons.AutoMirrored.Filled.Send, "Send")
                     }

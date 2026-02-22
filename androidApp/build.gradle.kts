@@ -104,6 +104,8 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtimeCompose)
 
+    implementation(libs.filekit.core)
+
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
     implementation(libs.androidx.datastore.preferences.core)

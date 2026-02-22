@@ -182,14 +182,16 @@ class RoomViewModel(
 
     fun send() {
         val s = currentState
-        val attachment = s.currentAttachment
+        val pending = s.attachments
         val hasText = s.input.isNotBlank()
 
-        if (!hasText && attachment == null) return
+        if (!hasText && pending.isEmpty()) return
 
-        if (attachment != null && !s.isUploadingAttachment) {
-            updateState { copy(currentAttachment = null) }
-            sendAttachmentInternal(attachment)
+        // If there are attachments, send them all, then send text
+        if (pending.isNotEmpty() && !s.isUploadingAttachment) {
+            updateState { copy(attachments = emptyList()) }
+            sendAttachmentsInternal(pending)
+
             if (hasText) {
                 val text = s.input.trim()
                 updateState { copy(input = "") }
@@ -228,17 +230,20 @@ class RoomViewModel(
         }
     }
 
+
     fun attachFile(data: AttachmentData) {
         updateState {
             copy(
-                currentAttachment = data,
+                attachments = attachments + data,
                 showAttachmentPicker = false
             )
         }
     }
 
-    fun removeAttachment() {
-        updateState { copy(currentAttachment = null) }
+    fun removeAttachment(index: Int) {
+        updateState {
+            copy(attachments = attachments.toMutableList().apply { removeAt(index) })
+        }
     }
 
     //  Reply/Edit
@@ -482,44 +487,53 @@ class RoomViewModel(
 
     //  Attachments
 
-    fun sendAttachment(data: AttachmentData) {
-        attachFile(data)
-    }
-
-    private fun sendAttachmentInternal(data: AttachmentData) {
+    private fun sendAttachmentsInternal(items: List<AttachmentData>) {
         if (currentState.isUploadingAttachment) return
 
-        updateState {
-            copy(
-                currentAttachment = data,
-                isUploadingAttachment = true,
-                attachmentProgress = 0f,
-                showAttachmentPicker = false
-            )
-        }
-
         uploadJob = launch {
-            val ok = service.sendAttachmentFromPath(
-                roomId = currentState.roomId,
-                path = data.path,
-                mime = data.mimeType,
-                filename = data.fileName
-            ) { sent, total ->
-                val denom = (total ?: data.sizeBytes).coerceAtLeast(1L).toFloat()
-                val p = (sent.toFloat() / denom).coerceIn(0f, 1f)
-                updateState { copy(attachmentProgress = p) }
+            val total = items.size
+
+            for ((i, data) in items.withIndex()) {
+                updateState {
+                    copy(
+                        isUploadingAttachment = true,
+                        attachmentProgress = 0f,
+                        uploadingFileName = "${data.fileName} (${i + 1}/$total)"
+                    )
+                }
+
+                val ok = service.sendAttachmentFromPath(
+                    roomId = currentState.roomId,
+                    path = data.path,
+                    mime = data.mimeType,
+                    filename = data.fileName
+                ) { sent, totalBytes ->
+                    val denom = (totalBytes ?: data.sizeBytes).coerceAtLeast(1L).toFloat()
+                    val p = (sent.toFloat() / denom).coerceIn(0f, 1f)
+                    updateState { copy(attachmentProgress = p) }
+                }
+
+                if (!ok) {
+                    val remaining = items.drop(i + 1)
+                    updateState {
+                        copy(
+                            isUploadingAttachment = false,
+                            attachmentProgress = 0f,
+                            uploadingFileName = null,
+                            attachments = remaining
+                        )
+                    }
+                    _events.send(Event.ShowError("Upload failed: ${data.fileName}"))
+                    return@launch
+                }
             }
 
             updateState {
                 copy(
                     isUploadingAttachment = false,
                     attachmentProgress = 0f,
-                    currentAttachment = null
+                    uploadingFileName = null
                 )
-            }
-
-            if (!ok) {
-                _events.send(Event.ShowError("Attachment upload failed"))
             }
         }
     }
@@ -531,7 +545,8 @@ class RoomViewModel(
             copy(
                 isUploadingAttachment = false,
                 attachmentProgress = 0f,
-                currentAttachment = null
+                attachments = emptyList(),
+                uploadingFileName = null
             )
         }
     }

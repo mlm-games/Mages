@@ -66,8 +66,9 @@ data class RoomUiState(
     val hasTimelineSnapshot: Boolean = false,
     val hitStart: Boolean = false,
     val isOffline: Boolean = false,
-    val currentAttachment: AttachmentData? = null,
+    val attachments: List<AttachmentData> = emptyList(),
     val isUploadingAttachment: Boolean = false,
+    val uploadingFileName: String? = null,
     val attachmentProgress: Float = 0f,
     val error: String? = null,
 

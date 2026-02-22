@@ -62,6 +62,9 @@ import org.mlm.mages.ui.components.snackbar.snackbarHost
 import java.io.File
 import java.nio.file.Files
 import io.github.mlmgames.settings.core.SettingsRepository
+import io.github.vinceglb.filekit.dialogs.FileKitMode
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.RoomUiState
 
@@ -93,8 +96,40 @@ fun RoomScreen(
 
     val openExternal = rememberFileOpener()
 
-    val picker = rememberFilePicker { data ->
-        if (data != null) viewModel.attachFile(data)
+    val imagePicker = rememberFilePickerLauncher(
+        mode = FileKitMode.Multiple(),
+        type = FileKitType.Image
+    ) { files ->
+        scope.launch {
+            files?.forEach { viewModel.attachFile(it.toAttachmentData()) }
+        }
+        viewModel.hideAttachmentPicker()
+    }
+
+    val videoPicker = rememberFilePickerLauncher(
+        mode = FileKitMode.Multiple(),
+        type = FileKitType.Video
+    ) { files ->
+        scope.launch {
+            files?.forEach { viewModel.attachFile(it.toAttachmentData()) }
+        }
+        viewModel.hideAttachmentPicker()
+    }
+
+    val documentPicker = rememberFilePickerLauncher(
+        mode = FileKitMode.Multiple(),
+        type = FileKitType.File()
+    ) { files ->
+        scope.launch {
+            files?.forEach { viewModel.attachFile(it.toAttachmentData()) }
+        }
+        viewModel.hideAttachmentPicker()
+    }
+
+    val cameraPicker = rememberCameraPickerLauncher { file ->
+        scope.launch {
+            file?.let { viewModel.attachFile(it.toAttachmentData()) }
+        }
         viewModel.hideAttachmentPicker()
     }
 
@@ -467,15 +502,14 @@ fun RoomScreen(
 
     if (state.showAttachmentPicker) {
         AttachmentPicker(
-            onPickImage = { picker.pick("image/*") },
-            onPickVideo = { picker.pick("video/*") },
-            onPickDocument = { picker.pick("*/*") },
+            onPickImage = { imagePicker.launch() },
+            onPickVideo = { videoPicker.launch() },
+            onPickDocument = { documentPicker.launch() },
+            onCamera = { cameraPicker?.launch() },
             onPasteFromClipboard = if (clipboardHasAttachment) {
                 {
                     scope.launch {
-                        clipboardHandler.getAttachment()?.let {
-                            viewModel.attachFile(it)
-                        }
+                        clipboardHandler.getAttachments().forEach { viewModel.attachFile(it) }
                     }
                 }
             } else null,
@@ -709,14 +743,12 @@ private fun RoomBottomBar(
     onCancelEdit: () -> Unit,
     onAttach: () -> Unit,
     onCancelUpload: () -> Unit,
-    onRemoveAttachment: () -> Unit,
+    onRemoveAttachment: (Int) -> Unit,
     clipboardHandler: ClipboardAttachmentHandler? = null,
     onAttachmentPasted: ((AttachmentData) -> Unit)? = null,
     enterSendsMessage: Boolean = false,
 ) {
-    Column(
-        modifier = Modifier.navigationBarsPadding()
-    ) {
+    Column(modifier = Modifier.navigationBarsPadding()) {
         ActionBanner(
             replyingTo = state.replyingTo,
             editing = state.editing,
@@ -724,11 +756,11 @@ private fun RoomBottomBar(
             onCancelEdit = onCancelEdit
         )
 
-        if (state.isUploadingAttachment && state.currentAttachment != null) {
+        if (state.isUploadingAttachment) {
             AttachmentProgress(
-                fileName = state.currentAttachment.fileName,
+                fileName = state.uploadingFileName ?: "Uploading…",
                 progress = state.attachmentProgress,
-                totalSize = state.currentAttachment.sizeBytes,
+                // TODO: actual progress hasn't been wired yet in rust
                 onCancel = onCancelUpload
             )
         }
@@ -739,7 +771,7 @@ private fun RoomBottomBar(
             isOffline = state.isOffline,
             replyingTo = state.replyingTo,
             editing = state.editing,
-            currentAttachment = state.currentAttachment,
+            attachments = state.attachments,
             isUploadingAttachment = state.isUploadingAttachment,
             onValueChange = onSetInput,
             onSend = onSend,
