@@ -27,33 +27,27 @@ private class JvmClipboardAttachmentHandler : ClipboardAttachmentHandler {
         c.isDataFlavorSupported(DataFlavor.imageFlavor)
     } catch (_: Exception) { false }
 
-    override suspend fun getAttachment(): AttachmentData? =
+    override suspend fun getAttachments(): List<AttachmentData> =
         withContext(Dispatchers.IO) {
             try {
-                val contents = clipboard.getContents(null)
-                    ?: return@withContext null
+                val contents = clipboard.getContents(null) ?: return@withContext emptyList()
 
-                if (contents.isDataFlavorSupported(
-                        DataFlavor.javaFileListFlavor
-                )) {
+                if (contents.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
                     @Suppress("UNCHECKED_CAST")
-                    val files = contents.getTransferData(
-                        DataFlavor.javaFileListFlavor
-                    ) as? List<File>
-                    files?.firstOrNull()
-                        ?.takeIf { it.exists() }
-                        ?.let { return@withContext it.toAttachment() }
+                    val files = contents.getTransferData(DataFlavor.javaFileListFlavor) as? List<File>
+                    return@withContext files
+                        ?.filter { it.exists() }
+                        ?.map { it.toAttachment() }
+                        ?: emptyList()
                 }
 
                 if (contents.isDataFlavorSupported(DataFlavor.imageFlavor)) {
-                    val img = contents.getTransferData(
-                        DataFlavor.imageFlavor
-                    ) as? java.awt.Image
-                    img?.let { return@withContext it.saveToTemp() }
+                    val img = contents.getTransferData(DataFlavor.imageFlavor) as? java.awt.Image
+                    return@withContext listOfNotNull(img?.saveToTemp())
                 }
 
-                null
-            } catch (_: Exception) { null }
+                emptyList()
+            } catch (_: Exception) { emptyList() }
         }
 
     private fun File.toAttachment() = AttachmentData(

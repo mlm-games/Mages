@@ -5,7 +5,7 @@ import org.mlm.mages.ui.components.AttachmentData
 
 interface ClipboardAttachmentHandler {
     fun hasAttachment(): Boolean
-    suspend fun getAttachment(): AttachmentData?
+    suspend fun getAttachments(): List<AttachmentData>
 }
 
 @Composable

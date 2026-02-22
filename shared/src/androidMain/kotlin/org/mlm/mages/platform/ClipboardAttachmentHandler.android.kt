@@ -39,17 +39,16 @@ private class AndroidClipboardAttachmentHandler(
         }
     }
 
-    override suspend fun getAttachment(): AttachmentData? =
+    override suspend fun getAttachments(): List<AttachmentData> =
         withContext(Dispatchers.IO) {
             try {
-                val clip = cm?.primaryClip ?: return@withContext null
-                if (clip.itemCount == 0) return@withContext null
-
-                val uri = clip.getItemAt(0).uri ?: return@withContext null
-                processUri(uri)
+                val clip = cm?.primaryClip ?: return@withContext emptyList()
+                (0 until clip.itemCount).mapNotNull { i ->
+                    clip.getItemAt(i).uri?.let { processUri(it) }
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
-                null
+                emptyList()
             }
         }
 
