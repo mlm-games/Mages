@@ -2,6 +2,7 @@ package org.mlm.mages
 
 import android.app.Application
 import android.content.Intent
+import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import io.github.mlmgames.settings.core.actions.ActionRegistry
@@ -15,10 +16,8 @@ import org.mlm.mages.activities.DistributorPickerActivity
 import org.mlm.mages.di.appModules
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.SettingsProvider
-import org.mlm.mages.push.AndroidNotificationHelper
 import org.mlm.mages.push.AppNotificationChannels
 import org.mlm.mages.push.PREF_INSTANCE
-import org.mlm.mages.push.PushManager
 import org.mlm.mages.push.PushManager.getEndpoint
 import org.mlm.mages.push.PusherReconciler
 import org.mlm.mages.settings.CopyUnifiedPushEndpointAction
@@ -40,12 +39,14 @@ class MagesApp : Application() {
 
         AppNotificationChannels.ensureCreated(this)
 
-        ActionRegistry.register(OpenSystemNotificationSettingsAction::class) {
-            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            ActionRegistry.register(OpenSystemNotificationSettingsAction::class) {
+                val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                    putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                startActivity(intent)
             }
-            startActivity(intent)
         }
 
         ActionRegistry.register(SelectUnifiedPushDistributorAction::class) {
