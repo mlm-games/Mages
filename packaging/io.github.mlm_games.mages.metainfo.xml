@@ -46,6 +46,15 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="3.1.1" date="2026-02-22" type="stable">
+      <description>
+        <ul>
+          <li>multiple attachments, native file pickers on jvm, and an camera option</li>
+          <li>ctrl + V can now paste multiple files instead of just one</li>
+          <li>make message actions sheet scrollable</li>
+        </ul>
+      </description>
+    </release>
     <release version="3.0.2" date="2026-02-22" type="stable">
       <description>
         <ul>

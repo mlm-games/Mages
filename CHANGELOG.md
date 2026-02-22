@@ -1,3 +1,10 @@
+## v3.1.1
+
+- multiple attachments, native file pickers on jvm, and an camera option
+- ctrl + V can now paste multiple files instead of just one
+- make message actions sheet scrollable
+
+
 ## v3.0.2
 
 - make textlinks and md headings also react to the font size setting

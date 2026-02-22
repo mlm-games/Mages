@@ -1,0 +1,3 @@
+- multiple attachments, native file pickers on jvm, and an camera option
+- ctrl + V can now paste multiple files instead of just one
+- make message actions sheet scrollable
