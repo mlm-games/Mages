@@ -1,11 +1,15 @@
 use futures_util::StreamExt;
 use js_int::UInt;
+use matrix_sdk::authentication::oauth::UrlOrQuery;
+use matrix_sdk::authentication::oauth::registration::{ApplicationType, ClientMetadata, Localized, OAuthGrantType};
 use matrix_sdk::authentication::oauth::registration::language_tags::LanguageTag;
 use matrix_sdk::reqwest::Url;
 use matrix_sdk::ruma::events::room::power_levels::UserPowerLevel;
 use matrix_sdk::ruma::events::{AnySyncMessageLikeEvent, AnySyncTimelineEvent};
 use matrix_sdk::ruma::room_version_rules::RoomVersionRules;
+use matrix_sdk::ruma::serde::Raw;
 use matrix_sdk::search_index::SearchIndexStoreKind;
+use matrix_sdk::utils::local_server::LocalServerBuilder;
 use matrix_sdk::{
     EncryptionState, PredecessorRoom, RoomDisplayName, SuccessorRoom,
     ruma::{
@@ -21,7 +25,6 @@ use matrix_sdk::{
                 },
             },
         },
-        room::Restricted,
     },
     widget::{VirtualElementCallWidgetConfig, VirtualElementCallWidgetProperties},
 };
@@ -63,7 +66,7 @@ use matrix_sdk::{
         api::client::{
             directory::get_public_rooms_filtered,
             push::{Pusher, PusherIds, PusherInit, PusherKind},
-            room::{Visibility, create_room::v3::RoomPreset},
+            room::{Visibility},
         },
         events::room::{
             EncryptedFile, MediaSource, name::RoomNameEventContent, pinned_events::RoomPinnedEventsEventContent, topic::RoomTopicEventContent,
@@ -108,7 +111,6 @@ use matrix_sdk_ui::{
         TimelineItem, TimelineItemContent,
     },
 };
-use ruma::api::client::room::create_room::v3 as create_room_v3;
 use thiserror::Error;
 
 use ruma::{
@@ -138,7 +140,6 @@ use matrix_sdk::ruma::{
             UnstablePollStartContentBlock,
         },
     },
-    events::room::{history_visibility::HistoryVisibility, join_rules::JoinRule},
     presence::PresenceState,
 };
 use matrix_sdk::widget::{
@@ -747,6 +748,29 @@ impl From<PredecessorRoom> for PredecessorRoomInfo {
             room_id: v.room_id.to_string(),
         }
     }
+}
+
+fn mages_client_metadata(redirect_uri: &Url) -> Raw<ClientMetadata> {
+    let client_uri = Localized::new(
+        Url::parse("https://github.com/mlm-games/mages")
+            .expect("valid URL"),
+        [],
+    );
+
+    let metadata = ClientMetadata {
+        client_name: Some(Localized::new("Mages".to_owned(), [])),
+        policy_uri: Some(client_uri.clone()),
+        tos_uri: Some(client_uri.clone()),
+        ..ClientMetadata::new(
+            ApplicationType::Native,
+            vec![OAuthGrantType::AuthorizationCode {
+                redirect_uris: vec![redirect_uri.clone()],
+            }],
+            client_uri,
+        )
+    };
+
+    Raw::new(&metadata).expect("Couldn't serialize client metadata")
 }
 
 #[derive(Clone, Copy, Enum)]
@@ -3848,6 +3872,71 @@ impl Client {
         })
     }
 
+pub fn login_oauth_loopback(
+    &self,
+    opener: Box<dyn UrlOpener>,
+    device_name: Option<String>,
+) -> Result<(), FfiError> {
+    RT.block_on(async {
+        let oauth = self.inner.oauth();
+
+        let (redirect_uri, server_handle) = LocalServerBuilder::new()
+            .spawn()
+            .await
+            .map_err(|e| FfiError::Msg(e.to_string()))?;
+
+        let registration_data = mages_client_metadata(&redirect_uri).into();
+
+        let auth_data = oauth
+            .login(redirect_uri, None, Some(registration_data), None)
+            
+            .build()
+            .await
+            .map_err(|e| FfiError::Msg(e.to_string()))?;
+
+        let _ = opener.open(auth_data.url.to_string());
+
+        let callback_query = server_handle
+            .await
+            .ok_or_else(|| FfiError::Msg("No OAuth callback received".into()))?;
+
+        oauth
+            .finish_login(UrlOrQuery::Query(callback_query.0))
+            .await
+            .map_err(|e| FfiError::Msg(e.to_string()))?;
+
+         if let Some(name) = device_name {
+            if let Some(device_id) = self.inner.device_id() {
+                use matrix_sdk::ruma::api::client::device::update_device;
+                let mut req = update_device::v3::Request::new(device_id.to_owned());
+                req.display_name = Some(name);
+                // Don't fail
+                let _ = self.inner.send(req).await;
+            }
+        }
+
+        if let Some(sess) = oauth.user_session() {
+            tokio::fs::create_dir_all(&self.store_dir).await?;
+            let info = SessionInfo {
+                user_id: sess.meta.user_id.to_string(),
+                device_id: sess.meta.device_id.to_string(),
+                access_token: sess.tokens.access_token.clone(),
+                refresh_token: sess.tokens.refresh_token.clone(),
+                homeserver: self.inner.homeserver().to_string(),
+            };
+            tokio::fs::write(
+                session_file(&self.store_dir),
+                serde_json::to_string(&info).unwrap(),
+            )
+            .await?;
+        }
+
+        self.ensure_sync_service().await;
+
+        Ok(())
+    })
+}
+
     /// Return reactions (emoji -> count, me).
     pub fn reactions_for_event(&self, room_id: String, event_id: String) -> Vec<ReactionSummary> {
         RT.block_on(async {
@@ -4944,7 +5033,7 @@ impl Client {
 
     pub fn set_room_join_rule(&self, room_id: String, rule: RoomJoinRule) -> Result<(), FfiError> {
         RT.block_on(async {
-            use ruma::events::room::join_rules::{JoinRule, Restricted, AllowRule};
+            use ruma::events::room::join_rules::{JoinRule, Restricted};
 
             let Ok(rid) = OwnedRoomId::try_from(room_id) else {
                 return Err(FfiError::Msg("bad room id".into()));

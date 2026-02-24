@@ -14,6 +14,8 @@
     <string name="enter_your_password">Enter your password</string>
     <string name="cancel_sso">Cancel SSO</string>
     <string name="continue_with_sso">Continue with SSO</string>
+    <string name="cancel_oauth">Cancel OAuth</string>
+    <string name="continue_with_oauth">Continue with OAuth</string>
     <string name="homeserver">Homeserver</string>
     <string name="homeserver_placeholder">https://matrix.org</string>
     <string name="hide_advanced_options">Hide advanced options</string>

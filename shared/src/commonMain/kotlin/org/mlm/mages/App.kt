@@ -240,6 +240,7 @@ private fun AppContent(deepLinks: Flow<DeepLinkAction>?) {
                         LoginScreen(
                             viewModel = viewModel,
                             onSso = { viewModel.startSso(openUrl) },
+                            onOauth = { viewModel.startOauth(openUrl) },
                             isAddingAccount = isAddingAccount
                         )
                     }

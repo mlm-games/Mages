@@ -498,6 +498,8 @@ interface MatrixPort {
 
     suspend fun loginSsoLoopback(openUrl: (String) -> Boolean, deviceName: String? = null): Boolean
 
+    suspend fun loginOauthLoopback(openUrl: (String) -> Boolean, deviceName: String? = null): Boolean
+
     suspend fun searchUsers(term: String, limit: Int = 20): List<DirectoryUser>
     suspend fun publicRooms(server: String? = null, search: String? = null, limit: Int = 50, since: String? = null): PublicRoomsPage
     suspend fun joinByIdOrAlias(idOrAlias: String): Boolean

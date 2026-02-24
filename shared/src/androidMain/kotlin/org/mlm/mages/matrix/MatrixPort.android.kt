@@ -783,6 +783,16 @@ class RustMatrixPort : MatrixPort {
         runCatching { withClient { it.loginSsoLoopback(opener, deviceName) } }.isSuccess
     }
 
+    override suspend fun loginOauthLoopback(
+        openUrl: (String) -> Boolean,
+        deviceName: String?
+    ): Boolean = withContext(Dispatchers.IO) {
+        val opener = object : mages.UrlOpener {
+            override fun open(url: String): Boolean = openUrl(url)
+        }
+        runCatching { withClient { it.loginOauthLoopback(opener, deviceName) } }.isSuccess
+    }
+
     override suspend fun searchUsers(term: String, limit: Int): List<DirectoryUser> =
         withContext(Dispatchers.IO) {
             runCatching {

@@ -25,6 +25,7 @@ class LoginViewModel(
 ) : BaseViewModel<LoginUiState>(LoginUiState()) {
 
     private var ssoJob: Job? = null
+    private var oauthJob: Job? = null
 
     init {
         launch {
@@ -48,6 +49,7 @@ class LoginViewModel(
         return if (hs.startsWith("https://") || hs.startsWith("http://")) hs else "https://$hs"
     }
 
+    @OptIn(ExperimentalTime::class)
     private fun newAccountId(): String {
         val t = Clock.System.now().toEpochMilliseconds()
         val r1 = Random.nextInt().toUInt().toString(16)
@@ -60,6 +62,7 @@ class LoginViewModel(
         val s = currentState
         if (s.isBusy || s.user.isBlank() || s.pass.isBlank()) return
         cancelSso()
+        cancelOauth()
 
         val hs = normalizeHomeserver(s.homeserver)
         if (hs.isBlank()) {
@@ -124,6 +127,7 @@ class LoginViewModel(
         val s = currentState
         if (s.isBusy) return
         cancelSso()
+        cancelOauth()
 
         val hs = normalizeHomeserver(s.homeserver)
         if (hs.isBlank()) {
@@ -197,10 +201,90 @@ class LoginViewModel(
         updateState { copy(isBusy = false, ssoInProgress = false) }
     }
 
+    @OptIn(ExperimentalTime::class)
+    fun startOauth(openUrl: (String) -> Boolean) {
+        val s = currentState
+        if (s.isBusy) return
+        cancelSso()
+        cancelOauth()
+
+        val hs = normalizeHomeserver(s.homeserver)
+        if (hs.isBlank()) {
+            updateState { copy(error = "Please enter a server") }
+            return
+        }
+
+        oauthJob = launch(onError = { t ->
+            if (t !is CancellationException) {
+                updateState { copy(isBusy = false, oauthInProgress = false, error = t.message ?: "OAuth failed") }
+            }
+        }) {
+            updateState { copy(isBusy = true, oauthInProgress = true, error = null) }
+
+            val accountId = newAccountId()
+            val port = createMatrixPort()
+
+            try {
+                port.init(hs, accountId)
+
+                val ok = withContext(Dispatchers.IO) {
+                    port.loginOauthLoopback(openUrl, deviceName = getDeviceDisplayName())
+                }
+
+                if (!ok || !port.isLoggedIn()) {
+                    port.close()
+                    updateState { copy(isBusy = false, oauthInProgress = false, error = "OAuth failed or was cancelled") }
+                    return@launch
+                }
+
+                val userId = port.whoami()
+                if (userId.isNullOrBlank()) {
+                    port.close()
+                    updateState { copy(isBusy = false, oauthInProgress = false, error = "OAuth failed - couldn't get user ID") }
+                    return@launch
+                }
+
+                val account = MatrixAccount(
+                    id = accountId,
+                    userId = userId,
+                    homeserver = hs,
+                    deviceId = "",
+                    accessToken = "",
+                    addedAtMs = Clock.System.now().toEpochMilliseconds()
+                )
+
+                matrixClients.addLoggedInAccount(account, port)
+
+                settingsRepository.update {
+                    it.copy(
+                        homeserver = hs,
+                        androidNotifBaselineMs = Clock.System.now().toEpochMilliseconds()
+                    )
+                }
+
+                updateState { copy(isBusy = false, oauthInProgress = false, error = null, homeserver = hs) }
+                _events.send(Event.LoginSuccess)
+            } catch (e: CancellationException) {
+                runCatching { port.close() }
+                throw e
+            } catch (e: Exception) {
+                runCatching { port.close() }
+                updateState { copy(isBusy = false, oauthInProgress = false, error = e.message ?: "OAuth failed") }
+            }
+        }
+    }
+
+    fun cancelOauth() {
+        oauthJob?.cancel()
+        oauthJob = null
+        updateState { copy(isBusy = false, oauthInProgress = false) }
+    }
+
     fun clearError() = updateState { copy(error = null) }
 
     override fun onCleared() {
         cancelSso()
+        cancelOauth()
         super.onCleared()
     }
 }

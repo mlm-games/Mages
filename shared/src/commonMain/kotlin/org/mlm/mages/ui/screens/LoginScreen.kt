@@ -35,6 +35,7 @@ import mages.shared.generated.resources.*
 fun LoginScreen(
     viewModel: LoginViewModel,
     onSso: () -> Unit,
+    onOauth: () -> Unit,
     isAddingAccount: Boolean = false
 ) {
     val state by viewModel.state.collectAsState()
@@ -216,6 +217,30 @@ fun LoginScreen(
                             Icon(Icons.Default.OpenInBrowser, null)
                             Spacer(Modifier.width(Spacing.sm))
                             Text(stringResource(Res.string.continue_with_sso))
+                        }
+                    }
+
+                    if (state.oauthInProgress) {
+                        OutlinedButton(
+                            onClick = { viewModel.cancelOauth() },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Icon(Icons.Default.Close, null)
+                            Spacer(Modifier.width(Spacing.sm))
+                            Text(stringResource(Res.string.cancel_oauth))
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = onOauth,
+                            enabled = !state.isBusy,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Security, null)
+                            Spacer(Modifier.width(Spacing.sm))
+                            Text(stringResource(Res.string.continue_with_oauth))
                         }
                     }
 
