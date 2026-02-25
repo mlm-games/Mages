@@ -46,6 +46,13 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="3.1.3" date="2026-02-25" type="stable">
+      <description>
+        <ul>
+          <li>Android: make the distributor popup appearing when there are no options to choose from</li>
+        </ul>
+      </description>
+    </release>
     <release version="3.1.2" date="2026-02-25" type="stable">
       <description>
         <ul>

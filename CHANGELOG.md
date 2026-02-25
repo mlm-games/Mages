@@ -1,3 +1,8 @@
+## v3.1.3
+
+- Android: make the distributor popup appearing when there are no options to choose from
+
+
 ## v3.1.2
 
 - Add native OAuth login support
