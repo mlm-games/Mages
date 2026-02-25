@@ -1,1 +1,1 @@
-- Android: make the distributor popup appearing when there are no options to choose from
+- Android: prevent the distributor popup from appearing when there are no options to choose from
