@@ -27,7 +27,7 @@ class DistributorPickerActivity : AppCompatActivity() {
                     .show()
             }
 
-            distributors.size == 1 && saved == distributors.first() -> {
+            distributors.size == 1 -> {
                 val isEmbedded = distributors.first().contains(packageName)
                 val currentName = if (isEmbedded) "Built-in FCM (embedded)" else distributors.first()
                 AlertDialog.Builder(this)
