@@ -28,13 +28,13 @@ import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.RoomsViewModel
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.*
+import org.mlm.mages.ui.components.common.InviteListItem
 
 @Composable
 fun RoomsScreen(
     viewModel: RoomsViewModel = koinViewModel(),
     onOpenSecurity: () -> Unit,
     onOpenDiscover: () -> Unit,
-    onOpenInvites: () -> Unit,
     onOpenCreateRoom: () -> Unit,
     onOpenSpaces: () -> Unit,
     onOpenSearch: () -> Unit,
@@ -45,7 +45,10 @@ fun RoomsScreen(
 
     val hasAnyRooms = state.favouriteItems.isNotEmpty() ||
             state.normalItems.isNotEmpty() ||
-            state.lowPriorityItems.isNotEmpty()
+            state.lowPriorityItems.isNotEmpty() ||
+            state.inviteItems.isNotEmpty()
+
+    val isInvitesFilter = state.typeFilter == RoomTypeFilter.Invites
 
     val firstFavouriteId = state.favouriteItems.firstOrNull()?.roomId
     val firstNormalId = state.normalItems.firstOrNull()?.roomId
@@ -79,10 +82,9 @@ fun RoomsScreen(
                 onOpenSpaces = onOpenSpaces,
                 onOpenSecurity = onOpenSecurity,
                 onOpenDiscover = onOpenDiscover,
-                onOpenInvites = onOpenInvites,
+                inviteCount = state.inviteItems.size,
                 onOpenCreateRoom = onOpenCreateRoom,
                 onOpenSearch = onOpenSearch
-
             )
         },
         floatingActionButton = {
@@ -233,6 +235,25 @@ fun RoomsScreen(
                             )
                         }
                     }
+
+                    if (isInvitesFilter && state.inviteItems.isNotEmpty()) {
+                        itemsIndexed(
+                            state.inviteItems,
+                            key = { _, item -> "invite_${item.roomId}" }
+                        ) { index, item ->
+                            if (index > 0) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(horizontal = Spacing.lg),
+                                    color = MaterialTheme.colorScheme.outlineVariant
+                                )
+                            }
+                            InviteListItem(
+                                item = item,
+                                onAccept = { viewModel.acceptInvite(item.roomId) },
+                                onDecline = { viewModel.declineInvite(item.roomId) }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -247,13 +268,13 @@ private fun RoomsTopBar(
     searchQuery: String,
     unreadOnly: Boolean,
     typeFilter: RoomTypeFilter,
+    inviteCount: Int,
     onSearchChange: (String) -> Unit,
     onToggleUnreadOnly: () -> Unit,
     onSetTypeFilter: (RoomTypeFilter) -> Unit,
     onOpenSpaces: () -> Unit,
     onOpenSecurity: () -> Unit,
     onOpenDiscover: () -> Unit,
-    onOpenInvites: () -> Unit,
     onOpenCreateRoom: () -> Unit,
     onOpenSearch: () -> Unit
 ) {
@@ -269,9 +290,6 @@ private fun RoomsTopBar(
                 }
                 IconButton(onClick = onOpenDiscover) {
                     Icon(Icons.Default.Explore, stringResource(Res.string.discover))
-                }
-                IconButton(onClick = onOpenInvites) {
-                    Icon(Icons.Default.Mail, stringResource(Res.string.invites))
                 }
                 IconButton(onClick = onOpenCreateRoom) {
                     Icon(Icons.Default.Add, stringResource(Res.string.new_room))
@@ -347,6 +365,22 @@ private fun RoomsTopBar(
                 onClick = { onSetTypeFilter(RoomTypeFilter.Dms) },
                 label = { Text("DMs") },
                 leadingIcon = if (typeFilter == RoomTypeFilter.Dms) {
+                    { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
+                } else null
+            )
+            FilterChip(
+                selected = typeFilter == RoomTypeFilter.Invites,
+                onClick = { onSetTypeFilter(RoomTypeFilter.Invites) },
+                label = {
+                    Text(
+                        text = if (inviteCount > 0) {
+                            "${stringResource(Res.string.invites)} ($inviteCount)"
+                        } else {
+                            stringResource(Res.string.invites)
+                        }
+                    )
+                },
+                leadingIcon = if (typeFilter == RoomTypeFilter.Invites) {
                     { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
                 } else null
             )

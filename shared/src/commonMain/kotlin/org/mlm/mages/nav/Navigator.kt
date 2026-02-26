@@ -31,7 +31,6 @@ sealed interface Route : NavKey {
     @Serializable data class Room(val roomId: String, val name: String, val eventId: String? = null) : Route
     @Serializable data object Security : Route
     @Serializable data object Discover : Route
-    @Serializable data object Invites : Route
     @Serializable data class MediaGallery(val roomId: String) : Route
     @Serializable
     data class ForwardPicker(
@@ -128,7 +127,6 @@ val routeSerializersModule = SerializersModule {
         subclass(Route.Room::class, Route.Room.serializer())
         subclass(Route.Security::class, Route.Security.serializer())
         subclass(Route.Discover::class, Route.Discover.serializer())
-        subclass(Route.Invites::class, Route.Invites.serializer())
         subclass(Route.RoomInfo::class, Route.RoomInfo.serializer())
         subclass(Route.Thread::class, Route.Thread.serializer())
         subclass(Route.Spaces::class, Route.Spaces.serializer())

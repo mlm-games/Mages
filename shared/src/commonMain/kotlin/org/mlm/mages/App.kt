@@ -265,7 +265,6 @@ private fun AppContent(deepLinks: Flow<DeepLinkAction>?) {
                             viewModel = viewModel,
                             onOpenSecurity = { backStack.add(Route.Security) },
                             onOpenDiscover = { backStack.add(Route.Discover) },
-                            onOpenInvites = { backStack.add(Route.Invites) },
                             onOpenCreateRoom = { showCreateRoom = true },
                             onOpenSpaces = { backStack.add(Route.Spaces) },
                             onOpenSearch = { backStack.add(Route.Search) },
@@ -397,28 +396,6 @@ private fun AppContent(deepLinks: Flow<DeepLinkAction>?) {
                         DiscoverRoute(
                             viewModel = viewModel,
                             onClose = backStack::popBack
-                        )
-                    }
-
-                    entry<Route.Invites> {
-                        val viewModel: InvitesViewModel = koinViewModel()
-
-                        LaunchedEffect(Unit) {
-                            viewModel.events.collect { event ->
-                                when (event) {
-                                    is InvitesViewModel.Event.OpenRoom -> {
-                                        backStack.add(Route.Room(event.roomId, event.name))
-                                    }
-                                    is InvitesViewModel.Event.ShowError -> {
-                                        snackbarManager.show("Error: $event.message")
-                                    }
-                                }
-                            }
-                        }
-
-                        InvitesRoute(
-                            viewModel = viewModel,
-                            onBack = backStack::popBack
                         )
                     }
 

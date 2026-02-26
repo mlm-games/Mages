@@ -230,6 +230,7 @@ data class RoomListEntry(
     val markedUnread: Boolean,
     val isFavourite: Boolean = false,
     val isLowPriority: Boolean = false,
+    val isInvited: Boolean = false,
 
     val avatarUrl: String? = null,
     val isDm: Boolean = false,

@@ -161,6 +161,98 @@ fun RoomListItem(
     }
 }
 
+@Composable
+fun InviteListItem(
+    item: RoomListItemUi,
+    onAccept: () -> Unit,
+    onDecline: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 3.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box {
+                Avatar(
+                    name = item.name,
+                    avatarPath = item.avatarUrl,
+                    size = 52.dp,
+                    shape = CircleShape
+                )
+
+//                Badge(
+//                    modifier = Modifier
+//                        .align(Alignment.BottomEnd)
+//                        .offset(x = 6.dp, y = 6.dp)
+//                ) {
+//                    Text(
+//                        "Hey!",
+//                        style = MaterialTheme.typography.labelSmall
+//                    )
+//                }
+            }
+
+            Spacer(Modifier.width(Spacing.md))
+
+            // Main content
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(Modifier.height(2.dp))
+
+                Text(
+                    text = "Invited you to join",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // Show topic if we have one (reusing lastMessageBody field for now)
+                if (!item.lastMessageBody.isNullOrBlank()) {
+                    Text(
+                        text = item.lastMessageBody,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(Spacing.md))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextButton(
+                    onClick = onDecline,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Decline")
+                }
+
+                Button(onClick = onAccept) {
+                    Text("Accept")
+                }
+            }
+        }
+    }
+}
+
 private data class MessagePreview(
     val text: String,
     val icon: ImageVector? = null

@@ -1612,6 +1612,7 @@ private fun mages.RoomListEntry.toKotlinRoomListEntry(): RoomListEntry =
         markedUnread = markedUnread,
         isFavourite = isFavourite,
         isLowPriority = isLowPriority,
+        isInvited = isInvited,
         avatarUrl = avatarUrl,
         isDm = isDm,
         isEncrypted = isEncrypted,

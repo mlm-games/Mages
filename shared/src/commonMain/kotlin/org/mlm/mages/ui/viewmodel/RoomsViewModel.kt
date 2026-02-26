@@ -99,6 +99,24 @@ class RoomsViewModel(
         }
     }
 
+    fun acceptInvite(roomId: String) {
+        launch {
+            val success = runCatching { service.port.acceptInvite(roomId) }.getOrDefault(false)
+            if (success) {
+                recomputeGroupedRooms()
+            }
+        }
+    }
+
+    fun declineInvite(roomId: String) {
+        launch {
+            val success = runCatching { service.port.leaveRoom(roomId) }.getOrDefault(false)
+            if (success) {
+                recomputeGroupedRooms()
+            }
+        }
+    }
+
     fun refresh() {
         updateState { copy(isLoading = true) }
         runCatching { service.port.enterForeground() }
@@ -128,6 +146,7 @@ class RoomsViewModel(
             unreadCount = entry.notifications.toInt(),
             isFavourite = entry.isFavourite,
             isLowPriority = entry.isLowPriority,
+            isInvited = entry.isInvited,
             lastMessageBody = lastBody,
             lastMessageSender = lastEvent?.sender,
             lastMessageType = lastType,
@@ -288,17 +307,20 @@ class RoomsViewModel(
             RoomTypeFilter.All -> list
             RoomTypeFilter.Groups -> list.filter { !it.isDm }
             RoomTypeFilter.Dms -> list.filter { it.isDm }
+            RoomTypeFilter.Invites -> list.filter { it.isInvited }
         }
 
         val favourites  = list.filter { it.isFavourite }
         val lowPriority = list.filter { it.isLowPriority }
-        val normal      = list.filter { !it.isFavourite && !it.isLowPriority }
+        val normal      = list.filter { !it.isFavourite && !it.isLowPriority && !it.isInvited }
+        val invites     = s.allItems.filter { it.isInvited }
 
         updateState {
             copy(
                 favouriteItems = favourites,
                 normalItems = normal,
-                lowPriorityItems = lowPriority
+                lowPriorityItems = lowPriority,
+                inviteItems = invites
             )
         }
     }

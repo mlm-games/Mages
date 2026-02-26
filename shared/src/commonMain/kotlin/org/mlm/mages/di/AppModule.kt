@@ -78,8 +78,6 @@ val viewModelModule = module {
 
     viewModel { DiscoverViewModel(get()) }
 
-    viewModel { InvitesViewModel(get()) }
-
     viewModel { (scopedRoomId: String?, scopedRoomName: String?) ->
         SearchViewModel(
             service = get(),

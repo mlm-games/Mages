@@ -43,6 +43,7 @@ data class RoomsUiState(
     val favouriteItems: List<RoomListItemUi> = emptyList(),
     val normalItems: List<RoomListItemUi> = emptyList(),
     val lowPriorityItems: List<RoomListItemUi> = emptyList(),
+    val inviteItems: List<RoomListItemUi> = emptyList(),
 
     val roomAvatarPath: Map<String, String> = emptyMap()
 )
@@ -50,7 +51,8 @@ data class RoomsUiState(
 enum class RoomTypeFilter {
     All,
     Groups,
-    Dms
+    Dms,
+    Invites
 }
 
 data class RoomUiState(
@@ -289,6 +291,7 @@ data class RoomListItemUi(
     val unreadCount: Int = 0,
     val isFavourite: Boolean = false,
     val isLowPriority: Boolean = false,
+    val isInvited: Boolean = false,
 
     val lastMessageBody: String? = null,
     val lastMessageSender: String? = null,

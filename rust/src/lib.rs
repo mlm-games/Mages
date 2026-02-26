@@ -1,5 +1,6 @@
 use futures_util::StreamExt;
 use js_int::UInt;
+use matrix_sdk::RoomState;
 use matrix_sdk::authentication::oauth::UrlOrQuery;
 use matrix_sdk::authentication::oauth::registration::{ApplicationType, ClientMetadata, Localized, OAuthGrantType};
 use matrix_sdk::authentication::oauth::registration::language_tags::LanguageTag;
@@ -451,6 +452,7 @@ pub struct RoomListEntry {
     pub marked_unread: bool,
     pub is_favourite: bool,
     pub is_low_priority: bool,
+    pub is_invited: bool,
 
     pub avatar_url: Option<String>,
     pub is_dm: bool,
@@ -3367,6 +3369,7 @@ impl Client {
                                 let member_count_u64 = room.joined_members_count();
                                 let member_count = member_count_u64.min(u32::MAX as u64) as u32;
                                 let topic = room.topic();
+                                let is_invited = matches!(room.state(), RoomState::Invited);
 
                                 let latest_event: Option<LatestRoomEvent> = latest_room_event_for(&mgr, room).await;
 
@@ -3381,6 +3384,7 @@ impl Client {
                                     marked_unread,
                                     is_favourite,
                                     is_low_priority,
+                                    is_invited,
                                     avatar_url,
                                     is_dm,
                                     is_encrypted,
