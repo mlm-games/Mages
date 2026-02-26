@@ -245,6 +245,12 @@ class RustMatrixPort : MatrixPort {
         }
     }
 
+    override fun accountManagementUrl(): String? {
+        return runBlocking(Dispatchers.IO) {
+            withClient { it.accountManagementUrl() }
+        }
+    }
+
     override suspend fun paginateBack(roomId: String, count: Int): Boolean =
         withContext(Dispatchers.IO) {
             runCatching {

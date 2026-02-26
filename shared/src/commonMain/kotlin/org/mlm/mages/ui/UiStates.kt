@@ -161,6 +161,7 @@ data class SecurityUiState(
     val devices: List<DeviceSummary> = emptyList(),
     val isLoadingDevices: Boolean = false,
     val error: String? = null,
+    val accountManagementUrl: String? = null,
 
     // Tabs
     val selectedTab: Int = 0,

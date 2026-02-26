@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavBackStack
@@ -47,6 +48,7 @@ fun SecurityScreen(
     val settings by viewModel.settings.collectAsState()
     val snackbarManager: SnackbarManager = koinInject()
     val settingsSnackbarHostState = remember { SnackbarHostState() }
+    val uriHandler = LocalUriHandler.current
     var verifyUserId by remember { mutableStateOf("") }
     var showVerifyUserDialog by remember { mutableStateOf(false) }
 
@@ -107,10 +109,12 @@ fun SecurityScreen(
                 0 -> DevicesTab(
                     devices = state.devices,
                     isLoading = state.isLoadingDevices,
+                    accountManagementUrl = state.accountManagementUrl,
                     onRefresh = viewModel::refreshDevices,
                     onVerifyDevice = viewModel::startSelfVerify,
                     onVerifyUser = { showVerifyUserDialog = true },
-                    onOpenRecovery = viewModel::openRecoveryDialog
+                    onOpenRecovery = viewModel::openRecoveryDialog,
+                    onOpenAccountManagement = { url -> uriHandler.openUri(url) }
                 )
                 1 -> PrivacyTab(
                     ignoredUsers = state.ignoredUsers,
@@ -186,10 +190,12 @@ fun SecurityScreen(
 private fun DevicesTab(
     devices: List<DeviceSummary>,
     isLoading: Boolean,
+    accountManagementUrl: String?,
     onRefresh: () -> Unit,
     onVerifyDevice: (String) -> Unit,
     onVerifyUser: () -> Unit,
-    onOpenRecovery: () -> Unit
+    onOpenRecovery: () -> Unit,
+    onOpenAccountManagement: (String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -213,6 +219,14 @@ private fun DevicesTab(
                     onClick = onVerifyUser,
                     modifier = Modifier.weight(1f)
                 )
+                if (accountManagementUrl != null) {
+                    ActionCard(
+                        icon = Icons.Default.Person,
+                        title = stringResource(Res.string.manage_account),
+                        onClick = { onOpenAccountManagement(accountManagementUrl) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
 

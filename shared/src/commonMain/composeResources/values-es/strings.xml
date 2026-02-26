@@ -116,6 +116,7 @@
     <string name="privacy">Privacidad</string>
     <string name="settings_tab">Configuración</string>
     <string name="account">Cuenta</string>
+    <string name="manage_account">Managicar Cuenta</string>
     <string name="appearance">Apariencia</string>
     <string name="notifications">Notificaciones</string>
     <string name="storage">Almacenamiento</string>

@@ -366,6 +366,7 @@ interface MatrixPort {
 
     suspend fun setTyping(roomId: String, typing: Boolean): Boolean
     fun whoami(): String?
+    fun accountManagementUrl(): String?
 
     suspend fun enqueueText(roomId: String, body: String, txnId: String? = null): String
     fun observeSends(): Flow<SendUpdate>

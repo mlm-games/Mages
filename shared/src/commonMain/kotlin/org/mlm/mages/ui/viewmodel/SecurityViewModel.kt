@@ -39,6 +39,15 @@ class SecurityViewModel(
         refreshDevices()
         refreshIgnored()
         loadPresence()
+        loadAccountManagementUrl()
+    }
+
+    private fun loadAccountManagementUrl() {
+        launch {
+            val port = service.portOrNull ?: return@launch
+            val url = runCatching { port.accountManagementUrl() }.getOrNull()
+            updateState { copy(accountManagementUrl = url) }
+        }
     }
 
     fun <T> updateSetting(name: String, value: T) {

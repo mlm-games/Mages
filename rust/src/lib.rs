@@ -1224,6 +1224,15 @@ impl Client {
         self.inner.user_id().map(|u| u.to_string())
     }
 
+    pub fn account_management_url(&self) -> Option<String> {
+        RT.block_on(async {
+            match self.inner.oauth().account_management_url().await {
+                Ok(Some(builder)) => Some(builder.build().to_string()),
+                _ => None,
+            }
+        })
+    }
+
     pub fn load_room_list_cache(&self) -> Vec<RoomListEntry> {
         RT.block_on(async {
             let path = room_list_cache_file(&self.store_dir);
