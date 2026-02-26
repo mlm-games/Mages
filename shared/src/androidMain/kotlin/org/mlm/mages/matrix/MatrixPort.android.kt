@@ -804,6 +804,16 @@ class RustMatrixPort : MatrixPort {
             }.getOrElse { emptyList() }
         }
 
+    override suspend fun getUserProfile(userId: String): DirectoryUser? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                withClient {
+                    val profile = it.getUserProfile(userId)
+                    DirectoryUser(profile.userId, profile.displayName, profile.avatarUrl)
+                }
+            }.getOrNull()
+        }
+
     override suspend fun publicRooms(
         server: String?,
         search: String?,

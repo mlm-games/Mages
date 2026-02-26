@@ -46,8 +46,6 @@ fun DiscoverRoute(
         onOpenUser = { u -> viewModel.openUser(u) },
         onOpenRoom = { r -> viewModel.openRoom(r) },
         onJoinByIdOrAlias = { idOrAlias -> viewModel.joinDirect(idOrAlias) },
-        onSelectServer = viewModel::setDirectoryServer,
-        onAddCustomServer = viewModel::addCustomServer,
         onLoadMore = viewModel::loadMoreRooms
     )
 }
@@ -60,8 +58,6 @@ fun DiscoverScreen(
     onOpenUser: (DirectoryUser) -> Unit,
     onOpenRoom: (PublicRoom) -> Unit,
     onJoinByIdOrAlias: (String) -> Unit,
-    onSelectServer: (String) -> Unit,
-    onAddCustomServer: (String) -> Unit,
     onLoadMore: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -106,14 +102,6 @@ fun DiscoverScreen(
                         }
                     }
                 }
-            )
-
-            DirectoryServerSelector(
-                currentServer = state.directoryServer,
-                availableServers = state.availableServers,
-                homeServer = state.homeServer,
-                onSelectServer = onSelectServer,
-                onAddCustomServer = onAddCustomServer
             )
 
             if (state.isBusy && !state.isPaging) {
@@ -163,7 +151,7 @@ fun DiscoverScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                stringResource(Res.string.public_rooms_on, state.directoryServer),
+                                stringResource(Res.string.public_rooms),
                                 style = MaterialTheme.typography.titleSmall
                             )
                             Text(
@@ -231,154 +219,6 @@ fun DiscoverScreen(
             )
         }
     }
-}
-
-@Composable
-private fun DirectoryServerSelector(
-    currentServer: String,
-    availableServers: List<String>,
-    homeServer: String,
-    onSelectServer: (String) -> Unit,
-    onAddCustomServer: (String) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    var showCustomDialog by remember { mutableStateOf(false) }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            stringResource(Res.string.directory),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
-            modifier = Modifier.weight(1f)
-        ) {
-            OutlinedTextField(
-                value = currentServer,
-                onValueChange = {},
-                readOnly = true,
-                singleLine = true,
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth(),
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                },
-                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                textStyle = MaterialTheme.typography.bodyMedium
-            )
-
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                availableServers.forEach { server ->
-                    DropdownMenuItem(
-                        text = {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(server)
-                                if (server == homeServer) {
-                                    Text(
-                                        stringResource(Res.string.home),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        },
-                        onClick = {
-                            onSelectServer(server)
-                            expanded = false
-                        },
-                        leadingIcon = {
-                            if (server == currentServer) {
-                                Icon(
-                                    Icons.Default.Check,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    )
-                }
-
-                HorizontalDivider()
-
-                DropdownMenuItem(
-                    text = { Text(stringResource(Res.string.add_custom_server)) },
-                    onClick = {
-                        expanded = false
-                        showCustomDialog = true
-                    },
-                    leadingIcon = {
-                        Icon(Icons.Default.Add, contentDescription = null)
-                    }
-                )
-            }
-        }
-    }
-
-    if (showCustomDialog) {
-        CustomServerDialog(
-            onDismiss = { showCustomDialog = false },
-            onConfirm = { server ->
-                onAddCustomServer(server)
-                showCustomDialog = false
-            }
-        )
-    }
-}
-
-@Composable
-private fun CustomServerDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
-) {
-    var serverInput by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.add_custom_server_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    stringResource(Res.string.enter_homeserver_domain),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                OutlinedTextField(
-                    value = serverInput,
-                    onValueChange = { serverInput = it },
-                    label = { Text(stringResource(Res.string.server_domain)) },
-                    placeholder = { Text(stringResource(Res.string.server_domain_placeholder)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(serverInput) },
-                enabled = serverInput.isNotBlank()
-            ) {
-                Text(stringResource(Res.string.add_server))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.cancel))
-            }
-        }
-    )
 }
 
 @Composable

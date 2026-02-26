@@ -88,6 +88,7 @@
     <string name="search_users_or_rooms">Search users or public rooms</string>
     <string name="search_placeholder">e.g., #linux:matrix.org or @user:server.com</string>
     <string name="users">Users</string>
+    <string name="public_rooms">Public Rooms</string>
     <string name="public_rooms_on">Public rooms on %1$s</string>
     <string name="found">%1$d found</string>
     <string name="load_more_rooms">Load more rooms</string>

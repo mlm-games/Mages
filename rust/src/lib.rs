@@ -92,6 +92,7 @@ use matrix_sdk::{
             room::message::{MessageType, SyncRoomMessageEvent},
         },
         owned_device_id,
+        api::client::profile::{AvatarUrl, DisplayName},
     },
 };
 use matrix_sdk::{
@@ -3436,6 +3437,35 @@ impl Client {
                 })
                 .collect();
             Ok(out)
+        })
+    }
+
+    pub fn get_user_profile(&self, user_id: String) -> Result<DirectoryUser, FfiError> {
+        RT.block_on(async {
+            let uid = user_id
+                .parse::<OwnedUserId>()
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
+
+            let profile = self
+                .inner
+                .account()
+                .fetch_user_profile_of(&uid)
+                .await
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
+
+            let display_name = profile
+                .get_static::<DisplayName>()
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
+            let avatar_url = profile
+                .get_static::<AvatarUrl>()
+                .map_err(|e| FfiError::Msg(e.to_string()))?
+                .map(|mxc| mxc.to_string());
+
+            Ok(DirectoryUser {
+                user_id,
+                display_name,
+                avatar_url,
+            })
         })
     }
 

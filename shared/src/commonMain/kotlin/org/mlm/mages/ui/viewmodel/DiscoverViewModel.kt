@@ -14,10 +14,6 @@ data class DiscoverUi(
     val nextBatch: String? = null,
     val directJoinCandidate: String? = null,
 
-    val directoryServer: String = "matrix.org",
-    val availableServers: List<String> = listOf("matrix.org"),
-    val homeServer: String = "",
-
     val isBusy: Boolean = false,
     val isPaging: Boolean = false,
     val error: String? = null
@@ -36,66 +32,6 @@ class DiscoverViewModel(
     val events = _events.receiveAsFlow()
 
     private var searchJob: Job? = null
-
-    init {
-        launch {
-            initializeServers()
-        }
-    }
-
-    private suspend fun initializeServers() {
-        val homeServer = extractHomeServer()
-        val servers = buildList {
-            add("matrix.org")
-            if (homeServer.isNotBlank() && homeServer != "matrix.org") {
-                add(homeServer)
-            }
-            // Common public servers
-            add("gitter.im")
-            add("libera.chat")
-            add("mozilla.org")
-            add("tchncs.de")
-            add("envs.net")
-        }.distinct()
-
-        updateState {
-            copy(
-                homeServer = homeServer,
-                availableServers = servers,
-                directoryServer = homeServer.ifBlank { "matrix.org" }
-            )
-        }
-    }
-
-    private suspend fun extractHomeServer(): String {
-        val userId = runSafe { service.port.whoami() } ?: return ""
-        return userId.substringAfter(':', "").takeIf { it.isNotBlank() } ?: ""
-    }
-
-    fun setDirectoryServer(server: String) {
-        updateState { copy(directoryServer = server) }
-        val currentQuery = state.value.query
-        if (currentQuery.isNotBlank()) {
-            triggerSearch(currentQuery)
-        }
-    }
-
-    fun addCustomServer(server: String) {
-        val normalized = server.trim().lowercase()
-        if (normalized.isBlank()) return
-
-        updateState {
-            val newServers = (availableServers + normalized).distinct()
-            copy(
-                availableServers = newServers,
-                directoryServer = normalized
-            )
-        }
-        val currentQuery = state.value.query
-        if (currentQuery.isNotBlank()) {
-            triggerSearch(currentQuery)
-        }
-    }
 
     fun setQuery(q: String) {
         updateState { copy(query = q) }
@@ -123,22 +59,20 @@ class DiscoverViewModel(
                 return@launch
             }
 
-            val direct = normalizeJoinTarget(term)
-            val serverFromQuery = direct?.let { extractServerFromAliasOrId(it) }
-            val effectiveServer = serverFromQuery ?: state.value.directoryServer
+            val directJoinTarget = normalizeJoinTarget(term)
+            val userLookup = normalizeUserLookup(term)
 
             updateState {
                 copy(
                     isBusy = true,
                     error = null,
-                    directJoinCandidate = direct
+                    directJoinCandidate = directJoinTarget
                 )
             }
 
-            val isRoomQuery = direct != null || term.startsWith("#") || term.startsWith("!")
-
-            val users = if (!isRoomQuery) {
-                runSafe { service.port.searchUsers(term, 20) } ?: emptyList()
+            val users = if (userLookup != null) {
+                val profile = runSafe { service.port.getUserProfile(userLookup) }
+                if (profile != null) listOf(profile) else emptyList()
             } else {
                 emptyList()
             }
@@ -147,7 +81,7 @@ class DiscoverViewModel(
 
             val page = runSafe {
                 service.port.publicRooms(
-                    server = effectiveServer,
+                    server = null,
                     search = searchTerm,
                     limit = 50,
                     since = null
@@ -162,6 +96,16 @@ class DiscoverViewModel(
                     isBusy = false
                 )
             }
+        }
+    }
+
+    private fun normalizeUserLookup(input: String): String? {
+        val t = input.trim()
+        if (t.isBlank()) return null
+
+        return when {
+            t.startsWith("@") && t.contains(":") -> t
+            else -> null
         }
     }
 
@@ -180,10 +124,6 @@ class DiscoverViewModel(
         val term = s.query.trim()
         val since = s.nextBatch ?: return
 
-        val direct = normalizeJoinTarget(term)
-        val serverFromQuery = direct?.let { extractServerFromAliasOrId(it) }
-        val effectiveServer = serverFromQuery ?: s.directoryServer
-
         searchJob?.cancel()
         searchJob = launch {
             updateState { copy(isPaging = true, error = null) }
@@ -192,7 +132,7 @@ class DiscoverViewModel(
 
             val page = runSafe {
                 service.port.publicRooms(
-                    server = effectiveServer,
+                    server = null,
                     search = searchTerm,
                     limit = 50,
                     since = since
@@ -317,7 +257,4 @@ class DiscoverViewModel(
             else -> null
         }
     }
-
-    private fun extractServerFromAliasOrId(idOrAlias: String): String? =
-        idOrAlias.substringAfter(':', "").takeIf { it.isNotBlank() }
 }
