@@ -2,6 +2,7 @@ package org.mlm.mages.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -53,40 +54,40 @@ fun RoomUpgradeBanner(
                     }
                     TextButton(onClick = { onNavigateToRoom(successor.roomId) }) {
                         Text("Go to new room")
-                        Icon(Icons.Default.ArrowForward, null, Modifier.size(16.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, null, Modifier.size(16.dp))
                     }
                 }
             }
         }
         
         predecessor != null -> {
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.History,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text(
-                        "This room continues from a previous room",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f)
-                    )
-                    TextButton(onClick = { onNavigateToRoom(predecessor.roomId) }) {
-                        Text("View old room")
-                    }
-                }
-            }
+//            Surface(
+//                color = MaterialTheme.colorScheme.surfaceVariant,
+//                modifier = modifier.fillMaxWidth()
+//            ) {
+//                Row(
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .padding(Spacing.md),
+//                    verticalAlignment = Alignment.CenterVertically
+//                ) {
+//                    Icon(
+//                        Icons.Default.History,
+//                        contentDescription = null,
+//                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+//                    )
+//                    Spacer(Modifier.width(Spacing.sm))
+//                    Text(
+//                        "This room continues from a previous room",
+//                        style = MaterialTheme.typography.bodySmall,
+//                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+//                        modifier = Modifier.weight(1f)
+//                    )
+//                    TextButton(onClick = { onNavigateToRoom(predecessor.roomId) }) {
+//                        Text("View old room")
+//                    }
+//                }
+//            }
         }
     }
 }
