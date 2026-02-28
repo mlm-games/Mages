@@ -21,6 +21,7 @@
     <string name="hide_advanced_options">Ocultar opciones avanzadas</string>
     <string name="show_advanced_options">Mostrar opciones avanzadas</string>
     <string name="sign_in">Iniciar sesión</string>
+    <string name="or_use_password">O usar inicio de sesión con contraseña</string>
 
     <string name="rooms">Salas</string>
     <string name="favourites">Favoritos</string>

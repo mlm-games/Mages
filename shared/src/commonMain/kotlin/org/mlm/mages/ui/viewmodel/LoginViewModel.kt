@@ -3,9 +3,9 @@ package org.mlm.mages.ui.viewmodel
 import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.withContext
@@ -26,11 +26,15 @@ class LoginViewModel(
 
     private var ssoJob: Job? = null
     private var oauthJob: Job? = null
+    private var serverCheckJob: Job? = null
 
     init {
         launch {
             val savedHs = settingsRepository.flow.first().homeserver
-            if (savedHs.isNotBlank()) updateState { copy(homeserver = savedHs) }
+            if (savedHs.isNotBlank()) {
+                updateState { copy(homeserver = savedHs) }
+            }
+            probeServer()
         }
     }
 
@@ -39,9 +43,68 @@ class LoginViewModel(
     private val _events = Channel<Event>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
 
-    fun setHomeserver(value: String) = updateState { copy(homeserver = value) }
+    fun setHomeserver(value: String) {
+        updateState { copy(homeserver = value, loginDetails = null) }
+        debouncedProbeServer()
+    }
+
     fun setUser(value: String) = updateState { copy(user = value) }
     fun setPass(value: String) = updateState { copy(pass = value) }
+
+    fun togglePasswordLogin() = updateState { copy(showPasswordLogin = !showPasswordLogin) }
+
+    /* waits 600ms after last keystroke before probing. */
+    private fun debouncedProbeServer() {
+        serverCheckJob?.cancel()
+        serverCheckJob = launch {
+            delay(600)
+            probeServer()
+        }
+    }
+
+    /** Probe the homeserver for supported login methods. */
+    @OptIn(ExperimentalTime::class)
+    private suspend fun probeServer() {
+        val hs = normalizeHomeserver(currentState.homeserver)
+        if (hs.isBlank()) {
+            updateState { copy(loginDetails = null, isCheckingServer = false) }
+            return
+        }
+
+        updateState { copy(isCheckingServer = true, error = null) }
+
+        try {
+            val port = createMatrixPort()
+            val tempId = "probe_${Clock.System.now().toEpochMilliseconds()}"
+            port.init(hs, tempId)
+
+            val details = withContext(Dispatchers.IO) {
+                port.homeserverLoginDetails()
+            }
+
+            port.close()
+
+            updateState {
+                copy(
+                    loginDetails = details,
+                    isCheckingServer = false,
+                    showPasswordLogin = showPasswordLogin ||
+                            (!details.supportsOauth && !details.supportsSso && details.supportsPassword)
+                )
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            updateState {
+                copy(
+                    loginDetails = null,
+                    isCheckingServer = false,
+                    // If probe fails, show password login as fallback
+                    showPasswordLogin = true
+                )
+            }
+        }
+    }
 
     private fun normalizeHomeserver(input: String): String {
         val hs = input.trim()
@@ -91,7 +154,7 @@ class LoginViewModel(
                 val userId = port.whoami()
                 if (userId.isNullOrBlank()) {
                     port.close()
-                    updateState { copy(isBusy = false, error = "Login failed - couldn't get user ID") }
+                    updateState { copy(isBusy = false, error = "Login failed — couldn't get user ID") }
                     return@launch
                 }
 
@@ -161,7 +224,7 @@ class LoginViewModel(
                 val userId = port.whoami()
                 if (userId.isNullOrBlank()) {
                     port.close()
-                    updateState { copy(isBusy = false, ssoInProgress = false, error = "SSO failed - couldn't get user ID") }
+                    updateState { copy(isBusy = false, ssoInProgress = false, error = "SSO failed — couldn't get user ID") }
                     return@launch
                 }
 
@@ -240,7 +303,7 @@ class LoginViewModel(
                 val userId = port.whoami()
                 if (userId.isNullOrBlank()) {
                     port.close()
-                    updateState { copy(isBusy = false, oauthInProgress = false, error = "OAuth failed - couldn't get user ID") }
+                    updateState { copy(isBusy = false, oauthInProgress = false, error = "OAuth failed — couldn't get user ID") }
                     return@launch
                 }
 
@@ -283,6 +346,7 @@ class LoginViewModel(
     fun clearError() = updateState { copy(error = null) }
 
     override fun onCleared() {
+        serverCheckJob?.cancel()
         cancelSso()
         cancelOauth()
         super.onCleared()

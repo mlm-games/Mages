@@ -3,6 +3,7 @@ package org.mlm.mages.ui
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.RoomSummary
 import org.mlm.mages.matrix.DeviceSummary
+import org.mlm.mages.matrix.HomeserverLoginDetails
 import org.mlm.mages.matrix.LiveLocationShare
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.Presence
@@ -18,13 +19,16 @@ import org.mlm.mages.ui.components.AttachmentData
 
 
 data class LoginUiState(
-    val homeserver: String = "https://matrix.org",
+    val homeserver: String = "matrix.org",
     val user: String = "",
     val pass: String = "",
     val isBusy: Boolean = false,
     val ssoInProgress: Boolean = false,
     val oauthInProgress: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val loginDetails: HomeserverLoginDetails? = null,
+    val showPasswordLogin: Boolean = false,
+    val isCheckingServer: Boolean = false
 )
 
 data class RoomsUiState(

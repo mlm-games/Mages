@@ -330,6 +330,12 @@ interface CallWidgetObserver {
     fun onToWidget(message: String)
 }
 
+data class HomeserverLoginDetails(
+    val supportsOauth: Boolean,
+    val supportsSso: Boolean,
+    val supportsPassword: Boolean,
+)
+
 interface MatrixPort {
 
     data class SyncStatus(val phase: SyncPhase, val message: String?)
@@ -518,6 +524,8 @@ interface MatrixPort {
     suspend fun loginSsoLoopback(openUrl: (String) -> Boolean, deviceName: String? = null): Boolean
 
     suspend fun loginOauthLoopback(openUrl: (String) -> Boolean, deviceName: String? = null): Boolean
+
+    suspend fun homeserverLoginDetails(): HomeserverLoginDetails
 
     suspend fun searchUsers(term: String, limit: Int = 20): List<DirectoryUser>
     suspend fun getUserProfile(userId: String): DirectoryUser?

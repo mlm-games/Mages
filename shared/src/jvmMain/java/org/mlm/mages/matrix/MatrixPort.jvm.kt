@@ -827,6 +827,15 @@ class RustMatrixPort : MatrixPort {
         runCatching { withClient { it.loginOauthLoopback(opener, deviceName) } }.isSuccess
     }
 
+    override suspend fun homeserverLoginDetails(): HomeserverLoginDetails = withContext(Dispatchers.IO) {
+         val details = withClient { it.homeserverLoginDetails() }
+         HomeserverLoginDetails(
+             supportsOauth = details.supportsOauth,
+             supportsSso = details.supportsSso,
+             supportsPassword = details.supportsPassword,
+         )
+     }
+
     override suspend fun searchUsers(term: String, limit: Int): List<DirectoryUser> =
         withContext(Dispatchers.IO) {
             runCatching {

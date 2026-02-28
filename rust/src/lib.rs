@@ -2,8 +2,10 @@ use futures_util::StreamExt;
 use js_int::UInt;
 use matrix_sdk::RoomState;
 use matrix_sdk::authentication::oauth::UrlOrQuery;
-use matrix_sdk::authentication::oauth::registration::{ApplicationType, ClientMetadata, Localized, OAuthGrantType};
 use matrix_sdk::authentication::oauth::registration::language_tags::LanguageTag;
+use matrix_sdk::authentication::oauth::registration::{
+    ApplicationType, ClientMetadata, Localized, OAuthGrantType,
+};
 use matrix_sdk::reqwest::Url;
 use matrix_sdk::ruma::events::room::power_levels::UserPowerLevel;
 use matrix_sdk::ruma::events::{AnySyncMessageLikeEvent, AnySyncTimelineEvent};
@@ -56,7 +58,6 @@ use tracing_subscriber::{EnvFilter, fmt};
 use uniffi::{Enum, Object, Record, export, setup_scaffolding};
 use uuid::Uuid;
 
-
 use matrix_sdk::{
     Client as SdkClient, OwnedServerName, Room, RoomMemberships, SessionTokens,
     authentication::matrix::MatrixSession,
@@ -67,10 +68,11 @@ use matrix_sdk::{
         api::client::{
             directory::get_public_rooms_filtered,
             push::{Pusher, PusherIds, PusherInit, PusherKind},
-            room::{Visibility},
+            room::Visibility,
         },
         events::room::{
-            EncryptedFile, MediaSource, name::RoomNameEventContent, pinned_events::RoomPinnedEventsEventContent, topic::RoomTopicEventContent,
+            EncryptedFile, MediaSource, name::RoomNameEventContent,
+            pinned_events::RoomPinnedEventsEventContent, topic::RoomTopicEventContent,
         },
         push::HttpPusherData,
         room::RoomType,
@@ -88,12 +90,12 @@ use matrix_sdk::{
     encryption::EncryptionSettings,
     ruma::{
         self,
+        api::client::profile::{AvatarUrl, DisplayName},
         events::{
             key::verification::request::ToDeviceKeyVerificationRequestEvent,
             room::message::{MessageType, SyncRoomMessageEvent},
         },
         owned_device_id,
-        api::client::profile::{AvatarUrl, DisplayName},
     },
 };
 use matrix_sdk::{
@@ -792,10 +794,16 @@ impl From<PredecessorRoom> for PredecessorRoomInfo {
     }
 }
 
+#[derive(Clone, Record)]
+pub struct HomeserverLoginDetails {
+    pub supports_oauth: bool,
+    pub supports_sso: bool,
+    pub supports_password: bool,
+}
+
 fn mages_client_metadata(redirect_uri: &Url) -> Raw<ClientMetadata> {
     let client_uri = Localized::new(
-        Url::parse("https://github.com/mlm-games/mages")
-            .expect("valid URL"),
+        Url::parse("https://github.com/mlm-games/mages").expect("valid URL"),
         [],
     );
 
@@ -1192,7 +1200,7 @@ impl Client {
                                     *this.recovery_state_cache.lock().unwrap() = Some(s);
                                 }
                             }
-                            
+
                             this.ensure_sync_service().await;
 
                             if let Err(e) = this.inner.event_cache().subscribe() {
@@ -1222,13 +1230,13 @@ impl Client {
                     if let matrix_sdk::SessionChange::TokensRefreshed = update {
                         if let Some(sess) = inner.matrix_auth().session() {
                             let path = session_file(&store);
-                            
+
                             // Try to preserve existing recovery state
                             let recovery_state = std::fs::read_to_string(&path)
                                 .ok()
                                 .and_then(|txt| serde_json::from_str::<SessionInfo>(&txt).ok())
                                 .and_then(|info| info.recovery_state);
-                            
+
                             let info = SessionInfo {
                                 user_id: sess.meta.user_id.to_string(),
                                 device_id: sess.meta.device_id.to_string(),
@@ -2104,7 +2112,7 @@ impl Client {
                 return;
             };
             let mut stream = tl.subscribe_own_user_read_receipts_changed().await;
-            
+
             while let Some(()) = stream.next().await {
                 let _ = catch_unwind(AssertUnwindSafe(|| obs.on_changed()));
             }
@@ -2369,19 +2377,21 @@ impl Client {
                 return state;
             }
         }
-        
+
         // Fall back to SDK state
         match self.inner.encryption().recovery().state() {
             matrix_sdk::encryption::recovery::RecoveryState::Disabled => RecoveryState::Disabled,
             matrix_sdk::encryption::recovery::RecoveryState::Enabled => RecoveryState::Enabled,
-            matrix_sdk::encryption::recovery::RecoveryState::Incomplete => RecoveryState::Incomplete,
+            matrix_sdk::encryption::recovery::RecoveryState::Incomplete => {
+                RecoveryState::Incomplete
+            }
             _ => RecoveryState::Unknown,
         }
     }
 
     pub fn setup_recovery(&self, observer: Box<dyn RecoveryObserver>) -> u64 {
         let obs: Arc<dyn RecoveryObserver> = Arc::from(observer);
-        
+
         // Share the recovery state cache with the async block
         let recovery_cache = self.recovery_state_cache.clone();
         let inner_client = self.inner.clone();
@@ -2434,7 +2444,6 @@ impl Client {
                 Ok(key) => {
                     // Update cached recovery state
                     *recovery_cache.lock().unwrap() = Some(RecoveryState::Enabled);
-                    
                     let _ = catch_unwind(AssertUnwindSafe(|| obs.on_done(key)));
                 }
                 Err(e) => {
@@ -2454,7 +2463,6 @@ impl Client {
         self.guards.lock().unwrap().push(h);
         id
     }
-
 
     pub fn list_my_devices(&self) -> Vec<DeviceSummary> {
         RT.block_on(async {
@@ -2936,7 +2944,8 @@ impl Client {
 
                 let canonical_alias = room.canonical_alias().map(|a| a.to_string());
 
-                let alt_aliases: Vec<String> = room.alt_aliases().iter().map(|a| a.to_string()).collect();
+                let alt_aliases: Vec<String> =
+                    room.alt_aliases().iter().map(|a| a.to_string()).collect();
 
                 let room_version = room.version().map(|v| v.to_string());
 
@@ -3008,7 +3017,9 @@ impl Client {
         room_alias: Option<String>,
     ) -> Result<String, FfiError> {
         RT.block_on(async move {
-            use ruma::{api::client::room::Visibility, api::client::room::create_room::v3 as create_room_v3};
+            use ruma::{
+                api::client::room::Visibility, api::client::room::create_room::v3 as create_room_v3,
+            };
 
             let mut req = create_room_v3::Request::new();
             req.visibility = if is_public {
@@ -3032,7 +3043,11 @@ impl Client {
                     alias.trim_start_matches('#')
                 } else {
                     alias
-                }.split(':').next().unwrap_or(alias).to_string();
+                }
+                .split(':')
+                .next()
+                .unwrap_or(alias)
+                .to_string();
                 if !normalized.is_empty() {
                     req.room_alias_name = Some(normalized);
                 }
@@ -3135,7 +3150,8 @@ impl Client {
 
             let canonical_alias = room.canonical_alias().map(|a| a.to_string());
 
-            let alt_aliases: Vec<String> = room.alt_aliases().iter().map(|a| a.to_string()).collect();
+            let alt_aliases: Vec<String> =
+                room.alt_aliases().iter().map(|a| a.to_string()).collect();
 
             let room_version = room.version().map(|v| v.to_string());
 
@@ -4068,71 +4084,101 @@ impl Client {
         })
     }
 
-pub fn login_oauth_loopback(
-    &self,
-    opener: Box<dyn UrlOpener>,
-    device_name: Option<String>,
-) -> Result<(), FfiError> {
-    RT.block_on(async {
-        let oauth = self.inner.oauth();
+    pub fn login_oauth_loopback(
+        &self,
+        opener: Box<dyn UrlOpener>,
+        device_name: Option<String>,
+    ) -> Result<(), FfiError> {
+        RT.block_on(async {
+            let oauth = self.inner.oauth();
 
-        let (redirect_uri, server_handle) = LocalServerBuilder::new()
-            .spawn()
-            .await
-            .map_err(|e| FfiError::Msg(e.to_string()))?;
+            let (redirect_uri, server_handle) = LocalServerBuilder::new()
+                .spawn()
+                .await
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
 
-        let registration_data = mages_client_metadata(&redirect_uri).into();
+            let registration_data = mages_client_metadata(&redirect_uri).into();
 
-        let auth_data = oauth
-            .login(redirect_uri, None, Some(registration_data), None)
-            
-            .build()
-            .await
-            .map_err(|e| FfiError::Msg(e.to_string()))?;
+            let auth_data = oauth
+                .login(redirect_uri, None, Some(registration_data), None)
+                .build()
+                .await
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
 
-        let _ = opener.open(auth_data.url.to_string());
+            let _ = opener.open(auth_data.url.to_string());
 
-        let callback_query = server_handle
-            .await
-            .ok_or_else(|| FfiError::Msg("No OAuth callback received".into()))?;
+            let callback_query = server_handle
+                .await
+                .ok_or_else(|| FfiError::Msg("No OAuth callback received".into()))?;
 
-        oauth
-            .finish_login(UrlOrQuery::Query(callback_query.0))
-            .await
-            .map_err(|e| FfiError::Msg(e.to_string()))?;
+            oauth
+                .finish_login(UrlOrQuery::Query(callback_query.0))
+                .await
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
 
-         if let Some(name) = device_name {
-            if let Some(device_id) = self.inner.device_id() {
-                use matrix_sdk::ruma::api::client::device::update_device;
-                let mut req = update_device::v3::Request::new(device_id.to_owned());
-                req.display_name = Some(name);
-                // Don't fail
-                let _ = self.inner.send(req).await;
+            if let Some(name) = device_name {
+                if let Some(device_id) = self.inner.device_id() {
+                    use matrix_sdk::ruma::api::client::device::update_device;
+                    let mut req = update_device::v3::Request::new(device_id.to_owned());
+                    req.display_name = Some(name);
+                    // Don't fail
+                    let _ = self.inner.send(req).await;
+                }
             }
-        }
 
-        if let Some(sess) = oauth.user_session() {
-            tokio::fs::create_dir_all(&self.store_dir).await?;
-            let info = SessionInfo {
-                user_id: sess.meta.user_id.to_string(),
-                device_id: sess.meta.device_id.to_string(),
-                access_token: sess.tokens.access_token.clone(),
-                refresh_token: sess.tokens.refresh_token.clone(),
-                homeserver: self.inner.homeserver().to_string(),
-                recovery_state: None,
-            };
-            tokio::fs::write(
-                session_file(&self.store_dir),
-                serde_json::to_string(&info).unwrap(),
-            )
-            .await?;
-        }
+            if let Some(sess) = oauth.user_session() {
+                tokio::fs::create_dir_all(&self.store_dir).await?;
+                let info = SessionInfo {
+                    user_id: sess.meta.user_id.to_string(),
+                    device_id: sess.meta.device_id.to_string(),
+                    access_token: sess.tokens.access_token.clone(),
+                    refresh_token: sess.tokens.refresh_token.clone(),
+                    homeserver: self.inner.homeserver().to_string(),
+                    recovery_state: None,
+                };
+                tokio::fs::write(
+                    session_file(&self.store_dir),
+                    serde_json::to_string(&info).unwrap(),
+                )
+                .await?;
+            }
 
-        self.ensure_sync_service().await;
+            self.ensure_sync_service().await;
 
-        Ok(())
-    })
-}
+            Ok(())
+        })
+    }
+
+    pub fn homeserver_login_details(&self) -> HomeserverLoginDetails {
+        RT.block_on(async {
+            let supports_oauth = self.inner.oauth().server_metadata().await.is_ok();
+
+            let (supports_sso, supports_password) =
+                match self.inner.matrix_auth().get_login_types().await {
+                    Ok(response) => {
+                        use matrix_sdk::ruma::api::client::session::get_login_types::v3::LoginType;
+
+                        let supports_sso = response
+                            .flows
+                            .iter()
+                            .any(|f| matches!(f, LoginType::Sso(_)));
+                        let supports_password = response
+                            .flows
+                            .iter()
+                            .any(|f| matches!(f, LoginType::Password(_)));
+
+                        (supports_sso, supports_password)
+                    }
+                    Err(_) => (false, false),
+                };
+
+            HomeserverLoginDetails {
+                supports_oauth,
+                supports_sso,
+                supports_password,
+            }
+        })
+    }
 
     /// Return reactions (emoji -> count, me).
     pub fn reactions_for_event(&self, room_id: String, event_id: String) -> Vec<ReactionSummary> {
@@ -5261,7 +5307,10 @@ pub fn login_oauth_loopback(
         })
     }
 
-    pub fn room_history_visibility(&self, room_id: String) -> Result<RoomHistoryVisibility, FfiError> {
+    pub fn room_history_visibility(
+        &self,
+        room_id: String,
+    ) -> Result<RoomHistoryVisibility, FfiError> {
         RT.block_on(async {
             use ruma::events::room::history_visibility::HistoryVisibility;
 
@@ -5284,7 +5333,11 @@ pub fn login_oauth_loopback(
         })
     }
 
-    pub fn set_room_history_visibility(&self, room_id: String, visibility: RoomHistoryVisibility) -> Result<(), FfiError> {
+    pub fn set_room_history_visibility(
+        &self,
+        room_id: String,
+        visibility: RoomHistoryVisibility,
+    ) -> Result<(), FfiError> {
         RT.block_on(async {
             use ruma::events::room::history_visibility::HistoryVisibility;
 
@@ -5318,7 +5371,10 @@ pub fn login_oauth_loopback(
                 return Err(FfiError::Msg("room not found".into()));
             };
 
-            let levels = room.power_levels().await.map_err(|e| FfiError::Msg(e.to_string()))?;
+            let levels = room
+                .power_levels()
+                .await
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
 
             let mut users = HashMap::new();
             for (user_id, level) in levels.users.iter() {
@@ -5346,8 +5402,16 @@ pub fn login_oauth_loopback(
                 room_name: get_event_level(&levels, "m.room.name", state_default),
                 room_avatar: get_event_level(&levels, "m.room.avatar", state_default),
                 room_topic: get_event_level(&levels, "m.room.topic", state_default),
-                room_canonical_alias: get_event_level(&levels, "m.room.canonical_alias", state_default),
-                room_history_visibility: get_event_level(&levels, "m.room.history_visibility", state_default),
+                room_canonical_alias: get_event_level(
+                    &levels,
+                    "m.room.canonical_alias",
+                    state_default,
+                ),
+                room_history_visibility: get_event_level(
+                    &levels,
+                    "m.room.history_visibility",
+                    state_default,
+                ),
                 room_join_rules: get_event_level(&levels, "m.room.join_rules", state_default),
                 room_power_levels: get_event_level(&levels, "m.room.power_levels", state_default),
                 space_child: get_event_level(&levels, "m.space.child", state_default),
@@ -5368,7 +5432,10 @@ pub fn login_oauth_loopback(
                 return Err(FfiError::Msg("bad user id".into()));
             };
 
-            let levels = room.power_levels().await.map_err(|e| FfiError::Msg(e.to_string()))?;
+            let levels = room
+                .power_levels()
+                .await
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
             Ok(levels.user_can_ban(&uid))
         })
     }
@@ -5386,12 +5453,19 @@ pub fn login_oauth_loopback(
                 return Err(FfiError::Msg("bad user id".into()));
             };
 
-            let levels = room.power_levels().await.map_err(|e| FfiError::Msg(e.to_string()))?;
+            let levels = room
+                .power_levels()
+                .await
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
             Ok(levels.user_can_invite(&uid))
         })
     }
 
-    pub fn can_user_redact_other(&self, room_id: String, user_id: String) -> Result<bool, FfiError> {
+    pub fn can_user_redact_other(
+        &self,
+        room_id: String,
+        user_id: String,
+    ) -> Result<bool, FfiError> {
         RT.block_on(async {
             let Ok(rid) = OwnedRoomId::try_from(room_id) else {
                 return Err(FfiError::Msg("bad room id".into()));
@@ -5404,12 +5478,20 @@ pub fn login_oauth_loopback(
                 return Err(FfiError::Msg("bad user id".into()));
             };
 
-            let levels = room.power_levels().await.map_err(|e| FfiError::Msg(e.to_string()))?;
+            let levels = room
+                .power_levels()
+                .await
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
             Ok(levels.user_can_redact_event_of_other(&uid))
         })
     }
 
-    pub fn update_power_level_for_user(&self, room_id: String, user_id: String, power_level: i64) -> Result<(), FfiError> {
+    pub fn update_power_level_for_user(
+        &self,
+        room_id: String,
+        user_id: String,
+        power_level: i64,
+    ) -> Result<(), FfiError> {
         RT.block_on(async {
             use ruma::Int;
 
@@ -5422,16 +5504,25 @@ pub fn login_oauth_loopback(
 
             let uid = UserId::parse(&user_id).map_err(|e| FfiError::Msg(e.to_string()))?;
 
-            let level = Int::new(power_level).ok_or_else(|| FfiError::Msg("invalid power level".into()))?;
+            let level =
+                Int::new(power_level).ok_or_else(|| FfiError::Msg("invalid power level".into()))?;
 
             let updates: Vec<(&UserId, Int)> = vec![(&uid, level)];
 
-            room.update_power_levels(updates).await.map_err(|e| FfiError::Msg(e.to_string()))?;
+            room.update_power_levels(updates)
+                .await
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
             Ok(())
         })
     }
 
-    pub fn report_content(&self, room_id: String, event_id: String, score: Option<i32>, reason: Option<String>) -> Result<(), FfiError> {
+    pub fn report_content(
+        &self,
+        room_id: String,
+        event_id: String,
+        score: Option<i32>,
+        reason: Option<String>,
+    ) -> Result<(), FfiError> {
         RT.block_on(async {
             use matrix_sdk::room::ReportedContentScore;
 
@@ -5448,7 +5539,9 @@ pub fn login_oauth_loopback(
 
             let score = score.and_then(|s| ReportedContentScore::try_from(s).ok());
 
-            room.report_content(eid, score, reason).await.map_err(|e| FfiError::Msg(e.to_string()))?;
+            room.report_content(eid, score, reason)
+                .await
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
             Ok(())
         })
     }
@@ -5463,12 +5556,18 @@ pub fn login_oauth_loopback(
             };
 
             let reason = reason.unwrap_or_default();
-            room.report_room(reason).await.map_err(|e| FfiError::Msg(e.to_string()))?;
+            room.report_room(reason)
+                .await
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
             Ok(())
         })
     }
 
-    pub fn apply_power_level_changes(&self, room_id: String, changes: RoomPowerLevelChanges) -> Result<(), FfiError> {
+    pub fn apply_power_level_changes(
+        &self,
+        room_id: String,
+        changes: RoomPowerLevelChanges,
+    ) -> Result<(), FfiError> {
         RT.block_on(async {
             use matrix_sdk::room::power_levels::RoomPowerLevelChanges as SdkRoomPowerLevelChanges;
 
@@ -5493,7 +5592,9 @@ pub fn login_oauth_loopback(
                 space_child: changes.space_child,
             };
 
-            room.apply_power_level_changes(sdk_changes).await.map_err(|e| FfiError::Msg(e.to_string()))
+            room.apply_power_level_changes(sdk_changes)
+                .await
+                .map_err(|e| FfiError::Msg(e.to_string()))
         })
     }
 
@@ -6115,7 +6216,12 @@ pub fn login_oauth_loopback(
 
             let widget_base_url = settings.base_url().map(|u| u.to_string());
 
-            Ok::<_, FfiError>((settings, url.to_string(), widget_base_url, Some(resolved_parent)))
+            Ok::<_, FfiError>((
+                settings,
+                url.to_string(),
+                widget_base_url,
+                Some(resolved_parent),
+            ))
         })?;
 
         let (driver, handle) = WidgetDriver::new(widget_settings);
@@ -6201,10 +6307,18 @@ pub fn login_oauth_loopback(
 }
 
 // Helper function to get power level for specific event types
-fn get_event_level(levels: &ruma::events::room::power_levels::RoomPowerLevels, event_type: &str, default: i64) -> i64 {
+fn get_event_level(
+    levels: &ruma::events::room::power_levels::RoomPowerLevels,
+    event_type: &str,
+    default: i64,
+) -> i64 {
     use ruma::events::TimelineEventType;
     let timeline_type = TimelineEventType::from(event_type);
-    levels.events.get(&timeline_type).map(|&l| l.into()).unwrap_or(default)
+    levels
+        .events
+        .get(&timeline_type)
+        .map(|&l| l.into())
+        .unwrap_or(default)
 }
 
 impl Client {
@@ -6217,7 +6331,6 @@ impl Client {
         let verifs = self.verifs.clone();
 
         let h = RT.spawn(async move {
-            
             use matrix_sdk::encryption::verification::{Verification, VerificationRequestState};
 
             let deadline = Instant::now() + Duration::from_secs(120);
@@ -6832,8 +6945,6 @@ async fn attach_sas_stream(
     sas: SasVerification,
     obs: Arc<dyn VerificationObserver>,
 ) {
-    
-
     info!("attach_sas_stream: flow_id={}", flow_id);
 
     let other_user = sas.other_user_id().to_owned();
@@ -7407,11 +7518,7 @@ async fn map_visible_room_view(
         .collect()
 }
 
-async fn map_room_view_all(
-    tl: &Arc<Timeline>,
-    rid: &OwnedRoomId,
-    me: &str,
-) -> Vec<MessageEvent> {
+async fn map_room_view_all(tl: &Arc<Timeline>, rid: &OwnedRoomId, me: &str) -> Vec<MessageEvent> {
     let items = tl.items().await;
     items
         .iter()

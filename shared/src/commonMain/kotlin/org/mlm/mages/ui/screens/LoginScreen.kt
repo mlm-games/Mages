@@ -1,6 +1,8 @@
 package org.mlm.mages.ui.screens
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -26,10 +28,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import mages.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.LoginViewModel
-import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.*
 
 @Composable
 fun LoginScreen(
@@ -41,7 +43,19 @@ fun LoginScreen(
     val state by viewModel.state.collectAsState()
     val focusManager = LocalFocusManager.current
     var passwordVisible by remember { mutableStateOf(false) }
-    var showAdvanced by remember { mutableStateOf(false) }
+
+    val details = state.loginDetails
+    val oauthAvailable = details?.supportsOauth == true
+    val ssoAvailable = details?.supportsSso == true
+    val passwordAvailable = details?.supportsPassword == true
+    val serverKnown = details != null
+
+    // The best auth method becomes filled
+    val primaryAuth = when {
+        oauthAvailable -> "oauth"
+        ssoAvailable -> "sso"
+        else -> "password"
+    }
 
     Box(
         modifier = Modifier
@@ -70,13 +84,9 @@ fun LoginScreen(
                 shape = MaterialTheme.shapes.extraLarge,
                 modifier = Modifier.size(100.dp)
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
-                ) {
+                Box(Modifier.fillMaxSize(), Alignment.Center) {
                     Icon(
-                        Icons.AutoMirrored.Filled.Chat,
-                        null,
+                        Icons.AutoMirrored.Filled.Chat, null,
                         modifier = Modifier.size(48.dp),
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -85,16 +95,17 @@ fun LoginScreen(
 
             Spacer(Modifier.height(32.dp))
 
-            // Title with animation
+            // Title
             AnimatedContent(
-                targetState = state.isBusy to state.ssoInProgress,
-                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "busy"
-            ) { (isBusy, ssoInProgress) ->
+                targetState = Triple(state.isBusy, state.ssoInProgress, state.oauthInProgress),
+                transitionSpec = { fadeIn(tween(300)) togetherWith fadeOut(tween(300)) },
+                label = "title"
+            ) { (isBusy, ssoInProgress, oauthInProgress) ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = when {
                             ssoInProgress -> stringResource(Res.string.waiting_for_sso)
+                            oauthInProgress -> stringResource(Res.string.waiting_for_sso) // reuse or add new string
                             isBusy -> stringResource(Res.string.connecting)
                             isAddingAccount -> stringResource(Res.string.add_account)
                             else -> stringResource(Res.string.welcome_to_mages)
@@ -106,7 +117,7 @@ fun LoginScreen(
                     Spacer(Modifier.height(8.dp))
                     Text(
                         text = when {
-                            ssoInProgress -> stringResource(Res.string.complete_login_in_browser)
+                            ssoInProgress || oauthInProgress -> stringResource(Res.string.complete_login_in_browser)
                             isBusy -> stringResource(Res.string.please_wait)
                             else -> stringResource(Res.string.sign_in_to_your_matrix_account)
                         },
@@ -119,76 +130,48 @@ fun LoginScreen(
 
             Spacer(Modifier.height(40.dp))
 
+            // Main card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(2.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .padding(20.dp)
+                        .animateContentSize(spring(dampingRatio = 0.8f, stiffness = 300f)),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Username
+                    // Homeserver field (always visible, compact)
                     OutlinedTextField(
-                        value = state.user,
-                        onValueChange = viewModel::setUser,
-                        label = { Text(stringResource(Res.string.username)) },
-                        placeholder = { Text(stringResource(Res.string.username_placeholder)) },
-                        leadingIcon = { Icon(Icons.Default.Person, null) },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !state.isBusy,
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Email,
-                            imeAction = ImeAction.Next
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                        ),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            focusedLeadingIconColor = MaterialTheme.colorScheme.primary
-                        )
-                    )
-
-                    // Password
-                    OutlinedTextField(
-                        value = state.pass,
-                        onValueChange = viewModel::setPass,
-                        label = { Text(stringResource(Res.string.password)) },
-                        placeholder = { Text(stringResource(Res.string.enter_your_password)) },
-                        leadingIcon = { Icon(Icons.Default.Lock, null) },
+                        value = state.homeserver,
+                        onValueChange = viewModel::setHomeserver,
+                        label = { Text(stringResource(Res.string.homeserver)) },
+                        placeholder = { Text(stringResource(Res.string.homeserver_placeholder)) },
+                        leadingIcon = { Icon(Icons.Default.Home, null) },
                         trailingIcon = {
-                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            if (state.isCheckingServer) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else if (serverKnown) {
                                 Icon(
-                                    if (passwordVisible) Icons.Default.VisibilityOff
-                                    else Icons.Default.Visibility,
-                                    null
+                                    Icons.Default.CheckCircle, null,
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                             }
                         },
-                        visualTransformation = if (passwordVisible)
-                            VisualTransformation.None
-                        else
-                            PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !state.isBusy,
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
+                            keyboardType = KeyboardType.Uri,
                             imeAction = ImeAction.Done
                         ),
                         keyboardActions = KeyboardActions(
-                            onDone = {
-                                focusManager.clearFocus()
-                                if (!state.isBusy && state.user.isNotBlank() && state.pass.isNotBlank()) {
-                                    viewModel.submit()
-                                }
-                            }
+                            onDone = { focusManager.clearFocus() }
                         ),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -196,117 +179,230 @@ fun LoginScreen(
                         )
                     )
 
-                    if (state.ssoInProgress) {
-                        OutlinedButton(
-                            onClick = { viewModel.cancelSso() },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            )
-                        ) {
-                            Icon(Icons.Default.Close, null)
-                            Spacer(Modifier.width(Spacing.sm))
-                            Text(stringResource(Res.string.cancel_sso))
-                        }
-                    } else {
-                        OutlinedButton(
-                            onClick = onSso,
-                            enabled = !state.isBusy,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Default.OpenInBrowser, null)
-                            Spacer(Modifier.width(Spacing.sm))
-                            Text(stringResource(Res.string.continue_with_sso))
-                        }
-                    }
-
-                    if (state.oauthInProgress) {
-                        OutlinedButton(
-                            onClick = { viewModel.cancelOauth() },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            )
-                        ) {
-                            Icon(Icons.Default.Close, null)
-                            Spacer(Modifier.width(Spacing.sm))
-                            Text(stringResource(Res.string.cancel_oauth))
-                        }
-                    } else {
-                        OutlinedButton(
-                            onClick = onOauth,
-                            enabled = !state.isBusy,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Default.Security, null)
-                            Spacer(Modifier.width(Spacing.sm))
-                            Text(stringResource(Res.string.continue_with_oauth))
-                        }
-                    }
-
-                    // Advanced options
-                    AnimatedVisibility(visible = showAdvanced) {
-                        OutlinedTextField(
-                            value = state.homeserver,
-                            onValueChange = viewModel::setHomeserver,
-                            label = { Text(stringResource(Res.string.homeserver)) },
-                            placeholder = { Text(stringResource(Res.string.homeserver_placeholder)) },
-                            leadingIcon = { Icon(Icons.Default.Home, null) },
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = !state.isBusy,
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Uri,
-                                imeAction = ImeAction.Done
-                            )
-                        )
-                    }
-
-                    TextButton(
-                        onClick = { showAdvanced = !showAdvanced },
-                        enabled = !state.isBusy,
-                        modifier = Modifier.fillMaxWidth()
+                    // OAuth button
+                    AnimatedVisibility(
+                        visible = oauthAvailable || state.oauthInProgress,
+                        enter = fadeIn(tween(300)) + expandVertically(tween(300)),
+                        exit = fadeOut(tween(200)) + shrinkVertically(tween(200))
                     ) {
-                        Icon(
-                            if (showAdvanced) Icons.Default.ExpandLess
-                            else Icons.Default.ExpandMore,
-                            null
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            if (showAdvanced) stringResource(Res.string.hide_advanced_options)
-                            else stringResource(Res.string.show_advanced_options)
-                        )
-                    }
-
-                    Spacer(Modifier.height(8.dp))
-
-                    // Sign In Button
-                    Button(
-                        onClick = viewModel::submit,
-                        enabled = !state.isBusy && state.user.isNotBlank() && state.pass.isNotBlank(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = MaterialTheme.shapes.large
-                    ) {
-                        if (state.isBusy && !state.ssoInProgress) {
-                            CircularWavyProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                            )
+                        if (state.oauthInProgress) {
+                            OutlinedButton(
+                                onClick = { viewModel.cancelOauth() },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                Icon(Icons.Default.Close, null)
+                                Spacer(Modifier.width(Spacing.sm))
+                                Text(stringResource(Res.string.cancel_oauth))
+                            }
+                        } else if (primaryAuth == "oauth") {
+                            Button(
+                                onClick = onOauth,
+                                enabled = !state.isBusy,
+                                modifier = Modifier.fillMaxWidth().height(52.dp)
+                            ) {
+                                Icon(Icons.Default.Security, null)
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    stringResource(Res.string.continue_with_oauth),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         } else {
-                            Icon(
-                                Icons.AutoMirrored.Filled.Login,
-                                null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(stringResource(Res.string.sign_in), fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                            OutlinedButton(
+                                onClick = onOauth,
+                                enabled = !state.isBusy,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Security, null)
+                                Spacer(Modifier.width(Spacing.sm))
+                                Text(stringResource(Res.string.continue_with_oauth))
+                            }
+                        }
+                    }
+
+                    // SSO button
+                    AnimatedVisibility(
+                        visible = ssoAvailable || state.ssoInProgress,
+                        enter = fadeIn(tween(300)) + expandVertically(tween(300)),
+                        exit = fadeOut(tween(200)) + shrinkVertically(tween(200))
+                    ) {
+                        if (state.ssoInProgress) {
+                            OutlinedButton(
+                                onClick = { viewModel.cancelSso() },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                Icon(Icons.Default.Close, null)
+                                Spacer(Modifier.width(Spacing.sm))
+                                Text(stringResource(Res.string.cancel_sso))
+                            }
+                        } else if (primaryAuth == "sso") {
+                            Button(
+                                onClick = onSso,
+                                enabled = !state.isBusy,
+                                modifier = Modifier.fillMaxWidth().height(52.dp)
+                            ) {
+                                Icon(Icons.Default.OpenInBrowser, null)
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    stringResource(Res.string.continue_with_sso),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        } else {
+                            OutlinedButton(
+                                onClick = onSso,
+                                enabled = !state.isBusy && !state.oauthInProgress,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.OpenInBrowser, null)
+                                Spacer(Modifier.width(Spacing.sm))
+                                Text(stringResource(Res.string.continue_with_sso))
+                            }
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        visible = passwordAvailable || !serverKnown,
+                        enter = fadeIn(tween(300)) + expandVertically(tween(300)),
+                        exit = fadeOut(tween(200)) + shrinkVertically(tween(200))
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            // Show the toggle only when there's a better method above
+                            if (primaryAuth != "password" && serverKnown) {
+                                TextButton(
+                                    onClick = { viewModel.togglePasswordLogin() },
+                                    enabled = !state.isBusy,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        HorizontalDivider(modifier = Modifier.weight(1f))
+                                        Text(
+                                            text = stringResource(Res.string.or_use_password),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(horizontal = 12.dp)
+                                        )
+                                        HorizontalDivider(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+
+                            // Shown when it's the primary method or user expanded
+                            AnimatedVisibility(
+                                visible = state.showPasswordLogin || primaryAuth == "password",
+                                enter = fadeIn(tween(300)) + expandVertically(
+                                    spring(dampingRatio = 0.8f, stiffness = 300f)
+                                ),
+                                exit = fadeOut(tween(200)) + shrinkVertically(
+                                    spring(dampingRatio = 0.8f, stiffness = 300f)
+                                )
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    OutlinedTextField(
+                                        value = state.user,
+                                        onValueChange = viewModel::setUser,
+                                        label = { Text(stringResource(Res.string.username)) },
+                                        placeholder = { Text(stringResource(Res.string.username_placeholder)) },
+                                        leadingIcon = { Icon(Icons.Default.Person, null) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        enabled = !state.isBusy,
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.Email,
+                                            imeAction = ImeAction.Next
+                                        ),
+                                        keyboardActions = KeyboardActions(
+                                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                                        ),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                            focusedLeadingIconColor = MaterialTheme.colorScheme.primary
+                                        )
+                                    )
+
+                                    OutlinedTextField(
+                                        value = state.pass,
+                                        onValueChange = viewModel::setPass,
+                                        label = { Text(stringResource(Res.string.password)) },
+                                        placeholder = { Text(stringResource(Res.string.enter_your_password)) },
+                                        leadingIcon = { Icon(Icons.Default.Lock, null) },
+                                        trailingIcon = {
+                                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                                Icon(
+                                                    if (passwordVisible) Icons.Default.VisibilityOff
+                                                    else Icons.Default.Visibility,
+                                                    null
+                                                )
+                                            }
+                                        },
+                                        visualTransformation = if (passwordVisible)
+                                            VisualTransformation.None
+                                        else
+                                            PasswordVisualTransformation(),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        enabled = !state.isBusy,
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.Password,
+                                            imeAction = ImeAction.Done
+                                        ),
+                                        keyboardActions = KeyboardActions(
+                                            onDone = {
+                                                focusManager.clearFocus()
+                                                if (!state.isBusy && state.user.isNotBlank() && state.pass.isNotBlank()) {
+                                                    viewModel.submit()
+                                                }
+                                            }
+                                        ),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                            focusedLeadingIconColor = MaterialTheme.colorScheme.primary
+                                        )
+                                    )
+
+                                    Button(
+                                        onClick = viewModel::submit,
+                                        enabled = !state.isBusy && state.user.isNotBlank() && state.pass.isNotBlank(),
+                                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                                        shape = MaterialTheme.shapes.large
+                                    ) {
+                                        if (state.isBusy && !state.ssoInProgress && !state.oauthInProgress) {
+                                            CircularWavyProgressIndicator(
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        } else {
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.Login, null,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                            Spacer(Modifier.width(8.dp))
+                                            Text(
+                                                stringResource(Res.string.sign_in),
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
 
                     // Error message
-                    AnimatedVisibility(visible = !state.error.isNullOrBlank()) {
+                    AnimatedVisibility(
+                        visible = !state.error.isNullOrBlank(),
+                        enter = fadeIn(tween(300)) + expandVertically(tween(300)),
+                        exit = fadeOut(tween(200)) + shrinkVertically(tween(200))
+                    ) {
                         Surface(
                             color = MaterialTheme.colorScheme.errorContainer,
                             shape = MaterialTheme.shapes.small,
@@ -317,8 +413,7 @@ fun LoginScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Default.Error,
-                                    null,
+                                    Icons.Default.Error, null,
                                     tint = MaterialTheme.colorScheme.onErrorContainer,
                                     modifier = Modifier.size(20.dp)
                                 )

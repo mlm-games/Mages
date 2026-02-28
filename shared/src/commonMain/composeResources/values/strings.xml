@@ -21,6 +21,7 @@
     <string name="hide_advanced_options">Hide advanced options</string>
     <string name="show_advanced_options">Show advanced options</string>
     <string name="sign_in">Sign In</string>
+    <string name="or_use_password">Or use password login</string>
 
     <string name="rooms">Rooms</string>
     <string name="favourites">Favourites</string>
