@@ -1,3 +1,14 @@
+## v3.2.1
+
+- Login screen refactor
+- add thread fallback (for non replies, replies was already present)
+- Initial recovery key generation impl (experimental) (#47)
+- Add manage account button for homeservers that support oidc (#47)
+- Move invite screen to a filter in room screen
+- implement direct user lookup in discover, while removing suggested people
+- Invite event formatting (#46)
+
+
 ## v3.1.3
 
 - Android: prevent the distributor popup from appearing when there are no options to choose from
