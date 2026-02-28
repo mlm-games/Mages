@@ -220,7 +220,7 @@ private fun AttachmentThumbnail(
     if (attachmentKind == null) return
 
     val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
-    else MaterialTheme.colorScheme.surface
+    else MaterialTheme.colorScheme.onSecondaryContainer
     val accentColor = if (isMine) MaterialTheme.colorScheme.primary
     else MaterialTheme.colorScheme.secondary
 
