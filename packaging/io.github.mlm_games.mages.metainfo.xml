@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="3.2.2" date="2026-03-01" type="stable">
+      <description>
+        <ul>
+          <li>Hide predecessor room banner</li>
+          <li>bump rust toolchain version, and element-call version</li>
+        </ul>
+      </description>
+    </release>
     <release version="3.2.1" date="2026-02-28" type="stable">
       <description>
         <ul>

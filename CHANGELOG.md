@@ -1,3 +1,9 @@
+## v3.2.2
+
+- Hide predecessor room banner
+- bump rust toolchain version, and element-call version
+
+
 ## v3.2.1
 
 - Login screen refactor

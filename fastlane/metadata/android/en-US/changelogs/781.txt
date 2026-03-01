@@ -1,0 +1,2 @@
+- Hide predecessor room banner
+- bump rust toolchain version, and element-call version
