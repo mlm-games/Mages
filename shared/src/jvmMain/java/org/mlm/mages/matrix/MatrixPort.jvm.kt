@@ -1438,7 +1438,7 @@ class RustMatrixPort : MatrixPort {
         roomId: String,
         intent: CallIntent,
         elementCallUrl: String?,
-        parentUrl: String?,  // ADD THIS
+        parentUrl: String?,
         languageTag: String?,
         theme: String?,
         observer: CallWidgetObserver,
@@ -1446,6 +1446,9 @@ class RustMatrixPort : MatrixPort {
         val ffiIntent = when (intent) {
             CallIntent.StartCall -> mages.ElementCallIntent.START_CALL
             CallIntent.JoinExisting -> mages.ElementCallIntent.JOIN_EXISTING
+            CallIntent.StartCallVoiceDm -> mages.ElementCallIntent.START_CALL_VOICE_DM
+            CallIntent.JoinExistingVoiceDm -> mages.ElementCallIntent.JOIN_EXISTING_VOICE_DM
+
         }
 
         val cb = object : mages.CallWidgetObserver {

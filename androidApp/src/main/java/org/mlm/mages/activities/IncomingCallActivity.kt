@@ -81,6 +81,8 @@ import androidx.compose.ui.unit.IntOffset
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import mages.shared.generated.resources.Res
+import mages.shared.generated.resources.start_call
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -120,6 +122,8 @@ class IncomingCallActivity : ComponentActivity() {
         val callerName = intent.getStringExtra(EXTRA_CALLER_NAME) ?: "Unknown"
         val callerAvatarUrl = intent.getStringExtra(EXTRA_CALLER_AVATAR)
         val eventId = intent.getStringExtra(EXTRA_EVENT_ID)
+        val isVoiceOnly = intent.getBooleanExtra(EXTRA_IS_VOICE_ONLY, false)
+        val isDm = intent.getBooleanExtra(EXTRA_IS_DM, false)
 
         startRinging()
 
@@ -129,9 +133,10 @@ class IncomingCallActivity : ComponentActivity() {
                     roomName = roomName,
                     callerName = callerName,
                     callerAvatarPath = callerAvatarUrl,
+                    isVoiceOnly = isVoiceOnly,
                     onAccept = {
                         stopRinging()
-                        acceptCall(roomId, roomName, eventId)
+                        acceptCall(roomId, roomName, isVoiceOnly, isDm)
                     },
                     onDecline = {
                         stopRinging()
@@ -183,14 +188,20 @@ class IncomingCallActivity : ComponentActivity() {
         ringtone?.stop()
     }
 
-    private fun acceptCall(roomId: String, roomName: String, eventId: String?) {
+    private fun acceptCall(roomId: String, roomName: String, isVoiceOnly: Boolean, isDm: Boolean) {
         lifecycleScope.launch {
             AndroidNotificationHelper.cancelCallNotification(this@IncomingCallActivity, roomId)
+
+            val callIntent = when {
+                isVoiceOnly && isDm -> CallIntent.JoinExistingVoiceDm
+                isDm -> CallIntent.JoinExisting
+                else -> CallIntent.JoinExisting
+            }
 
             val success = callManager.startOrJoinCall(
                 roomId = roomId,
                 roomName = roomName,
-                intent = CallIntent.JoinExisting,
+                intent = callIntent,
                 elementCallUrl = null,
                 parentUrl = null,
                 languageTag = Locale.getDefault().toLanguageTag(),
@@ -211,7 +222,6 @@ class IncomingCallActivity : ComponentActivity() {
                     }
                 startActivity(intent)
             }
-
             finish()
         }
     }
@@ -232,6 +242,8 @@ class IncomingCallActivity : ComponentActivity() {
         const val EXTRA_CALLER_NAME = "caller_name"
         const val EXTRA_CALLER_AVATAR = "caller_avatar_path"
         const val EXTRA_EVENT_ID = "event_id"
+        const val EXTRA_IS_VOICE_ONLY = "is_voice_only"
+        const val EXTRA_IS_DM = "is_dm"
 
         fun createIntent(
             context: Context,
@@ -239,7 +251,9 @@ class IncomingCallActivity : ComponentActivity() {
             roomName: String,
             callerName: String,
             callerAvatarUrl: String?,
-            eventId: String?
+            eventId: String?,
+            isVoiceOnly: Boolean = false,
+            isDm: Boolean = false
         ): Intent {
             return Intent(context, IncomingCallActivity::class.java).apply {
                 putExtra(EXTRA_ROOM_ID, roomId)
@@ -247,6 +261,8 @@ class IncomingCallActivity : ComponentActivity() {
                 putExtra(EXTRA_CALLER_NAME, callerName)
                 putExtra(EXTRA_CALLER_AVATAR, callerAvatarUrl)
                 putExtra(EXTRA_EVENT_ID, eventId)
+                putExtra(EXTRA_IS_VOICE_ONLY, isVoiceOnly)
+                putExtra(EXTRA_IS_DM, isDm)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                         Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
                         Intent.FLAG_ACTIVITY_NO_USER_ACTION
@@ -260,6 +276,7 @@ private fun IncomingCallScreen(
     roomName: String,
     callerName: String,
     callerAvatarPath: String?,
+    isVoiceOnly: Boolean = false,
     onAccept: () -> Unit,
     onDecline: () -> Unit
 ) {
@@ -308,7 +325,7 @@ private fun IncomingCallScreen(
                 .padding(horizontal = 22.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            TopBanner()
+            TopBanner(isVoiceOnly)
 
             CallerHero(
                 callerName = callerName,
@@ -323,6 +340,7 @@ private fun IncomingCallScreen(
                 if (talkBackOn) {
                     BigButtonsRow(
                         enabled = !handlingAction,
+                        isVoiceOnly = isVoiceOnly,
                         onDecline = {
                             handlingAction = true
                             onDecline()
@@ -372,7 +390,7 @@ private fun IncomingCallScreen(
     }
 }
 @Composable
-private fun TopBanner() {
+private fun TopBanner(isVoiceOnly: Boolean = false) {
     var elapsedSeconds by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -391,15 +409,19 @@ private fun TopBanner() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         AssistChip(
-            onClick = { },
-            label = { Text("Incoming call", fontWeight = FontWeight.SemiBold) },
+            onClick = {},
+            label = { Text(if (isVoiceOnly) "Incoming voice call" else "Incoming call", fontWeight = FontWeight.SemiBold) },
             leadingIcon = {
                 Icon(
-                    painter = painterResource(id = R.drawable.outline_phone_callback_24),
+                    painter = painterResource(
+                        if (isVoiceOnly) R.drawable.outline_phone_callback_24
+                        else R.drawable.outline_hangout_video_24
+                    ),
                     contentDescription = null
                 )
             }
         )
+
         Spacer(Modifier.height(6.dp))
         Text(
             text = "Ringing for $timerText",
@@ -547,6 +569,7 @@ private fun CallerHero(
 @Composable
 private fun BigButtonsRow(
     enabled: Boolean,
+    isVoiceOnly: Boolean = false,
     onDecline: () -> Unit,
     onAccept: () -> Unit
 ) {
@@ -589,8 +612,11 @@ private fun BigButtonsRow(
                 .height(58.dp)
         ) {
             Icon(
-                painter = painterResource(id = R.drawable.outline_video_call_24),
-                contentDescription = null
+                painter = painterResource(
+                    if (isVoiceOnly) R.drawable.outline_phone_callback_24
+                    else R.drawable.outline_video_call_24
+                ),
+                contentDescription = "Pick call"// stringResource(Res.string.start_call)
             )
             Spacer(Modifier.size(10.dp))
             Text("Answer", fontWeight = FontWeight.SemiBold)

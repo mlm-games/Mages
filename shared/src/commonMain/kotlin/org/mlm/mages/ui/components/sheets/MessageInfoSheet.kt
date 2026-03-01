@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.MessageEvent
@@ -127,3 +128,60 @@ private fun MessageInfoReaderRow(entry: SeenByEntry) {
         }
     }
 }
+
+@Composable
+fun ReadReceiptsSheet(
+    entries: List<SeenByEntry>,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.fillMaxWidth()) {
+            Text(
+                text = "Read by",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(start = 24.dp, top = 24.dp, bottom = 16.dp)
+            )
+
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .padding(horizontal = 24.dp)
+            ) {
+                items(entries.sortedByDescending { it.tsMs }) { entry ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Avatar(
+                            name = entry.displayName ?: entry.userId,
+                            avatarPath = entry.avatarUrl,
+                            size = 44.dp
+                        )
+
+                        Spacer(Modifier.width(16.dp))
+
+                        Column {
+                            Text(
+                                text = entry.displayName ?: entry.userId,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                            if (entry.tsMs != null) {
+                                Text(
+                                    text = formatTime(entry.tsMs!!.toLong()),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.navigationBarsPadding().height(24.dp))
+        }
+    }
+}
+

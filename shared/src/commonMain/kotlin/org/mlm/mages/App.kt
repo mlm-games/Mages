@@ -4,7 +4,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
@@ -52,7 +51,7 @@ import org.mlm.mages.ui.theme.MainTheme
 import org.mlm.mages.ui.util.popBack
 import org.mlm.mages.ui.viewmodel.*
 import org.mlm.mages.verification.VerificationCoordinator
-import androidx.compose.ui.platform.LocalLocale
+import org.mlm.mages.matrix.CallIntent
 import java.util.Locale
 
 val LocalMessageFontSize = staticCompositionLocalOf { 16f }
@@ -113,7 +112,7 @@ private fun AppContent(deepLinks: Flow<DeepLinkAction>?) {
         else -> isSystemInDarkTheme()
     }
     val widgetTheme = if (isDark) "dark" else "light"
-    val languageTag = Locale.getDefault().toLanguageTag() // Using the observable version causes a crash
+    val languageTag = remember { Locale.getDefault().toLanguageTag() }
     val elementCallUrl = settings.elementCallUrl.trim().ifBlank { platformEmbeddedElementCallUrlOrNull() }
     val parentCallUrl = platformEmbeddedElementCallParentUrlOrNull()
 
@@ -305,8 +304,15 @@ private fun AppContent(deepLinks: Flow<DeepLinkAction>?) {
                             },
                             onStartCall = {
                                 viewModel.startCall(
+                                    intent = CallIntent.StartCall,
                                     theme = widgetTheme,
                                     languageTag = languageTag,
+                                )
+                            },
+                            onStartVoiceCall = {
+                                viewModel.startVoiceCall(
+                                    languageTag = Locale.getDefault().toLanguageTag(),
+                                    theme = widgetTheme
                                 )
                             },
                             onOpenForwardPicker = { roomId, eventIds ->

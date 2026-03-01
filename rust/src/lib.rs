@@ -12,6 +12,7 @@ use matrix_sdk::ruma::events::{AnySyncMessageLikeEvent, AnySyncTimelineEvent};
 use matrix_sdk::ruma::room_version_rules::RoomVersionRules;
 use matrix_sdk::ruma::serde::Raw;
 use matrix_sdk::search_index::SearchIndexStoreKind;
+use matrix_sdk::send_queue::SendHandle;
 use matrix_sdk::utils::local_server::LocalServerBuilder;
 use matrix_sdk::{
     EncryptionState, PredecessorRoom, RoomDisplayName, SuccessorRoom,
@@ -103,7 +104,7 @@ use matrix_sdk::{
     ruma::events::receipt::ReceiptThread,
 };
 use matrix_sdk_ui::{
-    encryption_sync_service::{EncryptionSyncService, WithLocking},
+    encryption_sync_service::EncryptionSyncService,
     eyeball_im::VectorDiff,
     notification_client::{
         NotificationClient, NotificationEvent, NotificationProcessSetup, NotificationStatus,
@@ -829,6 +830,8 @@ pub enum ElementCallIntent {
     StartCall,
     /// Join an existing call in this room.
     JoinExisting,
+    StartCallVoiceDm,
+    JoinExistingVoiceDm,
 }
 
 #[derive(Clone, Record)]
@@ -960,7 +963,7 @@ pub struct Client {
     receipts_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     room_list_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     room_list_cmds: Mutex<HashMap<u64, tokio::sync::mpsc::UnboundedSender<RoomListCmd>>>,
-    send_handles_by_txn: Mutex<HashMap<String, matrix_sdk::send_queue::SendHandle>>,
+    send_handles_by_txn: Arc<Mutex<HashMap<String, SendHandle>>>,
     send_queue_supervised: AtomicBool,
     call_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     live_location_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
@@ -1147,7 +1150,7 @@ impl Client {
             receipts_subs: Mutex::new(HashMap::new()),
             room_list_subs: Mutex::new(HashMap::new()),
             room_list_cmds: Mutex::new(HashMap::new()),
-            send_handles_by_txn: Mutex::new(HashMap::new()),
+            send_handles_by_txn: Arc::new(Mutex::new(HashMap::new())),
             send_queue_supervised: AtomicBool::new(false),
             call_subs: Mutex::new(HashMap::new()),
             live_location_subs: Mutex::new(HashMap::new()),
@@ -1290,9 +1293,20 @@ impl Client {
 
     pub fn account_management_url(&self) -> Option<String> {
         RT.block_on(async {
-            match self.inner.oauth().account_management_url().await {
-                Ok(Some(builder)) => Some(builder.build().to_string()),
-                _ => None,
+            match self.inner.oauth().cached_server_metadata().await {
+                Ok(metadata) => metadata.account_management_uri.map(|u| u.to_string()),
+                Err(_) => None,
+            }
+        })
+    }
+
+    pub fn account_management_url_with_action(&self, action: &str) -> Option<String> {
+        RT.block_on(async {
+            match self.inner.oauth().cached_server_metadata().await {
+                Ok(metadata) => metadata
+                    .account_management_uri
+                    .map(|u| format!("{}?action={}", u, action)),
+                Err(_) => None,
             }
         })
     }
@@ -1679,13 +1693,16 @@ impl Client {
 
             match timeline.send(Msg::text_plain(body.clone()).into()).await {
                 Ok(handle) => {
-                    if let Some(latest) = timeline.latest_event().await {
-                        if latest.event_id().is_none() {
-                            if let Some(txn) = latest.transaction_id() {
-                                self.send_handles_by_txn
-                                    .lock()
-                                    .unwrap()
-                                    .insert(txn.to_string(), handle.clone());
+                    let items = timeline.items().await;
+                    if let Some(last_item) = items.last() {
+                        if let Some(ev) = last_item.as_event() {
+                            if ev.event_id().is_none() {
+                                if let Some(txn) = ev.transaction_id() {
+                                    self.send_handles_by_txn
+                                        .lock()
+                                        .unwrap()
+                                        .insert(txn.to_string(), handle.clone());
+                                }
                             }
                         }
                     }
@@ -2827,8 +2844,8 @@ impl Client {
         let mgr = self.timeline_mgr.clone();
         let tx = self.send_tx.clone();
         let txn_id = client_txn.clone();
+        let send_handles = self.send_handles_by_txn.clone();
 
-        let mut handles = self.send_handles_by_txn.lock().unwrap().clone();
         RT.spawn(async move {
             use matrix_sdk::ruma::events::room::message::RoomMessageEventContent as Msg;
 
@@ -2867,10 +2884,16 @@ impl Client {
 
             match timeline.send(Msg::text_plain(body).into()).await {
                 Ok(handle) => {
-                    if let Some(latest) = timeline.latest_event().await {
-                        if latest.event_id().is_none() {
-                            if let Some(proto_txn) = latest.transaction_id() {
-                                handles.insert(proto_txn.to_string(), handle);
+                    let items = timeline.items().await;
+                    if let Some(last_item) = items.last() {
+                        if let Some(ev) = last_item.as_event() {
+                            if ev.event_id().is_none() {
+                                if let Some(txn) = ev.transaction_id() {
+                                    send_handles
+                                        .lock()
+                                        .unwrap()
+                                        .insert(txn.to_string(), handle.clone());
+                                }
                             }
                         }
                     }
@@ -3435,7 +3458,7 @@ impl Client {
             let Some(permit) = svc.try_get_encryption_sync_permit() else {
                 return false;
             };
-            match EncryptionSyncService::new(self.inner_clone(), None, WithLocking::Yes).await {
+            match EncryptionSyncService::new(self.inner_clone(), None).await {
                 Ok(enc) => enc.run_fixed_iterations(100, permit).await.is_ok(),
                 Err(_) => false,
             }
@@ -3958,9 +3981,9 @@ impl Client {
                 NotificationStatus::Event(item) => {
                     Ok(map_notification_item_to_rendered(&rid, &eid, &item))
                 }
-                NotificationStatus::EventFilteredOut | NotificationStatus::EventNotFound => {
-                    Ok(None)
-                }
+                NotificationStatus::EventFilteredOut
+                | NotificationStatus::EventNotFound
+                | NotificationStatus::EventRedacted => Ok(None),
             }
         })
     }
@@ -4947,7 +4970,7 @@ impl Client {
                 .send(any)
                 .await
                 .map_err(|e| FfiError::Msg(e.to_string()))?;
-            Ok(send_res.event_id.to_string())
+            Ok(send_res.response.event_id.to_string())
         })
     }
 
@@ -6192,6 +6215,8 @@ impl Client {
                 (ElementCallIntent::JoinExisting, true) => WidgetIntent::JoinExistingDm,
                 (ElementCallIntent::StartCall, false) => WidgetIntent::StartCall,
                 (ElementCallIntent::JoinExisting, false) => WidgetIntent::JoinExisting,
+                (ElementCallIntent::StartCallVoiceDm, _) => WidgetIntent::StartCallDmVoice,
+                (ElementCallIntent::JoinExistingVoiceDm, _) => WidgetIntent::JoinExistingDmVoice,
             };
 
             let config = VirtualElementCallWidgetConfig {

@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
@@ -678,7 +679,7 @@ private fun SettingsGroupHeader(title: String) {
 /** A row that shows icon + title + subtitle and navigates on click. */
 @Composable
 private fun SettingsNavRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     title: String,
     subtitle: String? = null,
     onClick: () -> Unit
@@ -710,7 +711,7 @@ private fun SettingsNavRow(
 /** A row showing a label and a static value. */
 @Composable
 private fun SettingsInfoRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     title: String,
     value: String
 ) {
@@ -730,7 +731,7 @@ private fun SettingsInfoRow(
 /** A row with a value that can be copied (tap anywhere to copy). */
 @Composable
 private fun SettingsCopyRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     title: String,
     value: String,
     onCopy: () -> Unit
@@ -766,7 +767,7 @@ private fun SettingsCopyRow(
 /** A row with icon + title + optional subtitle, with an action button on the right. */
 @Composable
 private fun SettingsActionRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     title: String,
     subtitle: String? = null,
     actionText: String,
@@ -801,7 +802,7 @@ private fun SettingsActionRow(
 /** A destructive action row (red tinted). */
 @Composable
 private fun SettingsDangerRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     title: String,
     onClick: () -> Unit
 ) {
@@ -832,7 +833,7 @@ private fun SettingsDangerRow(
 /** Dropdown setting row with icon, matching the grouped list style. */
 @Composable
 private fun <T> SettingsDropdownRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     label: String,
     currentValue: T?,
     displayName: (T) -> String,

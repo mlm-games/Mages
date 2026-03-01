@@ -1103,20 +1103,26 @@ class RoomViewModel(
 
     fun startCall(intent: CallIntent = CallIntent.StartCall, languageTag: String?, theme: String?) {
         launch {
-            val elementCallUrl = settings.value.elementCallUrl.trim().ifBlank { platformEmbeddedElementCallUrlOrNull() }
+            val elementCallUrl = settings.value.elementCallUrl.trim()
+                .ifBlank { platformEmbeddedElementCallUrlOrNull() }
+
 
             val ok = callManager.startOrJoinCall(
                 roomId = currentState.roomId,
                 roomName = currentState.roomName,
-                intent = intent,
+                intent,
                 elementCallUrl,
                 platformEmbeddedElementCallParentUrlOrNull(),
                 languageTag = languageTag,
                 theme = theme
             )
-
             if (!ok) _events.send(Event.ShowError("Failed to start call"))
         }
+    }
+
+    fun startVoiceCall(languageTag: String?, theme: String?) {
+        val intent = if (currentState.isDm) CallIntent.StartCallVoiceDm else CallIntent.StartCall
+        startCall(intent, languageTag, theme)
     }
 
     fun showReadReceiptsSheet(entries: List<SeenByEntry>) {

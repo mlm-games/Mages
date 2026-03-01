@@ -60,7 +60,8 @@ fun <T : NavKey> NavBackStack<T>.popUntil(predicate: (T) -> Boolean) {
 data class DeepLinkAction(
     val roomId: String,
     val eventId: String? = null,
-    val joinCall: Boolean = false
+    val joinCall: Boolean = false,
+    val voiceOnly: Boolean = false
 )
 
 // Deep links: push Room keys when links arrive
@@ -72,7 +73,7 @@ fun BindDeepLinks(
     widgetTheme: String,
     languageTag: String,
     elementCallUrl: String?,
-    parentCallUrl: String?
+    parentCallUrl: String?,
 ) {
     LaunchedEffect(deepLinks) {
         deepLinks?.collectLatest { action ->
@@ -82,6 +83,10 @@ fun BindDeepLinks(
                 eventId = action.eventId
             ))
 
+            val callIntent = if (action.voiceOnly) CallIntent.JoinExistingVoiceDm
+            else CallIntent.JoinExisting
+
+
             if (action.joinCall && !callManager.isInCall(action.roomId)) {
                 // Retry in case room isn't available yet right after restore.
                 repeat(10) { attempt ->
@@ -89,7 +94,7 @@ fun BindDeepLinks(
                         callManager.startOrJoinCall(
                             roomId = action.roomId,
                             roomName = action.roomId,
-                            intent = CallIntent.JoinExisting,
+                            intent = callIntent,
                             elementCallUrl = elementCallUrl,
                             parentUrl = parentCallUrl,
                             languageTag = languageTag,

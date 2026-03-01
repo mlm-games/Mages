@@ -316,7 +316,9 @@ enum class PollKind {
 
 enum class CallIntent {
     StartCall,
-    JoinExisting
+    JoinExisting,
+    StartCallVoiceDm,
+    JoinExistingVoiceDm,
 }
 
 data class CallSession(

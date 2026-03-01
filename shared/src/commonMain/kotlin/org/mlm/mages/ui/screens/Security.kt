@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
@@ -289,9 +290,9 @@ private fun DevicesTab(
             ) {
                 ActionCard(
                     icon = if (isEnablingRecovery) Icons.Default.HourglassEmpty else Icons.Default.Key,
-                    title = if (recoveryProgress != null) recoveryProgress 
-                            else if (recoveryState == MatrixPort.RecoveryState.Enabled) stringResource(Res.string.recovery)
-                            else stringResource(Res.string.set_up_recovery),
+                    title = recoveryProgress
+                        ?: if (recoveryState == MatrixPort.RecoveryState.Enabled) stringResource(Res.string.recovery)
+                        else stringResource(Res.string.set_up_recovery),
                     onClick = { 
                         if (recoveryState == MatrixPort.RecoveryState.Enabled) onOpenRecovery() 
                         else onEnableRecovery() 
@@ -359,7 +360,7 @@ private fun DevicesTab(
 
 @Composable
 private fun ActionCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     title: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,

@@ -78,6 +78,7 @@ fun RoomScreen(
     onNavigateToRoom: (roomId: String, name: String) -> Unit,
     onNavigateToThread: (roomId: String, eventId: String, roomName: String) -> Unit,
     onStartCall: () -> Unit,
+    onStartVoiceCall: () -> Unit,
     onOpenForwardPicker: (sourceRoomId: String, eventIds: List<String>) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
@@ -288,11 +289,13 @@ fun RoomScreen(
                     avatarUrl = state.roomAvatarUrl,
                     typingNames = state.typingNames,
                     isOffline = state.isOffline,
+                    isDm = state.isDm,
                     onBack = onBack,
                     onOpenInfo = onOpenInfo,
                     onOpenSearch = viewModel::showRoomSearch,
                     onStartCall = onStartCall,
                     hasActiveCall = state.hasActiveCallForRoom,
+                    onStartVoiceCall = onStartVoiceCall,
                 )
             }
         },
@@ -653,10 +656,12 @@ private fun RoomTopBar(
     typingNames: List<String>,
     isOffline: Boolean,
     hasActiveCall: Boolean,
+    isDm: Boolean,
     onBack: () -> Unit,
     onOpenInfo: () -> Unit,
     onOpenSearch: () -> Unit,
     onStartCall: () -> Unit,
+    onStartVoiceCall: () -> Unit,
 ) {
     Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shadowElevation = 2.dp) {
         Column {
@@ -707,11 +712,35 @@ private fun RoomTopBar(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onStartCall) {
-                        if (hasActiveCall) {
-                            Icon(Icons.AutoMirrored.Filled.CallMerge, stringResource(Res.string.join_call))
-                        } else Icon(Icons.Default.Call, stringResource(Res.string.start_call))
+                    if (hasActiveCall) {
+                        IconButton(onClick = onStartCall) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.CallMerge,
+                                contentDescription = stringResource(Res.string.join_call)
+                            )
+                        }
+                    } else if (isDm) {
+                        IconButton(onClick = onStartVoiceCall) {
+                            Icon(
+                                Icons.Default.Call,
+                                contentDescription = "Voice call"
+                            )
+                        }
+                        IconButton(onClick = onStartCall) {
+                            Icon(
+                                Icons.Default.Videocam,
+                                contentDescription = "Video call"
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = onStartCall) {
+                            Icon(
+                                Icons.Default.Call,
+                                contentDescription = stringResource(Res.string.start_call)
+                            )
+                        }
                     }
+
                     IconButton(onClick = onOpenInfo) {
                         Icon(Icons.Default.Info, stringResource(Res.string.room_info_short))
                     }
