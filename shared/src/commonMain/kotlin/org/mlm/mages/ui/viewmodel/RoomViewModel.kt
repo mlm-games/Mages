@@ -1119,6 +1119,24 @@ class RoomViewModel(
         }
     }
 
+    fun showReadReceiptsSheet(entries: List<SeenByEntry>) {
+        updateState {
+            copy(
+                showReadReceiptsSheet = true,
+                readReceiptsForEvent = entries
+            )
+        }
+    }
+
+    fun hideReadReceiptsSheet() {
+        updateState {
+            copy(
+                showReadReceiptsSheet = false,
+                readReceiptsForEvent = emptyList()
+            )
+        }
+    }
+
     private suspend fun forwardMessage(event: MessageEvent, targetRoomId: String): Boolean {
         return try {
             val attachment = event.attachment
