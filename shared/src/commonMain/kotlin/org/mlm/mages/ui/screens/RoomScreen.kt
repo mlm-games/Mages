@@ -457,8 +457,7 @@ fun RoomScreen(
                                 itemsIndexed(events, key = { _, e -> e.itemId }) { index, event ->
                                     val isSystemEvent = event.eventType != EventType.Message &&
                                             event.eventType != EventType.Poll &&
-                                            event.eventType != EventType.Sticker &&
-                                            event.eventType != EventType.CallInvite
+                                            event.eventType != EventType.Sticker
 
                                     if (isSystemEvent && event.body.isNotBlank()) {
                                         SystemMessageItem(event = event)

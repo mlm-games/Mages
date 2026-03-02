@@ -62,6 +62,7 @@ enum class EventType {
     RoomCanonicalAlias,
     OtherState,
     CallInvite,
+    CallNotification,
     Poll,
     Sticker,
 }

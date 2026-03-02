@@ -1573,6 +1573,7 @@ private fun mages.EventType.toKotlin(): EventType = when (this) {
     mages.EventType.ROOM_CANONICAL_ALIAS -> EventType.RoomCanonicalAlias
     mages.EventType.OTHER_STATE -> EventType.OtherState
     mages.EventType.CALL_INVITE -> EventType.CallInvite
+    mages.EventType.CALL_NOTIFICATION -> EventType.CallNotification
     mages.EventType.POLL -> EventType.Poll
     mages.EventType.STICKER -> EventType.Sticker
 }

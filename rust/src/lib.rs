@@ -195,6 +195,7 @@ pub enum EventType {
     RoomCanonicalAlias,
     OtherState,
     CallInvite,
+    CallNotification,
     Poll,
     Sticker,
 }
@@ -1239,7 +1240,10 @@ impl Client {
                         };
                         if this.inner.restore_session(session).await.is_ok() {
                             // Wait for E2EE init to fetch recovery state from server
-                            this.inner.encryption().wait_for_e2ee_initialization_tasks().await;
+                            this.inner
+                                .encryption()
+                                .wait_for_e2ee_initialization_tasks()
+                                .await;
 
                             this.ensure_sync_service().await;
 
@@ -1384,7 +1388,10 @@ impl Client {
             .await?;
 
             // Wait for E2EE init to fetch recovery state from server
-            self.inner.encryption().wait_for_e2ee_initialization_tasks().await;
+            self.inner
+                .encryption()
+                .wait_for_e2ee_initialization_tasks()
+                .await;
 
             self.ensure_sync_service().await;
 
@@ -2520,9 +2527,15 @@ impl Client {
             let mut stream = inner.encryption().recovery().state_stream();
             while let Some(state) = stream.next().await {
                 let mapped = match state {
-                    matrix_sdk::encryption::recovery::RecoveryState::Disabled => RecoveryState::Disabled,
-                    matrix_sdk::encryption::recovery::RecoveryState::Enabled => RecoveryState::Enabled,
-                    matrix_sdk::encryption::recovery::RecoveryState::Incomplete => RecoveryState::Incomplete,
+                    matrix_sdk::encryption::recovery::RecoveryState::Disabled => {
+                        RecoveryState::Disabled
+                    }
+                    matrix_sdk::encryption::recovery::RecoveryState::Enabled => {
+                        RecoveryState::Enabled
+                    }
+                    matrix_sdk::encryption::recovery::RecoveryState::Incomplete => {
+                        RecoveryState::Incomplete
+                    }
                     _ => RecoveryState::Unknown,
                 };
                 let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(mapped)));
@@ -2537,13 +2550,27 @@ impl Client {
             let mut stream = inner.encryption().backups().state_stream();
             while let Some(state) = stream.next().await {
                 let mapped = match state {
-                    Ok(matrix_sdk::encryption::backups::BackupState::Unknown) => BackupState::Unknown,
-                    Ok(matrix_sdk::encryption::backups::BackupState::Creating) => BackupState::Creating,
-                    Ok(matrix_sdk::encryption::backups::BackupState::Enabling) => BackupState::Enabling,
-                    Ok(matrix_sdk::encryption::backups::BackupState::Resuming) => BackupState::Resuming,
-                    Ok(matrix_sdk::encryption::backups::BackupState::Enabled) => BackupState::Enabled,
-                    Ok(matrix_sdk::encryption::backups::BackupState::Downloading) => BackupState::Downloading,
-                    Ok(matrix_sdk::encryption::backups::BackupState::Disabling) => BackupState::Disabling,
+                    Ok(matrix_sdk::encryption::backups::BackupState::Unknown) => {
+                        BackupState::Unknown
+                    }
+                    Ok(matrix_sdk::encryption::backups::BackupState::Creating) => {
+                        BackupState::Creating
+                    }
+                    Ok(matrix_sdk::encryption::backups::BackupState::Enabling) => {
+                        BackupState::Enabling
+                    }
+                    Ok(matrix_sdk::encryption::backups::BackupState::Resuming) => {
+                        BackupState::Resuming
+                    }
+                    Ok(matrix_sdk::encryption::backups::BackupState::Enabled) => {
+                        BackupState::Enabled
+                    }
+                    Ok(matrix_sdk::encryption::backups::BackupState::Downloading) => {
+                        BackupState::Downloading
+                    }
+                    Ok(matrix_sdk::encryption::backups::BackupState::Disabling) => {
+                        BackupState::Disabling
+                    }
                     Err(_) => BackupState::Unknown,
                 };
                 let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(mapped)));
@@ -6830,8 +6857,8 @@ fn map_timeline_event(
             event_type = EventType::CallInvite;
         }
         TimelineItemContent::RtcNotification => {
-            body = String::new();
-            event_type = EventType::CallInvite;
+            body = "Call started".to_string();
+            event_type = EventType::CallNotification;
         }
         _ => {
             body = render_timeline_text(ev);
@@ -7165,9 +7192,9 @@ fn render_message_text(msg: &matrix_sdk_ui::timeline::Message) -> String {
 fn is_call_noise(event: &AnySyncTimelineEvent) -> bool {
     let ty = event.event_type().to_string();
 
-    ty.starts_with("m.rtc.")
-        || ty.starts_with("m.call.")
-        || ty.starts_with("org.matrix.msc3401.call.")
+    (ty.starts_with("m.rtc.") && !ty.contains("notify"))
+        || (ty.starts_with("org.matrix.msc3401.call.") && !ty.contains("notify"))
+        || (ty.starts_with("m.call.") && !ty.contains("notify") && !ty.contains("hangup"))
 }
 
 fn timeline_event_filter(event: &AnySyncTimelineEvent, rules: &RoomVersionRules) -> bool {
