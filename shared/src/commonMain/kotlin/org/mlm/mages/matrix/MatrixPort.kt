@@ -49,6 +49,23 @@ enum class SasPhase { Created, Requested, Ready, Accepted, Started, Emojis, Conf
 
 enum class SendState { Enqueued, Sending, Sent, Retrying, Failed }
 
+enum class EventType {
+    Message,
+    MembershipChange,
+    ProfileChange,
+    RoomName,
+    RoomTopic,
+    RoomAvatar,
+    RoomEncryption,
+    RoomPinnedEvents,
+    RoomPowerLevels,
+    RoomCanonicalAlias,
+    OtherState,
+    CallInvite,
+    Poll,
+    Sticker,
+}
+
 data class SendUpdate(
     val roomId: String,
     val txnId: String,

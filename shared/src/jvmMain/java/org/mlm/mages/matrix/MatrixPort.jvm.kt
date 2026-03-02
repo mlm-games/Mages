@@ -1548,7 +1548,8 @@ private fun mages.MessageEvent.toModel() = MessageEvent(
     senderDisplayName = senderDisplayName,
     replyToSenderDisplayName = replyToSenderDisplayName,
     pollData = pollData?.toModel(),
-    reactions = reactions.map { ReactionChip(it.key, it.count.toInt(), it.me) }
+    reactions = reactions.map { ReactionChip(it.key, it.count.toInt(), it.me) },
+    eventType = eventType.toKotlin()
 )
 
 private fun mages.SendState.toKotlin(): SendState = when (this) {
@@ -1557,6 +1558,23 @@ private fun mages.SendState.toKotlin(): SendState = when (this) {
     mages.SendState.FAILED -> SendState.Failed
     mages.SendState.ENQUEUED -> SendState.Enqueued
     mages.SendState.RETRYING -> SendState.Retrying
+}
+
+private fun mages.EventType.toKotlin(): EventType = when (this) {
+    mages.EventType.MESSAGE -> EventType.Message
+    mages.EventType.MEMBERSHIP_CHANGE -> EventType.MembershipChange
+    mages.EventType.PROFILE_CHANGE -> EventType.ProfileChange
+    mages.EventType.ROOM_NAME -> EventType.RoomName
+    mages.EventType.ROOM_TOPIC -> EventType.RoomTopic
+    mages.EventType.ROOM_AVATAR -> EventType.RoomAvatar
+    mages.EventType.ROOM_ENCRYPTION -> EventType.RoomEncryption
+    mages.EventType.ROOM_PINNED_EVENTS -> EventType.RoomPinnedEvents
+    mages.EventType.ROOM_POWER_LEVELS -> EventType.RoomPowerLevels
+    mages.EventType.ROOM_CANONICAL_ALIAS -> EventType.RoomCanonicalAlias
+    mages.EventType.OTHER_STATE -> EventType.OtherState
+    mages.EventType.CALL_INVITE -> EventType.CallInvite
+    mages.EventType.POLL -> EventType.Poll
+    mages.EventType.STICKER -> EventType.Sticker
 }
 
 private fun mages.EncFile.toModel() = EncFile(url = url, json = json)

@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import kotlinx.coroutines.launch
 import org.mlm.mages.MessageEvent
+import org.mlm.mages.matrix.EventType
 import org.mlm.mages.matrix.SendState
 import org.mlm.mages.platform.*
 import org.mlm.mages.ui.components.AttachmentData
@@ -47,6 +48,7 @@ import org.mlm.mages.ui.components.core.*
 import org.mlm.mages.ui.components.dialogs.ReportContentDialog
 import org.mlm.mages.ui.components.message.MessageBubble
 import org.mlm.mages.ui.components.message.MessageStatusLine
+import org.mlm.mages.ui.components.message.SystemMessageItem
 import org.mlm.mages.ui.components.message.SeenByChip
 import org.koin.compose.koinInject
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
@@ -453,23 +455,32 @@ fun RoomScreen(
                                 }
                             } else {
                                 itemsIndexed(events, key = { _, e -> e.itemId }) { index, event ->
-                                    MessageItem(
-                                        event = event,
-                                        index = index,
-                                        events = events,
-                                        state = state,
-                                        lastOutgoingIndex = lastOutgoingIndex,
-                                        onLongPress = { sheetEvent = event },
-                                        onReply = { viewModel.startReply(event) },
-                                        onReact = { emoji -> viewModel.react(event, emoji) },
-                                        onOpenAttachment = {
-                                            viewModel.openAttachment(event) { path, mime ->
-                                                openExternal(path, mime)
-                                            }
-                                        },
-                                        onOpenThread = { viewModel.openThread(event) },
-                                        viewModel
-                                    )
+                                    val isSystemEvent = event.eventType != EventType.Message &&
+                                            event.eventType != EventType.Poll &&
+                                            event.eventType != EventType.Sticker &&
+                                            event.eventType != EventType.CallInvite
+
+                                    if (isSystemEvent && event.body.isNotBlank()) {
+                                        SystemMessageItem(event = event)
+                                    } else {
+                                        MessageItem(
+                                            event = event,
+                                            index = index,
+                                            events = events,
+                                            state = state,
+                                            lastOutgoingIndex = lastOutgoingIndex,
+                                            onLongPress = { sheetEvent = event },
+                                            onReply = { viewModel.startReply(event) },
+                                            onReact = { emoji -> viewModel.react(event, emoji) },
+                                            onOpenAttachment = {
+                                                viewModel.openAttachment(event) { path, mime ->
+                                                    openExternal(path, mime)
+                                                }
+                                            },
+                                            onOpenThread = { viewModel.openThread(event) },
+                                            viewModel
+                                        )
+                                    }
                                 }
                             }
                         }

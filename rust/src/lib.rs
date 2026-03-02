@@ -181,6 +181,24 @@ pub trait ConnectionObserver: Send + Sync {
     fn on_connection_change(&self, state: ConnectionState);
 }
 
+#[derive(Clone, uniffi::Enum)]
+pub enum EventType {
+    Message,
+    MembershipChange,
+    ProfileChange,
+    RoomName,
+    RoomTopic,
+    RoomAvatar,
+    RoomEncryption,
+    RoomPinnedEvents,
+    RoomPowerLevels,
+    RoomCanonicalAlias,
+    OtherState,
+    CallInvite,
+    Poll,
+    Sticker,
+}
+
 #[derive(Clone, Record)]
 pub struct MessageEvent {
     pub item_id: String,
@@ -203,6 +221,7 @@ pub struct MessageEvent {
     pub is_edited: bool,
     pub poll_data: Option<PollData>,
     pub reactions: Vec<ReactionSummary>,
+    pub event_type: EventType,
 }
 
 #[derive(Clone, Debug, Record)]
@@ -6750,6 +6769,7 @@ fn map_timeline_event(
     let mut is_edited = false;
     let mut poll_data: Option<PollData> = None;
     let mut reply_to_sender_display_name: Option<String> = None;
+    let mut event_type = EventType::Message;
 
     match ev.content() {
         TimelineItemContent::MsgLike(ml) => {
@@ -6782,11 +6802,36 @@ fn map_timeline_event(
                     let data = map_poll_state(poll_state, me);
                     body = data.question.clone();
                     poll_data = Some(data);
+                    event_type = EventType::Poll;
+                }
+                MsgLikeKind::Sticker(_) => {
+                    body = render_msg_like(ev, ml);
+                    event_type = EventType::Sticker;
                 }
                 _ => {
                     body = render_msg_like(ev, ml);
                 }
             }
+        }
+        TimelineItemContent::MembershipChange(_) => {
+            body = render_timeline_text(ev);
+            event_type = EventType::MembershipChange;
+        }
+        TimelineItemContent::ProfileChange(_) => {
+            body = render_timeline_text(ev);
+            event_type = EventType::ProfileChange;
+        }
+        TimelineItemContent::OtherState(state) => {
+            body = render_timeline_text(ev);
+            event_type = map_other_state_type(state);
+        }
+        TimelineItemContent::CallInvite => {
+            body = String::new();
+            event_type = EventType::CallInvite;
+        }
+        TimelineItemContent::RtcNotification => {
+            body = String::new();
+            event_type = EventType::CallInvite;
         }
         _ => {
             body = render_timeline_text(ev);
@@ -6822,6 +6867,7 @@ fn map_timeline_event(
         is_edited,
         poll_data,
         reactions,
+        event_type,
     })
 }
 
@@ -7292,6 +7338,21 @@ fn render_profile_change(
     }
 
     format!("{subject} updated their profile")
+}
+
+fn map_other_state_type(s: &matrix_sdk_ui::timeline::OtherState) -> EventType {
+    use matrix_sdk_ui::timeline::AnyOtherFullStateEventContent as A;
+
+    match s.content() {
+        A::RoomName(_) => EventType::RoomName,
+        A::RoomTopic(_) => EventType::RoomTopic,
+        A::RoomAvatar(_) => EventType::RoomAvatar,
+        A::RoomEncryption(_) => EventType::RoomEncryption,
+        A::RoomPinnedEvents(_) => EventType::RoomPinnedEvents,
+        A::RoomPowerLevels(_) => EventType::RoomPowerLevels,
+        A::RoomCanonicalAlias(_) => EventType::RoomCanonicalAlias,
+        _ => EventType::OtherState,
+    }
 }
 
 fn render_other_state(ev: &EventTimelineItem, s: &matrix_sdk_ui::timeline::OtherState) -> String {
