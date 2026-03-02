@@ -424,8 +424,8 @@ interface MatrixPort {
     fun observeSends(): Flow<SendUpdate>
 
     suspend fun roomTags(roomId: String): Pair<Boolean, Boolean>?
-    suspend fun setRoomFavourite(roomId: String, favourite: Boolean): Boolean
-    suspend fun setRoomLowPriority(roomId: String, lowPriority: Boolean): Boolean
+    suspend fun setRoomFavourite(roomId: String, favourite: Boolean): Result<Unit>
+    suspend fun setRoomLowPriority(roomId: String, lowPriority: Boolean): Result<Unit>
 
     suspend fun thumbnailToCache(info: AttachmentInfo, width: Int, height: Int, crop: Boolean): Result<String>
 
@@ -581,16 +581,16 @@ interface MatrixPort {
 
     suspend fun listInvited(): List<RoomProfile>
     suspend fun acceptInvite(roomId: String): Boolean
-    suspend fun leaveRoom(roomId: String): Boolean
+    suspend fun leaveRoom(roomId: String): Result<Unit>
 
     suspend fun createRoom(name: String?, topic: String?, invitees: List<String>, isPublic: Boolean, roomAlias: String?): String?
-    suspend fun setRoomName(roomId: String, name: String): Boolean
-    suspend fun setRoomTopic(roomId: String, topic: String): Boolean
+    suspend fun setRoomName(roomId: String, name: String): Result<Unit>
+    suspend fun setRoomTopic(roomId: String, topic: String): Result<Unit>
 
     suspend fun roomProfile(roomId: String): RoomProfile?
 
     suspend fun roomNotificationMode(roomId: String): RoomNotificationMode?
-    suspend fun setRoomNotificationMode(roomId: String, mode: RoomNotificationMode): Boolean
+    suspend fun setRoomNotificationMode(roomId: String, mode: RoomNotificationMode): Result<Unit>
 
     suspend fun listMembers(roomId: String): List<MemberSummary>
 
@@ -635,40 +635,40 @@ interface MatrixPort {
     ): SpaceHierarchyPage?
     suspend fun spaceInviteUser(spaceId: String, userId: String): Boolean
 
-    suspend fun setPresence(presence: Presence, status: String?): Boolean
+    suspend fun setPresence(presence: Presence, status: String?): Result<Unit>
     suspend fun getPresence(userId: String): Pair<Presence, String?>?
 
-    suspend fun ignoreUser(userId: String): Boolean
-    suspend fun unignoreUser(userId: String): Boolean
+    suspend fun ignoreUser(userId: String): Result<Unit>
+    suspend fun unignoreUser(userId: String): Result<Unit>
     suspend fun ignoredUsers(): List<String>
 
     suspend fun roomDirectoryVisibility(roomId: String): RoomDirectoryVisibility?
-    suspend fun setRoomDirectoryVisibility(roomId: String, visibility: RoomDirectoryVisibility): Boolean
+    suspend fun setRoomDirectoryVisibility(roomId: String, visibility: RoomDirectoryVisibility): Result<Unit>
     suspend fun publishRoomAlias(roomId: String, alias: String): Boolean
     suspend fun unpublishRoomAlias(roomId: String, alias: String): Boolean
-    suspend fun setRoomCanonicalAlias(roomId: String, alias: String?, altAliases: List<String>): Boolean
+    suspend fun setRoomCanonicalAlias(roomId: String, alias: String?, altAliases: List<String>): Result<Unit>
     suspend fun roomAliases(roomId: String): List<String>
 
     suspend fun roomJoinRule(roomId: String): RoomJoinRule?
-    suspend fun setRoomJoinRule(roomId: String, rule: RoomJoinRule): Boolean
+    suspend fun setRoomJoinRule(roomId: String, rule: RoomJoinRule): Result<Unit>
     suspend fun roomHistoryVisibility(roomId: String): RoomHistoryVisibility?
-    suspend fun setRoomHistoryVisibility(roomId: String, visibility: RoomHistoryVisibility): Boolean
+    suspend fun setRoomHistoryVisibility(roomId: String, visibility: RoomHistoryVisibility): Result<Unit>
 
     suspend fun roomPowerLevels(roomId: String): RoomPowerLevels?
     suspend fun canUserBan(roomId: String, userId: String): Boolean
     suspend fun canUserInvite(roomId: String, userId: String): Boolean
     suspend fun canUserRedactOther(roomId: String, userId: String): Boolean
-    suspend fun updatePowerLevelForUser(roomId: String, userId: String, powerLevel: Long): Boolean
-    suspend fun applyPowerLevelChanges(roomId: String, changes: RoomPowerLevelChanges): Boolean
+    suspend fun updatePowerLevelForUser(roomId: String, userId: String, powerLevel: Long): Result<Unit>
+    suspend fun applyPowerLevelChanges(roomId: String, changes: RoomPowerLevelChanges): Result<Unit>
 
-    suspend fun reportContent(roomId: String, eventId: String, score: Int?, reason: String?): Boolean
-    suspend fun reportRoom(roomId: String, reason: String?): Boolean
+    suspend fun reportContent(roomId: String, eventId: String, score: Int?, reason: String?): Result<Unit>
+    suspend fun reportRoom(roomId: String, reason: String?): Result<Unit>
 
-    suspend fun banUser(roomId: String, userId: String, reason: String? = null): Boolean
-    suspend fun unbanUser(roomId: String, userId: String, reason: String? = null): Boolean
-    suspend fun kickUser(roomId: String, userId: String, reason: String? = null): Boolean
-    suspend fun inviteUser(roomId: String, userId: String): Boolean
-    suspend fun enableRoomEncryption(roomId: String): Boolean
+    suspend fun banUser(roomId: String, userId: String, reason: String? = null): Result<Unit>
+    suspend fun unbanUser(roomId: String, userId: String, reason: String? = null): Result<Unit>
+    suspend fun kickUser(roomId: String, userId: String, reason: String? = null): Result<Unit>
+    suspend fun inviteUser(roomId: String, userId: String): Result<Unit>
+    suspend fun enableRoomEncryption(roomId: String): Result<Unit>
 
     suspend fun roomSuccessor(roomId: String): RoomUpgradeInfo?
     suspend fun roomPredecessor(roomId: String): RoomPredecessorInfo?

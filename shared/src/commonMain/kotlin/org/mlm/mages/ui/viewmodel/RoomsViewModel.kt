@@ -110,8 +110,8 @@ class RoomsViewModel(
 
     fun declineInvite(roomId: String) {
         launch {
-            val success = runCatching { service.port.leaveRoom(roomId) }.getOrDefault(false)
-            if (success) {
+            val result = service.port.leaveRoom(roomId)
+            if (result?.isSuccess == true) {
                 recomputeGroupedRooms()
             }
         }

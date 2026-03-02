@@ -156,12 +156,12 @@ class SpaceSettingsViewModel(
             }
         ) {
             updateState { copy(isSaving = true, showLeaveConfirm = false) }
-            val ok = service.port.leaveRoom(currentState.spaceId)
+            val result = service.port.leaveRoom(currentState.spaceId)
             updateState { copy(isSaving = false) }
-            if (ok) {
+            if (result?.isSuccess == true) {
                 _events.send(Event.LeaveSuccess)
             } else {
-                _events.send(Event.ShowError("Failed to leave space"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to leave space")))
             }
         }
     }

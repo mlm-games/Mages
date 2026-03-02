@@ -360,9 +360,9 @@ class RustMatrixPort : MatrixPort {
             runCatching { withClient { it.redact(roomId, eventId, reason) } }.getOrDefault(false)
         }
 
-    override suspend fun reportContent(roomId: String, eventId: String, score: Int?, reason: String?): Boolean =
+    override suspend fun reportContent(roomId: String, eventId: String, score: Int?, reason: String?): Result<Unit> =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.reportContent(roomId, eventId, score, reason) } }.isSuccess
+            runCatching { withClient { it.reportContent(roomId, eventId, score, reason) } }
         }
 
     override suspend fun getUserPowerLevel(roomId: String, userId: String): Long =
@@ -726,8 +726,8 @@ class RustMatrixPort : MatrixPort {
     override suspend fun setRoomNotificationMode(
         roomId: String,
         mode: RoomNotificationMode
-    ): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.setRoomNotificationMode(roomId, mode.toFfi()) } }.isSuccess
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.setRoomNotificationMode(roomId, mode.toFfi()) } }
     }
 
     override suspend fun encryptionCatchupOnce(): Boolean =
@@ -865,13 +865,13 @@ class RustMatrixPort : MatrixPort {
     }
 
     override suspend fun homeserverLoginDetails(): HomeserverLoginDetails = withContext(Dispatchers.IO) {
-        val details = withClient { it.homeserverLoginDetails() }
-        HomeserverLoginDetails(
-            supportsOauth = details.supportsOauth,
-            supportsSso = details.supportsSso,
-            supportsPassword = details.supportsPassword,
-        )
-    }
+         val details = withClient { it.homeserverLoginDetails() }
+         HomeserverLoginDetails(
+             supportsOauth = details.supportsOauth,
+             supportsSso = details.supportsSso,
+             supportsPassword = details.supportsPassword,
+         )
+     }
 
     override suspend fun searchUsers(term: String, limit: Int): List<DirectoryUser> =
         withContext(Dispatchers.IO) {
@@ -961,8 +961,8 @@ class RustMatrixPort : MatrixPort {
         runCatching { withClient { it.acceptInvite(roomId) } }.getOrDefault(false)
     }
 
-    override suspend fun leaveRoom(roomId: String): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.leaveRoom(roomId) } }.isSuccess
+    override suspend fun leaveRoom(roomId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.leaveRoom(roomId) } }
     }
 
     override suspend fun createRoom(
@@ -973,14 +973,14 @@ class RustMatrixPort : MatrixPort {
             .getOrNull()
     }
 
-    override suspend fun setRoomName(roomId: String, name: String): Boolean =
+    override suspend fun setRoomName(roomId: String, name: String): Result<Unit> =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.setRoomName(roomId, name) } }.getOrDefault(false)
+            runCatching { withClient { it.setRoomName(roomId, name) } }.map { }
         }
 
-    override suspend fun setRoomTopic(roomId: String, topic: String): Boolean =
+    override suspend fun setRoomTopic(roomId: String, topic: String): Result<Unit> =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.setRoomTopic(roomId, topic) } }.getOrDefault(false)
+            runCatching { withClient { it.setRoomTopic(roomId, topic) } }.map { }
         }
 
     override suspend fun roomProfile(roomId: String): RoomProfile? = withContext(Dispatchers.IO) {
@@ -1167,19 +1167,19 @@ class RustMatrixPort : MatrixPort {
         }
     }
 
-    override suspend fun setRoomFavourite(roomId: String, favourite: Boolean): Boolean =
+    override suspend fun setRoomFavourite(roomId: String, favourite: Boolean): Result<Unit> =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.setRoomFavourite(roomId, favourite) } }.getOrDefault(false)
+            runCatching { withClient { it.setRoomFavourite(roomId, favourite) } }.map { }
         }
 
-    override suspend fun setRoomLowPriority(roomId: String, lowPriority: Boolean): Boolean =
+    override suspend fun setRoomLowPriority(roomId: String, lowPriority: Boolean): Result<Unit> =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.setRoomLowPriority(roomId, lowPriority) } }.getOrDefault(false)
+            runCatching { withClient { it.setRoomLowPriority(roomId, lowPriority) } }.map { }
         }
 
-    override suspend fun setPresence(presence: Presence, status: String?): Boolean =
+    override suspend fun setPresence(presence: Presence, status: String?): Result<Unit> =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.setPresence(presence.toFfi(), status) } }.isSuccess
+            runCatching { withClient { it.setPresence(presence.toFfi(), status) } }.map { }
         }
 
     override suspend fun getPresence(userId: String): Pair<Presence, String?>? =
@@ -1189,12 +1189,12 @@ class RustMatrixPort : MatrixPort {
             info.presence.toKotlin() to info.statusMsg
         }
 
-    override suspend fun ignoreUser(userId: String): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.ignoreUser(userId) } }.isSuccess
+    override suspend fun ignoreUser(userId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.ignoreUser(userId) } }
     }
 
-    override suspend fun unignoreUser(userId: String): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.unignoreUser(userId) } }.isSuccess
+    override suspend fun unignoreUser(userId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.unignoreUser(userId) } }
     }
 
     override suspend fun ignoredUsers(): List<String> = withContext(Dispatchers.IO) {
@@ -1209,8 +1209,8 @@ class RustMatrixPort : MatrixPort {
     override suspend fun setRoomDirectoryVisibility(
         roomId: String,
         visibility: RoomDirectoryVisibility
-    ): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.setRoomDirectoryVisibility(roomId, visibility.toFfi()) } }.isSuccess
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.setRoomDirectoryVisibility(roomId, visibility.toFfi()) } }
     }
 
     override suspend fun publishRoomAlias(roomId: String, alias: String): Boolean = withContext(Dispatchers.IO) {
@@ -1221,9 +1221,9 @@ class RustMatrixPort : MatrixPort {
         runCatching { withClient { it.unpublishRoomAlias(roomId, alias) } }.getOrDefault(false)
     }
 
-    override suspend fun setRoomCanonicalAlias(roomId: String, alias: String?, altAliases: List<String>): Boolean =
+    override suspend fun setRoomCanonicalAlias(roomId: String, alias: String?, altAliases: List<String>): Result<Unit> =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.setRoomCanonicalAlias(roomId, alias, altAliases) } }.isSuccess
+            runCatching { withClient { it.setRoomCanonicalAlias(roomId, alias, altAliases) } }
         }
 
     override suspend fun roomAliases(roomId: String): List<String> = withContext(Dispatchers.IO) {
@@ -1234,16 +1234,16 @@ class RustMatrixPort : MatrixPort {
         runCatching { withClient { it.roomJoinRule(roomId) } }.getOrNull()?.toKotlin()
     }
 
-    override suspend fun setRoomJoinRule(roomId: String, rule: RoomJoinRule): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.setRoomJoinRule(roomId, rule.toFfi()) } }.isSuccess
+    override suspend fun setRoomJoinRule(roomId: String, rule: RoomJoinRule): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.setRoomJoinRule(roomId, rule.toFfi()) } }
     }
 
     override suspend fun roomHistoryVisibility(roomId: String): RoomHistoryVisibility? = withContext(Dispatchers.IO) {
         runCatching { withClient { it.roomHistoryVisibility(roomId) } }.getOrNull()?.toKotlin()
     }
 
-    override suspend fun setRoomHistoryVisibility(roomId: String, visibility: RoomHistoryVisibility): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.setRoomHistoryVisibility(roomId, visibility.toFfi()) } }.isSuccess
+    override suspend fun setRoomHistoryVisibility(roomId: String, visibility: RoomHistoryVisibility): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.setRoomHistoryVisibility(roomId, visibility.toFfi()) } }
     }
 
     override suspend fun roomPowerLevels(roomId: String): RoomPowerLevels? = withContext(Dispatchers.IO) {
@@ -1282,11 +1282,11 @@ class RustMatrixPort : MatrixPort {
         runCatching { withClient { it.canUserRedactOther(roomId, userId) } }.getOrDefault(false)
     }
 
-    override suspend fun updatePowerLevelForUser(roomId: String, userId: String, powerLevel: Long): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.updatePowerLevelForUser(roomId, userId, powerLevel) } }.isSuccess
+    override suspend fun updatePowerLevelForUser(roomId: String, userId: String, powerLevel: Long): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.updatePowerLevelForUser(roomId, userId, powerLevel) } }
     }
 
-    override suspend fun applyPowerLevelChanges(roomId: String, changes: RoomPowerLevelChanges): Boolean = withContext(Dispatchers.IO) {
+    override suspend fun applyPowerLevelChanges(roomId: String, changes: RoomPowerLevelChanges): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             withClient {
                 it.applyPowerLevelChanges(
@@ -1306,35 +1306,35 @@ class RustMatrixPort : MatrixPort {
                     )
                 )
             }
-        }.isSuccess
+        }
     }
 
-    override suspend fun reportRoom(roomId: String, reason: String?): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.reportRoom(roomId, reason) } }.isSuccess
+    override suspend fun reportRoom(roomId: String, reason: String?): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.reportRoom(roomId, reason) } }
     }
 
-    override suspend fun banUser(roomId: String, userId: String, reason: String?): Boolean =
+    override suspend fun banUser(roomId: String, userId: String, reason: String?): Result<Unit> =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.banUser(roomId, userId, reason) } }.getOrDefault(false)
+            runCatching { withClient { it.banUser(roomId, userId, reason) } }.map { }
         }
 
-    override suspend fun unbanUser(roomId: String, userId: String, reason: String?): Boolean =
+    override suspend fun unbanUser(roomId: String, userId: String, reason: String?): Result<Unit> =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.unbanUser(roomId, userId, reason) } }.getOrDefault(false)
+            runCatching { withClient { it.unbanUser(roomId, userId, reason) } }.map { }
         }
 
-    override suspend fun kickUser(roomId: String, userId: String, reason: String?): Boolean =
+    override suspend fun kickUser(roomId: String, userId: String, reason: String?): Result<Unit> =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.kickUser(roomId, userId, reason) } }.getOrDefault(false)
+            runCatching { withClient { it.kickUser(roomId, userId, reason) } }.map { }
         }
 
-    override suspend fun inviteUser(roomId: String, userId: String): Boolean =
+    override suspend fun inviteUser(roomId: String, userId: String): Result<Unit> =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.inviteUser(roomId, userId) } }.getOrDefault(false)
+            runCatching { withClient { it.inviteUser(roomId, userId) } }.map { }
         }
 
-    override suspend fun enableRoomEncryption(roomId: String): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.enableRoomEncryption(roomId) } }.getOrDefault(false)
+    override suspend fun enableRoomEncryption(roomId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching { withClient { it.enableRoomEncryption(roomId) } }.map { }
     }
 
     override suspend fun roomSuccessor(roomId: String): RoomUpgradeInfo? = withContext(Dispatchers.IO) {

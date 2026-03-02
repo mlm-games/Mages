@@ -83,8 +83,8 @@ class RoomInfoViewModel(
     fun setNotificationMode(mode: RoomNotificationMode) {
         launch {
             updateState { copy(isLoadingNotificationMode = true) }
-            val ok = service.port.setRoomNotificationMode(roomId, mode)
-            if (ok) {
+            val result = runSafe { service.port.setRoomNotificationMode(roomId, mode) }
+            if (result?.isSuccess == true) {
                 updateState {
                     copy(
                         notificationMode = mode,
@@ -95,7 +95,7 @@ class RoomInfoViewModel(
                 _events.send(Event.ShowSuccess("Notification settings updated"))
             } else {
                 updateState { copy(isLoadingNotificationMode = false) }
-                _events.send(Event.ShowError("Failed to update notifications"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to update notifications")))
             }
         }
     }
@@ -217,14 +217,14 @@ class RoomInfoViewModel(
 
         launch {
             updateState { copy(isSaving = true) }
-            val success = runSafe { service.port.setRoomName(roomId, name) } ?: false
+            val result = runSafe { service.port.setRoomName(roomId, name) }
             updateState { copy(isSaving = false) }
 
-            if (success) {
+            if (result?.isSuccess == true) {
                 refresh()
                 _events.send(Event.ShowSuccess("Room name updated"))
             } else {
-                _events.send(Event.ShowError("Failed to update name"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to update name")))
             }
         }
     }
@@ -238,14 +238,14 @@ class RoomInfoViewModel(
         launch {
             val topic = currentState.editedTopic.trim()
             updateState { copy(isSaving = true) }
-            val success = runSafe { service.port.setRoomTopic(roomId, topic) } ?: false
+            val result = runSafe { service.port.setRoomTopic(roomId, topic) }
             updateState { copy(isSaving = false) }
 
-            if (success) {
+            if (result?.isSuccess == true) {
                 refresh()
                 _events.send(Event.ShowSuccess("Topic updated"))
             } else {
-                _events.send(Event.ShowError("Failed to update topic"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to update topic")))
             }
         }
     }
@@ -254,10 +254,10 @@ class RoomInfoViewModel(
         launch {
             val current = currentState.isFavourite
             updateState { copy(isSaving = true) }
-            val success = runSafe { service.port.setRoomFavourite(roomId, !current) } ?: false
+            val result = runSafe { service.port.setRoomFavourite(roomId, !current) }
             updateState { copy(isSaving = false) }
 
-            if (success) {
+            if (result?.isSuccess == true) {
                 updateState { copy(isFavourite = !current) }
                 if (!current && currentState.isLowPriority) {
                     runSafe { service.port.setRoomLowPriority(roomId, false) }
@@ -265,7 +265,7 @@ class RoomInfoViewModel(
                 }
                 _events.send(Event.ShowSuccess(if (!current) "Added to favourites" else "Removed from favourites"))
             } else {
-                _events.send(Event.ShowError("Failed to update favourite"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to update favourite")))
             }
         }
     }
@@ -274,10 +274,10 @@ class RoomInfoViewModel(
         launch {
             val current = currentState.isLowPriority
             updateState { copy(isSaving = true) }
-            val success = runSafe { service.port.setRoomLowPriority(roomId, !current) } ?: false
+            val result = runSafe { service.port.setRoomLowPriority(roomId, !current) }
             updateState { copy(isSaving = false) }
 
-            if (success) {
+            if (result?.isSuccess == true) {
                 updateState { copy(isLowPriority = !current) }
                 if (!current && currentState.isFavourite) {
                     runSafe { service.port.setRoomFavourite(roomId, false) }
@@ -285,7 +285,7 @@ class RoomInfoViewModel(
                 }
                 _events.send(Event.ShowSuccess(if (!current) "Marked as low priority" else "Removed from low priority"))
             } else {
-                _events.send(Event.ShowError("Failed to update priority"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to update priority")))
             }
         }
     }
@@ -298,13 +298,13 @@ class RoomInfoViewModel(
 
         launch {
             updateState { copy(isAdminBusy = true) }
-            val ok = runSafe { service.port.setRoomDirectoryVisibility(roomId, v) } ?: false
+            val result = runSafe { service.port.setRoomDirectoryVisibility(roomId, v) }
             updateState { copy(isAdminBusy = false) }
-            if (ok) {
+            if (result?.isSuccess == true) {
                 refresh()
                 _events.send(Event.ShowSuccess("Visibility updated"))
             } else {
-                _events.send(Event.ShowError("Failed to update visibility"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to update visibility")))
             }
         }
     }
@@ -317,13 +317,13 @@ class RoomInfoViewModel(
 
         launch {
             updateState { copy(isAdminBusy = true) }
-            val ok = runSafe { service.port.enableRoomEncryption(roomId) } ?: false
+            val result = runSafe { service.port.enableRoomEncryption(roomId) }
             updateState { copy(isAdminBusy = false) }
-            if (ok) {
+            if (result?.isSuccess == true) {
                 refresh()
                 _events.send(Event.ShowSuccess("Encryption enabled"))
             } else {
-                _events.send(Event.ShowError("Failed to enable encryption"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to enable encryption")))
             }
         }
     }
@@ -336,13 +336,13 @@ class RoomInfoViewModel(
 
         launch {
             updateState { copy(isAdminBusy = true) }
-            val ok = runSafe { service.port.setRoomJoinRule(roomId, rule) } ?: false
+            val result = runSafe { service.port.setRoomJoinRule(roomId, rule) }
             updateState { copy(isAdminBusy = false) }
-            if (ok) {
+            if (result?.isSuccess == true) {
                 refresh()
                 _events.send(Event.ShowSuccess("Join rule updated"))
             } else {
-                _events.send(Event.ShowError("Failed to update join rule"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to update join rule")))
             }
         }
     }
@@ -355,13 +355,13 @@ class RoomInfoViewModel(
 
         launch {
             updateState { copy(isAdminBusy = true) }
-            val ok = runSafe { service.port.setRoomHistoryVisibility(roomId, visibility) } ?: false
+            val result = runSafe { service.port.setRoomHistoryVisibility(roomId, visibility) }
             updateState { copy(isAdminBusy = false) }
-            if (ok) {
+            if (result?.isSuccess == true) {
                 refresh()
                 _events.send(Event.ShowSuccess("History visibility updated"))
             } else {
-                _events.send(Event.ShowError("Failed to update history visibility"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to update history visibility")))
             }
         }
     }
@@ -374,13 +374,13 @@ class RoomInfoViewModel(
 
         launch {
             updateState { copy(isAdminBusy = true) }
-            val ok = runSafe { service.port.setRoomCanonicalAlias(roomId, alias, altAliases) } ?: false
+            val result = runSafe { service.port.setRoomCanonicalAlias(roomId, alias, altAliases) }
             updateState { copy(isAdminBusy = false) }
-            if (ok) {
+            if (result?.isSuccess == true) {
                 refresh()
                 _events.send(Event.ShowSuccess("Room aliases updated"))
             } else {
-                _events.send(Event.ShowError("Failed to update room aliases"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to update room aliases")))
             }
         }
     }
@@ -393,13 +393,13 @@ class RoomInfoViewModel(
 
         launch {
             updateState { copy(isAdminBusy = true) }
-            val ok = runSafe { service.port.updatePowerLevelForUser(roomId, userId, powerLevel) } ?: false
+            val result = runSafe { service.port.updatePowerLevelForUser(roomId, userId, powerLevel) }
             updateState { copy(isAdminBusy = false) }
-            if (ok) {
+            if (result?.isSuccess == true) {
                 refresh()
                 _events.send(Event.ShowSuccess("Power level updated"))
             } else {
-                _events.send(Event.ShowError("Failed to update power level"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to update power level")))
             }
         }
     }
@@ -412,46 +412,46 @@ class RoomInfoViewModel(
 
         launch {
             updateState { copy(isAdminBusy = true) }
-            val ok = runSafe { service.port.applyPowerLevelChanges(roomId, changes) } ?: false
+            val result = runSafe { service.port.applyPowerLevelChanges(roomId, changes) }
             updateState { copy(isAdminBusy = false) }
-            if (ok) {
+            if (result?.isSuccess == true) {
                 refresh()
                 _events.send(Event.ShowSuccess("Permissions updated"))
             } else {
-                _events.send(Event.ShowError("Failed to update permissions"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to update permissions")))
             }
         }
     }
 
     fun reportContent(eventId: String, score: Int?, reason: String?) {
         launch {
-            val ok = runSafe { service.port.reportContent(roomId, eventId, score, reason) } ?: false
-            if (ok) {
+            val result = runSafe { service.port.reportContent(roomId, eventId, score, reason) }
+            if (result?.isSuccess == true) {
                 _events.send(Event.ShowSuccess("Content reported"))
             } else {
-                _events.send(Event.ShowError("Failed to report content"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to report content")))
             }
         }
     }
 
     fun reportRoom(reason: String?) {
         launch {
-            val ok = runSafe { service.port.reportRoom(roomId, reason) } ?: false
-            if (ok) {
+            val result = runSafe { service.port.reportRoom(roomId, reason) }
+            if (result?.isSuccess == true) {
                 _events.send(Event.ShowSuccess("Room reported"))
             } else {
-                _events.send(Event.ShowError("Failed to report room"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to report room")))
             }
         }
     }
 
     fun leave() {
         launch {
-            val ok = runSafe { service.port.leaveRoom(roomId) } ?: false
-            if (ok) {
+            val result = runSafe { service.port.leaveRoom(roomId) }
+            if (result?.isSuccess == true) {
                 _events.send(Event.LeaveSuccess)
             } else {
-                _events.send(Event.ShowError("Failed to leave room"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to leave room")))
             }
         }
     }
@@ -481,51 +481,51 @@ class RoomInfoViewModel(
 
     fun kickUser(userId: String, reason: String? = null) {
         launch {
-            val ok = runSafe { service.port.kickUser(roomId, userId, reason) } ?: false
-            if (ok) {
+            val result = runSafe { service.port.kickUser(roomId, userId, reason) }
+            if (result?.isSuccess == true) {
                 updateState { copy(selectedMemberForAction = null) }
                 refresh()
                 _events.send(Event.ShowSuccess("User removed from room"))
             } else {
-                _events.send(Event.ShowError("Failed to remove user"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to remove user")))
             }
         }
     }
 
     fun banUser(userId: String, reason: String? = null) {
         launch {
-            val ok = runSafe { service.port.banUser(roomId, userId, reason) } ?: false
-            if (ok) {
+            val result = runSafe { service.port.banUser(roomId, userId, reason) }
+            if (result?.isSuccess == true) {
                 updateState { copy(selectedMemberForAction = null) }
                 refresh()
                 _events.send(Event.ShowSuccess("User banned"))
             } else {
-                _events.send(Event.ShowError("Failed to ban user"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to ban user")))
             }
         }
     }
 
     fun unbanUser(userId: String, reason: String? = null) {
         launch {
-            val ok = runSafe { service.port.unbanUser(roomId, userId, reason) } ?: false
-            if (ok) {
+            val result = runSafe { service.port.unbanUser(roomId, userId, reason) }
+            if (result?.isSuccess == true) {
                 updateState { copy(selectedMemberForAction = null) }
                 refresh()
                 _events.send(Event.ShowSuccess("User unbanned"))
             } else {
-                _events.send(Event.ShowError("Failed to unban user"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to unban user")))
             }
         }
     }
 
     fun ignoreUser(userId: String) {
         launch {
-            val ok = runSafe { service.port.ignoreUser(userId) } ?: false
-            if (ok) {
+            val result = runSafe { service.port.ignoreUser(userId) }
+            if (result?.isSuccess == true) {
                 updateState { copy(selectedMemberForAction = null) }
                 _events.send(Event.ShowSuccess("User ignored"))
             } else {
-                _events.send(Event.ShowError("Failed to ignore user"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to ignore user")))
             }
         }
     }
@@ -545,13 +545,13 @@ class RoomInfoViewModel(
 
     fun inviteUser(userId: String) {
         launch {
-            val ok = runSafe { service.port.inviteUser(roomId, userId) } ?: false
-            if (ok) {
+            val result = runSafe { service.port.inviteUser(roomId, userId) }
+            if (result?.isSuccess == true) {
                 updateState { copy(showInviteDialog = false) }
                 refresh()
                 _events.send(Event.ShowSuccess("Invitation sent"))
             } else {
-                _events.send(Event.ShowError("Failed to send invitation"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to send invitation")))
             }
         }
     }

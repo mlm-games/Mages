@@ -106,10 +106,10 @@ class SecurityViewModel(
         launch {
             updateState { copy(isTogglingKeyStorage = true, error = null) }
             val target = !currentEnabled
-            val ok = runCatching { port.setKeyBackupEnabled(target) }.getOrDefault(false)
+            val result = runCatching { port.setKeyBackupEnabled(target) }
             updateState { copy(isTogglingKeyStorage = false) }
-            if (!ok) {
-                _events.send(Event.ShowError("Failed to update key storage"))
+            if (result.isFailure || result.getOrNull() != true) {
+                _events.send(Event.ShowError(result.exceptionOrNull()?.message ?: "Failed to update key storage"))
             } else {
                 refreshKeyStorageState(forceFetch = true)
             }
@@ -237,12 +237,12 @@ class SecurityViewModel(
     fun unignoreUser(userId: String) {
         launch {
             val port = service.portOrNull ?: return@launch
-            val ok = port.unignoreUser(userId)
-            if (ok) {
+            val result = port.unignoreUser(userId)
+            if (result?.isSuccess == true) {
                 refreshIgnored()
                 _events.send(Event.ShowSuccess("User unignored"))
             } else {
-                _events.send(Event.ShowError("Failed to unignore user"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to unignore user")))
             }
         }
     }
@@ -278,15 +278,15 @@ class SecurityViewModel(
             val port = service.portOrNull ?: return@launch
             updateState { copy(presence = presence.copy(isSaving = true)) }
 
-            val ok = port.setPresence(
+            val result = port.setPresence(
                 currentState.presence.currentPresence,
                 currentState.presence.statusMessage.ifBlank { null }
             )
 
             updateState { copy(presence = presence.copy(isSaving = false)) }
 
-            if (ok) _events.send(Event.ShowSuccess("Status updated"))
-            else _events.send(Event.ShowError("Failed to update status"))
+            if (result?.isSuccess == true) _events.send(Event.ShowSuccess("Status updated"))
+            else _events.send(Event.ShowError(result.toUserMessage("Failed to update status")))
         }
     }
 

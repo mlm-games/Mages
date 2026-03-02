@@ -432,15 +432,15 @@ class RoomViewModel(
     fun reportContent(event: MessageEvent, reason: String, blockUser: Boolean = false) {
         if (event.eventId.isBlank()) return
         launch {
-            val ok = runSafe { service.port.reportContent(currentState.roomId, event.eventId, null, reason) } ?: false
-            if (ok) {
+            val result = runSafe { service.port.reportContent(currentState.roomId, event.eventId, null, reason) }
+            if (result?.isSuccess == true) {
                 if (blockUser) {
                     runSafe { service.port.ignoreUser(event.sender) }
                 }
                 _events.send(Event.ShowError("Report submitted"))
                 hideReportDialog()
             } else {
-                _events.send(Event.ShowError("Failed to submit report"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to submit report")))
             }
         }
     }
@@ -799,12 +799,12 @@ class RoomViewModel(
 
     fun setNotificationMode(mode: RoomNotificationMode) {
         launch {
-            val ok = service.port.setRoomNotificationMode(currentState.roomId, mode)
-            if (ok) {
+            val result = service.port.setRoomNotificationMode(currentState.roomId, mode)
+            if (result?.isSuccess == true) {
                 updateState { copy(notificationMode = mode, showNotificationSettings = false) }
                 _events.send(Event.ShowSuccess("Notification settings updated"))
             } else {
-                _events.send(Event.ShowError("Failed to update notifications"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to update notifications")))
             }
         }
     }
