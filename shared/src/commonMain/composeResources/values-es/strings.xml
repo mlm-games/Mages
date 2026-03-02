@@ -89,6 +89,7 @@
     <string name="search_users_or_rooms">Buscar usuarios o salas públicas</string>
     <string name="search_placeholder">p.ej., #linux:matrix.org o @usuario:servidor.com</string>
     <string name="users">Usuarios</string>
+    <string name="public_rooms">Salas públicas</string>
     <string name="public_rooms_on">Salas públicas en %1$s</string>
     <string name="found">%1$d encontrados</string>
     <string name="load_more_rooms">Cargar más salas</string>
@@ -123,6 +124,7 @@
     <string name="storage">Almacenamiento</string>
     <string name="advanced">Avanzado</string>
     <string name="verify_user">Verificar usuario</string>
+    <string name="verify_another_user">Verificar Otro usuario</string>
     <string name="user_id">ID de usuario</string>
     <string name="user_id_placeholder">@usuario:servidor.com</string>
     <string name="verify">Verificar</string>
@@ -134,6 +136,12 @@
     <string name="no_ignored_users">Sin usuarios ignorados</string>
     <string name="ignored_users_subtitle">Los usuarios que ignores no podrán enviarte mensajes</string>
     <string name="unignore">Dejar de ignorar</string>
+    <string name="set_up_recovery">Configurar recuperación</string>
+    <string name="change_recovery_key">Cambiar clave de recuperación</string>
+    <string name="recovery_key">Clave de recuperación</string>
+    <string name="save_recovery_key_warning">Guarda esta clave en un lugar seguro. La necesitarás para restaurar tus mensajes cifrados si pierdes acceso a tus dispositivos.</string>
+    <string name="copy">Copiar</string>
+    <string name="copied">Copiado</string>
 
     <string name="jump_to_bottom">Ir al final</string>
     <string name="scroll_to_bottom">Desplazarse hacia abajo</string>
@@ -234,4 +242,29 @@
 
     <string name="media_files">Archivos y medios</string>
     <string name="download">Descargar</string>
+
+    <string name="recovery_key_prompt_title">Descifrar historial de mensajes</string>
+    <string name="recovery_key_prompt_body">Ingresa tu clave de recuperación para restaurar el acceso a tus mensajes cifrados de otros dispositivos.</string>
+    <string name="enter_recovery_key">Ingresa la clave de recuperación</string>
+    <string name="recovery_key_hint">Pega tu clave de recuperación aquí</string>
+    <string name="recover">Recuperar</string>
+    <string name="recovery_success">Historial de mensajes recuperado</string>
+
+    <string name="setup_recovery_title">Configurar recuperación</string>
+    <string name="change_recovery_key_title">Cambiar clave de recuperación</string>
+    <string name="recovery_key_created">Clave de recuperación creada</string>
+    <string name="recovery_key_instructions">Tu clave de recuperación te permite recuperar el acceso a tus mensajes cifrados si pierdes todos tus dispositivos conectados.</string>
+    <string name="change_recovery_key_instructions">Se creará una nueva clave de recuperación. Tu clave anterior ya no funcionará.</string>
+    <string name="i_have_saved_my_key">He guardado mi clave</string>
+    <string name="recovery_incomplete_subtitle">Ingresa tu clave de recuperación para completar la configuración y restaurar tu historial de mensajes.</string>
+    <string name="recovery_disabled_subtitle">Configura una clave de recuperación para restaurar mensajes cifrados en nuevos dispositivos.</string>
+    <string name="recovery_enabled_subtitle">Tus mensajes cifrados están respaldados.</string>
+    <string name="encryption">Cifrado</string>
+    <string name="key_storage">Almacenamiento de claves</string>
+    <string name="key_storage_subtitle">Almacenando tus claves de forma segura en el servidor. Puedes desactivarlo, pero no podrás recuperarlas.</string>
+    <string name="incomplete_badge">Confirmar</string>
+    <string name="key_storage_disabled_error">El almacenamiento de claves está desactivado. Actívalo para configurar o cambiar tu clave de recuperación.</string>
+    <string name="generate_recovery_key">Generar clave de recuperación</string>
+    <string name="generate_new_recovery_key">Generar nueva clave de recuperación</string>
+    <string name="create_new_recovery_key">Crear una nueva clave de recuperación</string>
 </resources>

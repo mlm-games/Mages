@@ -1,6 +1,6 @@
 package org.mlm.mages.ui.screens
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,9 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,7 +31,8 @@ import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.Presence
 import org.mlm.mages.settings.*
 import org.mlm.mages.ui.components.core.EmptyState
-import org.mlm.mages.ui.components.dialogs.RecoveryDialog
+import org.mlm.mages.ui.components.sheets.EnterRecoveryKeySheet
+import org.mlm.mages.ui.components.sheets.SetupRecoverySheet
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.snackbar.snackbarHost
 import org.mlm.mages.ui.theme.Spacing
@@ -43,6 +42,12 @@ import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.*
 import kotlin.reflect.KClass
 
+private sealed interface SecuritySheet {
+    data class SetupRecovery(val isChange: Boolean) : SecuritySheet
+    data object EnterRecoveryKey : SecuritySheet
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SecurityScreen(
     viewModel: SecurityViewModel,
@@ -54,18 +59,41 @@ fun SecurityScreen(
     val snackbarManager: SnackbarManager = koinInject()
     val settingsSnackbarHostState = remember { SnackbarHostState() }
     val uriHandler = LocalUriHandler.current
+
     var verifyUserId by remember { mutableStateOf("") }
     var showVerifyUserDialog by remember { mutableStateOf(false) }
+    var activeSheet by remember { mutableStateOf<SecuritySheet?>(null) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val isCurrentDeviceVerified = remember(state.devices) {
+        state.devices.firstOrNull { it.isOwn }?.verified == true
+    }
 
     LaunchedEffect(state.error) {
         state.error?.let { snackbarManager.showError(it) }
+    }
+
+    LaunchedEffect(state.recoverySubmitSuccess) {
+        if (state.recoverySubmitSuccess) {
+            activeSheet = null
+            viewModel.clearRecoverySubmitSuccess()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadSecurityData()
     }
 
     Scaffold(
         topBar = {
             Column {
                 TopAppBar(
-                    title = { Text(stringResource(Res.string.security_settings), fontWeight = FontWeight.SemiBold) },
+                    title = {
+                        Text(
+                            stringResource(Res.string.security_settings),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    },
                     navigationIcon = {
                         IconButton(onClick = { backStack.popBack() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
@@ -73,10 +101,7 @@ fun SecurityScreen(
                     },
                     actions = {
                         IconButton(onClick = onOpenAccountSwitcher) {
-                            Icon(
-                                Icons.Default.SwitchAccount,
-                                stringResource(Res.string.account),
-                            )
+                            Icon(Icons.Default.SwitchAccount, stringResource(Res.string.account))
                         }
                     }
                 )
@@ -85,7 +110,18 @@ fun SecurityScreen(
                     Tab(
                         selected = state.selectedTab == 0,
                         onClick = { viewModel.setSelectedTab(0) },
-                        text = { Text(stringResource(Res.string.devices)) },
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(stringResource(Res.string.devices))
+//                                if (state.recoveryState == MatrixPort.RecoveryState.Incomplete) {
+//                                    Spacer(Modifier.width(2.dp))
+//                                    Badge { Text("!") }
+//                                }
+                            }
+                        },
                         icon = { Icon(Icons.Default.Devices, null) }
                     )
                     Tab(
@@ -116,13 +152,17 @@ fun SecurityScreen(
                     isLoading = state.isLoadingDevices,
                     accountManagementUrl = state.accountManagementUrl,
                     recoveryState = state.recoveryState,
-                    isEnablingRecovery = state.isEnablingRecovery,
-                    recoveryProgress = state.recoveryProgress,
+                    backupState = state.backupState,
+                    isKeyStorageEnabled = state.isKeyStorageEnabled,
+                    isTogglingKeyStorage = state.isTogglingKeyStorage,
+                    isCurrentDeviceVerified = isCurrentDeviceVerified,
                     onRefresh = viewModel::refreshDevices,
                     onVerifyDevice = viewModel::startSelfVerify,
                     onVerifyUser = { showVerifyUserDialog = true },
-                    onEnableRecovery = viewModel::setupRecovery,
-                    onOpenRecovery = viewModel::openRecoveryDialog,
+                    onSetupRecovery = { activeSheet = SecuritySheet.SetupRecovery(isChange = false) },
+                    onChangeRecovery = { activeSheet = SecuritySheet.SetupRecovery(isChange = true) },
+                    onEnterRecoveryKey = { activeSheet = SecuritySheet.EnterRecoveryKey },
+                    onToggleKeyStorage = viewModel::toggleKeyStorage,
                     onOpenAccountManagement = { url -> uriHandler.openUri(url) }
                 )
                 1 -> PrivacyTab(
@@ -146,26 +186,33 @@ fun SecurityScreen(
         }
     }
 
-    // Recovery Key Dialog
-    if (state.showRecoveryDialog) {
-        RecoveryDialog(
-            keyValue = state.recoveryKeyInput,
-            onChange = viewModel::setRecoveryKey,
-            onCancel = viewModel::closeRecoveryDialog,
-            onConfirm = viewModel::submitRecoveryKey
-        )
+    activeSheet?.let { sheet ->
+        ModalBottomSheet(
+            onDismissRequest = {
+                activeSheet = null
+                viewModel.dismissRecoveryKey()
+            },
+            sheetState = sheetState,
+        ) {
+            when (sheet) {
+                is SecuritySheet.SetupRecovery -> SetupRecoverySheet(
+                    viewModel = viewModel,
+                    isChange = sheet.isChange,
+                    onDone = {
+                        viewModel.dismissRecoveryKey()
+                        activeSheet = null
+                    }
+                )
+                SecuritySheet.EnterRecoveryKey -> EnterRecoveryKeySheet(
+                    viewModel = viewModel,
+                    onResetRecovery = {
+                        activeSheet = SecuritySheet.SetupRecovery(isChange = true)
+                    }
+                )
+            }
+        }
     }
 
-    // Generated Recovery Key Dialog
-    val generatedKey = state.generatedRecoveryKey
-    if (generatedKey != null) {
-        RecoveryKeyDialog(
-            recoveryKey = generatedKey,
-            onDismiss = viewModel::dismissRecoveryKey
-        )
-    }
-
-    // Verify User Dialog
     if (showVerifyUserDialog) {
         AlertDialog(
             onDismissRequest = { showVerifyUserDialog = false },
@@ -205,135 +252,174 @@ fun SecurityScreen(
 }
 
 @Composable
-private fun RecoveryKeyDialog(
-    recoveryKey: String,
-    onDismiss: () -> Unit
-) {
-    val clipboardManager = LocalClipboardManager.current
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Default.Key, null, tint = MaterialTheme.colorScheme.primary) },
-        title = { Text(stringResource(Res.string.recovery_key)) },
-        text = {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = stringResource(Res.string.save_recovery_key_warning),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(bottom = Spacing.md)
-                )
-
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    shape = MaterialTheme.shapes.medium,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = recoveryKey.chunked(4).joinToString(" "),
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(Spacing.md)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(Spacing.md))
-
-                Button(
-                    onClick = {
-                        clipboardManager.setText(AnnotatedString(recoveryKey))
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.ContentCopy, null)
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text(stringResource(Res.string.copy))
-                }
-            }
-        },
-        confirmButton = {
-            Button(onClick = onDismiss) {
-                Text(stringResource(Res.string.done))
-            }
-        }
-    )
-}
-
-@Composable
 private fun DevicesTab(
     devices: List<DeviceSummary>,
     isLoading: Boolean,
     accountManagementUrl: String?,
     recoveryState: MatrixPort.RecoveryState,
-    isEnablingRecovery: Boolean,
-    recoveryProgress: String?,
+    backupState: MatrixPort.BackupState,
+    isKeyStorageEnabled: Boolean?,
+    isTogglingKeyStorage: Boolean,
+    isCurrentDeviceVerified: Boolean,
     onRefresh: () -> Unit,
     onVerifyDevice: (String) -> Unit,
     onVerifyUser: () -> Unit,
-    onEnableRecovery: () -> Unit,
-    onOpenRecovery: () -> Unit,
+    onSetupRecovery: () -> Unit,
+    onChangeRecovery: () -> Unit,
+    onEnterRecoveryKey: () -> Unit,
+    onToggleKeyStorage: () -> Unit,
     onOpenAccountManagement: (String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        contentPadding = PaddingValues(bottom = Spacing.lg)
     ) {
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-            ) {
-                ActionCard(
-                    icon = if (isEnablingRecovery) Icons.Default.HourglassEmpty else Icons.Default.Key,
-                    title = recoveryProgress
-                        ?: if (recoveryState == MatrixPort.RecoveryState.Enabled) stringResource(Res.string.recovery)
-                        else stringResource(Res.string.set_up_recovery),
-                    onClick = { 
-                        if (recoveryState == MatrixPort.RecoveryState.Enabled) onOpenRecovery() 
-                        else onEnableRecovery() 
-                    },
-                    enabled = !isEnablingRecovery,
-                    modifier = Modifier.weight(1f)
-                )
-                ActionCard(
-                    icon = Icons.Default.VerifiedUser,
-                    title = stringResource(Res.string.verify_user),
-                    onClick = onVerifyUser,
-                    modifier = Modifier.weight(1f)
-                )
-                if (accountManagementUrl != null) {
-                    ActionCard(
-                        icon = Icons.Default.Person,
-                        title = stringResource(Res.string.manage_account),
-                        onClick = { onOpenAccountManagement(accountManagementUrl) },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
+            Text(
+                stringResource(Res.string.encryption),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .padding(horizontal = Spacing.lg)
+                    .padding(top = Spacing.lg, bottom = Spacing.sm)
+            )
         }
 
         item {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = Spacing.sm),
+                    .padding(horizontal = Spacing.lg),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                val recoveryAction = when (recoveryState) {
+                    MatrixPort.RecoveryState.Enabled -> Triple(
+                        stringResource(Res.string.change_recovery_key),
+                        stringResource(Res.string.recovery_enabled_subtitle),
+                        onChangeRecovery
+                    )
+                    MatrixPort.RecoveryState.Incomplete -> Triple(
+                        stringResource(Res.string.enter_recovery_key),
+                        stringResource(Res.string.recovery_incomplete_subtitle),
+                        onEnterRecoveryKey
+                    )
+                    else -> Triple(
+                        stringResource(Res.string.set_up_recovery),
+                        stringResource(Res.string.recovery_disabled_subtitle),
+                        onSetupRecovery
+                    )
+                }
+
+                ActionCard(
+                    icon = Icons.Default.Key,
+                    title = recoveryAction.first,
+                    subtitle = recoveryAction.second,
+                    badge = if (
+                        recoveryState == MatrixPort.RecoveryState.Incomplete &&
+                        !isCurrentDeviceVerified
+                    ) stringResource(Res.string.incomplete_badge) else null,
+                    enabled = isKeyStorageEnabled == true,
+                    onClick = recoveryAction.third,
+                    modifier = Modifier.weight(1f)
+                )
+
+                ActionCard(
+                    icon = Icons.Default.VerifiedUser,
+                    title = stringResource(Res.string.verify_user),
+                    subtitle = stringResource(Res.string.verify_another_user),
+                    onClick = onVerifyUser,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        item {
+            val isBusy = isTogglingKeyStorage || backupState == MatrixPort.BackupState.Disabling
+            val switchEnabled = !isBusy && isKeyStorageEnabled != null
+            val checked = when {
+                isKeyStorageEnabled == null -> false
+                backupState == MatrixPort.BackupState.Disabling -> false
+                else -> isKeyStorageEnabled
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(top = Spacing.lg))
+
+            ListItem(
+                headlineContent = { Text(stringResource(Res.string.key_storage)) },
+                supportingContent = {
+                    Text(
+                        stringResource(Res.string.key_storage_subtitle),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                },
+                trailingContent = {
+                    when {
+                        isBusy || isKeyStorageEnabled == null ->
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        else ->
+                            Switch(
+                                checked = checked,
+                                onCheckedChange = { onToggleKeyStorage() },
+                                enabled = switchEnabled
+                            )
+                    }
+                },
+                modifier = Modifier.clickable(enabled = switchEnabled) { onToggleKeyStorage() }
+            )
+        }
+
+        if (isKeyStorageEnabled == false) {
+            item {
+                Text(
+                    stringResource(Res.string.key_storage_disabled_error),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.xs)
+                )
+            }
+        }
+
+        if (accountManagementUrl != null) {
+            item {
+                ListItem(
+                    headlineContent = { Text(stringResource(Res.string.manage_account)) },
+                    leadingContent = {
+                        Icon(
+                            Icons.Default.Person,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    modifier = Modifier.clickable { onOpenAccountManagement(accountManagementUrl) }
+                )
+            }
+        }
+
+        item {
+            HorizontalDivider()
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     stringResource(Res.string.your_devices),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
                 )
                 IconButton(onClick = onRefresh, enabled = !isLoading) {
                     if (isLoading) {
-                        LoadingIndicator(
-                            modifier = Modifier.size(20.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp
                         )
                     } else {
                         Icon(Icons.Default.Refresh, stringResource(Res.string.refresh))
@@ -347,13 +433,17 @@ private fun DevicesTab(
                 EmptyState(
                     icon = Icons.Default.DevicesOther,
                     title = stringResource(Res.string.no_devices_found),
-                    subtitle = stringResource(Res.string.try_refreshing)
+                    subtitle = stringResource(Res.string.try_refreshing),
+                    modifier = Modifier.padding(Spacing.lg)
                 )
             }
         }
 
-        items(devices.filter { !it.isOwn }, key = { it.deviceId }) { device ->
-            DeviceCard(device = device, onVerify = { onVerifyDevice(device.deviceId) })
+        items(devices, key = { it.deviceId }) { device ->
+            DeviceCard(
+                device = device,
+                onVerify = { onVerifyDevice(device.deviceId) }
+            )
         }
     }
 }
@@ -362,9 +452,11 @@ private fun DevicesTab(
 private fun ActionCard(
     icon: ImageVector,
     title: String,
-    onClick: () -> Unit,
+    subtitle: String,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true
+    badge: String? = null,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
 ) {
     Card(
         onClick = onClick,
@@ -381,15 +473,43 @@ private fun ActionCard(
             Icon(
                 icon,
                 null,
-                tint = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(32.dp),
+                tint = if (enabled) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurfaceVariant
             )
+
             Spacer(Modifier.height(Spacing.sm))
+
             Text(
                 title,
                 style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
+
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 2
+            )
+
+            if (badge != null) {
+                Spacer(Modifier.height(Spacing.xs))
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(
+                        badge,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
+            }
         }
     }
 }
@@ -400,12 +520,12 @@ private fun DeviceCard(
     onVerify: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg, vertical = 4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (device.verified)
-                MaterialTheme.colorScheme.secondaryContainer
-            else
-                MaterialTheme.colorScheme.surfaceContainer
+            containerColor = if (device.verified) MaterialTheme.colorScheme.secondaryContainer
+            else MaterialTheme.colorScheme.surfaceContainer
         )
     ) {
         Row(
@@ -415,8 +535,7 @@ private fun DeviceCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                if (device.verified) Icons.Default.VerifiedUser
-                else Icons.Default.Smartphone,
+                if (device.verified) Icons.Default.VerifiedUser else Icons.Default.Smartphone,
                 null,
                 tint = if (device.verified) Color(0xFF4CAF50)
                 else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -426,11 +545,29 @@ private fun DeviceCard(
             Spacer(Modifier.width(Spacing.md))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    device.displayName.ifBlank { device.deviceId },
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        device.displayName.ifBlank { device.deviceId },
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                    if (device.isOwn) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Text(
+                                "This device",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
                 Text(
                     device.deviceId,
                     style = MaterialTheme.typography.bodySmall,
@@ -463,7 +600,11 @@ private fun PrivacyTab(
             .fillMaxSize()
             .padding(Spacing.lg)
     ) {
-        Text(stringResource(Res.string.ignored_users), style = MaterialTheme.typography.titleMedium)
+        Text(
+            stringResource(Res.string.ignored_users),
+            style = MaterialTheme.typography.titleMedium
+        )
+
         Spacer(Modifier.height(Spacing.md))
 
         if (ignoredUsers.isEmpty()) {
@@ -510,9 +651,7 @@ private fun SettingsTab(
     onSettingAction: suspend (KClass<out SettingAction>) -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    Column(modifier = Modifier.fillMaxSize()) {
         AutoSettingsScreen(
             schema = schema,
             value = settings,
@@ -555,13 +694,16 @@ private fun PresenceOption(
             shape = CircleShape,
             modifier = Modifier.size(12.dp)
         ) {}
+
         Spacer(Modifier.width(Spacing.md))
+
         Text(
             title,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
             modifier = Modifier.weight(1f)
         )
+
         if (isSelected) {
             Icon(
                 Icons.Default.CheckCircle,

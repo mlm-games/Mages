@@ -305,6 +305,17 @@ pub enum RecoveryState {
     Unknown,
 }
 
+#[derive(Clone, Copy, PartialEq, Enum)]
+pub enum BackupState {
+    Unknown,
+    Creating,
+    Enabling,
+    Resuming,
+    Enabled,
+    Downloading,
+    Disabling,
+}
+
 impl std::str::FromStr for RecoveryState {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -333,6 +344,16 @@ pub trait RecoveryObserver: Send + Sync {
     fn on_progress(&self, step: String);
     fn on_done(&self, recovery_key: String);
     fn on_error(&self, message: String);
+}
+
+#[export(callback_interface)]
+pub trait RecoveryStateObserver: Send + Sync {
+    fn on_update(&self, state: RecoveryState);
+}
+
+#[export(callback_interface)]
+pub trait BackupStateObserver: Send + Sync {
+    fn on_update(&self, state: BackupState);
 }
 
 #[export(callback_interface)]
@@ -901,7 +922,6 @@ struct SessionInfo {
     access_token: String,
     refresh_token: Option<String>,
     homeserver: String,
-    recovery_state: Option<String>,
 }
 
 fn session_file(dir: &PathBuf) -> PathBuf {
@@ -967,7 +987,8 @@ pub struct Client {
     send_queue_supervised: AtomicBool,
     call_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     live_location_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
-    recovery_state_cache: Arc<std::sync::Mutex<Option<RecoveryState>>>,
+    recovery_state_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
+    backup_state_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
 
     pub app_in_foreground: Arc<AtomicBool>,
     widget_handles: Mutex<HashMap<u64, WidgetDriverHandle>>,
@@ -1154,10 +1175,11 @@ impl Client {
             send_queue_supervised: AtomicBool::new(false),
             call_subs: Mutex::new(HashMap::new()),
             live_location_subs: Mutex::new(HashMap::new()),
+            recovery_state_subs: Mutex::new(HashMap::new()),
+            backup_state_subs: Mutex::new(HashMap::new()),
             widget_handles: Mutex::new(HashMap::new()),
             widget_driver_tasks: Mutex::new(HashMap::new()),
             widget_recv_tasks: Mutex::new(HashMap::new()),
-            recovery_state_cache: Arc::new(std::sync::Mutex::new(None)),
 
             app_in_foreground: Arc::new(AtomicBool::new(false)),
             timeline_mgr,
@@ -1197,12 +1219,8 @@ impl Client {
                             },
                         };
                         if this.inner.restore_session(session).await.is_ok() {
-                            // Restore cached recovery state from session
-                            if let Some(ref rs) = info.recovery_state {
-                                if let Ok(s) = rs.parse::<RecoveryState>() {
-                                    *this.recovery_state_cache.lock().unwrap() = Some(s);
-                                }
-                            }
+                            // Wait for E2EE init to fetch recovery state from server
+                            this.inner.encryption().wait_for_e2ee_initialization_tasks().await;
 
                             this.ensure_sync_service().await;
 
@@ -1234,19 +1252,12 @@ impl Client {
                         if let Some(sess) = inner.matrix_auth().session() {
                             let path = session_file(&store);
 
-                            // Try to preserve existing recovery state
-                            let recovery_state = std::fs::read_to_string(&path)
-                                .ok()
-                                .and_then(|txt| serde_json::from_str::<SessionInfo>(&txt).ok())
-                                .and_then(|info| info.recovery_state);
-
                             let info = SessionInfo {
                                 user_id: sess.meta.user_id.to_string(),
                                 device_id: sess.meta.device_id.to_string(),
                                 access_token: sess.tokens.access_token.clone(),
                                 refresh_token: sess.tokens.refresh_token.clone(),
                                 homeserver: inner.homeserver().to_string(),
-                                recovery_state,
                             };
                             let _ =
                                 tokio::fs::write(path, serde_json::to_string(&info).unwrap()).await;
@@ -1344,7 +1355,6 @@ impl Client {
                 access_token: res.access_token.clone(),
                 refresh_token: res.refresh_token.clone(),
                 homeserver: self.inner.homeserver().to_string(),
-                recovery_state: None,
             };
 
             tokio::fs::create_dir_all(&self.store_dir).await?;
@@ -1353,6 +1363,9 @@ impl Client {
                 serde_json::to_string(&info).unwrap(),
             )
             .await?;
+
+            // Wait for E2EE init to fetch recovery state from server
+            self.inner.encryption().wait_for_e2ee_initialization_tasks().await;
 
             self.ensure_sync_service().await;
 
@@ -2387,30 +2400,32 @@ impl Client {
         })
     }
 
-    pub fn recovery_state(&self) -> RecoveryState {
-        // First check cached value (from session restore)
-        if let Ok(cached) = self.recovery_state_cache.lock() {
-            if let Some(state) = *cached {
-                return state;
+    pub fn backup_exists_on_server(&self, fetch: bool) -> bool {
+        RT.block_on(async {
+            let backups = self.inner.encryption().backups();
+            if fetch {
+                backups.fetch_exists_on_server().await.unwrap_or(false)
+            } else {
+                backups.exists_on_server().await.unwrap_or(false)
             }
-        }
+        })
+    }
 
-        // Fall back to SDK state
-        match self.inner.encryption().recovery().state() {
-            matrix_sdk::encryption::recovery::RecoveryState::Disabled => RecoveryState::Disabled,
-            matrix_sdk::encryption::recovery::RecoveryState::Enabled => RecoveryState::Enabled,
-            matrix_sdk::encryption::recovery::RecoveryState::Incomplete => {
-                RecoveryState::Incomplete
+    pub fn set_key_backup_enabled(&self, enabled: bool) -> bool {
+        RT.block_on(async {
+            let backups = self.inner.encryption().backups();
+            if enabled {
+                backups.create().await.is_ok()
+            } else {
+                backups.disable().await.is_ok()
             }
-            _ => RecoveryState::Unknown,
-        }
+        })
     }
 
     pub fn setup_recovery(&self, observer: Box<dyn RecoveryObserver>) -> u64 {
         let obs: Arc<dyn RecoveryObserver> = Arc::from(observer);
 
         // Share the recovery state cache with the async block
-        let recovery_cache = self.recovery_state_cache.clone();
         let inner_client = self.inner.clone();
 
         let id = self.next_sub_id();
@@ -2459,8 +2474,6 @@ impl Client {
 
             match result {
                 Ok(key) => {
-                    // Update cached recovery state
-                    *recovery_cache.lock().unwrap() = Some(RecoveryState::Enabled);
                     let _ = catch_unwind(AssertUnwindSafe(|| obs.on_done(key)));
                 }
                 Err(e) => {
@@ -2479,6 +2492,52 @@ impl Client {
 
         self.guards.lock().unwrap().push(h);
         id
+    }
+
+    pub fn observe_recovery_state(&self, observer: Box<dyn RecoveryStateObserver>) -> u64 {
+        let obs: Arc<dyn RecoveryStateObserver> = Arc::from(observer);
+        let inner = self.inner.clone();
+        sub_manager!(self, recovery_state_subs, async move {
+            let mut stream = inner.encryption().recovery().state_stream();
+            while let Some(state) = stream.next().await {
+                let mapped = match state {
+                    matrix_sdk::encryption::recovery::RecoveryState::Disabled => RecoveryState::Disabled,
+                    matrix_sdk::encryption::recovery::RecoveryState::Enabled => RecoveryState::Enabled,
+                    matrix_sdk::encryption::recovery::RecoveryState::Incomplete => RecoveryState::Incomplete,
+                    _ => RecoveryState::Unknown,
+                };
+                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(mapped)));
+            }
+        })
+    }
+
+    pub fn observe_backup_state(&self, observer: Box<dyn BackupStateObserver>) -> u64 {
+        let obs: Arc<dyn BackupStateObserver> = Arc::from(observer);
+        let inner = self.inner.clone();
+        sub_manager!(self, backup_state_subs, async move {
+            let mut stream = inner.encryption().backups().state_stream();
+            while let Some(state) = stream.next().await {
+                let mapped = match state {
+                    Ok(matrix_sdk::encryption::backups::BackupState::Unknown) => BackupState::Unknown,
+                    Ok(matrix_sdk::encryption::backups::BackupState::Creating) => BackupState::Creating,
+                    Ok(matrix_sdk::encryption::backups::BackupState::Enabling) => BackupState::Enabling,
+                    Ok(matrix_sdk::encryption::backups::BackupState::Resuming) => BackupState::Resuming,
+                    Ok(matrix_sdk::encryption::backups::BackupState::Enabled) => BackupState::Enabled,
+                    Ok(matrix_sdk::encryption::backups::BackupState::Downloading) => BackupState::Downloading,
+                    Ok(matrix_sdk::encryption::backups::BackupState::Disabling) => BackupState::Disabling,
+                    Err(_) => BackupState::Unknown,
+                };
+                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(mapped)));
+            }
+        })
+    }
+
+    pub fn unobserve_recovery_state(&self, sub_id: u64) -> bool {
+        unsub!(self, recovery_state_subs, sub_id)
+    }
+
+    pub fn unobserve_backup_state(&self, sub_id: u64) -> bool {
+        unsub!(self, backup_state_subs, sub_id)
     }
 
     pub fn list_my_devices(&self) -> Vec<DeviceSummary> {
@@ -4092,7 +4151,6 @@ impl Client {
                     access_token: sess.tokens.access_token.clone(),
                     refresh_token: sess.tokens.refresh_token.clone(),
                     homeserver: self.inner.homeserver().to_string(),
-                    recovery_state: None,
                 };
                 tokio::fs::write(
                     session_file(&self.store_dir),
@@ -4157,7 +4215,6 @@ impl Client {
                     access_token: sess.tokens.access_token.clone(),
                     refresh_token: sess.tokens.refresh_token.clone(),
                     homeserver: self.inner.homeserver().to_string(),
-                    recovery_state: None,
                 };
                 tokio::fs::write(
                     session_file(&self.store_dir),

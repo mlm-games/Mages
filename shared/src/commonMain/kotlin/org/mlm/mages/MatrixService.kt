@@ -183,6 +183,12 @@ class MatrixService(
     suspend fun recoverWithKey(recoveryKey: String) =
         runCatching { port.recoverWithKey(recoveryKey) }.getOrElse { false }
 
+    suspend fun backupExistsOnServer(fetch: Boolean) =
+        runCatching { port.backupExistsOnServer(fetch) }.getOrDefault(false)
+
+    suspend fun setKeyBackupEnabled(enabled: Boolean) =
+        runCatching { port.setKeyBackupEnabled(enabled) }.getOrDefault(false)
+
     suspend fun retryByTxn(roomId: String, txnId: String) =
         runCatching { port.retryByTxn(roomId, txnId) }.getOrElse { false }
 

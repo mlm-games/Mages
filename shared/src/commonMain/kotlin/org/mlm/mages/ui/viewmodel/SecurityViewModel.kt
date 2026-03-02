@@ -26,7 +26,6 @@ class SecurityViewModel(
         data object LogoutSuccess : Event()
         data class ShowError(val message: String) : Event()
         data class ShowSuccess(val message: String) : Event()
-        data class RecoveryKeyGenerated(val key: String) : Event()
     }
 
     private val _events = Channel<Event>(Channel.BUFFERED)
@@ -37,21 +36,87 @@ class SecurityViewModel(
 
     val settingsSchema = settingsRepository.schema
 
-    init {
+    fun loadSecurityData() {
+        if (recoveryStateSub == null) subscribeRecoveryState()
         refreshDevices()
         refreshIgnored()
         loadPresence()
         loadAccountManagementUrl()
-        loadRecoveryState()
+        refreshKeyStorageState(forceFetch = true)
     }
 
-    private fun loadRecoveryState() {
+    private var recoveryStateSub: ULong? = null
+    private var backupStateSub: ULong? = null
+
+    private fun subscribeRecoveryState() {
+        val port = service.portOrNull ?: return
+        recoveryStateSub = port.observeRecoveryState(object : MatrixPort.RecoveryStateObserver {
+            override fun onUpdate(state: MatrixPort.RecoveryState) {
+                updateState { copy(recoveryState = state) }
+            }
+        })
+
+        backupStateSub = port.observeBackupState(object : MatrixPort.BackupStateObserver {
+            override fun onUpdate(state: MatrixPort.BackupState) {
+                updateState { copy(backupState = state) }
+                refreshKeyStorageState(forceFetch = state == MatrixPort.BackupState.Unknown)
+            }
+        })
+    }
+
+    override fun onCleared() {
+        recoveryStateSub?.let { service.portOrNull?.unobserveRecoveryState(it) }
+        backupStateSub?.let { service.portOrNull?.unobserveBackupState(it) }
+        super.onCleared()
+    }
+
+    private fun refreshKeyStorageState(forceFetch: Boolean = false) {
+        val port = service.portOrNull ?: return
         launch {
-            val port = service.portOrNull ?: return@launch
-            val state = runCatching { port.recoveryState() }.getOrNull() ?: MatrixPort.RecoveryState.Disabled
-            updateState { copy(recoveryState = state) }
+            val shouldFetch = forceFetch ||
+                (currentState.backupState == MatrixPort.BackupState.Unknown && currentState.backupExistsOnServer == null)
+
+            val exists = if (shouldFetch) {
+                runCatching { port.backupExistsOnServer(true) }.getOrNull()
+            } else {
+                currentState.backupExistsOnServer
+            }
+
+            val isEnabled = when (currentState.backupState) {
+                MatrixPort.BackupState.Unknown -> exists == true
+                MatrixPort.BackupState.Creating,
+                MatrixPort.BackupState.Enabling,
+                MatrixPort.BackupState.Resuming,
+                MatrixPort.BackupState.Downloading,
+                MatrixPort.BackupState.Enabled -> true
+                MatrixPort.BackupState.Disabling -> false
+            }
+            updateState {
+                copy(
+                    backupExistsOnServer = exists,
+                    isKeyStorageEnabled = isEnabled
+                )
+            }
         }
     }
+
+    fun toggleKeyStorage() {
+        val port = service.portOrNull ?: return
+        val currentEnabled = currentState.isKeyStorageEnabled ?: return
+        launch {
+            updateState { copy(isTogglingKeyStorage = true, error = null) }
+            val target = !currentEnabled
+            val ok = runCatching { port.setKeyBackupEnabled(target) }.getOrDefault(false)
+            updateState { copy(isTogglingKeyStorage = false) }
+            if (!ok) {
+                _events.send(Event.ShowError("Failed to update key storage"))
+            } else {
+                refreshKeyStorageState(forceFetch = true)
+            }
+        }
+    }
+
+    private var setupRecoveryToken: ULong? = null
 
     fun setupRecovery() {
         launch {
@@ -63,17 +128,18 @@ class SecurityViewModel(
                 }
 
                 override fun onDone(recoveryKey: String) {
+                    setupRecoveryToken = null
                     updateState { 
                         copy(
                             isEnablingRecovery = false,
                             recoveryProgress = null,
                             generatedRecoveryKey = recoveryKey,
-                            recoveryState = MatrixPort.RecoveryState.Enabled
                         ) 
                     }
                 }
 
                 override fun onError(message: String) {
+                    setupRecoveryToken = null
                     updateState { 
                         copy(
                             isEnablingRecovery = false,
@@ -85,7 +151,7 @@ class SecurityViewModel(
             }
 
             updateState { copy(isEnablingRecovery = true, recoveryProgress = "Starting...") }
-            port.setupRecovery(observer)
+            setupRecoveryToken = port.setupRecovery(observer)
         }
     }
 
@@ -131,9 +197,9 @@ class SecurityViewModel(
     fun startUserVerify(userId: String) = verification.startUserVerify(userId.trim())
 
     // Recovery
-    fun openRecoveryDialog() = updateState { copy(showRecoveryDialog = true, recoveryKeyInput = "") }
-    fun closeRecoveryDialog() = updateState { copy(showRecoveryDialog = false, recoveryKeyInput = "") }
-    fun setRecoveryKey(value: String) = updateState { copy(recoveryKeyInput = value) }
+    fun setRecoveryKey(value: String) = updateState { copy(recoveryKeyInput = value, error = null) }
+
+    fun clearRecoverySubmitSuccess() = updateState { copy(recoverySubmitSuccess = false, recoveryKeyInput = "") }
 
     fun submitRecoveryKey() {
         val key = currentState.recoveryKeyInput.trim()
@@ -149,12 +215,13 @@ class SecurityViewModel(
                 return@launch
             }
 
+            updateState { copy(isSubmittingRecoveryKey = true, error = null) }
             val ok = port.recoverWithKey(key)
             if (ok) {
-                updateState { copy(showRecoveryDialog = false, recoveryKeyInput = "", error = null) }
+                updateState { copy(isSubmittingRecoveryKey = false, recoverySubmitSuccess = true) }
                 _events.send(Event.ShowSuccess("Recovery successful"))
             } else {
-                _events.send(Event.ShowError("Recovery failed"))
+                updateState { copy(isSubmittingRecoveryKey = false, error = "Recovery failed. Check your key and try again.") }
             }
         }
     }

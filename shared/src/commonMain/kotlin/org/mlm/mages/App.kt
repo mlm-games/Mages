@@ -339,9 +339,6 @@ private fun AppContent(deepLinks: Flow<DeepLinkAction>?) {
                                     is SecurityViewModel.Event.ShowSuccess -> {
                                         snackbarManager.show(event.message)
                                     }
-                                    is SecurityViewModel.Event.RecoveryKeyGenerated -> {
-                                        // Handled in UI state
-                                    }
                                 }
                             }
                         }

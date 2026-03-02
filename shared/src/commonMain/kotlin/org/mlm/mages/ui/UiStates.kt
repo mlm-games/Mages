@@ -175,11 +175,16 @@ data class SecurityUiState(
 
     // Recovery
     val recoveryState: MatrixPort.RecoveryState = MatrixPort.RecoveryState.Disabled,
+    val backupState: MatrixPort.BackupState = MatrixPort.BackupState.Unknown,
+    val backupExistsOnServer: Boolean? = null,
+    val isKeyStorageEnabled: Boolean? = null,
+    val isTogglingKeyStorage: Boolean = false,
     val isEnablingRecovery: Boolean = false,
     val recoveryProgress: String? = null,
     val generatedRecoveryKey: String? = null,
-    val showRecoveryDialog: Boolean = false,
     val recoveryKeyInput: String = "",
+    val isSubmittingRecoveryKey: Boolean = false,
+    val recoverySubmitSuccess: Boolean = false,
 
     // Verification
     val pendingVerifications: List<VerificationRequestUi> = emptyList(),

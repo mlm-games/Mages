@@ -251,19 +251,6 @@ class RustMatrixPort : MatrixPort {
         }
     }
 
-    override fun recoveryState(): MatrixPort.RecoveryState {
-        return runBlocking(Dispatchers.IO) {
-            withClient {
-                when (it.recoveryState()) {
-                    mages.RecoveryState.DISABLED -> MatrixPort.RecoveryState.Disabled
-                    mages.RecoveryState.ENABLED -> MatrixPort.RecoveryState.Enabled
-                    mages.RecoveryState.INCOMPLETE -> MatrixPort.RecoveryState.Incomplete
-                    else -> MatrixPort.RecoveryState.Unknown
-                }
-            }
-        }
-    }
-
     override fun setupRecovery(observer: MatrixPort.RecoveryObserver): ULong {
         val cb = object : mages.RecoveryObserver {
             override fun onProgress(step: String) {
@@ -276,8 +263,58 @@ class RustMatrixPort : MatrixPort {
                 observer.onError(message)
             }
         }
-        return withClient { it.setupRecovery(cb) }
+        return runBlocking(Dispatchers.IO) { withClient { it.setupRecovery(cb) } }
     }
+
+    override fun observeRecoveryState(observer: MatrixPort.RecoveryStateObserver): ULong {
+        val cb = object : mages.RecoveryStateObserver {
+            override fun onUpdate(state: mages.RecoveryState) {
+                val mapped = when (state) {
+                    mages.RecoveryState.DISABLED -> MatrixPort.RecoveryState.Disabled
+                    mages.RecoveryState.ENABLED -> MatrixPort.RecoveryState.Enabled
+                    mages.RecoveryState.INCOMPLETE -> MatrixPort.RecoveryState.Incomplete
+                    else -> MatrixPort.RecoveryState.Unknown
+                }
+                observer.onUpdate(mapped)
+            }
+        }
+        return withClient { it.observeRecoveryState(cb) }
+    }
+
+    override fun unobserveRecoveryState(subId: ULong): Boolean =
+        withClient { it.unobserveRecoveryState(subId) }
+
+    override fun observeBackupState(observer: MatrixPort.BackupStateObserver): ULong {
+        val cb = object : mages.BackupStateObserver {
+            override fun onUpdate(state: mages.BackupState) {
+                val mapped = when (state) {
+                    mages.BackupState.UNKNOWN -> MatrixPort.BackupState.Unknown
+                    mages.BackupState.CREATING -> MatrixPort.BackupState.Creating
+                    mages.BackupState.ENABLING -> MatrixPort.BackupState.Enabling
+                    mages.BackupState.RESUMING -> MatrixPort.BackupState.Resuming
+                    mages.BackupState.ENABLED -> MatrixPort.BackupState.Enabled
+                    mages.BackupState.DOWNLOADING -> MatrixPort.BackupState.Downloading
+                    mages.BackupState.DISABLING -> MatrixPort.BackupState.Disabling
+                    else -> MatrixPort.BackupState.Unknown
+                }
+                observer.onUpdate(mapped)
+            }
+        }
+        return withClient { it.observeBackupState(cb) }
+    }
+
+    override fun unobserveBackupState(subId: ULong): Boolean =
+        withClient { it.unobserveBackupState(subId) }
+
+    override suspend fun backupExistsOnServer(fetch: Boolean): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.backupExistsOnServer(fetch) } }.getOrDefault(false)
+        }
+
+    override suspend fun setKeyBackupEnabled(enabled: Boolean): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { withClient { it.setKeyBackupEnabled(enabled) } }.getOrDefault(false)
+        }
 
     override suspend fun paginateBack(roomId: String, count: Int): Boolean =
         withContext(Dispatchers.IO) {

@@ -357,6 +357,16 @@ interface MatrixPort {
         Unknown
     }
 
+    enum class BackupState {
+        Unknown,
+        Creating,
+        Enabling,
+        Resuming,
+        Enabled,
+        Downloading,
+        Disabling
+    }
+
     interface SyncObserver { fun onState(status: SyncStatus) }
 
     suspend fun init(hs: String, accountId: String? = null)
@@ -382,8 +392,15 @@ interface MatrixPort {
     suspend fun setTyping(roomId: String, typing: Boolean): Boolean
     fun whoami(): String?
     fun accountManagementUrl(): String?
-    fun recoveryState(): RecoveryState
     fun setupRecovery(observer: RecoveryObserver): ULong
+    fun observeRecoveryState(observer: RecoveryStateObserver): ULong
+    fun unobserveRecoveryState(subId: ULong): Boolean
+
+    fun observeBackupState(observer: BackupStateObserver): ULong
+    fun unobserveBackupState(subId: ULong): Boolean
+
+    suspend fun backupExistsOnServer(fetch: Boolean = false): Boolean
+    suspend fun setKeyBackupEnabled(enabled: Boolean): Boolean
 
     suspend fun enqueueText(roomId: String, body: String, txnId: String? = null): String
     fun observeSends(): Flow<SendUpdate>
@@ -403,6 +420,14 @@ interface MatrixPort {
         fun onProgress(step: String)
         fun onDone(recoveryKey: String)
         fun onError(message: String)
+    }
+
+    interface RecoveryStateObserver {
+        fun onUpdate(state: RecoveryState)
+    }
+
+    interface BackupStateObserver {
+        fun onUpdate(state: BackupState)
     }
 
     fun observeConnection(observer: ConnectionObserver): ULong

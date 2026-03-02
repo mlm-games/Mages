@@ -124,14 +124,17 @@
     <string name="storage">Storage</string>
     <string name="advanced">Advanced</string>
     <string name="verify_user">Verify User</string>
+    <string name="verify_another_user">Verify Another User</string>
     <string name="user_id">User ID</string>
     <string name="user_id_placeholder">@user:server.com</string>
     <string name="verify">Verify</string>
     <string name="recovery">Recovery</string>
     <string name="set_up_recovery">Set up recovery</string>
+    <string name="change_recovery_key">Change recovery key</string>
     <string name="recovery_key">Recovery Key</string>
     <string name="save_recovery_key_warning">Save this key somewhere safe. You\'ll need it to restore your encrypted messages if you lose access to your devices.</string>
     <string name="copy">Copy</string>
+    <string name="copied">Copied</string>
     <string name="your_devices">Your Devices</string>
     <string name="no_devices_found">No devices found</string>
     <string name="try_refreshing">Try refreshing the list</string>
@@ -239,4 +242,29 @@
 
     <string name="media_files">Media &amp; Files</string>
     <string name="download">Download</string>
+
+    <string name="recovery_key_prompt_title">Decrypt message history</string>
+    <string name="recovery_key_prompt_body">Enter your recovery key to restore access to your encrypted messages from other devices.</string>
+    <string name="enter_recovery_key">Enter recovery key</string>
+    <string name="recovery_key_hint">Paste your recovery key here</string>
+    <string name="recover">Recover</string>
+    <string name="recovery_success">Message history recovered</string>
+
+    <string name="setup_recovery_title">Set up recovery</string>
+    <string name="change_recovery_key_title">Change recovery key</string>
+    <string name="recovery_key_created">Recovery key created</string>
+    <string name="recovery_key_instructions">Your recovery key lets you regain access to your encrypted messages if you lose all your signed-in devices.</string>
+    <string name="change_recovery_key_instructions">A new recovery key will be created. Your old recovery key will no longer work.</string>
+    <string name="i_have_saved_my_key">I have saved my key</string>
+    <string name="recovery_incomplete_subtitle">Enter your recovery key to complete setup and restore your message history.</string>
+    <string name="recovery_disabled_subtitle">Set up a recovery key to restore encrypted messages on new devices.</string>
+    <string name="recovery_enabled_subtitle">Your encrypted messages are backed up.</string>
+    <string name="encryption">Encryption</string>
+    <string name="key_storage">Key storage</string>
+    <string name="key_storage_subtitle">Storing your keys securely on the server. You can turn this off, but you won\'t be able to recover them.</string>
+    <string name="incomplete_badge">Confirm</string>
+    <string name="key_storage_disabled_error">Key storage is off. Turn it on to set up or change your recovery key.</string>
+    <string name="generate_recovery_key">Generate recovery key</string>
+    <string name="generate_new_recovery_key">Generate new recovery key</string>
+    <string name="create_new_recovery_key">Create a new recovery key</string>
 </resources>
