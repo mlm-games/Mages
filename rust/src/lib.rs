@@ -13,7 +13,7 @@ use matrix_sdk::ruma::room_version_rules::RoomVersionRules;
 use matrix_sdk::ruma::serde::Raw;
 use matrix_sdk::search_index::SearchIndexStoreKind;
 use matrix_sdk::send_queue::SendHandle;
-use matrix_sdk::utils::local_server::LocalServerBuilder;
+use matrix_sdk::utils::local_server::{LocalServerBuilder, LocalServerIpAddress};
 use matrix_sdk::{
     EncryptionState, PredecessorRoom, RoomDisplayName, SuccessorRoom,
     ruma::{
@@ -4184,6 +4184,7 @@ impl Client {
                     let _ = opener.open(sso_url);
                     Ok(())
                 })
+                .server_builder(LocalServerBuilder::new().ip_address(LocalServerIpAddress::Localhostv4))
                 .initial_device_display_name(device_name.as_deref().unwrap_or("Mages"))
                 .send()
                 .await
@@ -4220,6 +4221,7 @@ impl Client {
             let oauth = self.inner.oauth();
 
             let (redirect_uri, server_handle) = LocalServerBuilder::new()
+                .ip_address(LocalServerIpAddress::Localhostv4)
                 .spawn()
                 .await
                 .map_err(|e| FfiError::Msg(e.to_string()))?;
