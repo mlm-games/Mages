@@ -1,3 +1,10 @@
+## v4.1.2
+
+- Unread FAB, and scroll to last unread on opening a room (#50)
+- Add Unread count to filter chip in Rooms
+- fallback to global avatars if local names aren't present
+
+
 ## v4.1.1
 
 - try forcing the redirects be ipv4 addrs (#41)

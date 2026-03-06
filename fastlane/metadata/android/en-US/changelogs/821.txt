@@ -1,0 +1,3 @@
+- Unread FAB, and scroll to last unread on opening a room (#50)
+- Add Unread count to filter chip in Rooms
+- fallback to global avatars if local names aren't present

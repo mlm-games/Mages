@@ -46,6 +46,15 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.1.2" date="2026-03-06" type="stable">
+      <description>
+        <ul>
+          <li>Unread FAB, and scroll to last unread on opening a room (#50)</li>
+          <li>Add Unread count to filter chip in Rooms</li>
+          <li>fallback to global avatars if local names aren't present</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.1.1" date="2026-03-04" type="stable">
       <description>
         <ul>
