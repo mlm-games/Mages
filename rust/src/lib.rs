@@ -6152,6 +6152,28 @@ impl Client {
                 })
                 .collect();
 
+            // fetch global profile as fallback
+            for entry in out.iter_mut() {
+                if entry.avatar_url.is_none() {
+                    if let Ok(uid) = entry.user_id.parse::<OwnedUserId>() {
+                        if let Ok(profile) = self.inner.account().fetch_user_profile_of(&uid).await {
+                            entry.avatar_url = profile
+                                .get_static::<AvatarUrl>()
+                                .ok()
+                                .flatten()
+                                .map(|mxc| mxc.to_string());
+                            if entry.display_name.is_none() {
+                                entry.display_name = profile
+                                    .get_static::<DisplayName>()
+                                    .ok()
+                                    .flatten()
+                                    .map(|s| s.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+
             out.sort_by_key(|e| std::cmp::Reverse(e.ts_ms.unwrap_or(0)));
             out.truncate(limit.max(1) as usize);
             Ok(out)
