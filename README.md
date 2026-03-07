@@ -71,9 +71,7 @@ Most Matrix‑specific logic lives in Rust; Kotlin mostly handles presentation.
 ### Desktop (Linux)
 
 ```bash
-# Build Rust JNI + desktop distribution
-cargo build --release --manifest-path rust/Cargo.toml
-./gradlew :desktopApp:genUniFFIJvm :desktopApp:packageDistributionForCurrentOS
+./gradlew :desktopApp:run
 # AppImage is assembled by the desktop release workflow
 ```
 
