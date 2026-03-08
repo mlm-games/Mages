@@ -626,7 +626,8 @@ fun RoomScreen(
                                                 returnPosition = eventId to currentIndex
                                             },
                                             highlightedEventId = state.highlightedEventId,
-                                            viewModel
+                                            viewModel = viewModel,
+                                            showMessageAvatars = settings.showMessageAvatars
                                         )
                                     }
                                 }
@@ -1066,7 +1067,8 @@ private fun MessageItem(
     onOpenThread: () -> Unit,
     onSaveReturnPosition: (String) -> Unit,
     highlightedEventId: String? = null,
-    viewModel: RoomViewModel
+    viewModel: RoomViewModel,
+    showMessageAvatars: Boolean = true
 ) {
     val timestamp = event.timestampMs
 
@@ -1195,8 +1197,12 @@ private fun MessageItem(
         }
 
         val bubbleOffset = if (isMine) -animatedSwipeOffsetPx else animatedSwipeOffsetPx
-        Box(modifier = Modifier.graphicsLayer { translationX = bubbleOffset }) {
 
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer { translationX = bubbleOffset }
+        ) {
             val isHighlighted = highlightedEventId == event.eventId
 
             val highlightAlpha by animateFloatAsState(
@@ -1217,12 +1223,15 @@ private fun MessageItem(
                     isMine = isMine,
                     body = event.body,
                     sender = event.senderDisplayName,
+                    senderAvatarPath = state.avatarByUserId[event.sender],
+                    senderId = event.sender,
                     timestamp = timestamp,
                     groupedWithPrev = shouldGroup,
                     groupedWithNext = nextEvent != null &&
                             nextEvent.sender == event.sender &&
                             formatDate(nextEvent.timestampMs) == eventDate,
                     isDm = state.isDm,
+                    showMessageAvatars = showMessageAvatars,
                     reactionChips = chips,
                     eventId = event.eventId,
                     onLongPress = onLongPress,

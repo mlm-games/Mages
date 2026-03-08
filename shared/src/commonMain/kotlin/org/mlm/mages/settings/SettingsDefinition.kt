@@ -66,6 +66,14 @@ data class AppSettings(
     val fontSize: Float = 16f,
 
     @Setting(
+        title = "Show message avatars",
+        description = "Display user avatars next to messages",
+        category = Appearance::class,
+        type = Toggle::class
+    )
+    val showMessageAvatars: Boolean = true,
+
+    @Setting(
         title = "Enable notifications",
         description = "Show notifications (desktop polling + Android push)",
         category = Notifications::class,

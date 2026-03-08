@@ -19,6 +19,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -28,7 +29,9 @@ import org.mlm.mages.AttachmentKind
 import org.mlm.mages.matrix.PollData
 import org.mlm.mages.matrix.ReactionChip
 import org.mlm.mages.matrix.SendState
+import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.MarkdownText
+import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatDuration
 import org.mlm.mages.ui.util.formatTime
@@ -36,14 +39,31 @@ import java.io.File
 import kotlin.math.min
 
 @Composable
+fun TimelineSenderAvatar(
+    senderDisplayName: String?,
+    senderAvatarUrl: String?,
+    senderId: String,
+    size: Dp = Sizes.iconMedium,
+) {
+    Avatar(
+        name = senderDisplayName ?: senderId,
+        avatarPath = senderAvatarUrl,
+        size = size
+    )
+}
+
+@Composable
 fun MessageBubble(
     isMine: Boolean,
     body: String,
     sender: String?,
+    senderAvatarPath: String? = null,
+    senderId: String? = null,
     timestamp: Long,
     groupedWithPrev: Boolean,
     groupedWithNext: Boolean,
     isDm: Boolean,
+    showMessageAvatars: Boolean = true,
     modifier: Modifier = Modifier,
     reactionChips: List<ReactionChip> = emptyList(),
     eventId: String? = null,
@@ -67,6 +87,14 @@ fun MessageBubble(
     threadCount: Int? = null,
     onOpenThread: (() -> Unit)? = null
 ) {
+    val showSenderInfo = !isMine && !isDm && !groupedWithPrev && !sender.isNullOrBlank()
+    val showSenderAvatar = showSenderInfo && showMessageAvatars && !senderId.isNullOrBlank()
+    val incomingBubbleStartPadding = if (!isMine && !isDm && showMessageAvatars) {
+        Spacing.lg
+    } else {
+        0.dp
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -76,17 +104,40 @@ fun MessageBubble(
             ),
         horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
     ) {
-        if (!isMine && !isDm && !groupedWithPrev && !sender.isNullOrBlank()) {
-            Text(
-                text = sender,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(horizontal = Spacing.md, vertical = 2.dp)
-            )
+        if (showSenderInfo) {
+            if (showSenderAvatar) {
+                Row(
+                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TimelineSenderAvatar(
+                        senderDisplayName = sender,
+                        senderAvatarUrl = senderAvatarPath,
+                        senderId = senderId
+                    )
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text(
+                        text = sender,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            } else {
+                Text(
+                    text = sender,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = 2.dp)
+                )
+            }
         }
 
-        BubbleWidthWrapper(fractionOfParent = 0.75f) {
+        BubbleWidthWrapper(
+            modifier = Modifier.padding(start = incomingBubbleStartPadding),
+            fractionOfParent = 0.75f
+        ) {
             Surface(
                 color = if (isMine) MaterialTheme.colorScheme.primaryContainer
                 else MaterialTheme.colorScheme.secondaryContainer,

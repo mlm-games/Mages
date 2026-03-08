@@ -24,10 +24,7 @@ import coil3.request.crossfade
 import org.mlm.mages.ui.theme.Sizes
 import java.util.Locale
 
-/**
- * Unified avatar component reducing duplication across screens.
- * Used in RoomCard, MessageBubble, ThreadScreen, RoomInfoScreen, etc.
- */
+
 @Composable
 fun Avatar(
     name: String,
