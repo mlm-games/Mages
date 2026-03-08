@@ -29,9 +29,7 @@ fun EmojiPickerSheet(
     val searchResults = remember(query) {
         if (query.isBlank()) emptyList()
         else emojiCategories.flatMap { it.emojis }.filter { emoji ->
-            // Simple substring match on the unicode codepoints — good enough for emoji search
-            // since users will typically type partial emoji names; we match against the raw
-            // characters directly (useful for copy-paste searching). Category names not relevant here.
+            // TODO: matching against the raw characters directly doesn't work.
             emoji.contains(query)
         }
     }
@@ -48,22 +46,22 @@ fun EmojiPickerSheet(
                 .fillMaxWidth()
                 .navigationBarsPadding()
         ) {
-            // Search field
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-                placeholder = { Text("Search emoji") },
-                leadingIcon = { Icon(Icons.Default.Search, null) },
-                singleLine = true,
-                shape = MaterialTheme.shapes.large,
-            )
+//            // Search field
+//            OutlinedTextField(
+//                value = query,
+//                onValueChange = { query = it },
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+//                placeholder = { Text("Search emoji") },
+//                leadingIcon = { Icon(Icons.Default.Search, null) },
+//                singleLine = true,
+//                shape = MaterialTheme.shapes.large,
+//            )
 
             // Category tabs (hidden while searching)
             if (query.isBlank()) {
-                ScrollableTabRow(
+                SecondaryScrollableTabRow(
                     selectedTabIndex = emojiCategories.indexOf(selectedCategory),
                     edgePadding = Spacing.md,
                     divider = {},

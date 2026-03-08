@@ -1,9 +1,12 @@
 package org.mlm.mages.ui.components.composer
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -26,10 +29,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.mlm.mages.MessageEvent
+import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.platform.ClipboardAttachmentHandler
 import org.mlm.mages.platform.pasteInterceptor
 import org.mlm.mages.platform.sendShortcutHandler
 import org.mlm.mages.ui.components.AttachmentData
+import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 
@@ -53,6 +58,8 @@ fun MessageComposer(
     clipboardHandler: ClipboardAttachmentHandler? = null,
     onAttachmentPasted: ((AttachmentData) -> Unit)? = null,
     enterSendsMessage: Boolean = false,
+    roomMembers: List<MemberSummary> = emptyList(),
+    avatarPathByUserId: Map<String, String> = emptyMap(),
 ) {
     val scope = rememberCoroutineScope()
     var fieldValue by remember { mutableStateOf(TextFieldValue(value)) }
@@ -61,6 +68,11 @@ fun MessageComposer(
         if (value != fieldValue.text) {
             fieldValue = TextFieldValue(value, selection = TextRange(value.length))
         }
+    }
+
+    val mentionQuery = remember(fieldValue) { findMentionQuery(fieldValue) }
+    val mentionSuggestions = remember(mentionQuery, roomMembers) {
+        if (mentionQuery == null) emptyList() else filterMentionSuggestions(roomMembers, mentionQuery.query)
     }
 
     Surface(
@@ -107,6 +119,23 @@ fun MessageComposer(
                         )
                     }
                 }
+            }
+
+            AnimatedVisibility(visible = mentionQuery != null && mentionSuggestions.isNotEmpty()) {
+                MentionSuggestionsCard(
+                    members = mentionSuggestions,
+                    avatarPathByUserId = avatarPathByUserId,
+                    onMemberSelected = { member ->
+                        val query = mentionQuery ?: return@MentionSuggestionsCard
+                        val updated = insertMention(fieldValue, member, query)
+                        fieldValue = updated
+                        onValueChange(updated.text)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.lg)
+                        .padding(top = Spacing.xs)
+                )
             }
 
             Row(
@@ -224,4 +253,134 @@ private fun insertNewline(value: TextFieldValue): TextFieldValue {
     }
     val newCursor = start + 1
     return TextFieldValue(newText, selection = TextRange(newCursor))
+}
+
+private data class MentionQuery(
+    val start: Int,
+    val end: Int,
+    val query: String,
+)
+
+private fun findMentionQuery(value: TextFieldValue): MentionQuery? {
+    val text = value.text
+    val cursor = value.selection.start
+    if (cursor < 0 || cursor > text.length) return null
+
+    var start = cursor
+    while (start > 0 && !text[start - 1].isWhitespace()) {
+        start--
+    }
+    if (start >= text.length || text[start] != '@') return null
+
+    var end = cursor
+    while (end < text.length && !text[end].isWhitespace()) {
+        end++
+    }
+
+    return MentionQuery(start = start, end = end, query = text.substring(start + 1, cursor))
+}
+
+private fun filterMentionSuggestions(members: List<MemberSummary>, query: String): List<MemberSummary> {
+    val normalized = query.trim().lowercase()
+    return members
+        .asSequence()
+        .filter { it.membership.equals("join", ignoreCase = true) }
+        .sortedWith(compareByDescending<MemberSummary> { it.isMe }.thenBy { (it.displayName ?: it.userId).lowercase() })
+        .filter {
+            if (normalized.isBlank()) return@filter true
+            it.displayName.orEmpty().lowercase().contains(normalized) || it.userId.lowercase().contains(normalized)
+        }
+        .take(5)
+        .toList()
+}
+
+private fun insertMention(current: TextFieldValue, member: MemberSummary, mentionQuery: MentionQuery): TextFieldValue {
+    val label = member.displayName ?: member.userId.substringAfter("@").substringBefore(":")
+    val mentionText = "[@$label](https://matrix.to/#/${member.userId}) "
+    val newText = buildString {
+        append(current.text.substring(0, mentionQuery.start))
+        append(mentionText)
+        append(current.text.substring(mentionQuery.end))
+    }
+    val newCursor = mentionQuery.start + mentionText.length
+    return TextFieldValue(newText, selection = TextRange(newCursor))
+}
+
+@Composable
+private fun MentionSuggestionsCard(
+    members: List<MemberSummary>,
+    avatarPathByUserId: Map<String, String>,
+    onMemberSelected: (MemberSummary) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        tonalElevation = 4.dp,
+        shadowElevation = 2.dp,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    ) {
+        LazyColumn(
+            modifier = Modifier.heightIn(max = 240.dp),
+            contentPadding = PaddingValues(vertical = Spacing.xs)
+        ) {
+            items(members, key = { it.userId }) { member ->
+                MentionSuggestionItem(
+                    member = member,
+                    avatarPath = avatarPathByUserId[member.userId] ?: member.avatarUrl,
+                    onClick = { onMemberSelected(member) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MentionSuggestionItem(
+    member: MemberSummary,
+    avatarPath: String?,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Avatar(
+            name = member.displayName ?: member.userId,
+            avatarPath = avatarPath,
+            size = Sizes.iconLarge
+        )
+        Spacer(Modifier.width(Spacing.sm))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = member.displayName ?: member.userId,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = member.userId,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        if (member.isMe) {
+            Text(
+                text = "you",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .background(
+                        MaterialTheme.colorScheme.primaryContainer,
+                        RoundedCornerShape(999.dp)
+                    )
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+        }
+    }
 }

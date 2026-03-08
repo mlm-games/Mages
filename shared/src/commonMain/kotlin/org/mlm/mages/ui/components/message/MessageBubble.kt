@@ -85,7 +85,8 @@ fun MessageBubble(
     onEndPoll: (() -> Unit)? = null,
     onReplyPreviewClick: (() -> Unit)? = null,
     threadCount: Int? = null,
-    onOpenThread: (() -> Unit)? = null
+    onOpenThread: (() -> Unit)? = null,
+    onSenderClick: (() -> Unit)? = null
 ) {
     val showSenderInfo = !isMine && !isDm && !groupedWithPrev && !sender.isNullOrBlank()
     val showSenderAvatar = showSenderInfo && showMessageAvatars && !senderId.isNullOrBlank()
@@ -107,7 +108,9 @@ fun MessageBubble(
         if (showSenderInfo) {
             if (showSenderAvatar) {
                 Row(
-                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = 2.dp),
+                    modifier = Modifier
+                        .clickable(enabled = onSenderClick != null, onClick = { onSenderClick?.invoke() })
+                        .padding(horizontal = Spacing.md, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TimelineSenderAvatar(
@@ -129,7 +132,9 @@ fun MessageBubble(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = 2.dp)
+                    modifier = Modifier
+                        .clickable(enabled = onSenderClick != null, onClick = { onSenderClick?.invoke() })
+                        .padding(horizontal = Spacing.md, vertical = 2.dp)
                 )
             }
         }

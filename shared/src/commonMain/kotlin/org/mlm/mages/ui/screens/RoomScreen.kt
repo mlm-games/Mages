@@ -51,6 +51,7 @@ import org.mlm.mages.ui.components.message.MessageStatusLine
 import org.mlm.mages.ui.components.message.SystemMessageItem
 import org.mlm.mages.ui.components.message.SeenByChip
 import org.mlm.mages.ui.components.location.*
+import org.mlm.mages.ui.components.sheets.MemberActionsSheet
 import org.koin.compose.koinInject
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.sheets.*
@@ -842,6 +843,20 @@ fun RoomScreen(
             onDismiss = viewModel::hideReadReceiptsSheet
         )
     }
+
+    state.selectedMemberForAction?.let { member ->
+        MemberActionsSheet(
+            member = member.copy(avatarUrl = state.avatarByUserId[member.userId] ?: member.avatarUrl),
+            onDismiss = viewModel::clearSelectedMember,
+            onStartDm = { viewModel.startDmWith(member.userId) },
+            onKick = { _ -> },
+            onBan = { _ -> },
+            onUnban = { _ -> },
+            onIgnore = { viewModel.ignoreUser(member.userId) },
+            canModerate = false,
+            isBanned = member.membership == "ban"
+        )
+    }
 }
 
 @Composable
@@ -1015,6 +1030,8 @@ private fun RoomBottomBar(
             clipboardHandler = clipboardHandler,
             onAttachmentPasted = onAttachmentPasted,
             enterSendsMessage = enterSendsMessage,
+            roomMembers = state.roomMembers,
+            avatarPathByUserId = state.avatarByUserId,
         )
     }
 }
@@ -1261,7 +1278,10 @@ private fun MessageItem(
                         }
                     },
                     threadCount = state.threadCount[event.eventId],
-                    onOpenThread = onOpenThread
+                    onOpenThread = onOpenThread,
+                    onSenderClick = if (!isMine && !state.isSelectionMode) {
+                        { viewModel.selectMemberForAction(event.sender) }
+                    } else null
                 )
             }
         } // end bubble offset Box

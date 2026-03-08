@@ -105,7 +105,8 @@ class MatrixService(
 
     fun timelineDiffs(roomId: String): Flow<TimelineDiff<MessageEvent>> = port.timelineDiffs(roomId)
 
-    suspend fun sendMessage(roomId: String, body: String): Boolean = port.send(roomId, body)
+    suspend fun sendMessage(roomId: String, body: String, formattedBody: String? = null): Boolean =
+        port.send(roomId, body, formattedBody)
 
     suspend fun paginateBack(roomId: String, count: Int) =
         runCatching { port.paginateBack(roomId, count) }.getOrElse { false }
@@ -122,11 +123,11 @@ class MatrixService(
     suspend fun react(roomId: String, eventId: String, emoji: String) =
         runCatching { port.react(roomId, eventId, emoji) }.getOrElse { false }
 
-    suspend fun reply(roomId: String, inReplyToEventId: String, body: String) =
-        runCatching { port.reply(roomId, inReplyToEventId, body) }.getOrElse { false }
+    suspend fun reply(roomId: String, inReplyToEventId: String, body: String, formattedBody: String? = null) =
+        runCatching { port.reply(roomId, inReplyToEventId, body, formattedBody) }.getOrElse { false }
 
-    suspend fun edit(roomId: String, targetEventId: String, newBody: String) =
-        runCatching { port.edit(roomId, targetEventId, newBody) }.getOrElse { false }
+    suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String? = null) =
+        runCatching { port.edit(roomId, targetEventId, newBody, formattedBody) }.getOrElse { false }
 
     suspend fun redact(roomId: String, eventId: String, reason: String? = null) =
         runCatching { port.redact(roomId, eventId, reason) }.getOrElse { false }

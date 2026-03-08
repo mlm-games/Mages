@@ -5,6 +5,7 @@ import org.mlm.mages.RoomSummary
 import org.mlm.mages.matrix.DeviceSummary
 import org.mlm.mages.matrix.HomeserverLoginDetails
 import org.mlm.mages.matrix.LiveLocationShare
+import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.Presence
 import org.mlm.mages.matrix.RoomNotificationMode
@@ -88,6 +89,7 @@ data class RoomUiState(
 
     val thumbByEvent: Map<String, String> = emptyMap(),
     val avatarByUserId: Map<String, String> = emptyMap(),
+    val roomMembers: List<MemberSummary> = emptyList(),
     val threadCount: Map<String, Int> = emptyMap(),
 
     val liveLocationShares: Map<String, LiveLocationShare> = emptyMap(),
@@ -143,6 +145,7 @@ data class RoomUiState(
     val showReadReceiptsSheet: Boolean = false,
     val readReceiptsForEvent: List<SeenByEntry> = emptyList(),
     val highlightedEventId: String? = null,
+    val selectedMemberForAction: MemberSummary? = null,
 )
 
 
@@ -277,7 +280,8 @@ data class ThreadUiState(
 
     val editingEvent: MessageEvent? = null,
     val editInput: String = "",
-    val avatarByUserId: Map<String, String> = emptyMap()
+    val avatarByUserId: Map<String, String> = emptyMap(),
+    val roomMembers: List<MemberSummary> = emptyList()
 ) {
     val messageCount: Int get() = (if (rootMessage != null) 1 else 0) + replies.size
 

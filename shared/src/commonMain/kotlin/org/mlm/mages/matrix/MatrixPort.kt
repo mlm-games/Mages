@@ -393,7 +393,7 @@ interface MatrixPort {
     suspend fun listRooms(): List<RoomSummary>
     suspend fun recent(roomId: String, limit: Int = 50): List<MessageEvent>
     fun timelineDiffs(roomId: String): Flow<TimelineDiff<MessageEvent>>
-    suspend fun send(roomId: String, body: String): Boolean
+    suspend fun send(roomId: String, body: String, formattedBody: String? = null): Boolean
 
     suspend fun sendQueueSetEnabled(enabled: Boolean): Boolean
     suspend fun roomSendQueueSetEnabled(roomId: String, enabled: Boolean): Boolean
@@ -467,8 +467,8 @@ interface MatrixPort {
     suspend fun markRead(roomId: String): Boolean
     suspend fun markReadAt(roomId: String, eventId: String): Boolean
     suspend fun react(roomId: String, eventId: String, emoji: String): Boolean
-    suspend fun reply(roomId: String, inReplyToEventId: String, body: String): Boolean
-    suspend fun edit(roomId: String, targetEventId: String, newBody: String): Boolean
+    suspend fun reply(roomId: String, inReplyToEventId: String, body: String, formattedBody: String? = null): Boolean
+    suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String? = null): Boolean
     suspend fun redact(roomId: String, eventId: String, reason: String? = null): Boolean
     suspend fun getUserPowerLevel(roomId: String, userId: String): Long
     
@@ -601,7 +601,14 @@ interface MatrixPort {
         eventIds: List<String>
     ): Map<String, List<ReactionChip>>
 
-    suspend fun sendThreadText(roomId: String, rootEventId: String, body: String, replyToEventId: String? = null, latestEventId: String? = null): Boolean
+    suspend fun sendThreadText(
+        roomId: String,
+        rootEventId: String,
+        body: String,
+        replyToEventId: String? = null,
+        latestEventId: String? = null,
+        formattedBody: String? = null,
+    ): Boolean
     suspend fun threadSummary(roomId: String, rootEventId: String, perPage: Int = 100, maxPages: Int = 10): ThreadSummary
 
     suspend fun threadReplies(

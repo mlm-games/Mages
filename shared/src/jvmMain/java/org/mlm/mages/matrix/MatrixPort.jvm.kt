@@ -161,9 +161,9 @@ class RustMatrixPort : MatrixPort {
         }
     }
 
-    override suspend fun send(roomId: String, body: String): Boolean =
+    override suspend fun send(roomId: String, body: String, formattedBody: String?): Boolean =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.sendMessage(roomId, body) } }.getOrDefault(false)
+            runCatching { withClient { it.sendMessage(roomId, body, formattedBody) } }.getOrDefault(false)
         }
 
     override suspend fun sendQueueSetEnabled(enabled: Boolean): Boolean =
@@ -295,7 +295,6 @@ class RustMatrixPort : MatrixPort {
                     mages.BackupState.ENABLED -> MatrixPort.BackupState.Enabled
                     mages.BackupState.DOWNLOADING -> MatrixPort.BackupState.Downloading
                     mages.BackupState.DISABLING -> MatrixPort.BackupState.Disabling
-                    else -> MatrixPort.BackupState.Unknown
                 }
                 observer.onUpdate(mapped)
             }
@@ -345,14 +344,14 @@ class RustMatrixPort : MatrixPort {
             runCatching { withClient { it.react(roomId, eventId, emoji) } }.getOrDefault(false)
         }
 
-    override suspend fun reply(roomId: String, inReplyToEventId: String, body: String): Boolean =
+    override suspend fun reply(roomId: String, inReplyToEventId: String, body: String, formattedBody: String?): Boolean =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.reply(roomId, inReplyToEventId, body) } }.getOrDefault(false)
+            runCatching { withClient { it.reply(roomId, inReplyToEventId, body, formattedBody) } }.getOrDefault(false)
         }
 
-    override suspend fun edit(roomId: String, targetEventId: String, newBody: String): Boolean =
+    override suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String?): Boolean =
         withContext(Dispatchers.IO) {
-            runCatching { withClient { it.edit(roomId, targetEventId, newBody) } }.getOrDefault(false)
+            runCatching { withClient { it.edit(roomId, targetEventId, newBody, formattedBody) } }.getOrDefault(false)
         }
 
     override suspend fun redact(roomId: String, eventId: String, reason: String?): Boolean =
@@ -1066,9 +1065,10 @@ class RustMatrixPort : MatrixPort {
         rootEventId: String,
         body: String,
         replyToEventId: String?,
-        latestEventId: String?
+        latestEventId: String?,
+        formattedBody: String?
     ): Boolean = withContext(Dispatchers.IO) {
-        runCatching { withClient { it.sendThreadText(roomId, rootEventId, body, replyToEventId, latestEventId) } }.getOrDefault(false)
+        runCatching { withClient { it.sendThreadText(roomId, rootEventId, body, replyToEventId, latestEventId, formattedBody) } }.getOrDefault(false)
     }
 
     override suspend fun isSpace(roomId: String): Boolean =

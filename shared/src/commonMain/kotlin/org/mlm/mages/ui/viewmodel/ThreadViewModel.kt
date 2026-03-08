@@ -52,12 +52,37 @@ class ThreadViewModel(
 
 
     init {
+        preloadRoomMembers()
         observeTimeline()
         // Load initial thread data after a short delay to let timeline sync
         launch {
             delay(300)
             if (!currentState.hasInitialLoad) {
                 loadInitialThread()
+            }
+        }
+    }
+
+    private fun preloadRoomMembers() {
+        launch {
+            val members = runSafe { service.port.listMembers(roomId) }.orEmpty()
+            if (members.isNotEmpty()) {
+                updateState { copy(roomMembers = members) }
+
+                val resolved = members
+                    .mapNotNull { member ->
+                        val avatarUrl = member.avatarUrl ?: return@mapNotNull null
+                        member.userId to avatarUrl
+                    }
+                    .associate { (userId, avatarUrl) ->
+                        userId to service.avatars.resolve(avatarUrl, px = 64, crop = true)
+                    }
+                    .filterValues { it != null }
+                    .mapValues { it.value!! }
+
+                if (resolved.isNotEmpty()) {
+                    updateState { copy(avatarByUserId = avatarByUserId + resolved) }
+                }
             }
         }
     }
@@ -151,6 +176,7 @@ class ThreadViewModel(
 
         // Track seen items
         newEvents.forEach { seenItemIds.add(it.itemId) }
+        prefetchSenderAvatars(events)
 
         updateState {
             // Find root message
@@ -376,6 +402,28 @@ class ThreadViewModel(
         if (!prefs.value.sendTypingIndicators) return
     }
 
+    private fun prefetchSenderAvatars(events: List<MessageEvent>) {
+        val byUser = events
+            .asReversed()
+            .mapNotNull { event ->
+                val avatarUrl = event.senderAvatarUrl ?: return@mapNotNull null
+                event.sender to avatarUrl
+            }
+            .distinctBy { it.first }
+
+        if (byUser.isEmpty()) return
+
+        launch {
+            val resolved = byUser.associate { (userId, avatarUrl) ->
+                userId to service.avatars.resolve(avatarUrl, px = 64, crop = true)
+            }.filterValues { it != null }.mapValues { it.value!! }
+
+            if (resolved.isNotEmpty()) {
+                updateState { copy(avatarByUserId = avatarByUserId + resolved) }
+            }
+        }
+    }
+
     /**
      * Confirm an edit operation.
      */
@@ -384,7 +432,9 @@ class ThreadViewModel(
         val newBody = currentState.input.trim()
         if (newBody.isBlank()) return false
 
-        val ok = runSafe { service.edit(roomId, editEvent.eventId, newBody) } ?: false
+        val plainText = newBody.toPlainComposerText()
+        val formattedBody = newBody.toFormattedBodyOrNull()
+        val ok = runSafe { service.edit(roomId, editEvent.eventId, plainText, formattedBody) } ?: false
 
         if (ok) {
             updateState { copy(editingEvent = null, input = "") }
@@ -415,6 +465,9 @@ class ThreadViewModel(
         val body = text.trim()
         if (body.isBlank()) return false
 
+        val plainText = body.toPlainComposerText()
+        val formattedBody = body.toFormattedBodyOrNull()
+
         val replyToId = currentState.replyingTo?.eventId
         val latestEventId = if (replyToId == null && currentState.replies.isNotEmpty()) {
             currentState.replies.lastOrNull()?.eventId
@@ -432,7 +485,7 @@ class ThreadViewModel(
 
         // Send to server - message will appear via timeline diff
         val ok = runSafe {
-            service.port.sendThreadText(roomId, rootEventId, body, replyToId, latestEventId)
+            service.port.sendThreadText(roomId, rootEventId, plainText, replyToId, latestEventId, formattedBody)
         } ?: false
 
         if (!ok) {
@@ -441,6 +494,43 @@ class ThreadViewModel(
 
         return ok
     }
+
+    private fun String.toPlainComposerText(): String =
+        Regex("\\[([^]]+)]\\(https://matrix\\.to/#/(@[^)]+)\\)")
+            .replace(this) { matchResult ->
+                val label = matchResult.groupValues[1]
+                if (label.startsWith("@")) label else "@$label"
+            }
+
+    private fun String.toFormattedBodyOrNull(): String? {
+        val regex = Regex("\\[([^]]+)]\\(https://matrix\\.to/#/(@[^)]+)\\)")
+        if (!regex.containsMatchIn(this)) return null
+
+        val html = buildString {
+            var lastIndex = 0
+            regex.findAll(this@toFormattedBodyOrNull).forEach { match ->
+                append(escapeHtml(this@toFormattedBodyOrNull.substring(lastIndex, match.range.first)))
+                val label = match.groupValues[1]
+                val userId = match.groupValues[2]
+                append("<a href=\"https://matrix.to/#/")
+                append(escapeHtmlAttribute(userId))
+                append("\">")
+                append(escapeHtml(if (label.startsWith("@")) label else "@$label"))
+                append("</a>")
+                lastIndex = match.range.last + 1
+            }
+            append(escapeHtml(this@toFormattedBodyOrNull.substring(lastIndex)))
+        }
+        return html
+    }
+
+    private fun escapeHtml(text: String): String = text
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;")
+
+    private fun escapeHtmlAttribute(text: String): String = escapeHtml(text)
 
     override fun onCleared() {
         super.onCleared()

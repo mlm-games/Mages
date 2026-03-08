@@ -1740,7 +1740,7 @@ impl Client {
         self.send_observers.lock().unwrap().remove(&id).is_some()
     }
 
-    pub fn send_message(&self, room_id: String, body: String) -> bool {
+    pub fn send_message(&self, room_id: String, body: String, formatted_body: Option<String>) -> bool {
         RT.block_on(async {
             use matrix_sdk::ruma::events::room::message::RoomMessageEventContent as Msg;
 
@@ -1751,7 +1751,13 @@ impl Client {
                 return false;
             };
 
-            match timeline.send(Msg::text_plain(body.clone()).into()).await {
+            let content = if let Some(formatted) = formatted_body {
+                Msg::text_html(body.clone(), formatted)
+            } else {
+                Msg::text_plain(body.clone())
+            };
+
+            match timeline.send(content.into()).await {
                 Ok(handle) => {
                     let items = timeline.items().await;
                     if let Some(last_item) = items.last() {
@@ -2043,19 +2049,23 @@ impl Client {
         })
     }
 
-    pub fn reply(&self, room_id: String, in_reply_to: String, body: String) -> bool {
+    pub fn reply(&self, room_id: String, in_reply_to: String, body: String, formatted_body: Option<String>) -> bool {
         with_timeline_async!(self, room_id, |tl: Arc<Timeline>, _rid| async move {
             use matrix_sdk::ruma::events::room::message::RoomMessageEventContentWithoutRelation as MsgNoRel;
 
             let Ok(reply_to) = EventId::parse(&in_reply_to) else {
                 return false;
             };
-            let content = MsgNoRel::text_plain(body);
+            let content = if let Some(formatted) = formatted_body {
+                MsgNoRel::text_html(body, formatted)
+            } else {
+                MsgNoRel::text_plain(body)
+            };
             tl.send_reply(content, reply_to.to_owned()).await.is_ok()
         })
     }
 
-    pub fn edit(&self, room_id: String, target_event_id: String, new_body: String) -> bool {
+    pub fn edit(&self, room_id: String, target_event_id: String, new_body: String, formatted_body: Option<String>) -> bool {
         with_timeline_async!(self, room_id, |tl: Arc<Timeline>, _rid| async move {
             use matrix_sdk::room::edit::EditedContent;
             use matrix_sdk::ruma::events::room::message::RoomMessageEventContentWithoutRelation as MsgNoRel;
@@ -2067,7 +2077,11 @@ impl Client {
                 return false;
             };
             let item_id = item.identifier();
-            let edited = EditedContent::RoomMessage(MsgNoRel::text_plain(new_body));
+            let edited = EditedContent::RoomMessage(if let Some(formatted) = formatted_body {
+                MsgNoRel::text_html(new_body, formatted)
+            } else {
+                MsgNoRel::text_plain(new_body)
+            });
 
             tl.edit(&item_id, edited).await.is_ok()
         })
@@ -4726,6 +4740,7 @@ impl Client {
         body: String,
         reply_to_event_id: Option<String>,
         latest_event_id: Option<String>,
+        formatted_body: Option<String>,
     ) -> bool {
         RT.block_on(async {
             let Ok(rid) = ruma::OwnedRoomId::try_from(room_id) else {
@@ -4738,7 +4753,11 @@ impl Client {
                 return false;
             };
 
-            let mut content: RoomMessageEventContent = RoomMessageEventContent::text_plain(body);
+            let mut content: RoomMessageEventContent = if let Some(formatted) = formatted_body {
+                RoomMessageEventContent::text_html(body, formatted)
+            } else {
+                RoomMessageEventContent::text_plain(body)
+            };
 
             let relation = if let Some(reply_to) = reply_to_event_id {
                 if let Ok(eid) = ruma::OwnedEventId::try_from(reply_to) {

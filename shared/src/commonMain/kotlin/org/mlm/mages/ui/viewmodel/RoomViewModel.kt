@@ -132,6 +132,11 @@ class RoomViewModel(
             val roomId = currentState.roomId
             settingsRepo.update { it.copy(lastOpenedRoomId = roomId) }
 
+            val members = runSafe { service.port.listMembers(roomId) }.orEmpty()
+            if (members.isNotEmpty()) {
+                updateState { copy(roomMembers = members) }
+            }
+
             val savedDraft = loadDraft(roomId)
             if (!savedDraft.isNullOrBlank()) {
                 updateState { copy(input = savedDraft) }
@@ -213,15 +218,17 @@ class RoomViewModel(
 
             if (hasText) {
                 val text = s.input.trim()
+                val plainText = text.toPlainComposerText()
+                val formattedBody = text.toFormattedBodyOrNull()
                 updateState { copy(input = "") }
                 draftJob?.cancel()
                 launch {
                     saveDraft(s.roomId, "")
                     val replyTo = s.replyingTo
                     if (replyTo != null) {
-                        service.reply(s.roomId, replyTo.eventId, text)
+                        service.reply(s.roomId, replyTo.eventId, plainText, formattedBody)
                     } else {
-                        service.sendMessage(s.roomId, text)
+                        service.sendMessage(s.roomId, plainText, formattedBody)
                     }
                     updateState { copy(replyingTo = null) }
                 }
@@ -231,12 +238,14 @@ class RoomViewModel(
 
         launch {
             val text = s.input.trim()
+            val plainText = text.toPlainComposerText()
+            val formattedBody = text.toFormattedBodyOrNull()
             val replyTo = s.replyingTo
 
             val ok = if (replyTo != null) {
-                service.reply(s.roomId, replyTo.eventId, text)
+                service.reply(s.roomId, replyTo.eventId, plainText, formattedBody)
             } else {
-                service.sendMessage(s.roomId, text)
+                service.sendMessage(s.roomId, plainText, formattedBody)
             }
 
             if (ok) {
@@ -277,17 +286,19 @@ class RoomViewModel(
         val s = currentState
         val target = s.editing ?: return
         val newBody = s.input.trim()
+        val plainText = newBody.toPlainComposerText()
+        val formattedBody = newBody.toFormattedBodyOrNull()
         if (newBody.isBlank()) return
 
         launch {
-            val ok = service.edit(s.roomId, target.eventId, newBody)
+            val ok = service.edit(s.roomId, target.eventId, plainText, formattedBody)
             if (ok) {
                 updateState {
                     val idx = allEvents.indexOfFirst { it.eventId == target.eventId }
                     if (idx == -1) {
                         copy(editing = null, input = "")
                     } else {
-                        val updated = allEvents[idx].copy(body = newBody)
+                        val updated = allEvents[idx].copy(body = plainText)
                         val newAll = allEvents.toMutableList().also { it[idx] = updated }
                         copy(
                             allEvents = newAll,
@@ -302,6 +313,43 @@ class RoomViewModel(
             }
         }
     }
+
+    private fun String.toPlainComposerText(): String =
+        Regex("\\[([^\\]]+)]\\(https://matrix\\.to/#/(@[^)]+)\\)")
+            .replace(this) { matchResult ->
+                val label = matchResult.groupValues[1]
+                if (label.startsWith("@")) label else "@$label"
+            }
+
+    private fun String.toFormattedBodyOrNull(): String? {
+        val regex = Regex("\\[([^\\]]+)]\\(https://matrix\\.to/#/(@[^)]+)\\)")
+        if (!regex.containsMatchIn(this)) return null
+
+        val html = buildString {
+            var lastIndex = 0
+            regex.findAll(this@toFormattedBodyOrNull).forEach { match ->
+                append(escapeHtml(this@toFormattedBodyOrNull.substring(lastIndex, match.range.first)))
+                val label = match.groupValues[1]
+                val userId = match.groupValues[2]
+                append("<a href=\"https://matrix.to/#/")
+                append(escapeHtmlAttribute(userId))
+                append("\">")
+                append(escapeHtml(if (label.startsWith("@")) label else "@$label"))
+                append("</a>")
+                lastIndex = match.range.last + 1
+            }
+            append(escapeHtml(this@toFormattedBodyOrNull.substring(lastIndex)))
+        }
+        return html
+    }
+
+    private fun escapeHtml(text: String): String = text
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;")
+
+    private fun escapeHtmlAttribute(text: String): String = escapeHtml(text)
 
     //  Reactions
 
@@ -445,6 +493,38 @@ class RoomViewModel(
                 messageInfoEvent = null,
                 messageInfoEntries = emptyList()
             )
+        }
+    }
+
+    fun selectMemberForAction(userId: String) {
+        val member = currentState.roomMembers.firstOrNull { it.userId == userId } ?: return
+        updateState { copy(selectedMemberForAction = member) }
+    }
+
+    fun clearSelectedMember() = updateState { copy(selectedMemberForAction = null) }
+
+    fun ignoreUser(userId: String) {
+        launch {
+            val result = runSafe { service.port.ignoreUser(userId) }
+            if (result?.isSuccess == true) {
+                updateState { copy(selectedMemberForAction = null) }
+                _events.send(Event.ShowSuccess("User ignored"))
+            } else {
+                _events.send(Event.ShowError(result.toUserMessage("Failed to ignore user")))
+            }
+        }
+    }
+
+    fun startDmWith(userId: String) {
+        launch {
+            val dmRoomId = runSafe { service.port.ensureDm(userId) }
+            if (dmRoomId != null) {
+                updateState { copy(selectedMemberForAction = null) }
+                val profile = runSafe { service.port.roomProfile(dmRoomId) }
+                _events.send(Event.NavigateToRoom(dmRoomId, profile?.name ?: userId))
+            } else {
+                _events.send(Event.ShowError("Failed to start conversation"))
+            }
         }
     }
 

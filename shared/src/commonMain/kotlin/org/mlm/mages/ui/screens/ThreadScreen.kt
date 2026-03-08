@@ -22,9 +22,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -33,6 +31,7 @@ import org.koin.compose.koinInject
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.ReactionChip
 import org.mlm.mages.ui.ThreadUiState
+import org.mlm.mages.ui.components.composer.MessageComposer
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.LoadMoreButton
 import org.mlm.mages.ui.components.core.StatusBanner
@@ -47,7 +46,6 @@ import org.mlm.mages.ui.util.formatTime
 import org.mlm.mages.ui.viewmodel.ThreadViewModel
 import io.github.mlmgames.settings.core.SettingsRepository
 import org.mlm.mages.settings.AppSettings
-import org.mlm.mages.platform.sendShortcutHandler
 
 @Composable
 fun ThreadRoute(
@@ -148,15 +146,21 @@ fun ThreadScreen(
             )
         },
         bottomBar = {
-            ThreadComposer(
-                input = state.input,
-                onInputChange = onInputChange,
-                replyTo = state.replyingTo,
-                editingEvent = state.editingEvent,
+            MessageComposer(
+                value = state.input,
+                enabled = true,
+                isOffline = false,
+                replyingTo = state.replyingTo,
+                editing = state.editingEvent,
+                attachments = emptyList(),
+                isUploadingAttachment = false,
+                onValueChange = onInputChange,
+                onSend = onSend,
                 onCancelReply = onCancelReply,
                 onCancelEdit = onCancelEdit,
-                onSend = onSend,
                 enterSendsMessage = enterSendsMessage,
+                roomMembers = state.roomMembers,
+                avatarPathByUserId = state.avatarByUserId,
             )
         },
         floatingActionButton = {
@@ -273,6 +277,7 @@ fun ThreadScreen(
                                 event = event,
                                 isMine = event.sender == myUserId,
                                 reactionChips = event.reactions,
+                                avatarByUserId = state.avatarByUserId,
                                 onReact = { emoji -> onReact(event, emoji) },
                                 onLongPress = { sheetEvent = event },
                                 grouped = shouldGroup,
@@ -536,6 +541,7 @@ private fun ThreadReplyMessage(
     event: MessageEvent,
     isMine: Boolean,
     reactionChips: List<ReactionChip>,
+    avatarByUserId: Map<String, String>,
     onReact: (String) -> Unit,
     onLongPress: () -> Unit,
     grouped: Boolean = false,
@@ -568,6 +574,8 @@ private fun ThreadReplyMessage(
                 isMine = isMine,
                 body = event.body,
                 sender = if (grouped) null else event.senderDisplayName,
+                senderAvatarPath = avatarByUserId[event.sender],
+                senderId = event.sender,
                 timestamp = event.timestampMs,
                 groupedWithPrev = grouped,
                 groupedWithNext = groupedWithNext,
@@ -627,179 +635,6 @@ private fun ThreadReactionChipsRow(
 }
 
 @Composable
-private fun ThreadComposer(
-    input: String,
-    onInputChange: (String) -> Unit,
-    replyTo: MessageEvent?,
-    editingEvent: MessageEvent?,
-    onCancelReply: () -> Unit,
-    onCancelEdit: () -> Unit,
-    onSend: () -> Unit,
-    enterSendsMessage: Boolean = false,
-) {
-    val isEditing = editingEvent != null
-    val hasAction = replyTo != null || isEditing
-    var fieldValue by remember { mutableStateOf(TextFieldValue(input)) }
-
-    LaunchedEffect(input) {
-        if (input != fieldValue.text) {
-            fieldValue = TextFieldValue(input, selection = TextRange(input.length))
-        }
-    }
-
-    Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 8.dp) {
-        Column {
-            // Reply/Edit preview banner
-            AnimatedVisibility(visible = hasAction) {
-                Surface(
-                    color = if (isEditing)
-                        MaterialTheme.colorScheme.tertiaryContainer
-                    else
-                    MaterialTheme.colorScheme.surfaceContainerLow,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .width(3.dp)
-                                .height(32.dp)
-                                .background(
-                                    if (isEditing)
-                                        MaterialTheme.colorScheme.tertiary
-                                    else
-                                        MaterialTheme.colorScheme.primary,
-                                    RoundedCornerShape(2.dp)
-                                )
-                        )
-                        Spacer(Modifier.width(Spacing.md))
-
-                        Icon(
-                            if (isEditing) Icons.Default.Edit
-                            else Icons.AutoMirrored.Filled.Reply,
-                            null,
-                            modifier = Modifier.size(16.dp),
-                            tint = if (isEditing)
-                                MaterialTheme.colorScheme.tertiary
-                            else
-                                MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(Modifier.width(Spacing.sm))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                if (isEditing) "Editing message"
-                                else "Replying to ${formatDisplayName(replyTo?.sender ?: "")}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (isEditing)
-                                    MaterialTheme.colorScheme.tertiary
-                                else
-                                    MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                (if (isEditing) editingEvent.body else replyTo?.body) ?: "",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-
-                        IconButton(
-                            onClick = if (isEditing) onCancelEdit else onCancelReply,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Close,
-                                if (isEditing) "Cancel edit" else "Cancel reply",
-                                modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                verticalAlignment = Alignment.Bottom
-            ) {
-                OutlinedTextField(
-                    value = fieldValue,
-                    onValueChange = { updated ->
-                        fieldValue = updated
-                        onInputChange(updated.text)
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .sendShortcutHandler(
-                            enabled = true,
-                            enterSendsMessage = enterSendsMessage,
-                            onInsertNewline = {
-                                val updated = insertNewline(fieldValue)
-                                fieldValue = updated
-                                onInputChange(updated.text)
-                            },
-                            onSend = onSend
-                        ),
-                    placeholder = {
-                        Text(
-                            when {
-                                isEditing -> "Edit message…"
-                                replyTo != null -> "Reply in thread…"
-                                else -> "Add to thread…"
-                            }
-                        )
-                    },
-                    maxLines = 5,
-                    shape = RoundedCornerShape(24.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = if (isEditing)
-                            MaterialTheme.colorScheme.tertiary
-                        else
-                            MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
-                )
-
-                Spacer(Modifier.width(Spacing.sm))
-
-                FilledIconButton(
-                    onClick = onSend,
-                    enabled = input.isNotBlank(),
-                    modifier = Modifier.size(48.dp),
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = if (isEditing)
-                            MaterialTheme.colorScheme.tertiary
-                        else
-                            MaterialTheme.colorScheme.primary,
-                        contentColor = if (isEditing)
-                            MaterialTheme.colorScheme.onTertiary
-                        else
-                            MaterialTheme.colorScheme.onPrimary,
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                ) {
-                    Icon(
-                        if (isEditing) Icons.Default.Edit
-                        else Icons.AutoMirrored.Filled.Send,
-                        if (isEditing) "Save" else "Send"
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun EmptyThreadView() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
@@ -836,18 +671,4 @@ private fun EmptyThreadView() {
             )
         }
     }
-}
-
-private fun insertNewline(value: TextFieldValue): TextFieldValue {
-    val selection = value.selection
-    val start = selection.start.coerceAtLeast(0)
-    val end = selection.end.coerceAtLeast(0)
-    val text = value.text
-    val newText = buildString(text.length + 1) {
-        append(text, 0, start)
-        append('\n')
-        append(text, end, text.length)
-    }
-    val newCursor = start + 1
-    return TextFieldValue(newText, selection = TextRange(newCursor))
 }
