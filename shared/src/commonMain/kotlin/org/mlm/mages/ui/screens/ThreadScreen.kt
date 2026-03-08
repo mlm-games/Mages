@@ -573,6 +573,7 @@ private fun ThreadReplyMessage(
             MessageBubble(
                 isMine = isMine,
                 body = event.body,
+                formattedBody = event.formattedBody,
                 sender = if (grouped) null else event.senderDisplayName,
                 senderAvatarPath = avatarByUserId[event.sender],
                 senderId = event.sender,

@@ -1239,6 +1239,7 @@ private fun MessageItem(
                 MessageBubble(
                     isMine = isMine,
                     body = event.body,
+                    formattedBody = event.formattedBody,
                     sender = event.senderDisplayName,
                     senderAvatarPath = state.avatarByUserId[event.sender],
                     senderId = event.sender,

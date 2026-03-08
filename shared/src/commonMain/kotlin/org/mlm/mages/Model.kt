@@ -24,6 +24,7 @@ data class MessageEvent(
     var senderDisplayName: String?,
     var senderAvatarUrl: String?,
     var body: String,
+    var formattedBody: String? = null,
     var timestampMs: Long,
     var sendState: SendState?,
     var txnId: String?,

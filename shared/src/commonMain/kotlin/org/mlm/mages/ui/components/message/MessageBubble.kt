@@ -56,6 +56,7 @@ fun TimelineSenderAvatar(
 fun MessageBubble(
     isMine: Boolean,
     body: String,
+    formattedBody: String? = null,
     sender: String?,
     senderAvatarPath: String? = null,
     senderId: String? = null,
@@ -95,6 +96,7 @@ fun MessageBubble(
     } else {
         0.dp
     }
+    val renderedBody = formattedBody.toMarkdownMentionsOrNull() ?: body
 
     Column(
         modifier = modifier
@@ -176,7 +178,7 @@ fun MessageBubble(
                         )
                     } else if (body.isNotBlank()) {
                         MarkdownText(
-                            text = body,
+                            text = renderedBody,
                             color = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
                             else MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -225,6 +227,31 @@ fun MessageBubble(
             )
         }
     }
+}
+
+private fun String?.toMarkdownMentionsOrNull(): String? {
+    if (this.isNullOrBlank()) return null
+    val mentionRegex = Regex("""<a\s+href=\"(https://matrix\.to/#/@[^\"]+)\">(.*?)</a>""", RegexOption.IGNORE_CASE)
+    if (!mentionRegex.containsMatchIn(this)) return null
+
+    val markdown = mentionRegex.replace(this) { match ->
+        val href = match.groupValues[1]
+        val label = match.groupValues[2]
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
+        "[$label]($href)"
+    }
+
+    return markdown
+        .replace("<br>", "\n", ignoreCase = true)
+        .replace("<br/>", "\n", ignoreCase = true)
+        .replace("<br />", "\n", ignoreCase = true)
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
 }
 
 private fun bubbleShape(isMine: Boolean, groupedWithPrev: Boolean, groupedWithNext: Boolean) = RoundedCornerShape(

@@ -221,6 +221,7 @@ pub struct MessageEvent {
     pub sender_display_name: Option<String>,
     pub sender_avatar_url: Option<String>,
     pub body: String,
+    pub formatted_body: Option<String>,
     pub timestamp_ms: u64,
     pub send_state: Option<SendState>,
     pub txn_id: Option<String>,
@@ -7058,6 +7059,7 @@ fn map_timeline_event(
     let mut attachment: Option<AttachmentInfo> = None;
     let thread_root_event_id = ev.content().thread_root().map(|id| id.to_string());
     let body: String;
+    let mut formatted_body: Option<String> = None;
     let mut is_edited = false;
     let mut poll_data: Option<PollData> = None;
     let mut reply_to_sender_display_name: Option<String> = None;
@@ -7090,6 +7092,20 @@ fn map_timeline_event(
                     } else {
                         raw.to_owned()
                     };
+
+                    use matrix_sdk::ruma::events::room::message::MessageType;
+                    match msg.msgtype() {
+                        MessageType::Text(c) => {
+                            formatted_body = c.formatted.as_ref().map(|f| f.body.clone());
+                        }
+                        MessageType::Notice(c) => {
+                            formatted_body = c.formatted.as_ref().map(|f| f.body.clone());
+                        }
+                        MessageType::Emote(c) => {
+                            formatted_body = c.formatted.as_ref().map(|f| f.body.clone());
+                        }
+                        _ => {}
+                    }
                 }
                 MsgLikeKind::Poll(poll_state) => {
                     let data = map_poll_state(poll_state, me);
@@ -7158,6 +7174,7 @@ fn map_timeline_event(
         sender_display_name,
         sender_avatar_url,
         body,
+        formatted_body,
         timestamp_ms: ts,
         send_state,
         txn_id,

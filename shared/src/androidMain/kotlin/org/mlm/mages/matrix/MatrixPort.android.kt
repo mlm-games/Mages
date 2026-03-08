@@ -1535,6 +1535,7 @@ private fun mages.MessageEvent.toModel() = MessageEvent(
     roomId = roomId,
     sender = sender,
     body = body,
+    formattedBody = formattedBody,
     timestampMs = timestampMs.toLong(),
     sendState = sendState?.toKotlin(),
     txnId = txnId,
