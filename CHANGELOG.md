@@ -1,3 +1,14 @@
+## v4.2.1
+
+- Do not consider system messages for read events (#55)
+- Render mentions as bold links
+- @Mentions support
+- Show avatars toggle (#54)
+- Live location impl. (android only)
+- test: override OAuth for android
+- Bump few dependencies' versions
+
+
 ## v4.1.2
 
 - Unread FAB, and scroll to last unread on opening a room (#50)

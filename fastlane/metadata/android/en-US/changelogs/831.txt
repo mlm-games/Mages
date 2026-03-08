@@ -1,0 +1,7 @@
+- Do not consider system messages for read events (#55)
+- Render mentions as bold links
+- @Mentions support
+- Show avatars toggle (#54)
+- Live location impl. (android only)
+- test: override OAuth for android
+- Bump few dependencies' versions
