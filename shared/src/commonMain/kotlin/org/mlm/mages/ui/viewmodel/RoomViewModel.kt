@@ -19,6 +19,7 @@ import org.mlm.mages.platform.platformEmbeddedElementCallParentUrlOrNull
 import org.mlm.mages.platform.platformEmbeddedElementCallUrlOrNull
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.ForwardableRoom
+import org.mlm.mages.ui.AttachmentUploadStage
 import org.mlm.mages.ui.theme.Durations
 import org.mlm.mages.ui.RoomUiState
 import org.mlm.mages.ui.components.AttachmentData
@@ -597,6 +598,7 @@ class RoomViewModel(
                     copy(
                         isUploadingAttachment = true,
                         attachmentProgress = 0f,
+                        attachmentUploadStage = AttachmentUploadStage.Preparing,
                         uploadingFileName = "${data.fileName} (${i + 1}/$total)"
                     )
                 }
@@ -609,7 +611,17 @@ class RoomViewModel(
                 ) { sent, totalBytes ->
                     val denom = (totalBytes ?: data.sizeBytes).coerceAtLeast(1L).toFloat()
                     val p = (sent.toFloat() / denom).coerceIn(0f, 1f)
-                    updateState { copy(attachmentProgress = p) }
+                    val stage = when {
+                        sent <= 0L || p <= 0f -> AttachmentUploadStage.Preparing
+                        p >= 1f -> AttachmentUploadStage.Sending
+                        else -> AttachmentUploadStage.Uploading
+                    }
+                    updateState {
+                        copy(
+                            attachmentProgress = p,
+                            attachmentUploadStage = stage,
+                        )
+                    }
                 }
 
                 if (!ok) {
@@ -618,6 +630,7 @@ class RoomViewModel(
                         copy(
                             isUploadingAttachment = false,
                             attachmentProgress = 0f,
+                            attachmentUploadStage = null,
                             uploadingFileName = null,
                             attachments = remaining
                         )
@@ -631,6 +644,7 @@ class RoomViewModel(
                 copy(
                     isUploadingAttachment = false,
                     attachmentProgress = 0f,
+                    attachmentUploadStage = null,
                     uploadingFileName = null
                 )
             }
@@ -644,6 +658,7 @@ class RoomViewModel(
             copy(
                 isUploadingAttachment = false,
                 attachmentProgress = 0f,
+                attachmentUploadStage = null,
                 attachments = emptyList(),
                 uploadingFileName = null
             )

@@ -71,6 +71,7 @@ import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.ui.AttachmentUploadStage
 import org.mlm.mages.ui.RoomUiState
 
 @Suppress("NewApi")
@@ -1009,7 +1010,7 @@ private fun RoomBottomBar(
             AttachmentProgress(
                 fileName = state.uploadingFileName ?: "Uploading…",
                 progress = state.attachmentProgress,
-                // TODO: actual progress hasn't been wired yet in rust
+                stage = state.attachmentUploadStage ?: AttachmentUploadStage.Preparing,
                 onCancel = onCancelUpload
             )
         }

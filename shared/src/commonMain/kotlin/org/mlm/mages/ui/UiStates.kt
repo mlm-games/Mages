@@ -79,6 +79,7 @@ data class RoomUiState(
     val isUploadingAttachment: Boolean = false,
     val uploadingFileName: String? = null,
     val attachmentProgress: Float = 0f,
+    val attachmentUploadStage: AttachmentUploadStage? = null,
     val error: String? = null,
 
     val lastReadTs: Long? = null,
@@ -147,6 +148,12 @@ data class RoomUiState(
     val highlightedEventId: String? = null,
     val selectedMemberForAction: MemberSummary? = null,
 )
+
+enum class AttachmentUploadStage {
+    Preparing,
+    Uploading,
+    Sending,
+}
 
 
 

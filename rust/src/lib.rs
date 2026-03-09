@@ -37,10 +37,7 @@ use matrix_sdk::{
 use matrix_sdk_base::notification_settings::RoomNotificationMode as RsMode;
 use matrix_sdk_ui::notification_client::NotificationItem;
 use matrix_sdk_ui::timeline::default_event_filter;
-use matrix_sdk_ui::{
-    eyeball_im::Vector,
-    timeline::{AttachmentConfig, AttachmentSource, TimelineDetails, TimelineEventItemId},
-};
+use matrix_sdk_ui::{eyeball_im::Vector, timeline::{TimelineDetails, TimelineEventItemId}};
 use mime::Mime;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -927,6 +924,44 @@ fn now_ms() -> u64 {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_millis() as u64
+}
+
+async fn await_room_send_queue_completion_with_progress(
+    mut updates: tokio::sync::broadcast::Receiver<matrix_sdk::send_queue::RoomSendQueueUpdate>,
+    txn_id: &str,
+    progress_observer: Option<Arc<dyn ProgressObserver>>,
+) -> bool {
+    use matrix_sdk::send_queue::RoomSendQueueUpdate as U;
+
+    loop {
+        match updates.recv().await {
+            Ok(U::MediaUpload {
+                related_to,
+                progress,
+                ..
+            }) if related_to.to_string() == txn_id => {
+                if let Some(observer) = progress_observer.as_ref() {
+                    let _ = catch_unwind(AssertUnwindSafe(|| {
+                        observer.on_progress(progress.current as u64, Some(progress.total as u64))
+                    }));
+                }
+            }
+            Ok(U::SentEvent { transaction_id, .. }) if transaction_id.to_string() == txn_id => {
+                return true;
+            }
+            Ok(U::SendError { transaction_id, .. })
+                if transaction_id.to_string() == txn_id =>
+            {
+                return false;
+            }
+            Ok(U::CancelledLocalEvent { transaction_id }) if transaction_id.to_string() == txn_id => {
+                return false;
+            }
+            Ok(_) => {}
+            Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
+            Err(tokio::sync::broadcast::error::RecvError::Closed) => return false,
+        }
+    }
 }
 
 fn notification_event_ts_ms(ev: &NotificationEvent) -> u64 {
@@ -2318,28 +2353,45 @@ impl Client {
         progress: Option<Box<dyn ProgressObserver>>,
     ) -> bool {
         RT.block_on(async {
+            self.ensure_send_queue_supervision();
+
             let Ok(rid) = OwnedRoomId::try_from(room_id.clone()) else {
                 return false;
             };
-            let Some(tl) = self.timeline_mgr.timeline_for(&rid).await else {
+            let Some(room) = self.inner.get_room(&rid) else {
                 return false;
             };
 
             let parsed: Mime = mime.parse().unwrap_or(mime::APPLICATION_OCTET_STREAM);
-            let fut = tl.send_attachment(
-                AttachmentSource::Data {
-                    filename: filename.clone(),
-                    bytes: bytes.clone(),
-                },
-                parsed,
-                AttachmentConfig::default(),
-            );
-            let res = fut.await;
-            if let Some(p) = progress {
-                let sz = bytes.len() as u64;
-                p.on_progress(sz, Some(sz));
-            }
-            res.is_ok()
+            let queue = room.send_queue();
+            let (_, updates) = match queue.subscribe().await {
+                Ok(v) => v,
+                Err(_) => return false,
+            };
+            let txn_id = matrix_sdk::ruma::TransactionId::new();
+
+            let handle = match queue
+                .send_attachment(
+                    filename,
+                    parsed,
+                    bytes,
+                    matrix_sdk::attachment::AttachmentConfig::new().txn_id(txn_id.clone()),
+                )
+                .await
+            {
+                Ok(handle) => handle,
+                Err(_) => return false,
+            };
+
+            let txn_id = txn_id.to_string();
+            let progress = progress.map(Arc::from);
+
+            self.send_handles_by_txn
+                .lock()
+                .unwrap()
+                .insert(txn_id.clone(), handle);
+
+            await_room_send_queue_completion_with_progress(updates, &txn_id, progress).await
         })
     }
 
@@ -2348,35 +2400,62 @@ impl Client {
         room_id: String,
         path: String,
         mime: String,
-        _filename: Option<String>,
+        filename: Option<String>,
         progress: Option<Box<dyn ProgressObserver>>,
     ) -> bool {
         RT.block_on(async {
+            self.ensure_send_queue_supervision();
+
             let Ok(rid) = ruma::OwnedRoomId::try_from(room_id) else {
                 return false;
             };
-            let Some(tl) = self.timeline_mgr.timeline_for(&rid).await else {
+            let Some(room) = self.inner.get_room(&rid) else {
                 return false;
             };
 
-            // Parse MIME (fallback to application/octet-stream)
             let parsed: Mime = mime.parse().unwrap_or(mime::APPLICATION_OCTET_STREAM);
 
-            // Stream directly from disk (AttachmentSource::File reads size + filename)
-            let fut = tl.send_attachment(
-                std::path::PathBuf::from(&path),
-                parsed,
-                AttachmentConfig::default(),
-            );
-            let res = fut.await;
+            let bytes = match tokio::fs::read(&path).await {
+                Ok(bytes) => bytes,
+                Err(_) => return false,
+            };
+            let filename = filename.unwrap_or_else(|| {
+                Path::new(&path)
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .map(ToOwned::to_owned)
+                    .unwrap_or_else(|| "attachment".to_owned())
+            });
 
-            if let Some(p) = progress {
-                if let Ok(md) = std::fs::metadata(&path) {
-                    let sz = md.len();
-                    p.on_progress(sz, Some(sz));
-                }
-            }
-            res.is_ok()
+            let queue = room.send_queue();
+            let (_, updates) = match queue.subscribe().await {
+                Ok(v) => v,
+                Err(_) => return false,
+            };
+            let txn_id = matrix_sdk::ruma::TransactionId::new();
+
+            let handle = match queue
+                .send_attachment(
+                    filename,
+                    parsed,
+                    bytes,
+                    matrix_sdk::attachment::AttachmentConfig::new().txn_id(txn_id.clone()),
+                )
+                .await
+            {
+                Ok(handle) => handle,
+                Err(_) => return false,
+            };
+
+            let txn_id = txn_id.to_string();
+            let progress = progress.map(Arc::from);
+
+            self.send_handles_by_txn
+                .lock()
+                .unwrap()
+                .insert(txn_id.clone(), handle);
+
+            await_room_send_queue_completion_with_progress(updates, &txn_id, progress).await
         })
     }
 
@@ -4674,9 +4753,7 @@ impl Client {
 
                     U::ReplacedLocalEvent { .. } => {}
 
-                    U::MediaUpload { .. } => {
-                        // TODO: wire progress into ProgressObserver.
-                    }
+                    U::MediaUpload { .. } => {}
                 }
             }
         });
