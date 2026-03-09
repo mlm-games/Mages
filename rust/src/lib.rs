@@ -7581,7 +7581,7 @@ async fn latest_room_event_for(mgr: &TimelineManager, room: &Room) -> Option<Lat
     let rid = room.room_id().to_owned();
     let tl = mgr.timeline_for(&rid).await?;
 
-    // Walk backwards to find first “real” item (skip call signalling, filtered states, blanks)
+    // Walk backwards to find the latest event we can turn into a room-list preview.
     let items = tl.items().await;
     let ev = items.iter().rev().find_map(|it| it.as_event())?;
 
@@ -7638,8 +7638,14 @@ async fn latest_room_event_for(mgr: &TimelineManager, room: &Room) -> Option<Lat
                 body = Some("Custom event".to_owned());
             }
         },
-        TimelineItemContent::CallInvite => return None,
-        TimelineItemContent::RtcNotification => return None,
+        TimelineItemContent::CallInvite => {
+            event_type = "m.call.invite".to_owned();
+            body = None;
+        }
+        TimelineItemContent::RtcNotification => {
+            event_type = "m.rtc.notification".to_owned();
+            body = Some("Call started".to_owned());
+        }
         _ => {
             let text = render_timeline_text(ev);
             if text.trim().is_empty() {

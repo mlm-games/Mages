@@ -171,6 +171,8 @@ class RoomsViewModel(
             msgtype == "m.location" -> LastMessageType.Location
             evType  == "m.poll.start"   -> LastMessageType.Poll
             evType  == "m.call.invite"  -> LastMessageType.Call
+            evType  == "m.rtc.notification" -> LastMessageType.Call
+            evType  == "m.call.notify" -> LastMessageType.Call
             event.isEncrypted && event.body == null -> LastMessageType.Encrypted
             else -> LastMessageType.Text
         }
@@ -178,6 +180,9 @@ class RoomsViewModel(
 
     private fun formatBodyForPreview(event: LatestRoomEvent?, type: LastMessageType): String? {
         if (event == null) return null
+        if (type == LastMessageType.Call) {
+            return event.body ?: "Call"
+        }
         val body = event.body
 
         if (body != null && body.startsWith("mxc://")) {
