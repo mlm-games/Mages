@@ -46,6 +46,18 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.2.3" date="2026-03-09" type="stable">
+      <description>
+        <ul>
+          <li>show calls in previews</li>
+          <li>Improve attachment progress anim</li>
+          <li>Add language setting (to switch without switching the default lang.)</li>
+          <li>change secondary color to be slighly less greyish</li>
+          <li>fix: settings "calls" section shown as a "privacy" section</li>
+          <li>fix \' strings translation</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.2.2" date="2026-03-09" type="stable">
       <description>
         <ul>

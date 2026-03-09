@@ -1,3 +1,13 @@
+## v4.2.3
+
+- show calls in previews
+- Improve attachment progress anim
+- Add language setting (to switch without switching the default lang.)
+- change secondary color to be slighly less greyish
+- fix: settings "calls" section shown as a "privacy" section
+- fix \' strings translation
+
+
 ## v4.2.2
 
 - add location permission request logic
