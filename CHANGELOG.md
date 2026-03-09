@@ -1,3 +1,8 @@
+## v4.2.2
+
+- add location permission request logic
+
+
 ## v4.2.1
 
 - Do not consider system messages for read events (#55)
