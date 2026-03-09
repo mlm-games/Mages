@@ -90,11 +90,8 @@ class NotificationEnrichWorker(
                 nm.cancel(notifId)
 
                 if (settings.autoJoinInvites) {
-                    val acceptOk = runCatching {
+                    runCatching {
                         port.acceptInvite(roomId)
-                    }.getOrDefault(false)
-                    if (acceptOk) {
-                        // TODO: trigger a room list refresh here?
                     }
                     return Result.success()
                 }
