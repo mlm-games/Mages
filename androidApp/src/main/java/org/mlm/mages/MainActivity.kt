@@ -63,13 +63,47 @@ class MainActivity : AppCompatActivity() {
         pendingCallAction = null
     }
 
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants ->
+        val fineGranted = grants[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val coarseGranted = grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (fineGranted || coarseGranted) {
+            pendingLocationAction?.invoke()
+        } else {
+            val snackbarManager: SnackbarManager by inject()
+            snackbarManager.showError("Location permission is required for live location sharing")
+        }
+        pendingLocationAction = null
+    }
+
     private var pendingCallAction: (() -> Unit)? = null
+    private var pendingLocationAction: (() -> Unit)? = null
 
     fun requestVoiceCallPermissions(onGranted: () -> Unit) =
         requestCallPermissions(needsCamera = false, onGranted)
 
     fun requestVideoCallPermissions(onGranted: () -> Unit) =
         requestCallPermissions(needsCamera = true, onGranted)
+
+    fun requestLocationPermissions(onGranted: () -> Unit) {
+        val needed = mutableListOf<String>()
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED) {
+            needed.add(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED) {
+            needed.add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+
+        if (needed.isEmpty()) onGranted()
+        else {
+            pendingLocationAction = onGranted
+            locationPermissionLauncher.launch(needed.toTypedArray())
+        }
+    }
 
     private fun requestCallPermissions(needsCamera: Boolean, onGranted: () -> Unit) {
         val needed = mutableListOf<String>()
@@ -122,6 +156,7 @@ class MainActivity : AppCompatActivity() {
                 App(
                     settingsRepository,
                     deepLinks,
+                    onRequestLocationPermissions = { action -> requestLocationPermissions(action) },
                     onRequestVideoCallPermissions = { action -> requestVideoCallPermissions(action) },
                     onRequestVoiceCallPermissions = { action -> requestVoiceCallPermissions(action) }
                 )

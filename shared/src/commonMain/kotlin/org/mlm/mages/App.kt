@@ -61,13 +61,19 @@ val LocalMessageFontSize = staticCompositionLocalOf { 16f }
 fun App(
     settingsRepository: SettingsRepository<AppSettings>,
     deepLinks: Flow<DeepLinkAction>? = null,
+    onRequestLocationPermissions: ((() -> Unit) -> Unit)? = null,
     onRequestVideoCallPermissions: ((() -> Unit) -> Unit)? = null,
     onRequestVoiceCallPermissions: ((() -> Unit) -> Unit)? = null
 ) {
     val settings by settingsRepository.flow.collectAsState(AppSettings())
 
     CompositionLocalProvider(LocalMessageFontSize provides settings.fontSize) {
-        AppContent(deepLinks = deepLinks, onRequestVideoCallPermissions = onRequestVideoCallPermissions, onRequestVoiceCallPermissions = onRequestVoiceCallPermissions)
+        AppContent(
+            deepLinks = deepLinks,
+            onRequestLocationPermissions = onRequestLocationPermissions,
+            onRequestVideoCallPermissions = onRequestVideoCallPermissions,
+            onRequestVoiceCallPermissions = onRequestVoiceCallPermissions,
+        )
     }
 }
 
@@ -75,6 +81,7 @@ fun App(
 @Composable
 private fun AppContent(
     deepLinks: Flow<DeepLinkAction>?,
+    onRequestLocationPermissions: ((() -> Unit) -> Unit)? = null,
     onRequestVideoCallPermissions: ((() -> Unit) -> Unit)? = null,
     onRequestVoiceCallPermissions: ((() -> Unit) -> Unit)? = null
 ) {
@@ -311,6 +318,7 @@ private fun AppContent(
                             onNavigateToThread = { roomId, eventId, roomName ->
                                 backStack.add(Route.Thread(roomId, eventId, roomName))
                             },
+                            onRequestLocationPermissions = onRequestLocationPermissions,
                             onStartCall = {
                                 onRequestVideoCallPermissions?.invoke {
                                     viewModel.startCall(

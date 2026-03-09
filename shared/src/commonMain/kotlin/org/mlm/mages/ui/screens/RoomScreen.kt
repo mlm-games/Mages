@@ -82,6 +82,7 @@ fun RoomScreen(
     onOpenInfo: () -> Unit,
     onNavigateToRoom: (roomId: String, name: String) -> Unit,
     onNavigateToThread: (roomId: String, eventId: String, roomName: String) -> Unit,
+    onRequestLocationPermissions: ((() -> Unit) -> Unit)? = null,
     onStartCall: () -> Unit,
     onStartVoiceCall: () -> Unit,
     onOpenForwardPicker: (sourceRoomId: String, eventIds: List<String>) -> Unit
@@ -716,7 +717,11 @@ fun RoomScreen(
     if (state.showLiveLocation) {
         LiveLocationSheet(
             isCurrentlySharing = viewModel.isCurrentlySharingLocation,
-            onStartSharing = viewModel::startLiveLocation,
+            onStartSharing = { durationMinutes ->
+                onRequestLocationPermissions?.invoke {
+                    viewModel.startLiveLocation(durationMinutes)
+                } ?: viewModel.startLiveLocation(durationMinutes)
+            },
             onStopSharing = viewModel::stopLiveLocation,
             onDismiss = viewModel::hideLiveLocation
         )
