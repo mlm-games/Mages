@@ -9,6 +9,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.github.mlmgames.settings.core.annotations.SettingPlatform
+import io.github.mlmgames.settings.core.platform.currentPlatform
 import org.mlm.mages.matrix.LiveLocationShare
 import org.mlm.mages.ui.theme.Spacing
 
@@ -79,8 +81,10 @@ fun LiveLocationBanner(
                 }
             }
 
-            IconButton(onClick = onViewAll) {
-                Icon(Icons.Default.OpenInFull, "View")
+            if (currentPlatform == SettingPlatform.ANDROID) {
+                IconButton(onClick = onViewAll) {
+                    Icon(Icons.Default.Map, "View")
+                }
             }
         }
     }
