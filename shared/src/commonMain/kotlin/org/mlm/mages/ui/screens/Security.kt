@@ -666,7 +666,7 @@ private fun SettingsTab(
                 CategoryConfig(Appearance::class, stringResource(Res.string.appearance)),
                 CategoryConfig(Notifications::class, stringResource(Res.string.notifications)),
                 CategoryConfig(Privacy::class, stringResource(Res.string.privacy)),
-                CategoryConfig(Calls::class, stringResource(Res.string.privacy)),
+                CategoryConfig(Calls::class, stringResource(Res.string.calls)),
                 CategoryConfig(Storage::class, stringResource(Res.string.storage)),
                 CategoryConfig(Advanced::class, stringResource(Res.string.advanced)),
             ),

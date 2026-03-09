@@ -122,6 +122,7 @@
     <string name="account">Account</string>
     <string name="manage_account">Manage Account</string>
     <string name="appearance">Appearance</string>
+    <string name="calls">Calls</string>
     <string name="notifications">Notifications</string>
     <string name="storage">Storage</string>
     <string name="advanced">Advanced</string>
