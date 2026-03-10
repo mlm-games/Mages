@@ -1,3 +1,4 @@
+
 package org.mlm.mages
 
 import kotlinx.serialization.Serializable
@@ -5,15 +6,6 @@ import org.mlm.mages.matrix.EventType
 import org.mlm.mages.matrix.PollData
 import org.mlm.mages.matrix.ReactionChip
 import org.mlm.mages.matrix.SendState
-
-@Serializable
-data class RoomSummary(
-    val id: String,
-    val name: String,
-    val avatarUrl: String? = null,
-    val isDm: Boolean = false,
-    val isEncrypted: Boolean = false,
-)
 
 @Serializable
 data class MessageEvent(
@@ -42,13 +34,21 @@ data class MessageEvent(
 )
 
 @Serializable
+data class RoomSummary(
+    val id: String,
+    val name: String,
+    val avatarUrl: String? = null,
+    val isDm: Boolean = false,
+    val isEncrypted: Boolean = false,
+)
+
+@Serializable
 data class LiveLocationEvent(
     val userId: String,
     val geoUri: String,
     val tsMs: Long,
     val isLive: Boolean,
 )
-
 
 @Serializable
 enum class AttachmentKind { Image, Video, File }

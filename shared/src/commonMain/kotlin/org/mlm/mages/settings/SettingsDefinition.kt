@@ -59,7 +59,8 @@ data class AppSettings(
         description = "System / English / Spanish",
         category = Appearance::class,
         type = Dropdown::class,
-        options = ["System", "English", "Spanish"]
+        options = ["System", "English", "Spanish"],
+        platforms = [SettingPlatform.JVM, SettingPlatform.ANDROID]
     )
     val language: Int = AppLanguage.System.ordinal,
 
@@ -269,7 +270,7 @@ data class AppSettings(
         description = "Minimize to tray on launch",
         category = Advanced::class,
         type = Toggle::class,
-        platforms = [SettingPlatform.DESKTOP]
+        platforms = [SettingPlatform.JVM]
     )
     val startInTray: Boolean = false,
 

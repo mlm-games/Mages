@@ -6,6 +6,7 @@ import org.mlm.mages.AttachmentInfo
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.RoomSummary
 
+@Serializable
 data class DeviceSummary(
     val deviceId: String,
     val displayName: String,
@@ -14,6 +15,7 @@ data class DeviceSummary(
     var verified: Boolean
 )
 
+@Serializable
 data class SeenByEntry (
     var userId: String,
     var displayName: String?,
@@ -21,6 +23,7 @@ data class SeenByEntry (
     var tsMs: ULong?
 )
 
+@Serializable
 data class SearchHit (
     var roomId: String,
     var eventId: String,
@@ -29,26 +32,36 @@ data class SearchHit (
     var timestampMs: ULong
 )
 
+@Serializable
 data class SearchPage (
     var hits: List<SearchHit>,
     var nextOffset: UInt?
 )
 
 sealed class TimelineDiff<out T> {
+    @Serializable
     data class Reset<T>(val items: List<T>) : TimelineDiff<T>()
     class Clear<T> : TimelineDiff<T>()
 
+    @Serializable
     data class Append<T>(val items: List<T>) : TimelineDiff<T>()
 
+    @Serializable
     data class UpdateByItemId<T>(val itemId: String, val item: T) : TimelineDiff<T>()
+    @Serializable
     data class RemoveByItemId<T>(val itemId: String) : TimelineDiff<T>()
+    @Serializable
     data class UpsertByItemId<T>(val itemId: String, val item: T) : TimelineDiff<T>()
+    @Serializable
     data class Prepend<T>(val item: T) : TimelineDiff<T>()
 }
+@Serializable
 enum class SasPhase { Created, Requested, Ready, Accepted, Started, Emojis, Confirmed, Cancelled, Failed, Done }
 
+@Serializable
 enum class SendState { Enqueued, Sending, Sent, Retrying, Failed }
 
+@Serializable
 enum class EventType {
     Message,
     MembershipChange,
@@ -68,6 +81,7 @@ enum class EventType {
     LiveLocation,
 }
 
+@Serializable
 data class SendUpdate(
     val roomId: String,
     val txnId: String,
@@ -77,6 +91,7 @@ data class SendUpdate(
     val error: String?
 )
 
+@Serializable
 enum class RoomNotificationMode {
     AllMessages,
     MentionsAndKeywordsOnly,
@@ -90,31 +105,37 @@ val RoomNotificationMode.displayName: String
         RoomNotificationMode.Mute -> "Muted"
     }
 
+@Serializable
 enum class Presence {
     Online,
     Offline,
     Unavailable
 }
 
+@Serializable
 data class PresenceInfo(
     val presence: Presence,
     val statusMsg: String?
 )
 
+@Serializable
 enum class RoomDirectoryVisibility {
     Public,
     Private
 }
 
+@Serializable
 data class RoomUpgradeInfo(
     val roomId: String,
     val reason: String?
 )
 
+@Serializable
 data class RoomPredecessorInfo(
     val roomId: String,
 )
 
+@Serializable
 data class LiveLocationShare(
     val userId: String,
     val geoUri: String,
@@ -130,6 +151,7 @@ interface VerificationObserver {
 
 interface ReceiptsObserver { fun onChanged() }
 
+@Serializable
 data class CallInvite(
     val roomId: String,
     val sender: String,
@@ -138,6 +160,7 @@ data class CallInvite(
     val tsMs: Long
 )
 
+@Serializable
 enum class NotificationKind {
     Message,
     CallRing,
@@ -147,6 +170,7 @@ enum class NotificationKind {
     StateEvent
 }
 
+@Serializable
 data class RenderedNotification(
     val roomId: String,
     val eventId: String,
@@ -162,10 +186,15 @@ data class RenderedNotification(
     val expiresAtMs: Long?
 )
 
+@Serializable
 data class UnreadStats(val messages: Long, val notifications: Long, val mentions: Long)
+@Serializable
 data class DirectoryUser(val userId: String, val displayName: String?, val avatarUrl: String?)
+@Serializable
 data class PublicRoom(val roomId: String, val name: String?, val topic: String?, val alias: String?, val avatarUrl: String?, val memberCount: Long, val worldReadable: Boolean, val guestCanJoin: Boolean)
+@Serializable
 data class PublicRoomsPage(val rooms: List<PublicRoom>, val nextBatch: String?, val prevBatch: String?)
+@Serializable
 data class RoomPreview(
     val roomId: String,
     val canonicalAlias: String?,
@@ -177,6 +206,7 @@ data class RoomPreview(
     val joinRule: RoomJoinRule?,
     val membership: RoomPreviewMembership?
 )
+@Serializable
 data class RoomProfile(
     val roomId: String,
     val name: String,
@@ -190,6 +220,7 @@ data class RoomProfile(
     val roomVersion: String?
 )
 
+@Serializable
 enum class RoomJoinRule {
     Public,
     Invite,
@@ -198,6 +229,7 @@ enum class RoomJoinRule {
     KnockRestricted
 }
 
+@Serializable
 enum class RoomPreviewMembership {
     Joined,
     Invited,
@@ -206,6 +238,7 @@ enum class RoomPreviewMembership {
     Banned
 }
 
+@Serializable
 enum class RoomHistoryVisibility {
     Invited,
     Joined,
@@ -213,6 +246,7 @@ enum class RoomHistoryVisibility {
     WorldReadable
 }
 
+@Serializable
 data class RoomPowerLevels(
     val users: Map<String, Long>,
     val usersDefault: Long,
@@ -233,6 +267,7 @@ data class RoomPowerLevels(
     val spaceChild: Long
 )
 
+@Serializable
 data class RoomPowerLevelChanges(
     val usersDefault: Long? = null,
     val eventsDefault: Long? = null,
@@ -280,6 +315,7 @@ data class RoomListEntry(
     val latestEvent: LatestRoomEvent? = null,
 )
 
+@Serializable
 data class MemberSummary(
     val userId: String,
     val displayName: String?,
@@ -288,6 +324,7 @@ data class MemberSummary(
     val membership: String
 )
 
+@Serializable
 data class KnockRequestSummary(
     val eventId: String,
     val userId: String,
@@ -301,6 +338,7 @@ data class KnockRequestSummary(
 @Serializable
 data class ReactionChip(val key: String, val count: Int, val mine: Boolean)
 
+@Serializable
 data class ThreadPage(
     val rootEventId: String,
     val roomId: String,
@@ -308,8 +346,10 @@ data class ThreadPage(
     val nextBatch: String?,
     val prevBatch: String?
 )
+@Serializable
 data class ThreadSummary(val rootEventId: String, val roomId: String, val count: Long, val latestTsMs: Long?)
 
+@Serializable
 data class SpaceInfo(
     val roomId: String,
     val name: String,
@@ -320,6 +360,7 @@ data class SpaceInfo(
     val avatarUrl: String? = null
 )
 
+@Serializable
 data class SpaceChildInfo(
     val roomId: String,
     val name: String?,
@@ -333,6 +374,7 @@ data class SpaceChildInfo(
     val suggested: Boolean
 )
 
+@Serializable
 data class SpaceHierarchyPage(
     val children: List<SpaceChildInfo>,
     val nextBatch: String?
@@ -359,11 +401,13 @@ data class PollOption(
     var isWinner: Boolean
 )
 
+@Serializable
 enum class PollKind {
     Disclosed,
     Undisclosed
 }
 
+@Serializable
 enum class CallIntent {
     StartCall,
     JoinExisting,
@@ -371,6 +415,7 @@ enum class CallIntent {
     JoinExistingVoiceDm,
 }
 
+@Serializable
 data class CallSession(
     val sessionId: ULong,
     val widgetUrl: String,
@@ -382,6 +427,7 @@ interface CallWidgetObserver {
     fun onToWidget(message: String)
 }
 
+@Serializable
 data class HomeserverLoginDetails(
     val supportsOauth: Boolean,
     val supportsSso: Boolean,
@@ -390,8 +436,11 @@ data class HomeserverLoginDetails(
 
 interface MatrixPort {
 
+    @Serializable
     data class SyncStatus(val phase: SyncPhase, val message: String?)
+    @Serializable
     enum class SyncPhase { Idle, Running, BackingOff, Error }
+    @Serializable
     enum class ConnectionState {
         Disconnected,
         Connecting,
@@ -400,6 +449,7 @@ interface MatrixPort {
         Reconnecting
     }
 
+    @Serializable
     enum class RecoveryState {
         Disabled,
         Enabled,
@@ -407,6 +457,7 @@ interface MatrixPort {
         Unknown
     }
 
+    @Serializable
     enum class BackupState {
         Unknown,
         Creating,

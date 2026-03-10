@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalWasmJsInterop::class, kotlinx.serialization.ExperimentalSerializationApi::class)
+
 package org.mlm.mages.matrix
 
 import kotlinx.coroutines.await
@@ -34,7 +36,7 @@ internal val wasmJson = Json {
 
 internal suspend fun ensureWasmBridgeReady() {
     @Suppress("UNUSED_VARIABLE")
-    val ignored: JsAny? = ensureMagesFfi().await<JsAny?>()
+    val ignored: JsAny? = ensureMagesFfi().await()
 }
 
 internal suspend fun createWebMatrixFacade(
@@ -42,6 +44,6 @@ internal suspend fun createWebMatrixFacade(
     baseStoreDir: String,
     accountId: String?,
 ): WebMatrixFacade {
-    val created: JsAny? = WebMatrixFacade.create(homeserverUrl, baseStoreDir, accountId).await<JsAny?>()
+    val created: JsAny? = WebMatrixFacade.create(homeserverUrl, baseStoreDir, accountId).await()
     return asWebMatrixFacade(created)
 }
