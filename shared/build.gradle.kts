@@ -18,6 +18,7 @@ kotlin {
             "androidx.compose.foundation.ExperimentalFoundationApi",
             "androidx.compose.foundation.layout.ExperimentalLayoutApi"
         ))
+        freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 
     android {
