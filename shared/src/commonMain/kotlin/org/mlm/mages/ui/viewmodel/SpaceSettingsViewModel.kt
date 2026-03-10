@@ -49,55 +49,85 @@ class SpaceSettingsViewModel(
         updateState { copy(showAddRoom = false) }
     }
 
-    fun addChild(roomId: String, suggested: Boolean = false) {
+    private fun runSavingBooleanAction(
+        successMessage: String,
+        errorMessage: String,
+        onErrorMessage: String = errorMessage,
+        onSuccess: (() -> Unit)? = null,
+        block: suspend () -> Boolean,
+    ) {
         launch(
             onError = { t ->
                 updateState { copy(isSaving = false) }
-                launch {_events.send(Event.ShowError(t.message ?: "Failed to add room"))}
+                launch { _events.send(Event.ShowError(t.message ?: onErrorMessage)) }
             }
         ) {
             updateState { copy(isSaving = true) }
+            val ok = block()
 
-            val ok = service.spaceAddChild(
+            if (ok) {
+                updateState { copy(isSaving = false) }
+                onSuccess?.invoke()
+                _events.send(Event.ShowSuccess(successMessage))
+            } else {
+                updateState { copy(isSaving = false) }
+                _events.send(Event.ShowError(errorMessage))
+            }
+        }
+    }
+
+    private fun runSavingResultAction(
+        errorMessage: String,
+        onErrorMessage: String = errorMessage,
+        onSuccess: (suspend () -> Unit)? = null,
+        block: suspend () -> Result<Unit>?,
+    ) {
+        launch(
+            onError = { t ->
+                updateState { copy(isSaving = false) }
+                launch { _events.send(Event.ShowError(t.message ?: onErrorMessage)) }
+            }
+        ) {
+            updateState { copy(isSaving = true) }
+            val result = block()
+            updateState { copy(isSaving = false) }
+
+            if (result?.isSuccess == true) {
+                onSuccess?.invoke()
+            } else {
+                _events.send(Event.ShowError(result.toUserMessage(errorMessage)))
+            }
+        }
+    }
+
+    fun addChild(roomId: String, suggested: Boolean = false) {
+        runSavingBooleanAction(
+            successMessage = "Room added to space",
+            errorMessage = "Failed to add room",
+            onSuccess = {
+                updateState { copy(showAddRoom = false) }
+                loadChildren()
+                loadAvailableRooms()
+            }
+        ) {
+            service.spaceAddChild(
                 spaceId = currentState.spaceId,
                 childRoomId = roomId,
                 order = null,
                 suggested = suggested
             )
-
-            if (ok) {
-                updateState { copy(isSaving = false, showAddRoom = false) }
-                loadChildren()
-                loadAvailableRooms()
-                _events.send(Event.ShowSuccess("Room added to space"))
-            } else {
-                updateState { copy(isSaving = false) }
-                _events.send(Event.ShowError("Failed to add room"))
-            }
         }
     }
 
     fun removeChild(childRoomId: String) {
-        launch(
-            onError = { t ->
-                updateState { copy(isSaving = false) }
-                launch { _events.send(Event.ShowError(t.message ?: "Failed to remove room")) }
-            }
-        ) {
-            updateState { copy(isSaving = true) }
-
-            val ok = service.spaceRemoveChild(currentState.spaceId, childRoomId)
-
-            if (ok) {
-                updateState { copy(isSaving = false) }
+        runSavingBooleanAction(
+            successMessage = "Room removed from space",
+            errorMessage = "Failed to remove room",
+            onSuccess = {
                 loadChildren()
                 loadAvailableRooms()
-                _events.send(Event.ShowSuccess("Room removed from space"))
-            } else {
-                updateState { copy(isSaving = false) }
-                _events.send(Event.ShowError("Failed to remove room"))
             }
-        }
+        ) { service.spaceRemoveChild(currentState.spaceId, childRoomId) }
     }
 
     // Invite user dialog
@@ -120,24 +150,13 @@ class SpaceSettingsViewModel(
             return
         }
 
-        launch(
-            onError = { t ->
-                updateState { copy(isSaving = false) }
-                launch { _events.send(Event.ShowError(t.message ?: "Failed to invite user")) }
+        runSavingBooleanAction(
+            successMessage = "Invitation sent",
+            errorMessage = "Failed to invite user",
+            onSuccess = {
+                updateState { copy(showInviteUser = false, inviteUserId = "") }
             }
-        ) {
-            updateState { copy(isSaving = true) }
-
-            val ok = service.spaceInviteUser(currentState.spaceId, userId)
-
-            if (ok) {
-                updateState { copy(isSaving = false, showInviteUser = false, inviteUserId = "") }
-                _events.send(Event.ShowSuccess("Invitation sent"))
-            } else {
-                updateState { copy(isSaving = false) }
-                _events.send(Event.ShowError("Failed to invite user"))
-            }
-        }
+        ) { service.spaceInviteUser(currentState.spaceId, userId) }
     }
 
     fun clearError() {
@@ -153,20 +172,12 @@ class SpaceSettingsViewModel(
     }
 
     fun leaveSpace() {
-        launch(
-            onError = { t ->
-                updateState { copy(isSaving = false, showLeaveConfirm = false) }
-                launch { _events.send(Event.ShowError(t.message ?: "Failed to leave space")) }
-            }
+        runSavingResultAction(
+            errorMessage = "Failed to leave space",
+            onSuccess = { _events.send(Event.LeaveSuccess) }
         ) {
-            updateState { copy(isSaving = true, showLeaveConfirm = false) }
-            val result = service.port.leaveRoom(currentState.spaceId)
-            updateState { copy(isSaving = false) }
-            if (result?.isSuccess == true) {
-                _events.send(Event.LeaveSuccess)
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage("Failed to leave space")))
-            }
+            updateState { copy(showLeaveConfirm = false) }
+            service.port.leaveRoom(currentState.spaceId)
         }
     }
 

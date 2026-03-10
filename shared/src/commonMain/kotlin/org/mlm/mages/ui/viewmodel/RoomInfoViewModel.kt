@@ -222,6 +222,69 @@ class RoomInfoViewModel(
         updateState { copy(editedTopic = topic) }
     }
 
+    private fun runSavingAction(
+        successMessage: String,
+        errorMessage: String,
+        refreshOnSuccess: Boolean = false,
+        onSuccess: (suspend () -> Unit)? = null,
+        block: suspend () -> Result<Unit>?,
+    ) {
+        launch {
+            updateState { copy(isSaving = true) }
+            val result = block()
+            updateState { copy(isSaving = false) }
+
+            if (result?.isSuccess == true) {
+                if (refreshOnSuccess) refresh()
+                onSuccess?.invoke()
+                _events.send(Event.ShowSuccess(successMessage))
+            } else {
+                _events.send(Event.ShowError(result.toUserMessage(errorMessage)))
+            }
+        }
+    }
+
+    private fun runAdminAction(
+        successMessage: String,
+        errorMessage: String,
+        refreshOnSuccess: Boolean = true,
+        onSuccess: (suspend () -> Unit)? = null,
+        block: suspend () -> Result<Unit>?,
+    ) {
+        launch {
+            updateState { copy(isAdminBusy = true) }
+            val result = block()
+            updateState { copy(isAdminBusy = false) }
+
+            if (result?.isSuccess == true) {
+                if (refreshOnSuccess) refresh()
+                onSuccess?.invoke()
+                _events.send(Event.ShowSuccess(successMessage))
+            } else {
+                _events.send(Event.ShowError(result.toUserMessage(errorMessage)))
+            }
+        }
+    }
+
+    private fun runAction(
+        successMessage: String,
+        errorMessage: String,
+        refreshOnSuccess: Boolean = false,
+        onSuccess: (suspend () -> Unit)? = null,
+        block: suspend () -> Result<Unit>?,
+    ) {
+        launch {
+            val result = block()
+            if (result?.isSuccess == true) {
+                if (refreshOnSuccess) refresh()
+                onSuccess?.invoke()
+                _events.send(Event.ShowSuccess(successMessage))
+            } else {
+                _events.send(Event.ShowError(result.toUserMessage(errorMessage)))
+            }
+        }
+    }
+
     fun saveName() {
         val name = currentState.editedName.trim()
         if (name.isBlank()) {
@@ -233,18 +296,11 @@ class RoomInfoViewModel(
             return
         }
 
-        launch {
-            updateState { copy(isSaving = true) }
-            val result = runSafe { service.port.setRoomName(roomId, name) }
-            updateState { copy(isSaving = false) }
-
-            if (result?.isSuccess == true) {
-                refresh()
-                _events.send(Event.ShowSuccess("Room name updated"))
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage("Failed to update name")))
-            }
-        }
+        runSavingAction(
+            successMessage = "Room name updated",
+            errorMessage = "Failed to update name",
+            refreshOnSuccess = true,
+        ) { runSafe { service.port.setRoomName(roomId, name) } }
     }
 
     fun saveTopic() {
@@ -253,18 +309,13 @@ class RoomInfoViewModel(
             return
         }
 
-        launch {
+        runSavingAction(
+            successMessage = "Topic updated",
+            errorMessage = "Failed to update topic",
+            refreshOnSuccess = true,
+        ) {
             val topic = currentState.editedTopic.trim()
-            updateState { copy(isSaving = true) }
-            val result = runSafe { service.port.setRoomTopic(roomId, topic) }
-            updateState { copy(isSaving = false) }
-
-            if (result?.isSuccess == true) {
-                refresh()
-                _events.send(Event.ShowSuccess("Topic updated"))
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage("Failed to update topic")))
-            }
+            runSafe { service.port.setRoomTopic(roomId, topic) }
         }
     }
 
@@ -314,17 +365,10 @@ class RoomInfoViewModel(
             return
         }
 
-        launch {
-            updateState { copy(isAdminBusy = true) }
-            val result = runSafe { service.port.setRoomDirectoryVisibility(roomId, v) }
-            updateState { copy(isAdminBusy = false) }
-            if (result?.isSuccess == true) {
-                refresh()
-                _events.send(Event.ShowSuccess("Visibility updated"))
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage("Failed to update visibility")))
-            }
-        }
+        runAdminAction(
+            successMessage = "Visibility updated",
+            errorMessage = "Failed to update visibility",
+        ) { runSafe { service.port.setRoomDirectoryVisibility(roomId, v) } }
     }
 
     fun enableEncryption() {
@@ -333,17 +377,10 @@ class RoomInfoViewModel(
             return
         }
 
-        launch {
-            updateState { copy(isAdminBusy = true) }
-            val result = runSafe { service.port.enableRoomEncryption(roomId) }
-            updateState { copy(isAdminBusy = false) }
-            if (result?.isSuccess == true) {
-                refresh()
-                _events.send(Event.ShowSuccess("Encryption enabled"))
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage("Failed to enable encryption")))
-            }
-        }
+        runAdminAction(
+            successMessage = "Encryption enabled",
+            errorMessage = "Failed to enable encryption",
+        ) { runSafe { service.port.enableRoomEncryption(roomId) } }
     }
 
     fun setJoinRule(rule: RoomJoinRule) {
@@ -352,17 +389,10 @@ class RoomInfoViewModel(
             return
         }
 
-        launch {
-            updateState { copy(isAdminBusy = true) }
-            val result = runSafe { service.port.setRoomJoinRule(roomId, rule) }
-            updateState { copy(isAdminBusy = false) }
-            if (result?.isSuccess == true) {
-                refresh()
-                _events.send(Event.ShowSuccess("Join rule updated"))
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage("Failed to update join rule")))
-            }
-        }
+        runAdminAction(
+            successMessage = "Join rule updated",
+            errorMessage = "Failed to update join rule",
+        ) { runSafe { service.port.setRoomJoinRule(roomId, rule) } }
     }
 
     fun setHistoryVisibility(visibility: RoomHistoryVisibility) {
@@ -371,17 +401,10 @@ class RoomInfoViewModel(
             return
         }
 
-        launch {
-            updateState { copy(isAdminBusy = true) }
-            val result = runSafe { service.port.setRoomHistoryVisibility(roomId, visibility) }
-            updateState { copy(isAdminBusy = false) }
-            if (result?.isSuccess == true) {
-                refresh()
-                _events.send(Event.ShowSuccess("History visibility updated"))
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage("Failed to update history visibility")))
-            }
-        }
+        runAdminAction(
+            successMessage = "History visibility updated",
+            errorMessage = "Failed to update history visibility",
+        ) { runSafe { service.port.setRoomHistoryVisibility(roomId, visibility) } }
     }
 
     fun updateCanonicalAlias(alias: String?, altAliases: List<String>) {
@@ -390,17 +413,10 @@ class RoomInfoViewModel(
             return
         }
 
-        launch {
-            updateState { copy(isAdminBusy = true) }
-            val result = runSafe { service.port.setRoomCanonicalAlias(roomId, alias, altAliases) }
-            updateState { copy(isAdminBusy = false) }
-            if (result?.isSuccess == true) {
-                refresh()
-                _events.send(Event.ShowSuccess("Room aliases updated"))
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage("Failed to update room aliases")))
-            }
-        }
+        runAdminAction(
+            successMessage = "Room aliases updated",
+            errorMessage = "Failed to update room aliases",
+        ) { runSafe { service.port.setRoomCanonicalAlias(roomId, alias, altAliases) } }
     }
 
     fun updatePowerLevel(userId: String, powerLevel: Long) {
@@ -409,17 +425,10 @@ class RoomInfoViewModel(
             return
         }
 
-        launch {
-            updateState { copy(isAdminBusy = true) }
-            val result = runSafe { service.port.updatePowerLevelForUser(roomId, userId, powerLevel) }
-            updateState { copy(isAdminBusy = false) }
-            if (result?.isSuccess == true) {
-                refresh()
-                _events.send(Event.ShowSuccess("Power level updated"))
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage("Failed to update power level")))
-            }
-        }
+        runAdminAction(
+            successMessage = "Power level updated",
+            errorMessage = "Failed to update power level",
+        ) { runSafe { service.port.updatePowerLevelForUser(roomId, userId, powerLevel) } }
     }
 
     fun applyPowerLevelChanges(changes: RoomPowerLevelChanges) {
@@ -428,39 +437,24 @@ class RoomInfoViewModel(
             return
         }
 
-        launch {
-            updateState { copy(isAdminBusy = true) }
-            val result = runSafe { service.port.applyPowerLevelChanges(roomId, changes) }
-            updateState { copy(isAdminBusy = false) }
-            if (result?.isSuccess == true) {
-                refresh()
-                _events.send(Event.ShowSuccess("Permissions updated"))
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage("Failed to update permissions")))
-            }
-        }
+        runAdminAction(
+            successMessage = "Permissions updated",
+            errorMessage = "Failed to update permissions",
+        ) { runSafe { service.port.applyPowerLevelChanges(roomId, changes) } }
     }
 
     fun reportContent(eventId: String, score: Int?, reason: String?) {
-        launch {
-            val result = runSafe { service.port.reportContent(roomId, eventId, score, reason) }
-            if (result?.isSuccess == true) {
-                _events.send(Event.ShowSuccess("Content reported"))
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage("Failed to report content")))
-            }
-        }
+        runAction(
+            successMessage = "Content reported",
+            errorMessage = "Failed to report content",
+        ) { runSafe { service.port.reportContent(roomId, eventId, score, reason) } }
     }
 
     fun reportRoom(reason: String?) {
-        launch {
-            val result = runSafe { service.port.reportRoom(roomId, reason) }
-            if (result?.isSuccess == true) {
-                _events.send(Event.ShowSuccess("Room reported"))
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage("Failed to report room")))
-            }
-        }
+        runAction(
+            successMessage = "Room reported",
+            errorMessage = "Failed to report room",
+        ) { runSafe { service.port.reportRoom(roomId, reason) } }
     }
 
     fun leave() {
@@ -502,54 +496,38 @@ class RoomInfoViewModel(
     fun hideInviteDialog() = updateState { copy(showInviteDialog = false) }
 
     fun kickUser(userId: String, reason: String? = null) {
-        launch {
-            val result = runSafe { service.port.kickUser(roomId, userId, reason) }
-            if (result?.isSuccess == true) {
-                updateState { copy(selectedMemberForAction = null) }
-                refresh()
-                _events.send(Event.ShowSuccess("User removed from room"))
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage("Failed to remove user")))
-            }
-        }
+        runAction(
+            successMessage = "User removed from room",
+            errorMessage = "Failed to remove user",
+            refreshOnSuccess = true,
+            onSuccess = { updateState { copy(selectedMemberForAction = null) } }
+        ) { runSafe { service.port.kickUser(roomId, userId, reason) } }
     }
 
     fun banUser(userId: String, reason: String? = null) {
-        launch {
-            val result = runSafe { service.port.banUser(roomId, userId, reason) }
-            if (result?.isSuccess == true) {
-                updateState { copy(selectedMemberForAction = null) }
-                refresh()
-                _events.send(Event.ShowSuccess("User banned"))
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage("Failed to ban user")))
-            }
-        }
+        runAction(
+            successMessage = "User banned",
+            errorMessage = "Failed to ban user",
+            refreshOnSuccess = true,
+            onSuccess = { updateState { copy(selectedMemberForAction = null) } }
+        ) { runSafe { service.port.banUser(roomId, userId, reason) } }
     }
 
     fun unbanUser(userId: String, reason: String? = null) {
-        launch {
-            val result = runSafe { service.port.unbanUser(roomId, userId, reason) }
-            if (result?.isSuccess == true) {
-                updateState { copy(selectedMemberForAction = null) }
-                refresh()
-                _events.send(Event.ShowSuccess("User unbanned"))
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage("Failed to unban user")))
-            }
-        }
+        runAction(
+            successMessage = "User unbanned",
+            errorMessage = "Failed to unban user",
+            refreshOnSuccess = true,
+            onSuccess = { updateState { copy(selectedMemberForAction = null) } }
+        ) { runSafe { service.port.unbanUser(roomId, userId, reason) } }
     }
 
     fun ignoreUser(userId: String) {
-        launch {
-            val result = runSafe { service.port.ignoreUser(userId) }
-            if (result?.isSuccess == true) {
-                updateState { copy(selectedMemberForAction = null) }
-                _events.send(Event.ShowSuccess("User ignored"))
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage("Failed to ignore user")))
-            }
-        }
+        runAction(
+            successMessage = "User ignored",
+            errorMessage = "Failed to ignore user",
+            onSuccess = { updateState { copy(selectedMemberForAction = null) } }
+        ) { runSafe { service.port.ignoreUser(userId) } }
     }
 
     fun startDmWith(userId: String) {
@@ -566,39 +544,27 @@ class RoomInfoViewModel(
     }
 
     fun inviteUser(userId: String) {
-        launch {
-            val result = runSafe { service.port.inviteUser(roomId, userId) }
-            if (result?.isSuccess == true) {
-                updateState { copy(showInviteDialog = false) }
-                refresh()
-                _events.send(Event.ShowSuccess("Invitation sent"))
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage("Failed to send invitation")))
-            }
-        }
+        runAction(
+            successMessage = "Invitation sent",
+            errorMessage = "Failed to send invitation",
+            refreshOnSuccess = true,
+            onSuccess = { updateState { copy(showInviteDialog = false) } }
+        ) { runSafe { service.port.inviteUser(roomId, userId) } }
     }
 
     fun acceptKnockRequest(userId: String) {
-        launch {
-            val result = runSafe { service.port.acceptKnockRequest(roomId, userId) }
-            if (result?.isSuccess == true) {
-                refresh()
-                _events.send(Event.ShowSuccess("Knock request accepted"))
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage("Failed to accept knock request")))
-            }
-        }
+        runAction(
+            successMessage = "Knock request accepted",
+            errorMessage = "Failed to accept knock request",
+            refreshOnSuccess = true,
+        ) { runSafe { service.port.acceptKnockRequest(roomId, userId) } }
     }
 
     fun declineKnockRequest(userId: String, reason: String? = null) {
-        launch {
-            val result = runSafe { service.port.declineKnockRequest(roomId, userId, reason) }
-            if (result?.isSuccess == true) {
-                refresh()
-                _events.send(Event.ShowSuccess("Knock request declined"))
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage("Failed to decline knock request")))
-            }
-        }
+        runAction(
+            successMessage = "Knock request declined",
+            errorMessage = "Failed to decline knock request",
+            refreshOnSuccess = true,
+        ) { runSafe { service.port.declineKnockRequest(roomId, userId, reason) } }
     }
 }
