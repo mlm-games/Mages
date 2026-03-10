@@ -23,6 +23,7 @@ external interface WebSpaceHierarchyValue : JsAny
 external interface WebSpacesValue : JsAny
 external interface WebRoomUpgradeInfoValue : JsAny
 external interface WebRoomPredecessorInfoValue : JsAny
+external fun ensureMagesFfi(): Promise<JsAny?>
 
 external class WebMatrixFacade {
     companion object {
