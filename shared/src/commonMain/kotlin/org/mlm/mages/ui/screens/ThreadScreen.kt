@@ -13,9 +13,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Reply
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
@@ -29,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.mlm.mages.MessageEvent
-import org.mlm.mages.matrix.ReactionChip
+import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.ui.ThreadUiState
 import org.mlm.mages.ui.components.composer.MessageComposer
 import org.mlm.mages.ui.components.core.Avatar
@@ -42,7 +39,6 @@ import org.mlm.mages.ui.components.sheets.MessageActionSheet
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
 import org.mlm.mages.ui.theme.Spacing
-import org.mlm.mages.ui.util.formatTime
 import org.mlm.mages.ui.viewmodel.ThreadViewModel
 import io.github.mlmgames.settings.core.SettingsRepository
 import org.mlm.mages.settings.AppSettings
@@ -245,7 +241,7 @@ fun ThreadScreen(
                                     state = state,
                                     event = root,
                                     isMine = root.sender == myUserId,
-                                    reactionChips = root.reactions,
+                                    reactionSummaries = root.reactions,
                                     onReact = { emoji -> onReact(root, emoji) },
                                     onReply = { onStartReply(root) },
                                     onLongPress = { sheetEvent = root }
@@ -276,7 +272,7 @@ fun ThreadScreen(
                             ThreadReplyMessage(
                                 event = event,
                                 isMine = event.sender == myUserId,
-                                reactionChips = event.reactions,
+                                reactionSummaries = event.reactions,
                                 avatarByUserId = state.avatarByUserId,
                                 onReact = { emoji -> onReact(event, emoji) },
                                 onLongPress = { sheetEvent = event },
@@ -388,7 +384,7 @@ private fun ThreadRootMessage(
     state: ThreadUiState,
     event: MessageEvent,
     isMine: Boolean,
-    reactionChips: List<ReactionChip>,
+    reactionSummaries: List<ReactionSummary>,
     onReact: (String) -> Unit,
     onReply: () -> Unit,
     onLongPress: () -> Unit
@@ -471,9 +467,9 @@ private fun ThreadRootMessage(
                 )
             }
 
-            if (reactionChips.isNotEmpty()) {
+            if (reactionSummaries.isNotEmpty()) {
                 Spacer(Modifier.height(Spacing.sm))
-                ThreadReactionChipsRow(chips = reactionChips, onReact = onReact)
+                ThreadReactionChipsRow(chips = reactionSummaries, onReact = onReact)
             }
 
             Spacer(Modifier.height(Spacing.sm))
@@ -540,7 +536,7 @@ private fun ThreadDivider(replyCount: Int) {
 private fun ThreadReplyMessage(
     event: MessageEvent,
     isMine: Boolean,
-    reactionChips: List<ReactionChip>,
+    reactionSummaries: List<ReactionSummary>,
     avatarByUserId: Map<String, String>,
     onReact: (String) -> Unit,
     onLongPress: () -> Unit,
@@ -581,7 +577,7 @@ private fun ThreadReplyMessage(
                 groupedWithPrev = grouped,
                 groupedWithNext = groupedWithNext,
                 isDm = false,
-                reactionChips = reactionChips,
+                reactionSummaries = reactionSummaries,
                 eventId = event.eventId,
                 onReact = onReact,
                 onLongPress = onLongPress,
@@ -600,7 +596,7 @@ private fun ThreadReplyMessage(
 
 @Composable
 private fun ThreadReactionChipsRow(
-    chips: List<ReactionChip>,
+    chips: List<ReactionSummary>,
     onReact: (String) -> Unit
 ) {
     Row(

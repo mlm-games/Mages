@@ -1034,12 +1034,12 @@ class RustMatrixPort : MatrixPort {
                 }
         }
 
-    override suspend fun reactions(roomId: String, eventId: String): List<ReactionChip> =
+    override suspend fun reactions(roomId: String, eventId: String): List<ReactionSummary> =
         withContext(Dispatchers.IO) {
             runCatching {
                 withClient {
                     it.reactionsForEvent(roomId, eventId)
-                        .map { r -> ReactionChip(r.key, r.count.toInt(), r.me) }
+                        .map { r -> ReactionSummary(r.key, r.count.toInt(), r.mine) }
                 }
             }.getOrElse { emptyList() }
         }
@@ -1047,12 +1047,12 @@ class RustMatrixPort : MatrixPort {
     override suspend fun reactionsBatch(
         roomId: String,
         eventIds: List<String>
-    ): Map<String, List<ReactionChip>> = withContext(Dispatchers.IO) {
+    ): Map<String, List<ReactionSummary>> = withContext(Dispatchers.IO) {
         runCatching {
             withClient {
                 it.reactionsBatch(roomId, eventIds)
                     .mapValues { (_, chips) ->
-                        chips.map { c -> ReactionChip(c.key, c.count.toInt(), c.me) }
+                        chips.map { c -> ReactionSummary(c.key, c.count.toInt(), c.mine) }
                     }
             }
         }.getOrElse { emptyMap() }
@@ -1598,7 +1598,7 @@ private fun mages.MessageEvent.toModel() = MessageEvent(
     senderDisplayName = senderDisplayName,
     replyToSenderDisplayName = replyToSenderDisplayName,
     pollData = pollData?.toModel(),
-    reactions = reactions.map { ReactionChip(it.key, it.count.toInt(), it.me) },
+    reactions = reactions.map { ReactionSummary(it.key, it.count.toInt(), it.mine) },
     eventType = eventType.toKotlin(),
     liveLocation = liveLocation?.toModel(),
 )

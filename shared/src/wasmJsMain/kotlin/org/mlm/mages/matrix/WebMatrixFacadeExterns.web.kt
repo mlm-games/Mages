@@ -1,4 +1,4 @@
-@file:OptIn(kotlin.js.ExperimentalWasmJsInterop::class)
+@file:OptIn(ExperimentalWasmJsInterop::class)
 @file:JsModule("./wasm/mages_bridge.js")
 
 package org.mlm.mages.matrix

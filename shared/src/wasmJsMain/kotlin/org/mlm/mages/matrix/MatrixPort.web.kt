@@ -551,13 +551,13 @@ class WebStubMatrixPort : MatrixPort {
     override suspend fun listMembers(roomId: String): List<MemberSummary> =
         wasmJson.decodeFromJsonElement(requireFacade().listMembers(roomId).toJsonElement())
 
-    override suspend fun reactions(roomId: String, eventId: String): List<ReactionChip> =
+    override suspend fun reactions(roomId: String, eventId: String): List<ReactionSummary> =
         wasmJson.decodeFromJsonElement(requireFacade().reactionsForEvent(roomId, eventId).toJsonElement())
 
     override suspend fun reactionsBatch(
         roomId: String,
         eventIds: List<String>
-    ): Map<String, List<ReactionChip>> =
+    ): Map<String, List<ReactionSummary>> =
         wasmJson.decodeFromJsonElement(
             requireFacade().reactionsBatch(roomId, wasmJson.encodeToString(eventIds)).toJsonElement()
         )

@@ -625,7 +625,7 @@ pub struct InviteSummary {
 pub struct ReactionSummary {
     pub key: String,
     pub count: u32,
-    pub me: bool,
+    pub mine: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize, Record)]
@@ -4784,7 +4784,7 @@ impl Client {
                     out.push(ReactionSummary {
                         key: key.to_string(),
                         count,
-                        me: me_reacted,
+                        mine: me_reacted,
                     });
                 }
             }
@@ -4835,13 +4835,13 @@ impl Client {
                     if let Some(reactions) = item.content().reactions() {
                         for (key, senders) in reactions.iter() {
                             let count = senders.len() as u32;
-                            let me = my_user_id
+                            let mine = my_user_id
                                 .map(|me| senders.keys().any(|sender| sender == me))
                                 .unwrap_or(false);
                             summaries.push(ReactionSummary {
                                 key: key.clone(),
                                 count,
-                                me,
+                                mine,
                             });
                         }
                     }
@@ -7359,7 +7359,7 @@ fn extract_reactions(content: &TimelineItemContent, me: &str) -> Vec<ReactionSum
             reactions.push(ReactionSummary {
                 key: key.clone(),
                 count,
-                me: me_reacted,
+                mine: me_reacted,
             });
         }
     }

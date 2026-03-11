@@ -336,7 +336,7 @@ data class KnockRequestSummary(
 )
 
 @Serializable
-data class ReactionChip(val key: String, val count: Int, val mine: Boolean)
+data class ReactionSummary(val key: String, val count: Int, val mine: Boolean)
 
 @Serializable
 data class ThreadPage(
@@ -680,11 +680,11 @@ interface MatrixPort {
     suspend fun listMembers(roomId: String): List<MemberSummary>
     suspend fun listKnockRequests(roomId: String): List<KnockRequestSummary>
 
-    suspend fun reactions(roomId: String, eventId: String): List<ReactionChip>
+    suspend fun reactions(roomId: String, eventId: String): List<ReactionSummary>
     suspend fun reactionsBatch(
         roomId: String,
         eventIds: List<String>
-    ): Map<String, List<ReactionChip>>
+    ): Map<String, List<ReactionSummary>>
 
     suspend fun sendThreadText(
         roomId: String,

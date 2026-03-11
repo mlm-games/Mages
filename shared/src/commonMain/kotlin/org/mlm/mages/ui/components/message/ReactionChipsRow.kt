@@ -6,12 +6,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import org.mlm.mages.matrix.ReactionChip
-import org.mlm.mages.ui.theme.Spacing
+import org.mlm.mages.matrix.ReactionSummary
 
 @Composable
 fun ReactionChipsRow(
-    chips: List<ReactionChip>,
+    chips: List<ReactionSummary>,
     modifier: Modifier = Modifier,
     onClick: ((String) -> Unit)? = null
 ) {

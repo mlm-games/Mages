@@ -27,7 +27,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import org.mlm.mages.AttachmentKind
 import org.mlm.mages.matrix.PollData
-import org.mlm.mages.matrix.ReactionChip
+import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.matrix.SendState
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.MarkdownText
@@ -65,7 +65,7 @@ fun MessageBubble(
     isDm: Boolean,
     showMessageAvatars: Boolean = true,
     modifier: Modifier = Modifier,
-    reactionChips: List<ReactionChip> = emptyList(),
+    reactionSummaries: List<ReactionSummary> = emptyList(),
     eventId: String? = null,
     replyPreview: String? = null,
     replySender: String? = null,
@@ -208,16 +208,16 @@ fun MessageBubble(
             }
         }
 
-        if (reactionChips.isNotEmpty()) {
+        if (reactionSummaries.isNotEmpty()) {
             ReactionChipsRow(
-                chips = reactionChips,
+                chips = reactionSummaries,
                 onClick = onReact,
                 modifier = Modifier.padding(top = 2.dp)
             )
         }
 
         if (threadCount != null && threadCount > 0 && onOpenThread != null) {
-            if (reactionChips.isNotEmpty()) {
+            if (reactionSummaries.isNotEmpty()) {
                 Spacer(Modifier.height(2.dp))
             }
             ThreadIndicator(

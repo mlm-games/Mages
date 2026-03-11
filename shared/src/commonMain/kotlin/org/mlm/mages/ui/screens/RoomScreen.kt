@@ -1257,7 +1257,7 @@ private fun MessageItem(
                             formatDate(nextEvent.timestampMs) == eventDate,
                     isDm = state.isDm,
                     showMessageAvatars = showMessageAvatars,
-                    reactionChips = chips,
+                    reactionSummaries = chips,
                     eventId = event.eventId,
                     onLongPress = onLongPress,
                     onReact = onReact,

@@ -4,7 +4,7 @@ package org.mlm.mages
 import kotlinx.serialization.Serializable
 import org.mlm.mages.matrix.EventType
 import org.mlm.mages.matrix.PollData
-import org.mlm.mages.matrix.ReactionChip
+import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.matrix.SendState
 
 @Serializable
@@ -28,7 +28,7 @@ data class MessageEvent(
     var threadRootEventId: String?,
     var isEdited: Boolean,
     var pollData: PollData?,
-    var reactions: List<ReactionChip> = emptyList(),
+    var reactions: List<ReactionSummary> = emptyList(),
     var eventType: EventType = EventType.Message,
     var liveLocation: LiveLocationEvent? = null,
 )
