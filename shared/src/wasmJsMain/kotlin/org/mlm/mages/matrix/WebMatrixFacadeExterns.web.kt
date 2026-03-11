@@ -4,7 +4,9 @@
 package org.mlm.mages.matrix
 
 import kotlin.js.JsAny
+import kotlin.js.JsBoolean
 import kotlin.js.JsName
+import kotlin.js.JsString
 import kotlin.js.Promise
 
 external interface WebRoomSummaryListValue : JsAny
@@ -130,7 +132,7 @@ external class WebMatrixFacade {
     fun joinByIdOrAlias(idOrAlias: String): Boolean
 
     @JsName("listInvited")
-    fun listInvited(): JsAny?
+    fun listInvited(): Promise<JsAny?>
 
     @JsName("acceptInvite")
     fun acceptInvite(roomId: String): Boolean
@@ -154,13 +156,13 @@ external class WebMatrixFacade {
     fun setRoomTopic(roomId: String, topic: String): Boolean
 
     @JsName("roomProfile")
-    fun roomProfile(roomId: String): JsAny?
+    fun roomProfile(roomId: String): Promise<JsAny?>
 
     @JsName("roomNotificationMode")
-    fun roomNotificationMode(roomId: String): String?
+    fun roomNotificationMode(roomId: String): Promise<JsString?>
 
     @JsName("setRoomNotificationMode")
-    fun setRoomNotificationMode(roomId: String, mode: String): Boolean
+    fun setRoomNotificationMode(roomId: String, mode: String): Promise<JsBoolean>
 
     @JsName("ensureDm")
     fun ensureDm(userId: String): String?
@@ -169,13 +171,13 @@ external class WebMatrixFacade {
     fun resolveRoomId(idOrAlias: String): String?
 
     @JsName("listMembers")
-    fun listMembers(roomId: String): WebMembersValue?
+    fun listMembers(roomId: String): Promise<WebMembersValue?>
 
     @JsName("roomPowerLevels")
     fun roomPowerLevels(roomId: String): JsAny?
 
     @JsName("getUserPowerLevel")
-    fun getUserPowerLevel(roomId: String, userId: String): Double
+    fun getUserPowerLevel(roomId: String, userId: String): Promise<JsAny?>
 
     @JsName("canUserBan")
     fun canUserBan(roomId: String, userId: String): Boolean

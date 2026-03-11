@@ -211,12 +211,12 @@ class WasmClientBridge {
     return this.client.resolve_room_id(idOrAlias) ?? null;
   }
 
-  list_members(roomId) {
-    return normalizeWasmValue(this.client.list_members(roomId));
+  async list_members(roomId) {
+    return normalizeWasmValue(await this.client.list_members(roomId));
   }
 
-  list_invited() {
-    return normalizeWasmValue(this.client.list_invited() ?? []);
+  async list_invited() {
+    return normalizeWasmValue(await this.client.list_invited() ?? []);
   }
 
   accept_invite(roomId) {
@@ -237,8 +237,8 @@ class WasmClientBridge {
     ) ?? null;
   }
 
-  room_profile(roomId) {
-    return normalizeWasmValue(this.client.room_profile(roomId));
+  async room_profile(roomId) {
+    return normalizeWasmValue(await this.client.room_profile(roomId));
   }
 
   set_room_name(roomId, name) {
@@ -249,20 +249,20 @@ class WasmClientBridge {
     return this.client.set_room_topic(roomId, topic);
   }
 
-  room_notification_mode(roomId) {
-    return this.client.room_notification_mode(roomId) ?? null;
+  async room_notification_mode(roomId) {
+    return await this.client.room_notification_mode(roomId) ?? null;
   }
 
-  set_room_notification_mode(roomId, mode) {
-    return this.client.set_room_notification_mode(roomId, mode);
+  async set_room_notification_mode(roomId, mode) {
+    return await this.client.set_room_notification_mode(roomId, mode);
   }
 
   room_power_levels(roomId) {
     return normalizeWasmValue(this.client.room_power_levels(roomId));
   }
 
-  get_user_power_level(roomId, userId) {
-    return this.client.get_user_power_level(roomId, userId);
+  async get_user_power_level(roomId, userId) {
+    return await this.client.get_user_power_level(roomId, userId);
   }
 
   can_user_ban(roomId, userId) {
@@ -745,8 +745,8 @@ export class WebMatrixFacade {
     return true;
   }
 
-  listInvited() {
-    return this.client.list_invited();
+  async listInvited() {
+    return await this.client.list_invited();
   }
 
   acceptInvite(roomId) {
@@ -769,28 +769,28 @@ export class WebMatrixFacade {
     return this.client.set_room_topic(roomId, topic);
   }
 
-  roomProfile(roomId) {
-    return this.client.room_profile(roomId);
+  async roomProfile(roomId) {
+    return await this.client.room_profile(roomId);
   }
 
-  roomNotificationMode(roomId) {
-    return this.client.room_notification_mode(roomId) ?? null;
+  async roomNotificationMode(roomId) {
+    return await this.client.room_notification_mode(roomId) ?? null;
   }
 
-  setRoomNotificationMode(roomId, mode) {
-    return this.client.set_room_notification_mode(roomId, mode);
+  async setRoomNotificationMode(roomId, mode) {
+    return await this.client.set_room_notification_mode(roomId, mode);
   }
 
-  listMembers(roomId) {
-    return this.client.list_members(roomId);
+  async listMembers(roomId) {
+    return await this.client.list_members(roomId);
   }
 
   roomPowerLevels(roomId) {
     return this.client.room_power_levels(roomId);
   }
 
-  getUserPowerLevel(roomId, userId) {
-    return this.client.get_user_power_level(roomId, userId);
+  async getUserPowerLevel(roomId, userId) {
+    return await this.client.get_user_power_level(roomId, userId);
   }
 
   canUserBan(roomId, userId) {

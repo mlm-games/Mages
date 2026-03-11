@@ -4,6 +4,7 @@
 //! values so Kotlin/Wasm can call into the Matrix SDK via
 //! `@JsModule("./mages_ffi_wasm.js")` declarations.
 use crate::HomeserverLoginDetails;
+use crate::RsMode;
 use crate::{
     AttachmentInfo, CallInvite, CallObserver, CallWidgetObserver, Client, ConnectionObserver,
     ConnectionState, ElementCallIntent, FfiRoomNotificationMode, LiveLocationObserver,
@@ -1410,7 +1411,63 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
-    pub fn room_profile(&self, room_id: String) -> JsValue {
+    pub async fn room_profile(&self, room_id: String) -> JsValue {
+        let async_state = self.async_state.borrow().as_ref().cloned();
+        if let Some(state) = async_state {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return JsValue::NULL;
+            };
+            let Some(room) = state.client.get_room(&rid) else {
+                return JsValue::NULL;
+            };
+
+            let name = room
+                .display_name()
+                .await
+                .map(|d| d.to_string())
+                .unwrap_or_else(|_| rid.to_string());
+
+            let topic = room.topic();
+            let member_count = room.joined_members_count();
+            let is_encrypted = matches!(
+                room.encryption_state(),
+                matrix_sdk::EncryptionState::Encrypted
+            );
+            let is_dm = room.is_direct().await.unwrap_or(false);
+            let mut avatar_url = room.avatar_url().map(|m| m.to_string());
+            let canonical_alias = room.canonical_alias().map(|a| a.to_string());
+            let alt_aliases: Vec<String> =
+                room.alt_aliases().iter().map(|a| a.to_string()).collect();
+            let room_version = room.version().map(|v| v.to_string());
+
+            if avatar_url.is_none() && is_dm {
+                if let Some(me) = state.client.user_id() {
+                    if let Ok(members) = room.members(matrix_sdk::RoomMemberships::JOIN).await {
+                        for m in members {
+                            if m.user_id() != me {
+                                avatar_url = m.avatar_url().map(|a| a.to_string());
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            let profile = crate::RoomProfile {
+                room_id: rid.to_string(),
+                name,
+                topic,
+                member_count,
+                is_encrypted,
+                is_dm,
+                avatar_url,
+                canonical_alias,
+                alt_aliases,
+                room_version,
+            };
+            return to_json(&profile);
+        }
+
         let v = self
             .with_client(|c| c.room_profile(room_id).ok().flatten())
             .ok()
@@ -1453,7 +1510,26 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
-    pub fn room_notification_mode(&self, room_id: String) -> Option<String> {
+    pub async fn room_notification_mode(&self, room_id: String) -> Option<String> {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return None;
+            };
+            let Some(room) = state.client.get_room(&rid) else {
+                return None;
+            };
+
+            let mode = room.notification_mode().await?;
+            return Some(
+                match mode {
+                    RsMode::AllMessages => "AllMessages",
+                    RsMode::MentionsAndKeywordsOnly => "MentionsAndKeywordsOnly",
+                    RsMode::Mute => "Mute",
+                }
+                .to_owned(),
+            );
+        }
+
         let m = self
             .with_client(|c| c.room_notification_mode(room_id))
             .ok()
@@ -1469,19 +1545,62 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
-    pub fn set_room_notification_mode(&self, room_id: String, mode: String) -> bool {
-        let m = match mode.as_str() {
-            "AllMessages" => FfiRoomNotificationMode::AllMessages,
-            "MentionsAndKeywordsOnly" => FfiRoomNotificationMode::MentionsAndKeywordsOnly,
-            "Mute" => FfiRoomNotificationMode::Mute,
+    pub async fn set_room_notification_mode(&self, room_id: String, mode: String) -> bool {
+        let sdk_mode = match mode.as_str() {
+            "AllMessages" => RsMode::AllMessages,
+            "MentionsAndKeywordsOnly" => RsMode::MentionsAndKeywordsOnly,
+            "Mute" => RsMode::Mute,
             _ => return false,
         };
-        self.with_client(|c| c.set_room_notification_mode(room_id, m).is_ok())
+
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return false;
+            };
+            let settings = state.client.notification_settings().await;
+            return settings
+                .set_room_notification_mode(rid.as_ref(), sdk_mode)
+                .await
+                .is_ok();
+        }
+
+        let ffi_mode = match sdk_mode {
+            RsMode::AllMessages => FfiRoomNotificationMode::AllMessages,
+            RsMode::MentionsAndKeywordsOnly => FfiRoomNotificationMode::MentionsAndKeywordsOnly,
+            RsMode::Mute => FfiRoomNotificationMode::Mute,
+        };
+
+        self.with_client(|c| c.set_room_notification_mode(room_id, ffi_mode).is_ok())
             .unwrap_or(false)
     }
 
     #[wasm_bindgen]
-    pub fn get_user_power_level(&self, room_id: String, user_id: String) -> f64 {
+    pub async fn get_user_power_level(&self, room_id: String, user_id: String) -> f64 {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return -1.0;
+            };
+            let Ok(uid) = user_id.parse::<matrix_sdk::ruma::OwnedUserId>() else {
+                return -1.0;
+            };
+            let Some(room) = state.client.get_room(&rid) else {
+                return -1.0;
+            };
+
+            return match room.get_user_power_level(uid.as_ref()).await {
+                Ok(level) => match level {
+                    matrix_sdk::ruma::events::room::power_levels::UserPowerLevel::Infinite => {
+                        i64::MAX as f64
+                    }
+                    matrix_sdk::ruma::events::room::power_levels::UserPowerLevel::Int(v) => {
+                        i64::from(v) as f64
+                    }
+                    _ => -1.0,
+                },
+                Err(_) => -1.0,
+            };
+        }
+
         self.with_client(|c| c.get_user_power_level(room_id, user_id) as f64)
             .unwrap_or(-1.0)
     }
@@ -2372,13 +2491,81 @@ wasm_delegate_bool_result! {
     can_user_redact_other(room_id: String, user_id: String)
 }
 
-wasm_delegate_json_result_default! {
-    list_invited();
-    list_members(room_id: String)
-}
-
 #[wasm_bindgen]
 impl WasmClient {
+    pub async fn list_members(&self, room_id: String) -> JsValue {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return to_json(&Vec::<crate::MemberSummary>::new());
+            };
+            if let Some(room) = state.client.get_room(&rid) {
+                let me = state.client.user_id();
+                if let Ok(members) = room.members(matrix_sdk::RoomMemberships::ACTIVE).await {
+                    let summaries: Vec<crate::MemberSummary> = members
+                        .into_iter()
+                        .map(|m| crate::MemberSummary {
+                            user_id: m.user_id().to_string(),
+                            display_name: m.display_name().map(|n| n.to_string()),
+                            avatar_url: m.avatar_url().map(|u| u.to_string()),
+                            is_me: me.map(|u| u == m.user_id()).unwrap_or(false),
+                            membership: m.membership().to_string(),
+                        })
+                        .collect();
+                    return to_json(&summaries);
+                }
+            }
+            return to_json(&Vec::<crate::MemberSummary>::new());
+        }
+        let value = self
+            .with_client(|c| c.list_members(room_id).unwrap_or_default())
+            .unwrap_or_default();
+        to_json(&value)
+    }
+
+    #[wasm_bindgen]
+    pub async fn list_invited(&self) -> JsValue {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let invites = state.client.invited_rooms();
+            let mut profiles = Vec::<crate::RoomProfile>::with_capacity(invites.len());
+
+            for invite in invites {
+                let rid = invite.room_id().to_owned();
+                let name = invite
+                    .display_name()
+                    .await
+                    .map(|n| n.to_string())
+                    .unwrap_or_else(|_| rid.to_string());
+
+                let avatar_url = invite.avatar_url().map(|a| a.to_string());
+                let is_dm = invite.is_direct().await.unwrap_or(false);
+                let is_encrypted = matches!(
+                    invite.encryption_state(),
+                    matrix_sdk::EncryptionState::Encrypted
+                );
+
+                profiles.push(crate::RoomProfile {
+                    room_id: rid.to_string(),
+                    name,
+                    topic: invite.topic(),
+                    member_count: invite.active_members_count(),
+                    is_encrypted,
+                    is_dm,
+                    avatar_url,
+                    canonical_alias: invite.canonical_alias().map(|a| a.to_string()),
+                    alt_aliases: invite.alt_aliases().iter().map(|a| a.to_string()).collect(),
+                    room_version: invite.version().map(|v| v.to_string()),
+                });
+            }
+
+            return to_json(&profiles);
+        }
+
+        let value = self
+            .with_client(|c| c.list_invited().unwrap_or_default())
+            .unwrap_or_default();
+        to_json(&value)
+    }
+
     pub fn paginate_backwards(&self, room_id: String, count: u32) -> bool {
         self.with_client(|c| c.paginate_backwards(room_id, count as u16))
             .unwrap_or(false)

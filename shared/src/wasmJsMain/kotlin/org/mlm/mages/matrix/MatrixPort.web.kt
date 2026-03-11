@@ -301,7 +301,13 @@ class WebStubMatrixPort : MatrixPort {
         requireFacade().redact(roomId, eventId, reason)
 
     override suspend fun getUserPowerLevel(roomId: String, userId: String): Long =
-        requireFacade().getUserPowerLevel(roomId, userId).toLong()
+        requireFacade()
+            .getUserPowerLevel(roomId, userId)
+            .await<JsAny?>()
+            .toString()
+            .toDoubleOrNull()
+            ?.toLong()
+            ?: 0L
 
     override suspend fun getPinnedEvents(roomId: String): List<String> =
         decodeStringList(requireFacade().getPinnedEvents(roomId))
@@ -526,7 +532,10 @@ class WebStubMatrixPort : MatrixPort {
     override suspend fun resolveRoomId(idOrAlias: String): String? = requireFacade().resolveRoomId(idOrAlias)
 
     override suspend fun listInvited(): List<RoomProfile> =
-        decodeValueOrNull(requireFacade().listInvited(), "listInvited") ?: emptyList()
+        decodeValueOrNull<List<RoomProfile>>(
+            requireFacade().listInvited().await<JsAny?>(),
+            "listInvited"
+        ) ?: emptyList()
 
     override suspend fun acceptInvite(roomId: String): Boolean = requireFacade().acceptInvite(roomId)
 
@@ -554,21 +563,32 @@ class WebStubMatrixPort : MatrixPort {
         unitResult(requireFacade().setRoomTopic(roomId, topic), "set room topic")
 
     override suspend fun roomProfile(roomId: String): RoomProfile? =
-        decodeValueOrNull(requireFacade().roomProfile(roomId), "roomProfile")
+        decodeValueOrNull(
+            requireFacade().roomProfile(roomId).await<JsAny?>(),
+            "roomProfile"
+        )
 
     override suspend fun roomNotificationMode(roomId: String): RoomNotificationMode? =
-        decodeEnum(requireFacade().roomNotificationMode(roomId))
+        decodeEnum<RoomNotificationMode>(
+            requireFacade().roomNotificationMode(roomId).await<JsString?>()?.toString()
+        )
 
     override suspend fun setRoomNotificationMode(
         roomId: String,
         mode: RoomNotificationMode
     ): Result<Unit> = unitResult(
-        requireFacade().setRoomNotificationMode(roomId, mode.name),
+        requireFacade()
+            .setRoomNotificationMode(roomId, mode.name)
+            .await<JsBoolean>()
+            .toBoolean(),
         "set room notification mode"
     )
 
     override suspend fun listMembers(roomId: String): List<MemberSummary> =
-        wasmJson.decodeFromJsonElement(requireFacade().listMembers(roomId).toJsonElement())
+        decodeValueOrNull<List<MemberSummary>>(
+            requireFacade().listMembers(roomId).await<JsAny?>(),
+            "listMembers"
+        ) ?: emptyList()
 
     override suspend fun reactions(roomId: String, eventId: String): List<ReactionSummary> =
         wasmJson.decodeFromJsonElement(requireFacade().reactionsForEvent(roomId, eventId).toJsonElement())
