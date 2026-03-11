@@ -791,7 +791,7 @@ pub enum RoomJoinRule {
     KnockRestricted,
 }
 
-#[derive(Clone, Enum)]
+#[derive(Clone, Serialize, Deserialize, Enum)]
 pub enum RoomPreviewMembership {
     Joined,
     Invited,
@@ -800,7 +800,7 @@ pub enum RoomPreviewMembership {
     Banned,
 }
 
-#[derive(Clone, Record)]
+#[derive(Clone, Serialize, Deserialize, Record)]
 pub struct RoomPreview {
     pub room_id: String,
     pub canonical_alias: Option<String>,
@@ -8447,7 +8447,7 @@ fn classify_notification_kind_and_expiry(
     }
 }
 
-fn map_notification_item_to_rendered(
+pub fn map_notification_item_to_rendered(
     rid: &ruma::OwnedRoomId,
     eid: &ruma::OwnedEventId,
     item: &NotificationItem,

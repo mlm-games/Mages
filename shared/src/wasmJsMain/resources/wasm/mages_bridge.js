@@ -158,18 +158,6 @@ class WasmClientBridge {
     return this.client.react(roomId, eventId, emoji);
   }
 
-  reply(roomId, inReplyTo, body) {
-    return this.client.reply(roomId, inReplyTo, body);
-  }
-
-  edit(roomId, targetEventId, newBody) {
-    return this.client.edit(roomId, targetEventId, newBody);
-  }
-
-  redact(roomId, eventId, reason) {
-    return this.client.redact(roomId, eventId, reason ?? undefined);
-  }
-
   set_typing(roomId, typing) {
     return this.client.set_typing(roomId, typing);
   }
@@ -516,10 +504,6 @@ class WasmClientBridge {
     return this.client.set_room_low_priority(roomId, lowPriority);
   }
 
-  async own_last_read(roomId) {
-    return normalizeWasmValue(await this.client.own_last_read(roomId));
-  }
-
   async dm_peer_user_id(roomId) {
     return await this.client.dm_peer_user_id(roomId) ?? null;
   }
@@ -558,6 +542,48 @@ class WasmClientBridge {
 
   ignored_users() {
     return normalizeWasmValue(this.client.ignored_users() ?? []);
+  }
+
+  async reply(roomId, inReplyTo, body) {
+    return await this.client.reply(roomId, inReplyTo, body);
+  }
+
+  async edit(roomId, targetEventId, newBody) {
+    return await this.client.edit(roomId, targetEventId, newBody);
+  }
+
+  async redact(roomId, eventId, reason) {
+    return await this.client.redact(roomId, eventId, reason ?? undefined);
+  }
+
+  async own_last_read(roomId) {
+    return normalizeWasmValue(await this.client.own_last_read(roomId));
+  }
+
+  async set_presence(presence, status) {
+    return await this.client.set_presence(presence, status ?? undefined);
+  }
+
+  async get_presence(userId) {
+    return normalizeWasmValue(await this.client.get_presence(userId));
+  }
+
+  async fetch_notification(roomId, eventId) {
+    return normalizeWasmValue(await this.client.fetch_notification(roomId, eventId));
+  }
+
+  async fetch_notifications_since(sinceMs, maxRooms, maxEvents) {
+    return normalizeWasmValue(
+      await this.client.fetch_notifications_since(sinceMs, maxRooms, maxEvents)
+    );
+  }
+
+  async room_preview(idOrAlias) {
+    return normalizeWasmValue(await this.client.room_preview(idOrAlias));
+  }
+
+  async knock(idOrAlias) {
+    return await this.client.knock(idOrAlias);
   }
 
   get_pinned_events(roomId) {
@@ -839,16 +865,44 @@ export class WebMatrixFacade {
     return this.client.react(roomId, eventId, emoji);
   }
 
-  reply(roomId, inReplyTo, body) {
-    return this.client.reply(roomId, inReplyTo, body);
+  async reply(roomId, inReplyTo, body) {
+    return await this.client.reply(roomId, inReplyTo, body);
   }
 
-  edit(roomId, targetEventId, newBody) {
-    return this.client.edit(roomId, targetEventId, newBody);
+  async edit(roomId, targetEventId, newBody) {
+    return await this.client.edit(roomId, targetEventId, newBody);
   }
 
-  redact(roomId, eventId, reason) {
-    return this.client.redact(roomId, eventId, reason);
+  async redact(roomId, eventId, reason) {
+    return await this.client.redact(roomId, eventId, reason);
+  }
+
+  async ownLastRead(roomId) {
+    return await this.client.own_last_read(roomId);
+  }
+
+  async setPresence(presence, status) {
+    return await this.client.set_presence(presence, status ?? undefined);
+  }
+
+  async getPresence(userId) {
+    return await this.client.get_presence(userId);
+  }
+
+  async fetchNotification(roomId, eventId) {
+    return await this.client.fetch_notification(roomId, eventId);
+  }
+
+  async fetchNotificationsSince(sinceMs, maxRooms, maxEvents) {
+    return await this.client.fetch_notifications_since(sinceMs, maxRooms, maxEvents);
+  }
+
+  async roomPreview(idOrAlias) {
+    return await this.client.room_preview(idOrAlias);
+  }
+
+  async knock(idOrAlias) {
+    return await this.client.knock(idOrAlias);
   }
 
   setTyping(roomId, typing) {
@@ -1078,14 +1132,6 @@ export class WebMatrixFacade {
 
   roomUnreadStats(roomId) {
     return this.client.room_unread_stats(roomId);
-  }
-
-  fetchNotification(roomId, eventId) {
-    return this.client.fetch_notification(roomId, eventId);
-  }
-
-  async ownLastRead(roomId) {
-    return await this.client.own_last_read(roomId);
   }
 
   async dmPeerUserId(roomId) {

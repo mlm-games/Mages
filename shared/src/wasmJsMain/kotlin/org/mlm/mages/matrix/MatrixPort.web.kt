@@ -356,17 +356,19 @@ class WebStubMatrixPort : MatrixPort {
         inReplyToEventId: String,
         body: String,
         formattedBody: String?
-    ): Boolean = requireFacade().reply(roomId, inReplyToEventId, body)
+    ): Boolean =
+        requireFacade().reply(roomId, inReplyToEventId, body).await<JsBoolean>().toBoolean()
 
     override suspend fun edit(
         roomId: String,
         targetEventId: String,
         newBody: String,
         formattedBody: String?
-    ): Boolean = requireFacade().edit(roomId, targetEventId, newBody)
+    ): Boolean =
+        requireFacade().edit(roomId, targetEventId, newBody).await<JsBoolean>().toBoolean()
 
     override suspend fun redact(roomId: String, eventId: String, reason: String?): Boolean =
-        requireFacade().redact(roomId, eventId, reason)
+        requireFacade().redact(roomId, eventId, reason).await<JsBoolean>().toBoolean()
 
     override suspend fun getUserPowerLevel(roomId: String, userId: String): Long =
         requireFacade()
@@ -637,13 +639,20 @@ class WebStubMatrixPort : MatrixPort {
     }
 
     override suspend fun fetchNotification(roomId: String, eventId: String): RenderedNotification? =
-        decodeValueOrNull(requireFacade().fetchNotification(roomId, eventId), "fetchNotification")
+        decodeValueOrNull(
+            requireFacade().fetchNotification(roomId, eventId).await(),
+            "fetchNotification"
+        )
 
     override suspend fun fetchNotificationsSince(
         sinceMs: Long,
         maxRooms: Int,
         maxEvents: Int
-    ): List<RenderedNotification> = emptyList()
+    ): List<RenderedNotification> =
+        decodeValueOrNull(
+            requireFacade().fetchNotificationsSince(sinceMs, maxRooms, maxEvents).await(),
+            "fetchNotificationsSince"
+        ) ?: emptyList()
 
     override fun roomListSetUnreadOnly(token: ULong, unreadOnly: Boolean): Boolean =
         requireFacade().setRoomListUnreadOnly(token.toDouble(), unreadOnly)
@@ -813,9 +822,16 @@ class WebStubMatrixPort : MatrixPort {
         requireFacade().spaceInviteUser(spaceId, userId)
 
     override suspend fun setPresence(presence: Presence, status: String?): Result<Unit> =
-        Result.failure(UnsupportedOperationException())
+        unitResult(
+            requireFacade().setPresence(presence.name, status).await<JsBoolean>().toBoolean(),
+            "set presence"
+        )
 
-    override suspend fun getPresence(userId: String): Pair<Presence, String?>? = null
+    override suspend fun getPresence(userId: String): Pair<Presence, String?>? =
+        decodeValueOrNull<PresenceInfo>(
+            requireFacade().getPresence(userId).await(),
+            "getPresence"
+        )?.let { it.presence to it.statusMsg }
 
     override suspend fun ignoreUser(userId: String): Result<Unit> =
         unitResult(requireFacade().ignoreUser(userId), "ignore user")
@@ -984,13 +1000,15 @@ class WebStubMatrixPort : MatrixPort {
 
     override fun stopElementCall(sessionId: ULong): Boolean = false
 
-    override suspend fun roomPreview(idOrAlias: String): Result<RoomPreview> {
-        return Result.failure(UnsupportedOperationException("Not implemented on web"))
-    }
+    override suspend fun roomPreview(idOrAlias: String): Result<RoomPreview> =
+        runCatching {
+            decodeValue<RoomPreview>(
+                requireFacade().roomPreview(idOrAlias).await()
+            )
+        }
 
-    override suspend fun knock(idOrAlias: String): Boolean {
-        return false
-    }
+    override suspend fun knock(idOrAlias: String): Boolean =
+        requireFacade().knock(idOrAlias).await<JsBoolean>().toBoolean()
 
     override suspend fun listKnockRequests(roomId: String): List<KnockRequestSummary> {
         return emptyList()

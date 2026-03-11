@@ -18,9 +18,11 @@ use crate::{
     VerificationObserver, emit_timeline_reset_filled, latest_room_event_for, map_vec_diff,
     missing_reply_event_id, timeline_event_filter,
 };
+use crate::{RenderedNotification, RoomPreview, RoomPreviewMembership};
 use futures_util::StreamExt;
 use futures_util::future::{AbortHandle, Abortable};
 use js_sys::Function;
+use matrix_sdk::RoomMemberships;
 use matrix_sdk::encryption::verification::{Verification, VerificationRequest};
 use matrix_sdk::ruma::{
     OwnedDeviceId, OwnedUserId,
@@ -29,6 +31,15 @@ use matrix_sdk::ruma::{
         room::message::{MessageType, SyncRoomMessageEvent},
     },
 };
+use matrix_sdk::ruma::{
+    OwnedRoomOrAliasId,
+    api::client::presence::{
+        get_presence::v3 as get_presence_v3, set_presence::v3 as set_presence_v3,
+    },
+    events::receipt::SyncReceiptEvent,
+    presence::PresenceState,
+    room::JoinRuleSummary,
+};
 use matrix_sdk::sleep::sleep;
 use matrix_sdk::{
     Client as SdkClient, Room, RoomDisplayName, RoomState, SessionMeta, SessionTokens,
@@ -36,6 +47,10 @@ use matrix_sdk::{
     encryption::{BackupDownloadStrategy, EncryptionSettings},
     ruma::{OwnedRoomId, UserId},
 };
+use matrix_sdk_ui::notification_client::{
+    NotificationClient, NotificationProcessSetup, NotificationStatus,
+};
+use matrix_sdk_ui::timeline::RoomExt;
 use matrix_sdk_ui::{
     eyeball_im::{Vector, VectorDiff},
     room_list_service::{self, filters},
@@ -1264,19 +1279,73 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
-    pub fn reply(&self, room_id: String, in_reply_to: String, body: String) -> bool {
+    pub async fn reply(&self, room_id: String, in_reply_to: String, body: String) -> bool {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            use matrix_sdk::ruma::events::room::message::RoomMessageEventContentWithoutRelation as MsgNoRel;
+
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return false;
+            };
+            let Some(tl) = state.timeline_mgr.timeline_for(&rid).await else {
+                return false;
+            };
+            let Ok(reply_to) = matrix_sdk::ruma::EventId::parse(&in_reply_to) else {
+                return false;
+            };
+
+            let content = MsgNoRel::text_plain(body);
+            return tl.send_reply(content, reply_to.to_owned()).await.is_ok();
+        }
+
         self.with_client(|c| c.reply(room_id, in_reply_to, body, None))
             .unwrap_or(false)
     }
 
     #[wasm_bindgen]
-    pub fn edit(&self, room_id: String, target_event_id: String, new_body: String) -> bool {
+    pub async fn edit(&self, room_id: String, target_event_id: String, new_body: String) -> bool {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            use matrix_sdk::room::edit::EditedContent;
+            use matrix_sdk::ruma::events::room::message::RoomMessageEventContentWithoutRelation as MsgNoRel;
+
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return false;
+            };
+            let Some(tl) = state.timeline_mgr.timeline_for(&rid).await else {
+                return false;
+            };
+            let Ok(eid) = matrix_sdk::ruma::EventId::parse(&target_event_id) else {
+                return false;
+            };
+            let Some(item) = tl.item_by_event_id(&eid).await else {
+                return false;
+            };
+
+            let item_id = item.identifier();
+            let edited = EditedContent::RoomMessage(MsgNoRel::text_plain(new_body));
+
+            return tl.edit(&item_id, edited).await.is_ok();
+        }
+
         self.with_client(|c| c.edit(room_id, target_event_id, new_body, None))
             .unwrap_or(false)
     }
 
     #[wasm_bindgen]
-    pub fn redact(&self, room_id: String, event_id: String, reason: Option<String>) -> bool {
+    pub async fn redact(&self, room_id: String, event_id: String, reason: Option<String>) -> bool {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return false;
+            };
+            let Some(room) = state.client.get_room(&rid) else {
+                return false;
+            };
+            let Ok(eid) = matrix_sdk::ruma::EventId::parse(&event_id) else {
+                return false;
+            };
+
+            return room.redact(&eid, reason.as_deref(), None).await.is_ok();
+        }
+
         self.with_client(|c| c.redact(room_id, event_id, reason))
             .unwrap_or(false)
     }
@@ -1433,6 +1502,67 @@ impl WasmClient {
 
     #[wasm_bindgen]
     pub fn observe_typing(&self, room_id: String, on_update: Function) -> f64 {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return 0.0;
+            };
+            let obs: Arc<dyn TypingObserver> = Arc::new(JsTypingObserver(on_update));
+            let id = state.next_sub_id();
+            let (abort_handle, abort_reg) = AbortHandle::new_pair();
+            state.typing_subs.borrow_mut().insert(id, abort_handle);
+
+            wasm_bindgen_futures::spawn_local(async move {
+                let state_cleanup = state.clone();
+                let _ = Abortable::new(
+                    async move {
+                        let Some(room) = state.client.get_room(&rid) else {
+                            return;
+                        };
+
+                        let (_guard, mut rx) = room.subscribe_to_typing_notifications();
+                        let mut cache: HashMap<OwnedUserId, String> = HashMap::new();
+                        let mut last: Vec<String> = Vec::new();
+
+                        while let Ok(user_ids) = rx.recv().await {
+                            let mut names = Vec::with_capacity(user_ids.len());
+
+                            for uid in user_ids {
+                                if let Some(n) = cache.get(&uid) {
+                                    names.push(n.clone());
+                                    continue;
+                                }
+
+                                let name = match room.get_member(&uid).await {
+                                    Ok(Some(m)) => m
+                                        .display_name()
+                                        .map(|s| s.to_string())
+                                        .unwrap_or_else(|| uid.localpart().to_string()),
+                                    _ => uid.localpart().to_string(),
+                                };
+
+                                cache.insert(uid.clone(), name.clone());
+                                names.push(name);
+                            }
+
+                            names.sort();
+                            names.dedup();
+
+                            if names != last {
+                                last = names.clone();
+                                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(names)));
+                            }
+                        }
+                    },
+                    abort_reg,
+                )
+                .await;
+
+                state_cleanup.typing_subs.borrow_mut().remove(&id);
+            });
+
+            return id as f64;
+        }
+
         let obs = Box::new(JsTypingObserver(on_update));
         self.with_client(|c| c.observe_typing(room_id, obs) as f64)
             .unwrap_or(0.0)
@@ -1440,12 +1570,51 @@ impl WasmClient {
 
     #[wasm_bindgen]
     pub fn unobserve_typing(&self, sub_id: f64) -> bool {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            return Self::abort_sub(&state.typing_subs, sub_id as u64);
+        }
+
         self.with_client(|c| c.unobserve_typing(sub_id as u64))
             .unwrap_or(false)
     }
 
     #[wasm_bindgen]
     pub fn observe_receipts(&self, room_id: String, on_changed: Function) -> f64 {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return 0.0;
+            };
+            let obs: Arc<dyn ReceiptsObserver> = Arc::new(JsReceiptsObserver(on_changed));
+            let id = state.next_sub_id();
+            let (abort_handle, abort_reg) = AbortHandle::new_pair();
+            state.receipts_subs.borrow_mut().insert(id, abort_handle);
+
+            wasm_bindgen_futures::spawn_local(async move {
+                let state_cleanup = state.clone();
+                let _ = Abortable::new(
+                    async move {
+                        let Some(room) = state.client.get_room(&rid) else {
+                            return;
+                        };
+                        let Ok(tl) = room.timeline().await else {
+                            return;
+                        };
+                        let mut stream = tl.subscribe_own_user_read_receipts_changed().await;
+
+                        while let Some(()) = stream.next().await {
+                            let _ = catch_unwind(AssertUnwindSafe(|| obs.on_changed()));
+                        }
+                    },
+                    abort_reg,
+                )
+                .await;
+
+                state_cleanup.receipts_subs.borrow_mut().remove(&id);
+            });
+
+            return id as f64;
+        }
+
         let obs = Box::new(JsReceiptsObserver(on_changed));
         self.with_client(|c| c.observe_receipts(room_id, obs) as f64)
             .unwrap_or(0.0)
@@ -1453,12 +1622,48 @@ impl WasmClient {
 
     #[wasm_bindgen]
     pub fn unobserve_receipts(&self, sub_id: f64) -> bool {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            return Self::abort_sub(&state.receipts_subs, sub_id as u64);
+        }
+
         self.with_client(|c| c.unobserve_receipts(sub_id as u64))
             .unwrap_or(false)
     }
 
     #[wasm_bindgen]
     pub fn observe_own_receipt(&self, room_id: String, on_changed: Function) -> f64 {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return 0.0;
+            };
+            let obs: Arc<dyn ReceiptsObserver> = Arc::new(JsReceiptsObserver(on_changed));
+            let id = state.next_sub_id();
+            let (abort_handle, abort_reg) = AbortHandle::new_pair();
+            state.receipts_subs.borrow_mut().insert(id, abort_handle);
+
+            wasm_bindgen_futures::spawn_local(async move {
+                let state_cleanup = state.clone();
+                let _ = Abortable::new(
+                    async move {
+                        let stream = state
+                            .client
+                            .observe_room_events::<SyncReceiptEvent, Room>(&rid);
+                        let mut sub = stream.subscribe();
+
+                        while let Some((_ev, _room)) = sub.next().await {
+                            let _ = catch_unwind(AssertUnwindSafe(|| obs.on_changed()));
+                        }
+                    },
+                    abort_reg,
+                )
+                .await;
+
+                state_cleanup.receipts_subs.borrow_mut().remove(&id);
+            });
+
+            return id as f64;
+        }
+
         let obs = Box::new(JsReceiptsObserver(on_changed));
         self.with_client(|c| c.observe_own_receipt(room_id, obs) as f64)
             .unwrap_or(0.0)
@@ -2079,7 +2284,48 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
-    pub fn fetch_notification(&self, room_id: String, event_id: String) -> JsValue {
+    pub async fn fetch_notification(&self, room_id: String, event_id: String) -> JsValue {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let rid = match matrix_sdk::ruma::OwnedRoomId::try_from(room_id) {
+                Ok(v) => v,
+                Err(_) => return JsValue::NULL,
+            };
+            let eid = match matrix_sdk::ruma::OwnedEventId::try_from(event_id) {
+                Ok(v) => v,
+                Err(_) => return JsValue::NULL,
+            };
+
+            let _ = state.ensure_sync_service().await;
+
+            let process_setup = {
+                if let Some(sync) = state.sync_service.borrow().as_ref().cloned() {
+                    NotificationProcessSetup::SingleProcess { sync_service: sync }
+                } else {
+                    NotificationProcessSetup::MultipleProcesses
+                }
+            };
+
+            let Ok(nc) = NotificationClient::new(state.client.clone(), process_setup).await else {
+                return JsValue::NULL;
+            };
+
+            let Ok(status) = nc.get_notification(&rid, &eid).await else {
+                return JsValue::NULL;
+            };
+
+            return match status {
+                NotificationStatus::Event(item) => {
+                    match crate::map_notification_item_to_rendered(&rid, &eid, &item) {
+                        Some(v) => to_json(&v),
+                        None => JsValue::NULL,
+                    }
+                }
+                NotificationStatus::EventFilteredOut
+                | NotificationStatus::EventNotFound
+                | NotificationStatus::EventRedacted => JsValue::NULL,
+            };
+        }
+
         let v = self
             .with_client(|c| c.fetch_notification(room_id, event_id).ok().flatten())
             .ok()
@@ -2091,12 +2337,78 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
-    pub fn fetch_notifications_since(
+    pub async fn fetch_notifications_since(
         &self,
         since_ms: f64,
         max_rooms: u32,
         max_events: u32,
     ) -> JsValue {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let _ = state.ensure_sync_service().await;
+
+            let process_setup = {
+                if let Some(sync) = state.sync_service.borrow().as_ref().cloned() {
+                    NotificationProcessSetup::SingleProcess { sync_service: sync }
+                } else {
+                    NotificationProcessSetup::MultipleProcesses
+                }
+            };
+
+            let Ok(nc) = NotificationClient::new(state.client.clone(), process_setup).await else {
+                return to_json(&Vec::<RenderedNotification>::new());
+            };
+
+            let mut out = Vec::new();
+
+            for room in state
+                .client
+                .joined_rooms()
+                .into_iter()
+                .take(max_rooms as usize)
+            {
+                let rid = room.room_id().to_owned();
+
+                let Ok(tl) = room.timeline().await else {
+                    continue;
+                };
+                let (items, _stream) = tl.subscribe().await;
+
+                for it in items.iter().rev() {
+                    let Some(ev) = it.as_event() else { continue };
+
+                    let ts: u64 = ev.timestamp().0.into();
+                    if ts <= since_ms as u64 {
+                        break;
+                    }
+
+                    let Some(eid_ref) = ev.event_id() else {
+                        continue;
+                    };
+
+                    let Ok(status) = nc.get_notification(&rid, eid_ref).await else {
+                        continue;
+                    };
+
+                    let NotificationStatus::Event(item) = status else {
+                        continue;
+                    };
+
+                    let eid = eid_ref.to_owned();
+
+                    if let Some(rendered) =
+                        crate::map_notification_item_to_rendered(&rid, &eid, &item)
+                    {
+                        out.push(rendered);
+                        if out.len() as u32 >= max_events {
+                            return to_json(&out);
+                        }
+                    }
+                }
+            }
+
+            return to_json(&out);
+        }
+
         let v = match self
             .with_client(|c| c.fetch_notifications_since(since_ms as u64, max_rooms, max_events))
         {
@@ -2906,19 +3218,61 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
-    pub fn set_presence(&self, presence: String, status: Option<String>) -> bool {
+    pub async fn set_presence(&self, presence: String, status: Option<String>) -> bool {
         let p = match presence.as_str() {
             "Online" => Presence::Online,
             "Offline" => Presence::Offline,
             "Unavailable" => Presence::Unavailable,
             _ => return false,
         };
+
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let Some(me) = state.client.user_id() else {
+                return false;
+            };
+
+            let presence_state = match p {
+                Presence::Online => PresenceState::Online,
+                Presence::Offline => PresenceState::Offline,
+                Presence::Unavailable => PresenceState::Unavailable,
+            };
+
+            let mut req = set_presence_v3::Request::new(me.to_owned(), presence_state);
+            req.status_msg = status;
+
+            return state.client.send(req).await.is_ok();
+        }
+
         self.with_client(|c| c.set_presence(p, status).is_ok())
             .unwrap_or(false)
     }
 
     #[wasm_bindgen]
-    pub fn get_presence(&self, user_id: String) -> JsValue {
+    pub async fn get_presence(&self, user_id: String) -> JsValue {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let uid = match user_id.parse::<OwnedUserId>() {
+                Ok(u) => u,
+                Err(_) => return JsValue::NULL,
+            };
+
+            let req = get_presence_v3::Request::new(uid);
+            let Ok(resp) = state.client.send(req).await else {
+                return JsValue::NULL;
+            };
+
+            let presence = match resp.presence {
+                PresenceState::Online => Presence::Online,
+                PresenceState::Offline => Presence::Offline,
+                PresenceState::Unavailable => Presence::Unavailable,
+                _ => Presence::Offline,
+            };
+
+            return to_json(&crate::PresenceInfo {
+                presence,
+                status_msg: resp.status_msg,
+            });
+        }
+
         let v = self
             .with_client(|c| c.get_presence(user_id).ok())
             .ok()
@@ -2927,6 +3281,67 @@ impl WasmClient {
             Some(p) => to_json(&p),
             None => JsValue::NULL,
         }
+    }
+
+    #[wasm_bindgen]
+    pub async fn room_preview(&self, id_or_alias: String) -> JsValue {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let target = match OwnedRoomOrAliasId::try_from(id_or_alias) {
+                Ok(v) => v,
+                Err(_) => return JsValue::NULL,
+            };
+
+            let Ok(preview) = state.client.get_room_preview(&target, vec![]).await else {
+                return JsValue::NULL;
+            };
+
+            let join_rule = preview.join_rule.map(|rule| match rule {
+                JoinRuleSummary::Public => RoomJoinRule::Public,
+                JoinRuleSummary::Invite => RoomJoinRule::Invite,
+                JoinRuleSummary::Knock => RoomJoinRule::Knock,
+                JoinRuleSummary::Restricted(_) => RoomJoinRule::Restricted,
+                JoinRuleSummary::KnockRestricted(_) => RoomJoinRule::KnockRestricted,
+                JoinRuleSummary::Private => RoomJoinRule::Invite,
+                JoinRuleSummary::_Custom(_) | _ => RoomJoinRule::Invite,
+            });
+
+            let membership = preview.state.map(|state| match state {
+                RoomState::Joined => RoomPreviewMembership::Joined,
+                RoomState::Invited => RoomPreviewMembership::Invited,
+                RoomState::Knocked => RoomPreviewMembership::Knocked,
+                RoomState::Left => RoomPreviewMembership::Left,
+                RoomState::Banned => RoomPreviewMembership::Banned,
+            });
+
+            return to_json(&RoomPreview {
+                room_id: preview.room_id.to_string(),
+                canonical_alias: preview.canonical_alias.map(|a| a.to_string()),
+                name: preview.name,
+                topic: preview.topic,
+                avatar_url: preview.avatar_url.map(|m| m.to_string()),
+                member_count: preview.num_joined_members,
+                world_readable: preview.is_world_readable,
+                join_rule,
+                membership,
+            });
+        }
+
+        match self.with_client(|c| c.room_preview(id_or_alias)) {
+            Ok(Ok(v)) => to_json(&v),
+            _ => JsValue::NULL,
+        }
+    }
+
+    #[wasm_bindgen]
+    pub async fn knock(&self, id_or_alias: String) -> bool {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let Ok(target) = OwnedRoomOrAliasId::try_from(id_or_alias) else {
+                return false;
+            };
+            return state.client.knock(target, None, vec![]).await.is_ok();
+        }
+
+        self.with_client(|c| c.knock(id_or_alias)).unwrap_or(false)
     }
 
     #[wasm_bindgen]

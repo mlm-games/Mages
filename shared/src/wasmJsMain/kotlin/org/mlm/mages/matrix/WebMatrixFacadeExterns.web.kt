@@ -101,9 +101,9 @@ external class WebMatrixFacade {
     fun markReadAt(roomId: String, eventId: String): Boolean
 
     fun react(roomId: String, eventId: String, emoji: String): Boolean
-    fun reply(roomId: String, inReplyTo: String, body: String): Boolean
-    fun edit(roomId: String, targetEventId: String, newBody: String): Boolean
-    fun redact(roomId: String, eventId: String, reason: String? = definedExternally): Boolean
+    fun reply(roomId: String, inReplyTo: String, body: String): Promise<JsBoolean>
+    fun edit(roomId: String, targetEventId: String, newBody: String): Promise<JsBoolean>
+    fun redact(roomId: String, eventId: String, reason: String? = definedExternally): Promise<JsBoolean>
 
     @JsName("setTyping")
     fun setTyping(roomId: String, typing: Boolean): Boolean
@@ -264,13 +264,28 @@ external class WebMatrixFacade {
     fun setRoomLowPriority(roomId: String, lowPriority: Boolean): Boolean
 
     @JsName("fetchNotification")
-    fun fetchNotification(roomId: String, eventId: String): JsAny?
+    fun fetchNotification(roomId: String, eventId: String): Promise<JsAny?>
+
+    @JsName("fetchNotificationsSince")
+    fun fetchNotificationsSince(sinceMs: Long, maxRooms: Int, maxEvents: Int): Promise<JsAny?>
+
+    @JsName("roomPreview")
+    fun roomPreview(idOrAlias: String): Promise<JsAny?>
+
+    @JsName("knock")
+    fun knock(idOrAlias: String): Promise<JsBoolean>
 
     @JsName("roomUnreadStats")
     fun roomUnreadStats(roomId: String): JsAny?
 
     @JsName("ownLastRead")
     fun ownLastRead(roomId: String): Promise<JsAny?>
+
+    @JsName("setPresence")
+    fun setPresence(presence: String, status: String? = definedExternally): Promise<JsBoolean>
+
+    @JsName("getPresence")
+    fun getPresence(userId: String): Promise<JsAny?>
 
     @JsName("markFullyReadAt")
     fun markFullyReadAt(roomId: String, eventId: String): Boolean
