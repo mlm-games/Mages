@@ -296,7 +296,7 @@ fun RoomInfoScreen(
                     item {
                         SettingsGroupHeader("Security & Access")
                         SettingsGroup {
-                            state.profile?.let { profile ->
+                            state.profile.let { profile ->
                                 if (profile.isEncrypted) {
                                     SettingsInfoRow(
                                         icon = Icons.Default.Lock,

@@ -3,6 +3,8 @@ package org.mlm.mages.ui.components.sheets
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -68,7 +70,7 @@ fun MemberActionsSheet(
 
             // Actions
             ActionItem(
-                icon = Icons.Default.Chat,
+                icon = Icons.AutoMirrored.Filled.Chat,
                 title = "Send direct message",
                 onClick = { onStartDm(); onDismiss() }
             )
@@ -99,7 +101,7 @@ fun MemberActionsSheet(
                     )
                 } else {
                     ActionItem(
-                        icon = Icons.Default.ExitToApp,
+                        icon = Icons.AutoMirrored.Filled.ExitToApp,
                         title = "Remove from room",
                         subtitle = "Kick user from this room",
                         tint = MaterialTheme.colorScheme.error,

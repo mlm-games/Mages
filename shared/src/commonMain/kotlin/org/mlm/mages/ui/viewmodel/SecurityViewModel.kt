@@ -238,7 +238,7 @@ class SecurityViewModel(
         launch {
             val port = service.portOrNull ?: return@launch
             val result = port.unignoreUser(userId)
-            if (result?.isSuccess == true) {
+            if (result.isSuccess) {
                 refreshIgnored()
                 _events.send(Event.ShowSuccess("User unignored"))
             } else {
