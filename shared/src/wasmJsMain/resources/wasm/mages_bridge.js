@@ -264,6 +264,149 @@ class WasmClientBridge {
   async get_user_power_level(roomId, userId) {
     return await this.client.get_user_power_level(roomId, userId);
   }
+  async list_my_devices() {
+    return normalizeWasmValue(await this.client.list_my_devices());
+  }
+
+  start_verification_inbox(onRequest, onError) {
+    return this.client.start_verification_inbox(
+      (payload) => {
+        try {
+          const p = JSON.parse(payload ?? "{}");
+          onRequest(p);
+        } catch (e) {
+          onError(`verification inbox payload parse failed: ${e}`);
+        }
+      },
+      (message) => onError(message ?? "")
+    );
+  }
+
+  unobserve_verification_inbox(id) {
+    return this.client.unobserve_verification_inbox(id);
+  }
+
+  async start_self_sas(targetDeviceId, onPhase, onEmojis, onError) {
+    return await this.client.start_self_sas(
+      targetDeviceId,
+      (payload) => {
+        const p = JSON.parse(payload ?? "{}");
+        onPhase(p);
+      },
+      (payload) => {
+        const p = normalizeWasmValue(payload ?? null) ?? {};
+        onEmojis(p);
+      },
+      (payload) => {
+        const p = JSON.parse(payload ?? "{}");
+        onError(p);
+      }
+    );
+  }
+
+  async start_user_sas(userId, onPhase, onEmojis, onError) {
+    return await this.client.start_user_sas(
+      userId,
+      (payload) => {
+        const p = JSON.parse(payload ?? "{}");
+        onPhase(p);
+      },
+      (payload) => {
+        const p = normalizeWasmValue(payload ?? null) ?? {};
+        onEmojis(p);
+      },
+      (payload) => {
+        const p = JSON.parse(payload ?? "{}");
+        onError(p);
+      }
+    );
+  }
+
+  async accept_verification_request(flowId, otherUserId, onPhase, onEmojis, onError) {
+    return await this.client.accept_verification_request(
+      flowId,
+      otherUserId ?? undefined,
+      (payload) => {
+        const p = JSON.parse(payload ?? "{}");
+        onPhase(p);
+      },
+      (payload) => {
+        const p = normalizeWasmValue(payload ?? null) ?? {};
+        onEmojis(p);
+      },
+      (payload) => {
+        const p = JSON.parse(payload ?? "{}");
+        onError(p);
+      }
+    );
+  }
+
+  async accept_sas(flowId, otherUserId, onPhase, onEmojis, onError) {
+    return await this.client.accept_sas(
+      flowId,
+      otherUserId ?? undefined,
+      (payload) => {
+        const p = JSON.parse(payload ?? "{}");
+        onPhase(p);
+      },
+      (payload) => {
+        const p = normalizeWasmValue(payload ?? null) ?? {};
+        onEmojis(p);
+      },
+      (payload) => {
+        const p = JSON.parse(payload ?? "{}");
+        onError(p);
+      }
+    );
+  }
+
+  async confirm_verification(flowId) {
+    return await this.client.confirm_verification(flowId);
+  }
+
+  async cancel_verification(flowId) {
+    return await this.client.cancel_verification(flowId);
+  }
+
+  async cancel_verification_request(flowId, otherUserId) {
+    return await this.client.cancel_verification_request(flowId, otherUserId ?? undefined);
+  }
+
+  observe_recovery_state(onUpdate) {
+    return this.client.observe_recovery_state((state) => onUpdate(normalizeWasmValue(state)));
+  }
+
+  unobserve_recovery_state(id) {
+    return this.client.unobserve_recovery_state(id);
+  }
+
+  observe_backup_state(onUpdate) {
+    return this.client.observe_backup_state((state) => onUpdate(normalizeWasmValue(state)));
+  }
+
+  unobserve_backup_state(id) {
+    return this.client.unobserve_backup_state(id);
+  }
+
+  async backup_exists_on_server(fetch) {
+    return await this.client.backup_exists_on_server(fetch);
+  }
+
+  async set_key_backup_enabled(enabled) {
+    return await this.client.set_key_backup_enabled(enabled);
+  }
+
+  async recover_with_key(recoveryKey) {
+    return await this.client.recover_with_key(recoveryKey);
+  }
+
+  setup_recovery(onProgress, onDone, onError) {
+    return this.client.setup_recovery(
+      (step) => onProgress(step ?? ""),
+      (key) => onDone(key ?? ""),
+      (message) => onError(message ?? "")
+    );
+  }
 
   can_user_ban(roomId, userId) {
     return this.client.can_user_ban(roomId, userId);
@@ -373,8 +516,12 @@ class WasmClientBridge {
     return this.client.set_room_low_priority(roomId, lowPriority);
   }
 
-  own_last_read(roomId) {
-    return normalizeWasmValue(this.client.own_last_read(roomId));
+  async own_last_read(roomId) {
+    return normalizeWasmValue(await this.client.own_last_read(roomId));
+  }
+
+  async dm_peer_user_id(roomId) {
+    return await this.client.dm_peer_user_id(roomId) ?? null;
   }
 
   mark_fully_read_at(roomId, eventId) {
@@ -391,14 +538,6 @@ class WasmClientBridge {
 
   unobserve_receipts(id) {
     return this.client.unobserve_receipts(id);
-  }
-
-  is_event_read_by(roomId, eventId, userId) {
-    return this.client.is_event_read_by(roomId, eventId, userId);
-  }
-
-  dm_peer_user_id(roomId) {
-    return this.client.dm_peer_user_id(roomId) ?? null;
   }
 
   search_users(term, limit) {
@@ -793,6 +932,82 @@ export class WebMatrixFacade {
     return await this.client.get_user_power_level(roomId, userId);
   }
 
+  async listMyDevices() {
+    return await this.client.list_my_devices();
+  }
+
+  startVerificationInbox(onRequest, onError) {
+    return this.client.start_verification_inbox(onRequest, onError);
+  }
+
+  unobserveVerificationInbox(id) {
+    return this.client.unobserve_verification_inbox(id);
+  }
+
+  async checkVerificationRequest(userId, flowId) {
+    return await this.client.check_verification_request(userId, flowId);
+  }
+
+  async startSelfSas(targetDeviceId, onPhase, onEmojis, onError) {
+    return await this.client.start_self_sas(targetDeviceId, onPhase, onEmojis, onError);
+  }
+
+  async startUserSas(userId, onPhase, onEmojis, onError) {
+    return await this.client.start_user_sas(userId, onPhase, onEmojis, onError);
+  }
+
+  async acceptVerificationRequest(flowId, otherUserId, onPhase, onEmojis, onError) {
+    return await this.client.accept_verification_request(flowId, otherUserId, onPhase, onEmojis, onError);
+  }
+
+  async acceptSas(flowId, otherUserId, onPhase, onEmojis, onError) {
+    return await this.client.accept_sas(flowId, otherUserId, onPhase, onEmojis, onError);
+  }
+
+  async confirmVerification(flowId) {
+    return await this.client.confirm_verification(flowId);
+  }
+
+  async cancelVerification(flowId) {
+    return await this.client.cancel_verification(flowId);
+  }
+
+  async cancelVerificationRequest(flowId, otherUserId) {
+    return await this.client.cancel_verification_request(flowId, otherUserId);
+  }
+
+  setupRecovery(onProgress, onDone, onError) {
+    return this.client.setup_recovery(onProgress, onDone, onError);
+  }
+
+  observeRecoveryState(onUpdate) {
+    return this.client.observe_recovery_state(onUpdate);
+  }
+
+  unobserveRecoveryState(token) {
+    return this.client.unobserve_recovery_state(token);
+  }
+
+  observeBackupState(onUpdate) {
+    return this.client.observe_backup_state(onUpdate);
+  }
+
+  unobserveBackupState(token) {
+    return this.client.unobserve_backup_state(token);
+  }
+
+  async backupExistsOnServer(fetch) {
+    return await this.client.backup_exists_on_server(fetch);
+  }
+
+  async setKeyBackupEnabled(enabled) {
+    return await this.client.set_key_backup_enabled(enabled);
+  }
+
+  async recoverWithKey(recoveryKey) {
+    return await this.client.recover_with_key(recoveryKey);
+  }
+
   canUserBan(roomId, userId) {
     return this.client.can_user_ban(roomId, userId);
   }
@@ -869,8 +1084,16 @@ export class WebMatrixFacade {
     return this.client.fetch_notification(roomId, eventId);
   }
 
-  ownLastRead(roomId) {
-    return this.client.own_last_read(roomId);
+  async ownLastRead(roomId) {
+    return await this.client.own_last_read(roomId);
+  }
+
+  async dmPeerUserId(roomId) {
+    return await this.client.dm_peer_user_id(roomId);
+  }
+
+  async isEventReadBy(roomId, eventId, userId) {
+    return await this.client.is_event_read_by(roomId, eventId, userId);
   }
 
   markFullyReadAt(roomId, eventId) {
@@ -887,14 +1110,6 @@ export class WebMatrixFacade {
 
   unobserveReceipts(token) {
     return this.client.unobserve_receipts(token);
-  }
-
-  dmPeerUserId(roomId) {
-    return this.client.dm_peer_user_id(roomId) ?? null;
-  }
-
-  isEventReadBy(roomId, eventId, userId) {
-    return this.client.is_event_read_by(roomId, eventId, userId);
   }
 
   searchUsers(term, limit) {

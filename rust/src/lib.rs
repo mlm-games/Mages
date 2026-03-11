@@ -18,6 +18,7 @@ use matrix_sdk::ruma::serde::Raw;
 #[cfg(not(target_family = "wasm"))]
 use matrix_sdk::search_index::SearchIndexStoreKind;
 use matrix_sdk::send_queue::SendHandle;
+use matrix_sdk::sleep::sleep;
 #[cfg(not(target_family = "wasm"))]
 use matrix_sdk::utils::local_server::LocalServerBuilder;
 #[cfg(not(target_family = "wasm"))]
@@ -346,7 +347,7 @@ pub enum RecoveryState {
     Unknown,
 }
 
-#[derive(Clone, Copy, PartialEq, Enum)]
+#[derive(Clone, Copy, PartialEq, Serialize, Deserialize, Enum)]
 pub enum BackupState {
     Unknown,
     Creating,
@@ -1808,7 +1809,7 @@ impl Client {
                             last_state = current;
                         }
                     }
-                    _ = tokio::time::sleep(Duration::from_secs(30)) => {
+                    _ = sleep(Duration::from_secs(30)) => {
                         let is_active = client.is_active();
                         let current = if is_active { ConnectionState::Connected } else { ConnectionState::Disconnected };
                         if !matches!((&current, &last_state),
@@ -2577,7 +2578,7 @@ impl Client {
                 if let Some(s) = { svc_slot.lock().unwrap().as_ref().cloned() } {
                     break s;
                 }
-                tokio::time::sleep(Duration::from_millis(200)).await;
+                sleep(Duration::from_millis(200)).await;
             };
 
             let mut st = svc.state();
@@ -2611,7 +2612,7 @@ impl Client {
                         });
 
                         if in_foreground.load(std::sync::atomic::Ordering::SeqCst) {
-                            tokio::time::sleep(Duration::from_millis(500)).await;
+                            sleep(Duration::from_millis(500)).await;
                             svc.start().await;
                         }
                     }
@@ -2621,7 +2622,7 @@ impl Client {
                             message: Some(format!("Sync error: {err:?}")),
                         });
 
-                        tokio::time::sleep(Duration::from_secs(2)).await;
+                        sleep(Duration::from_secs(2)).await;
                         svc.start().await;
                     }
                 }
@@ -3061,7 +3062,7 @@ impl Client {
                     return sas.accept().await.is_ok();
                 }
 
-                tokio::time::sleep(Duration::from_millis(120)).await;
+                sleep(Duration::from_millis(120)).await;
             }
 
             warn!("accept_sas: timed out waiting for sas() to become available");
@@ -3889,7 +3890,7 @@ impl Client {
                 if let Some(s) = { svc_slot.lock().unwrap().as_ref().cloned() } {
                     break s;
                 }
-                tokio::time::sleep(Duration::from_millis(200)).await;
+                sleep(Duration::from_millis(200)).await;
             };
 
             let rls = svc.room_list_service();

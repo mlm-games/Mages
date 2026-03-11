@@ -270,7 +270,7 @@ external class WebMatrixFacade {
     fun roomUnreadStats(roomId: String): JsAny?
 
     @JsName("ownLastRead")
-    fun ownLastRead(roomId: String): JsAny?
+    fun ownLastRead(roomId: String): Promise<JsAny?>
 
     @JsName("markFullyReadAt")
     fun markFullyReadAt(roomId: String, eventId: String): Boolean
@@ -285,10 +285,84 @@ external class WebMatrixFacade {
     fun unobserveReceipts(token: Double): Boolean
 
     @JsName("dmPeerUserId")
-    fun dmPeerUserId(roomId: String): String?
+    fun dmPeerUserId(roomId: String): Promise<JsAny?>
 
     @JsName("isEventReadBy")
-    fun isEventReadBy(roomId: String, eventId: String, userId: String): Boolean
+    fun isEventReadBy(roomId: String, eventId: String, userId: String): Promise<JsBoolean>
+
+    @JsName("listMyDevices")
+    fun listMyDevices(): Promise<JsAny?>
+
+    @JsName("backupExistsOnServer")
+    fun backupExistsOnServer(fetch: Boolean): Promise<JsBoolean>
+
+    @JsName("setKeyBackupEnabled")
+    fun setKeyBackupEnabled(enabled: Boolean): Promise<JsBoolean>
+
+    @JsName("observeRecoveryState")
+    fun observeRecoveryState(onUpdate: (JsAny?) -> Unit): Double
+
+    @JsName("unobserveRecoveryState")
+    fun unobserveRecoveryState(id: Double): Boolean
+
+    @JsName("observeBackupState")
+    fun observeBackupState(onUpdate: (JsAny?) -> Unit): Double
+
+    @JsName("unobserveBackupState")
+    fun unobserveBackupState(id: Double): Boolean
+
+    @JsName("startVerificationInbox")
+    fun startVerificationInbox(
+        onRequest: (JsAny?) -> Unit,
+        onError: (String?) -> Unit
+    ): Double
+
+    @JsName("unobserveVerificationInbox")
+    fun unobserveVerificationInbox(id: Double): Boolean
+
+    @JsName("checkVerificationRequest")
+    fun checkVerificationRequest(userId: String, flowId: String): Promise<JsBoolean>
+
+    @JsName("startSelfSas")
+    fun startSelfSas(
+        targetDeviceId: String,
+        onPhase: (JsAny?) -> Unit,
+        onEmojis: (JsAny?) -> Unit,
+        onError: (JsAny?) -> Unit
+    ): Promise<JsString?>
+
+    @JsName("startUserSas")
+    fun startUserSas(
+        userId: String,
+        onPhase: (JsAny?) -> Unit,
+        onEmojis: (JsAny?) -> Unit,
+        onError: (JsAny?) -> Unit
+    ): Promise<JsString?>
+
+    @JsName("acceptVerificationRequest")
+    fun acceptVerificationRequest(flowId: String, otherUserId: String?, onPhase: (JsAny?) -> Unit, onEmojis: (JsAny?) -> Unit, onError: (JsAny?) -> Unit): Promise<JsBoolean>
+
+    @JsName("acceptSas")
+    fun acceptSas(flowId: String, otherUserId: String?, onPhase: (JsAny?) -> Unit, onEmojis: (JsAny?) -> Unit, onError: (JsAny?) -> Unit): Promise<JsBoolean>
+
+    @JsName("confirmVerification")
+    fun confirmVerification(flowId: String): Promise<JsBoolean>
+
+    @JsName("cancelVerification")
+    fun cancelVerification(flowId: String): Promise<JsBoolean>
+
+    @JsName("cancelVerificationRequest")
+    fun cancelVerificationRequest(flowId: String, otherUserId: String?): Promise<JsBoolean>
+
+    @JsName("setupRecovery")
+    fun setupRecovery(
+        onProgress: (String?) -> Unit,
+        onDone: (String?) -> Unit,
+        onError: (String?) -> Unit,
+    ): Double
+
+    @JsName("recoverWithKey")
+    fun recoverWithKey(recoveryKey: String): Promise<JsBoolean>
 
     @JsName("searchUsers")
     fun searchUsers(term: String, limit: Int): JsAny?

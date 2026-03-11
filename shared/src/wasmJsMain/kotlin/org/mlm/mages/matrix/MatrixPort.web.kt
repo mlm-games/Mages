@@ -16,6 +16,7 @@ import org.mlm.mages.RoomSummary
 import org.mlm.mages.platform.clearWebBlob
 import org.mlm.mages.platform.retrieveWebBlob
 import kotlin.js.JsAny
+import kotlin.js.JsBoolean
 
 class WebStubMatrixPort : MatrixPort {
     private var facade: WebMatrixFacade? = null
@@ -107,6 +108,40 @@ class WebStubMatrixPort : MatrixPort {
         return eventId to tsMs
     }
 
+    private fun parseVerificationInboxPayload(value: JsAny?): Triple<String, String, String>? {
+        val obj = value?.toJsonObject() ?: return null
+        val flowId = (obj["flowId"] as? JsonPrimitive)?.content ?: return null
+        val fromUser = (obj["fromUser"] as? JsonPrimitive)?.content ?: return null
+        val fromDevice = (obj["fromDevice"] as? JsonPrimitive)?.content ?: ""
+        return Triple(flowId, fromUser, fromDevice)
+    }
+
+    private fun parseVerificationPhasePayload(value: JsAny?): Pair<String, SasPhase>? {
+        val obj = value?.toJsonObject() ?: return null
+        val flowId = (obj["flowId"] as? JsonPrimitive)?.content ?: return null
+        val phaseName = (obj["phase"] as? JsonPrimitive)?.content ?: return null
+        val phase = decodeEnum<SasPhase>(phaseName) ?: return null
+        return flowId to phase
+    }
+
+    private fun parseVerificationErrorPayload(value: JsAny?): Pair<String, String>? {
+        val obj = value?.toJsonObject() ?: return null
+        val flowId = (obj["flowId"] as? JsonPrimitive)?.content ?: return null
+        val message = (obj["message"] as? JsonPrimitive)?.content ?: return null
+        return flowId to message
+    }
+
+    private fun parseSasEmojisPayload(value: JsAny?): Pair<String, Triple<String, String, List<String>>>? {
+        val obj = value?.toJsonObject() ?: return null
+        val flowId = (obj["flow_id"] as? JsonPrimitive)?.content ?: return null
+        val otherUser = (obj["other_user"] as? JsonPrimitive)?.content ?: return null
+        val otherDevice = (obj["other_device"] as? JsonPrimitive)?.content ?: return null
+        val emojis = runCatching {
+            wasmJson.decodeFromJsonElement<List<String>>(obj["emojis"] ?: return null)
+        }.getOrDefault(emptyList())
+        return flowId to Triple(otherUser, otherDevice, emojis)
+    }
+
     override suspend fun init(hs: String, accountId: String?) {
         if (currentHs == hs && currentAccountId == accountId && facade != null) return
 
@@ -122,7 +157,7 @@ class WebStubMatrixPort : MatrixPort {
     }
 
     override suspend fun login(user: String, password: String, deviceDisplayName: String?) {
-        val result = requireFacade().login(user, password, deviceDisplayName).await<kotlin.js.JsAny?>()
+        val result = requireFacade().login(user, password, deviceDisplayName).await<JsAny?>()
         val error = result?.toString()?.takeIf { it.isNotBlank() }
         if (error != null) {
             throw IllegalStateException(error)
@@ -207,19 +242,40 @@ class WebStubMatrixPort : MatrixPort {
 
     override fun accountManagementUrl(): String? = null
 
-    override fun setupRecovery(observer: MatrixPort.RecoveryObserver): ULong = 0uL
+    override fun setupRecovery(observer: MatrixPort.RecoveryObserver): ULong =
+        requireFacade().setupRecovery(
+            onProgress = { observer.onProgress(it ?: "") },
+            onDone = { observer.onDone(it ?: "") },
+            onError = { observer.onError(it ?: "Recovery error") }
+        ).toULong()
 
-    override fun observeRecoveryState(observer: MatrixPort.RecoveryStateObserver): ULong = 0uL
+    override fun observeRecoveryState(observer: MatrixPort.RecoveryStateObserver): ULong =
+        requireFacade().observeRecoveryState { stateValue: JsAny? ->
+            val state = runCatching {
+                wasmJson.decodeFromJsonElement<MatrixPort.RecoveryState>(stateValue.toJsonElement())
+            }.getOrNull() ?: return@observeRecoveryState
+            observer.onUpdate(state)
+        }.toULong()
 
-    override fun unobserveRecoveryState(subId: ULong): Boolean = false
+    override fun unobserveRecoveryState(subId: ULong): Boolean =
+        requireFacade().unobserveRecoveryState(subId.toDouble())
 
-    override fun observeBackupState(observer: MatrixPort.BackupStateObserver): ULong = 0uL
+    override fun observeBackupState(observer: MatrixPort.BackupStateObserver): ULong =
+        requireFacade().observeBackupState { stateValue: JsAny? ->
+            val state = runCatching {
+                wasmJson.decodeFromJsonElement<MatrixPort.BackupState>(stateValue.toJsonElement())
+            }.getOrNull() ?: return@observeBackupState
+            observer.onUpdate(state)
+        }.toULong()
 
-    override fun unobserveBackupState(subId: ULong): Boolean = false
+    override fun unobserveBackupState(subId: ULong): Boolean =
+        requireFacade().unobserveBackupState(subId.toDouble())
 
-    override suspend fun backupExistsOnServer(fetch: Boolean): Boolean = false
+    override suspend fun backupExistsOnServer(fetch: Boolean): Boolean =
+        requireFacade().backupExistsOnServer(fetch).await<JsBoolean>().toBoolean()
 
-    override suspend fun setKeyBackupEnabled(enabled: Boolean): Boolean = false
+    override suspend fun setKeyBackupEnabled(enabled: Boolean): Boolean =
+        requireFacade().setKeyBackupEnabled(enabled).await<JsBoolean>().toBoolean()
 
     override suspend fun enqueueText(roomId: String, body: String, txnId: String?): String {
         val ok = send(roomId, body, null)
@@ -259,9 +315,21 @@ class WebStubMatrixPort : MatrixPort {
 
     override fun stopConnectionObserver(token: ULong) {}
 
-    override fun startVerificationInbox(observer: MatrixPort.VerificationInboxObserver): ULong = 0uL
+    override fun startVerificationInbox(observer: MatrixPort.VerificationInboxObserver): ULong =
+        requireFacade().startVerificationInbox(
+            onRequest = { payload ->
+                parseVerificationInboxPayload(payload)?.let { (flowId, fromUser, fromDevice) ->
+                    observer.onRequest(flowId, fromUser, fromDevice)
+                }
+            },
+            onError = { message ->
+                observer.onError(message ?: "Verification inbox error")
+            }
+        ).toULong()
 
-    override fun stopVerificationInbox(token: ULong) {}
+    override fun stopVerificationInbox(token: ULong) {
+        requireFacade().unobserveVerificationInbox(token.toDouble())
+    }
 
     override suspend fun retryByTxn(roomId: String, txnId: String): Boolean = false
 
@@ -334,29 +402,107 @@ class WebStubMatrixPort : MatrixPort {
         }
     }
 
-    override suspend fun listMyDevices(): List<DeviceSummary> = emptyList()
+    override suspend fun listMyDevices(): List<DeviceSummary> =
+        decodeValueOrNull(requireFacade().listMyDevices().await(), "listMyDevices") ?: emptyList()
 
-    override suspend fun startSelfSas(targetDeviceId: String, observer: VerificationObserver): String = ""
+    override suspend fun startSelfSas(targetDeviceId: String, observer: VerificationObserver): String =
+        requireFacade().startSelfSas(
+            targetDeviceId,
+            onPhase = { payload ->
+                parseVerificationPhasePayload(payload)?.let { (flowId, phase) ->
+                    observer.onPhase(flowId, phase)
+                }
+            },
+            onEmojis = { payload ->
+                parseSasEmojisPayload(payload)?.let { (flowId, triple) ->
+                    observer.onEmojis(flowId, triple.first, triple.second, triple.third)
+                }
+            },
+            onError = { payload ->
+                parseVerificationErrorPayload(payload)?.let { (flowId, message) ->
+                    observer.onError(flowId, message)
+                }
+            }
+        ).await<JsString?>()?.toString().orEmpty()
 
-    override suspend fun startUserSas(userId: String, observer: VerificationObserver): String = ""
+    override suspend fun startUserSas(userId: String, observer: VerificationObserver): String =
+        requireFacade().startUserSas(
+            userId,
+            onPhase = { payload ->
+                parseVerificationPhasePayload(payload)?.let { (flowId, phase) ->
+                    observer.onPhase(flowId, phase)
+                }
+            },
+            onEmojis = { payload ->
+                parseSasEmojisPayload(payload)?.let { (flowId, triple) ->
+                    observer.onEmojis(flowId, triple.first, triple.second, triple.third)
+                }
+            },
+            onError = { payload ->
+                parseVerificationErrorPayload(payload)?.let { (flowId, message) ->
+                    observer.onError(flowId, message)
+                }
+            }
+        ).await<JsString?>()?.toString().orEmpty()
 
     override suspend fun acceptVerificationRequest(
         flowId: String,
         otherUserId: String?,
         observer: VerificationObserver
-    ): Boolean = false
+    ): Boolean =
+        requireFacade().acceptVerificationRequest(
+            flowId,
+            otherUserId,
+            onPhase = { payload ->
+                parseVerificationPhasePayload(payload)?.let { (fid, phase) ->
+                    observer.onPhase(fid, phase)
+                }
+            },
+            onEmojis = { payload ->
+                parseSasEmojisPayload(payload)?.let { (fid, triple) ->
+                    observer.onEmojis(fid, triple.first, triple.second, triple.third)
+                }
+            },
+            onError = { payload ->
+                parseVerificationErrorPayload(payload)?.let { (fid, message) ->
+                    observer.onError(fid, message)
+                }
+            }
+        ).await<JsBoolean>().toBoolean()
 
     override suspend fun acceptSas(
         flowId: String,
         otherUserId: String?,
         observer: VerificationObserver
-    ): Boolean = false
+    ): Boolean =
+        requireFacade().acceptSas(
+            flowId,
+            otherUserId,
+            onPhase = { payload ->
+                parseVerificationPhasePayload(payload)?.let { (fid, phase) ->
+                    observer.onPhase(fid, phase)
+                }
+            },
+            onEmojis = { payload ->
+                parseSasEmojisPayload(payload)?.let { (fid, triple) ->
+                    observer.onEmojis(fid, triple.first, triple.second, triple.third)
+                }
+            },
+            onError = { payload ->
+                parseVerificationErrorPayload(payload)?.let { (fid, message) ->
+                    observer.onError(fid, message)
+                }
+            }
+        ).await<JsBoolean>().toBoolean()
 
-    override suspend fun confirmVerification(flowId: String): Boolean = false
+    override suspend fun confirmVerification(flowId: String): Boolean =
+        requireFacade().confirmVerification(flowId).await<JsBoolean>().toBoolean()
 
-    override suspend fun cancelVerification(flowId: String): Boolean = false
+    override suspend fun cancelVerification(flowId: String): Boolean =
+        requireFacade().cancelVerification(flowId).await<JsBoolean>().toBoolean()
 
-    override suspend fun cancelVerificationRequest(flowId: String, otherUserId: String?): Boolean = false
+    override suspend fun cancelVerificationRequest(flowId: String, otherUserId: String?): Boolean =
+        requireFacade().cancelVerificationRequest(flowId, otherUserId).await<JsBoolean>().toBoolean()
 
     override fun enterForeground() {}
 
@@ -371,7 +517,8 @@ class WebStubMatrixPort : MatrixPort {
         return true
     }
 
-    override suspend fun checkVerificationRequest(userId: String, flowId: String): Boolean = false
+    override suspend fun checkVerificationRequest(userId: String, flowId: String): Boolean =
+        requireFacade().checkVerificationRequest(userId, flowId).await<JsBoolean>().toBoolean()
 
     override suspend fun sendAttachmentFromPath(
         roomId: String,
@@ -417,7 +564,8 @@ class WebStubMatrixPort : MatrixPort {
         offset: Int?
     ): SearchPage = SearchPage(emptyList(), null)
 
-    override suspend fun recoverWithKey(recoveryKey: String): Boolean = false
+    override suspend fun recoverWithKey(recoveryKey: String): Boolean =
+        requireFacade().recoverWithKey(recoveryKey).await<JsBoolean>().toBoolean()
 
     override fun observeReceipts(roomId: String, observer: ReceiptsObserver): ULong =
         requireFacade().observeReceipts(roomId) { observer.onChanged() }.toULong()
@@ -426,10 +574,11 @@ class WebStubMatrixPort : MatrixPort {
         requireFacade().unobserveReceipts(token.toDouble())
     }
 
-    override suspend fun dmPeerUserId(roomId: String): String? = requireFacade().dmPeerUserId(roomId)
+    override suspend fun dmPeerUserId(roomId: String): String? =
+        requireFacade().dmPeerUserId(roomId).await<JsAny?>()?.toString()
 
     override suspend fun isEventReadBy(roomId: String, eventId: String, userId: String): Boolean =
-        requireFacade().isEventReadBy(roomId, eventId, userId)
+        requireFacade().isEventReadBy(roomId, eventId, userId).await<JsBoolean>().toBoolean()
 
     override fun startCallInbox(observer: MatrixPort.CallObserver): ULong = 0uL
 
@@ -450,7 +599,7 @@ class WebStubMatrixPort : MatrixPort {
         decodeValueOrNull(requireFacade().roomUnreadStats(roomId), "roomUnreadStats")
 
     override suspend fun ownLastRead(roomId: String): Pair<String?, Long?> =
-        decodeOwnLastRead(requireFacade().ownLastRead(roomId))
+        decodeOwnLastRead(requireFacade().ownLastRead(roomId).await())
 
     override fun observeOwnReceipt(roomId: String, observer: ReceiptsObserver): ULong =
         requireFacade().observeOwnReceipt(roomId) { observer.onChanged() }.toULong()
@@ -533,7 +682,7 @@ class WebStubMatrixPort : MatrixPort {
 
     override suspend fun listInvited(): List<RoomProfile> =
         decodeValueOrNull<List<RoomProfile>>(
-            requireFacade().listInvited().await<JsAny?>(),
+            requireFacade().listInvited().await(),
             "listInvited"
         ) ?: emptyList()
 
@@ -564,7 +713,7 @@ class WebStubMatrixPort : MatrixPort {
 
     override suspend fun roomProfile(roomId: String): RoomProfile? =
         decodeValueOrNull(
-            requireFacade().roomProfile(roomId).await<JsAny?>(),
+            requireFacade().roomProfile(roomId).await(),
             "roomProfile"
         )
 
@@ -586,7 +735,7 @@ class WebStubMatrixPort : MatrixPort {
 
     override suspend fun listMembers(roomId: String): List<MemberSummary> =
         decodeValueOrNull<List<MemberSummary>>(
-            requireFacade().listMembers(roomId).await<JsAny?>(),
+            requireFacade().listMembers(roomId).await(),
             "listMembers"
         ) ?: emptyList()
 

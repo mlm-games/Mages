@@ -5,21 +5,31 @@
 //! `@JsModule("./mages_ffi_wasm.js")` declarations.
 use crate::HomeserverLoginDetails;
 use crate::RsMode;
+use crate::VerifMap;
+use crate::owned_device_id;
 use crate::{
-    AttachmentInfo, CallInvite, CallObserver, CallWidgetObserver, Client, ConnectionObserver,
-    ConnectionState, ElementCallIntent, FfiRoomNotificationMode, LiveLocationObserver,
-    MessageEvent, Presence, ReceiptsObserver, RecoveryObserver, RecoveryState,
-    RoomDirectoryVisibility, RoomHistoryVisibility, RoomJoinRule, RoomListCmd, RoomListEntry,
-    RoomListObserver, RoomPowerLevelChanges, RoomSummary, SasEmojis, SasPhase, SendObserver,
-    SendState, SendUpdate, SyncObserver, SyncPhase, SyncStatus, TimelineDiffKind, TimelineManager,
-    TimelineObserver, TypingObserver, VerificationInboxObserver, VerificationObserver,
-    emit_timeline_reset_filled, latest_room_event_for, map_vec_diff, missing_reply_event_id,
-    timeline_event_filter,
+    AttachmentInfo, BackupState, BackupStateObserver, CallInvite, CallObserver, CallWidgetObserver,
+    Client, ConnectionObserver, ConnectionState, ElementCallIntent, FfiRoomNotificationMode,
+    LiveLocationObserver, MessageEvent, Presence, ReceiptsObserver, RecoveryObserver,
+    RecoveryState, RecoveryStateObserver, RoomDirectoryVisibility, RoomHistoryVisibility,
+    RoomJoinRule, RoomListCmd, RoomListEntry, RoomListObserver, RoomPowerLevelChanges, RoomSummary,
+    SasEmojis, SasPhase, SendObserver, SendState, SendUpdate, SyncObserver, SyncPhase, SyncStatus,
+    TimelineDiffKind, TimelineManager, TimelineObserver, TypingObserver, VerificationInboxObserver,
+    VerificationObserver, emit_timeline_reset_filled, latest_room_event_for, map_vec_diff,
+    missing_reply_event_id, timeline_event_filter,
 };
 use futures_util::StreamExt;
 use futures_util::future::{AbortHandle, Abortable};
-use gloo_timers::future::sleep;
 use js_sys::Function;
+use matrix_sdk::encryption::verification::{Verification, VerificationRequest};
+use matrix_sdk::ruma::{
+    OwnedDeviceId, OwnedUserId,
+    events::{
+        key::verification::request::ToDeviceKeyVerificationRequestEvent,
+        room::message::{MessageType, SyncRoomMessageEvent},
+    },
+};
+use matrix_sdk::sleep::sleep;
 use matrix_sdk::{
     Client as SdkClient, Room, RoomDisplayName, RoomState, SessionMeta, SessionTokens,
     authentication::matrix::MatrixSession,
@@ -37,10 +47,10 @@ use std::collections::HashMap;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::rc::Rc;
 use std::sync::Arc;
-use std::time::Duration;
 use uuid::Uuid;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;
+use web_time::{Duration, Instant};
 
 /// Helper: convert any serde value into a native JS value.
 fn to_json<T: serde::Serialize>(v: &T) -> JsValue {
@@ -305,6 +315,8 @@ unsafe impl Sync for JsRecoveryObserver {}
 js_observer_json!(JsCallObserver: CallObserver::on_invite, invite: CallInvite);
 js_observer_json!(JsLiveLocationObserver: LiveLocationObserver::on_update, shares: Vec<crate::LiveLocationShareInfo>);
 js_observer_json!(JsCallWidgetObserver: CallWidgetObserver::on_to_widget, message: String);
+js_observer_json!(JsRecoveryStateObserver: RecoveryStateObserver::on_update, state: RecoveryState);
+js_observer_json!(JsBackupStateObserver: BackupStateObserver::on_update, state: BackupState);
 
 struct WasmAsyncState {
     client: SdkClient,
@@ -319,6 +331,13 @@ struct WasmAsyncState {
     room_list_cmds: RefCell<HashMap<u64, tokio::sync::mpsc::UnboundedSender<RoomListCmd>>>,
     timeline_subs: RefCell<HashMap<u64, AbortHandle>>,
     connection_subs: RefCell<HashMap<u64, AbortHandle>>,
+    typing_subs: RefCell<HashMap<u64, AbortHandle>>,
+    receipts_subs: RefCell<HashMap<u64, AbortHandle>>,
+    inbox_subs: RefCell<HashMap<u64, AbortHandle>>,
+    recovery_state_subs: RefCell<HashMap<u64, AbortHandle>>,
+    backup_state_subs: RefCell<HashMap<u64, AbortHandle>>,
+    inbox: RefCell<HashMap<String, (OwnedUserId, OwnedDeviceId)>>,
+    verifs: VerifMap,
     app_in_foreground: Cell<bool>,
 }
 
@@ -677,6 +696,13 @@ impl WasmClient {
             room_list_cmds: RefCell::new(HashMap::new()),
             timeline_subs: RefCell::new(HashMap::new()),
             connection_subs: RefCell::new(HashMap::new()),
+            typing_subs: RefCell::new(HashMap::new()),
+            receipts_subs: RefCell::new(HashMap::new()),
+            inbox_subs: RefCell::new(HashMap::new()),
+            recovery_state_subs: RefCell::new(HashMap::new()),
+            backup_state_subs: RefCell::new(HashMap::new()),
+            inbox: RefCell::new(HashMap::new()),
+            verifs: Arc::new(std::sync::Mutex::new(HashMap::new())),
             app_in_foreground: Cell::new(false),
         });
 
@@ -700,6 +726,147 @@ impl WasmClient {
             .as_ref()
             .ok_or_else(|| JsValue::from_str("async wasm client not initialized"))?;
         Ok(f(s))
+    }
+
+    fn abort_sub(map: &RefCell<HashMap<u64, AbortHandle>>, id: u64) -> bool {
+        if let Some(handle) = map.borrow_mut().remove(&id) {
+            handle.abort();
+            true
+        } else {
+            false
+        }
+    }
+
+    fn resolve_other_user_for_flow_web(
+        state: &WasmAsyncState,
+        flow_id: &str,
+        other_user_id: Option<String>,
+    ) -> Option<OwnedUserId> {
+        if let Some(uid) = other_user_id {
+            uid.parse::<OwnedUserId>().ok()
+        } else {
+            state.inbox.borrow().get(flow_id).map(|p| p.0.clone())
+        }
+    }
+
+    fn wait_and_start_sas_web(
+        state: Rc<WasmAsyncState>,
+        flow_id: String,
+        req: VerificationRequest,
+        obs: Arc<dyn VerificationObserver>,
+    ) {
+        let verifs = state.verifs.clone();
+
+        wasm_bindgen_futures::spawn_local(async move {
+            use matrix_sdk::encryption::verification::{Verification, VerificationRequestState};
+
+            obs.on_phase(flow_id.clone(), SasPhase::Requested);
+
+            let we_started = req.we_started();
+            let mut started_sas = false;
+
+            let mut changes = req.changes();
+            let mut next_state: Option<VerificationRequestState> = Some(req.state());
+
+            let mut remaining_ticks: u32 = 120 * 4;
+
+            loop {
+                if remaining_ticks == 0 {
+                    obs.on_error(
+                        flow_id.clone(),
+                        "Verification timed out waiting for SAS".into(),
+                    );
+                    break;
+                }
+
+                let state_now = match next_state.take() {
+                    Some(s) => s,
+                    None => match changes.next().await {
+                        Some(s) => s,
+                        None => {
+                            obs.on_error(
+                                flow_id.clone(),
+                                "Verification request stream ended".into(),
+                            );
+                            break;
+                        }
+                    },
+                };
+
+                match state_now {
+                    VerificationRequestState::Cancelled(info) => {
+                        obs.on_phase(flow_id.clone(), SasPhase::Cancelled);
+                        obs.on_error(flow_id.clone(), info.reason().to_owned());
+                        break;
+                    }
+
+                    VerificationRequestState::Done => {
+                        obs.on_phase(flow_id.clone(), SasPhase::Done);
+                        break;
+                    }
+
+                    VerificationRequestState::Created { .. }
+                    | VerificationRequestState::Requested { .. } => {
+                        remaining_ticks = remaining_ticks.saturating_sub(1);
+                        sleep(std::time::Duration::from_millis(250)).await;
+                    }
+
+                    VerificationRequestState::Ready { .. } => {
+                        if we_started && !started_sas {
+                            started_sas = true;
+
+                            match req.start_sas().await {
+                                Ok(Some(sas)) => {
+                                    crate::attach_sas_stream(
+                                        verifs.clone(),
+                                        flow_id.clone(),
+                                        sas,
+                                        obs.clone(),
+                                    )
+                                    .await;
+                                    break;
+                                }
+                                Ok(None) => {
+                                    started_sas = false;
+                                    remaining_ticks = remaining_ticks.saturating_sub(1);
+                                    sleep(std::time::Duration::from_millis(250)).await;
+                                }
+                                Err(e) => {
+                                    obs.on_error(flow_id.clone(), format!("start_sas failed: {e}"));
+                                    started_sas = false;
+                                    break;
+                                }
+                            }
+                        } else {
+                            remaining_ticks = remaining_ticks.saturating_sub(1);
+                            sleep(std::time::Duration::from_millis(250)).await;
+                        }
+                    }
+
+                    VerificationRequestState::Transitioned { verification, .. } => {
+                        match verification {
+                            Verification::SasV1(sas) => {
+                                crate::attach_sas_stream(
+                                    verifs.clone(),
+                                    flow_id.clone(),
+                                    sas,
+                                    obs.clone(),
+                                )
+                                .await;
+                                break;
+                            }
+                            _ => {
+                                obs.on_error(
+                                    flow_id.clone(),
+                                    "Verification transitioned to a non-SAS method".into(),
+                                );
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
 
     #[wasm_bindgen]
@@ -776,14 +943,229 @@ impl WasmClient {
         on_done: Function,
         on_error: Function,
     ) -> f64 {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let obs: Arc<dyn RecoveryObserver> =
+                Arc::new(JsRecoveryObserver(on_progress, on_done, on_error));
+            let id = state.next_sub_id();
+            let client = state.client.clone();
+
+            wasm_bindgen_futures::spawn_local(async move {
+                let recovery = client.encryption().recovery();
+
+                let _ = client.refresh_access_token().await;
+
+                let current = recovery.state();
+                let is_first_time = matches!(
+                    current,
+                    matrix_sdk::encryption::recovery::RecoveryState::Disabled
+                );
+
+                let _ = catch_unwind(AssertUnwindSafe(|| {
+                    obs.on_progress(if is_first_time {
+                        "Starting recovery setup...".into()
+                    } else {
+                        "Regenerating recovery key...".into()
+                    });
+                }));
+
+                let result = if is_first_time {
+                    let enable = recovery.enable();
+                    let mut progress = enable.subscribe_to_progress();
+
+                    let obs_clone = obs.clone();
+                    let progress_task = wasm_bindgen_futures::spawn_local(async move {
+                        while let Some(Ok(p)) = progress.next().await {
+                            let step = match p {
+                                matrix_sdk::encryption::recovery::EnableProgress::Starting => "Starting...",
+                                matrix_sdk::encryption::recovery::EnableProgress::CreatingBackup => "Creating backup...",
+                                matrix_sdk::encryption::recovery::EnableProgress::CreatingRecoveryKey => "Generating recovery key...",
+                                matrix_sdk::encryption::recovery::EnableProgress::BackingUp(_) => "Uploading keys...",
+                                matrix_sdk::encryption::recovery::EnableProgress::Done { .. } => "Done",
+                                _ => "In progress...",
+                            };
+                            let _ = catch_unwind(AssertUnwindSafe(|| {
+                                obs_clone.on_progress(step.to_string())
+                            }));
+                        }
+                    });
+
+                    let res = enable.await;
+                    let _ = progress_task;
+                    res
+                } else {
+                    recovery.reset_key().await
+                };
+
+                match result {
+                    Ok(key) => {
+                        let _ = catch_unwind(AssertUnwindSafe(|| obs.on_done(key)));
+                    }
+                    Err(e) => {
+                        let msg = e.to_string();
+                        let friendly = if msg.contains("Invalid refresh token")
+                            || msg.contains("UnknownToken")
+                        {
+                            "Session expired. Please log out and log in again to continue."
+                        } else if msg.contains("backup already exists")
+                            || msg.contains("BackupExists")
+                        {
+                            "Recovery is already set up. Use 'Change recovery key' instead."
+                        } else {
+                            &msg
+                        };
+                        let _ =
+                            catch_unwind(AssertUnwindSafe(|| obs.on_error(friendly.to_string())));
+                    }
+                }
+            });
+
+            return id as f64;
+        }
+
         let obs = Box::new(JsRecoveryObserver(on_progress, on_done, on_error));
         self.with_client(|c| c.setup_recovery(obs) as f64)
             .unwrap_or(0.0)
     }
 
     #[wasm_bindgen]
-    pub fn recover_with_key(&self, recovery_key: String) -> bool {
+    pub async fn recover_with_key(&self, recovery_key: String) -> bool {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            return state
+                .client
+                .encryption()
+                .recovery()
+                .recover(&recovery_key)
+                .await
+                .is_ok();
+        }
+
         self.with_client(|c| c.recover_with_key(recovery_key))
+            .unwrap_or(false)
+    }
+
+    #[wasm_bindgen]
+    pub fn observe_recovery_state(&self, on_update: Function) -> f64 {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let obs: Arc<dyn RecoveryStateObserver> = Arc::new(JsRecoveryStateObserver(on_update));
+            let id = state.next_sub_id();
+            let (abort_handle, abort_reg) = AbortHandle::new_pair();
+            state
+                .recovery_state_subs
+                .borrow_mut()
+                .insert(id, abort_handle);
+
+            wasm_bindgen_futures::spawn_local(async move {
+                let state_cleanup = state.clone();
+                let _ = Abortable::new(
+                    async move {
+                        let mut stream = state.client.encryption().recovery().state_stream();
+                        while let Some(value) = stream.next().await {
+                            let mapped = match value {
+                                matrix_sdk::encryption::recovery::RecoveryState::Disabled => {
+                                    RecoveryState::Disabled
+                                }
+                                matrix_sdk::encryption::recovery::RecoveryState::Enabled => {
+                                    RecoveryState::Enabled
+                                }
+                                matrix_sdk::encryption::recovery::RecoveryState::Incomplete => {
+                                    RecoveryState::Incomplete
+                                }
+                                _ => RecoveryState::Unknown,
+                            };
+                            let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(mapped)));
+                        }
+                    },
+                    abort_reg,
+                )
+                .await;
+
+                state_cleanup.recovery_state_subs.borrow_mut().remove(&id);
+            });
+
+            return id as f64;
+        }
+
+        let obs = Box::new(JsRecoveryStateObserver(on_update));
+        self.with_client(|c| c.observe_recovery_state(obs) as f64)
+            .unwrap_or(0.0)
+    }
+
+    #[wasm_bindgen]
+    pub fn unobserve_recovery_state(&self, id: f64) -> bool {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            return Self::abort_sub(&state.recovery_state_subs, id as u64);
+        }
+
+        self.with_client(|c| c.unobserve_recovery_state(id as u64))
+            .unwrap_or(false)
+    }
+
+    #[wasm_bindgen]
+    pub fn observe_backup_state(&self, on_update: Function) -> f64 {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let obs: Arc<dyn BackupStateObserver> = Arc::new(JsBackupStateObserver(on_update));
+            let id = state.next_sub_id();
+            let (abort_handle, abort_reg) = AbortHandle::new_pair();
+            state
+                .backup_state_subs
+                .borrow_mut()
+                .insert(id, abort_handle);
+
+            wasm_bindgen_futures::spawn_local(async move {
+                let state_cleanup = state.clone();
+                let _ = Abortable::new(
+                    async move {
+                        let mut stream = state.client.encryption().backups().state_stream();
+                        while let Some(value) = stream.next().await {
+                            let mapped = match value {
+                                Ok(matrix_sdk::encryption::backups::BackupState::Unknown) => {
+                                    BackupState::Unknown
+                                }
+                                Ok(matrix_sdk::encryption::backups::BackupState::Creating) => {
+                                    BackupState::Creating
+                                }
+                                Ok(matrix_sdk::encryption::backups::BackupState::Enabling) => {
+                                    BackupState::Enabling
+                                }
+                                Ok(matrix_sdk::encryption::backups::BackupState::Resuming) => {
+                                    BackupState::Resuming
+                                }
+                                Ok(matrix_sdk::encryption::backups::BackupState::Enabled) => {
+                                    BackupState::Enabled
+                                }
+                                Ok(matrix_sdk::encryption::backups::BackupState::Downloading) => {
+                                    BackupState::Downloading
+                                }
+                                Ok(matrix_sdk::encryption::backups::BackupState::Disabling) => {
+                                    BackupState::Disabling
+                                }
+                                Err(_) => BackupState::Unknown,
+                            };
+                            let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(mapped)));
+                        }
+                    },
+                    abort_reg,
+                )
+                .await;
+
+                state_cleanup.backup_state_subs.borrow_mut().remove(&id);
+            });
+
+            return id as f64;
+        }
+
+        let obs = Box::new(JsBackupStateObserver(on_update));
+        self.with_client(|c| c.observe_backup_state(obs) as f64)
+            .unwrap_or(0.0)
+    }
+
+    #[wasm_bindgen]
+    pub fn unobserve_backup_state(&self, id: f64) -> bool {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            return Self::abort_sub(&state.backup_state_subs, id as u64);
+        }
+
+        self.with_client(|c| c.unobserve_backup_state(id as u64))
             .unwrap_or(false)
     }
 
@@ -1002,7 +1384,44 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
-    pub fn own_last_read(&self, room_id: String) -> JsValue {
+    pub async fn own_last_read(&self, room_id: String) -> JsValue {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return to_json(&crate::OwnReceipt {
+                    event_id: None,
+                    ts_ms: None,
+                });
+            };
+
+            let Some(tl) = state.timeline_mgr.timeline_for(&rid).await else {
+                return to_json(&crate::OwnReceipt {
+                    event_id: None,
+                    ts_ms: None,
+                });
+            };
+
+            let Some(me) = state.client.user_id() else {
+                return to_json(&crate::OwnReceipt {
+                    event_id: None,
+                    ts_ms: None,
+                });
+            };
+
+            let receipt = if let Some((eid, receipt)) = tl.latest_user_read_receipt(me).await {
+                crate::OwnReceipt {
+                    event_id: Some(eid.to_string()),
+                    ts_ms: receipt.ts.map(|t| t.0.into()),
+                }
+            } else {
+                crate::OwnReceipt {
+                    event_id: None,
+                    ts_ms: None,
+                }
+            };
+
+            return to_json(&receipt);
+        }
+
         let r = self
             .with_client(|c| c.own_last_read(room_id))
             .unwrap_or(crate::OwnReceipt {
@@ -1689,6 +2108,20 @@ impl WasmClient {
 
     #[wasm_bindgen]
     pub fn room_unread_stats(&self, room_id: String) -> JsValue {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return JsValue::NULL;
+            };
+            let Some(room) = state.client.get_room(&rid) else {
+                return JsValue::NULL;
+            };
+            return to_json(&crate::UnreadStats {
+                messages: room.num_unread_messages(),
+                notifications: room.num_unread_notifications(),
+                mentions: room.num_unread_mentions(),
+            });
+        }
+
         let v = self
             .with_client(|c| c.room_unread_stats(room_id))
             .ok()
@@ -1737,7 +2170,28 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
-    pub fn dm_peer_user_id(&self, room_id: String) -> Option<String> {
+    pub async fn dm_peer_user_id(&self, room_id: String) -> Option<String> {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return None;
+            };
+            let Some(room) = state.client.get_room(&rid) else {
+                return None;
+            };
+            let Some(me) = state.client.user_id() else {
+                return None;
+            };
+
+            if let Ok(members) = room.members(matrix_sdk::RoomMemberships::ACTIVE).await {
+                for m in members {
+                    if m.user_id() != me {
+                        return Some(m.user_id().to_string());
+                    }
+                }
+            }
+            return None;
+        }
+
         self.with_client(|c| c.dm_peer_user_id(room_id))
             .ok()
             .flatten()
@@ -1949,6 +2403,83 @@ impl WasmClient {
 
     #[wasm_bindgen]
     pub fn start_verification_inbox(&self, on_request: Function, on_error: Function) -> f64 {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let obs: Arc<dyn VerificationInboxObserver> =
+                Arc::new(JsVerificationInboxObserver(on_request, on_error));
+            let id = state.next_sub_id();
+            let (abort_handle, abort_reg) = AbortHandle::new_pair();
+            state.inbox_subs.borrow_mut().insert(id, abort_handle);
+
+            wasm_bindgen_futures::spawn_local(async move {
+                let state_cleanup = state.clone();
+                let _ = Abortable::new(async move {
+                    state
+                        .client
+                        .encryption()
+                        .wait_for_e2ee_initialization_tasks()
+                        .await;
+
+                    let _ = state.client.event_cache().subscribe();
+
+                    let td_handler =
+                        state.client.observe_events::<ToDeviceKeyVerificationRequestEvent, ()>();
+                    let mut td_sub = td_handler.subscribe();
+
+                    let ir_handler = state.client.observe_events::<SyncRoomMessageEvent, Room>();
+                    let mut ir_sub = ir_handler.subscribe();
+
+                    loop {
+                        tokio::select! {
+                            maybe = td_sub.next() => {
+                                if let Some((ev, ())) = maybe {
+                                    let flow_id = ev.content.transaction_id.to_string();
+                                    let from_user = ev.sender.to_string();
+                                    let from_device = ev.content.from_device.to_string();
+
+                                    state.inbox.borrow_mut().insert(
+                                        flow_id.clone(),
+                                        (ev.sender, ev.content.from_device.clone()),
+                                    );
+
+                                    let _ = catch_unwind(AssertUnwindSafe(|| {
+                                        obs.on_request(flow_id, from_user, from_device);
+                                    }));
+                                } else {
+                                    break;
+                                }
+                            }
+
+                            maybe = ir_sub.next() => {
+                                if let Some((ev, _room)) = maybe {
+                                    if let SyncRoomMessageEvent::Original(o) = ev {
+                                        if let MessageType::VerificationRequest(_) = &o.content.msgtype {
+                                            let flow_id = o.event_id.to_string();
+                                            let from_user = o.sender.to_string();
+
+                                            state.inbox.borrow_mut().insert(
+                                                flow_id.clone(),
+                                                (o.sender.clone(), owned_device_id!("inroom")),
+                                            );
+
+                                            let _ = catch_unwind(AssertUnwindSafe(|| {
+                                                obs.on_request(flow_id, from_user, String::new());
+                                            }));
+                                        }
+                                    }
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }, abort_reg).await;
+
+                state_cleanup.inbox_subs.borrow_mut().remove(&id);
+            });
+
+            return id as f64;
+        }
+
         let obs = Box::new(JsVerificationInboxObserver(on_request, on_error));
         self.with_client(|c| c.start_verification_inbox(obs) as f64)
             .unwrap_or(0.0)
@@ -1956,38 +2487,126 @@ impl WasmClient {
 
     #[wasm_bindgen]
     pub fn unobserve_verification_inbox(&self, sub_id: f64) -> bool {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            return Self::abort_sub(&state.inbox_subs, sub_id as u64);
+        }
+
         self.with_client(|c| c.unobserve_verification_inbox(sub_id as u64))
             .unwrap_or(false)
     }
 
     #[wasm_bindgen]
-    pub fn start_self_sas(
+    pub async fn start_self_sas(
         &self,
         target_device_id: String,
         on_phase: Function,
         on_emojis: Function,
         on_error: Function,
     ) -> String {
-        let obs = Box::new(JsVerificationObserver(on_phase, on_emojis, on_error));
-        self.with_client(|c| c.start_self_sas(target_device_id, obs))
-            .unwrap_or_default()
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let obs: Arc<dyn VerificationObserver> =
+                Arc::new(JsVerificationObserver(on_phase, on_emojis, on_error));
+
+            let Some(me) = state.client.user_id() else {
+                obs.on_error("".into(), "No user".into());
+                return "".into();
+            };
+
+            state
+                .client
+                .encryption()
+                .wait_for_e2ee_initialization_tasks()
+                .await;
+
+            let Ok(devices) = state.client.encryption().get_user_devices(me).await else {
+                obs.on_error("".into(), "Devices unavailable".into());
+                return "".into();
+            };
+
+            let Some(dev) = devices
+                .devices()
+                .find(|d| d.device_id().as_str() == target_device_id)
+            else {
+                obs.on_error("".into(), "Device not found".into());
+                return "".into();
+            };
+
+            match dev.request_verification().await {
+                Ok(req) => {
+                    let flow_id = req.flow_id().to_string();
+                    Self::wait_and_start_sas_web(state.clone(), flow_id.clone(), req, obs.clone());
+                    flow_id
+                }
+                Err(e) => {
+                    obs.on_error("".into(), e.to_string());
+                    "".into()
+                }
+            }
+        } else {
+            let obs = Box::new(JsVerificationObserver(on_phase, on_emojis, on_error));
+            self.with_client(|c| c.start_self_sas(target_device_id, obs))
+                .unwrap_or_default()
+        }
     }
 
     #[wasm_bindgen]
-    pub fn start_user_sas(
+    pub async fn start_user_sas(
         &self,
         user_id: String,
         on_phase: Function,
         on_emojis: Function,
         on_error: Function,
     ) -> String {
-        let obs = Box::new(JsVerificationObserver(on_phase, on_emojis, on_error));
-        self.with_client(|c| c.start_user_sas(user_id, obs))
-            .unwrap_or_default()
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let obs: Arc<dyn VerificationObserver> =
+                Arc::new(JsVerificationObserver(on_phase, on_emojis, on_error));
+
+            let Ok(uid) = user_id.parse::<OwnedUserId>() else {
+                obs.on_error("".into(), "Bad user id".into());
+                return "".into();
+            };
+
+            state
+                .client
+                .encryption()
+                .wait_for_e2ee_initialization_tasks()
+                .await;
+
+            match state.client.encryption().request_user_identity(&uid).await {
+                Ok(Some(identity)) => match identity.request_verification().await {
+                    Ok(req) => {
+                        let flow_id = req.flow_id().to_string();
+                        Self::wait_and_start_sas_web(
+                            state.clone(),
+                            flow_id.clone(),
+                            req,
+                            obs.clone(),
+                        );
+                        flow_id
+                    }
+                    Err(e) => {
+                        obs.on_error("".into(), e.to_string());
+                        "".into()
+                    }
+                },
+                Ok(None) => {
+                    obs.on_error("".into(), "User has no cross-signing identity".into());
+                    "".into()
+                }
+                Err(e) => {
+                    obs.on_error("".into(), format!("Identity fetch failed: {e}"));
+                    "".into()
+                }
+            }
+        } else {
+            let obs = Box::new(JsVerificationObserver(on_phase, on_emojis, on_error));
+            self.with_client(|c| c.start_user_sas(user_id, obs))
+                .unwrap_or_default()
+        }
     }
 
     #[wasm_bindgen]
-    pub fn accept_verification_request(
+    pub async fn accept_verification_request(
         &self,
         flow_id: String,
         other_user_id: Option<String>,
@@ -1995,13 +2614,39 @@ impl WasmClient {
         on_emojis: Function,
         on_error: Function,
     ) -> bool {
-        let obs = Box::new(JsVerificationObserver(on_phase, on_emojis, on_error));
-        self.with_client(|c| c.accept_verification_request(flow_id, other_user_id, obs))
-            .unwrap_or(false)
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let obs: Arc<dyn VerificationObserver> =
+                Arc::new(JsVerificationObserver(on_phase, on_emojis, on_error));
+
+            let Some(user) =
+                Self::resolve_other_user_for_flow_web(state.as_ref(), &flow_id, other_user_id)
+            else {
+                return false;
+            };
+
+            if let Some(req) = state
+                .client
+                .encryption()
+                .get_verification_request(&user, &flow_id)
+                .await
+            {
+                if req.accept().await.is_err() {
+                    return false;
+                }
+                Self::wait_and_start_sas_web(state.clone(), flow_id.clone(), req, obs.clone());
+                true
+            } else {
+                false
+            }
+        } else {
+            let obs = Box::new(JsVerificationObserver(on_phase, on_emojis, on_error));
+            self.with_client(|c| c.accept_verification_request(flow_id, other_user_id, obs))
+                .unwrap_or(false)
+        }
     }
 
     #[wasm_bindgen]
-    pub fn accept_sas(
+    pub async fn accept_sas(
         &self,
         flow_id: String,
         other_user_id: Option<String>,
@@ -2009,45 +2654,255 @@ impl WasmClient {
         on_emojis: Function,
         on_error: Function,
     ) -> bool {
-        let obs = Box::new(JsVerificationObserver(on_phase, on_emojis, on_error));
-        self.with_client(|c| c.accept_sas(flow_id, other_user_id, obs))
-            .unwrap_or(false)
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let obs: Arc<dyn VerificationObserver> =
+                Arc::new(JsVerificationObserver(on_phase, on_emojis, on_error));
+
+            let Some(user) =
+                Self::resolve_other_user_for_flow_web(state.as_ref(), &flow_id, other_user_id)
+            else {
+                return false;
+            };
+
+            if let Some(f) = state.verifs.lock().unwrap().get(&flow_id) {
+                return f.sas.accept().await.is_ok();
+            }
+
+            let Some(verification) = state
+                .client
+                .encryption()
+                .get_verification(&user, &flow_id)
+                .await
+            else {
+                return false;
+            };
+
+            for _ in 0..25 {
+                if let Some(sas) = verification.clone().sas() {
+                    let sas_for_stream = sas.clone();
+                    let flow_for_stream = flow_id.clone();
+                    let obs_for_stream = obs.clone();
+                    let verifs_for_stream = state.verifs.clone();
+
+                    wasm_bindgen_futures::spawn_local(async move {
+                        crate::attach_sas_stream(
+                            verifs_for_stream,
+                            flow_for_stream,
+                            sas_for_stream,
+                            obs_for_stream,
+                        )
+                        .await;
+                    });
+
+                    return sas.accept().await.is_ok();
+                }
+
+                gloo_timers::future::sleep(Duration::from_millis(120)).await;
+            }
+
+            false
+        } else {
+            let obs = Box::new(JsVerificationObserver(on_phase, on_emojis, on_error));
+            self.with_client(|c| c.accept_sas(flow_id, other_user_id, obs))
+                .unwrap_or(false)
+        }
     }
 
     #[wasm_bindgen]
-    pub fn confirm_verification(&self, flow_id: String) -> bool {
+    pub async fn confirm_verification(&self, flow_id: String) -> bool {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let sas = {
+                state
+                    .verifs
+                    .lock()
+                    .unwrap()
+                    .get(&flow_id)
+                    .map(|f| f.sas.clone())
+            };
+            return match sas {
+                Some(sas) => sas.confirm().await.is_ok(),
+                None => false,
+            };
+        }
+
         self.with_client(|c| c.confirm_verification(flow_id))
             .unwrap_or(false)
     }
 
     #[wasm_bindgen]
-    pub fn cancel_verification(&self, flow_id: String) -> bool {
+    pub async fn cancel_verification(&self, flow_id: String) -> bool {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let sas = {
+                state
+                    .verifs
+                    .lock()
+                    .unwrap()
+                    .get(&flow_id)
+                    .map(|f| f.sas.clone())
+            };
+
+            if let Some(sas) = sas {
+                return sas.cancel().await.is_ok();
+            }
+
+            let user = state
+                .inbox
+                .borrow()
+                .get(&flow_id)
+                .map(|p| p.0.clone())
+                .or_else(|| state.client.user_id().map(|u| u.to_owned()));
+
+            let Some(user) = user else { return false };
+
+            if let Some(v) = state
+                .client
+                .encryption()
+                .get_verification(&user, &flow_id)
+                .await
+            {
+                if let Some(sas) = v.sas() {
+                    return sas.cancel().await.is_ok();
+                }
+            }
+
+            return false;
+        }
+
         self.with_client(|c| c.cancel_verification(flow_id))
             .unwrap_or(false)
     }
 
     #[wasm_bindgen]
-    pub fn cancel_verification_request(
+    pub async fn cancel_verification_request(
         &self,
         flow_id: String,
         other_user_id: Option<String>,
     ) -> bool {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let user = if let Some(uid) = other_user_id {
+                match uid.parse::<OwnedUserId>() {
+                    Ok(u) => u,
+                    Err(_) => return false,
+                }
+            } else if let Some((u, _)) = state.inbox.borrow().get(&flow_id).cloned() {
+                u
+            } else {
+                return false;
+            };
+
+            if let Some(req) = state
+                .client
+                .encryption()
+                .get_verification_request(&user, &flow_id)
+                .await
+            {
+                return req.cancel().await.is_ok();
+            }
+
+            if let Some(v) = state
+                .client
+                .encryption()
+                .get_verification(&user, &flow_id)
+                .await
+            {
+                if let Some(sas) = v.sas() {
+                    return sas.cancel().await.is_ok();
+                }
+            }
+
+            return false;
+        }
+
         self.with_client(|c| c.cancel_verification_request(flow_id, other_user_id))
             .unwrap_or(false)
     }
 
     #[wasm_bindgen]
-    pub fn check_verification_request(&self, user_id: String, flow_id: String) -> bool {
+    pub async fn check_verification_request(&self, user_id: String, flow_id: String) -> bool {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let Ok(uid) = user_id.parse::<OwnedUserId>() else {
+                return false;
+            };
+            return state
+                .client
+                .encryption()
+                .get_verification_request(&uid, &flow_id)
+                .await
+                .is_some();
+        }
+
         self.with_client(|c| c.check_verification_request(user_id, flow_id))
             .unwrap_or(false)
     }
 
     #[wasm_bindgen]
-    pub fn list_my_devices(&self) -> JsValue {
+    pub async fn list_my_devices(&self) -> JsValue {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let Some(me) = state.client.user_id() else {
+                return to_json(&Vec::<crate::DeviceSummary>::new());
+            };
+
+            let Ok(user_devs) = state.client.encryption().get_user_devices(me).await else {
+                return to_json(&Vec::<crate::DeviceSummary>::new());
+            };
+
+            let items: Vec<crate::DeviceSummary> = user_devs
+                .devices()
+                .map(|dev| {
+                    let ed25519 = dev.ed25519_key().map(|k| k.to_base64()).unwrap_or_default();
+                    let is_own = state
+                        .client
+                        .device_id()
+                        .map(|my| my == dev.device_id())
+                        .unwrap_or(false);
+
+                    crate::DeviceSummary {
+                        device_id: dev.device_id().to_string(),
+                        display_name: dev.display_name().unwrap_or_default().to_string(),
+                        ed25519,
+                        is_own,
+                        verified: dev.is_verified(),
+                    }
+                })
+                .collect();
+
+            return to_json(&items);
+        }
+
         let v = self
             .with_client(|c| c.list_my_devices())
             .unwrap_or_default();
         to_json(&v)
+    }
+
+    #[wasm_bindgen]
+    pub async fn backup_exists_on_server(&self, fetch: bool) -> bool {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let backups = state.client.encryption().backups();
+            return if fetch {
+                backups.fetch_exists_on_server().await.unwrap_or(false)
+            } else {
+                backups.exists_on_server().await.unwrap_or(false)
+            };
+        }
+
+        self.with_client(|c| c.backup_exists_on_server(fetch))
+            .unwrap_or(false)
+    }
+
+    #[wasm_bindgen]
+    pub async fn set_key_backup_enabled(&self, enabled: bool) -> bool {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let backups = state.client.encryption().backups();
+            return if enabled {
+                backups.create().await.is_ok()
+            } else {
+                backups.disable().await.is_ok()
+            };
+        }
+
+        self.with_client(|c| c.set_key_backup_enabled(enabled))
+            .unwrap_or(false)
     }
 
     #[wasm_bindgen]
@@ -2362,7 +3217,54 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
-    pub fn is_event_read_by(&self, room_id: String, event_id: String, user_id: String) -> bool {
+    pub async fn is_event_read_by(
+        &self,
+        room_id: String,
+        event_id: String,
+        user_id: String,
+    ) -> bool {
+        if let Some(state) = self.async_state.borrow().as_ref().cloned() {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return false;
+            };
+            let Ok(eid) = matrix_sdk::ruma::OwnedEventId::try_from(event_id.as_str()) else {
+                return false;
+            };
+            let Ok(uid) = user_id.parse::<OwnedUserId>() else {
+                return false;
+            };
+
+            let Some(tl) = state.timeline_mgr.timeline_for(&rid).await else {
+                return false;
+            };
+
+            let Some(latest) = tl.latest_user_read_receipt_timeline_event_id(&uid).await else {
+                return false;
+            };
+
+            let items = tl.items().await;
+            let mut idx_latest = None;
+            let mut idx_target = None;
+
+            for (i, it) in items.iter().enumerate() {
+                if let Some(ev) = it.as_event() {
+                    if let Some(found) = ev.event_id() {
+                        if found == &latest {
+                            idx_latest = Some(i);
+                        }
+                        if found == &eid {
+                            idx_target = Some(i);
+                        }
+                    }
+                }
+                if idx_latest.is_some() && idx_target.is_some() {
+                    break;
+                }
+            }
+
+            return matches!((idx_target, idx_latest), (Some(i_t), Some(i_l)) if i_l >= i_t);
+        }
+
         self.with_client(|c| c.is_event_read_by(room_id, event_id, user_id))
             .unwrap_or(false)
     }
