@@ -11,11 +11,21 @@ plugins {
     alias(libs.plugins.composeCompiler)
 }
 
+val elementCallAar by configurations.creating {
+    isTransitive = false
+}
+
+dependencies {
+    elementCallAar(libs.element.call.embedded)
+}
+
 val sharedWasmBridgeDir = rootProject.layout.projectDirectory.dir(
     "shared/src/wasmJsMain/resources/wasm"
 )
 val rustDir = rootProject.layout.projectDirectory.dir("rust")
 val webAppGeneratedWasmResources = layout.buildDirectory.dir("generated/wasmJsApp/wasm")
+val webAppGeneratedRootResources = layout.buildDirectory.dir("generated/wasmJsApp/root")
+val webAppGeneratedElementCallResources = layout.buildDirectory.dir("generated/wasmJsApp/element-call")
 @DisableCachingByDefault(because = "Invokes external Rust tooling")
 abstract class GenerateRustWasmBindingsTask @Inject constructor(
     private val execOps: ExecOperations,
@@ -65,6 +75,21 @@ val syncWasmAppResources = tasks.register<Sync>("syncWasmAppResources") {
     into(webAppGeneratedWasmResources)
 }
 
+val extractElementCall = tasks.register<Copy>("extractElementCall") {
+    from({ elementCallAar.files.map { zipTree(it) } }) {
+        include("assets/element-call/**")
+        eachFile { path = path.removePrefix("assets/") }
+    }
+    into(webAppGeneratedElementCallResources)
+    includeEmptyDirs = false
+}
+
+val syncRootAppResources = tasks.register<Sync>("syncRootAppResources") {
+    dependsOn(extractElementCall)
+    from(webAppGeneratedElementCallResources)
+    into(webAppGeneratedRootResources)
+}
+
 kotlin {
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
@@ -94,7 +119,9 @@ kotlin {
 
 tasks.named<ProcessResources>("wasmJsProcessResources") {
     dependsOn(syncWasmAppResources)
+    dependsOn(syncRootAppResources)
     from(webAppGeneratedWasmResources) {
         into("wasm")
     }
+    from(webAppGeneratedRootResources)
 }

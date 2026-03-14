@@ -6,6 +6,7 @@ import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.mimeType
 import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.readBytes
+import kotlinx.browser.window
 import org.mlm.mages.ui.components.AttachmentData
 
 private val webBlobCache = mutableMapOf<String, ByteArray>()
@@ -30,10 +31,12 @@ actual fun getDynamicColorScheme(darkTheme: Boolean, useDynamicColors: Boolean):
 }
 
 actual fun platformEmbeddedElementCallUrlOrNull(): String? {
-    return "https://call.element.io"
+    return "${window.location.origin}/element-call/index.html"
 }
 
-actual fun platformEmbeddedElementCallParentUrlOrNull(): String? = null
+actual fun platformEmbeddedElementCallParentUrlOrNull(): String? {
+    return window.location.href
+}
 
 actual class CameraPickerLauncher {
     actual fun launch() {
