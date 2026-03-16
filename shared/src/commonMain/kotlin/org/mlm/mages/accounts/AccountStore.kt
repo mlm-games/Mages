@@ -21,22 +21,48 @@ class AccountStore(
 
     suspend fun init() {
         val settings = settingsRepository.flow.first()
-        _accounts.value = decodeAccounts(settings.accountsJson)
-        _activeAccountId.value = settings.activeAccountId
+
+        val browserAccountsJson = BrowserAccountStorage.getAccountsJson()
+        val browserActiveAccountId = BrowserAccountStorage.getActiveAccountId()
+
+        val effectiveAccountsJson =
+            browserAccountsJson?.takeIf { it.isNotBlank() } ?: settings.accountsJson
+
+        val effectiveActiveAccountId =
+            browserActiveAccountId ?: settings.activeAccountId
+
+        _accounts.value = decodeAccounts(effectiveAccountsJson)
+        _activeAccountId.value = effectiveActiveAccountId
+
+        if (
+            BrowserAccountStorage.isAvailable &&
+            (effectiveAccountsJson != settings.accountsJson ||
+             effectiveActiveAccountId != settings.activeAccountId)
+        ) {
+            settingsRepository.update {
+                it.copy(
+                    accountsJson = effectiveAccountsJson,
+                    activeAccountId = effectiveActiveAccountId
+                )
+            }
+        }
     }
 
     private fun decodeAccounts(raw: String?): List<MatrixAccount> {
         if (raw.isNullOrBlank()) return emptyList()
         return try {
             json.decodeFromString<List<MatrixAccount>>(raw)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             emptyList()
         }
     }
 
     private suspend fun saveAccounts(accounts: List<MatrixAccount>) {
         val encoded = json.encodeToString(accounts)
+
         settingsRepository.update { it.copy(accountsJson = encoded) }
+        BrowserAccountStorage.setAccountsJson(encoded)
+
         _accounts.value = accounts
     }
 
@@ -47,6 +73,7 @@ class AccountStore(
 
     suspend fun setActiveAccountId(id: String?) {
         settingsRepository.update { it.copy(activeAccountId = id) }
+        BrowserAccountStorage.setActiveAccountId(id)
         _activeAccountId.value = id
     }
 
@@ -69,14 +96,17 @@ class AccountStore(
     suspend fun removeAccount(accountId: String) {
         val current = _accounts.value.filter { it.id != accountId }
         saveAccounts(current)
+
         if (_activeAccountId.value == accountId) {
             setActiveAccountId(current.firstOrNull()?.id)
         }
     }
 
-    fun getAccountById(id: String): MatrixAccount? = _accounts.value.find { it.id == id }
+    fun getAccountById(id: String): MatrixAccount? =
+        _accounts.value.find { it.id == id }
 
-    fun getAccountByUserId(userId: String): MatrixAccount? = _accounts.value.find { it.userId == userId }
+    fun getAccountByUserId(userId: String): MatrixAccount? =
+        _accounts.value.find { it.userId == userId }
 
     fun hasAccounts(): Boolean = _accounts.value.isNotEmpty()
 }
