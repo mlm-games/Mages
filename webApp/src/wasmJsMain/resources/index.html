@@ -1,20 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mages</title>
     <style>
-        html, body {
+        :root {
+            color-scheme: dark;
+        }
+
+        html,
+        body {
             width: 100%;
             height: 100%;
             margin: 0;
             padding: 0;
             overflow: hidden;
+            background: #111;
+            color: #bbb;
+            font-family: system-ui, sans-serif;
+        }
+
+        #boot {
+            position: fixed;
+            inset: 0;
+            display: grid;
+            place-items: center;
+        }
+
+        .boot-inner {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 14px;
+        }
+
+        .spinner {
+            width: 42px;
+            height: 42px;
+            border: 4px solid #342f9a;
+            border-top-color: #bbb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
+
 <body>
+    <div id="boot">
+        <div class="boot-inner">
+            <div class="spinner"></div>
+        </div>
+    </div>
+
     <script src="mages.js"></script>
 </body>
+
 </html>
