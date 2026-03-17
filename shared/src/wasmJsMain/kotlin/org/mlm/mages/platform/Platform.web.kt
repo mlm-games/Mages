@@ -12,6 +12,7 @@ import kotlinx.browser.window
 import org.mlm.mages.ui.components.AttachmentData
 import org.mlm.mages.ui.components.AttachmentSourceKind
 import org.w3c.dom.HTMLInputElement
+import org.w3c.dom.url.URL
 import org.w3c.files.File
 
 private val webBlobCache = mutableMapOf<String, ByteArray>()
@@ -27,23 +28,22 @@ actual fun platformSystemBarColorScheme(): ColorScheme? = null
 actual fun getDynamicColorScheme(
     darkTheme: Boolean,
     useDynamicColors: Boolean
-): ColorScheme? {return null}
+): ColorScheme? {
+    return null
+}
 
 actual fun deleteDirectory(path: String): Boolean = false
 
 actual fun platformEmbeddedElementCallParentUrlOrNull(): String? {
     return runCatching {
-        val parent = window.parent
-        if (parent != window) {
-            document.referrer.takeIf { it.isNotBlank() }
-        } else {
-            null
-        }
+        window.location.origin
     }.getOrNull()
 }
 
 actual fun platformEmbeddedElementCallUrlOrNull(): String? {
-    return "${window.location.origin}/element-call/index.html"
+    return runCatching {
+        URL("element-call/index.html", document.baseURI).href
+    }.getOrNull()
 }
 
 actual class CameraPickerLauncher {
