@@ -29,7 +29,7 @@ private fun allowedOrigins(widgetBaseUrl: String?): Set<String> =
     setOf("*") // HACK: using baseUrl for element call embedded crashes app, DO NOT USE
 
 // Element-specific actions that the SDK doesn't handle
-private val LOCAL_ONLY_WIDGET_ACTIONS = setOf(
+private val ELEMENT_SPECIFIC_ACTIONS = setOf(
     "io.element.device_mute",
     "io.element.join",
     "io.element.close",
@@ -77,19 +77,26 @@ actual fun CallWebViewHost(
     fun handleWidgetMessage(webView: WebView, message: String) {
         try {
             val json = JSONObject(message)
+            val api = json.optString("api")
             val action = json.optString("action")
 
-            Log.d("WidgetBridge", "Widget → Native: action=$action")
+            Log.d("WidgetBridge", "Widget → Native: api=$api, action=$action")
 
-            if (action in LOCAL_ONLY_WIDGET_ACTIONS) {
-                Log.d("WidgetBridge", "Handling host-only widget action locally: $action")
+            if (action in ELEMENT_SPECIFIC_ACTIONS) {
+                Log.d("WidgetBridge", "Handling Element-specific action locally: $action")
+
                 sendElementActionResponse(webView, message)
+                onMessageFromWidget(message)
 
                 when (action) {
-                    "io.element.close", "im.vector.hangup" -> onClosed()
-                    "minimize" -> onMinimizeRequested()
+                    "io.element.close", "im.vector.hangup" -> {
+                        onClosed()
+                    }
+                    "minimize" -> {
+                        onMinimizeRequested()
+                    }
+                    else -> {}
                 }
-
                 return
             }
 
