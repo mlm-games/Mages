@@ -1,5 +1,6 @@
 package org.mlm.mages.matrix
 
+import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
@@ -17,6 +18,7 @@ import org.mlm.mages.RoomSummary
 import org.mlm.mages.platform.clearWebBlob
 import org.mlm.mages.platform.retrieveWebBlob
 import org.mlm.mages.platform.navigatorOnLine
+import org.w3c.dom.url.URL
 import org.w3c.dom.events.Event
 import kotlin.js.JsAny
 import kotlin.js.JsBoolean
@@ -29,6 +31,34 @@ class WebStubMatrixPort : MatrixPort {
 
     private var nextConnectionObserverToken: ULong = 1uL
     private val connectionObserverStops = mutableMapOf<ULong, () -> Unit>()
+
+    companion object {
+        private const val PENDING_OAUTH_HS_KEY = "mages_pending_oauth_hs_v1"
+        private const val PENDING_OAUTH_ACCOUNT_ID_KEY = "mages_pending_oauth_account_id_v1"
+    }
+
+    private fun savePendingOauth(hs: String, accountId: String?) {
+        val storage = window.localStorage
+        storage.setItem(PENDING_OAUTH_HS_KEY, hs)
+        if (accountId != null) {
+            storage.setItem(PENDING_OAUTH_ACCOUNT_ID_KEY, accountId)
+        } else {
+            storage.removeItem(PENDING_OAUTH_ACCOUNT_ID_KEY)
+        }
+    }
+
+    private fun loadPendingOauth(): Pair<String, String?>? {
+        val storage = window.localStorage
+        val hs = storage.getItem(PENDING_OAUTH_HS_KEY) ?: return null
+        val accountId = storage.getItem(PENDING_OAUTH_ACCOUNT_ID_KEY)
+        return hs to accountId
+    }
+
+    private fun clearPendingOauth() {
+        val storage = window.localStorage
+        storage.removeItem(PENDING_OAUTH_HS_KEY)
+        storage.removeItem(PENDING_OAUTH_ACCOUNT_ID_KEY)
+    }
 
     private fun requireFacade(): WebMatrixFacade {
         return facade ?: throw IllegalStateException("Matrix client not initialized. Wait for init call.")
@@ -715,27 +745,46 @@ class WebStubMatrixPort : MatrixPort {
         return false
     }
 
-    override suspend fun loginOauthLoopback(openUrl: (String) -> Boolean, deviceName: String?): Boolean {
-        val redirectUri = "${window.location.origin}/auth/oauth"
+    override suspend fun loginOauthLoopback(
+        openUrl: (String) -> Boolean,
+        deviceName: String?
+    ): Boolean {
+        return when (loginOauth(openUrl, deviceName)) {
+            MatrixPort.OauthLoginResult.Completed,
+            MatrixPort.OauthLoginResult.RedirectStarted -> true
+
+            is MatrixPort.OauthLoginResult.Failed -> false
+        }
+    }
+
+    override suspend fun loginOauth(
+        openUrl: (String) -> Boolean,
+        deviceName: String?
+    ): MatrixPort.OauthLoginResult {
+        val hs = currentHs ?: return MatrixPort.OauthLoginResult.Failed("Matrix client not initialized")
+        val redirectUri = URL(".", document.baseURI).href
 
         return try {
             val result = requireFacade()
                 .loginOauthBrowser(redirectUri, deviceName)
                 .await<JsAny?>()
 
-            val obj = result?.toJsonObject() ?: return false
+            val obj = result?.toJsonObject()
+                ?: return MatrixPort.OauthLoginResult.Failed("OAuth start failed")
+
             val ok = (obj["ok"] as? JsonPrimitive)?.booleanOrNull == true
             val url = (obj["url"] as? JsonPrimitive)?.contentOrNull
+            val error = (obj["error"] as? JsonPrimitive)?.contentOrNull
 
             if (ok && !url.isNullOrBlank()) {
+                savePendingOauth(hs, currentAccountId)
                 window.location.href = url
-                true
+                MatrixPort.OauthLoginResult.RedirectStarted
             } else {
-                false
+                MatrixPort.OauthLoginResult.Failed(error ?: "OAuth start failed")
             }
         } catch (e: Exception) {
-            e.printStackTrace()
-            false
+            MatrixPort.OauthLoginResult.Failed(e.message)
         }
     }
 
@@ -743,7 +792,10 @@ class WebStubMatrixPort : MatrixPort {
         val href = window.location.href
         if (!href.contains("code=") && !href.contains("error=")) return false
 
-        if (facade == null) return false
+        if (facade == null) {
+            val pending = loadPendingOauth() ?: return false
+            init(pending.first, pending.second)
+        }
 
         val ok = requireFacade()
             .finishLoginFromRedirect(href, "", null)
@@ -751,7 +803,10 @@ class WebStubMatrixPort : MatrixPort {
             .toBoolean()
 
         if (ok) {
-            window.history.replaceState(null, "", window.location.pathname)
+            clearPendingOauth()
+            window.history.replaceState(null, "", URL(".", document.baseURI).href)
+        } else if (href.contains("error=")) {
+            clearPendingOauth()
         }
 
         return ok
@@ -759,7 +814,10 @@ class WebStubMatrixPort : MatrixPort {
 
     override suspend fun homeserverLoginDetails(): HomeserverLoginDetails =
         wasmJson.decodeFromJsonElement(
-            requireFacade().homeserverLoginDetails().toJsonElement()
+            requireFacade()
+                .homeserverLoginDetails()
+                .await<JsAny?>()
+                .toJsonElement()
         )
 
     override suspend fun searchUsers(term: String, limit: Int): List<DirectoryUser> =

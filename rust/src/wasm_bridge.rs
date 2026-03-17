@@ -80,7 +80,11 @@ use matrix_sdk::widget::{
 use matrix_sdk::widget::{VirtualElementCallWidgetConfig, VirtualElementCallWidgetProperties};
 use matrix_sdk::{
     Client as SdkClient, Room, RoomDisplayName, RoomState, SessionMeta, SessionTokens,
-    authentication::matrix::MatrixSession,
+    authentication::{
+        AuthSession,
+        matrix::MatrixSession,
+        oauth::{ClientId, OAuthSession, UserSession},
+    },
     encryption::{BackupDownloadStrategy, EncryptionSettings},
     ruma::{OwnedRoomId, UserId},
 };
@@ -218,11 +222,20 @@ macro_rules! wasm_delegate_json_result_default {
 #[cfg(target_family = "wasm")]
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 struct WasmSessionInfo {
+    #[serde(default = "default_wasm_auth_api")]
+    auth_api: String,
+    #[serde(default)]
+    client_id: Option<String>,
     user_id: String,
     device_id: String,
     access_token: String,
     refresh_token: Option<String>,
     homeserver: String,
+}
+
+#[cfg(target_family = "wasm")]
+fn default_wasm_auth_api() -> String {
+    "matrix".to_owned()
 }
 
 #[cfg(target_family = "wasm")]
@@ -528,15 +541,39 @@ impl WasmAsyncState {
     }
 
     fn persist_session(&self) {
-        if let Some(sess) = self.client.matrix_auth().session() {
-            let info = WasmSessionInfo {
-                user_id: sess.meta.user_id.to_string(),
-                device_id: sess.meta.device_id.to_string(),
-                access_token: sess.tokens.access_token,
-                refresh_token: sess.tokens.refresh_token,
-                homeserver: self.client.homeserver().to_string(),
-            };
-            save_wasm_session(&self.store_name, &info);
+        match self.client.session() {
+            Some(AuthSession::Matrix(sess)) => {
+                let info = WasmSessionInfo {
+                    auth_api: "matrix".to_owned(),
+                    client_id: None,
+                    user_id: sess.meta.user_id.to_string(),
+                    device_id: sess.meta.device_id.to_string(),
+                    access_token: sess.tokens.access_token,
+                    refresh_token: sess.tokens.refresh_token,
+                    homeserver: self.client.homeserver().to_string(),
+                };
+
+                save_wasm_session(&self.store_name, &info);
+            }
+
+            Some(AuthSession::OAuth(sess)) => {
+                let sess = *sess;
+                let info = WasmSessionInfo {
+                    auth_api: "oauth".to_owned(),
+                    client_id: Some(sess.client_id.to_string()),
+                    user_id: sess.user.meta.user_id.to_string(),
+                    device_id: sess.user.meta.device_id.to_string(),
+                    access_token: sess.user.tokens.access_token,
+                    refresh_token: sess.user.tokens.refresh_token,
+                    homeserver: self.client.homeserver().to_string(),
+                };
+
+                save_wasm_session(&self.store_name, &info);
+            }
+
+            None => clear_wasm_session(&self.store_name),
+
+            _ => {}
         }
     }
 
@@ -736,17 +773,28 @@ impl WasmClient {
 
         if let Some(info) = load_wasm_session(&store_name) {
             if let Ok(user_id) = info.user_id.parse() {
-                let session = MatrixSession {
-                    meta: SessionMeta {
-                        user_id,
-                        device_id: info.device_id.into(),
-                    },
-                    tokens: SessionTokens {
-                        access_token: info.access_token,
-                        refresh_token: info.refresh_token,
-                    },
+                let meta = SessionMeta {
+                    user_id,
+                    device_id: info.device_id.into(),
                 };
-                let _ = client.restore_session(session).await;
+
+                let tokens = SessionTokens {
+                    access_token: info.access_token,
+                    refresh_token: info.refresh_token,
+                };
+
+                if info.auth_api == "oauth" {
+                    if let Some(client_id) = info.client_id {
+                        let session = OAuthSession {
+                            client_id: ClientId::new(client_id),
+                            user: UserSession { meta, tokens },
+                        };
+                        let _ = client.restore_session(session).await;
+                    }
+                } else {
+                    let session = MatrixSession { meta, tokens };
+                    let _ = client.restore_session(session).await;
+                }
             }
         }
 
@@ -4504,10 +4552,10 @@ impl WasmClient {
     ) -> JsValue {
         let redirect = match Url::parse(&redirect_uri) {
             Ok(v) => v,
-            Err(_) => {
+            Err(e) => {
                 return to_json(&serde_json::json!({
                     "ok": false,
-                    "error": "Invalid redirect URI"
+                    "error": format!("invalid redirect URI: {e}")
                 }));
             }
         };
@@ -4515,22 +4563,23 @@ impl WasmClient {
         let Some(state) = self.async_state.borrow().as_ref().cloned() else {
             return to_json(&serde_json::json!({
                 "ok": false,
-                "error": "Client not initialized"
+                "error": "async wasm client not initialized"
             }));
         };
 
-        // Only works if OAuth client registration was already restored/registered, or if reg. data is provided..
+        let registration_data = crate::mages_client_metadata(&redirect).into();
+
         let result = state
             .client
             .oauth()
-            .login(redirect, None, None, None)
+            .login(redirect, None, Some(registration_data), None)
             .build()
             .await;
 
         match result {
             Ok(auth_data) => to_json(&serde_json::json!({
                 "ok": true,
-                "url": auth_data.url
+                "url": auth_data.url.to_string()
             })),
             Err(e) => to_json(&serde_json::json!({
                 "ok": false,
@@ -4555,12 +4604,18 @@ impl WasmClient {
             Err(_) => UrlOrQuery::Query(callback_url_or_query),
         };
 
-        state
-            .client
-            .oauth()
-            .finish_login(url_or_query)
-            .await
-            .is_ok()
+        if state.client.oauth().finish_login(url_or_query).await.is_err() {
+            return false;
+        }
+
+        state.persist_session();
+
+        state.client.encryption().wait_for_e2ee_initialization_tasks().await;
+        let _ = state.ensure_sync_service().await;
+        let _ = state.client.event_cache().subscribe();
+        state.ensure_send_queue_supervision();
+
+        true
     }
 
     #[wasm_bindgen]

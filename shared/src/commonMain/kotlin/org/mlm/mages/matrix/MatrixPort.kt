@@ -435,6 +435,11 @@ data class HomeserverLoginDetails(
 )
 
 interface MatrixPort {
+    sealed interface OauthLoginResult {
+        data object Completed : OauthLoginResult
+        data object RedirectStarted : OauthLoginResult
+        data class Failed(val message: String? = null) : OauthLoginResult
+    }
 
     @Serializable
     data class SyncStatus(val phase: SyncPhase, val message: String? = null)
@@ -653,7 +658,21 @@ interface MatrixPort {
 
     suspend fun loginOauthLoopback(openUrl: (String) -> Boolean, deviceName: String? = null): Boolean
 
+    suspend fun loginOauth(
+        openUrl: (String) -> Boolean,
+        deviceName: String? = null
+    ): OauthLoginResult {
+        val ok = loginOauthLoopback(openUrl, deviceName)
+        return if (ok && isLoggedIn()) {
+            OauthLoginResult.Completed
+        } else {
+            OauthLoginResult.Failed("OAuth failed or was cancelled")
+        }
+    }
+
     suspend fun maybeFinishOauthRedirect(): Boolean = false
+
+    suspend fun resumeOauthIfNeeded(): Boolean = maybeFinishOauthRedirect()
 
     suspend fun homeserverLoginDetails(): HomeserverLoginDetails
 

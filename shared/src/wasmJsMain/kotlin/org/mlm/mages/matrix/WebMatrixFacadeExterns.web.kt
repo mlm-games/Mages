@@ -45,7 +45,7 @@ external class WebMatrixFacade {
     @JsName("finishLoginFromRedirect")
     fun finishLoginFromRedirect(callback: String, expectedState: String, expectedIssuer: String? = definedExternally): Promise<JsBoolean>
     @JsName("homeserverLoginDetails")
-    fun homeserverLoginDetails(): WebHomeserverLoginDetailsValue?
+    fun homeserverLoginDetails(): Promise<WebHomeserverLoginDetailsValue?>
     fun whoami(): String?
 
     fun listRooms(): Promise<WebRoomSummaryListValue?>

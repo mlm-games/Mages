@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import org.mlm.mages.accounts.MatrixAccount
 import org.mlm.mages.accounts.MatrixClients
+import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.createMatrixPort
 import org.mlm.mages.platform.getDeviceDisplayName
 import org.mlm.mages.settings.AppSettings
@@ -284,12 +285,27 @@ class LoginViewModel(
             try {
                 port.init(hs, accountId)
 
-                val ok = port.loginOauthLoopback(openUrl, deviceName = getDeviceDisplayName())
+                when (val result = port.loginOauth(openUrl, deviceName = getDeviceDisplayName())) {
+                    MatrixPort.OauthLoginResult.RedirectStarted -> {
+                        // Web flow continues after full-page redirect.
+                        return@launch
+                    }
 
-                if (!ok || !port.isLoggedIn()) {
-                    port.close()
-                    updateState { copy(isBusy = false, oauthInProgress = false, error = "OAuth failed or was cancelled") }
-                    return@launch
+                    is MatrixPort.OauthLoginResult.Failed -> {
+                        port.close()
+                        updateState {
+                            copy(
+                                isBusy = false,
+                                oauthInProgress = false,
+                                error = result.message ?: "OAuth failed or was cancelled"
+                            )
+                        }
+                        return@launch
+                    }
+
+                    MatrixPort.OauthLoginResult.Completed -> {
+                        // continue below
+                    }
                 }
 
                 val userId = port.whoami()

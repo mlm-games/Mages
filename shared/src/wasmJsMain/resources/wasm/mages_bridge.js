@@ -129,6 +129,23 @@ class WasmClientBridge {
     return result ?? null;
   }
 
+  async loginOauthBrowser(redirectUri, deviceDisplayName) {
+    return normalizeWasmValue(
+      await this.client.loginOauthBrowser(
+        redirectUri,
+        deviceDisplayName ?? undefined,
+      ),
+    );
+  }
+
+  async finishLoginFromRedirect(callbackUrl, state, deviceDisplayName) {
+    return await this.client.finishLoginFromRedirect(
+      callbackUrl,
+      state ?? "",
+      deviceDisplayName ?? undefined,
+    );
+  }
+
   login_oauth_loopback_available() {
     return this.client.login_oauth_loopback_available();
   }
@@ -137,8 +154,8 @@ class WasmClientBridge {
     return this.client.login_sso_loopback_available();
   }
 
-  homeserver_login_details() {
-    return normalizeWasmValue(this.client.homeserver_login_details());
+  async homeserver_login_details() {
+    return normalizeWasmValue(await this.client.homeserver_login_details());
   }
 
   async rooms() {
@@ -880,6 +897,31 @@ export class WebMatrixFacade {
     return result;
   }
 
+  async loginOauthBrowser(redirectUri, deviceDisplayName) {
+    return await this.client.loginOauthBrowser(
+      redirectUri,
+      deviceDisplayName ?? undefined,
+    );
+  }
+
+  async finishLoginFromRedirect(callbackUrl, state, deviceDisplayName) {
+    const ok = await this.client.finishLoginFromRedirect(
+      callbackUrl,
+      state ?? "",
+      deviceDisplayName ?? undefined,
+    );
+
+    if (ok && this.isLoggedIn()) {
+      this.sessionStore.save(accountKey(this.accountId, this.homeserverUrl), {
+        homeserverUrl: this.homeserverUrl,
+        accountId: this.accountId,
+        userId: this.whoami(),
+      });
+    }
+
+    return ok;
+  }
+
   async logout() {
     const result = await this.client.logout();
     this.sessionStore.clear(accountKey(this.accountId, this.homeserverUrl));
@@ -898,8 +940,10 @@ export class WebMatrixFacade {
     return this.client.login_sso_loopback_available();
   }
 
-  homeserverLoginDetails() {
-    return this.client.homeserver_login_details();
+  async homeserverLoginDetails() {
+    return normalizeWasmValue(
+      await this.client.homeserver_login_details(),
+    );
   }
 
   whoami() {
@@ -1588,12 +1632,12 @@ export function createElementCallIframe(containerId, widgetUrl, onMessage) {
   container.appendChild(iframe);
   elementCallIframe = iframe;
 
-  elementCallMessageListener = function(event) {
+  elementCallMessageListener = function (event) {
     if (elementCallOnMessage && isWidgetProtocolMessage(event.data)) {
       const data = typeof event.data === 'string' ? event.data : JSON.stringify(event.data);
       try {
         elementCallOnMessage(data);
-      } catch (_) {}
+      } catch (_) { }
     }
   };
 
@@ -1611,7 +1655,7 @@ export function sendToElementCallIframe(message) {
     try {
       elementCallIframe.contentWindow.postMessage(payload, '*');
       return true;
-    } catch (_) {}
+    } catch (_) { }
   }
 
   try {
@@ -1619,7 +1663,7 @@ export function sendToElementCallIframe(message) {
       window.parent.postMessage(payload, '*');
       return true;
     }
-  } catch (_) {}
+  } catch (_) { }
 
   return false;
 }
@@ -1666,6 +1710,6 @@ export function sendElementActionResponse(originalMessage) {
       elementCallIframe.contentWindow.postMessage(response, '*');
       return true;
     }
-  } catch (_) {}
+  } catch (_) { }
   return false;
 }
