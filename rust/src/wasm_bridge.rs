@@ -1,20 +1,11 @@
-use crate::OriginalSyncCallInviteEvent;
-use crate::RsMode;
-use crate::owned_device_id;
+use crate::core::{CoreClient, TimelineManager, map_send_queue_update};
+use crate::errors::{IntoFfi, OptionFfi};
+use crate::types::*;
 use crate::{
-    AttachmentInfo, AttachmentKind, BackupState, BackupStateObserver, CallInvite, CallObserver,
-    CallSessionInfo, CallWidgetObserver, ConnectionObserver, ConnectionState, CoreClient,
-    Direction, ElementCallIntent, FfiRoomNotificationMode, HomeserverLoginDetails,
-    LiveLocationObserver, LiveLocationShareInfo, MessageEvent, OwnReceipt, Presence,
-    ReactionSummary, ReceiptsObserver, RecoveryObserver, RecoveryState, RecoveryStateObserver,
-    RenderedNotification, RoomDirectoryVisibility, RoomHistoryVisibility, RoomJoinRule,
-    RoomListCmd, RoomListEntry, RoomListObserver, RoomPowerLevelChanges, RoomPreview,
-    RoomPreviewMembership, RoomSummary, SasEmojis, SasPhase, SendObserver, SendState, SendUpdate,
-    SpaceChildInfo, SpaceHierarchyPage, SpaceInfo, SyncObserver, SyncPhase, SyncStatus,
-    TimelineDiffKind, TimelineManager, TimelineObserver, TypingObserver, VerifMap,
-    VerificationInboxObserver, VerificationObserver, emit_timeline_reset_filled,
-    latest_room_event_for, map_vec_diff, missing_reply_event_id, paginate_backwards_visible,
+    emit_timeline_reset_filled, latest_room_event_for, mages_client_metadata, map_vec_diff,
+    missing_reply_event_id, strip_matrix_path,
 };
+
 use futures_util::StreamExt;
 use futures_util::future::{AbortHandle, Abortable};
 use js_int::UInt;
@@ -46,8 +37,8 @@ use matrix_sdk::ruma::{
         get_presence::v3 as get_presence_v3, set_presence::v3 as set_presence_v3,
     },
     api::client::receipt::create_receipt::v3::ReceiptType,
-    api::client::relations::get_relating_events_with_rel_type_and_event_type as get_relating,
     events::{TimelineEventType, receipt::ReceiptThread, relation::RelationType},
+    owned_device_id,
     presence::PresenceState,
     room::JoinRuleSummary,
     room::RoomType,
@@ -61,7 +52,6 @@ use matrix_sdk::widget::{
 use matrix_sdk::{
     Client as SdkClient, Room, RoomDisplayName, RoomMemberships, RoomState, SessionMeta,
     SessionTokens,
-    attachment::AttachmentConfig,
     authentication::{
         AuthSession,
         matrix::MatrixSession,
@@ -104,6 +94,113 @@ fn call_js(f: &Function, arg: JsValue) {
 }
 fn call_js0(f: &Function) {
     let _ = f.call0(&JsValue::NULL);
+}
+
+macro_rules! wasm_delegate_bool {
+    ($( $js_name:literal => $method:ident($($arg:ident : $ty:ty),*) );+ $(;)?) => {
+        #[wasm_bindgen]
+        impl WasmClient {
+            $(
+                #[wasm_bindgen(js_name = $js_name)]
+                pub async fn $method(&self, $($arg: $ty),*) -> bool {
+                    let Some(s) = self.state() else { return false; };
+                    s.core.$method($($arg),*).await
+                }
+            )+
+        }
+    };
+}
+
+macro_rules! wasm_delegate_result_bool {
+    ($( $js_name:literal => $method:ident($($arg:ident : $ty:ty),*) );+ $(;)?) => {
+        #[wasm_bindgen]
+        impl WasmClient {
+            $(
+                #[wasm_bindgen(js_name = $js_name)]
+                pub async fn $method(&self, $($arg: $ty),*) -> bool {
+                    let Some(s) = self.state() else { return false; };
+                    s.core.$method($($arg),*).await.is_ok()
+                }
+            )+
+        }
+    };
+}
+
+macro_rules! wasm_delegate_json {
+    ($( $js_name:literal => $method:ident($($arg:ident : $ty:ty),*) or $default:expr );+ $(;)?) => {
+        #[wasm_bindgen]
+        impl WasmClient {
+            $(
+                #[wasm_bindgen(js_name = $js_name)]
+                pub async fn $method(&self, $($arg: $ty),*) -> JsValue {
+                    let Some(s) = self.state() else { return to_json(&$default); };
+                    to_json(&s.core.$method($($arg),*).await)
+                }
+            )+
+        }
+    };
+}
+
+macro_rules! wasm_delegate_result_json {
+    ($( $js_name:literal => $method:ident($($arg:ident : $ty:ty),*) );+ $(;)?) => {
+        #[wasm_bindgen]
+        impl WasmClient {
+            $(
+                #[wasm_bindgen(js_name = $js_name)]
+                pub async fn $method(&self, $($arg: $ty),*) -> JsValue {
+                    let Some(s) = self.state() else { return JsValue::NULL; };
+                    match s.core.$method($($arg),*).await {
+                        Ok(v) => to_json(&v),
+                        Err(_) => JsValue::NULL,
+                    }
+                }
+            )+
+        }
+    };
+}
+
+macro_rules! wasm_delegate_option_json {
+    ($( $js_name:literal => $method:ident($($arg:ident : $ty:ty),*) );+ $(;)?) => {
+        #[wasm_bindgen]
+        impl WasmClient {
+            $(
+                #[wasm_bindgen(js_name = $js_name)]
+                pub async fn $method(&self, $($arg: $ty),*) -> JsValue {
+                    let Some(s) = self.state() else { return JsValue::NULL; };
+                    match s.core.$method($($arg),*).await {
+                        Some(v) => to_json(&v),
+                        None => JsValue::NULL,
+                    }
+                }
+            )+
+        }
+    };
+}
+
+macro_rules! wasm_unobserve {
+    ($( $js_name:literal => $method:ident($field:ident) );+ $(;)?) => {
+        #[wasm_bindgen]
+        impl WasmClient {
+            $(
+                #[wasm_bindgen(js_name = $js_name)]
+                pub fn $method(&self, sub_id: f64) -> bool {
+                    self.state().map(|s| Self::abort_sub(&s.$field, sub_id as u64)).unwrap_or(false)
+                }
+            )+
+        }
+    };
+}
+
+macro_rules! wasm_subscribe {
+    ($state:expr, $field:ident, $body:expr) => {{
+        let id = $state.next_sub_id();
+        let (ah, ar) = AbortHandle::new_pair();
+        $state.$field.borrow_mut().insert(id, ah);
+        wasm_bindgen_futures::spawn_local(async move {
+            let _ = Abortable::new($body, ar).await;
+        });
+        id as f64
+    }};
 }
 
 macro_rules! js_observer_json {
@@ -183,15 +280,24 @@ unsafe impl Sync for JsVerificationInboxObserver {}
 struct JsVerificationObserver(Function, Function, Function);
 impl VerificationObserver for JsVerificationObserver {
     fn on_phase(&self, flow_id: String, phase: SasPhase) {
-        let payload = serde_json::json!({"flowId": flow_id, "phase": format!("{:?}", phase)});
-        call_js(&self.0, JsValue::from_str(&payload.to_string()));
+        call_js(
+            &self.0,
+            JsValue::from_str(
+                &serde_json::json!({"flowId": flow_id, "phase": format!("{:?}", phase)})
+                    .to_string(),
+            ),
+        );
     }
     fn on_emojis(&self, payload: SasEmojis) {
         call_js(&self.1, to_json(&payload));
     }
     fn on_error(&self, flow_id: String, message: String) {
-        let payload = serde_json::json!({"flowId": flow_id, "message": message});
-        call_js(&self.2, JsValue::from_str(&payload.to_string()));
+        call_js(
+            &self.2,
+            JsValue::from_str(
+                &serde_json::json!({"flowId": flow_id, "message": message}).to_string(),
+            ),
+        );
     }
 }
 unsafe impl Send for JsVerificationObserver {}
@@ -227,7 +333,6 @@ struct WasmSessionInfo {
 fn default_auth_api() -> String {
     "matrix".to_owned()
 }
-
 fn wasm_session_key(store_name: &str) -> String {
     format!("mages_session_{store_name}")
 }
@@ -287,7 +392,6 @@ impl WasmAsyncState {
     fn tm(&self) -> &TimelineManager {
         &self.core.timeline_mgr
     }
-
     fn next_sub_id(&self) -> u64 {
         let next = self.send_obs_counter.get().wrapping_add(1);
         self.send_obs_counter.set(next);
@@ -368,77 +472,7 @@ impl WasmAsyncState {
                     Err(_) => break,
                 };
                 let rid = upd.room_id.to_string();
-                use matrix_sdk::send_queue::RoomSendQueueUpdate as U;
-                let mapped = match upd.update {
-                    U::NewLocalEvent(local) => {
-                        attempts
-                            .entry(format!("{rid}|{}", local.transaction_id))
-                            .or_insert(0);
-                        Some(SendUpdate {
-                            room_id: rid,
-                            txn_id: local.transaction_id.to_string(),
-                            attempts: 0,
-                            state: SendState::Enqueued,
-                            event_id: None,
-                            error: None,
-                        })
-                    }
-                    U::RetryEvent { transaction_id } => {
-                        let k = format!("{rid}|{transaction_id}");
-                        let n = attempts.entry(k).and_modify(|v| *v += 1).or_insert(1);
-                        Some(SendUpdate {
-                            room_id: rid,
-                            txn_id: transaction_id.to_string(),
-                            attempts: *n,
-                            state: SendState::Retrying,
-                            event_id: None,
-                            error: None,
-                        })
-                    }
-                    U::SentEvent {
-                        transaction_id,
-                        event_id,
-                    } => {
-                        attempts.remove(&format!("{rid}|{transaction_id}"));
-                        Some(SendUpdate {
-                            room_id: rid,
-                            txn_id: transaction_id.to_string(),
-                            attempts: 0,
-                            state: SendState::Sent,
-                            event_id: Some(event_id.to_string()),
-                            error: None,
-                        })
-                    }
-                    U::SendError {
-                        transaction_id,
-                        error,
-                        is_recoverable,
-                    } => {
-                        let k = format!("{rid}|{transaction_id}");
-                        let n = attempts.entry(k).and_modify(|v| *v += 1).or_insert(1);
-                        Some(SendUpdate {
-                            room_id: rid,
-                            txn_id: transaction_id.to_string(),
-                            attempts: *n,
-                            state: SendState::Failed,
-                            event_id: None,
-                            error: Some(format!("{error:?} (recoverable={is_recoverable})")),
-                        })
-                    }
-                    U::CancelledLocalEvent { transaction_id } => {
-                        attempts.remove(&format!("{rid}|{transaction_id}"));
-                        Some(SendUpdate {
-                            room_id: rid,
-                            txn_id: transaction_id.to_string(),
-                            attempts: 0,
-                            state: SendState::Failed,
-                            event_id: None,
-                            error: Some("Cancelled".into()),
-                        })
-                    }
-                    _ => None,
-                };
-                if let Some(u) = mapped {
+                if let Some(u) = map_send_queue_update(&rid, upd.update, &mut attempts) {
                     state.dispatch_send_update(&u);
                 }
             }
@@ -462,6 +496,74 @@ impl WasmClient {
     }
 }
 
+wasm_delegate_bool! {
+    "markRead"             => mark_read(room_id: String);
+    "markReadAt"           => mark_read_at(room_id: String, event_id: String);
+    "markFullyReadAt"      => mark_fully_read_at(room_id: String, event_id: String);
+    "setTyping"            => set_typing(room_id: String, typing: bool);
+    "setRoomFavourite"     => set_room_favourite(room_id: String, fav: bool);
+    "setRoomLowPriority"   => set_room_low_priority(room_id: String, low: bool);
+    "setRoomName"          => set_room_name(room_id: String, name: String);
+    "setRoomTopic"         => set_room_topic(room_id: String, topic: String);
+    "banUser"              => ban_user(room_id: String, user_id: String, reason: Option<String>);
+    "unbanUser"            => unban_user(room_id: String, user_id: String, reason: Option<String>);
+    "kickUser"             => kick_user(room_id: String, user_id: String, reason: Option<String>);
+    "inviteUser"           => invite_user(room_id: String, user_id: String);
+    "enableRoomEncryption" => enable_room_encryption(room_id: String);
+    "isSpace"              => is_space(room_id: String);
+    "knock"                => knock(id_or_alias: String);
+    "isUserIgnored"        => is_user_ignored(user_id: String);
+    "react"                => react(room_id: String, event_id: String, emoji: String);
+    "spaceInviteUser"      => space_invite_user(space_id: String, user_id: String);
+    "redact"               => redact(room_id: String, event_id: String, reason: Option<String>);
+}
+
+wasm_delegate_result_bool! {
+    "ignoreUser"       => ignore_user(user_id: String);
+    "unignoreUser"     => unignore_user(user_id: String);
+    "leaveRoom"        => leave_room(room_id: String);
+    "spaceAddChild"    => space_add_child(space_id: String, child_room_id: String, order: Option<String>, suggested: Option<bool>);
+    "spaceRemoveChild" => space_remove_child(space_id: String, child_room_id: String);
+}
+
+wasm_delegate_json! {
+    "rooms"             => rooms()                                                or Vec::<RoomSummary>::new();
+    "recentEvents"      => recent_events(room_id: String, limit: u32)             or Vec::<MessageEvent>::new();
+    "ownLastRead"       => own_last_read(room_id: String)                         or OwnReceipt { event_id: None, ts_ms: None };
+    "reactionsForEvent" => reactions_for_event(room_id: String, event_id: String)  or Vec::<ReactionSummary>::new();
+    "mySpaces"          => my_spaces()                                             or Vec::<SpaceInfo>::new();
+}
+
+wasm_delegate_result_json! {
+    "roomPowerLevels"  => room_power_levels(room_id: String);
+    "getPresence"      => get_presence(user_id: String);
+    "roomPreview"      => room_preview(id_or_alias: String);
+    "spaceHierarchy"   => space_hierarchy(space_id: String, from: Option<String>, limit: u32, max_depth: Option<u32>, suggested_only: bool);
+    "threadReplies"    => thread_replies(room_id: String, root_event_id: String, from: Option<String>, limit: u32, forward: bool);
+    "threadSummary"    => thread_summary(room_id: String, root_event_id: String, per_page: u32, max_pages: u32);
+    "listMembers"      => list_members(room_id: String);
+    "listInvited"      => list_invited();
+    "ignoredUsers"     => ignored_users();
+}
+
+wasm_delegate_option_json! {
+    "roomUnreadStats"  => room_unread_stats(room_id: String);
+    "roomSuccessor"    => room_successor(room_id: String);
+    "roomPredecessor"  => room_predecessor(room_id: String);
+}
+
+wasm_unobserve! {
+    "unobserveTimeline"          => unobserve_timeline(timeline_subs);
+    "unobserveTyping"            => unobserve_typing(typing_subs);
+    "unobserveReceipts"          => unobserve_receipts(receipts_subs);
+    "unobserveLiveLocation"      => unobserve_live_location(live_location_subs);
+    "stopCallInbox"              => stop_call_inbox(call_subs);
+    "unobserveVerificationInbox" => unobserve_verification_inbox(inbox_subs);
+    "unobserveRecoveryState"     => unobserve_recovery_state(recovery_state_subs);
+    "unobserveBackupState"       => unobserve_backup_state(backup_state_subs);
+    "unobserveRoomList"          => unobserve_room_list(room_list_subs);
+}
+
 #[wasm_bindgen]
 impl WasmClient {
     #[wasm_bindgen(js_name = createAsync)]
@@ -474,16 +576,14 @@ impl WasmClient {
             let raw = homeserver_url.trim();
             matrix_sdk::reqwest::Url::parse(raw)
                 .or_else(|_| matrix_sdk::reqwest::Url::parse(&format!("https://{raw}")))
-                .map(crate::strip_matrix_path)
+                .map(strip_matrix_path)
                 .map(|u| u.to_string())
                 .unwrap_or_else(|_| raw.to_owned())
         };
-
         let store_name = account_id
             .as_ref()
             .map(|id| format!("mages_store_{id}"))
             .unwrap_or_else(|| "mages_store".to_owned());
-
         let client = SdkClient::builder()
             .server_name_or_homeserver_url(normalized)
             .indexeddb_store(&store_name, None)
@@ -497,7 +597,6 @@ impl WasmClient {
             .build()
             .await
             .map_err(|e| JsValue::from_str(&format!("build failed: {e}")))?;
-
         if let Some(info) = load_wasm_session(&store_name) {
             if let Ok(user_id) = info.user_id.parse() {
                 let meta = SessionMeta {
@@ -522,9 +621,7 @@ impl WasmClient {
                 }
             }
         }
-
         let core = Rc::new(CoreClient::new(client));
-
         let state = Rc::new(WasmAsyncState {
             core,
             store_name,
@@ -549,7 +646,6 @@ impl WasmClient {
             widget_driver_subs: RefCell::new(HashMap::new()),
             widget_recv_subs: RefCell::new(HashMap::new()),
         });
-
         Ok(WasmClient {
             async_state: Rc::new(RefCell::new(Some(state))),
         })
@@ -603,7 +699,7 @@ impl WasmClient {
         let _ = state.ensure_sync_service().await;
         let _ = state.client().event_cache().subscribe();
         state.ensure_send_queue_supervision();
-        None // None = success
+        None
     }
 
     #[wasm_bindgen]
@@ -653,7 +749,7 @@ impl WasmClient {
         let Some(state) = self.state() else {
             return to_json(&serde_json::json!({"ok":false,"error":"not initialized"}));
         };
-        let reg = crate::mages_client_metadata(&redirect).into();
+        let reg = mages_client_metadata(&redirect).into();
         match state
             .client()
             .oauth()
@@ -701,24 +797,7 @@ impl WasmClient {
         true
     }
 
-    // Methods whose wasm signature matches core exactly use inline delegation.
-    // Methods with different signatures are manual below.
-
-    #[wasm_bindgen(js_name = rooms)]
-    pub async fn rooms(&self) -> JsValue {
-        let Some(s) = self.state() else {
-            return to_json(&Vec::<RoomSummary>::new());
-        };
-        to_json(&s.core.rooms().await)
-    }
-
-    #[wasm_bindgen(js_name = recentEvents)]
-    pub async fn recent_events(&self, room_id: String, limit: u32) -> JsValue {
-        let Some(s) = self.state() else {
-            return to_json(&Vec::<MessageEvent>::new());
-        };
-        to_json(&s.core.recent_events(room_id, limit).await)
-    }
+    // Methods with wasm-specific signatures (cast, missing optional args)
 
     #[wasm_bindgen(js_name = sendMessage)]
     pub async fn send_message(&self, room_id: String, body: String) -> bool {
@@ -744,54 +823,6 @@ impl WasmClient {
         s.core.edit(room_id, target_event_id, new_body, None).await
     }
 
-    #[wasm_bindgen(js_name = redact)]
-    pub async fn redact(&self, room_id: String, event_id: String, reason: Option<String>) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.redact(room_id, event_id, reason).await
-    }
-
-    #[wasm_bindgen(js_name = react)]
-    pub async fn react(&self, room_id: String, event_id: String, emoji: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.react(room_id, event_id, emoji).await
-    }
-
-    #[wasm_bindgen(js_name = markRead)]
-    pub async fn mark_read(&self, room_id: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.mark_read(room_id).await
-    }
-
-    #[wasm_bindgen(js_name = markReadAt)]
-    pub async fn mark_read_at(&self, room_id: String, event_id: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.mark_read_at(room_id, event_id).await
-    }
-
-    #[wasm_bindgen(js_name = markFullyReadAt)]
-    pub async fn mark_fully_read_at(&self, room_id: String, event_id: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.mark_fully_read_at(room_id, event_id).await
-    }
-
-    #[wasm_bindgen(js_name = setTyping)]
-    pub async fn set_typing(&self, room_id: String, typing: bool) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.set_typing(room_id, typing).await
-    }
-
     #[wasm_bindgen(js_name = paginateBackwards)]
     pub async fn paginate_backwards(&self, room_id: String, count: u32) -> bool {
         let Some(s) = self.state() else {
@@ -808,80 +839,6 @@ impl WasmClient {
         s.core.paginate_forwards(room_id, count as u16).await
     }
 
-    #[wasm_bindgen(js_name = setRoomFavourite)]
-    pub async fn set_room_favourite(&self, room_id: String, fav: bool) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.set_room_favourite(room_id, fav).await
-    }
-
-    #[wasm_bindgen(js_name = setRoomLowPriority)]
-    pub async fn set_room_low_priority(&self, room_id: String, low: bool) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.set_room_low_priority(room_id, low).await
-    }
-
-    #[wasm_bindgen(js_name = setRoomName)]
-    pub async fn set_room_name(&self, room_id: String, name: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.set_room_name(room_id, name).await
-    }
-
-    #[wasm_bindgen(js_name = setRoomTopic)]
-    pub async fn set_room_topic(&self, room_id: String, topic: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.set_room_topic(room_id, topic).await
-    }
-
-    #[wasm_bindgen(js_name = banUser)]
-    pub async fn ban_user(&self, room_id: String, user_id: String, reason: Option<String>) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.ban_user(room_id, user_id, reason).await
-    }
-
-    #[wasm_bindgen(js_name = unbanUser)]
-    pub async fn unban_user(
-        &self,
-        room_id: String,
-        user_id: String,
-        reason: Option<String>,
-    ) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.unban_user(room_id, user_id, reason).await
-    }
-
-    #[wasm_bindgen(js_name = kickUser)]
-    pub async fn kick_user(
-        &self,
-        room_id: String,
-        user_id: String,
-        reason: Option<String>,
-    ) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.kick_user(room_id, user_id, reason).await
-    }
-
-    #[wasm_bindgen(js_name = inviteUser)]
-    pub async fn invite_user(&self, room_id: String, user_id: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.invite_user(room_id, user_id).await
-    }
-
     #[wasm_bindgen(js_name = acceptInvite)]
     pub async fn accept_invite(&self, room_id: String) -> bool {
         let Some(s) = self.state() else {
@@ -891,95 +848,6 @@ impl WasmClient {
             return false;
         };
         s.client().join_room_by_id(&rid).await.is_ok()
-    }
-
-    #[wasm_bindgen(js_name = enableRoomEncryption)]
-    pub async fn enable_room_encryption(&self, room_id: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.enable_room_encryption(room_id).await
-    }
-
-    #[wasm_bindgen(js_name = isSpace)]
-    pub async fn is_space(&self, room_id: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.is_space(room_id).await
-    }
-
-    #[wasm_bindgen(js_name = knock)]
-    pub async fn knock(&self, id_or_alias: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.knock(id_or_alias).await
-    }
-
-    #[wasm_bindgen(js_name = isUserIgnored)]
-    pub async fn is_user_ignored(&self, user_id: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.is_user_ignored(user_id).await
-    }
-
-    #[wasm_bindgen(js_name = ownLastRead)]
-    pub async fn own_last_read(&self, room_id: String) -> JsValue {
-        let Some(s) = self.state() else {
-            return to_json(&OwnReceipt {
-                event_id: None,
-                ts_ms: None,
-            });
-        };
-        to_json(&s.core.own_last_read(room_id).await)
-    }
-
-    #[wasm_bindgen(js_name = reactionsForEvent)]
-    pub async fn reactions_for_event(&self, room_id: String, event_id: String) -> JsValue {
-        let Some(s) = self.state() else {
-            return to_json(&Vec::<ReactionSummary>::new());
-        };
-        to_json(&s.core.reactions_for_event(room_id, event_id).await)
-    }
-
-    #[wasm_bindgen(js_name = roomProfile)]
-    pub async fn room_profile(&self, room_id: String) -> JsValue {
-        let Some(s) = self.state() else {
-            return JsValue::NULL;
-        };
-        match s.core.room_profile(room_id).await {
-            Ok(Some(p)) => to_json(&p),
-            _ => JsValue::NULL,
-        }
-    }
-
-    #[wasm_bindgen(js_name = listMembers)]
-    pub async fn list_members(&self, room_id: String) -> JsValue {
-        let Some(s) = self.state() else {
-            return to_json(&Vec::<crate::MemberSummary>::new());
-        };
-        to_json(&s.core.list_members(room_id).await.unwrap_or_default())
-    }
-
-    #[wasm_bindgen(js_name = listInvited)]
-    pub async fn list_invited(&self) -> JsValue {
-        let Some(s) = self.state() else {
-            return to_json(&Vec::<crate::RoomProfile>::new());
-        };
-        to_json(&s.core.list_invited().await.unwrap_or_default())
-    }
-
-    #[wasm_bindgen(js_name = roomUnreadStats)]
-    pub async fn room_unread_stats(&self, room_id: String) -> JsValue {
-        let Some(s) = self.state() else {
-            return JsValue::NULL;
-        };
-        match s.core.room_unread_stats(room_id).await {
-            Some(v) => to_json(&v),
-            None => JsValue::NULL,
-        }
     }
 
     #[wasm_bindgen(js_name = dmPeerUserId)]
@@ -997,14 +865,6 @@ impl WasmClient {
         self.state()?.core.resolve_room_id(id_or_alias).await
     }
 
-    #[wasm_bindgen(js_name = leaveRoom)]
-    pub async fn leave_room(&self, room_id: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.leave_room(room_id).await.is_ok()
-    }
-
     #[wasm_bindgen(js_name = joinByIdOrAlias)]
     pub async fn join_by_id_or_alias(&self, id_or_alias: String) -> Result<(), String> {
         let Some(s) = self.state() else {
@@ -1016,102 +876,14 @@ impl WasmClient {
             .map_err(|e| e.to_string())
     }
 
-    #[wasm_bindgen(js_name = roomPreview)]
-    pub async fn room_preview(&self, id_or_alias: String) -> JsValue {
+    #[wasm_bindgen(js_name = roomProfile)]
+    pub async fn room_profile(&self, room_id: String) -> JsValue {
         let Some(s) = self.state() else {
             return JsValue::NULL;
         };
-        match s.core.room_preview(id_or_alias).await {
-            Ok(v) => to_json(&v),
-            Err(_) => JsValue::NULL,
-        }
-    }
-
-    #[wasm_bindgen(js_name = mySpaces)]
-    pub async fn my_spaces(&self) -> JsValue {
-        let Some(s) = self.state() else {
-            return to_json(&Vec::<SpaceInfo>::new());
-        };
-        to_json(&s.core.my_spaces().await)
-    }
-
-    #[wasm_bindgen(js_name = spaceHierarchy)]
-    pub async fn space_hierarchy(
-        &self,
-        space_id: String,
-        from: Option<String>,
-        limit: u32,
-        max_depth: Option<u32>,
-        suggested_only: bool,
-    ) -> JsValue {
-        let Some(s) = self.state() else {
-            return JsValue::NULL;
-        };
-        match s
-            .core
-            .space_hierarchy(space_id, from, limit, max_depth, suggested_only)
-            .await
-        {
-            Ok(v) => to_json(&v),
-            Err(_) => JsValue::NULL,
-        }
-    }
-
-    #[wasm_bindgen(js_name = spaceInviteUser)]
-    pub async fn space_invite_user(&self, space_id: String, user_id: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.space_invite_user(space_id, user_id).await
-    }
-
-    #[wasm_bindgen(js_name = spaceAddChild)]
-    pub async fn space_add_child(
-        &self,
-        space_id: String,
-        child_room_id: String,
-        order: Option<String>,
-        suggested: Option<bool>,
-    ) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core
-            .space_add_child(space_id, child_room_id, order, suggested)
-            .await
-            .is_ok()
-    }
-
-    #[wasm_bindgen(js_name = spaceRemoveChild)]
-    pub async fn space_remove_child(&self, space_id: String, child_room_id: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core
-            .space_remove_child(space_id, child_room_id)
-            .await
-            .is_ok()
-    }
-
-    #[wasm_bindgen(js_name = roomSuccessor)]
-    pub async fn room_successor(&self, room_id: String) -> JsValue {
-        let Some(s) = self.state() else {
-            return JsValue::NULL;
-        };
-        match s.core.room_successor(room_id).await {
-            Some(v) => to_json(&v),
-            None => JsValue::NULL,
-        }
-    }
-
-    #[wasm_bindgen(js_name = roomPredecessor)]
-    pub async fn room_predecessor(&self, room_id: String) -> JsValue {
-        let Some(s) = self.state() else {
-            return JsValue::NULL;
-        };
-        match s.core.room_predecessor(room_id).await {
-            Some(v) => to_json(&v),
-            None => JsValue::NULL,
+        match s.core.room_profile(room_id).await {
+            Ok(Some(p)) => to_json(&p),
+            _ => JsValue::NULL,
         }
     }
 
@@ -1121,28 +893,6 @@ impl WasmClient {
             return -1.0;
         };
         s.core.get_user_power_level(room_id, user_id).await as f64
-    }
-
-    #[wasm_bindgen(js_name = roomPowerLevels)]
-    pub async fn room_power_levels(&self, room_id: String) -> JsValue {
-        let Some(s) = self.state() else {
-            return JsValue::NULL;
-        };
-        match s.core.room_power_levels(room_id).await {
-            Ok(v) => to_json(&v),
-            Err(_) => JsValue::NULL,
-        }
-    }
-
-    #[wasm_bindgen(js_name = getPresence)]
-    pub async fn get_presence(&self, user_id: String) -> JsValue {
-        let Some(s) = self.state() else {
-            return JsValue::NULL;
-        };
-        match s.core.get_presence(user_id).await {
-            Ok(v) => to_json(&v),
-            Err(_) => JsValue::NULL,
-        }
     }
 
     #[wasm_bindgen(js_name = setPresence)]
@@ -1172,30 +922,6 @@ impl WasmClient {
         s.core.is_event_read_by(room_id, event_id, user_id).await
     }
 
-    #[wasm_bindgen(js_name = ignoreUser)]
-    pub async fn ignore_user(&self, user_id: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.ignore_user(user_id).await.is_ok()
-    }
-
-    #[wasm_bindgen(js_name = unignoreUser)]
-    pub async fn unignore_user(&self, user_id: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.unignore_user(user_id).await.is_ok()
-    }
-
-    #[wasm_bindgen(js_name = ignoredUsers)]
-    pub async fn ignored_users(&self) -> JsValue {
-        let Some(s) = self.state() else {
-            return to_json(&Vec::<String>::new());
-        };
-        to_json(&s.core.ignored_users().await.unwrap_or_default())
-    }
-
     #[wasm_bindgen(js_name = startLiveLocation)]
     pub async fn start_live_location(&self, room_id: String, duration_ms: f64) -> bool {
         let Some(s) = self.state() else {
@@ -1221,49 +947,6 @@ impl WasmClient {
             return false;
         };
         s.core.send_live_location(room_id, geo_uri).await.is_ok()
-    }
-
-    #[wasm_bindgen(js_name = threadReplies)]
-    pub async fn thread_replies(
-        &self,
-        room_id: String,
-        root_event_id: String,
-        from: Option<String>,
-        limit: u32,
-        forward: bool,
-    ) -> JsValue {
-        let Some(s) = self.state() else {
-            return JsValue::NULL;
-        };
-        match s
-            .core
-            .thread_replies(room_id, root_event_id, from, limit, forward)
-            .await
-        {
-            Ok(v) => to_json(&v),
-            Err(_) => JsValue::NULL,
-        }
-    }
-
-    #[wasm_bindgen(js_name = threadSummary)]
-    pub async fn thread_summary(
-        &self,
-        room_id: String,
-        root_event_id: String,
-        per_page: u32,
-        max_pages: u32,
-    ) -> JsValue {
-        let Some(s) = self.state() else {
-            return JsValue::NULL;
-        };
-        match s
-            .core
-            .thread_summary(room_id, root_event_id, per_page, max_pages)
-            .await
-        {
-            Ok(v) => to_json(&v),
-            Err(_) => JsValue::NULL,
-        }
     }
 
     #[wasm_bindgen(js_name = enterForeground)]
@@ -1354,52 +1037,33 @@ impl WasmClient {
             .map(|u| u.to_string())
             .unwrap_or_default();
         let mgr = state.tm().clone();
-        let id = state.next_sub_id();
-        let (abort_handle, abort_reg) = AbortHandle::new_pair();
-        state.timeline_subs.borrow_mut().insert(id, abort_handle);
-
-        wasm_bindgen_futures::spawn_local(async move {
-            let _ = Abortable::new(
-                async move {
-                    let Some(tl) = mgr.timeline_for(&rid).await else {
-                        return;
-                    };
-                    let (_items, mut stream) = tl.subscribe().await;
-                    emit_timeline_reset_filled(&obs, &tl, &rid, &me).await;
-                    while let Some(diffs) = stream.next().await {
-                        for diff in diffs {
-                            match diff {
-                                VectorDiff::Remove { .. }
-                                | VectorDiff::PopBack
-                                | VectorDiff::PopFront
-                                | VectorDiff::Truncate { .. }
-                                | VectorDiff::Clear => {
-                                    emit_timeline_reset_filled(&obs, &tl, &rid, &me).await;
-                                }
-                                other => {
-                                    if let Some(mapped) = map_vec_diff(other, &rid, &tl, &me) {
-                                        let o = obs.clone();
-                                        let _ = catch_unwind(AssertUnwindSafe(move || {
-                                            o.on_diff(mapped)
-                                        }));
-                                    }
-                                }
+        let s = state.clone();
+        wasm_subscribe!(state, timeline_subs, async move {
+            let Some(tl) = mgr.timeline_for(&rid).await else {
+                return;
+            };
+            let (_items, mut stream) = tl.subscribe().await;
+            emit_timeline_reset_filled(&obs, &tl, &rid, &me).await;
+            while let Some(diffs) = stream.next().await {
+                for diff in diffs {
+                    match diff {
+                        VectorDiff::Remove { .. }
+                        | VectorDiff::PopBack
+                        | VectorDiff::PopFront
+                        | VectorDiff::Truncate { .. }
+                        | VectorDiff::Clear => {
+                            emit_timeline_reset_filled(&obs, &tl, &rid, &me).await;
+                        }
+                        other => {
+                            if let Some(mapped) = map_vec_diff(other, &rid, &tl, &me) {
+                                let o = obs.clone();
+                                let _ = catch_unwind(AssertUnwindSafe(move || o.on_diff(mapped)));
                             }
                         }
                     }
-                },
-                abort_reg,
-            )
-            .await;
-        });
-        id as f64
-    }
-
-    #[wasm_bindgen(js_name = unobserveTimeline)]
-    pub fn unobserve_timeline(&self, sub_id: f64) -> bool {
-        self.state()
-            .map(|s| Self::abort_sub(&s.timeline_subs, sub_id as u64))
-            .unwrap_or(false)
+                }
+            }
+        })
     }
 
     #[wasm_bindgen(js_name = observeRoomList)]
@@ -1412,11 +1076,11 @@ impl WasmClient {
         state.room_list_subs.borrow_mut().insert(id, abort_handle);
         let (cmd_tx, mut cmd_rx) = tokio::sync::mpsc::unbounded_channel::<RoomListCmd>();
         state.room_list_cmds.borrow_mut().insert(id, cmd_tx);
-
+        let s = state.clone();
         wasm_bindgen_futures::spawn_local(async move {
-            let state_cleanup = state.clone();
+            let state_cleanup = s.clone();
             let _ = Abortable::new(async move {
-                let Some(svc) = state.ensure_sync_service().await else { return; };
+                let Some(svc) = s.ensure_sync_service().await else { return; };
                 let rls = svc.room_list_service();
                 let Ok(all) = rls.all_rooms().await else { return; };
                 let (stream, controller) = all.entries_with_dynamic_adapters(50);
@@ -1429,14 +1093,8 @@ impl WasmClient {
                         Some(cmd) = cmd_rx.recv() => {
                             match cmd {
                                 RoomListCmd::SetUnreadOnly(u) => {
-                                    if u {
-                                        controller.set_filter(Box::new(filters::new_filter_all(vec![
-                                            Box::new(filters::new_filter_non_left()),
-                                            Box::new(filters::new_filter_unread()),
-                                        ])));
-                                    } else {
-                                        controller.set_filter(Box::new(filters::new_filter_non_left()));
-                                    }
+                                    if u { controller.set_filter(Box::new(filters::new_filter_all(vec![Box::new(filters::new_filter_non_left()), Box::new(filters::new_filter_unread())]))); }
+                                    else { controller.set_filter(Box::new(filters::new_filter_non_left())); }
                                 }
                             }
                         }
@@ -1463,31 +1121,21 @@ impl WasmClient {
                                     let room = &**item;
                                     let is_dm = room.is_direct().await.unwrap_or(false);
                                     let mut avatar_url = room.avatar_url().map(|m| m.to_string());
-                                    if avatar_url.is_none() && is_dm {
-                                        avatar_url = CoreClient::dm_peer_avatar_url(room, state.client().user_id()).await;
-                                    }
-                                    let latest_event = latest_room_event_for(state.tm(), room).await;
+                                    if avatar_url.is_none() && is_dm { avatar_url = CoreClient::dm_peer_avatar_url(room, s.client().user_id()).await; }
+                                    let latest_event = latest_room_event_for(s.tm(), room).await;
                                     snapshot.push(RoomListEntry {
                                         room_id: room.room_id().to_string(),
-                                        name: item.cached_display_name()
-                                            .clone().unwrap_or(RoomDisplayName::Named(room.room_id().to_string()))
-                                            .to_string(),
+                                        name: item.cached_display_name().clone().unwrap_or(RoomDisplayName::Named(room.room_id().to_string())).to_string(),
                                         last_ts: room.recency_stamp().map_or(0, Into::into),
-                                        notifications: room.num_unread_notifications(),
-                                        messages: room.num_unread_messages(),
-                                        mentions: room.num_unread_mentions(),
-                                        marked_unread: room.is_marked_unread(),
-                                        is_favourite: room.is_favourite(),
-                                        is_low_priority: room.is_low_priority(),
-                                        is_invited: matches!(room.state(), RoomState::Invited),
-                                        avatar_url, is_dm,
+                                        notifications: room.num_unread_notifications(), messages: room.num_unread_messages(), mentions: room.num_unread_mentions(),
+                                        marked_unread: room.is_marked_unread(), is_favourite: room.is_favourite(), is_low_priority: room.is_low_priority(),
+                                        is_invited: matches!(room.state(), RoomState::Invited), avatar_url, is_dm,
                                         is_encrypted: matches!(room.encryption_state(), matrix_sdk::EncryptionState::Encrypted),
                                         member_count: room.joined_members_count().min(u32::MAX as u64) as u32,
-                                        topic: room.topic(),
-                                        latest_event,
+                                        topic: room.topic(), latest_event,
                                     });
                                 }
-                                state.room_list_cache.replace(snapshot.clone());
+                                s.room_list_cache.replace(snapshot.clone());
                                 call_js(&on_reset, to_json(&snapshot));
                             }
                         }
@@ -1501,15 +1149,6 @@ impl WasmClient {
         id as f64
     }
 
-    #[wasm_bindgen(js_name = unobserveRoomList)]
-    pub fn unobserve_room_list(&self, token: f64) -> bool {
-        let Some(state) = self.state() else {
-            return false;
-        };
-        state.room_list_cmds.borrow_mut().remove(&(token as u64));
-        Self::abort_sub(&state.room_list_subs, token as u64)
-    }
-
     #[wasm_bindgen(js_name = observeTyping)]
     pub fn observe_typing(&self, room_id: String, on_update: Function) -> f64 {
         let Some(state) = self.state() else {
@@ -1519,48 +1158,32 @@ impl WasmClient {
             return 0.0;
         };
         let obs: Arc<dyn TypingObserver> = Arc::new(JsTypingObserver(on_update));
-        let id = state.next_sub_id();
-        let (ah, ar) = AbortHandle::new_pair();
-        state.typing_subs.borrow_mut().insert(id, ah);
-        wasm_bindgen_futures::spawn_local(async move {
-            let _ = Abortable::new(
-                async move {
-                    let Some(room) = state.client().get_room(&rid) else {
-                        return;
-                    };
-                    let (_guard, mut rx) = room.subscribe_to_typing_notifications();
-                    let mut cache: HashMap<OwnedUserId, String> = HashMap::new();
-                    let mut last: Vec<String> = Vec::new();
-                    while let Ok(uids) = rx.recv().await {
-                        let mut names: Vec<String> = uids
-                            .iter()
-                            .map(|uid| {
-                                cache
-                                    .get(uid)
-                                    .cloned()
-                                    .unwrap_or_else(|| uid.localpart().to_string())
-                            })
-                            .collect();
-                        names.sort();
-                        names.dedup();
-                        if names != last {
-                            last = names.clone();
-                            let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(names)));
-                        }
-                    }
-                },
-                ar,
-            )
-            .await;
-        });
-        id as f64
-    }
-
-    #[wasm_bindgen(js_name = unobserveTyping)]
-    pub fn unobserve_typing(&self, sub_id: f64) -> bool {
-        self.state()
-            .map(|s| Self::abort_sub(&s.typing_subs, sub_id as u64))
-            .unwrap_or(false)
+        let s = state.clone();
+        wasm_subscribe!(state, typing_subs, async move {
+            let Some(room) = s.client().get_room(&rid) else {
+                return;
+            };
+            let (_guard, mut rx) = room.subscribe_to_typing_notifications();
+            let mut cache: HashMap<OwnedUserId, String> = HashMap::new();
+            let mut last: Vec<String> = Vec::new();
+            while let Ok(uids) = rx.recv().await {
+                let mut names: Vec<String> = uids
+                    .iter()
+                    .map(|uid| {
+                        cache
+                            .get(uid)
+                            .cloned()
+                            .unwrap_or_else(|| uid.localpart().to_string())
+                    })
+                    .collect();
+                names.sort();
+                names.dedup();
+                if names != last {
+                    last = names.clone();
+                    let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(names)));
+                }
+            }
+        })
     }
 
     #[wasm_bindgen(js_name = observeReceipts)]
@@ -1572,35 +1195,19 @@ impl WasmClient {
             return 0.0;
         };
         let obs: Arc<dyn ReceiptsObserver> = Arc::new(JsReceiptsObserver(on_changed));
-        let id = state.next_sub_id();
-        let (ah, ar) = AbortHandle::new_pair();
-        state.receipts_subs.borrow_mut().insert(id, ah);
-        wasm_bindgen_futures::spawn_local(async move {
-            let _ = Abortable::new(
-                async move {
-                    let Some(room) = state.client().get_room(&rid) else {
-                        return;
-                    };
-                    let Ok(tl) = room.timeline().await else {
-                        return;
-                    };
-                    let mut stream = tl.subscribe_own_user_read_receipts_changed().await;
-                    while let Some(()) = stream.next().await {
-                        let _ = catch_unwind(AssertUnwindSafe(|| obs.on_changed()));
-                    }
-                },
-                ar,
-            )
-            .await;
-        });
-        id as f64
-    }
-
-    #[wasm_bindgen(js_name = unobserveReceipts)]
-    pub fn unobserve_receipts(&self, sub_id: f64) -> bool {
-        self.state()
-            .map(|s| Self::abort_sub(&s.receipts_subs, sub_id as u64))
-            .unwrap_or(false)
+        let s = state.clone();
+        wasm_subscribe!(state, receipts_subs, async move {
+            let Some(room) = s.client().get_room(&rid) else {
+                return;
+            };
+            let Ok(tl) = room.timeline().await else {
+                return;
+            };
+            let mut stream = tl.subscribe_own_user_read_receipts_changed().await;
+            while let Some(()) = stream.next().await {
+                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_changed()));
+            }
+        })
     }
 
     #[wasm_bindgen(js_name = observeSends)]
@@ -1630,49 +1237,33 @@ impl WasmClient {
             return 0.0;
         };
         let obs: Arc<dyn LiveLocationObserver> = Arc::new(JsLiveLocationObserver(on_update));
-        let id = state.next_sub_id();
-        let (ah, ar) = AbortHandle::new_pair();
-        state.live_location_subs.borrow_mut().insert(id, ah);
-        wasm_bindgen_futures::spawn_local(async move {
-            let _ = Abortable::new(
-                async move {
-                    let Some(room) = state.client().get_room(&rid) else {
-                        return;
-                    };
-                    let observable = room.observe_live_location_shares();
-                    let stream = observable.subscribe();
-                    use futures_util::pin_mut;
-                    pin_mut!(stream);
-                    let mut latest: HashMap<String, LiveLocationShareInfo> = HashMap::new();
-                    while let Some(event) = stream.next().await {
-                        let info = LiveLocationShareInfo {
-                            user_id: event.user_id.to_string(),
-                            geo_uri: event.last_location.location.uri.to_string(),
-                            ts_ms: event.last_location.ts.0.into(),
-                            is_live: event
-                                .beacon_info
-                                .as_ref()
-                                .map(|i| i.is_live())
-                                .unwrap_or(true),
-                        };
-                        latest.insert(info.user_id.clone(), info);
-                        let _ = catch_unwind(AssertUnwindSafe(|| {
-                            obs.on_update(latest.values().cloned().collect())
-                        }));
-                    }
-                },
-                ar,
-            )
-            .await;
-        });
-        id as f64
-    }
-
-    #[wasm_bindgen(js_name = unobserveLiveLocation)]
-    pub fn unobserve_live_location(&self, sub_id: f64) -> bool {
-        self.state()
-            .map(|s| Self::abort_sub(&s.live_location_subs, sub_id as u64))
-            .unwrap_or(false)
+        let s = state.clone();
+        wasm_subscribe!(state, live_location_subs, async move {
+            let Some(room) = s.client().get_room(&rid) else {
+                return;
+            };
+            let observable = room.observe_live_location_shares();
+            let stream = observable.subscribe();
+            use futures_util::pin_mut;
+            pin_mut!(stream);
+            let mut latest: HashMap<String, LiveLocationShareInfo> = HashMap::new();
+            while let Some(event) = stream.next().await {
+                let info = LiveLocationShareInfo {
+                    user_id: event.user_id.to_string(),
+                    geo_uri: event.last_location.location.uri.to_string(),
+                    ts_ms: event.last_location.ts.0.into(),
+                    is_live: event
+                        .beacon_info
+                        .as_ref()
+                        .map(|i| i.is_live())
+                        .unwrap_or(true),
+                };
+                latest.insert(info.user_id.clone(), info);
+                let _ = catch_unwind(AssertUnwindSafe(|| {
+                    obs.on_update(latest.values().cloned().collect())
+                }));
+            }
+        })
     }
 
     #[wasm_bindgen(js_name = startCallInbox)]
@@ -1681,39 +1272,24 @@ impl WasmClient {
             return 0.0;
         };
         let obs: Arc<dyn CallObserver> = Arc::new(JsCallObserver(on_invite));
-        let id = state.next_sub_id();
-        let (ah, ar) = AbortHandle::new_pair();
-        state.call_subs.borrow_mut().insert(id, ah);
-        wasm_bindgen_futures::spawn_local(async move {
-            let _ = Abortable::new(
-                async move {
-                    let handler = state
-                        .client()
-                        .observe_events::<OriginalSyncCallInviteEvent, Room>();
-                    let mut sub = handler.subscribe();
-                    while let Some((ev, room)) = sub.next().await {
-                        let invite = CallInvite {
-                            room_id: room.room_id().to_string(),
-                            sender: ev.sender.to_string(),
-                            call_id: ev.content.call_id.to_string(),
-                            is_video: ev.content.offer.sdp.contains("m=video"),
-                            ts_ms: ev.origin_server_ts.0.into(),
-                        };
-                        let _ = catch_unwind(AssertUnwindSafe(|| obs.on_invite(invite)));
-                    }
-                },
-                ar,
-            )
-            .await;
-        });
-        id as f64
-    }
-
-    #[wasm_bindgen(js_name = stopCallInbox)]
-    pub fn stop_call_inbox(&self, token: f64) -> bool {
-        self.state()
-            .map(|s| Self::abort_sub(&s.call_subs, token as u64))
-            .unwrap_or(false)
+        let s = state.clone();
+        wasm_subscribe!(state, call_subs, async move {
+            use matrix_sdk::ruma::events::call::invite::OriginalSyncCallInviteEvent;
+            let handler = s
+                .client()
+                .observe_events::<OriginalSyncCallInviteEvent, Room>();
+            let mut sub = handler.subscribe();
+            while let Some((ev, room)) = sub.next().await {
+                let invite = CallInvite {
+                    room_id: room.room_id().to_string(),
+                    sender: ev.sender.to_string(),
+                    call_id: ev.content.call_id.to_string(),
+                    is_video: ev.content.offer.sdp.contains("m=video"),
+                    ts_ms: ev.origin_server_ts.0.into(),
+                };
+                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_invite(invite)));
+            }
+        })
     }
 
     #[wasm_bindgen(js_name = startVerificationInbox)]
@@ -1723,49 +1299,96 @@ impl WasmClient {
         };
         let obs: Arc<dyn VerificationInboxObserver> =
             Arc::new(JsVerificationInboxObserver(on_request, on_error));
-        let id = state.next_sub_id();
-        let (ah, ar) = AbortHandle::new_pair();
-        state.inbox_subs.borrow_mut().insert(id, ah);
-        wasm_bindgen_futures::spawn_local(async move {
-            let _ = Abortable::new(async move {
-                state.client().encryption().wait_for_e2ee_initialization_tasks().await;
-                let _ = state.client().event_cache().subscribe();
-                let td = state.client().observe_events::<ToDeviceKeyVerificationRequestEvent, ()>();
-                let mut td_sub = td.subscribe();
-                let ir = state.client().observe_events::<SyncRoomMessageEvent, Room>();
-                let mut ir_sub = ir.subscribe();
-                loop {
-                    tokio::select! {
-                        maybe = td_sub.next() => {
-                            if let Some((ev, ())) = maybe {
-                                let fid = ev.content.transaction_id.to_string();
-                                state.core.inbox.lock().unwrap().insert(fid.clone(), (ev.sender.clone(), ev.content.from_device.clone()));
-                                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_request(fid, ev.sender.to_string(), ev.content.from_device.to_string())));
-                            } else { break; }
-                        }
-                        maybe = ir_sub.next() => {
-                            if let Some((ev, _)) = maybe {
-                                if let SyncRoomMessageEvent::Original(o) = ev {
-                                    if let MessageType::VerificationRequest(_) = &o.content.msgtype {
-                                        let fid = o.event_id.to_string();
-                                        state.core.inbox.lock().unwrap().insert(fid.clone(), (o.sender.clone(), owned_device_id!("inroom")));
-                                        let _ = catch_unwind(AssertUnwindSafe(|| obs.on_request(fid, o.sender.to_string(), String::new())));
-                                    }
+        let s = state.clone();
+        wasm_subscribe!(state, inbox_subs, async move {
+            s.client()
+                .encryption()
+                .wait_for_e2ee_initialization_tasks()
+                .await;
+            let _ = s.client().event_cache().subscribe();
+            let td = s
+                .client()
+                .observe_events::<ToDeviceKeyVerificationRequestEvent, ()>();
+            let mut td_sub = td.subscribe();
+            let ir = s.client().observe_events::<SyncRoomMessageEvent, Room>();
+            let mut ir_sub = ir.subscribe();
+            loop {
+                tokio::select! {
+                    maybe = td_sub.next() => {
+                        if let Some((ev, ())) = maybe {
+                            let fid = ev.content.transaction_id.to_string();
+                            s.core.inbox.lock().unwrap().insert(fid.clone(), (ev.sender.clone(), ev.content.from_device.clone()));
+                            let _ = catch_unwind(AssertUnwindSafe(|| obs.on_request(fid, ev.sender.to_string(), ev.content.from_device.to_string())));
+                        } else { break; }
+                    }
+                    maybe = ir_sub.next() => {
+                        if let Some((ev, _)) = maybe {
+                            if let SyncRoomMessageEvent::Original(o) = ev {
+                                if let MessageType::VerificationRequest(_) = &o.content.msgtype {
+                                    let fid = o.event_id.to_string();
+                                    s.core.inbox.lock().unwrap().insert(fid.clone(), (o.sender.clone(), owned_device_id!("inroom")));
+                                    let _ = catch_unwind(AssertUnwindSafe(|| obs.on_request(fid, o.sender.to_string(), String::new())));
                                 }
-                            } else { break; }
-                        }
+                            }
+                        } else { break; }
                     }
                 }
-            }, ar).await;
-        });
-        id as f64
+            }
+        })
     }
 
-    #[wasm_bindgen(js_name = unobserveVerificationInbox)]
-    pub fn unobserve_verification_inbox(&self, sub_id: f64) -> bool {
-        self.state()
-            .map(|s| Self::abort_sub(&s.inbox_subs, sub_id as u64))
-            .unwrap_or(false)
+    #[wasm_bindgen(js_name = observeRecoveryState)]
+    pub fn observe_recovery_state(&self, on_update: Function) -> f64 {
+        let Some(state) = self.state() else {
+            return 0.0;
+        };
+        let obs: Arc<dyn RecoveryStateObserver> = Arc::new(JsRecoveryStateObserver(on_update));
+        let s = state.clone();
+        wasm_subscribe!(state, recovery_state_subs, async move {
+            let mut stream = s.client().encryption().recovery().state_stream();
+            while let Some(v) = stream.next().await {
+                let mapped = match v {
+                    matrix_sdk::encryption::recovery::RecoveryState::Disabled => {
+                        RecoveryState::Disabled
+                    }
+                    matrix_sdk::encryption::recovery::RecoveryState::Enabled => {
+                        RecoveryState::Enabled
+                    }
+                    matrix_sdk::encryption::recovery::RecoveryState::Incomplete => {
+                        RecoveryState::Incomplete
+                    }
+                    _ => RecoveryState::Unknown,
+                };
+                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(mapped)));
+            }
+        })
+    }
+
+    #[wasm_bindgen(js_name = observeBackupState)]
+    pub fn observe_backup_state(&self, on_update: Function) -> f64 {
+        let Some(state) = self.state() else {
+            return 0.0;
+        };
+        let obs: Arc<dyn BackupStateObserver> = Arc::new(JsBackupStateObserver(on_update));
+        let s = state.clone();
+        wasm_subscribe!(state, backup_state_subs, async move {
+            let mut stream = s.client().encryption().backups().state_stream();
+            while let Some(v) = stream.next().await {
+                let mapped = match v {
+                    Ok(matrix_sdk::encryption::backups::BackupState::Enabled) => {
+                        BackupState::Enabled
+                    }
+                    Ok(matrix_sdk::encryption::backups::BackupState::Creating) => {
+                        BackupState::Creating
+                    }
+                    Ok(matrix_sdk::encryption::backups::BackupState::Downloading) => {
+                        BackupState::Downloading
+                    }
+                    _ => BackupState::Unknown,
+                };
+                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(mapped)));
+            }
+        })
     }
 
     #[wasm_bindgen(js_name = confirmVerification)]
@@ -1828,17 +1451,17 @@ impl WasmClient {
     #[wasm_bindgen(js_name = listMyDevices)]
     pub async fn list_my_devices(&self) -> JsValue {
         let Some(state) = self.state() else {
-            return to_json(&Vec::<crate::DeviceSummary>::new());
+            return to_json(&Vec::<DeviceSummary>::new());
         };
         let Some(me) = state.client().user_id() else {
-            return to_json(&Vec::<crate::DeviceSummary>::new());
+            return to_json(&Vec::<DeviceSummary>::new());
         };
         let Ok(devs) = state.client().encryption().get_user_devices(me).await else {
-            return to_json(&Vec::<crate::DeviceSummary>::new());
+            return to_json(&Vec::<DeviceSummary>::new());
         };
-        let items: Vec<crate::DeviceSummary> = devs
+        let items: Vec<DeviceSummary> = devs
             .devices()
-            .map(|d| crate::DeviceSummary {
+            .map(|d| DeviceSummary {
                 device_id: d.device_id().to_string(),
                 display_name: d.display_name().unwrap_or_default().to_string(),
                 ed25519: d.ed25519_key().map(|k| k.to_base64()).unwrap_or_default(),
@@ -1851,92 +1474,6 @@ impl WasmClient {
             })
             .collect();
         to_json(&items)
-    }
-
-    #[wasm_bindgen(js_name = observeRecoveryState)]
-    pub fn observe_recovery_state(&self, on_update: Function) -> f64 {
-        let Some(state) = self.state() else {
-            return 0.0;
-        };
-        let obs: Arc<dyn RecoveryStateObserver> = Arc::new(JsRecoveryStateObserver(on_update));
-        let id = state.next_sub_id();
-        let (ah, ar) = AbortHandle::new_pair();
-        state.recovery_state_subs.borrow_mut().insert(id, ah);
-        wasm_bindgen_futures::spawn_local(async move {
-            let _ = Abortable::new(
-                async move {
-                    let mut stream = state.client().encryption().recovery().state_stream();
-                    while let Some(v) = stream.next().await {
-                        let mapped = match v {
-                            matrix_sdk::encryption::recovery::RecoveryState::Disabled => {
-                                RecoveryState::Disabled
-                            }
-                            matrix_sdk::encryption::recovery::RecoveryState::Enabled => {
-                                RecoveryState::Enabled
-                            }
-                            matrix_sdk::encryption::recovery::RecoveryState::Incomplete => {
-                                RecoveryState::Incomplete
-                            }
-                            _ => RecoveryState::Unknown,
-                        };
-                        let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(mapped)));
-                    }
-                },
-                ar,
-            )
-            .await;
-        });
-        id as f64
-    }
-
-    #[wasm_bindgen(js_name = unobserveRecoveryState)]
-    pub fn unobserve_recovery_state(&self, id: f64) -> bool {
-        self.state()
-            .map(|s| Self::abort_sub(&s.recovery_state_subs, id as u64))
-            .unwrap_or(false)
-    }
-
-    #[wasm_bindgen(js_name = observeBackupState)]
-    pub fn observe_backup_state(&self, on_update: Function) -> f64 {
-        let Some(state) = self.state() else {
-            return 0.0;
-        };
-        let obs: Arc<dyn BackupStateObserver> = Arc::new(JsBackupStateObserver(on_update));
-        let id = state.next_sub_id();
-        let (ah, ar) = AbortHandle::new_pair();
-        state.backup_state_subs.borrow_mut().insert(id, ah);
-        wasm_bindgen_futures::spawn_local(async move {
-            let _ = Abortable::new(
-                async move {
-                    let mut stream = state.client().encryption().backups().state_stream();
-                    while let Some(v) = stream.next().await {
-                        let mapped = match v {
-                            Ok(matrix_sdk::encryption::backups::BackupState::Enabled) => {
-                                BackupState::Enabled
-                            }
-                            Ok(matrix_sdk::encryption::backups::BackupState::Creating) => {
-                                BackupState::Creating
-                            }
-                            Ok(matrix_sdk::encryption::backups::BackupState::Downloading) => {
-                                BackupState::Downloading
-                            }
-                            _ => BackupState::Unknown,
-                        };
-                        let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(mapped)));
-                    }
-                },
-                ar,
-            )
-            .await;
-        });
-        id as f64
-    }
-
-    #[wasm_bindgen(js_name = unobserveBackupState)]
-    pub fn unobserve_backup_state(&self, id: f64) -> bool {
-        self.state()
-            .map(|s| Self::abort_sub(&s.backup_state_subs, id as u64))
-            .unwrap_or(false)
     }
 
     #[wasm_bindgen(js_name = recoverWithKey)]

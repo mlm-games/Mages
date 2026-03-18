@@ -67,11 +67,18 @@ use tracing::{error, info, warn};
 use uniffi::{Enum, Object, Record, export, setup_scaffolding};
 
 mod core;
+mod errors;
+mod macros;
 mod platform;
+mod types;
 #[cfg(target_family = "wasm")]
 mod wasm_bridge;
 
 pub use core::{CoreClient, TimelineManager};
+pub use types::*;
+
+use errors::{IntoFfi, OptionFfi, ffi_err};
+use macros::*;
 
 use matrix_sdk::{
     Client as SdkClient, OwnedServerName, Room, RoomMemberships, SessionTokens,
@@ -169,787 +176,6 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 
 setup_scaffolding!();
 
-pub(crate) const MIN_VISIBLE_AFTER_RESET: usize = 20;
-pub(crate) const BACKFILL_CHUNK: u16 = 20;
-pub(crate) const MAX_BACKFILL_ROUNDS: u8 = 8;
-pub(crate) const INITIAL_BACK_PAGINATION: u16 = 20;
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct RoomSummary {
-    pub id: String,
-    pub name: String,
-}
-
-#[derive(Clone, Copy, Serialize, Deserialize, Enum)]
-pub enum ConnectionState {
-    Disconnected,
-    Connecting,
-    Connected,
-    Syncing,
-    Reconnecting { attempt: u32, next_retry_secs: u32 },
-}
-
-#[export(callback_interface)]
-pub trait ConnectionObserver: Send + Sync {
-    fn on_connection_change(&self, state: ConnectionState);
-}
-
-#[derive(Clone, Serialize, Deserialize, uniffi::Enum)]
-pub enum EventType {
-    Message,
-    MembershipChange,
-    ProfileChange,
-    RoomName,
-    RoomTopic,
-    RoomAvatar,
-    RoomEncryption,
-    RoomPinnedEvents,
-    RoomPowerLevels,
-    RoomCanonicalAlias,
-    OtherState,
-    CallInvite,
-    CallNotification,
-    Poll,
-    Sticker,
-    LiveLocation,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct LiveLocationEvent {
-    pub user_id: String,
-    pub geo_uri: String,
-    pub ts_ms: u64,
-    pub is_live: bool,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct MessageEvent {
-    pub item_id: String,
-    pub event_id: String,
-    pub room_id: String,
-    pub sender: String,
-    pub sender_display_name: Option<String>,
-    pub sender_avatar_url: Option<String>,
-    pub body: String,
-    pub formatted_body: Option<String>,
-    pub timestamp_ms: u64,
-    pub send_state: Option<SendState>,
-    pub txn_id: Option<String>,
-    pub reply_to_event_id: Option<String>,
-    pub reply_to_sender: Option<String>,
-    pub reply_to_sender_display_name: Option<String>,
-    pub reply_to_body: Option<String>,
-    pub attachment: Option<AttachmentInfo>,
-    pub thread_root_event_id: Option<String>,
-    pub is_edited: bool,
-    pub poll_data: Option<PollData>,
-    pub reactions: Vec<ReactionSummary>,
-    pub event_type: EventType,
-    pub live_location: Option<LiveLocationEvent>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, Record)]
-pub struct SeenByEntry {
-    pub user_id: String,
-    pub display_name: Option<String>,
-    pub avatar_url: Option<String>,
-    pub ts_ms: Option<u64>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Enum)]
-pub enum AttachmentKind {
-    Image,
-    Video,
-    File,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct EncFile {
-    pub url: String,
-    pub json: String,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct AttachmentInfo {
-    pub kind: AttachmentKind,
-    pub mxc_uri: String,
-    pub mime: Option<String>,
-    pub size_bytes: Option<u64>,
-    pub width: Option<u32>,
-    pub height: Option<u32>,
-    pub duration_ms: Option<u64>,
-    pub thumbnail_mxc_uri: Option<String>,
-    pub encrypted: Option<EncFile>,
-    pub thumbnail_encrypted: Option<EncFile>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct DeviceSummary {
-    pub device_id: String,
-    pub display_name: String,
-    pub ed25519: String,
-    pub is_own: bool,
-    pub verified: bool,
-}
-
-#[derive(Clone, Serialize, Deserialize, Enum)]
-pub enum SyncPhase {
-    Idle,
-    Running,
-    BackingOff,
-    Error,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct SyncStatus {
-    pub phase: SyncPhase,
-    pub message: Option<String>,
-}
-
-#[export(callback_interface)]
-pub trait SyncObserver: Send + Sync {
-    fn on_state(&self, status: SyncStatus);
-}
-
-#[export(callback_interface)]
-pub trait TypingObserver: Send + Sync {
-    fn on_update(&self, names: Vec<String>);
-}
-
-#[export(callback_interface)]
-pub trait ReceiptsObserver: Send + Sync {
-    fn on_changed(&self);
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct CallInvite {
-    pub room_id: String,
-    pub sender: String,
-    pub call_id: String,
-    pub is_video: bool,
-    pub ts_ms: u64,
-}
-
-#[export(callback_interface)]
-pub trait CallObserver: Send + Sync {
-    fn on_invite(&self, invite: CallInvite);
-}
-
-#[derive(Clone, Copy, PartialEq, Serialize, Deserialize, Enum)]
-pub enum RecoveryState {
-    Disabled,
-    Enabled,
-    Incomplete,
-    Unknown,
-}
-
-#[derive(Clone, Copy, PartialEq, Serialize, Deserialize, Enum)]
-pub enum BackupState {
-    Unknown,
-    Creating,
-    Enabling,
-    Resuming,
-    Enabled,
-    Downloading,
-    Disabling,
-}
-
-impl std::str::FromStr for RecoveryState {
-    type Err = ();
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "Disabled" => RecoveryState::Disabled,
-            "Enabled" => RecoveryState::Enabled,
-            "Incomplete" => RecoveryState::Incomplete,
-            _ => RecoveryState::Unknown,
-        })
-    }
-}
-
-impl std::fmt::Display for RecoveryState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            RecoveryState::Disabled => write!(f, "Disabled"),
-            RecoveryState::Enabled => write!(f, "Enabled"),
-            RecoveryState::Incomplete => write!(f, "Incomplete"),
-            RecoveryState::Unknown => write!(f, "Unknown"),
-        }
-    }
-}
-
-#[export(callback_interface)]
-pub trait RecoveryObserver: Send + Sync {
-    fn on_progress(&self, step: String);
-    fn on_done(&self, recovery_key: String);
-    fn on_error(&self, message: String);
-}
-
-#[export(callback_interface)]
-pub trait RecoveryStateObserver: Send + Sync {
-    fn on_update(&self, state: RecoveryState);
-}
-
-#[export(callback_interface)]
-pub trait BackupStateObserver: Send + Sync {
-    fn on_update(&self, state: BackupState);
-}
-
-#[export(callback_interface)]
-pub trait ProgressObserver: Send + Sync {
-    fn on_progress(&self, sent: u64, total: Option<u64>);
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct DownloadResult {
-    pub path: String,
-    pub bytes: u64,
-}
-
-#[derive(Clone, Serialize, Deserialize, uniffi::Enum)]
-pub enum NotificationKind {
-    Message,
-    CallRing,
-    CallNotify,
-    CallInvite,
-    Invite,
-    StateEvent,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct RenderedNotification {
-    pub room_id: String,
-    pub event_id: String,
-    pub room_name: String,
-    pub sender: String,
-    pub sender_user_id: String,
-    pub body: String,
-    pub is_noisy: bool,
-    pub has_mention: bool,
-    pub ts_ms: u64,
-    pub is_dm: bool,
-    pub kind: NotificationKind,
-    pub expires_at_ms: Option<u64>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct UnreadStats {
-    pub messages: u64,
-    pub notifications: u64,
-    pub mentions: u64,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct RoomProfile {
-    pub room_id: String,
-    pub name: String,
-    pub topic: Option<String>,
-    pub member_count: u64,
-    pub is_encrypted: bool,
-    pub is_dm: bool,
-    pub avatar_url: Option<String>,
-    pub canonical_alias: Option<String>,
-    pub alt_aliases: Vec<String>,
-    pub room_version: Option<String>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, Record)]
-pub struct MemberSummary {
-    pub user_id: String,
-    pub display_name: Option<String>,
-    pub avatar_url: Option<String>,
-    pub is_me: bool,
-    pub membership: String,
-}
-
-#[derive(Clone, Debug, Record)]
-pub struct KnockRequestSummary {
-    pub event_id: String,
-    pub user_id: String,
-    pub display_name: Option<String>,
-    pub avatar_url: Option<String>,
-    pub reason: Option<String>,
-    pub ts_ms: Option<u64>,
-    pub is_seen: bool,
-}
-
-pub(crate) enum RoomListCmd {
-    SetUnreadOnly(bool),
-}
-
-#[derive(Serialize, Deserialize, uniffi::Record)]
-pub struct RoomTags {
-    pub is_favourite: bool,
-    pub is_low_priority: bool,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct ThreadPage {
-    pub root_event_id: String,
-    pub room_id: String,
-    pub messages: Vec<MessageEvent>,
-    pub next_batch: Option<String>,
-    pub prev_batch: Option<String>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct ThreadSummary {
-    pub root_event_id: String,
-    pub room_id: String,
-    pub count: u64,
-    pub latest_ts_ms: Option<u64>,
-}
-
-#[derive(Serialize, Deserialize, Record, Clone)]
-pub struct OwnReceipt {
-    pub event_id: Option<String>,
-    pub ts_ms: Option<u64>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, Enum)]
-pub enum SasPhase {
-    Created,
-    Requested,
-    Ready,
-    Accepted,
-    Started,
-    Emojis,
-    Confirmed,
-    Cancelled,
-    Failed,
-    Done,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct SasEmojis {
-    pub flow_id: String,
-    pub other_user: String,
-    pub other_device: String,
-    pub emojis: Vec<String>,
-}
-
-#[export(callback_interface)]
-pub trait VerificationObserver: Send + Sync {
-    fn on_phase(&self, flow_id: String, phase: SasPhase);
-    fn on_emojis(&self, payload: SasEmojis);
-    fn on_error(&self, flow_id: String, message: String);
-}
-
-#[export(callback_interface)]
-pub trait VerificationInboxObserver: Send + Sync {
-    fn on_request(&self, flow_id: String, from_user: String, from_device: String);
-    fn on_error(&self, message: String);
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, uniffi::Record)]
-pub struct LatestRoomEvent {
-    pub event_id: String,
-    pub sender: String,
-    pub body: Option<String>,
-    pub msgtype: Option<String>,
-    pub event_type: String,
-    pub timestamp: i64,
-    pub is_redacted: bool,
-    pub is_encrypted: bool,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, uniffi::Record)]
-pub struct RoomListEntry {
-    pub room_id: String,
-    pub name: String,
-    pub last_ts: u64,
-    pub notifications: u64,
-    pub messages: u64,
-    pub mentions: u64,
-    pub marked_unread: bool,
-    pub is_favourite: bool,
-    pub is_low_priority: bool,
-    pub is_invited: bool,
-    pub avatar_url: Option<String>,
-    pub is_dm: bool,
-    pub is_encrypted: bool,
-    pub member_count: u32,
-    pub topic: Option<String>,
-    pub latest_event: Option<LatestRoomEvent>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Enum)]
-pub enum FfiRoomNotificationMode {
-    AllMessages,
-    MentionsAndKeywordsOnly,
-    Mute,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct DirectoryUser {
-    pub user_id: String,
-    pub display_name: Option<String>,
-    pub avatar_url: Option<String>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct PublicRoom {
-    pub room_id: String,
-    pub name: Option<String>,
-    pub topic: Option<String>,
-    pub alias: Option<String>,
-    pub avatar_url: Option<String>,
-    pub member_count: u64,
-    pub world_readable: bool,
-    pub guest_can_join: bool,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct PublicRoomsPage {
-    pub rooms: Vec<PublicRoom>,
-    pub next_batch: Option<String>,
-    pub prev_batch: Option<String>,
-}
-
-#[export(callback_interface)]
-pub trait RoomListObserver: Send + Sync {
-    fn on_reset(&self, items: Vec<RoomListEntry>);
-    fn on_update(&self, item: RoomListEntry);
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct InviteSummary {
-    pub room_id: String,
-    pub name: String,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct ReactionSummary {
-    pub key: String,
-    pub count: u32,
-    pub mine: bool,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct SpaceInfo {
-    pub room_id: String,
-    pub name: String,
-    pub topic: Option<String>,
-    pub member_count: u64,
-    pub is_encrypted: bool,
-    pub is_public: bool,
-    pub avatar_url: Option<String>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct SpaceChildInfo {
-    pub room_id: String,
-    pub name: Option<String>,
-    pub topic: Option<String>,
-    pub alias: Option<String>,
-    pub avatar_url: Option<String>,
-    pub is_space: bool,
-    pub member_count: u64,
-    pub world_readable: bool,
-    pub guest_can_join: bool,
-    pub suggested: bool,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct SpaceHierarchyPage {
-    pub children: Vec<SpaceChildInfo>,
-    pub next_batch: Option<String>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Enum)]
-pub enum TimelineDiffKind {
-    Append {
-        values: Vec<MessageEvent>,
-    },
-    PushBack {
-        value: MessageEvent,
-    },
-    PushFront {
-        value: MessageEvent,
-    },
-    PopBack,
-    PopFront,
-    Truncate {
-        length: u32,
-    },
-    Clear,
-    Reset {
-        values: Vec<MessageEvent>,
-    },
-    UpdateByItemId {
-        item_id: String,
-        value: MessageEvent,
-    },
-    RemoveByItemId {
-        item_id: String,
-    },
-    UpsertByItemId {
-        item_id: String,
-        value: MessageEvent,
-    },
-}
-
-#[uniffi::export(callback_interface)]
-pub trait TimelineObserver: Send + Sync {
-    fn on_diff(&self, diff: TimelineDiffKind);
-    fn on_error(&self, message: String);
-}
-
-#[derive(Clone, Serialize, Deserialize, Enum)]
-pub enum PollKind {
-    Disclosed,
-    Undisclosed,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct SearchHit {
-    pub room_id: String,
-    pub event_id: String,
-    pub sender: String,
-    pub body: String,
-    pub timestamp_ms: u64,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct SearchPage {
-    pub hits: Vec<SearchHit>,
-    pub next_offset: Option<u32>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct PollDefinition {
-    pub question: String,
-    pub answers: Vec<String>,
-    pub kind: PollKind,
-    pub max_selections: u32,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct LiveLocationShareInfo {
-    pub user_id: String,
-    pub geo_uri: String,
-    pub ts_ms: u64,
-    pub is_live: bool,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct PollOption {
-    pub id: String,
-    pub text: String,
-    pub votes: u32,
-    pub is_selected: bool,
-    pub is_winner: bool,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct PollData {
-    pub question: String,
-    pub kind: PollKind,
-    pub max_selections: u32,
-    pub options: Vec<PollOption>,
-    pub votes: HashMap<String, u32>,
-    pub my_selections: Vec<String>,
-    pub total_votes: u32,
-    pub is_ended: bool,
-}
-
-#[export(callback_interface)]
-pub trait LiveLocationObserver: Send + Sync {
-    fn on_update(&self, shares: Vec<LiveLocationShareInfo>);
-}
-
-#[derive(Clone, Serialize, Deserialize, Enum)]
-pub enum Presence {
-    Online,
-    Offline,
-    Unavailable,
-}
-
-#[derive(Clone, Serialize, Deserialize, Enum)]
-pub enum RoomDirectoryVisibility {
-    Public,
-    Private,
-}
-
-#[derive(Clone, Serialize, Deserialize, Enum)]
-pub enum RoomJoinRule {
-    Public,
-    Invite,
-    Knock,
-    Restricted,
-    KnockRestricted,
-}
-
-#[derive(Clone, Serialize, Deserialize, Enum)]
-pub enum RoomPreviewMembership {
-    Joined,
-    Invited,
-    Knocked,
-    Left,
-    Banned,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct RoomPreview {
-    pub room_id: String,
-    pub canonical_alias: Option<String>,
-    pub name: Option<String>,
-    pub topic: Option<String>,
-    pub avatar_url: Option<String>,
-    pub member_count: u64,
-    pub world_readable: Option<bool>,
-    pub join_rule: Option<RoomJoinRule>,
-    pub membership: Option<RoomPreviewMembership>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Enum)]
-pub enum RoomHistoryVisibility {
-    Invited,
-    Joined,
-    Shared,
-    WorldReadable,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct RoomPowerLevels {
-    pub users: HashMap<String, i64>,
-    pub users_default: i64,
-    pub events: HashMap<String, i64>,
-    pub events_default: i64,
-    pub state_default: i64,
-    pub ban: i64,
-    pub kick: i64,
-    pub redact: i64,
-    pub invite: i64,
-    pub room_name: i64,
-    pub room_avatar: i64,
-    pub room_topic: i64,
-    pub room_canonical_alias: i64,
-    pub room_history_visibility: i64,
-    pub room_join_rules: i64,
-    pub room_power_levels: i64,
-    pub space_child: i64,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct RoomPowerLevelChanges {
-    pub users_default: Option<i64>,
-    pub events_default: Option<i64>,
-    pub state_default: Option<i64>,
-    pub ban: Option<i64>,
-    pub kick: Option<i64>,
-    pub redact: Option<i64>,
-    pub invite: Option<i64>,
-    pub room_name: Option<i64>,
-    pub room_avatar: Option<i64>,
-    pub room_topic: Option<i64>,
-    pub space_child: Option<i64>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct SuccessorRoomInfo {
-    pub room_id: String,
-    pub reason: Option<String>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct PredecessorRoomInfo {
-    pub room_id: String,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct RoomUpgradeLinks {
-    pub is_tombstoned: bool,
-    pub successor: Option<SuccessorRoomInfo>,
-    pub predecessor: Option<PredecessorRoomInfo>,
-}
-
-impl From<SuccessorRoom> for SuccessorRoomInfo {
-    fn from(v: SuccessorRoom) -> Self {
-        SuccessorRoomInfo {
-            room_id: v.room_id.to_string(),
-            reason: v.reason,
-        }
-    }
-}
-
-impl From<PredecessorRoom> for PredecessorRoomInfo {
-    fn from(v: PredecessorRoom) -> Self {
-        PredecessorRoomInfo {
-            room_id: v.room_id.to_string(),
-        }
-    }
-}
-
-#[derive(Clone, Record, Serialize, Deserialize)]
-pub struct HomeserverLoginDetails {
-    pub supports_oauth: bool,
-    pub supports_sso: bool,
-    pub supports_password: bool,
-}
-
-#[derive(Clone, Copy, Serialize, Deserialize, Enum)]
-pub enum ElementCallIntent {
-    StartCall,
-    JoinExisting,
-    StartCallVoiceDm,
-    JoinExistingVoiceDm,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct CallSessionInfo {
-    pub session_id: u64,
-    pub widget_url: String,
-    pub widget_base_url: Option<String>,
-    pub parent_url: Option<String>,
-}
-
-#[export(callback_interface)]
-pub trait CallWidgetObserver: Send + Sync {
-    fn on_to_widget(&self, message: String);
-}
-
-#[derive(Clone, Serialize, Deserialize, Enum)]
-pub enum SendState {
-    Enqueued,
-    Sending,
-    Sent,
-    Retrying,
-    Failed,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct SendUpdate {
-    pub room_id: String,
-    pub txn_id: String,
-    pub attempts: u32,
-    pub state: SendState,
-    pub event_id: Option<String>,
-    pub error: Option<String>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
-pub struct PresenceInfo {
-    pub presence: Presence,
-    pub status_msg: Option<String>,
-}
-
-#[export(callback_interface)]
-pub trait SendObserver: Send + Sync {
-    fn on_update(&self, update: SendUpdate);
-}
-
-pub(crate) type VerifMap = Arc<Mutex<HashMap<String, VerifFlow>>>;
-
-pub(crate) struct VerifFlow {
-    pub(crate) sas: SasVerification,
-    pub(crate) _other_user: OwnedUserId,
-    pub(crate) _other_device: OwnedDeviceId,
-}
-
-fn cache_dir(dir: &PathBuf) -> PathBuf {
-    dir.join("media_cache")
-}
-
 #[cfg(not(target_arch = "wasm32"))]
 static RT: Lazy<Runtime> = Lazy::new(|| {
     tokio::runtime::Builder::new_multi_thread()
@@ -966,160 +192,8 @@ static RT: Lazy<Runtime> = Lazy::new(|| {
         .expect("tokio runtime")
 });
 
-#[cfg(not(target_family = "wasm"))]
-macro_rules! spawn_task {
-    ($fut:expr) => {
-        RT.spawn($fut)
-    };
-}
-
-#[cfg(target_family = "wasm")]
-macro_rules! spawn_task {
-    ($fut:expr) => {
-        tokio::task::spawn_local($fut)
-    };
-}
-
-#[cfg(not(target_family = "wasm"))]
-macro_rules! spawn_detached {
-    ($fut:expr) => {{
-        let _ = tokio::spawn($fut);
-    }};
-}
-
-#[cfg(target_family = "wasm")]
-macro_rules! spawn_detached {
-    ($fut:expr) => {{
-        wasm_bindgen_futures::spawn_local($fut);
-    }};
-}
-
-macro_rules! sub_manager {
-    ($self:expr, $subs:ident, $spawn:expr) => {{
-        let id = $self.next_sub_id();
-        let h = spawn_task!($spawn);
-        $self.$subs.lock().unwrap().insert(id, h);
-        id
-    }};
-}
-
-macro_rules! unsub {
-    ($self:expr, $subs:ident, $id:expr) => {{
-        if let Some(h) = $self.$subs.lock().unwrap().remove(&$id) {
-            h.abort();
-            true
-        } else {
-            false
-        }
-    }};
-}
-
-macro_rules! delegate_bool {
-    ($($name:ident($($arg:ident : $ty:ty),* $(,)?));+ $(;)?) => {
-        #[uniffi::export]
-        impl Client {
-            $(
-                pub fn $name(&self, $($arg: $ty),*) -> bool {
-                    RT.block_on(self.core.$name($($arg),*))
-                }
-            )+
-        }
-    };
-}
-
-macro_rules! delegate_unit_result {
-    ($($name:ident($($arg:ident : $ty:ty),* $(,)?));+ $(;)?) => {
-        #[uniffi::export]
-        impl Client {
-            $(
-                pub fn $name(&self, $($arg: $ty),*) -> Result<(), FfiError> {
-                    RT.block_on(self.core.$name($($arg),*))
-                }
-            )+
-        }
-    };
-}
-
-macro_rules! delegate_result {
-    ($ret:ty; $($name:ident($($arg:ident : $ty:ty),* $(,)?));+ $(;)?) => {
-        #[uniffi::export]
-        impl Client {
-            $(
-                pub fn $name(&self, $($arg: $ty),*) -> Result<$ret, FfiError> {
-                    RT.block_on(self.core.$name($($arg),*))
-                }
-            )+
-        }
-    };
-}
-
-macro_rules! delegate_option {
-    ($ret:ty; $($name:ident($($arg:ident : $ty:ty),* $(,)?));+ $(;)?) => {
-        #[uniffi::export]
-        impl Client {
-            $(
-                pub fn $name(&self, $($arg: $ty),*) -> Option<$ret> {
-                    RT.block_on(self.core.$name($($arg),*))
-                }
-            )+
-        }
-    };
-}
-
-macro_rules! delegate_plain {
-    ($ret:ty; $($name:ident($($arg:ident : $ty:ty),* $(,)?));+ $(;)?) => {
-        #[uniffi::export]
-        impl Client {
-            $(
-                pub fn $name(&self, $($arg: $ty),*) -> $ret {
-                    RT.block_on(self.core.$name($($arg),*))
-                }
-            )+
-        }
-    };
-}
-
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
-struct SessionInfo {
-    user_id: String,
-    device_id: String,
-    access_token: String,
-    refresh_token: Option<String>,
-    homeserver: String,
-    recovery_state: Option<String>,
-}
-
-#[derive(Clone)]
-struct LiveLocationBeaconState {
-    event_id: String,
-    duration_ms: u64,
-    description: Option<String>,
-}
-
-#[derive(Debug, thiserror::Error, Serialize, uniffi::Error)]
-pub enum FfiError {
-    #[error("{0}")]
-    Msg(String),
-}
-
-impl From<matrix_sdk::Error> for FfiError {
-    fn from(e: matrix_sdk::Error) -> Self {
-        FfiError::Msg(format!("matrix_sdk error: {e:?}"))
-    }
-}
-impl From<matrix_sdk_ui::notification_client::Error> for FfiError {
-    fn from(e: matrix_sdk_ui::notification_client::Error) -> Self {
-        FfiError::Msg(format!("NotificationClient error: {e:?}"))
-    }
-}
-impl From<std::io::Error> for FfiError {
-    fn from(e: std::io::Error) -> Self {
-        FfiError::Msg(format!("io error: {e:?}"))
-    }
-}
-
 delegate_bool! {
-    send_queue_set_enabled( enabled: bool);
+    send_queue_set_enabled(enabled: bool);
     set_typing(room_id: String, typing: bool);
     send_message(room_id: String, body: String, formatted_body: Option<String>);
     reply(room_id: String, in_reply_to: String, body: String, formatted_body: Option<String>);
@@ -1178,101 +252,37 @@ delegate_unit_result! {
     decline_knock_request(room_id: String, user_id: String, reason: Option<String>);
 }
 
-delegate_result! { Vec<MemberSummary>;
-    list_members(room_id: String);
-}
-delegate_result! { Vec<RoomProfile>;
-    list_invited();
-}
-delegate_result! { Vec<String>;
-    ignored_users();
-}
-delegate_result! { Vec<DirectoryUser>;
-    search_users(search_term: String, limit: u64);
-}
-delegate_result! { DirectoryUser;
-    get_user_profile(user_id: String);
-}
-delegate_result! { PublicRoomsPage;
-    public_rooms(server: Option<String>, search: Option<String>, limit: u32, since: Option<String>);
-}
-delegate_result! { RoomPowerLevels;
-    room_power_levels(room_id: String);
-}
-delegate_result! { RoomDirectoryVisibility;
-    room_directory_visibility(room_id: String);
-}
-delegate_result! { RoomJoinRule;
-    room_join_rule(room_id: String);
-}
-delegate_result! { RoomHistoryVisibility;
-    room_history_visibility(room_id: String);
-}
-delegate_result! { Vec<SeenByEntry>;
-    seen_by_for_event(room_id: String, event_id: String, limit: u32);
-}
-delegate_result! { String;
-    upgrade_room(room_id: String, new_version: String);
-    ensure_dm(user_id: String);
-}
-delegate_result! { Vec<KnockRequestSummary>;
-    list_knock_requests(room_id: String);
-}
-delegate_result! { bool;
-    can_user_ban(room_id: String, user_id: String);
-    can_user_invite(room_id: String, user_id: String);
-    can_user_redact_other(room_id: String, user_id: String);
-}
+delegate_result! { Vec<MemberSummary>; list_members(room_id: String); }
+delegate_result! { Vec<RoomProfile>; list_invited(); }
+delegate_result! { Vec<String>; ignored_users(); }
+delegate_result! { Vec<DirectoryUser>; search_users(search_term: String, limit: u64); }
+delegate_result! { DirectoryUser; get_user_profile(user_id: String); }
+delegate_result! { PublicRoomsPage; public_rooms(server: Option<String>, search: Option<String>, limit: u32, since: Option<String>); }
+delegate_result! { RoomPowerLevels; room_power_levels(room_id: String); }
+delegate_result! { RoomDirectoryVisibility; room_directory_visibility(room_id: String); }
+delegate_result! { RoomJoinRule; room_join_rule(room_id: String); }
+delegate_result! { RoomHistoryVisibility; room_history_visibility(room_id: String); }
+delegate_result! { Vec<SeenByEntry>; seen_by_for_event(room_id: String, event_id: String, limit: u32); }
+delegate_result! { String; upgrade_room(room_id: String, new_version: String); ensure_dm(user_id: String); }
+delegate_result! { Vec<KnockRequestSummary>; list_knock_requests(room_id: String); }
+delegate_result! { bool; can_user_ban(room_id: String, user_id: String); can_user_invite(room_id: String, user_id: String); can_user_redact_other(room_id: String, user_id: String); }
 
-delegate_option! { FfiRoomNotificationMode;
-    room_notification_mode(room_id: String);
-}
-delegate_option! { UnreadStats;
-    room_unread_stats(room_id: String);
-}
-delegate_option! { RoomTags;
-    room_tags(room_id: String);
-}
-delegate_option! { String;
-    dm_peer_user_id(room_id: String);
-    resolve_room_id(id_or_alias: String);
-    account_management_url();
-}
-delegate_option! { SuccessorRoomInfo;
-    room_successor(room_id: String);
-}
-delegate_option! { PredecessorRoomInfo;
-    room_predecessor(room_id: String);
-}
-delegate_option! { bool;
-    is_marked_unread(room_id: String);
-}
+delegate_option! { FfiRoomNotificationMode; room_notification_mode(room_id: String); }
+delegate_option! { UnreadStats; room_unread_stats(room_id: String); }
+delegate_option! { RoomTags; room_tags(room_id: String); }
+delegate_option! { String; dm_peer_user_id(room_id: String); resolve_room_id(id_or_alias: String); account_management_url(); }
+delegate_option! { SuccessorRoomInfo; room_successor(room_id: String); }
+delegate_option! { PredecessorRoomInfo; room_predecessor(room_id: String); }
+delegate_option! { bool; is_marked_unread(room_id: String); }
 
-delegate_plain! { Vec<MessageEvent>;
-    recent_events(room_id: String, limit: u32);
-}
-delegate_plain! { Vec<String>;
-    get_pinned_events(room_id: String);
-    room_aliases(room_id: String);
-}
-delegate_plain! { i64;
-    get_user_power_level(room_id: String, user_id: String);
-}
-delegate_plain! { OwnReceipt;
-    own_last_read(room_id: String);
-}
-delegate_plain! { HashMap<String, Vec<ReactionSummary>>;
-    reactions_batch(room_id: String, event_ids: Vec<String>);
-}
-delegate_plain! { Vec<ReactionSummary>;
-    reactions_for_event(room_id: String, event_id: String);
-}
-delegate_plain! { Vec<SpaceInfo>;
-    my_spaces();
-}
-delegate_plain! { Vec<RoomSummary>;
-    rooms();
-}
+delegate_plain! { Vec<MessageEvent>; recent_events(room_id: String, limit: u32); }
+delegate_plain! { Vec<String>; get_pinned_events(room_id: String); room_aliases(room_id: String); }
+delegate_plain! { i64; get_user_power_level(room_id: String, user_id: String); }
+delegate_plain! { OwnReceipt; own_last_read(room_id: String); }
+delegate_plain! { HashMap<String, Vec<ReactionSummary>>; reactions_batch(room_id: String, event_ids: Vec<String>); }
+delegate_plain! { Vec<ReactionSummary>; reactions_for_event(room_id: String, event_id: String); }
+delegate_plain! { Vec<SpaceInfo>; my_spaces(); }
+delegate_plain! { Vec<RoomSummary>; rooms(); }
 
 #[derive(Object)]
 pub struct Client {
@@ -1340,6 +350,10 @@ fn strip_matrix_path(mut u: Url) -> Url {
         u.set_fragment(None);
     }
     u
+}
+
+fn cache_dir(dir: &PathBuf) -> PathBuf {
+    dir.join("media_cache")
 }
 
 #[export]
@@ -1560,8 +574,6 @@ impl Client {
         Ok(this)
     }
 
-    // these ones' return types don't fit into the macros
-
     pub fn room_profile(&self, room_id: String) -> Result<Option<RoomProfile>, FfiError> {
         RT.block_on(self.core.room_profile(room_id))
     }
@@ -1675,7 +687,6 @@ impl Client {
     ) -> Result<SearchPage, FfiError> {
         #[cfg(target_family = "wasm")]
         return Err(FfiError::Msg("search_room: not supported on web".into()));
-
         #[cfg(not(target_family = "wasm"))]
         RT.block_on(self.core.search_room(room_id, query, limit, offset))
     }
@@ -1831,7 +842,6 @@ impl Client {
             controller.set_filter(Box::new(filters::new_filter_non_left()));
             use matrix_sdk_ui::room_list_service::RoomListItem;
             let mut items = Vector::<RoomListItem>::new();
-
             loop {
                 tokio::select! {
                     Some(cmd) = cmd_rx.recv() => {
@@ -1865,7 +875,6 @@ impl Client {
                                 VectorDiff::Append   { values }     => { items.append(values);    changed = true; }
                             }
                         }
-
                         if changed {
                             let mut snapshot: Vec<RoomListEntry> = Vec::new();
                             for item in items.iter() {
@@ -1879,23 +888,16 @@ impl Client {
                                 let latest_event = latest_room_event_for(&core.timeline_mgr, room).await;
                                 snapshot.push(RoomListEntry {
                                     room_id: room.room_id().to_string(),
-                                    name: item.cached_display_name()
-                                        .clone().unwrap_or(RoomDisplayName::Named(room.room_id().to_string()))
-                                        .to_string(),
-                                    last_ts,
-                                    notifications: room.num_unread_notifications(),
-                                    messages:      room.num_unread_messages(),
-                                    mentions:      room.num_unread_mentions(),
-                                    marked_unread: room.is_marked_unread(),
-                                    is_favourite:  room.is_favourite(),
+                                    name: item.cached_display_name().clone().unwrap_or(RoomDisplayName::Named(room.room_id().to_string())).to_string(),
+                                    last_ts, notifications: room.num_unread_notifications(),
+                                    messages: room.num_unread_messages(), mentions: room.num_unread_mentions(),
+                                    marked_unread: room.is_marked_unread(), is_favourite: room.is_favourite(),
                                     is_low_priority: room.is_low_priority(),
                                     is_invited: matches!(room.state(), RoomState::Invited),
-                                    avatar_url,
-                                    is_dm,
+                                    avatar_url, is_dm,
                                     is_encrypted: matches!(room.encryption_state(), matrix_sdk::EncryptionState::Encrypted),
                                     member_count: room.joined_members_count().min(u32::MAX as u64) as u32,
-                                    topic: room.topic(),
-                                    latest_event,
+                                    topic: room.topic(), latest_event,
                                 });
                             }
                             let _ = platform::write_room_list_cache(&store_dir, &snapshot).await;
@@ -1999,25 +1001,16 @@ impl Client {
                     Ok(change) = session_rx.recv() => {
                         let current = match change {
                             matrix_sdk::SessionChange::TokensRefreshed => ConnectionState::Connected,
-                            matrix_sdk::SessionChange::UnknownToken { .. } =>
-                                ConnectionState::Reconnecting { attempt: 1, next_retry_secs: 5 },
+                            matrix_sdk::SessionChange::UnknownToken { .. } => ConnectionState::Reconnecting { attempt: 1, next_retry_secs: 5 },
                         };
-                        if !matches!((&current, &last_state),
-                            (ConnectionState::Connected, ConnectionState::Connected) |
-                            (ConnectionState::Disconnected, ConnectionState::Disconnected)) {
+                        if !matches!((&current, &last_state), (ConnectionState::Connected, ConnectionState::Connected) | (ConnectionState::Disconnected, ConnectionState::Disconnected)) {
                             obs.on_connection_change(current.clone());
                             last_state = current;
                         }
                     }
                     _ = sleep(Duration::from_secs(30)) => {
-                        let current = if sdk.is_active() {
-                            ConnectionState::Connected
-                        } else {
-                            ConnectionState::Disconnected
-                        };
-                        if !matches!((&current, &last_state),
-                            (ConnectionState::Connected, ConnectionState::Connected) |
-                            (ConnectionState::Disconnected, ConnectionState::Disconnected)) {
+                        let current = if sdk.is_active() { ConnectionState::Connected } else { ConnectionState::Disconnected };
+                        if !matches!((&current, &last_state), (ConnectionState::Connected, ConnectionState::Connected) | (ConnectionState::Disconnected, ConnectionState::Disconnected)) {
                             obs.on_connection_change(current.clone());
                             last_state = current;
                         }
@@ -2130,7 +1123,7 @@ impl Client {
                 tokio::select! {
                     maybe = td_sub.next() => {
                         if let Some((ev, ())) = maybe {
-                            let flow_id   = ev.content.transaction_id.to_string();
+                            let flow_id = ev.content.transaction_id.to_string();
                             let from_user = ev.sender.to_string();
                             let from_device = ev.content.from_device.to_string();
                             inbox.lock().unwrap().insert(flow_id.clone(), (ev.sender, ev.content.from_device.clone()));
@@ -2141,7 +1134,7 @@ impl Client {
                         if let Some((ev, _room)) = maybe {
                             if let SyncRoomMessageEvent::Original(o) = ev {
                                 if let MessageType::VerificationRequest(_) = &o.content.msgtype {
-                                    let flow_id   = o.event_id.to_string();
+                                    let flow_id = o.event_id.to_string();
                                     let from_user = o.sender.to_string();
                                     inbox.lock().unwrap().insert(flow_id.clone(), (o.sender.clone(), owned_device_id!("inroom")));
                                     let _ = catch_unwind(AssertUnwindSafe(|| obs.on_request(flow_id, from_user, String::new())));
@@ -2249,7 +1242,6 @@ impl Client {
         }
         let sdk = self.core.sdk.clone();
         let tx = self.send_tx.clone();
-
         let h = spawn_task!(async move {
             let mut rx = sdk.send_queue().subscribe();
             let mut attempts: HashMap<String, u32> = HashMap::new();
@@ -2260,72 +1252,9 @@ impl Client {
                     Err(_) => break,
                 };
                 let room_id_str = upd.room_id.to_string();
-                use matrix_sdk::send_queue::RoomSendQueueUpdate as U;
-                let mapped = match upd.update {
-                    U::NewLocalEvent(local) => Some(SendUpdate {
-                        room_id: room_id_str,
-                        txn_id: local.transaction_id.to_string(),
-                        attempts: 0,
-                        state: SendState::Enqueued,
-                        event_id: None,
-                        error: None,
-                    }),
-                    U::RetryEvent { transaction_id } => {
-                        let k = format!("{room_id_str}|{transaction_id}");
-                        let n = attempts.entry(k).and_modify(|v| *v += 1).or_insert(1);
-                        Some(SendUpdate {
-                            room_id: room_id_str,
-                            txn_id: transaction_id.to_string(),
-                            attempts: *n,
-                            state: SendState::Retrying,
-                            event_id: None,
-                            error: None,
-                        })
-                    }
-                    U::SentEvent {
-                        transaction_id,
-                        event_id,
-                    } => {
-                        attempts.remove(&format!("{room_id_str}|{transaction_id}"));
-                        Some(SendUpdate {
-                            room_id: room_id_str,
-                            txn_id: transaction_id.to_string(),
-                            attempts: 0,
-                            state: SendState::Sent,
-                            event_id: Some(event_id.to_string()),
-                            error: None,
-                        })
-                    }
-                    U::SendError {
-                        transaction_id,
-                        error,
-                        is_recoverable,
-                    } => {
-                        let k = format!("{room_id_str}|{transaction_id}");
-                        let n = attempts.entry(k).and_modify(|v| *v += 1).or_insert(1);
-                        Some(SendUpdate {
-                            room_id: room_id_str,
-                            txn_id: transaction_id.to_string(),
-                            attempts: *n,
-                            state: SendState::Failed,
-                            event_id: None,
-                            error: Some(format!("{error:?} (recoverable={is_recoverable})")),
-                        })
-                    }
-                    U::CancelledLocalEvent { transaction_id } => {
-                        attempts.remove(&format!("{room_id_str}|{transaction_id}"));
-                        Some(SendUpdate {
-                            room_id: room_id_str,
-                            txn_id: transaction_id.to_string(),
-                            attempts: 0,
-                            state: SendState::Failed,
-                            event_id: None,
-                            error: Some("Cancelled".into()),
-                        })
-                    }
-                    _ => None,
-                };
-                if let Some(u) = mapped {
+                if let Some(u) =
+                    crate::core::map_send_queue_update(&room_id_str, upd.update, &mut attempts)
+                {
                     let _ = tx.send(u);
                 }
             }
@@ -2342,19 +1271,16 @@ impl Client {
                 .send()
                 .await
                 .map_err(|e| FfiError::Msg(format!("login failed: {e}")))?;
-
             self.core
                 .sdk
                 .encryption()
                 .wait_for_e2ee_initialization_tasks()
                 .await;
             self.core.ensure_sync_service().await;
-
             if let Err(e) = self.core.sdk.event_cache().subscribe() {
                 warn!("event_cache.subscribe() failed after login: {e:?}");
             }
             self.ensure_send_queue_supervision();
-
             if let Some(sess) = self.core.sdk.matrix_auth().session() {
                 let info = SessionInfo {
                     user_id: sess.meta.user_id.to_string(),
@@ -2366,7 +1292,6 @@ impl Client {
                 };
                 let _ = platform::persist_session(&self.store_dir, &info).await;
             }
-
             Ok(self.core.user_id_str())
         })
     }
@@ -2400,10 +1325,9 @@ impl Client {
         return Err(FfiError::Msg(
             "login_oauth: use async version on web".into(),
         ));
-
         #[cfg(not(target_family = "wasm"))]
         RT.block_on(async {
-            let redirect = Url::parse(&redirect_uri).map_err(|e| FfiError::Msg(e.to_string()))?;
+            let redirect = Url::parse(&redirect_uri).ffi()?;
             let metadata = mages_client_metadata(&redirect);
             let auth_data = self
                 .core
@@ -2422,29 +1346,25 @@ impl Client {
         return Err(FfiError::Msg(
             "complete_oauth_login: use async version on web".into(),
         ));
-
         #[cfg(not(target_family = "wasm"))]
         RT.block_on(async {
-            let url = Url::parse(&callback_url).map_err(|e| FfiError::Msg(e.to_string()))?;
+            let url = Url::parse(&callback_url).ffi()?;
             self.core
                 .sdk
                 .oauth()
                 .finish_login(UrlOrQuery::Url(url))
                 .await
                 .map_err(|e| FfiError::Msg(format!("oauth finish failed: {e}")))?;
-
             self.core
                 .sdk
                 .encryption()
                 .wait_for_e2ee_initialization_tasks()
                 .await;
             self.core.ensure_sync_service().await;
-
             if let Err(e) = self.core.sdk.event_cache().subscribe() {
                 warn!("event_cache.subscribe() failed after OAuth login: {e:?}");
             }
             self.ensure_send_queue_supervision();
-
             if let Some(sess) = self.core.sdk.matrix_auth().session() {
                 let info = SessionInfo {
                     user_id: sess.meta.user_id.to_string(),
@@ -2456,12 +1376,10 @@ impl Client {
                 };
                 let _ = platform::persist_session(&self.store_dir, &info).await;
             }
-
             Ok(self.core.user_id_str())
         })
     }
 
-    /// SSO with built-in loopback server. Opens a browser and completes login.
     pub fn login_sso_loopback(
         &self,
         opener: Box<dyn UrlOpener>,
@@ -2486,8 +1404,7 @@ impl Client {
                 .initial_device_display_name(device_name.as_deref().unwrap_or("Mages"))
                 .send()
                 .await
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
-
+                .ffi()?;
             if let Some(sess) = self.core.sdk.matrix_auth().session() {
                 let info = SessionInfo {
                     user_id: sess.meta.user_id.to_string(),
@@ -2499,9 +1416,7 @@ impl Client {
                 };
                 platform::persist_session(&self.store_dir, &info).await?;
             }
-
             self.core.ensure_sync_service().await;
-
             Ok(())
         })
     }
@@ -2518,42 +1433,31 @@ impl Client {
         #[cfg(not(target_family = "wasm"))]
         RT.block_on(async {
             let oauth = self.core.sdk.oauth();
-
             let (redirect_uri, server_handle) = LocalServerBuilder::new()
                 .ip_address(LocalServerIpAddress::Localhostv4)
                 .spawn()
                 .await
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
-
+                .ffi()?;
             let registration_data = mages_client_metadata(&redirect_uri).into();
-
             let auth_data = oauth
                 .login(redirect_uri, None, Some(registration_data), None)
                 .build()
                 .await
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
-
+                .ffi()?;
             let _ = opener.open(auth_data.url.to_string());
-
-            let callback_query = server_handle
-                .await
-                .ok_or_else(|| FfiError::Msg("No OAuth callback received".into()))?;
-
+            let callback_query = server_handle.await.or_ffi("No OAuth callback received")?;
             oauth
                 .finish_login(UrlOrQuery::Query(callback_query.0))
                 .await
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
-
+                .ffi()?;
             if let Some(name) = device_name {
                 if let Some(device_id) = self.core.sdk.device_id() {
                     use matrix_sdk::ruma::api::client::device::update_device;
                     let mut req = update_device::v3::Request::new(device_id.to_owned());
                     req.display_name = Some(name);
-                    // Don't fail
                     let _ = self.core.sdk.send(req).await;
                 }
             }
-
             if let Some(sess) = oauth.user_session() {
                 let info = SessionInfo {
                     user_id: sess.meta.user_id.to_string(),
@@ -2565,32 +1469,25 @@ impl Client {
                 };
                 platform::persist_session(&self.store_dir, &info).await?;
             }
-
             self.core.ensure_sync_service().await;
-
             Ok(())
         })
     }
 
-    /// Start OAuth login - returns the authorization URL for Android to open in browser
     pub fn start_oauth_login(&self, redirect_uri: String) -> Result<String, FfiError> {
         RT.block_on(async {
             let oauth = self.core.sdk.oauth();
-            let redirect_uri =
-                Url::parse(&redirect_uri).map_err(|e| FfiError::Msg(e.to_string()))?;
+            let redirect_uri = Url::parse(&redirect_uri).ffi()?;
             let registration_data = mages_client_metadata(&redirect_uri).into();
-
             let auth_data = oauth
                 .login(redirect_uri, None, Some(registration_data), None)
                 .build()
                 .await
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
-
+                .ffi()?;
             Ok(auth_data.url.to_string())
         })
     }
 
-    /// Finish OAuth login with the callback URL from the browser
     pub fn finish_oauth_login(
         &self,
         callback_data: String,
@@ -2601,12 +1498,7 @@ impl Client {
             let callback = Url::parse(&callback_data)
                 .map(UrlOrQuery::Url)
                 .unwrap_or_else(|_| UrlOrQuery::Query(callback_data));
-
-            oauth
-                .finish_login(callback)
-                .await
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
-
+            oauth.finish_login(callback).await.ffi()?;
             Self::maybe_update_device_name(self, device_name).await;
             Self::persist_oauth_session(self).await?;
             self.core.ensure_sync_service().await;
@@ -2614,7 +1506,6 @@ impl Client {
         })
     }
 
-    /// Start SSO login - returns the SSO URL for Android to open in browser
     pub fn start_sso_login(
         &self,
         redirect_uri: String,
@@ -2625,12 +1516,11 @@ impl Client {
             let url = auth
                 .get_sso_login_url(&redirect_uri, idp_id.as_deref())
                 .await
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
+                .ffi()?;
             Ok(url)
         })
     }
 
-    /// Finish SSO login with the callback URL from the browser
     pub fn finish_sso_login(
         &self,
         callback_url: String,
@@ -2638,19 +1528,12 @@ impl Client {
     ) -> Result<(), FfiError> {
         RT.block_on(async {
             let auth = self.core.sdk.matrix_auth();
-            let callback_url =
-                Url::parse(&callback_url).map_err(|e| FfiError::Msg(e.to_string()))?;
-
-            let mut builder = auth
-                .login_with_sso_callback(callback_url)
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
-
+            let callback_url = Url::parse(&callback_url).ffi()?;
+            let mut builder = auth.login_with_sso_callback(callback_url).ffi()?;
             if let Some(name) = device_name.as_deref() {
                 builder = builder.initial_device_display_name(name);
             }
-
-            let response = builder.await.map_err(|e| FfiError::Msg(e.to_string()))?;
-
+            let response = builder.await.ffi()?;
             Self::persist_matrix_login_response(self, &response).await?;
             self.core.ensure_sync_service().await;
             Ok(())
@@ -2659,65 +1542,70 @@ impl Client {
 
     pub fn logout(&self) -> Result<(), FfiError> {
         RT.block_on(async {
-            // Stop sync first
             if let Some(svc) = self.core.sync_service.lock().unwrap().take() {
                 let _ = svc.stop().await;
             }
-
-            // Abort all subscription tasks
             for h in self.guards.lock().unwrap().drain(..) {
                 h.abort();
             }
-            for (_, h) in self.timeline_subs.lock().unwrap().drain() {
-                h.abort();
-            }
-            for (_, h) in self.typing_subs.lock().unwrap().drain() {
-                h.abort();
-            }
-            for (_, h) in self.connection_subs.lock().unwrap().drain() {
-                h.abort();
-            }
-            for (_, h) in self.inbox_subs.lock().unwrap().drain() {
-                h.abort();
-            }
-            for (_, h) in self.receipts_subs.lock().unwrap().drain() {
-                h.abort();
-            }
-            for (_, h) in self.room_list_subs.lock().unwrap().drain() {
-                h.abort();
-            }
-            for (_, h) in self.call_subs.lock().unwrap().drain() {
-                h.abort();
-            }
-            for (_, h) in self.live_location_subs.lock().unwrap().drain() {
-                h.abort();
-            }
-            for (_, h) in self.recovery_state_subs.lock().unwrap().drain() {
-                h.abort();
-            }
-            for (_, h) in self.backup_state_subs.lock().unwrap().drain() {
-                h.abort();
-            }
-            for (_, h) in self.widget_driver_tasks.lock().unwrap().drain() {
-                h.abort();
-            }
-            for (_, h) in self.widget_recv_tasks.lock().unwrap().drain() {
-                h.abort();
-            }
+            abort_all_subs!(self;
+                timeline_subs, typing_subs, connection_subs, inbox_subs,
+                receipts_subs, room_list_subs, call_subs, live_location_subs,
+                recovery_state_subs, backup_state_subs, widget_driver_tasks, widget_recv_tasks
+            );
             self.room_list_cmds.lock().unwrap().clear();
             self.widget_handles.lock().unwrap().clear();
             self.send_handles_by_txn.lock().unwrap().clear();
             self.send_observers.lock().unwrap().clear();
             self.send_queue_supervised.store(false, Ordering::SeqCst);
-
             self.core.timeline_mgr.clear();
-
-            // Perform server-side logout
             let _ = self.core.sdk.matrix_auth().logout().await;
-
             platform::remove_session_file(&self.store_dir);
             platform::reset_store_dir(&self.store_dir);
+            Ok(())
+        })
+    }
 
+    pub fn login(
+        &self,
+        username: String,
+        password: String,
+        device_display_name: Option<String>,
+    ) -> Result<(), FfiError> {
+        RT.block_on(async {
+            let mut req = self
+                .core
+                .sdk
+                .matrix_auth()
+                .login_username(username.as_str(), &password);
+            if let Some(name) = device_display_name.as_ref() {
+                req = req.initial_device_display_name(name);
+            }
+            let res = req.send().await.ffi()?;
+            let info = SessionInfo {
+                user_id: res.user_id.to_string(),
+                device_id: res.device_id.to_string(),
+                access_token: res.access_token.clone(),
+                refresh_token: res.refresh_token.clone(),
+                homeserver: self.core.sdk.homeserver().to_string(),
+                recovery_state: None,
+            };
+            platform::persist_session(&self.store_dir, &info).await?;
+            self.core
+                .sdk
+                .encryption()
+                .wait_for_e2ee_initialization_tasks()
+                .await;
+            self.core.ensure_sync_service().await;
+            if let Err(e) = self.core.sdk.event_cache().subscribe() {
+                warn!("event_cache.subscribe() failed after login: {e:?}");
+            }
+            self.ensure_send_queue_supervision();
+            self.core
+                .sdk
+                .send_queue()
+                .respawn_tasks_for_rooms_with_unsent_requests()
+                .await;
             Ok(())
         })
     }
@@ -2736,31 +1624,22 @@ impl Client {
             let Some(room) = self.core.sdk.get_room(&rid) else {
                 return false;
             };
-
-            // Text shown in the timeline for this media
             let default_caption = match att.kind {
                 AttachmentKind::Image => "Image",
                 AttachmentKind::Video => "Video",
                 AttachmentKind::File => "File",
             };
             let caption = body.unwrap_or_else(|| default_caption.to_string());
-
             let media_source = if let Some(enc) = att.encrypted.as_ref() {
-                // Encrypted attachment: parse full EncryptedFile JSON
-                let ef: EncryptedFile = match serde_json::from_str(&enc.json) {
-                    Ok(f) => f,
-                    Err(e) => {
-                        eprintln!("send_existing_attachment: enc parse error: {e}");
-                        return false;
-                    }
-                };
+                let ef: matrix_sdk::ruma::events::room::EncryptedFile =
+                    match serde_json::from_str(&enc.json) {
+                        Ok(f) => f,
+                        Err(_) => return false,
+                    };
                 MediaSource::Encrypted(Box::new(ef))
             } else {
-                // Plain mxc:// URL
                 MediaSource::Plain(att.mxc_uri.clone().into())
             };
-
-            // Build MessageType based on kind + basic metadata
             let msgtype = match att.kind {
                 AttachmentKind::Image => {
                     let mut info = ImageInfo::new();
@@ -2768,49 +1647,38 @@ impl Client {
                     info.size = att.size_bytes.and_then(UInt::new);
                     info.width = att.width.map(UInt::from);
                     info.height = att.height.map(UInt::from);
-
                     let mut img = ImageMessageEventContent::new(caption.clone(), media_source);
                     img.info = Some(Box::new(info));
                     MessageType::Image(img)
                 }
-
                 AttachmentKind::Video => {
                     let mut info = VideoInfo::new();
                     info.mimetype = att.mime.clone();
                     info.size = att.size_bytes.and_then(UInt::new);
                     info.width = att.width.map(UInt::from);
                     info.height = att.height.map(UInt::from);
-                    info.duration = att.duration_ms.map(|ms| Duration::from_millis(ms));
-
+                    info.duration = att.duration_ms.map(Duration::from_millis);
                     let mut vid = VideoMessageEventContent::new(caption.clone(), media_source);
                     vid.info = Some(Box::new(info));
                     MessageType::Video(vid)
                 }
-
                 AttachmentKind::File => {
-                    let mut info = FileInfo::new();
+                    let mut info = matrix_sdk::ruma::events::room::message::FileInfo::new();
                     info.mimetype = att.mime.clone();
                     info.size = att.size_bytes.and_then(UInt::new);
-
                     let mut file = FileMessageEventContent::new(caption.clone(), media_source);
                     file.info = Some(Box::new(info));
                     MessageType::File(file)
                 }
             };
-
             let content = RoomMessageEventContent::new(msgtype);
-
-            // Reuse has no upload, but keep API symmetric: 0 → 1
             if let Some(p) = progress.as_ref() {
                 p.on_progress(0, None);
             }
-
             let res = room.send(content).await;
-
             if let Some(p) = progress {
                 p.on_progress(1, Some(1));
             }
-
             res.is_ok()
         })
     }
@@ -2823,32 +1691,27 @@ impl Client {
     ) -> Result<DownloadResult, FfiError> {
         RT.block_on(async {
             let source = if let Some(json) = encrypted_json {
-                let enc_file: EncryptedFile =
-                    serde_json::from_str(&json).map_err(|e| FfiError::Msg(e.to_string()))?;
+                let enc_file: matrix_sdk::ruma::events::room::EncryptedFile =
+                    serde_json::from_str(&json).ffi()?;
                 MediaSource::Encrypted(Box::new(enc_file))
             } else {
-                let uri = matrix_sdk::ruma::OwnedMxcUri::from(mxc_uri);
-                MediaSource::Plain(uri)
+                MediaSource::Plain(matrix_sdk::ruma::OwnedMxcUri::from(mxc_uri))
             };
-
             let request = MediaRequestParameters {
                 source,
                 format: MediaFormat::File,
             };
-
             let data = self
                 .core
                 .sdk
                 .media()
                 .get_media_content(&request, true)
                 .await
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
-
+                .ffi()?;
             #[cfg(not(target_family = "wasm"))]
             {
-                std::fs::write(&dest_path, &data).map_err(|e| FfiError::Msg(e.to_string()))?;
+                std::fs::write(&dest_path, &data).ffi()?;
             }
-
             Ok(DownloadResult {
                 path: dest_path,
                 bytes: data.len() as u64,
@@ -2874,416 +1737,21 @@ impl Client {
                 source: MediaSource::Plain(uri),
                 format: MediaFormat::Thumbnail(settings),
             };
-
             let data = self
                 .core
                 .sdk
                 .media()
                 .get_media_content(&request, true)
                 .await
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
-
+                .ffi()?;
             #[cfg(not(target_family = "wasm"))]
             {
-                std::fs::write(&dest_path, &data).map_err(|e| FfiError::Msg(e.to_string()))?;
+                std::fs::write(&dest_path, &data).ffi()?;
             }
-
             Ok(DownloadResult {
                 path: dest_path,
                 bytes: data.len() as u64,
             })
-        })
-    }
-
-    // TO REARRANGE
-
-    pub fn login(
-        &self,
-        username: String,
-        password: String,
-        device_display_name: Option<String>,
-    ) -> Result<(), FfiError> {
-        RT.block_on(async {
-            let mut req = self
-                .core
-                .sdk
-                .matrix_auth()
-                .login_username(username.as_str(), &password);
-            if let Some(name) = device_display_name.as_ref() {
-                req = req.initial_device_display_name(name);
-            }
-
-            let res = req.send().await.map_err(|e| FfiError::Msg(e.to_string()))?;
-
-            let info = SessionInfo {
-                user_id: res.user_id.to_string(),
-                device_id: res.device_id.to_string(),
-                access_token: res.access_token.clone(),
-                refresh_token: res.refresh_token.clone(),
-                homeserver: self.core.sdk.homeserver().to_string(),
-                recovery_state: None,
-            };
-
-            platform::persist_session(&self.store_dir, &info).await?;
-
-            // Wait for E2EE init to fetch recovery state from server
-            self.core
-                .sdk
-                .encryption()
-                .wait_for_e2ee_initialization_tasks()
-                .await;
-
-            self.core.ensure_sync_service().await;
-
-            if let Err(e) = self.core.sdk.event_cache().subscribe() {
-                warn!("event_cache.subscribe() failed after login: {e:?}");
-            }
-
-            self.ensure_send_queue_supervision();
-            self.core
-                .sdk
-                .send_queue()
-                .respawn_tasks_for_rooms_with_unsent_requests()
-                .await;
-
-            Ok(())
-        })
-    }
-
-    pub fn fetch_notifications_since(
-        &self,
-        since_ts_ms: u64,
-        max_rooms: u32,
-        max_events: u32,
-    ) -> Result<Vec<RenderedNotification>, FfiError> {
-        RT.block_on(async {
-            self.ensure_sync_service().await;
-
-            let process_setup = {
-                let g = self.sync_service.lock().unwrap();
-                if let Some(sync) = g.as_ref().cloned() {
-                    NotificationProcessSetup::SingleProcess { sync_service: sync }
-                } else {
-                    NotificationProcessSetup::MultipleProcesses
-                }
-            };
-
-            let nc = match NotificationClient::new(self.inner_clone(), process_setup).await {
-                Ok(v) => v,
-                Err(e) => {
-                    warn!("NotificationClient::new failed in fetch_notifications_since: {e:?}");
-                    return Ok(vec![]);
-                }
-            };
-
-            let mut out = Vec::new();
-
-            for room in self
-                .inner
-                .joined_rooms()
-                .into_iter()
-                .take(max_rooms as usize)
-            {
-                let rid = room.room_id().to_owned();
-
-                let Ok(tl) = room.timeline().await else {
-                    continue;
-                };
-                let (items, _stream) = tl.subscribe().await;
-
-                for it in items.iter().rev() {
-                    let Some(ev) = it.as_event() else { continue };
-
-                    let ts: u64 = ev.timestamp().0.into();
-                    if ts <= since_ts_ms {
-                        break;
-                    }
-
-                    let Some(eid_ref) = ev.event_id() else {
-                        continue;
-                    };
-
-                    let status = match nc.get_notification(&rid, eid_ref).await {
-                        Ok(s) => s,
-                        Err(_) => continue,
-                    };
-
-                    let NotificationStatus::Event(item) = status else {
-                        continue;
-                    };
-
-                    // `eid_ref` is &EventId; convert to OwnedEventId for our helper
-                    let eid = eid_ref.to_owned();
-
-                    if let Some(rendered) = map_notification_item_to_rendered(&rid, &eid, &item) {
-                        out.push(rendered);
-                        if out.len() as u32 >= max_events {
-                            return Ok(out);
-                        }
-                    }
-                }
-            }
-
-            Ok(out)
-        })
-    }
-
-    pub fn thumbnail_to_cache(
-        &self,
-        att: AttachmentInfo,
-        width: u32,
-        height: u32,
-        use_crop: bool,
-    ) -> Result<String, FfiError> {
-        use matrix_sdk::media::{MediaFormat, MediaRequestParameters, MediaThumbnailSettings};
-        use ruma::events::room::MediaSource;
-
-        let (source, format, name_key) = if let Some(enc) = att.thumbnail_encrypted.as_ref() {
-            let ef: EncryptedFile = serde_json::from_str(&enc.json)
-                .map_err(|e| FfiError::Msg(format!("thumb enc parse: {e}")))?;
-            (
-                MediaSource::Encrypted(Box::new(ef)),
-                MediaFormat::File,
-                enc.url.clone(),
-            )
-        } else if let Some(mxc) = att.thumbnail_mxc_uri.as_ref() {
-            (
-                MediaSource::Plain(mxc.clone().into()),
-                MediaFormat::File,
-                mxc.clone(),
-            )
-        } else if let Some(enc) = att.encrypted.as_ref() {
-            // fetch full encrypted file as fallback
-            let ef: EncryptedFile = serde_json::from_str(&enc.json)
-                .map_err(|e| FfiError::Msg(format!("file enc parse: {e}")))?;
-            (
-                MediaSource::Encrypted(Box::new(ef)),
-                MediaFormat::File,
-                enc.url.clone(),
-            )
-        } else {
-            // Plain primary mxc
-            let settings = if use_crop {
-                MediaThumbnailSettings::with_method(
-                    matrix_sdk::ruma::api::client::media::get_content_thumbnail::v3::Method::Crop,
-                    width.into(),
-                    height.into(),
-                )
-            } else {
-                MediaThumbnailSettings::new(width.into(), height.into())
-            };
-            let mxc = att.mxc_uri.clone();
-            (
-                MediaSource::Plain(mxc.clone().into()),
-                MediaFormat::Thumbnail(settings),
-                mxc,
-            )
-        };
-
-        let req = MediaRequestParameters { source, format };
-
-        let dir = cache_dir(&self.store_dir);
-        platform::ensure_dir(&dir);
-        fn sanitize(name: &str) -> String {
-            let mut s = String::with_capacity(name.len());
-            for ch in name.chars() {
-                if ch.is_ascii_alphanumeric() || "-_.".contains(ch) {
-                    s.push(ch);
-                } else {
-                    s.push('_');
-                }
-            }
-            s.trim_matches('_').to_string()
-        }
-        let key =
-            blake3::hash(format!("{}-{}x{}-{}", name_key, width, height, use_crop).as_bytes())
-                .to_hex();
-        let ext = att
-            .mime
-            .as_deref()
-            .and_then(|m| m.split('/').nth(1))
-            .filter(|e| !e.is_empty())
-            .unwrap_or("jpg");
-        let fname = format!(
-            "thumb_{}_{}x{}{}.{ext}",
-            &key[..16],
-            width,
-            height,
-            if use_crop { "_crop" } else { "_scale" }
-        );
-        let out = dir.join(sanitize(&fname));
-
-        #[cfg(not(target_family = "wasm"))]
-        {
-            if let Some(parent) = out.parent() {
-                std::fs::create_dir_all(parent)?;
-            }
-
-            let bytes = RT
-                .block_on(async { self.inner.media().get_media_content(&req, true).await })
-                .or_else(|_e| {
-                    // Fallback only when we asked for a server-side thumb of a plain mxc
-                    if matches!(req.format, MediaFormat::Thumbnail(_)) {
-                        let req_full = MediaRequestParameters {
-                            source: req.source.clone(),
-                            format: MediaFormat::File,
-                        };
-                        RT.block_on(async {
-                            self.inner.media().get_media_content(&req_full, true).await
-                        })
-                    } else {
-                        Err(_e)
-                    }
-                })
-                .map_err(|e| FfiError::Msg(format!("thumbnail fetch: {e}")))?;
-
-            std::fs::write(&out, &bytes)?;
-            Ok(out.to_string_lossy().to_string())
-        }
-        #[cfg(target_family = "wasm")]
-        Err(FfiError::Msg(
-            "thumbnail_to_cache: not supported on wasm".into(),
-        ))
-    }
-
-    pub fn mxc_thumbnail_to_cache(
-        &self,
-        mxc_uri: String,
-        width: u32,
-        height: u32,
-        crop: bool,
-    ) -> Result<String, FfiError> {
-        #[cfg(target_family = "wasm")]
-        return Err(FfiError::Msg(
-            "mxc_thumbnail_to_cache: not supported on wasm".into(),
-        ));
-        #[cfg(not(target_family = "wasm"))]
-        RT.block_on(async {
-            use js_int::UInt;
-            use matrix_sdk::media::{MediaFormat, MediaRequestParameters, MediaThumbnailSettings};
-            use matrix_sdk::ruma::api::client::media::get_content_thumbnail::v3::Method;
-            use matrix_sdk::ruma::events::room::MediaSource;
-
-            let dir = cache_dir(&self.store_dir);
-            platform::ensure_dir(&dir);
-
-            let method = if crop { Method::Crop } else { Method::Scale };
-            let settings = MediaThumbnailSettings::with_method(
-                method,
-                UInt::from(width.max(1)),
-                UInt::from(height.max(1)),
-            );
-
-            let req = MediaRequestParameters {
-                source: MediaSource::Plain(mxc_uri.clone().into()),
-                format: MediaFormat::Thumbnail(settings),
-            };
-
-            let bytes = self
-                .core
-                .sdk
-                .media()
-                .get_media_content(&req, true)
-                .await
-                .map_err(|e| FfiError::Msg(format!("get_media_content: {e}")))?;
-
-            let ext = if bytes.starts_with(&[0x89, b'P', b'N', b'G']) {
-                "png"
-            } else if bytes.starts_with(&[0xFF, 0xD8, 0xFF]) {
-                "jpg"
-            } else if bytes.starts_with(b"GIF8") {
-                "gif"
-            } else {
-                "img"
-            };
-
-            let key = blake3::hash(format!("{mxc_uri}|{width}x{height}|{crop}").as_bytes())
-                .to_hex()
-                .to_string();
-
-            let out = dir.join(format!("mxc_thumb_{key}.{ext}"));
-            std::fs::write(&out, bytes).map_err(|e| FfiError::Msg(format!("write avatar: {e}")))?;
-
-            Ok(out.to_string_lossy().to_string())
-        })
-    }
-
-    pub fn set_avatar(&self, mime_type: String, data: Vec<u8>) -> Result<(), FfiError> {
-        RT.block_on(async {
-            let mime: Mime = mime_type.parse().unwrap_or(mime::IMAGE_PNG);
-            self.core
-                .sdk
-                .account()
-                .upload_avatar(&mime, data)
-                .await
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
-            Ok(())
-        })
-    }
-
-    pub fn set_display_name(&self, name: String) -> Result<(), FfiError> {
-        RT.block_on(async {
-            self.core
-                .sdk
-                .account()
-                .set_display_name(Some(name.as_str()))
-                .await
-                .map_err(|e| FfiError::Msg(e.to_string()))
-        })
-    }
-
-    pub fn set_room_avatar(
-        &self,
-        room_id: String,
-        mime_type: String,
-        data: Vec<u8>,
-    ) -> Result<(), FfiError> {
-        RT.block_on(async {
-            let Some(room) = self.core.room(&room_id) else {
-                return Err(FfiError::Msg("room not found".into()));
-            };
-            let mime: Mime = mime_type.parse().unwrap_or(mime::IMAGE_PNG);
-            room.upload_avatar(&mime, data, todo!())
-                .await
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
-            Ok(())
-        })
-    }
-
-    pub fn remove_room_avatar(&self, room_id: String) -> Result<(), FfiError> {
-        RT.block_on(async {
-            let Some(room) = self.core.room(&room_id) else {
-                return Err(FfiError::Msg("room not found".into()));
-            };
-            room.remove_avatar()
-                .await
-                .map(|_| ())
-                .map_err(|e| FfiError::Msg(e.to_string()))
-        })
-    }
-
-    pub fn own_avatar_url(&self) -> Option<String> {
-        RT.block_on(async {
-            self.core
-                .sdk
-                .account()
-                .get_cached_avatar_url()
-                .await
-                .ok()
-                .flatten()
-                .map(|u| u.to_string())
-        })
-    }
-
-    pub fn own_display_name(&self) -> Option<String> {
-        RT.block_on(async {
-            self.core
-                .sdk
-                .account()
-                .get_display_name()
-                .await
-                .ok()
-                .flatten()
         })
     }
 
@@ -3297,27 +1765,21 @@ impl Client {
         let verifs = self.verifs.clone();
         let inbox = self.inbox.clone();
         let obs: Arc<dyn VerificationObserver> = Arc::from(observer);
-
         let resolved_user = self.core.resolve_other_user(&flow_id, other_user_id);
         let Some(other_user) = resolved_user else {
             obs.on_error(flow_id.clone(), "Cannot resolve other user".into());
             return false;
         };
-
         let h = spawn_task!(async move {
             sdk.encryption().wait_for_e2ee_initialization_tasks().await;
-
             let encryption = sdk.encryption();
             let request = encryption
                 .get_verification_request(&other_user, &flow_id)
                 .await;
-
             if let Some(req) = request {
                 obs.on_phase(flow_id.clone(), SasPhase::Requested);
-
                 req.accept().await.ok();
                 obs.on_phase(flow_id.clone(), SasPhase::Ready);
-
                 match req.start_sas().await {
                     Ok(Some(sas)) => {
                         obs.on_phase(flow_id.clone(), SasPhase::Started);
@@ -3340,22 +1802,14 @@ impl Client {
 
     pub fn start_verification(&self, user_id: String) -> Result<String, FfiError> {
         RT.block_on(async {
-            let uid = user_id
-                .parse::<OwnedUserId>()
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
-
+            let uid = user_id.parse::<OwnedUserId>().ffi()?;
             let encryption = self.core.sdk.encryption();
             let identity = encryption
                 .get_user_identity(&uid)
                 .await
-                .map_err(|e| FfiError::Msg(e.to_string()))?
-                .ok_or_else(|| FfiError::Msg("User identity not found".into()))?;
-
-            let request = identity
-                .request_verification()
-                .await
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
-
+                .ffi()?
+                .or_ffi("User identity not found")?;
+            let request = identity.request_verification().await.ffi()?;
             Ok(request.flow_id().to_string())
         })
     }
@@ -3363,10 +1817,7 @@ impl Client {
     pub fn confirm_verification(&self, flow_id: String) -> bool {
         let verifs = self.verifs.clone();
         RT.block_on(async {
-            let sas = {
-                let guard = verifs.lock().unwrap();
-                guard.get(&flow_id).map(|v| v.sas.clone())
-            };
+            let sas = { verifs.lock().unwrap().get(&flow_id).map(|v| v.sas.clone()) };
             if let Some(sas) = sas {
                 sas.confirm().await.is_ok()
             } else {
@@ -3378,10 +1829,7 @@ impl Client {
     pub fn cancel_verification(&self, flow_id: String) -> bool {
         let verifs = self.verifs.clone();
         RT.block_on(async {
-            let sas = {
-                let guard = verifs.lock().unwrap();
-                guard.get(&flow_id).map(|v| v.sas.clone())
-            };
+            let sas = { verifs.lock().unwrap().get(&flow_id).map(|v| v.sas.clone()) };
             if let Some(sas) = sas {
                 sas.cancel().await.is_ok()
             } else {
@@ -3393,10 +1841,7 @@ impl Client {
     pub fn mismatch_verification(&self, flow_id: String) -> bool {
         let verifs = self.verifs.clone();
         RT.block_on(async {
-            let sas = {
-                let guard = verifs.lock().unwrap();
-                guard.get(&flow_id).map(|v| v.sas.clone())
-            };
+            let sas = { verifs.lock().unwrap().get(&flow_id).map(|v| v.sas.clone()) };
             if let Some(sas) = sas {
                 sas.mismatch().await.is_ok()
             } else {
@@ -3411,21 +1856,14 @@ impl Client {
         event_id: String,
     ) -> Result<Option<RenderedNotification>, FfiError> {
         RT.block_on(async {
-            let rid = OwnedRoomId::try_from(room_id).map_err(|e| FfiError::Msg(e.to_string()))?;
-            let eid = matrix_sdk::ruma::OwnedEventId::try_from(event_id)
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
-
+            let rid = OwnedRoomId::try_from(room_id).ffi()?;
+            let eid = matrix_sdk::ruma::OwnedEventId::try_from(event_id).ffi()?;
             let nc = NotificationClient::new(
                 self.core.sdk.clone(),
                 NotificationProcessSetup::MultipleProcesses,
             )
             .await?;
-
-            let item = nc
-                .get_notification(&rid, &eid)
-                .await
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
-
+            let item = nc.get_notification(&rid, &eid).await.ffi()?;
             match item {
                 NotificationStatus::Event(notif) => {
                     Ok(map_notification_item_to_rendered(&rid, &eid, &notif))
@@ -3439,21 +1877,17 @@ impl Client {
         let sdk = self.core.sdk.clone();
         let store = self.store_dir.clone();
         let obs: Arc<dyn RecoveryObserver> = Arc::from(observer);
-
         let h = spawn_task!(async move {
             obs.on_progress("Starting recovery setup…".into());
             match sdk.encryption().recovery().enable().await {
                 Ok(key) => {
-                    // Persist recovery state
                     if let Some(mut info) = platform::load_session(&store).await {
                         info.recovery_state = Some(RecoveryState::Enabled.to_string());
                         let _ = platform::persist_session(&store, &info).await;
                     }
                     obs.on_done(key);
                 }
-                Err(e) => {
-                    obs.on_error(format!("Recovery setup failed: {e}"));
-                }
+                Err(e) => obs.on_error(format!("Recovery setup failed: {e}")),
             }
         });
         self.guards.lock().unwrap().push(h);
@@ -3468,7 +1902,7 @@ impl Client {
                 .recovery()
                 .recover(&recovery_key)
                 .await
-                .map_err(|e| FfiError::Msg(format!("recovery failed: {e}")))
+                .ffi()
         })
     }
 
@@ -3480,8 +1914,7 @@ impl Client {
                 .recovery()
                 .disable()
                 .await
-                .map_err(|e| FfiError::Msg(format!("disable recovery failed: {e}")))?;
-
+                .ffi()?;
             if let Some(mut info) = platform::load_session(&self.store_dir).await {
                 info.recovery_state = Some(RecoveryState::Disabled.to_string());
                 let _ = platform::persist_session(&self.store_dir, &info).await;
@@ -3492,8 +1925,7 @@ impl Client {
 
     pub fn recovery_state(&self) -> RecoveryState {
         RT.block_on(async {
-            let state = self.core.sdk.encryption().recovery().state();
-            match state {
+            match self.core.sdk.encryption().recovery().state() {
                 matrix_sdk::encryption::recovery::RecoveryState::Disabled => {
                     RecoveryState::Disabled
                 }
@@ -3531,7 +1963,7 @@ impl Client {
                 .recovery()
                 .reset_key()
                 .await
-                .map_err(|e| FfiError::Msg(format!("reset key failed: {e}")))
+                .ffi()
         })
     }
 
@@ -3544,17 +1976,10 @@ impl Client {
                 .session_meta()
                 .map(|m| m.device_id.to_string())
                 .unwrap_or_default();
-
             let devices = encryption
-                .get_user_devices(
-                    self.core
-                        .sdk
-                        .user_id()
-                        .ok_or_else(|| FfiError::Msg("no user".into()))?,
-                )
+                .get_user_devices(self.core.sdk.user_id().or_ffi("no user")?)
                 .await
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
-
+                .ffi()?;
             Ok(devices
                 .devices()
                 .map(|d| DeviceSummary {
@@ -3578,7 +2003,6 @@ impl Client {
             .map(|m| m.device_id.to_string())
     }
 
-    /// Start or join an Element Call session for a room.
     pub fn start_element_call(
         &self,
         room_id: String,
@@ -3592,22 +2016,17 @@ impl Client {
         let inner = self.core.sdk.clone();
         let obs: Arc<dyn CallWidgetObserver> = Arc::from(observer);
         let session_id = self.next_sub_id();
-
         let lang = language_tag
             .as_deref()
             .and_then(|s| LanguageTag::parse(s).ok());
-
         let (widget_settings, widget_url, widget_base_url, parent_url) = RT.block_on(async {
-            let rid = OwnedRoomId::try_from(room_id.as_str())
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
+            let rid = OwnedRoomId::try_from(room_id.as_str()).ffi()?;
             let Some(room) = inner.get_room(&rid) else {
-                return Err(FfiError::Msg("room not found".into()));
+                return Err(ffi_err!("room not found"));
             };
-
             let resolved_parent = parent_url.unwrap_or_else(|| {
                 "https://appassets.androidplatform.net/assets/element-call/index.html".to_owned()
             });
-
             let props = VirtualElementCallWidgetProperties {
                 element_call_url: element_call_url.unwrap_or_else(|| {
                     "https://appassets.androidplatform.net/element-call/index.html".to_owned()
@@ -3616,9 +2035,7 @@ impl Client {
                 widget_id: format!("mages-ecall-{}", session_id),
                 ..VirtualElementCallWidgetProperties::default()
             };
-
             let is_dm = room.is_direct().await.unwrap_or(false);
-
             let widget_intent = match (intent, is_dm) {
                 (ElementCallIntent::StartCall, true) => WidgetIntent::StartCallDm,
                 (ElementCallIntent::JoinExisting, true) => WidgetIntent::JoinExistingDm,
@@ -3627,7 +2044,6 @@ impl Client {
                 (ElementCallIntent::StartCallVoiceDm, _) => WidgetIntent::StartCallDmVoice,
                 (ElementCallIntent::JoinExistingVoiceDm, _) => WidgetIntent::JoinExistingDmVoice,
             };
-
             let config = VirtualElementCallWidgetConfig {
                 controlled_audio_devices: Some(true),
                 preload: Some(false),
@@ -3637,19 +2053,13 @@ impl Client {
                 intent: Some(widget_intent),
                 ..VirtualElementCallWidgetConfig::default()
             };
-
-            let settings = WidgetSettings::new_virtual_element_call_widget(props, config)
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
-
+            let settings = WidgetSettings::new_virtual_element_call_widget(props, config).ffi()?;
             let client_props = ClientProperties::new("org.mlm.mages", lang, theme);
-
             let url = settings
                 .generate_webview_url(&room, client_props)
                 .await
-                .map_err(|e| FfiError::Msg(e.to_string()))?;
-
+                .ffi()?;
             let widget_base_url = settings.base_url().map(|u| u.to_string());
-
             Ok::<_, FfiError>((
                 settings,
                 url.to_string(),
@@ -3657,22 +2067,17 @@ impl Client {
                 Some(resolved_parent),
             ))
         })?;
-
         let (driver, handle) = WidgetDriver::new(widget_settings);
         let cap_provider = ElementCallCapabilitiesProvider {};
-
         self.widget_handles
             .lock()
             .unwrap()
             .insert(session_id, handle.clone());
-
         let recv_task = {
             let obs = obs.clone();
             spawn_task!(async move {
                 while let Some(msg) = handle.recv().await {
-                    let _ = catch_unwind(AssertUnwindSafe(|| {
-                        obs.on_to_widget(msg);
-                    }));
+                    let _ = catch_unwind(AssertUnwindSafe(|| obs.on_to_widget(msg)));
                 }
             })
         };
@@ -3680,7 +2085,6 @@ impl Client {
             .lock()
             .unwrap()
             .insert(session_id, recv_task);
-
         let inner2 = self.core.sdk.clone();
         let room_str = room_id.clone();
         let driver_task = spawn_task!(async move {
@@ -3690,12 +2094,10 @@ impl Client {
                 }
             }
         });
-
         self.widget_driver_tasks
             .lock()
             .unwrap()
             .insert(session_id, driver_task);
-
         Ok(CallSessionInfo {
             session_id,
             widget_url,
@@ -3704,9 +2106,6 @@ impl Client {
         })
     }
 
-    /// Called by the platform when the WebView receives a postMessage from Element Call.
-    ///
-    /// `message` must be the JSON string from `event.data`.
     pub fn call_widget_from_webview(&self, session_id: u64, message: String) -> bool {
         if let Some(handle) = self
             .widget_handles
@@ -3724,7 +2123,6 @@ impl Client {
         }
     }
 
-    /// Stop an Element Call widget session: aborts driver + recv loops and drops the handle.
     pub fn stop_element_call(&self, session_id: u64) -> bool {
         let mut any = false;
         if let Some(h) = self.widget_driver_tasks.lock().unwrap().remove(&session_id) {
@@ -3739,7 +2137,6 @@ impl Client {
         any
     }
 
-    /// Register/Update HTTP pusher for UnifiedPush/Matrix gateway (e.g. ntfy)
     pub fn register_unifiedpush(
         &self,
         app_id: String,
@@ -3751,10 +2148,9 @@ impl Client {
     ) -> bool {
         #[cfg(target_family = "wasm")]
         return false;
-
         #[cfg(not(target_family = "wasm"))]
         RT.block_on(async {
-            // Test with a cs secret (like the json output)
+            use matrix_sdk::ruma::push::PushFormat;
             let client_secret = self
                 .core
                 .sdk
@@ -3767,15 +2163,12 @@ impl Client {
                     format!("{:x}", hasher.finish())
                 })
                 .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-
             let mut http_data = HttpPusherData::new(gateway_url.clone());
-            http_data.format = Some(ruma::push::PushFormat::EventIdOnly);
-
+            http_data.format = Some(PushFormat::EventIdOnly);
             http_data.data.insert(
                 "default_payload".to_owned(),
                 serde_json::json!({ "cs": client_secret }).into(),
             );
-
             let init = PusherInit {
                 ids: PusherIds::new(pushkey.clone(), app_id.clone()),
                 kind: PusherKind::Http(http_data),
@@ -3784,27 +2177,22 @@ impl Client {
                 profile_tag,
                 lang,
             };
-
             let pusher: Pusher = init.into();
-
-            info!(
-                "Registering pusher: app_id={}, gateway={}, secret={}",
-                app_id, gateway_url, client_secret
-            );
-
             self.core.sdk.pusher().set(pusher).await.is_ok()
         })
     }
 
-    /// Unregister HTTP pusher by ids
     pub fn unregister_unifiedpush(&self, app_id: String, pushkey: String) -> bool {
         #[cfg(target_family = "wasm")]
         return false;
-
         #[cfg(not(target_family = "wasm"))]
         RT.block_on(async {
-            let ids = PusherIds::new(app_id.into(), pushkey.into());
-            self.core.sdk.pusher().delete(ids).await.is_ok()
+            self.core
+                .sdk
+                .pusher()
+                .delete(PusherIds::new(app_id.into(), pushkey.into()))
+                .await
+                .is_ok()
         })
     }
 
@@ -3827,7 +2215,7 @@ impl Client {
                 .encryption()
                 .cross_signing_status()
                 .await
-                .ok_or_else(|| FfiError::Msg("cross-signing unavailable".into()))?;
+                .or_ffi("cross-signing unavailable")?;
             let mut map = HashMap::new();
             map.insert("has_master".into(), status.has_master);
             map.insert("has_self_signing".into(), status.has_self_signing);
@@ -3859,42 +2247,11 @@ impl Client {
         for h in self.guards.lock().unwrap().drain(..) {
             h.abort();
         }
-        for (_, h) in self.timeline_subs.lock().unwrap().drain() {
-            h.abort();
-        }
-        for (_, h) in self.typing_subs.lock().unwrap().drain() {
-            h.abort();
-        }
-        for (_, h) in self.connection_subs.lock().unwrap().drain() {
-            h.abort();
-        }
-        for (_, h) in self.inbox_subs.lock().unwrap().drain() {
-            h.abort();
-        }
-        for (_, h) in self.receipts_subs.lock().unwrap().drain() {
-            h.abort();
-        }
-        for (_, h) in self.room_list_subs.lock().unwrap().drain() {
-            h.abort();
-        }
-        for (_, h) in self.call_subs.lock().unwrap().drain() {
-            h.abort();
-        }
-        for (_, h) in self.live_location_subs.lock().unwrap().drain() {
-            h.abort();
-        }
-        for (_, h) in self.recovery_state_subs.lock().unwrap().drain() {
-            h.abort();
-        }
-        for (_, h) in self.backup_state_subs.lock().unwrap().drain() {
-            h.abort();
-        }
-        for (_, h) in self.widget_driver_tasks.lock().unwrap().drain() {
-            h.abort();
-        }
-        for (_, h) in self.widget_recv_tasks.lock().unwrap().drain() {
-            h.abort();
-        }
+        abort_all_subs!(self;
+            timeline_subs, typing_subs, connection_subs, inbox_subs,
+            receipts_subs, room_list_subs, call_subs, live_location_subs,
+            recovery_state_subs, backup_state_subs, widget_driver_tasks, widget_recv_tasks
+        );
     }
 
     async fn maybe_update_device_name(client: &Client, device_name: Option<String>) {
@@ -3902,7 +2259,6 @@ impl Client {
             && let Some(device_id) = client.core.sdk.device_id()
         {
             use matrix_sdk::ruma::api::client::device::update_device;
-
             let mut req = update_device::v3::Request::new(device_id.to_owned());
             req.display_name = Some(name);
             let _ = client.core.sdk.send(req).await;
@@ -3941,6 +2297,12 @@ impl Client {
     }
 }
 
+impl Drop for Client {
+    fn drop(&mut self) {
+        self.shutdown_inner();
+    }
+}
+
 async fn run_sas_loop(
     sas: SasVerification,
     flow_id: &str,
@@ -3949,7 +2311,6 @@ async fn run_sas_loop(
 ) {
     let other_user = sas.other_user_id().to_owned();
     let other_device = sas.other_device().device_id().to_owned();
-
     {
         let mut guard = verifs.lock().unwrap();
         guard.insert(
@@ -3961,9 +2322,7 @@ async fn run_sas_loop(
             },
         );
     }
-
     obs.on_phase(flow_id.to_string(), SasPhase::Started);
-
     let mut stream = sas.changes();
     while let Some(state) = stream.next().await {
         match state {
@@ -3997,7 +2356,6 @@ async fn run_sas_loop(
             _ => {}
         }
     }
-
     verifs.lock().unwrap().remove(flow_id);
 }
 
@@ -4008,21 +2366,16 @@ pub(crate) fn build_unstable_poll_content(
         PollKind::Disclosed => RumaPollKind::Disclosed,
         PollKind::Undisclosed => RumaPollKind::Undisclosed,
     };
-
     let answers: Vec<UnstablePollAnswer> = def
         .answers
         .iter()
         .enumerate()
         .map(|(i, text)| UnstablePollAnswer::new(format!("{i}"), text))
         .collect();
-
-    let poll_answers = UnstablePollAnswers::try_from(answers)
-        .map_err(|e| FfiError::Msg(format!("invalid poll answers: {e}")))?;
-
+    let poll_answers = UnstablePollAnswers::try_from(answers).ffi()?;
     let mut block = UnstablePollStartContentBlock::new(&def.question, poll_answers);
     block.kind = kind;
     block.max_selections = UInt::try_from(def.max_selections as u64).unwrap_or(UInt::from(1u32));
-
     Ok(NewUnstablePollStartEventContent::new(block))
 }
 
@@ -5228,17 +3581,6 @@ pub fn map_notification_item_to_rendered(
         kind,
         expires_at_ms,
     })
-}
-
-#[export(callback_interface)]
-pub trait UrlOpener: Send + Sync {
-    fn open(&self, url: String) -> bool;
-}
-
-impl Drop for Client {
-    fn drop(&mut self) {
-        self.shutdown_inner();
-    }
 }
 
 fn notification_event_ts_ms(ev: &NotificationEvent) -> u64 {

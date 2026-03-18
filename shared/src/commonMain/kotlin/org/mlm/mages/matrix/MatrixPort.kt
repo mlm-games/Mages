@@ -784,7 +784,7 @@ interface MatrixPort {
 
     fun seenByForEvent(roomId: String, eventId: String, limit: Int): List<SeenByEntry>
 
-    suspend fun mxcThumbnailToCache(mxcUri: String, width: Int, height: Int, crop: Boolean): DownloadResult
+    suspend fun mxcThumbnailToCache(mxcUri: String, width: Int, height: Int, crop: Boolean): String
     suspend fun loadRoomListCache(): List<RoomListEntry>
 
     suspend fun sendPollResponse(roomId: String, pollEventId: String, answers: List<String>): Boolean
