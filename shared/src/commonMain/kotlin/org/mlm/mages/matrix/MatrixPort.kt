@@ -7,6 +7,11 @@ import org.mlm.mages.MessageEvent
 import org.mlm.mages.RoomSummary
 
 @Serializable
+data class DownloadResult (
+    var path: String,
+    var bytes: ULong
+)
+@Serializable
 data class DeviceSummary(
     val deviceId: String,
     val displayName: String,
@@ -779,7 +784,7 @@ interface MatrixPort {
 
     fun seenByForEvent(roomId: String, eventId: String, limit: Int): List<SeenByEntry>
 
-    suspend fun mxcThumbnailToCache(mxcUri: String, width: Int, height: Int, crop: Boolean): String
+    suspend fun mxcThumbnailToCache(mxcUri: String, width: Int, height: Int, crop: Boolean): DownloadResult
     suspend fun loadRoomListCache(): List<RoomListEntry>
 
     suspend fun sendPollResponse(roomId: String, pollEventId: String, answers: List<String>): Boolean

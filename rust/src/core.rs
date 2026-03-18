@@ -1148,9 +1148,30 @@ impl CoreClient {
             .map_err(|e| FfiError::Msg(e.to_string()))?;
         Ok(levels.user_can_redact_event_of_other(&uid))
     }
-}
 
-impl CoreClient {
+    pub async fn recover_with_key(&self, recovery_key: String) -> bool {
+        let rec = self.sdk.encryption().recovery();
+        rec.recover(&recovery_key).await.is_ok()
+    }
+
+    pub async fn backup_exists_on_server(&self, fetch: bool) -> bool {
+        let backups = self.sdk.encryption().backups();
+        if fetch {
+            backups.fetch_exists_on_server().await.unwrap_or(false)
+        } else {
+            backups.exists_on_server().await.unwrap_or(false)
+        }
+    }
+
+    pub async fn set_key_backup_enabled(&self, enabled: bool) -> bool {
+        let backups = self.sdk.encryption().backups();
+        if enabled {
+            backups.create().await.is_ok()
+        } else {
+            backups.disable().await.is_ok()
+        }
+    }
+
     pub async fn reactions_for_event(
         &self,
         room_id: String,
@@ -2361,6 +2382,22 @@ impl CoreClient {
         Ok(out)
     }
 
+    pub async fn account_management_url(&self) -> Option<String> {
+        match self.sdk.oauth().cached_server_metadata().await {
+            Ok(metadata) => metadata.account_management_uri.map(|u| u.to_string()),
+            Err(_) => None,
+        }
+    }
+
+    pub async fn account_management_url_with_action(&self, action: &str) -> Option<String> {
+        match self.sdk.oauth().cached_server_metadata().await {
+            Ok(metadata) => metadata
+                .account_management_uri
+                .map(|u| format!("{}?action={}", u, action)),
+            Err(_) => None,
+        }
+    }
+
     pub async fn thread_replies(
         &self,
         room_id: String,
@@ -2424,6 +2461,11 @@ impl CoreClient {
             next_batch: resp.next_batch.clone(),
             prev_batch: resp.prev_batch.clone(),
         })
+    }
+
+    pub async fn send_queue_set_enabled(&self, enabled: bool) -> bool {
+        self.sdk.send_queue().set_enabled(enabled).await;
+        true
     }
 
     pub async fn thread_summary(

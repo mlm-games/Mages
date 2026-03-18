@@ -1435,7 +1435,7 @@ class RustMatrixPort : MatrixPort {
         width: Int,
         height: Int,
         crop: Boolean
-    ): String = withContext(Dispatchers.IO) {
+    ): DownloadResult = withContext(Dispatchers.IO) {
         withClient {
             it.mxcThumbnailToCache(mxcUri, width.toUInt(), height.toUInt(), crop)
         }
@@ -1720,6 +1720,12 @@ private fun mages.SearchHit.toKotlin(): SearchHit =
         sender = sender,
         body = body,
         timestampMs = timestampMs
+    )
+
+private fun mages.DownloadResult.toKotlin(): DownloadResult =
+    DownloadResult(
+        path,
+        bytes
     )
 
 private fun mages.RoomListEntry.toKotlinRoomListEntry(): RoomListEntry =

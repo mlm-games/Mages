@@ -1119,6 +1119,7 @@ impl From<std::io::Error> for FfiError {
 }
 
 delegate_bool! {
+    send_queue_set_enabled( enabled: bool);
     set_typing(room_id: String, typing: bool);
     send_message(room_id: String, body: String, formatted_body: Option<String>);
     reply(room_id: String, in_reply_to: String, body: String, formatted_body: Option<String>);
@@ -1235,6 +1236,7 @@ delegate_option! { RoomTags;
 delegate_option! { String;
     dm_peer_user_id(room_id: String);
     resolve_room_id(id_or_alias: String);
+    account_management_url();
 }
 delegate_option! { SuccessorRoomInfo;
     room_successor(room_id: String);
@@ -2890,6 +2892,319 @@ impl Client {
                 path: dest_path,
                 bytes: data.len() as u64,
             })
+        })
+    }
+
+    // TO REARRANGE
+
+    pub fn login(
+        &self,
+        username: String,
+        password: String,
+        device_display_name: Option<String>,
+    ) -> Result<(), FfiError> {
+        RT.block_on(async {
+            let mut req = self
+                .core
+                .sdk
+                .matrix_auth()
+                .login_username(username.as_str(), &password);
+            if let Some(name) = device_display_name.as_ref() {
+                req = req.initial_device_display_name(name);
+            }
+
+            let res = req.send().await.map_err(|e| FfiError::Msg(e.to_string()))?;
+
+            let info = SessionInfo {
+                user_id: res.user_id.to_string(),
+                device_id: res.device_id.to_string(),
+                access_token: res.access_token.clone(),
+                refresh_token: res.refresh_token.clone(),
+                homeserver: self.core.sdk.homeserver().to_string(),
+                recovery_state: None,
+            };
+
+            platform::persist_session(&self.store_dir, &info).await?;
+
+            // Wait for E2EE init to fetch recovery state from server
+            self.core
+                .sdk
+                .encryption()
+                .wait_for_e2ee_initialization_tasks()
+                .await;
+
+            self.core.ensure_sync_service().await;
+
+            if let Err(e) = self.core.sdk.event_cache().subscribe() {
+                warn!("event_cache.subscribe() failed after login: {e:?}");
+            }
+
+            self.ensure_send_queue_supervision();
+            self.core
+                .sdk
+                .send_queue()
+                .respawn_tasks_for_rooms_with_unsent_requests()
+                .await;
+
+            Ok(())
+        })
+    }
+
+    pub fn fetch_notifications_since(
+        &self,
+        since_ts_ms: u64,
+        max_rooms: u32,
+        max_events: u32,
+    ) -> Result<Vec<RenderedNotification>, FfiError> {
+        RT.block_on(async {
+            self.ensure_sync_service().await;
+
+            let process_setup = {
+                let g = self.sync_service.lock().unwrap();
+                if let Some(sync) = g.as_ref().cloned() {
+                    NotificationProcessSetup::SingleProcess { sync_service: sync }
+                } else {
+                    NotificationProcessSetup::MultipleProcesses
+                }
+            };
+
+            let nc = match NotificationClient::new(self.inner_clone(), process_setup).await {
+                Ok(v) => v,
+                Err(e) => {
+                    warn!("NotificationClient::new failed in fetch_notifications_since: {e:?}");
+                    return Ok(vec![]);
+                }
+            };
+
+            let mut out = Vec::new();
+
+            for room in self
+                .inner
+                .joined_rooms()
+                .into_iter()
+                .take(max_rooms as usize)
+            {
+                let rid = room.room_id().to_owned();
+
+                let Ok(tl) = room.timeline().await else {
+                    continue;
+                };
+                let (items, _stream) = tl.subscribe().await;
+
+                for it in items.iter().rev() {
+                    let Some(ev) = it.as_event() else { continue };
+
+                    let ts: u64 = ev.timestamp().0.into();
+                    if ts <= since_ts_ms {
+                        break;
+                    }
+
+                    let Some(eid_ref) = ev.event_id() else {
+                        continue;
+                    };
+
+                    let status = match nc.get_notification(&rid, eid_ref).await {
+                        Ok(s) => s,
+                        Err(_) => continue,
+                    };
+
+                    let NotificationStatus::Event(item) = status else {
+                        continue;
+                    };
+
+                    // `eid_ref` is &EventId; convert to OwnedEventId for our helper
+                    let eid = eid_ref.to_owned();
+
+                    if let Some(rendered) = map_notification_item_to_rendered(&rid, &eid, &item) {
+                        out.push(rendered);
+                        if out.len() as u32 >= max_events {
+                            return Ok(out);
+                        }
+                    }
+                }
+            }
+
+            Ok(out)
+        })
+    }
+
+    pub fn thumbnail_to_cache(
+        &self,
+        att: AttachmentInfo,
+        width: u32,
+        height: u32,
+        use_crop: bool,
+    ) -> Result<String, FfiError> {
+        use matrix_sdk::media::{MediaFormat, MediaRequestParameters, MediaThumbnailSettings};
+        use ruma::events::room::MediaSource;
+
+        let (source, format, name_key) = if let Some(enc) = att.thumbnail_encrypted.as_ref() {
+            let ef: EncryptedFile = serde_json::from_str(&enc.json)
+                .map_err(|e| FfiError::Msg(format!("thumb enc parse: {e}")))?;
+            (
+                MediaSource::Encrypted(Box::new(ef)),
+                MediaFormat::File,
+                enc.url.clone(),
+            )
+        } else if let Some(mxc) = att.thumbnail_mxc_uri.as_ref() {
+            (
+                MediaSource::Plain(mxc.clone().into()),
+                MediaFormat::File,
+                mxc.clone(),
+            )
+        } else if let Some(enc) = att.encrypted.as_ref() {
+            // fetch full encrypted file as fallback
+            let ef: EncryptedFile = serde_json::from_str(&enc.json)
+                .map_err(|e| FfiError::Msg(format!("file enc parse: {e}")))?;
+            (
+                MediaSource::Encrypted(Box::new(ef)),
+                MediaFormat::File,
+                enc.url.clone(),
+            )
+        } else {
+            // Plain primary mxc
+            let settings = if use_crop {
+                MediaThumbnailSettings::with_method(
+                    matrix_sdk::ruma::api::client::media::get_content_thumbnail::v3::Method::Crop,
+                    width.into(),
+                    height.into(),
+                )
+            } else {
+                MediaThumbnailSettings::new(width.into(), height.into())
+            };
+            let mxc = att.mxc_uri.clone();
+            (
+                MediaSource::Plain(mxc.clone().into()),
+                MediaFormat::Thumbnail(settings),
+                mxc,
+            )
+        };
+
+        let req = MediaRequestParameters { source, format };
+
+        let dir = cache_dir(&self.store_dir);
+        platform::ensure_dir(&dir);
+        fn sanitize(name: &str) -> String {
+            let mut s = String::with_capacity(name.len());
+            for ch in name.chars() {
+                if ch.is_ascii_alphanumeric() || "-_.".contains(ch) {
+                    s.push(ch);
+                } else {
+                    s.push('_');
+                }
+            }
+            s.trim_matches('_').to_string()
+        }
+        let key =
+            blake3::hash(format!("{}-{}x{}-{}", name_key, width, height, use_crop).as_bytes())
+                .to_hex();
+        let ext = att
+            .mime
+            .as_deref()
+            .and_then(|m| m.split('/').nth(1))
+            .filter(|e| !e.is_empty())
+            .unwrap_or("jpg");
+        let fname = format!(
+            "thumb_{}_{}x{}{}.{ext}",
+            &key[..16],
+            width,
+            height,
+            if use_crop { "_crop" } else { "_scale" }
+        );
+        let out = dir.join(sanitize(&fname));
+
+        #[cfg(not(target_family = "wasm"))]
+        {
+            if let Some(parent) = out.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+
+            let bytes = RT
+                .block_on(async { self.inner.media().get_media_content(&req, true).await })
+                .or_else(|_e| {
+                    // Fallback only when we asked for a server-side thumb of a plain mxc
+                    if matches!(req.format, MediaFormat::Thumbnail(_)) {
+                        let req_full = MediaRequestParameters {
+                            source: req.source.clone(),
+                            format: MediaFormat::File,
+                        };
+                        RT.block_on(async {
+                            self.inner.media().get_media_content(&req_full, true).await
+                        })
+                    } else {
+                        Err(_e)
+                    }
+                })
+                .map_err(|e| FfiError::Msg(format!("thumbnail fetch: {e}")))?;
+
+            std::fs::write(&out, &bytes)?;
+            Ok(out.to_string_lossy().to_string())
+        }
+        #[cfg(target_family = "wasm")]
+        Err(FfiError::Msg(
+            "thumbnail_to_cache: not supported on wasm".into(),
+        ))
+    }
+
+    pub fn mxc_thumbnail_to_cache(
+        &self,
+        mxc_uri: String,
+        width: u32,
+        height: u32,
+        crop: bool,
+    ) -> Result<String, FfiError> {
+        #[cfg(target_family = "wasm")]
+        return Err(FfiError::Msg(
+            "mxc_thumbnail_to_cache: not supported on wasm".into(),
+        ));
+        #[cfg(not(target_family = "wasm"))]
+        RT.block_on(async {
+            use js_int::UInt;
+            use matrix_sdk::media::{MediaFormat, MediaRequestParameters, MediaThumbnailSettings};
+            use matrix_sdk::ruma::api::client::media::get_content_thumbnail::v3::Method;
+            use matrix_sdk::ruma::events::room::MediaSource;
+
+            let dir = cache_dir(&self.store_dir);
+            platform::ensure_dir(&dir);
+
+            let method = if crop { Method::Crop } else { Method::Scale };
+            let settings = MediaThumbnailSettings::with_method(
+                method,
+                UInt::from(width.max(1)),
+                UInt::from(height.max(1)),
+            );
+
+            let req = MediaRequestParameters {
+                source: MediaSource::Plain(mxc_uri.clone().into()),
+                format: MediaFormat::Thumbnail(settings),
+            };
+
+            let bytes = self
+                .core
+                .sdk
+                .media()
+                .get_media_content(&req, true)
+                .await
+                .map_err(|e| FfiError::Msg(format!("get_media_content: {e}")))?;
+
+            let ext = if bytes.starts_with(&[0x89, b'P', b'N', b'G']) {
+                "png"
+            } else if bytes.starts_with(&[0xFF, 0xD8, 0xFF]) {
+                "jpg"
+            } else if bytes.starts_with(b"GIF8") {
+                "gif"
+            } else {
+                "img"
+            };
+
+            let key = blake3::hash(format!("{mxc_uri}|{width}x{height}|{crop}").as_bytes())
+                .to_hex()
+                .to_string();
+
+            let out = dir.join(format!("mxc_thumb_{key}.{ext}"));
+            std::fs::write(&out, bytes).map_err(|e| FfiError::Msg(format!("write avatar: {e}")))?;
+
+            Ok(out.to_string_lossy().to_string())
         })
     }
 
