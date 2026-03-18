@@ -174,24 +174,24 @@ class WasmClientBridge {
     return await this.client.paginate_forwards(roomId, count);
   }
 
-  async mark_read(roomId) {
-    return await this.client.mark_read(roomId);
+  async markRead(roomId) {
+    return await this.client.markRead(roomId);
   }
 
-  async mark_read_at(roomId, eventId) {
-    return await this.client.mark_read_at(roomId, eventId);
+  async markReadAt(roomId, eventId) {
+    return await this.client.markReadAt(roomId, eventId);
   }
 
-  async mark_fully_read_at(roomId, eventId) {
-    return await this.client.mark_fully_read_at(roomId, eventId);
+  async markFullyReadAt(roomId, eventId) {
+    return await this.client.markFullyReadAt(roomId, eventId);
   }
 
   async react(roomId, eventId, emoji) {
     return await this.client.react(roomId, eventId, emoji);
   }
 
-  async set_typing(roomId, typing) {
-    return await this.client.set_typing(roomId, typing);
+  setTyping(roomId, typing) {
+    return this.client.setTyping(roomId, typing);
   }
 
   observe_typing(roomId, onUpdate) {
@@ -204,12 +204,12 @@ class WasmClientBridge {
     return this.client.unobserve_typing(id);
   }
 
-  async reactions_for_event(roomId, eventId) {
-    return normalizeWasmValue(await this.client.reactions_for_event(roomId, eventId));
+  async reactionsForEvent(roomId, eventId) {
+    return normalizeWasmValue(await this.client.reactionsForEvent(roomId, eventId));
   }
 
-  reactions_batch(roomId, eventIdsJson) {
-    return normalizeWasmValue(this.client.reactions_batch(roomId, eventIdsJson));
+  reactionsBatch(roomId, eventIdsJson) {
+    return normalizeWasmValue(this.client.reactionsBatch(roomId, eventIdsJson));
   }
 
   async public_rooms(server, search, limit, since) {
@@ -243,8 +243,8 @@ class WasmClientBridge {
     return normalizeWasmValue(await this.client.list_invited() ?? []);
   }
 
-  async accept_invite(roomId) {
-    return await this.client.accept_invite(roomId);
+  async acceptInvite(roomId) {
+    return await this.client.acceptInvite(roomId);
   }
 
   leave_room(roomId) {
@@ -261,20 +261,20 @@ class WasmClientBridge {
     ) ?? null;
   }
 
-  async room_profile(roomId) {
-    return normalizeWasmValue(await this.client.room_profile(roomId));
+  async roomProfile(roomId) {
+    return normalizeWasmValue(await this.client.roomProfile(roomId));
   }
 
-  async set_room_name(roomId, name) {
-    return await this.client.set_room_name(roomId, name);
+  async setRoomName(roomId, name) {
+    return await this.client.setRoomName(roomId, name);
   }
 
-  async set_room_topic(roomId, topic) {
-    return await this.client.set_room_topic(roomId, topic);
+  async setRoomTopic(roomId, topic) {
+    return await this.client.setRoomTopic(roomId, topic);
   }
 
-  async room_notification_mode(roomId) {
-    return await this.client.room_notification_mode(roomId) ?? null;
+  async roomNotificationMode(roomId) {
+    return await this.client.roomNotificationMode(roomId) ?? null;
   }
 
   async set_room_notification_mode(roomId, mode) {
@@ -532,12 +532,12 @@ class WasmClientBridge {
     return normalizeBridgeValue(this.client.room_tags(roomId));
   }
 
-  async set_room_favourite(roomId, favourite) {
-    return await this.client.set_room_favourite(roomId, favourite);
+  async setRoomFavourite(roomId, favourite) {
+    return await this.client.setRoomFavourite(roomId, favourite);
   }
 
-  async set_room_low_priority(roomId, lowPriority) {
-    return await this.client.set_room_low_priority(roomId, lowPriority);
+  async setRoomLowPriority(roomId, lowPriority) {
+    return await this.client.setRoomLowPriority(roomId, lowPriority);
   }
 
   async dm_peer_user_id(roomId) {
@@ -963,11 +963,11 @@ export class WebMatrixFacade {
   }
 
   async setRoomFavourite(roomId, favourite) {
-    return await this.client.set_room_favourite(roomId, favourite);
+    return await this.client.setRoomFavourite(roomId, favourite);
   }
 
   async setRoomLowPriority(roomId, lowPriority) {
-    return await this.client.set_room_low_priority(roomId, lowPriority);
+    return await this.client.setRoomLowPriority(roomId, lowPriority);
   }
 
   async getRoomTimeline(roomId, limit = 50) {
@@ -1002,59 +1002,15 @@ export class WebMatrixFacade {
   }
 
   async markRead(roomId) {
-    return await this.client.mark_read(roomId);
+    return await this.client.markRead(roomId);
   }
 
   async markReadAt(roomId, eventId) {
-    return await this.client.mark_read_at(roomId, eventId);
+    return await this.client.markReadAt(roomId, eventId);
   }
 
   async react(roomId, eventId, emoji) {
     return await this.client.react(roomId, eventId, emoji);
-  }
-
-  async reply(roomId, inReplyTo, body, formattedBody) {
-    return await this.client.reply(roomId, inReplyTo, body, formattedBody ?? undefined);
-  }
-
-  async edit(roomId, targetEventId, newBody, formattedBody) {
-    return await this.client.edit(roomId, targetEventId, newBody, formattedBody ?? undefined);
-  }
-
-  async redact(roomId, eventId, reason) {
-    return await this.client.redact(roomId, eventId, reason);
-  }
-
-  async ownLastRead(roomId) {
-    return await this.client.own_last_read(roomId);
-  }
-
-  async setPresence(presence, status) {
-    return await this.client.set_presence(presence, status ?? undefined);
-  }
-
-  async getPresence(userId) {
-    return await this.client.get_presence(userId);
-  }
-
-  async fetchNotification(roomId, eventId) {
-    return await this.client.fetch_notification(roomId, eventId);
-  }
-
-  async fetchNotificationsSince(sinceMs, maxRooms, maxEvents) {
-    return await this.client.fetch_notifications_since(sinceMs, maxRooms, maxEvents);
-  }
-
-  async roomPreview(idOrAlias) {
-    return await this.client.room_preview(idOrAlias);
-  }
-
-  async knock(idOrAlias) {
-    return await this.client.knock(idOrAlias);
-  }
-
-  setTyping(roomId, typing) {
-    return this.client.set_typing(roomId, typing);
   }
 
   observeTyping(roomId, onUpdate) {
@@ -1066,11 +1022,11 @@ export class WebMatrixFacade {
   }
 
   async reactionsForEvent(roomId, eventId) {
-    return await this.client.reactions_for_event(roomId, eventId);
+    return await this.client.reactionsForEvent(roomId, eventId);
   }
 
   async reactionsBatch(roomId, eventIdsJson) {
-    return await this.client.reactions_batch(roomId, eventIdsJson);
+    return await this.client.reactionsBatch(roomId, eventIdsJson);
   }
 
   async publicRooms(server, search, limit, since) {
@@ -1094,7 +1050,7 @@ export class WebMatrixFacade {
   }
 
   async acceptInvite(roomId) {
-    return await this.client.accept_invite(roomId);
+    return await this.client.acceptInvite(roomId);
   }
 
   leaveRoom(roomId) {
@@ -1106,19 +1062,19 @@ export class WebMatrixFacade {
   }
 
   async setRoomName(roomId, name) {
-    return await this.client.set_room_name(roomId, name);
+    return await this.client.setRoomName(roomId, name);
   }
 
   async setRoomTopic(roomId, topic) {
-    return await this.client.set_room_topic(roomId, topic);
+    return await this.client.setRoomTopic(roomId, topic);
   }
 
   async roomProfile(roomId) {
-    return await this.client.room_profile(roomId);
+    return await this.client.roomProfile(roomId);
   }
 
   async roomNotificationMode(roomId) {
-    return await this.client.room_notification_mode(roomId) ?? null;
+    return await this.client.roomNotificationMode(roomId) ?? null;
   }
 
   async setRoomNotificationMode(roomId, mode) {
@@ -1294,7 +1250,7 @@ export class WebMatrixFacade {
   }
 
   async markFullyReadAt(roomId, eventId) {
-    return await this.client.mark_fully_read_at(roomId, eventId);
+    return await this.client.markFullyReadAt(roomId, eventId);
   }
 
   observeReceipts(roomId, onChanged) {

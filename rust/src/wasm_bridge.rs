@@ -991,6 +991,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = whoami)]
     pub fn whoami(&self) -> Option<String> {
         if let Ok(value) = self.with_async_state(|s| s.client.user_id().map(|u| u.to_string())) {
             return value;
@@ -1006,6 +1007,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = isLoggedIn)]
     pub fn is_logged_in(&self) -> bool {
         if let Ok(value) = self.with_async_state(|s| s.client.session_meta().is_some()) {
             return value;
@@ -1057,7 +1059,7 @@ impl WasmClient {
         "Unknown".to_owned()
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = setupRecovery)]
     pub fn setup_recovery(
         &self,
         on_progress: Function,
@@ -1148,7 +1150,7 @@ impl WasmClient {
             .unwrap_or(0.0)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = recoverWithKey)]
     pub async fn recover_with_key(&self, recovery_key: String) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             return state
@@ -1165,6 +1167,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = observeRecoveryState)]
     pub fn observe_recovery_state(&self, on_update: Function) -> f64 {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let obs: Arc<dyn RecoveryStateObserver> = Arc::new(JsRecoveryStateObserver(on_update));
@@ -1212,6 +1215,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = unobserveRecoveryState)]
     pub fn unobserve_recovery_state(&self, id: f64) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             return Self::abort_sub(&state.recovery_state_subs, id as u64);
@@ -1222,6 +1226,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = observeBackupState)]
     pub fn observe_backup_state(&self, on_update: Function) -> f64 {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let obs: Arc<dyn BackupStateObserver> = Arc::new(JsBackupStateObserver(on_update));
@@ -1281,6 +1286,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = unobserveBackupState)]
     pub fn unobserve_backup_state(&self, id: f64) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             return Self::abort_sub(&state.backup_state_subs, id as u64);
@@ -1290,7 +1296,7 @@ impl WasmClient {
             .unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = rooms)]
     pub async fn rooms(&self) -> JsValue {
         let async_state = self.async_state.borrow().as_ref().cloned();
         if let Some(state) = async_state {
@@ -1312,7 +1318,7 @@ impl WasmClient {
         to_json(&v)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = recentEvents)]
     pub async fn recent_events(&self, room_id: String, limit: u32) -> JsValue {
         let async_state = self.async_state.borrow().as_ref().cloned();
         if let Some(state) = async_state {
@@ -1325,6 +1331,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = sendQueueSetEnabled)]
     pub fn send_queue_set_enabled(&self, enabled: bool) -> bool {
         self.with_client(|c| c.send_queue_set_enabled(enabled))
             .unwrap_or(false)
@@ -1349,6 +1356,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = observeSends)]
     pub fn observe_sends(&self, on_update: Function) -> f64 {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let id = state.next_sub_id();
@@ -1362,6 +1370,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = unobserveSends)]
     pub fn unobserve_sends(&self, id: f64) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             return state
@@ -1374,7 +1383,7 @@ impl WasmClient {
             .unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = sendMessage)]
     pub async fn send_message(&self, room_id: String, body: String) -> bool {
         let async_state = self.async_state.borrow().as_ref().cloned();
         if let Some(state) = async_state {
@@ -1384,7 +1393,7 @@ impl WasmClient {
             .unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = reply)]
     pub async fn reply(&self, room_id: String, in_reply_to: String, body: String) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             use matrix_sdk::ruma::events::room::message::RoomMessageEventContentWithoutRelation as MsgNoRel;
@@ -1407,7 +1416,7 @@ impl WasmClient {
             .unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = edit)]
     pub async fn edit(&self, room_id: String, target_event_id: String, new_body: String) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             use matrix_sdk::room::edit::EditedContent;
@@ -1436,7 +1445,7 @@ impl WasmClient {
             .unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = redact)]
     pub async fn redact(&self, room_id: String, event_id: String, reason: Option<String>) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let Ok(rid) = OwnedRoomId::try_from(room_id) else {
@@ -1842,6 +1851,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = observeTyping)]
     pub fn observe_typing(&self, room_id: String, on_update: Function) -> f64 {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let Ok(rid) = OwnedRoomId::try_from(room_id) else {
@@ -1920,6 +1930,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = observeReceipts)]
     pub fn observe_receipts(&self, room_id: String, on_changed: Function) -> f64 {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let Ok(rid) = OwnedRoomId::try_from(room_id) else {
@@ -1962,6 +1973,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = unobserveReceipts)]
     pub fn unobserve_receipts(&self, sub_id: f64) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             return Self::abort_sub(&state.receipts_subs, sub_id as u64);
@@ -2011,6 +2023,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = observeTimeline)]
     pub fn observe_timeline(&self, room_id: String, on_diff: Function, on_error: Function) -> f64 {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let Ok(room_id) = OwnedRoomId::try_from(room_id) else {
@@ -2095,6 +2108,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = unobserveTimeline)]
     pub fn unobserve_timeline(&self, sub_id: f64) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             if let Some(handle) = state.timeline_subs.borrow_mut().remove(&(sub_id as u64)) {
@@ -2129,6 +2143,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = startSupervisedSync)]
     pub fn start_supervised_sync(&self, on_state: Function) {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let on_state_clone = on_state.clone();
@@ -2208,6 +2223,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = observeRoomList)]
     pub fn observe_room_list(&self, on_reset: Function, on_update: Function) -> f64 {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let id = state.next_sub_id();
@@ -2347,6 +2363,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = unobserveRoomList)]
     pub fn unobserve_room_list(&self, token: f64) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             state.room_list_cmds.borrow_mut().remove(&(token as u64));
@@ -2373,12 +2390,13 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = leaveRoom)]
     pub fn leave_room(&self, room_id: String) -> bool {
         self.with_client(|c| c.leave_room(room_id).is_ok())
             .unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = roomProfile)]
     pub async fn room_profile(&self, room_id: String) -> JsValue {
         let async_state = self.async_state.borrow().as_ref().cloned();
         if let Some(state) = async_state {
@@ -2446,7 +2464,7 @@ impl WasmClient {
         }
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = createRoom)]
     pub fn create_room(
         &self,
         name: Option<String>,
@@ -2463,7 +2481,7 @@ impl WasmClient {
         .flatten()
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = getPinnedEvents)]
     pub fn get_pinned_events(&self, room_id: String) -> JsValue {
         let v = self
             .with_client(|c| c.get_pinned_events(room_id))
@@ -2471,13 +2489,13 @@ impl WasmClient {
         to_json(&v)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = setPinnedEvents)]
     pub fn set_pinned_events(&self, room_id: String, event_ids: Vec<String>) -> bool {
         self.with_client(|c| c.set_pinned_events(room_id, event_ids))
             .unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = roomNotificationMode)]
     pub async fn room_notification_mode(&self, room_id: String) -> Option<String> {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let Ok(rid) = OwnedRoomId::try_from(room_id) else {
@@ -2542,7 +2560,7 @@ impl WasmClient {
             .unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = getUserPowerLevel)]
     pub async fn get_user_power_level(&self, room_id: String, user_id: String) -> f64 {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let Ok(rid) = OwnedRoomId::try_from(room_id) else {
@@ -2573,7 +2591,7 @@ impl WasmClient {
             .unwrap_or(-1.0)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = roomPowerLevels)]
     pub fn room_power_levels(&self, room_id: String) -> JsValue {
         let v = self
             .with_client(|c| c.room_power_levels(room_id).ok())
@@ -2788,7 +2806,7 @@ impl WasmClient {
         }
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = roomTags)]
     pub fn room_tags(&self, room_id: String) -> JsValue {
         let tags = self.with_client(|c| c.room_tags(room_id)).ok().flatten();
         match tags {
@@ -2800,7 +2818,7 @@ impl WasmClient {
         }
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = reactionsBatch)]
     pub fn reactions_batch(&self, room_id: String, event_ids_json: String) -> JsValue {
         let event_ids: Vec<String> = match serde_json::from_str(&event_ids_json) {
             Ok(v) => v,
@@ -2825,7 +2843,7 @@ impl WasmClient {
         }
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = dmPeerUserId)]
     pub async fn dm_peer_user_id(&self, room_id: String) -> Option<String> {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let Ok(rid) = OwnedRoomId::try_from(room_id) else {
@@ -2860,7 +2878,7 @@ impl WasmClient {
             .flatten()
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = searchUsers)]
     pub fn search_users(&self, term: String, limit: u32) -> JsValue {
         let v = self
             .with_client(|c| c.search_users(term, limit as u64).unwrap_or_default())
@@ -2868,7 +2886,7 @@ impl WasmClient {
         to_json(&v)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = getUserProfile)]
     pub fn get_user_profile(&self, user_id: String) -> JsValue {
         let v = self
             .with_client(|c| c.get_user_profile(user_id).ok())
@@ -2880,7 +2898,7 @@ impl WasmClient {
         }
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = publicRooms)]
     pub fn public_rooms(
         &self,
         server: Option<String>,
@@ -2898,14 +2916,14 @@ impl WasmClient {
         }
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = joinByIdOrAlias)]
     pub fn join_by_id_or_alias(&self, id_or_alias: String) -> Result<(), String> {
         self.with_client(|c| c.join_by_id_or_alias(id_or_alias))
             .map_err(|e| e.as_string().unwrap_or_else(|| format!("{e:?}")))?
             .map_err(|e| e.to_string())
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = resolveRoomId)]
     pub fn resolve_room_id(&self, id_or_alias: String) -> Option<String> {
         self.with_client(|c| c.resolve_room_id(id_or_alias).ok())
             .ok()
@@ -3137,6 +3155,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = startVerificationInbox)]
     pub fn start_verification_inbox(&self, on_request: Function, on_error: Function) -> f64 {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let obs: Arc<dyn VerificationInboxObserver> =
@@ -3221,6 +3240,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = unobserveVerificationInbox)]
     pub fn unobserve_verification_inbox(&self, sub_id: f64) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             return Self::abort_sub(&state.inbox_subs, sub_id as u64);
@@ -3230,7 +3250,7 @@ impl WasmClient {
             .unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = startSelfSas)]
     pub async fn start_self_sas(
         &self,
         target_device_id: String,
@@ -3284,7 +3304,7 @@ impl WasmClient {
         }
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = startUserSas)]
     pub async fn start_user_sas(
         &self,
         user_id: String,
@@ -3340,7 +3360,7 @@ impl WasmClient {
         }
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = acceptVerificationRequest)]
     pub async fn accept_verification_request(
         &self,
         flow_id: String,
@@ -3380,7 +3400,7 @@ impl WasmClient {
         }
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = acceptSas)]
     pub async fn accept_sas(
         &self,
         flow_id: String,
@@ -3443,7 +3463,7 @@ impl WasmClient {
         }
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = confirmVerification)]
     pub async fn confirm_verification(&self, flow_id: String) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let sas = {
@@ -3464,7 +3484,7 @@ impl WasmClient {
             .unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = cancelVerification)]
     pub async fn cancel_verification(&self, flow_id: String) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let sas = {
@@ -3507,7 +3527,7 @@ impl WasmClient {
             .unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = cancelVerificationRequest)]
     pub async fn cancel_verification_request(
         &self,
         flow_id: String,
@@ -3570,7 +3590,7 @@ impl WasmClient {
             .unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = listMyDevices)]
     pub async fn list_my_devices(&self) -> JsValue {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let Some(me) = state.client.user_id() else {
@@ -3610,7 +3630,7 @@ impl WasmClient {
         to_json(&v)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = backupExistsOnServer)]
     pub async fn backup_exists_on_server(&self, fetch: bool) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let backups = state.client.encryption().backups();
@@ -3625,7 +3645,7 @@ impl WasmClient {
             .unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = setKeyBackupEnabled)]
     pub async fn set_key_backup_enabled(&self, enabled: bool) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let backups = state.client.encryption().backups();
@@ -3640,7 +3660,7 @@ impl WasmClient {
             .unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = setPresence)]
     pub async fn set_presence(&self, presence: String, status: Option<String>) -> bool {
         let p = match presence.as_str() {
             "Online" => Presence::Online,
@@ -3670,7 +3690,7 @@ impl WasmClient {
             .unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = getPresence)]
     pub async fn get_presence(&self, user_id: String) -> JsValue {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let uid = match user_id.parse::<OwnedUserId>() {
@@ -3768,12 +3788,14 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = ignoreUser)]
     pub fn ignore_user(&self, user_id: String) -> bool {
         self.with_client(|c| c.ignore_user(user_id).is_ok())
             .unwrap_or(false)
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = unignoreUser)]
     pub fn unignore_user(&self, user_id: String) -> bool {
         self.with_client(|c| c.unignore_user(user_id).is_ok())
             .unwrap_or(false)
@@ -4423,7 +4445,7 @@ impl WasmClient {
         }
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = isEventReadBy)]
     pub async fn is_event_read_by(
         &self,
         room_id: String,
@@ -4510,7 +4532,7 @@ impl WasmClient {
         false
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = loginSsoLoopbackAvailable)]
     pub async fn login_sso_loopback_available(&self) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let details = homeserver_login_details_from_client(&state.client).await;
@@ -4521,7 +4543,7 @@ impl WasmClient {
             .unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = loginOauthLoopbackAvailable)]
     pub async fn login_oauth_loopback_available(&self) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let details = homeserver_login_details_from_client(&state.client).await;
@@ -4544,7 +4566,7 @@ impl WasmClient {
         }))
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = loginOauthBrowser)]
     pub async fn login_oauth_browser(
         &self,
         redirect_uri: String,
@@ -4588,7 +4610,7 @@ impl WasmClient {
         }
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = finishLoginFromRedirect)]
     pub async fn finish_login_from_redirect(
         &self,
         callback_url_or_query: String,
@@ -4618,7 +4640,7 @@ impl WasmClient {
         true
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = homeserverLoginDetails)]
     pub async fn homeserver_login_details(&self) -> JsValue {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             return to_json(&homeserver_login_details_from_client(&state.client).await);
@@ -4662,32 +4684,80 @@ async fn homeserver_login_details_from_client(client: &SdkClient) -> HomeserverL
 }
 
 wasm_delegate_bool! {
-    accept_invite(room_id: String);
-    set_room_name(room_id: String, name: String);
-    set_room_topic(room_id: String, topic: String);
-    enable_room_encryption(room_id: String);
-    ban_user(room_id: String, user_id: String, reason: Option<String>);
-    unban_user(room_id: String, user_id: String, reason: Option<String>);
-    kick_user(room_id: String, user_id: String, reason: Option<String>);
-    invite_user(room_id: String, user_id: String);
-    set_room_favourite(room_id: String, fav: bool);
-    set_room_low_priority(room_id: String, low: bool);
     is_space(room_id: String);
-}
-
-wasm_delegate_json! {
-    reactions_for_event(room_id: String, event_id: String)
-}
-
-wasm_delegate_bool_result! {
-    can_user_ban(room_id: String, user_id: String);
-    can_user_invite(room_id: String, user_id: String);
-    can_user_redact_other(room_id: String, user_id: String)
 }
 
 #[wasm_bindgen]
 impl WasmClient {
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = enableRoomEncryption)]
+    pub fn enable_room_encryption(&self, room_id: String) -> bool {
+        self.with_client(|c| c.enable_room_encryption(room_id))
+            .unwrap_or(false)
+    }
+
+    #[wasm_bindgen(js_name = banUser)]
+    pub fn ban_user(&self, room_id: String, user_id: String, reason: Option<String>) -> bool {
+        self.with_client(|c| c.ban_user(room_id, user_id, reason))
+            .unwrap_or(false)
+    }
+
+    #[wasm_bindgen(js_name = unbanUser)]
+    pub fn unban_user(&self, room_id: String, user_id: String, reason: Option<String>) -> bool {
+        self.with_client(|c| c.unban_user(room_id, user_id, reason))
+            .unwrap_or(false)
+    }
+
+    #[wasm_bindgen(js_name = kickUser)]
+    pub fn kick_user(&self, room_id: String, user_id: String, reason: Option<String>) -> bool {
+        self.with_client(|c| c.kick_user(room_id, user_id, reason))
+            .unwrap_or(false)
+    }
+
+    #[wasm_bindgen(js_name = inviteUser)]
+    pub fn invite_user(&self, room_id: String, user_id: String) -> bool {
+        self.with_client(|c| c.invite_user(room_id, user_id))
+            .unwrap_or(false)
+    }
+
+    #[wasm_bindgen(js_name = acceptInvite)]
+    pub fn accept_invite(&self, room_id: String) -> bool {
+        self.with_client(|c| c.accept_invite(room_id))
+            .unwrap_or(false)
+    }
+
+    #[wasm_bindgen(js_name = setRoomName)]
+    pub fn set_room_name(&self, room_id: String, name: String) -> bool {
+        self.with_client(|c| c.set_room_name(room_id, name))
+            .unwrap_or(false)
+    }
+
+    #[wasm_bindgen(js_name = setRoomTopic)]
+    pub fn set_room_topic(&self, room_id: String, topic: String) -> bool {
+        self.with_client(|c| c.set_room_topic(room_id, topic))
+            .unwrap_or(false)
+    }
+
+    #[wasm_bindgen(js_name = setRoomFavourite)]
+    pub fn set_room_favourite(&self, room_id: String, favourite: bool) -> bool {
+        self.with_client(|c| c.set_room_favourite(room_id, favourite))
+            .unwrap_or(false)
+    }
+
+    #[wasm_bindgen(js_name = setRoomLowPriority)]
+    pub fn set_room_low_priority(&self, room_id: String, low_priority: bool) -> bool {
+        self.with_client(|c| c.set_room_low_priority(room_id, low_priority))
+            .unwrap_or(false)
+    }
+
+    #[wasm_bindgen(js_name = reactionsForEvent)]
+    pub fn reactions_for_event(&self, room_id: String, event_id: String) -> JsValue {
+        let value = self
+            .with_client(|c| c.reactions_for_event(room_id, event_id))
+            .unwrap_or_default();
+        to_json(&value)
+    }
+
+    #[wasm_bindgen(js_name = react)]
     pub async fn react(&self, room_id: String, event_id: String, emoji: String) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let Ok(rid) = OwnedRoomId::try_from(room_id.clone()) else {
@@ -4711,7 +4781,7 @@ impl WasmClient {
             .unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = markRead)]
     pub async fn mark_read(&self, room_id: String) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let Ok(rid) = OwnedRoomId::try_from(room_id.clone()) else {
@@ -4727,7 +4797,7 @@ impl WasmClient {
         self.with_client(|c| c.mark_read(room_id)).unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = markReadAt)]
     pub async fn mark_read_at(&self, room_id: String, event_id: String) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let Ok(rid) = OwnedRoomId::try_from(room_id.clone()) else {
@@ -4754,7 +4824,7 @@ impl WasmClient {
             .unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = markFullyReadAt)]
     pub async fn mark_fully_read_at(&self, room_id: String, event_id: String) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let Ok(rid) = OwnedRoomId::try_from(room_id.clone()) else {
@@ -4778,7 +4848,7 @@ impl WasmClient {
             .unwrap_or(false)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = setTyping)]
     pub async fn set_typing(&self, room_id: String, typing: bool) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let Ok(rid) = OwnedRoomId::try_from(room_id.clone()) else {
@@ -5044,6 +5114,7 @@ impl WasmClient {
         }
     }
 
+    #[wasm_bindgen(js_name = listMembers)]
     pub async fn list_members(&self, room_id: String) -> JsValue {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let Ok(rid) = OwnedRoomId::try_from(room_id) else {
@@ -5074,6 +5145,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen]
+    #[wasm_bindgen(js_name = listInvited)]
     pub async fn list_invited(&self) -> JsValue {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let invites = state.client.invited_rooms();
@@ -5117,7 +5189,7 @@ impl WasmClient {
         to_json(&value)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = paginateBackwards)]
     pub async fn paginate_backwards(&self, room_id: String, count: u32) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let Ok(rid) = OwnedRoomId::try_from(room_id) else {
@@ -5141,6 +5213,7 @@ impl WasmClient {
             .unwrap_or(false)
     }
 
+    #[wasm_bindgen(js_name = paginateForwards)]
     pub async fn paginate_forwards(&self, room_id: String, count: u32) -> bool {
         if let Some(state) = self.async_state.borrow().as_ref().cloned() {
             let Ok(rid) = OwnedRoomId::try_from(room_id) else {
