@@ -483,7 +483,6 @@ interface MatrixPort {
     suspend fun send(roomId: String, body: String, formattedBody: String? = null): Boolean
 
     suspend fun sendQueueSetEnabled(enabled: Boolean): Boolean
-    suspend fun roomSendQueueSetEnabled(roomId: String, enabled: Boolean): Boolean
 
     suspend fun sendExistingAttachment(
         roomId: String,
@@ -508,7 +507,6 @@ interface MatrixPort {
     suspend fun backupExistsOnServer(fetch: Boolean = false): Boolean
     suspend fun setKeyBackupEnabled(enabled: Boolean): Boolean
 
-    suspend fun enqueueText(roomId: String, body: String, txnId: String? = null): String
     fun observeSends(): Flow<SendUpdate>
 
     suspend fun roomTags(roomId: String): Pair<Boolean, Boolean>?
@@ -584,8 +582,6 @@ interface MatrixPort {
 
     suspend fun logout(): Boolean
 
-    suspend fun checkVerificationRequest(userId: String, flowId: String): Boolean
-
     suspend fun sendAttachmentFromPath(
         roomId: String,
         path: String,
@@ -594,23 +590,9 @@ interface MatrixPort {
         onProgress: ((Long, Long?) -> Unit)? = null,
     ): Boolean
 
-    suspend fun sendAttachmentBytes(
-        roomId: String,
-        data: ByteArray,
-        mime: String,
-        filename: String,
-        onProgress: ((Long, Long?) -> Unit)? = null,
-    ): Boolean
-
     suspend fun downloadAttachmentToCache(
         info: AttachmentInfo,
         filenameHint: String? = null
-    ): Result<String>
-
-    suspend fun downloadAttachmentToPath(
-        info: AttachmentInfo,
-        savePath: String,
-        onProgress: ((Long, Long?) -> Unit)? = null
     ): Result<String>
 
     suspend fun searchRoom(
@@ -636,8 +618,6 @@ interface MatrixPort {
     suspend fun ownLastRead(roomId: String): Pair<String?, Long?>
     fun observeOwnReceipt(roomId: String, observer: ReceiptsObserver): ULong
     suspend fun markFullyReadAt(roomId: String, eventId: String): Boolean
-
-    suspend fun encryptionCatchupOnce(): Boolean
 
     interface RoomListObserver { fun onReset(items: List<RoomListEntry>); fun onUpdate(item: RoomListEntry) }
 

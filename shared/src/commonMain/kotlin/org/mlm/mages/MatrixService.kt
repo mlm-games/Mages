@@ -111,9 +111,6 @@ class MatrixService(
     suspend fun paginateBack(roomId: String, count: Int) =
         runCatching { port.paginateBack(roomId, count) }.getOrElse { false }
 
-    suspend fun paginateForward(roomId: String, count: Int) =
-        runCatching { port.paginateForward(roomId, count) }.getOrElse { false }
-
     suspend fun markRead(roomId: String) =
         runCatching { port.markRead(roomId) }.getOrElse { false }
 
@@ -137,9 +134,6 @@ class MatrixService(
 
     fun stopTypingObserver(token: ULong) = port.stopTypingObserver(token)
 
-    suspend fun enqueueText(roomId: String, body: String, txnId: String? = null) =
-        port.enqueueText(roomId, body, txnId)
-
     suspend fun listMyDevices(): List<DeviceSummary> =
         runCatching { port.listMyDevices() }.getOrElse { emptyList() }
 
@@ -148,12 +142,6 @@ class MatrixService(
 
     suspend fun startUserSas(userId: String, observer: VerificationObserver) =
         port.startUserSas(userId, observer)
-
-    suspend fun acceptVerificationRequest(flowId: String, otherUserId: String?, observer: VerificationObserver) =
-        port.acceptVerificationRequest(flowId, otherUserId, observer)
-
-    suspend fun acceptSas(flowId: String, otherUserId: String?, observer: VerificationObserver) =
-        port.acceptSas(flowId, otherUserId, observer)
 
     suspend fun confirmVerification(flowId: String) = port.confirmVerification(flowId)
     suspend fun cancelVerification(flowId: String) = port.cancelVerification(flowId)
@@ -173,22 +161,8 @@ class MatrixService(
         onProgress: ((Long, Long?) -> Unit)? = null
     ) = runCatching { port.sendAttachmentFromPath(roomId, path, mime, filename, onProgress) }.getOrElse { false }
 
-    suspend fun sendAttachmentBytes(
-        roomId: String,
-        data: ByteArray,
-        mime: String,
-        filename: String,
-        onProgress: ((Long, Long?) -> Unit)? = null
-    ) = runCatching { port.sendAttachmentBytes(roomId, data, mime, filename, onProgress) }.getOrElse { false }
-
     suspend fun recoverWithKey(recoveryKey: String) =
         runCatching { port.recoverWithKey(recoveryKey) }.getOrElse { false }
-
-    suspend fun backupExistsOnServer(fetch: Boolean) =
-        runCatching { port.backupExistsOnServer(fetch) }.getOrDefault(false)
-
-    suspend fun setKeyBackupEnabled(enabled: Boolean) =
-        runCatching { port.setKeyBackupEnabled(enabled) }.getOrDefault(false)
 
     suspend fun retryByTxn(roomId: String, txnId: String) =
         runCatching { port.retryByTxn(roomId, txnId) }.getOrElse { false }

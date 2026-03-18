@@ -171,11 +171,6 @@ class RustMatrixPort : MatrixPort {
             runCatching { withClient { it.sendQueueSetEnabled(enabled) } }.getOrDefault(false)
         }
 
-    override suspend fun roomSendQueueSetEnabled(roomId: String, enabled: Boolean): Boolean =
-        withContext(Dispatchers.IO) {
-            runCatching { withClient { it.roomSendQueueSetEnabled(roomId, enabled) } }.getOrDefault(false)
-        }
-
     override suspend fun sendExistingAttachment(
         roomId: String,
         attachment: AttachmentInfo,
@@ -190,11 +185,6 @@ class RustMatrixPort : MatrixPort {
 
         runCatching { withClient { it.sendExistingAttachment(roomId, attachment.toFfi(), body, cb) } }.getOrDefault(false)
     }
-
-    override suspend fun enqueueText(roomId: String, body: String, txnId: String?): String =
-        withContext(Dispatchers.IO) {
-            withClient { it.enqueueText(roomId, body, txnId) }
-        }
 
     override fun observeSends(): Flow<SendUpdate> = callbackFlow {
         val obs = object : mages.SendObserver {
@@ -610,11 +600,6 @@ class RustMatrixPort : MatrixPort {
             runCatching { withClient { it.retryByTxn(roomId, txnId) } }.getOrDefault(false)
         }
 
-    override suspend fun checkVerificationRequest(userId: String, flowId: String): Boolean =
-        withContext(Dispatchers.IO) {
-            runCatching { withClient { it.checkVerificationRequest(userId, flowId) } }.getOrDefault(false)
-        }
-
     override fun enterForeground() {
         runBlocking(Dispatchers.IO) {
             withClient { it.enterForeground() }
@@ -642,21 +627,6 @@ class RustMatrixPort : MatrixPort {
         runCatching { withClient { it.sendAttachmentFromPath(roomId, path, mime, filename, cb) } }.getOrDefault(false)
     }
 
-    override suspend fun sendAttachmentBytes(
-        roomId: String,
-        data: ByteArray,
-        mime: String,
-        filename: String,
-        onProgress: ((Long, Long?) -> Unit)?
-    ): Boolean = withContext(Dispatchers.IO) {
-        val cb = if (onProgress != null) object : mages.ProgressObserver {
-            override fun onProgress(sent: ULong, total: ULong?) {
-                onProgress(sent.toLong(), total?.toLong())
-            }
-        } else null
-        runCatching { withClient { it.sendAttachmentBytes(roomId, filename, mime, data, cb) } }.getOrDefault(false)
-    }
-
     override suspend fun downloadAttachmentToCache(
         info: AttachmentInfo,
         filenameHint: String?
@@ -664,20 +634,6 @@ class RustMatrixPort : MatrixPort {
         withContext(Dispatchers.IO) {
             runCatching { withClient { it.downloadAttachmentToCacheFile(info.toFfi(), filenameHint).path } }
         }
-
-    override suspend fun downloadAttachmentToPath(
-        info: AttachmentInfo,
-        savePath: String,
-        onProgress: ((Long, Long?) -> Unit)?
-    ): Result<String> = withContext(Dispatchers.IO) {
-        val cb = if (onProgress != null) object : mages.ProgressObserver {
-            override fun onProgress(sent: ULong, total: ULong?) {
-                onProgress(sent.toLong(), total?.toLong())
-            }
-        } else null
-
-        runCatching { withClient { it.downloadAttachmentToPath(info.toFfi(), savePath, cb).path } }
-    }
 
     override suspend fun recoverWithKey(recoveryKey: String): Boolean =
         withContext(Dispatchers.IO) {
@@ -728,11 +684,6 @@ class RustMatrixPort : MatrixPort {
     ): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching { withClient { it.setRoomNotificationMode(roomId, mode.toFfi()) } }
     }
-
-    override suspend fun encryptionCatchupOnce(): Boolean =
-        withContext(Dispatchers.IO) {
-            runCatching { withClient { it.encryptionCatchupOnce() } }.getOrDefault(false)
-        }
 
     override suspend fun ownLastRead(roomId: String): Pair<String?, Long?> =
         withContext(Dispatchers.IO) {

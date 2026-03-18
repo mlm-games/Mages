@@ -22,7 +22,6 @@ import org.mlm.mages.platform.navigatorOnLine
 import org.w3c.dom.url.URL
 import org.w3c.dom.events.Event
 import kotlin.js.JsAny
-import kotlin.js.toJsArray
 
 // -- Callback fns since Kotlin/Wasm cannot pass lambdas as JsAny? --
 
@@ -285,9 +284,6 @@ class WebStubMatrixPort : MatrixPort {
     override suspend fun sendQueueSetEnabled(enabled: Boolean): Boolean =
         requireClient().sendQueueSetEnabled(enabled)
 
-    override suspend fun roomSendQueueSetEnabled(roomId: String, enabled: Boolean): Boolean =
-        requireClient().roomSendQueueSetEnabled(roomId, enabled)
-
     override suspend fun sendExistingAttachment(
         roomId: String,
         attachment: AttachmentInfo,
@@ -349,11 +345,6 @@ class WebStubMatrixPort : MatrixPort {
 
     override suspend fun setKeyBackupEnabled(enabled: Boolean): Boolean =
         requireClient().setKeyBackupEnabled(enabled).await()
-
-    override suspend fun enqueueText(roomId: String, body: String, txnId: String?): String {
-        val ok = send(roomId, body, null)
-        return if (ok) (txnId ?: "web-send-$roomId-${body.hashCode()}") else ""
-    }
 
     override fun observeSends(): Flow<SendUpdate> = callbackFlow {
         val f = requireClientOrNull() ?: run { close(); return@callbackFlow }
@@ -643,9 +634,6 @@ class WebStubMatrixPort : MatrixPort {
         }
     }
 
-    override suspend fun checkVerificationRequest(userId: String, flowId: String): Boolean =
-        requireClient().checkVerificationRequest(userId, flowId).await()
-
     override suspend fun sendAttachmentFromPath(
         roomId: String,
         path: String,
@@ -656,7 +644,7 @@ class WebStubMatrixPort : MatrixPort {
         val bytes = retrieveWebBlob(path)
         if (bytes != null) {
             clearWebBlob(path)
-            return sendAttachmentBytes(roomId, bytes, mime, filename ?: path)
+            return sendAttachmentBytes(roomId, bytes, mime, filename ?: path, onProgress)
         }
         return false
     }
@@ -676,12 +664,6 @@ class WebStubMatrixPort : MatrixPort {
         (requireClient().downloadAttachmentToCacheFile(wasmJson.encodeToString(info), filenameHint)
             ?: error("Attachment download failed"))
     }
-
-    override suspend fun downloadAttachmentToPath(
-        info: AttachmentInfo,
-        savePath: String,
-        onProgress: ((Long, Long?) -> Unit)?
-    ): Result<String> = Result.failure(UnsupportedOperationException())
 
     override suspend fun searchRoom(
         roomId: String,
@@ -741,8 +723,6 @@ class WebStubMatrixPort : MatrixPort {
 
     override fun observeOwnReceipt(roomId: String, observer: ReceiptsObserver): ULong =
         requireClient().observeOwnReceipt(roomId, jsCallback0 { observer.onChanged() }).toULong()
-
-    override suspend fun encryptionCatchupOnce(): Boolean = false
 
     override fun observeRoomList(observer: MatrixPort.RoomListObserver): ULong {
         val token = requireClient().observeRoomList(
