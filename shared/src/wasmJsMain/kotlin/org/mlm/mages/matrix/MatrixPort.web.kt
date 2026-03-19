@@ -34,14 +34,22 @@ private external fun jsCallback1(fn: (JsAny?) -> Unit): JsAny
 @JsFun("(fn) => function(a) { return fn(a); }")
 private external fun jsCallback1r(fn: (JsAny?) -> JsAny?): JsAny
 
+@JsFun("(fn) => function(a, b) { return fn(a, b); }")
+private external fun jsCallback2(fn: (JsAny?, JsAny?) -> Unit): JsAny
+
 @JsFun("(arr) => arr")
 private external fun jsArrayPassthrough(arr: JsAny): JsAny
 
-@Suppress("KotlinUnreachableCode")
+@JsFun("() => []")
+private external fun createEmptyJsArray(): JsAny
+
+@JsFun("(arr, item) => { arr.push(item); }")
+private external fun pushToJsArray(arr: JsAny, item: String)
+
 fun List<String>.toJsArray(): JsAny {
-    val jsArr = js("[]")
+    val jsArr = createEmptyJsArray()
     for (item in this) {
-        js("jsArr.push(item)")
+        pushToJsArray(jsArr, item)
     }
     return jsArr
 }
@@ -282,7 +290,7 @@ class WebStubMatrixPort : MatrixPort {
     }
 
     override suspend fun sendQueueSetEnabled(enabled: Boolean): Boolean =
-        requireClient().sendQueueSetEnabled(enabled)
+        requireClient().sendQueueSetEnabled(enabled).await()
 
     override suspend fun sendExistingAttachment(
         roomId: String,
@@ -489,7 +497,7 @@ class WebStubMatrixPort : MatrixPort {
         decodeStringList(requireClient().getPinnedEvents(roomId))
 
     override suspend fun setPinnedEvents(roomId: String, eventIds: List<String>): Boolean =
-        requireClient().setPinnedEvents(roomId, eventIds.toJsArray())
+        requireClient().setPinnedEvents(roomId, eventIds.toJsArray()).await()
 
     override fun observeTyping(roomId: String, onUpdate: (List<String>) -> Unit): ULong =
         requireClient().observeTyping(
@@ -644,24 +652,16 @@ class WebStubMatrixPort : MatrixPort {
         val bytes = retrieveWebBlob(path)
         if (bytes != null) {
             clearWebBlob(path)
-            return sendAttachmentBytes(roomId, bytes, mime, filename ?: path, onProgress)
+            return sendAttachmentFromPath(roomId, path, mime, filename ?: path, onProgress) // TODO? might not work
         }
         return false
     }
-
-    override suspend fun sendAttachmentBytes( // TODO: fix
-        roomId: String,
-        data: ByteArray,
-        mime: String,
-        filename: String,
-        onProgress: ((Long, Long?) -> Unit)?
-    ): Boolean = requireClient().sendAttachmentBytes(roomId, filename, mime, data.toJsArray()).await()
 
     override suspend fun downloadAttachmentToCache(
         info: AttachmentInfo,
         filenameHint: String?
     ): Result<String> = runCatching {
-        (requireClient().downloadAttachmentToCacheFile(wasmJson.encodeToString(info), filenameHint)
+        (requireClient().downloadAttachmentToCacheFile(wasmJson.encodeToString(info), filenameHint).await()
             ?: error("Attachment download failed"))
     }
 
@@ -900,7 +900,7 @@ class WebStubMatrixPort : MatrixPort {
         invitees.toJsArray(),
         isPublic,
         roomAlias
-    )
+    ).await()
 
     override suspend fun setRoomName(roomId: String, name: String): Result<Unit> =
         unitResult(
@@ -943,7 +943,7 @@ class WebStubMatrixPort : MatrixPort {
 
     override suspend fun reactions(roomId: String, eventId: String): List<ReactionSummary> =
         wasmJson.decodeFromJsonElement(
-            requireClient().reactionsForEvent(roomId, eventId).await<WebReactionsValue?>().toJsonElement()
+            requireClient().reactionsForEvent(roomId, eventId).await()
         )
 
     override suspend fun reactionsBatch(
@@ -952,9 +952,7 @@ class WebStubMatrixPort : MatrixPort {
     ): Map<String, List<ReactionSummary>> =
         wasmJson.decodeFromJsonElement(
             requireClient()
-                .reactionsBatch(roomId, wasmJson.encodeToString(eventIds))
-                .await<WebReactionsValue?>()
-                .toJsonElement()
+                .reactionsBatch(roomId, eventIds.toJsArray()).await()
         )
 
     override suspend fun sendThreadText(
@@ -1049,30 +1047,30 @@ class WebStubMatrixPort : MatrixPort {
         )?.let { it.presence to it.statusMsg }
 
     override suspend fun ignoreUser(userId: String): Result<Unit> =
-        unitResult(requireClient().ignoreUser(userId), "ignore user")
+        unitResult(requireClient().ignoreUser(userId).await(), "ignore user")
 
     override suspend fun unignoreUser(userId: String): Result<Unit> =
-        unitResult(requireClient().unignoreUser(userId), "unignore user")
+        unitResult(requireClient().unignoreUser(userId).await(), "unignore user")
 
     override suspend fun ignoredUsers(): List<String> =
         decodeStringList(requireClient().ignoredUsers())
 
     override suspend fun roomDirectoryVisibility(roomId: String): RoomDirectoryVisibility? =
-        decodeEnum(requireClient().roomDirectoryVisibility(roomId))
+        decodeEnum(requireClient().roomDirectoryVisibility(roomId).await())
 
     override suspend fun setRoomDirectoryVisibility(
         roomId: String,
         visibility: RoomDirectoryVisibility
     ): Result<Unit> = unitResult(
-        requireClient().setRoomDirectoryVisibility(roomId, visibility.name),
+        requireClient().setRoomDirectoryVisibility(roomId, visibility.name).await(),
         "set room directory visibility"
     )
 
     override suspend fun publishRoomAlias(roomId: String, alias: String): Boolean =
-        requireClient().publishRoomAlias(roomId, alias)
+        requireClient().publishRoomAlias(roomId, alias).await()
 
     override suspend fun unpublishRoomAlias(roomId: String, alias: String): Boolean =
-        requireClient().unpublishRoomAlias(roomId, alias)
+        requireClient().unpublishRoomAlias(roomId, alias).await()
 
     override suspend fun setRoomCanonicalAlias(
         roomId: String,
@@ -1082,8 +1080,8 @@ class WebStubMatrixPort : MatrixPort {
         requireClient().setRoomCanonicalAlias(
             roomId,
             alias,
-            wasmJson.encodeToString(altAliases),
-        ),
+            altAliases.toJsArray(),
+        ).await(),
         "set room canonical alias"
     )
 
@@ -1091,19 +1089,19 @@ class WebStubMatrixPort : MatrixPort {
         decodeStringList(requireClient().roomAliases(roomId))
 
     override suspend fun roomJoinRule(roomId: String): RoomJoinRule? =
-        decodeEnum(requireClient().roomJoinRule(roomId))
+        decodeEnum(requireClient().roomJoinRule(roomId).await())
 
     override suspend fun setRoomJoinRule(roomId: String, rule: RoomJoinRule): Result<Unit> =
-        unitResult(requireClient().setRoomJoinRule(roomId, rule.name), "set room join rule")
+        unitResult(requireClient().setRoomJoinRule(roomId, rule.name).await(), "set room join rule")
 
     override suspend fun roomHistoryVisibility(roomId: String): RoomHistoryVisibility? =
-        decodeEnum(requireClient().roomHistoryVisibility(roomId))
+        decodeEnum(requireClient().roomHistoryVisibility(roomId).await())
 
     override suspend fun setRoomHistoryVisibility(
         roomId: String,
         visibility: RoomHistoryVisibility
     ): Result<Unit> = unitResult(
-        requireClient().setRoomHistoryVisibility(roomId, visibility.name),
+        requireClient().setRoomHistoryVisibility(roomId, visibility.name).await(),
         "set room history visibility"
     )
 
@@ -1121,7 +1119,7 @@ class WebStubMatrixPort : MatrixPort {
         userId: String,
         powerLevel: Long
     ): Result<Unit> = unitResult(
-        requireClient().updatePowerLevelForUser(roomId, userId, powerLevel.toDouble()),
+        requireClient().updatePowerLevelForUser(roomId, userId, powerLevel.toDouble()).await(),
         "update power level"
     )
 
@@ -1129,7 +1127,7 @@ class WebStubMatrixPort : MatrixPort {
         roomId: String,
         changes: RoomPowerLevelChanges
     ): Result<Unit> = unitResult(
-        requireClient().applyPowerLevelChanges(roomId, wasmJson.encodeToString(changes)),
+        requireClient().applyPowerLevelChanges(roomId, wasmJson.encodeToString(changes)).await(),
         "apply power level changes"
     )
 
@@ -1139,27 +1137,27 @@ class WebStubMatrixPort : MatrixPort {
         score: Int?,
         reason: String?
     ): Result<Unit> = unitResult(
-        requireClient().reportContent(roomId, eventId, score?.toDouble(), reason),
+        requireClient().reportContent(roomId, eventId, score?.toDouble(), reason).await(),
         "report content"
     )
 
     override suspend fun reportRoom(roomId: String, reason: String?): Result<Unit> =
-        unitResult(requireClient().reportRoom(roomId, reason), "report room")
+        unitResult(requireClient().reportRoom(roomId, reason).await(), "report room")
 
     override suspend fun banUser(roomId: String, userId: String, reason: String?): Result<Unit> =
-        unitResult(requireClient().banUser(roomId, userId, reason), "ban user")
+        unitResult(requireClient().banUser(roomId, userId, reason).await(), "ban user")
 
     override suspend fun unbanUser(roomId: String, userId: String, reason: String?): Result<Unit> =
-        unitResult(requireClient().unbanUser(roomId, userId, reason), "unban user")
+        unitResult(requireClient().unbanUser(roomId, userId, reason).await(), "unban user")
 
     override suspend fun kickUser(roomId: String, userId: String, reason: String?): Result<Unit> =
-        unitResult(requireClient().kickUser(roomId, userId, reason), "kick user")
+        unitResult(requireClient().kickUser(roomId, userId, reason).await(), "kick user")
 
     override suspend fun inviteUser(roomId: String, userId: String): Result<Unit> =
-        unitResult(requireClient().inviteUser(roomId, userId), "invite user")
+        unitResult(requireClient().inviteUser(roomId, userId).await(), "invite user")
 
     override suspend fun enableRoomEncryption(roomId: String): Result<Unit> =
-        unitResult(requireClient().enableRoomEncryption(roomId), "enable room encryption")
+        unitResult(requireClient().enableRoomEncryption(roomId).await(), "enable room encryption")
 
     override suspend fun roomSuccessor(roomId: String): RoomUpgradeInfo? =
         decodeValueOrNull(requireClient().roomSuccessor(roomId).await(), "roomSuccessor")
@@ -1200,7 +1198,7 @@ class WebStubMatrixPort : MatrixPort {
     }
 
     override suspend fun sendPoll(roomId: String, question: String, answers: List<String>): Boolean =
-        requireClient().sendPollStart(roomId, question, wasmJson.encodeToString(answers), "disclosed", 1.0)
+        requireClient().sendPollStart(roomId, question, answers.toJsArray(), "disclosed", 1.0).await()
 
     override fun seenByForEvent(roomId: String, eventId: String, limit: Int): List<SeenByEntry> =
         decodeValueOrNull(requireClient().seenByForEvent(roomId, eventId, limit.toDouble()), "seenByForEvent") ?: emptyList()
@@ -1213,10 +1211,10 @@ class WebStubMatrixPort : MatrixPort {
         wasmJson.decodeFromJsonElement(requireClient().loadRoomListCache().toJsonArray())
 
     override suspend fun sendPollResponse(roomId: String, pollEventId: String, answers: List<String>): Boolean =
-        requireClient().sendPollResponse(roomId, pollEventId, wasmJson.encodeToString(answers))
+        requireClient().sendPollResponse(roomId, pollEventId, answers.toJsArray()).await()
 
     override suspend fun sendPollEnd(roomId: String, pollEventId: String): Boolean =
-        requireClient().sendPollEnd(roomId, pollEventId)
+        requireClient().sendPollEnd(roomId, pollEventId).await()
 
     override suspend fun startElementCall(
         roomId: String,
@@ -1230,9 +1228,9 @@ class WebStubMatrixPort : MatrixPort {
         decodeValueOrNull(
             requireClient().startElementCall(
                 roomId,
-                intent.name,
                 elementCallUrl,
                 parentUrl,
+                intent.name,
                 languageTag,
                 theme,
                 jsCallback1 { message: JsAny? ->

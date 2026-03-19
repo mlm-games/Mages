@@ -1435,7 +1435,7 @@ class RustMatrixPort : MatrixPort {
         width: Int,
         height: Int,
         crop: Boolean
-    ): DownloadResult = withContext(Dispatchers.IO) {
+    ): String = withContext(Dispatchers.IO) {
         withClient {
             it.mxcThumbnailToCache(mxcUri, width.toUInt(), height.toUInt(), crop)
         }

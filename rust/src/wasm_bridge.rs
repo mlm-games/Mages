@@ -1448,6 +1448,893 @@ impl WasmClient {
         false
     }
 
+    #[wasm_bindgen(js_name = sendQueueSetEnabled)]
+    pub async fn send_queue_set_enabled(&self, enabled: bool) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        s.core.send_queue_set_enabled(enabled).await
+    }
+
+    #[wasm_bindgen(js_name = setMarkUnread)]
+    pub async fn set_mark_unread(&self, room_id: String, unread: bool) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        s.core.set_mark_unread(room_id, unread).await
+    }
+
+    #[wasm_bindgen(js_name = setPinnedEvents)]
+    pub async fn set_pinned_events(&self, room_id: String, event_ids: Vec<String>) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        s.core.set_pinned_events(room_id, event_ids).await
+    }
+
+    #[wasm_bindgen(js_name = getPinnedEvents)]
+    pub async fn get_pinned_events(&self, room_id: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return to_json(&Vec::<String>::new());
+        };
+        to_json(&s.core.get_pinned_events(room_id).await)
+    }
+
+    #[wasm_bindgen(js_name = roomTags)]
+    pub async fn room_tags(&self, room_id: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return JsValue::NULL;
+        };
+        match s.core.room_tags(room_id).await {
+            Some(v) => to_json(&v),
+            None => JsValue::NULL,
+        }
+    }
+
+    #[wasm_bindgen(js_name = roomNotificationMode)]
+    pub async fn room_notification_mode(&self, room_id: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return JsValue::NULL;
+        };
+        match s.core.room_notification_mode(room_id).await {
+            Some(v) => to_json(&v),
+            None => JsValue::NULL,
+        }
+    }
+
+    #[wasm_bindgen(js_name = setRoomNotificationMode)]
+    pub async fn set_room_notification_mode(&self, room_id: String, mode: String) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        let m = match mode.as_str() {
+            "AllMessages" => FfiRoomNotificationMode::AllMessages,
+            "MentionsAndKeywordsOnly" => FfiRoomNotificationMode::MentionsAndKeywordsOnly,
+            "Mute" => FfiRoomNotificationMode::Mute,
+            _ => return false,
+        };
+        s.core.set_room_notification_mode(room_id, m).await.is_ok()
+    }
+
+    #[wasm_bindgen(js_name = searchUsers)]
+    pub async fn search_users(&self, search_term: String, limit: u32) -> JsValue {
+        let Some(s) = self.state() else {
+            return to_json(&Vec::<DirectoryUser>::new());
+        };
+        match s.core.search_users(search_term, limit as u64).await {
+            Ok(v) => to_json(&v),
+            Err(_) => to_json(&Vec::<DirectoryUser>::new()),
+        }
+    }
+
+    #[wasm_bindgen(js_name = getUserProfile)]
+    pub async fn get_user_profile(&self, user_id: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return JsValue::NULL;
+        };
+        match s.core.get_user_profile(user_id).await {
+            Ok(v) => to_json(&v),
+            Err(_) => JsValue::NULL,
+        }
+    }
+
+    #[wasm_bindgen(js_name = publicRooms)]
+    pub async fn public_rooms(
+        &self,
+        server: Option<String>,
+        search: Option<String>,
+        limit: u32,
+        since: Option<String>,
+    ) -> JsValue {
+        let Some(s) = self.state() else {
+            return JsValue::NULL;
+        };
+        match s.core.public_rooms(server, search, limit, since).await {
+            Ok(v) => to_json(&v),
+            Err(_) => JsValue::NULL,
+        }
+    }
+
+    #[wasm_bindgen(js_name = createRoom)]
+    pub async fn create_room(
+        &self,
+        name: Option<String>,
+        topic: Option<String>,
+        invitees: Vec<String>,
+        is_public: bool,
+        room_alias: Option<String>,
+    ) -> JsValue {
+        let Some(s) = self.state() else {
+            return JsValue::NULL;
+        };
+        match s
+            .core
+            .create_room(name, topic, invitees, is_public, room_alias)
+            .await
+        {
+            Ok(v) => JsValue::from_str(&v),
+            Err(_) => JsValue::NULL,
+        }
+    }
+
+    #[wasm_bindgen(js_name = createSpace)]
+    pub async fn create_space(
+        &self,
+        name: String,
+        topic: Option<String>,
+        is_public: bool,
+        invitees: Vec<String>,
+    ) -> JsValue {
+        let Some(s) = self.state() else {
+            return JsValue::NULL;
+        };
+        match s.core.create_space(name, topic, is_public, invitees).await {
+            Ok(v) => JsValue::from_str(&v),
+            Err(_) => JsValue::NULL,
+        }
+    }
+
+    #[wasm_bindgen(js_name = sendThreadText)]
+    pub async fn send_thread_text(
+        &self,
+        room_id: String,
+        root_event_id: String,
+        body: String,
+        reply_to_event_id: Option<String>,
+        latest_event_id: Option<String>,
+        formatted_body: Option<String>,
+    ) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        s.core
+            .send_thread_text(
+                room_id,
+                root_event_id,
+                body,
+                reply_to_event_id,
+                latest_event_id,
+                formatted_body,
+            )
+            .await
+    }
+
+    #[wasm_bindgen(js_name = reactionsBatch)]
+    pub async fn reactions_batch(&self, room_id: String, event_ids: Vec<String>) -> JsValue {
+        let Some(s) = self.state() else {
+            return to_json(&HashMap::<String, Vec<ReactionSummary>>::new());
+        };
+        to_json(&s.core.reactions_batch(room_id, event_ids).await)
+    }
+
+    #[wasm_bindgen(js_name = canUserBan)]
+    pub async fn can_user_ban(&self, room_id: String, user_id: String) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        s.core.can_user_ban(room_id, user_id).await.unwrap_or(false)
+    }
+
+    #[wasm_bindgen(js_name = canUserInvite)]
+    pub async fn can_user_invite(&self, room_id: String, user_id: String) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        s.core
+            .can_user_invite(room_id, user_id)
+            .await
+            .unwrap_or(false)
+    }
+
+    #[wasm_bindgen(js_name = canUserRedactOther)]
+    pub async fn can_user_redact_other(&self, room_id: String, user_id: String) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        s.core
+            .can_user_redact_other(room_id, user_id)
+            .await
+            .unwrap_or(false)
+    }
+
+    #[wasm_bindgen(js_name = roomDirectoryVisibility)]
+    pub async fn room_directory_visibility(&self, room_id: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return JsValue::NULL;
+        };
+        match s.core.room_directory_visibility(room_id).await {
+            Ok(v) => to_json(&v),
+            Err(_) => JsValue::NULL,
+        }
+    }
+
+    #[wasm_bindgen(js_name = setRoomDirectoryVisibility)]
+    pub async fn set_room_directory_visibility(&self, room_id: String, visibility: String) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        let v = match visibility.as_str() {
+            "Public" => RoomDirectoryVisibility::Public,
+            _ => RoomDirectoryVisibility::Private,
+        };
+        s.core
+            .set_room_directory_visibility(room_id, v)
+            .await
+            .is_ok()
+    }
+
+    #[wasm_bindgen(js_name = publishRoomAlias)]
+    pub async fn publish_room_alias(&self, room_id: String, alias: String) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        s.core
+            .publish_room_alias(room_id, alias)
+            .await
+            .unwrap_or(false)
+    }
+
+    #[wasm_bindgen(js_name = unpublishRoomAlias)]
+    pub async fn unpublish_room_alias(&self, room_id: String, alias: String) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        s.core
+            .unpublish_room_alias(room_id, alias)
+            .await
+            .unwrap_or(false)
+    }
+
+    #[wasm_bindgen(js_name = setRoomCanonicalAlias)]
+    pub async fn set_room_canonical_alias(
+        &self,
+        room_id: String,
+        alias: Option<String>,
+        alt_aliases: Vec<String>,
+    ) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        s.core
+            .set_room_canonical_alias(room_id, alias, alt_aliases)
+            .await
+            .is_ok()
+    }
+
+    #[wasm_bindgen(js_name = roomAliases)]
+    pub async fn room_aliases(&self, room_id: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return to_json(&Vec::<String>::new());
+        };
+        to_json(&s.core.room_aliases(room_id).await)
+    }
+
+    #[wasm_bindgen(js_name = roomJoinRule)]
+    pub async fn room_join_rule(&self, room_id: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return JsValue::NULL;
+        };
+        match s.core.room_join_rule(room_id).await {
+            Ok(v) => to_json(&v),
+            Err(_) => JsValue::NULL,
+        }
+    }
+
+    #[wasm_bindgen(js_name = setRoomJoinRule)]
+    pub async fn set_room_join_rule(&self, room_id: String, rule: String) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        let r = match rule.as_str() {
+            "Public" => RoomJoinRule::Public,
+            "Invite" => RoomJoinRule::Invite,
+            "Knock" => RoomJoinRule::Knock,
+            "Restricted" => RoomJoinRule::Restricted,
+            "KnockRestricted" => RoomJoinRule::KnockRestricted,
+            _ => return false,
+        };
+        s.core.set_room_join_rule(room_id, r).await.is_ok()
+    }
+
+    #[wasm_bindgen(js_name = roomHistoryVisibility)]
+    pub async fn room_history_visibility(&self, room_id: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return JsValue::NULL;
+        };
+        match s.core.room_history_visibility(room_id).await {
+            Ok(v) => to_json(&v),
+            Err(_) => JsValue::NULL,
+        }
+    }
+
+    #[wasm_bindgen(js_name = setRoomHistoryVisibility)]
+    pub async fn set_room_history_visibility(&self, room_id: String, visibility: String) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        let v = match visibility.as_str() {
+            "Invited" => RoomHistoryVisibility::Invited,
+            "Joined" => RoomHistoryVisibility::Joined,
+            "Shared" => RoomHistoryVisibility::Shared,
+            "WorldReadable" => RoomHistoryVisibility::WorldReadable,
+            _ => return false,
+        };
+        s.core.set_room_history_visibility(room_id, v).await.is_ok()
+    }
+
+    #[wasm_bindgen(js_name = updatePowerLevelForUser)]
+    pub async fn update_power_level_for_user(
+        &self,
+        room_id: String,
+        user_id: String,
+        power_level: f64,
+    ) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        s.core
+            .update_power_level_for_user(room_id, user_id, power_level as i64)
+            .await
+            .is_ok()
+    }
+
+    #[wasm_bindgen(js_name = applyPowerLevelChanges)]
+    pub async fn apply_power_level_changes(&self, room_id: String, changes_json: String) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        let Ok(changes) = serde_json::from_str::<RoomPowerLevelChanges>(&changes_json) else {
+            return false;
+        };
+        s.core
+            .apply_power_level_changes(room_id, changes)
+            .await
+            .is_ok()
+    }
+
+    #[wasm_bindgen(js_name = reportContent)]
+    pub async fn report_content(
+        &self,
+        room_id: String,
+        event_id: String,
+        score: Option<i32>,
+        reason: Option<String>,
+    ) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        s.core
+            .report_content(room_id, event_id, score, reason)
+            .await
+            .is_ok()
+    }
+
+    #[wasm_bindgen(js_name = reportRoom)]
+    pub async fn report_room(&self, room_id: String, reason: Option<String>) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        s.core.report_room(room_id, reason).await.is_ok()
+    }
+
+    #[wasm_bindgen(js_name = acceptKnockRequest)]
+    pub async fn accept_knock_request(&self, room_id: String, user_id: String) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        s.core.accept_knock_request(room_id, user_id).await.is_ok()
+    }
+
+    #[wasm_bindgen(js_name = declineKnockRequest)]
+    pub async fn decline_knock_request(
+        &self,
+        room_id: String,
+        user_id: String,
+        reason: Option<String>,
+    ) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        s.core
+            .decline_knock_request(room_id, user_id, reason)
+            .await
+            .is_ok()
+    }
+
+    #[wasm_bindgen(js_name = sendPollStart)]
+    pub async fn send_poll_start(
+        &self,
+        room_id: String,
+        question: String,
+        answers: Vec<String>,
+        kind: String,
+        max_selections: u32,
+    ) -> JsValue {
+        let Some(s) = self.state() else {
+            return JsValue::NULL;
+        };
+        let pk = match kind.as_str() {
+            "Undisclosed" => PollKind::Undisclosed,
+            _ => PollKind::Disclosed,
+        };
+        let def = PollDefinition {
+            question,
+            answers,
+            kind: pk,
+            max_selections,
+        };
+        match s.core.send_poll_start(room_id, def).await {
+            Ok(v) => JsValue::from_str(&v),
+            Err(_) => JsValue::NULL,
+        }
+    }
+
+    #[wasm_bindgen(js_name = sendPollResponse)]
+    pub async fn send_poll_response(
+        &self,
+        room_id: String,
+        poll_event_id: String,
+        answers: Vec<String>,
+    ) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        s.core
+            .send_poll_response(room_id, poll_event_id, answers)
+            .await
+            .is_ok()
+    }
+
+    #[wasm_bindgen(js_name = sendPollEnd)]
+    pub async fn send_poll_end(&self, room_id: String, poll_event_id: String) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        s.core.send_poll_end(room_id, poll_event_id).await.is_ok()
+    }
+
+    #[wasm_bindgen(js_name = seenByForEvent)]
+    pub async fn seen_by_for_event(
+        &self,
+        room_id: String,
+        event_id: String,
+        limit: u32,
+    ) -> JsValue {
+        let Some(s) = self.state() else {
+            return to_json(&Vec::<SeenByEntry>::new());
+        };
+        match s.core.seen_by_for_event(room_id, event_id, limit).await {
+            Ok(v) => to_json(&v),
+            Err(_) => to_json(&Vec::<SeenByEntry>::new()),
+        }
+    }
+
+    #[wasm_bindgen(js_name = upgradeRoom)]
+    pub async fn upgrade_room(&self, room_id: String, new_version: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return JsValue::NULL;
+        };
+        match s.core.upgrade_room(room_id, new_version).await {
+            Ok(v) => JsValue::from_str(&v),
+            Err(_) => JsValue::NULL,
+        }
+    }
+
+    #[wasm_bindgen(js_name = roomUpgradeLinks)]
+    pub async fn room_upgrade_links(&self, room_id: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return JsValue::NULL;
+        };
+        match s.core.room_upgrade_links(room_id).await {
+            Some(v) => to_json(&v),
+            None => JsValue::NULL,
+        }
+    }
+
+    #[wasm_bindgen(js_name = listKnockRequests)]
+    pub async fn list_knock_requests(&self, room_id: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return to_json(&Vec::<KnockRequestSummary>::new());
+        };
+        match s.core.list_knock_requests(room_id).await {
+            Ok(v) => to_json(&v),
+            Err(_) => to_json(&Vec::<KnockRequestSummary>::new()),
+        }
+    }
+
+    #[wasm_bindgen(js_name = roomListSetUnreadOnly)]
+    pub fn room_list_set_unread_only(&self, token: f64, unread_only: bool) -> bool {
+        let Some(state) = self.state() else {
+            return false;
+        };
+        if let Some(tx) = state.room_list_cmds.borrow().get(&(token as u64)).cloned() {
+            tx.send(RoomListCmd::SetUnreadOnly(unread_only)).is_ok()
+        } else {
+            false
+        }
+    }
+
+    #[wasm_bindgen(js_name = observeOwnReceipt)]
+    pub fn observe_own_receipt(&self, room_id: String, on_changed: Function) -> f64 {
+        let Some(state) = self.state() else {
+            return 0.0;
+        };
+        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+            return 0.0;
+        };
+        let obs: Arc<dyn ReceiptsObserver> = Arc::new(JsReceiptsObserver(on_changed));
+        let s = state.clone();
+        wasm_subscribe!(state, receipts_subs, async move {
+            let stream = s
+                .client()
+                .observe_room_events::<SyncReceiptEvent, matrix_sdk::room::Room>(&rid);
+            let mut sub = stream.subscribe();
+            while let Some((_ev, _room)) = sub.next().await {
+                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_changed()));
+            }
+        })
+    }
+
+    #[wasm_bindgen(js_name = fetchNotificationsSince)]
+    pub async fn fetch_notifications_since(
+        &self,
+        _since_ts_ms: f64,
+        _max_rooms: u32,
+        _max_events: u32,
+    ) -> JsValue {
+        // Simplified: not fully supported on wasm, return empty
+        to_json(&Vec::<RenderedNotification>::new())
+    }
+
+    #[wasm_bindgen(js_name = startSelfSas)]
+    pub async fn start_self_sas(&self, device_id: String) -> JsValue {
+        let Some(state) = self.state() else {
+            return JsValue::from_str("");
+        };
+        let Some(me) = state.client().user_id() else {
+            return JsValue::from_str("");
+        };
+        state
+            .client()
+            .encryption()
+            .wait_for_e2ee_initialization_tasks()
+            .await;
+        let Ok(devices) = state.client().encryption().get_user_devices(me).await else {
+            return JsValue::from_str("");
+        };
+        let dev = devices
+            .devices()
+            .find(|d| d.device_id().as_str() == device_id);
+        let Some(dev) = dev else {
+            return JsValue::from_str("");
+        };
+        match dev.request_verification().await {
+            Ok(req) => JsValue::from_str(&req.flow_id().to_string()),
+            Err(_) => JsValue::from_str(""),
+        }
+    }
+
+    #[wasm_bindgen(js_name = startUserSas)]
+    pub async fn start_user_sas(&self, user_id: String) -> JsValue {
+        let Some(state) = self.state() else {
+            return JsValue::from_str("");
+        };
+        let Ok(uid) = user_id.parse::<OwnedUserId>() else {
+            return JsValue::from_str("");
+        };
+        state
+            .client()
+            .encryption()
+            .wait_for_e2ee_initialization_tasks()
+            .await;
+        match state
+            .client()
+            .encryption()
+            .request_user_identity(&uid)
+            .await
+        {
+            Ok(Some(identity)) => match identity.request_verification().await {
+                Ok(req) => JsValue::from_str(&req.flow_id().to_string()),
+                Err(_) => JsValue::from_str(""),
+            },
+            _ => JsValue::from_str(""),
+        }
+    }
+
+    #[wasm_bindgen(js_name = acceptVerificationRequest)]
+    pub async fn accept_verification_request(
+        &self,
+        flow_id: String,
+        other_user_id: Option<String>,
+    ) -> bool {
+        let Some(state) = self.state() else {
+            return false;
+        };
+        state
+            .core
+            .accept_verification_request_flow(flow_id, other_user_id)
+            .await
+    }
+
+    #[wasm_bindgen(js_name = acceptSas)]
+    pub async fn accept_sas(&self, flow_id: String, other_user_id: Option<String>) -> bool {
+        let Some(state) = self.state() else {
+            return false;
+        };
+        state.core.accept_sas_flow(flow_id, other_user_id).await
+    }
+
+    #[wasm_bindgen(js_name = cancelVerificationRequest)]
+    pub async fn cancel_verification_request(
+        &self,
+        flow_id: String,
+        other_user_id: Option<String>,
+    ) -> bool {
+        let Some(state) = self.state() else {
+            return false;
+        };
+        state
+            .core
+            .cancel_verification_request(flow_id, other_user_id)
+            .await
+    }
+
+    #[wasm_bindgen(js_name = sendExistingAttachment)]
+    pub async fn send_existing_attachment(
+        &self,
+        _room_id: String,
+        _att_json: String,
+        _body: Option<String>,
+    ) -> bool {
+        false // not supported on wasm
+    }
+
+    #[wasm_bindgen(js_name = sendAttachmentBytes)]
+    pub async fn send_attachment_bytes(
+        &self,
+        _room_id: String,
+        _filename: String,
+        _mime: String,
+        _data: Vec<u8>,
+    ) -> bool {
+        false // not supported on wasm yet
+    }
+
+    #[wasm_bindgen(js_name = downloadAttachmentToCacheFile)]
+    pub async fn download_attachment_to_cache_file(
+        &self,
+        _att_json: String,
+        _filename_hint: Option<String>,
+    ) -> JsValue {
+        JsValue::NULL // not supported on wasm
+    }
+
+    #[wasm_bindgen(js_name = thumbnailToCache)]
+    pub async fn thumbnail_to_cache(
+        &self,
+        _att_json: String,
+        _width: u32,
+        _height: u32,
+        _use_crop: bool,
+    ) -> JsValue {
+        JsValue::NULL // not supported on wasm
+    }
+
+    #[wasm_bindgen(js_name = mxcThumbnailToCache)]
+    pub async fn mxc_thumbnail_to_cache(
+        &self,
+        mxc_uri: String,
+        width: u32,
+        height: u32,
+        _crop: bool,
+    ) -> JsValue {
+        // On wasm we can return the mxc URI directly for the web layer to convert
+        let Some(state) = self.state() else {
+            return JsValue::NULL;
+        };
+        let uri = matrix_sdk::ruma::OwnedMxcUri::from(mxc_uri);
+        let settings = MediaThumbnailSettings::new(width.into(), height.into());
+        let req = MediaRequestParameters {
+            source: MediaSource::Plain(uri),
+            format: MediaFormat::Thumbnail(settings),
+        };
+        match state.client().media().get_media_content(&req, true).await {
+            Ok(data) => {
+                // Return as base64 data URI
+                let b64 = base64_encode(&data).unwrap_or_default();
+                let mime = if data.starts_with(&[0x89, b'P', b'N', b'G']) {
+                    "image/png"
+                } else {
+                    "image/jpeg"
+                };
+                JsValue::from_str(&format!("data:{};base64,{}", mime, b64))
+            }
+            Err(_) => JsValue::NULL,
+        }
+    }
+
+    #[wasm_bindgen(js_name = searchRoom)]
+    pub async fn search_room(
+        &self,
+        _room_id: String,
+        _query: String,
+        _limit: u32,
+        _offset: Option<u32>,
+    ) -> JsValue {
+        // search_room not supported on wasm
+        to_json(&SearchPage {
+            hits: vec![],
+            next_offset: None,
+        })
+    }
+
+    #[wasm_bindgen(js_name = setupRecovery)]
+    pub async fn setup_recovery(&self) -> JsValue {
+        let Some(state) = self.state() else {
+            return JsValue::NULL;
+        };
+        match state.client().encryption().recovery().enable().await {
+            Ok(key) => JsValue::from_str(&key),
+            Err(_) => JsValue::NULL,
+        }
+    }
+
+    #[wasm_bindgen(js_name = setKeyBackupEnabled)]
+    pub async fn set_key_backup_enabled(&self, enabled: bool) -> bool {
+        let Some(state) = self.state() else {
+            return false;
+        };
+        let backups = state.client().encryption().backups();
+        if enabled {
+            backups.create().await.is_ok()
+        } else {
+            backups.disable().await.is_ok()
+        }
+    }
+
+    #[wasm_bindgen(js_name = startElementCall)]
+    pub async fn start_element_call(
+        &self,
+        room_id: String,
+        element_call_url: Option<String>,
+        parent_url: Option<String>,
+        intent: String,
+        language_tag: Option<String>,
+        theme: Option<String>,
+    ) -> JsValue {
+        let Some(state) = self.state() else {
+            return JsValue::NULL;
+        };
+        let Ok(rid) = OwnedRoomId::try_from(room_id.as_str()) else {
+            return JsValue::NULL;
+        };
+        let Some(room) = state.client().get_room(&rid) else {
+            return JsValue::NULL;
+        };
+        let session_id = state.next_sub_id();
+        let lang = language_tag
+            .as_deref()
+            .and_then(|s| LanguageTag::parse(s).ok());
+        let resolved_parent = parent_url.unwrap_or_else(|| "https://call.element.io".to_owned());
+        let props = VirtualElementCallWidgetProperties {
+            element_call_url: element_call_url
+                .unwrap_or_else(|| "https://call.element.io".to_owned()),
+            parent_url: Some(resolved_parent.clone()),
+            widget_id: format!("mages-ecall-{}", session_id),
+            ..VirtualElementCallWidgetProperties::default()
+        };
+        let is_dm = room.is_direct().await.unwrap_or(false);
+        let widget_intent = match (intent.as_str(), is_dm) {
+            ("StartCall", true) => WidgetIntent::StartCallDm,
+            ("JoinExisting", true) => WidgetIntent::JoinExistingDm,
+            ("StartCall", false) => WidgetIntent::StartCall,
+            ("JoinExisting", false) => WidgetIntent::JoinExisting,
+            ("StartCallVoiceDm", _) => WidgetIntent::StartCallDmVoice,
+            ("JoinExistingVoiceDm", _) => WidgetIntent::JoinExistingDmVoice,
+            _ => WidgetIntent::JoinExisting,
+        };
+        let config = VirtualElementCallWidgetConfig {
+            controlled_audio_devices: Some(true),
+            preload: Some(false),
+            app_prompt: Some(false),
+            confine_to_room: Some(true),
+            hide_screensharing: Some(false),
+            intent: Some(widget_intent),
+            ..VirtualElementCallWidgetConfig::default()
+        };
+        let Ok(settings) = WidgetSettings::new_virtual_element_call_widget(props, config) else {
+            return JsValue::NULL;
+        };
+        let client_props = ClientProperties::new("org.mlm.mages", lang, theme);
+        let Ok(url) = settings.generate_webview_url(&room, client_props).await else {
+            return JsValue::NULL;
+        };
+        let widget_base_url = settings.base_url().map(|u| u.to_string());
+        let (driver, handle) = WidgetDriver::new(settings);
+        state.widget_handles.borrow_mut().insert(session_id, handle);
+
+        let cap_provider = crate::ElementCallCapabilitiesProvider {};
+        let client2 = state.client().clone();
+        let room_str = room_id.clone();
+        let (ah, ar) = AbortHandle::new_pair();
+        state.widget_driver_subs.borrow_mut().insert(session_id, ah);
+        wasm_bindgen_futures::spawn_local(async move {
+            let _ = Abortable::new(
+                async move {
+                    if let Ok(rid) = OwnedRoomId::try_from(room_str.as_str()) {
+                        if let Some(room) = client2.get_room(&rid) {
+                            let _ = driver.run(room, cap_provider).await;
+                        }
+                    }
+                },
+                ar,
+            )
+            .await;
+        });
+
+        to_json(&CallSessionInfo {
+            session_id,
+            widget_url: url.to_string(),
+            widget_base_url,
+            parent_url: Some(resolved_parent),
+        })
+    }
+
+    #[wasm_bindgen(js_name = callWidgetFromWebview)]
+    pub fn call_widget_from_webview(&self, session_id: f64, message: String) -> bool {
+        let Some(state) = self.state() else {
+            return false;
+        };
+        let sid = session_id as u64;
+        if let Some(handle) = state.widget_handles.borrow().get(&sid).cloned() {
+            wasm_bindgen_futures::spawn_local(async move {
+                let _ = handle.send(message).await;
+            });
+            true
+        } else {
+            false
+        }
+    }
+
+    #[wasm_bindgen(js_name = stopElementCall)]
+    pub fn stop_element_call(&self, session_id: f64) -> bool {
+        let Some(state) = self.state() else {
+            return false;
+        };
+        let sid = session_id as u64;
+        let mut any = false;
+        if let Some(h) = state.widget_driver_subs.borrow_mut().remove(&sid) {
+            h.abort();
+            any = true;
+        }
+        if let Some(h) = state.widget_recv_subs.borrow_mut().remove(&sid) {
+            h.abort();
+            any = true;
+        }
+        state.widget_handles.borrow_mut().remove(&sid);
+        any
+    }
+
     #[wasm_bindgen(js_name = listMyDevices)]
     pub async fn list_my_devices(&self) -> JsValue {
         let Some(state) = self.state() else {

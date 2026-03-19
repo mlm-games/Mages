@@ -1107,6 +1107,100 @@ impl CoreClient {
         }
     }
 
+    pub async fn cancel_verification_request(
+        &self,
+        flow_id: String,
+        other_user_id: Option<String>,
+    ) -> bool {
+        let user = if let Some(uid) = other_user_id {
+            match uid.parse::<OwnedUserId>() {
+                Ok(u) => u,
+                Err(_) => return false,
+            }
+        } else if let Some((u, _)) = self.inbox.lock().unwrap().get(&flow_id).cloned() {
+            u
+        } else {
+            return false;
+        };
+
+        if let Some(req) = self
+            .sdk
+            .encryption()
+            .get_verification_request(&user, &flow_id)
+            .await
+        {
+            return req.cancel().await.is_ok();
+        }
+        if let Some(verification) = self
+            .sdk
+            .encryption()
+            .get_verification(&user, &flow_id)
+            .await
+        {
+            if let Some(sas) = verification.sas() {
+                return sas.cancel().await.is_ok();
+            }
+        }
+        false
+    }
+
+    pub async fn accept_sas_flow(&self, flow_id: String, other_user_id: Option<String>) -> bool {
+        let user = self.resolve_other_user(&flow_id, other_user_id);
+        let Some(user) = user else { return false };
+
+        // Fast path: cached SAS
+        if let Some(f) = self.verifs.lock().unwrap().get(&flow_id) {
+            return f.sas.accept().await.is_ok();
+        }
+
+        // Slow path: wait for sas() to appear
+        let Some(verification) = self
+            .sdk
+            .encryption()
+            .get_verification(&user, &flow_id)
+            .await
+        else {
+            return false;
+        };
+        for _ in 0..25 {
+            if let Some(sas) = verification.clone().sas() {
+                return sas.accept().await.is_ok();
+            }
+            sleep(Duration::from_millis(120)).await;
+        }
+        false
+    }
+
+    pub async fn accept_verification_request_flow(
+        &self,
+        flow_id: String,
+        other_user_id: Option<String>,
+    ) -> bool {
+        let user = self.resolve_other_user(&flow_id, other_user_id);
+        let Some(user) = user else { return false };
+
+        if let Some(req) = self
+            .sdk
+            .encryption()
+            .get_verification_request(&user, &flow_id)
+            .await
+        {
+            return req.accept().await.is_ok();
+        }
+        false
+    }
+
+    pub async fn room_send_queue_set_enabled(&self, room_id: String, enabled: bool) -> bool {
+        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+            return false;
+        };
+        let Some(room) = self.sdk.get_room(&rid) else {
+            return false;
+        };
+        room.send_queue().set_enabled(enabled);
+        true
+    }
+
     pub async fn reactions_for_event(
         &self,
         room_id: String,

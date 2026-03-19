@@ -448,7 +448,7 @@ abstract class GenerateWasmExternsTask : DefaultTask() {
                     sb.appendLine("        fun createAsync(")
                     sb.appendLine("            homeserverUrl: String,")
                     sb.appendLine("            baseStoreDir: String,")
-                    sb.appendLine("            accountId: String? = kotlin.js.definedExternally")
+                    sb.appendLine("            accountId: String? = definedExternally")
                     sb.appendLine("        ): Promise<JsAny?>")
                 } else {
                     val ktParams = convertParams(m.params)
@@ -645,7 +645,7 @@ abstract class GenerateWasmExternsTask : DefaultTask() {
                 val ktName = snakeToCamel(tsName)
                 val tsType = p.substring(colonIdx + 1).trim()
                 val ktType = convertParamType(tsType)
-                if (optional) "$ktName: $ktType = kotlin.js.definedExternally"
+                if (optional) "$ktName: $ktType = definedExternally"
                 else "$ktName: $ktType"
             }
         }

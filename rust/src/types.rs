@@ -180,7 +180,7 @@ pub struct MemberSummary {
     pub membership: String,
 }
 
-#[derive(Clone, Debug, Record)]
+#[derive(Clone, Debug, Record, Serialize, Deserialize)]
 pub struct KnockRequestSummary {
     pub event_id: String,
     pub user_id: String,
