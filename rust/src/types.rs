@@ -2,12 +2,15 @@ use matrix_sdk::ruma::events::room::power_levels::UserPowerLevel;
 use matrix_sdk::{EncryptionState, PredecessorRoom, RoomDisplayName, SuccessorRoom};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, Mutex};
 use uniffi::{Enum, Object, Record, export};
 
 use matrix_sdk::encryption::verification::SasVerification;
 use matrix_sdk::ruma::{OwnedDeviceId, OwnedUserId};
 use matrix_sdk::send_queue::SendHandle;
+
+use crate::RT;
 
 pub(crate) const MIN_VISIBLE_AFTER_RESET: usize = 20;
 pub(crate) const BACKFILL_CHUNK: u16 = 20;
@@ -828,4 +831,35 @@ pub(crate) struct VerifFlow {
     pub(crate) sas: SasVerification,
     pub(crate) _other_user: OwnedUserId,
     pub(crate) _other_device: OwnedDeviceId,
+}
+
+pub struct TokioDrop<T>(Option<T>);
+
+impl<T> TokioDrop<T> {
+    pub fn new(val: T) -> Self {
+        Self(Some(val))
+    }
+}
+
+impl<T> Deref for TokioDrop<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref().expect("TokioDrop accessed after drop")
+    }
+}
+
+impl<T> DerefMut for TokioDrop<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.0.as_mut().expect("TokioDrop accessed after drop")
+    }
+}
+
+impl<T> Drop for TokioDrop<T> {
+    fn drop(&mut self) {
+        // 1. Enter the runtime context safely
+        let _guard = RT.enter();
+        // 2. Take the value out of the Option, forcing it to drop immediately
+        // while the _guard is still alive.
+        drop(self.0.take());
+    }
 }

@@ -502,7 +502,7 @@ interface MatrixPort {
     suspend fun setTyping(roomId: String, typing: Boolean): Boolean
     fun whoami(): String?
     fun accountManagementUrl(): String?
-    fun setupRecovery(observer: RecoveryObserver): ULong
+    fun setupRecovery(observer: RecoveryObserver): Boolean
     fun observeRecoveryState(observer: RecoveryStateObserver): ULong
     fun unobserveRecoveryState(subId: ULong): Boolean
 
@@ -607,7 +607,7 @@ interface MatrixPort {
         offset: Int? = null
     ): SearchPage
 
-    suspend fun recoverWithKey(recoveryKey: String): Boolean
+    suspend fun recoverWithKey(recoveryKey: String): Result<Unit>
     fun observeReceipts(roomId: String, observer: ReceiptsObserver): ULong
     fun stopReceiptsObserver(token: ULong)
     suspend fun dmPeerUserId(roomId: String): String?

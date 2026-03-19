@@ -3,6 +3,8 @@ package org.mlm.mages.matrix
 import io.github.vinceglb.filekit.utils.toJsArray
 import kotlinx.browser.document
 import kotlinx.browser.window
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.Flow
@@ -30,12 +32,6 @@ private external fun jsCallback0(fn: () -> Unit): JsAny
 
 @JsFun("(fn) => function(a) { return fn(a); }")
 private external fun jsCallback1(fn: (JsAny?) -> Unit): JsAny
-
-@JsFun("(fn) => function(a) { return fn(a); }")
-private external fun jsCallback1r(fn: (JsAny?) -> JsAny?): JsAny
-
-@JsFun("(fn) => function(a, b) { return fn(a, b); }")
-private external fun jsCallback2(fn: (JsAny?, JsAny?) -> Unit): JsAny
 
 @JsFun("(arr) => arr")
 private external fun jsArrayPassthrough(arr: JsAny): JsAny
@@ -315,12 +311,24 @@ class WebStubMatrixPort : MatrixPort {
 
     override fun accountManagementUrl(): String? = null
 
-    override fun setupRecovery(observer: MatrixPort.RecoveryObserver): ULong =
-        requireClient().setupRecovery(
-            jsCallback1 { v: JsAny? -> observer.onProgress(v?.toString() ?: "") },
-            jsCallback1 { v: JsAny? -> observer.onDone(v?.toString() ?: "") },
-            jsCallback1 { v: JsAny? -> observer.onError(v?.toString() ?: "Recovery error") }
-        ).toULong()
+    override fun setupRecovery(observer: MatrixPort.RecoveryObserver): Boolean {
+        val client = requireClient()
+        GlobalScope.launch {
+            try {
+                observer.onProgress("Starting recovery setup…")
+                val result = client.setupRecovery().await<JsAny?>()
+                val key = result?.toString() ?: ""
+                if (key.isNotBlank()) {
+                    observer.onDone(key)
+                } else {
+                    observer.onError("Recovery returned empty key")
+                }
+            } catch (e: Exception) {
+                observer.onError(e.message ?: "Recovery error")
+            }
+        }
+        return true
+    }
 
     override fun observeRecoveryState(observer: MatrixPort.RecoveryStateObserver): ULong =
         requireClient().observeRecoveryState(
@@ -526,95 +534,45 @@ class WebStubMatrixPort : MatrixPort {
     override suspend fun listMyDevices(): List<DeviceSummary> =
         decodeValueOrNull(requireClient().listMyDevices().await(), "listMyDevices") ?: emptyList()
 
-    override suspend fun startSelfSas(targetDeviceId: String, observer: VerificationObserver): String =
-        requireClient().startSelfSas(
-            targetDeviceId,
-            jsCallback1 { payload: JsAny? ->
-                parseVerificationPhasePayload(payload)?.let { (flowId, phase) ->
-                    observer.onPhase(flowId, phase)
-                }
-            },
-            jsCallback1 { payload: JsAny? ->
-                parseSasEmojisPayload(payload)?.let { (flowId, triple) ->
-                    observer.onEmojis(flowId, triple.first, triple.second, triple.third)
-                }
-            },
-            jsCallback1 { payload: JsAny? ->
-                parseVerificationErrorPayload(payload)?.let { (flowId, message) ->
-                    observer.onError(flowId, message)
-                }
-            }
-        ).await<String?>().orEmpty()
+    override suspend fun startSelfSas(targetDeviceId: String, observer: VerificationObserver): String {
+        val flowId = requireClient().startSelfSas(targetDeviceId).await<JsAny?>()?.toString().orEmpty()
+        if (flowId.isNotBlank()) {
+            observer.onPhase(flowId, SasPhase.Requested)
+        }
+        return flowId
+    }
 
-    override suspend fun startUserSas(userId: String, observer: VerificationObserver): String =
-        requireClient().startUserSas(
-            userId,
-            jsCallback1 { payload: JsAny? ->
-                parseVerificationPhasePayload(payload)?.let { (flowId, phase) ->
-                    observer.onPhase(flowId, phase)
-                }
-            },
-            jsCallback1 { payload: JsAny? ->
-                parseSasEmojisPayload(payload)?.let { (flowId, triple) ->
-                    observer.onEmojis(flowId, triple.first, triple.second, triple.third)
-                }
-            },
-            jsCallback1 { payload: JsAny? ->
-                parseVerificationErrorPayload(payload)?.let { (flowId, message) ->
-                    observer.onError(flowId, message)
-                }
-            }
-        ).await<String?>().orEmpty()
+    override suspend fun startUserSas(userId: String, observer: VerificationObserver): String {
+        val flowId = requireClient().startUserSas(userId).await<JsAny?>()?.toString().orEmpty()
+        if (flowId.isNotBlank()) {
+            observer.onPhase(flowId, SasPhase.Requested)
+        }
+        return flowId
+    }
 
     override suspend fun acceptVerificationRequest(
         flowId: String,
         otherUserId: String?,
         observer: VerificationObserver
-    ): Boolean =
-        requireClient().acceptVerificationRequest(
-            flowId,
-            otherUserId,
-            jsCallback1 { payload: JsAny? ->
-                parseVerificationPhasePayload(payload)?.let { (fid, phase) ->
-                    observer.onPhase(fid, phase)
-                }
-            },
-            jsCallback1 { payload: JsAny? ->
-                parseSasEmojisPayload(payload)?.let { (fid, triple) ->
-                    observer.onEmojis(fid, triple.first, triple.second, triple.third)
-                }
-            },
-            jsCallback1 { payload: JsAny? ->
-                parseVerificationErrorPayload(payload)?.let { (fid, message) ->
-                    observer.onError(fid, message)
-                }
-            }
-        ).await()
+    ): Boolean {
+        val result: Boolean = requireClient().acceptVerificationRequest(flowId, otherUserId).await()
+        if (result) {
+            observer.onPhase(flowId, SasPhase.Ready)
+        }
+        return result
+    }
 
     override suspend fun acceptSas(
         flowId: String,
         otherUserId: String?,
         observer: VerificationObserver
-    ): Boolean =
-        requireClient().acceptSas(
-            flowId,
-            otherUserId,
-            jsCallback1 { payload: JsAny? ->
-                parseVerificationPhasePayload(payload)?.let { (fid, phase) ->
-                    observer.onPhase(fid, phase)
-                }
-            },
-            jsCallback1 { payload: JsAny? ->
-                parseSasEmojisPayload(payload)?.let { (fid, triple) ->
-                    observer.onEmojis(fid, triple.first, triple.second, triple.third)
-                }
-            },
-            jsCallback1 { payload: JsAny? ->
-                parseVerificationErrorPayload(payload)?.let { (fid, message) ->
-                    observer.onError(fid, message)
-                }
-            }
-        ).await()
+    ): Boolean {
+        val result: Boolean = requireClient().acceptSas(flowId, otherUserId).await()
+        if (result) {
+            observer.onPhase(flowId, SasPhase.Accepted)
+        }
+        return result
+    }
 
     override suspend fun confirmVerification(flowId: String): Boolean =
         requireClient().confirmVerification(flowId).await()
@@ -675,7 +633,7 @@ class WebStubMatrixPort : MatrixPort {
         "searchRoom"
     ) ?: SearchPage(emptyList(), null)
 
-    override suspend fun recoverWithKey(recoveryKey: String): Boolean =
+    override suspend fun recoverWithKey(recoveryKey: String): Result<Unit> =
         requireClient().recoverWithKey(recoveryKey).await()
 
     override fun observeReceipts(roomId: String, observer: ReceiptsObserver): ULong =
@@ -1224,21 +1182,18 @@ class WebStubMatrixPort : MatrixPort {
         languageTag: String?,
         theme: String?,
         observer: CallWidgetObserver
-    ): CallSession? =
-        decodeValueOrNull(
-            requireClient().startElementCall(
-                roomId,
-                elementCallUrl,
-                parentUrl,
-                intent.name,
-                languageTag,
-                theme,
-                jsCallback1 { message: JsAny? ->
-                    observer.onToWidget(message?.toString() ?: "")
-                }
-            ).await(),
-            "startElementCall"
-        )
+    ): CallSession? {
+        val result = requireClient().startElementCall(
+            roomId,
+            elementCallUrl,
+            parentUrl,
+            intent.name,
+            languageTag,
+            theme
+        ).await<JsAny?>()
+
+        return decodeValueOrNull<CallSession>(result, "startElementCall")
+    }
 
     override fun callWidgetFromWebview(sessionId: ULong, message: String): Boolean =
         requireClient().callWidgetFromWebview(sessionId.toDouble(), message)

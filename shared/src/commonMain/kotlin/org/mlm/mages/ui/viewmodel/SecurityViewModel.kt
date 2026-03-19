@@ -116,8 +116,6 @@ class SecurityViewModel(
         }
     }
 
-    private var setupRecoveryToken: ULong? = null
-
     fun setupRecovery() {
         launch {
             val port = service.portOrNull ?: return@launch
@@ -128,8 +126,7 @@ class SecurityViewModel(
                 }
 
                 override fun onDone(recoveryKey: String) {
-                    setupRecoveryToken = null
-                    updateState { 
+                    updateState {
                         copy(
                             isEnablingRecovery = false,
                             recoveryProgress = null,
@@ -139,8 +136,7 @@ class SecurityViewModel(
                 }
 
                 override fun onError(message: String) {
-                    setupRecoveryToken = null
-                    updateState { 
+                    updateState {
                         copy(
                             isEnablingRecovery = false,
                             recoveryProgress = null,
@@ -151,7 +147,7 @@ class SecurityViewModel(
             }
 
             updateState { copy(isEnablingRecovery = true, recoveryProgress = "Starting...") }
-            setupRecoveryToken = port.setupRecovery(observer)
+            val ok = port.setupRecovery(observer)
         }
     }
 
@@ -216,12 +212,12 @@ class SecurityViewModel(
             }
 
             updateState { copy(isSubmittingRecoveryKey = true, error = null) }
-            val ok = port.recoverWithKey(key)
-            if (ok) {
+            val result = port.recoverWithKey(key)
+            if (result.isSuccess) {
                 updateState { copy(isSubmittingRecoveryKey = false, recoverySubmitSuccess = true) }
                 _events.send(Event.ShowSuccess("Recovery successful"))
             } else {
-                updateState { copy(isSubmittingRecoveryKey = false, error = "Recovery failed. Check your key and try again.") }
+                updateState { copy(isSubmittingRecoveryKey = false, error = result.toUserMessage("Recovery failed")) }
             }
         }
     }
@@ -285,7 +281,7 @@ class SecurityViewModel(
 
             updateState { copy(presence = presence.copy(isSaving = false)) }
 
-            if (result?.isSuccess == true) _events.send(Event.ShowSuccess("Status updated"))
+            if (result.isSuccess) _events.send(Event.ShowSuccess("Status updated"))
             else _events.send(Event.ShowError(result.toUserMessage("Failed to update status")))
         }
     }

@@ -241,7 +241,7 @@ class RustMatrixPort : MatrixPort {
         }
     }
 
-    override fun setupRecovery(observer: MatrixPort.RecoveryObserver): ULong {
+    override fun setupRecovery(observer: MatrixPort.RecoveryObserver): Boolean {
         val cb = object : mages.RecoveryObserver {
             override fun onProgress(step: String) {
                 observer.onProgress(step)
@@ -635,7 +635,7 @@ class RustMatrixPort : MatrixPort {
             runCatching { withClient { it.downloadAttachmentToCacheFile(info.toFfi(), filenameHint).path } }
         }
 
-    override suspend fun recoverWithKey(recoveryKey: String): Boolean =
+    override suspend fun recoverWithKey(recoveryKey: String): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching { withClient { it.recoverWithKey(recoveryKey) } }.getOrDefault(false)
         }

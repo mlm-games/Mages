@@ -106,7 +106,7 @@ class VerificationCoordinator(
         override fun onError(flowId: String, message: String) {
             _state.value = _state.value.copy(
                 sasFlowId = flowId,
-                sasError = message,
+                sasError = message, // TODO: Fix the "sdk not started" err, the flow works as intended
                 sasContinuePressed = false
             )
         }

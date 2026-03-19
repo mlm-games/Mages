@@ -286,7 +286,7 @@ delegate_plain! { Vec<RoomSummary>; rooms(); }
 
 #[derive(Object)]
 pub struct Client {
-    core: Arc<CoreClient>,
+    core: TokioDrop<Arc<CoreClient>>,
     store_dir: PathBuf,
     guards: Mutex<Vec<tokio::task::JoinHandle<()>>>,
     verifs: VerifMap,
@@ -312,7 +312,7 @@ pub struct Client {
     widget_handles: Mutex<HashMap<u64, WidgetDriverHandle>>,
     widget_driver_tasks: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     widget_recv_tasks: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
-    timeline_mgr: TimelineManager,
+    timeline_mgr: TokioDrop<TimelineManager>,
 }
 
 fn mages_client_metadata(redirect_uri: &Url) -> Raw<ClientMetadata> {
@@ -427,11 +427,11 @@ impl Client {
             .map_err(|e| FfiError::Msg(format!("failed to build client: {e}")))?;
 
         let core = Arc::new(CoreClient::new(inner.clone()));
-        let timeline_mgr = core.timeline_mgr.clone();
+        let timeline_mgr = TokioDrop::new(core.timeline_mgr.clone());
         let (send_tx, mut send_rx) = tokio::sync::mpsc::unbounded_channel::<SendUpdate>();
 
         let this = Self {
-            core: core.clone(),
+            core: TokioDrop::new(core.clone()),
             store_dir: store_dir_path,
             guards: Mutex::new(vec![]),
             verifs: core.verifs.clone(),
@@ -1540,30 +1540,12 @@ impl Client {
         })
     }
 
-    pub fn logout(&self) -> Result<(), FfiError> {
-        RT.block_on(async {
-            if let Some(svc) = self.core.sync_service.lock().unwrap().take() {
-                let _ = svc.stop().await;
-            }
-            for h in self.guards.lock().unwrap().drain(..) {
-                h.abort();
-            }
-            abort_all_subs!(self;
-                timeline_subs, typing_subs, connection_subs, inbox_subs,
-                receipts_subs, room_list_subs, call_subs, live_location_subs,
-                recovery_state_subs, backup_state_subs, widget_driver_tasks, widget_recv_tasks
-            );
-            self.room_list_cmds.lock().unwrap().clear();
-            self.widget_handles.lock().unwrap().clear();
-            self.send_handles_by_txn.lock().unwrap().clear();
-            self.send_observers.lock().unwrap().clear();
-            self.send_queue_supervised.store(false, Ordering::SeqCst);
-            self.core.timeline_mgr.clear();
-            let _ = self.core.sdk.matrix_auth().logout().await;
-            platform::remove_session_file(&self.store_dir);
-            platform::reset_store_dir(&self.store_dir);
-            Ok(())
-        })
+    pub fn logout(&self) -> bool {
+        self.shutdown();
+        let _ = RT.block_on(async { self.core.sdk.logout().await });
+        platform::remove_session_file(&self.store_dir);
+        platform::reset_store_dir(&self.store_dir);
+        true
     }
 
     pub fn login(
@@ -2237,6 +2219,561 @@ impl Client {
         })
     }
 
+    pub fn setup_recovery(&self, observer: Box<dyn RecoveryObserver>) -> bool {
+        self.enable_recovery(observer)
+    }
+
+    pub fn backup_exists_on_server(&self, fetch: bool) -> bool {
+        RT.block_on(self.core.backup_exists_on_server(fetch))
+    }
+
+    pub fn set_key_backup_enabled(&self, enabled: bool) -> bool {
+        RT.block_on(self.core.set_key_backup_enabled(enabled))
+    }
+
+    pub fn retry_by_txn(&self, _room_id: String, txn_id: String) -> bool {
+        RT.block_on(async {
+            if let Some(handle) = self
+                .send_handles_by_txn
+                .lock()
+                .unwrap()
+                .get(&txn_id)
+                .cloned()
+            {
+                handle.unwedge().await.is_ok()
+            } else {
+                false
+            }
+        })
+    }
+
+    pub fn send_attachment_from_path(
+        &self,
+        room_id: String,
+        path: String,
+        mime: String,
+        filename: Option<String>,
+        progress: Option<Box<dyn ProgressObserver>>,
+    ) -> bool {
+        RT.block_on(async {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return false;
+            };
+            let Some(room) = self.core.sdk.get_room(&rid) else {
+                return false;
+            };
+            let data = match std::fs::read(&path) {
+                Ok(d) => d,
+                Err(_) => return false,
+            };
+            let mime_type: Mime = mime.parse().unwrap_or(mime::APPLICATION_OCTET_STREAM);
+            let fname = filename.unwrap_or_else(|| {
+                std::path::Path::new(&path)
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or("file".into())
+            });
+            let config = matrix_sdk::attachment::AttachmentConfig::new();
+            if let Some(p) = progress.as_ref() {
+                p.on_progress(0, Some(data.len() as u64));
+            }
+            let result = room.send_attachment(&fname, &mime_type, data, config).await;
+            if let Some(p) = progress {
+                p.on_progress(1, Some(1));
+            }
+            result.is_ok()
+        })
+    }
+
+    pub fn download_attachment_to_cache_file(
+        &self,
+        att: AttachmentInfo,
+        filename_hint: Option<String>,
+    ) -> Result<DownloadResult, FfiError> {
+        #[cfg(target_family = "wasm")]
+        return Err(FfiError::Msg("file downloads not supported on web".into()));
+
+        #[cfg(not(target_family = "wasm"))]
+        {
+            let dir = cache_dir(&self.store_dir);
+            platform::ensure_dir(&dir);
+            fn sanitize(name: &str) -> String {
+                let mut s = String::with_capacity(name.len());
+                for ch in name.chars() {
+                    if ch.is_ascii_alphanumeric() || "-_.".contains(ch) {
+                        s.push(ch);
+                    } else {
+                        s.push('_');
+                    }
+                }
+                s.trim_matches('_').to_string()
+            }
+            let hint = filename_hint
+                .as_deref()
+                .map(sanitize)
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| "file.bin".into());
+            let out = dir.join(format!("dl_{}_{}", now_ms(), hint));
+
+            RT.block_on(async {
+                let source = if let Some(enc) = att.encrypted.as_ref() {
+                    let ef: matrix_sdk::ruma::events::room::EncryptedFile =
+                        serde_json::from_str(&enc.json).ffi()?;
+                    MediaSource::Encrypted(Box::new(ef))
+                } else {
+                    MediaSource::Plain(att.mxc_uri.clone().into())
+                };
+                let req = MediaRequestParameters {
+                    source,
+                    format: MediaFormat::File,
+                };
+                let data = self
+                    .core
+                    .sdk
+                    .media()
+                    .get_media_content(&req, true)
+                    .await
+                    .ffi()?;
+                std::fs::write(&out, &data).ffi()?;
+                Ok(DownloadResult {
+                    path: out.to_string_lossy().to_string(),
+                    bytes: data.len() as u64,
+                })
+            })
+        }
+    }
+
+    pub fn fetch_notifications_since(
+        &self,
+        since_ts_ms: u64,
+        max_rooms: u32,
+        max_events: u32,
+    ) -> Result<Vec<RenderedNotification>, FfiError> {
+        RT.block_on(async {
+            self.core.ensure_sync_service().await;
+            let process_setup = {
+                let g = self.core.sync_service.lock().unwrap();
+                if let Some(sync) = g.as_ref().cloned() {
+                    NotificationProcessSetup::SingleProcess { sync_service: sync }
+                } else {
+                    NotificationProcessSetup::MultipleProcesses
+                }
+            };
+            let nc = match NotificationClient::new(self.core.sdk.clone(), process_setup).await {
+                Ok(v) => v,
+                Err(e) => {
+                    warn!("NotificationClient::new failed: {e:?}");
+                    return Ok(vec![]);
+                }
+            };
+            let mut out = Vec::new();
+            for room in self
+                .core
+                .sdk
+                .joined_rooms()
+                .into_iter()
+                .take(max_rooms as usize)
+            {
+                let rid = room.room_id().to_owned();
+                let Ok(tl) = room.timeline().await else {
+                    continue;
+                };
+                let (items, _stream) = tl.subscribe().await;
+                for it in items.iter().rev() {
+                    let Some(ev) = it.as_event() else { continue };
+                    let ts: u64 = ev.timestamp().0.into();
+                    if ts <= since_ts_ms {
+                        break;
+                    }
+                    let Some(eid_ref) = ev.event_id() else {
+                        continue;
+                    };
+                    let status = match nc.get_notification(&rid, eid_ref).await {
+                        Ok(s) => s,
+                        Err(_) => continue,
+                    };
+                    let NotificationStatus::Event(item) = status else {
+                        continue;
+                    };
+                    let eid = eid_ref.to_owned();
+                    if let Some(rendered) = map_notification_item_to_rendered(&rid, &eid, &item) {
+                        out.push(rendered);
+                        if out.len() as u32 >= max_events {
+                            return Ok(out);
+                        }
+                    }
+                }
+            }
+            Ok(out)
+        })
+    }
+
+    pub fn thumbnail_to_cache(
+        &self,
+        att: AttachmentInfo,
+        width: u32,
+        height: u32,
+        use_crop: bool,
+    ) -> Result<String, FfiError> {
+        use matrix_sdk::media::{MediaFormat, MediaRequestParameters, MediaThumbnailSettings};
+        use ruma::events::room::MediaSource;
+
+        let (source, format, name_key) = if let Some(enc) = att.thumbnail_encrypted.as_ref() {
+            let ef: EncryptedFile = serde_json::from_str(&enc.json)
+                .map_err(|e| FfiError::Msg(format!("thumb enc parse: {e}")))?;
+            (
+                MediaSource::Encrypted(Box::new(ef)),
+                MediaFormat::File,
+                enc.url.clone(),
+            )
+        } else if let Some(mxc) = att.thumbnail_mxc_uri.as_ref() {
+            (
+                MediaSource::Plain(mxc.clone().into()),
+                MediaFormat::File,
+                mxc.clone(),
+            )
+        } else if let Some(enc) = att.encrypted.as_ref() {
+            // fetch full encrypted file as fallback
+            let ef: EncryptedFile = serde_json::from_str(&enc.json)
+                .map_err(|e| FfiError::Msg(format!("file enc parse: {e}")))?;
+            (
+                MediaSource::Encrypted(Box::new(ef)),
+                MediaFormat::File,
+                enc.url.clone(),
+            )
+        } else {
+            // Plain primary mxc
+            let settings = if use_crop {
+                MediaThumbnailSettings::with_method(
+                    matrix_sdk::ruma::api::client::media::get_content_thumbnail::v3::Method::Crop,
+                    width.into(),
+                    height.into(),
+                )
+            } else {
+                MediaThumbnailSettings::new(width.into(), height.into())
+            };
+            let mxc = att.mxc_uri.clone();
+            (
+                MediaSource::Plain(mxc.clone().into()),
+                MediaFormat::Thumbnail(settings),
+                mxc,
+            )
+        };
+
+        let req = MediaRequestParameters { source, format };
+
+        let dir = cache_dir(&self.store_dir);
+        platform::ensure_dir(&dir);
+        fn sanitize(name: &str) -> String {
+            let mut s = String::with_capacity(name.len());
+            for ch in name.chars() {
+                if ch.is_ascii_alphanumeric() || "-_.".contains(ch) {
+                    s.push(ch);
+                } else {
+                    s.push('_');
+                }
+            }
+            s.trim_matches('_').to_string()
+        }
+        let key =
+            blake3::hash(format!("{}-{}x{}-{}", name_key, width, height, use_crop).as_bytes())
+                .to_hex();
+        let ext = att
+            .mime
+            .as_deref()
+            .and_then(|m| m.split('/').nth(1))
+            .filter(|e| !e.is_empty())
+            .unwrap_or("jpg");
+        let fname = format!(
+            "thumb_{}_{}x{}{}.{ext}",
+            &key[..16],
+            width,
+            height,
+            if use_crop { "_crop" } else { "_scale" }
+        );
+        let out = dir.join(sanitize(&fname));
+
+        #[cfg(not(target_family = "wasm"))]
+        {
+            if let Some(parent) = out.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+
+            let bytes = RT
+                .block_on(async { self.core.sdk.media().get_media_content(&req, true).await })
+                .or_else(|_e| {
+                    // Fallback only when we asked for a server-side thumb of a plain mxc
+                    if matches!(req.format, MediaFormat::Thumbnail(_)) {
+                        let req_full = MediaRequestParameters {
+                            source: req.source.clone(),
+                            format: MediaFormat::File,
+                        };
+                        RT.block_on(async {
+                            self.core
+                                .sdk
+                                .media()
+                                .get_media_content(&req_full, true)
+                                .await
+                        })
+                    } else {
+                        Err(_e)
+                    }
+                })
+                .map_err(|e| FfiError::Msg(format!("thumbnail fetch: {e}")))?;
+
+            std::fs::write(&out, &bytes)?;
+            Ok(out.to_string_lossy().to_string())
+        }
+        #[cfg(target_family = "wasm")]
+        Err(FfiError::Msg(
+            "thumbnail_to_cache: not supported on wasm".into(),
+        ))
+    }
+
+    pub fn mxc_thumbnail_to_cache(
+        &self,
+        mxc_uri: String,
+        width: u32,
+        height: u32,
+        crop: bool,
+    ) -> Result<String, FfiError> {
+        #[cfg(target_family = "wasm")]
+        return Err(FfiError::Msg(
+            "mxc_thumbnail_to_cache: not supported on wasm".into(),
+        ));
+        #[cfg(not(target_family = "wasm"))]
+        RT.block_on(async {
+            let dir = cache_dir(&self.store_dir);
+            platform::ensure_dir(&dir);
+            let method = if crop {
+                matrix_sdk::ruma::api::client::media::get_content_thumbnail::v3::Method::Crop
+            } else {
+                matrix_sdk::ruma::api::client::media::get_content_thumbnail::v3::Method::Scale
+            };
+            let settings = matrix_sdk::media::MediaThumbnailSettings::with_method(
+                method,
+                UInt::from(width.max(1)),
+                UInt::from(height.max(1)),
+            );
+            let req = MediaRequestParameters {
+                source: MediaSource::Plain(mxc_uri.clone().into()),
+                format: MediaFormat::Thumbnail(settings),
+            };
+            let bytes = self
+                .core
+                .sdk
+                .media()
+                .get_media_content(&req, true)
+                .await
+                .ffi()?;
+            let ext = if bytes.starts_with(&[0x89, b'P', b'N', b'G']) {
+                "png"
+            } else if bytes.starts_with(&[0xFF, 0xD8, 0xFF]) {
+                "jpg"
+            } else if bytes.starts_with(b"GIF8") {
+                "gif"
+            } else {
+                "img"
+            };
+            let key = blake3::hash(format!("{mxc_uri}|{width}x{height}|{crop}").as_bytes())
+                .to_hex()
+                .to_string();
+            let out = dir.join(format!("mxc_thumb_{key}.{ext}"));
+            std::fs::write(&out, bytes).ffi()?;
+            Ok(out.to_string_lossy().to_string())
+        })
+    }
+
+    pub fn start_self_sas(
+        &self,
+        device_id: String,
+        observer: Box<dyn VerificationObserver>,
+    ) -> String {
+        let obs: Arc<dyn VerificationObserver> = Arc::from(observer);
+        RT.block_on(async {
+            let Some(me) = self.core.sdk.user_id() else {
+                obs.on_error("".into(), "No user".into());
+                return "".into();
+            };
+            self.core
+                .sdk
+                .encryption()
+                .wait_for_e2ee_initialization_tasks()
+                .await;
+            let Ok(devices) = self.core.sdk.encryption().get_user_devices(me).await else {
+                obs.on_error("".into(), "Devices unavailable".into());
+                return "".into();
+            };
+            let dev = devices
+                .devices()
+                .find(|d| d.device_id().as_str() == device_id);
+            let Some(dev) = dev else {
+                obs.on_error("".into(), "Device not found".into());
+                return "".into();
+            };
+            match dev.request_verification().await {
+                Ok(req) => {
+                    let flow_id = req.flow_id().to_string();
+                    self.wait_and_start_sas(flow_id.clone(), req, obs);
+                    flow_id
+                }
+                Err(e) => {
+                    obs.on_error("".into(), e.to_string());
+                    "".into()
+                }
+            }
+        })
+    }
+
+    pub fn start_user_sas(
+        &self,
+        user_id: String,
+        observer: Box<dyn VerificationObserver>,
+    ) -> String {
+        let obs: Arc<dyn VerificationObserver> = Arc::from(observer);
+        RT.block_on(async {
+            let Ok(uid) = user_id.parse::<OwnedUserId>() else {
+                obs.on_error("".into(), "Bad user id".into());
+                return "".into();
+            };
+            self.core
+                .sdk
+                .encryption()
+                .wait_for_e2ee_initialization_tasks()
+                .await;
+            match self.core.sdk.encryption().request_user_identity(&uid).await {
+                Ok(Some(identity)) => match identity.request_verification().await {
+                    Ok(req) => {
+                        let flow_id = req.flow_id().to_string();
+                        self.wait_and_start_sas(flow_id.clone(), req, obs);
+                        flow_id
+                    }
+                    Err(e) => {
+                        obs.on_error("".into(), e.to_string());
+                        "".into()
+                    }
+                },
+                Ok(None) => {
+                    obs.on_error("".into(), "User has no cross-signing identity".into());
+                    "".into()
+                }
+                Err(e) => {
+                    obs.on_error("".into(), format!("Identity fetch failed: {e}"));
+                    "".into()
+                }
+            }
+        })
+    }
+
+    pub fn accept_verification_request(
+        &self,
+        flow_id: String,
+        other_user_id: Option<String>,
+        observer: Box<dyn VerificationObserver>,
+    ) -> bool {
+        let obs: Arc<dyn VerificationObserver> = Arc::from(observer);
+        RT.block_on(async {
+            let Some(user) = self.core.resolve_other_user(&flow_id, other_user_id) else {
+                return false;
+            };
+            if let Some(req) = self
+                .core
+                .sdk
+                .encryption()
+                .get_verification_request(&user, &flow_id)
+                .await
+            {
+                if req.accept().await.is_err() {
+                    return false;
+                }
+                self.wait_and_start_sas(flow_id, req, obs);
+                return true;
+            }
+            false
+        })
+    }
+
+    pub fn accept_sas(
+        &self,
+        flow_id: String,
+        other_user_id: Option<String>,
+        observer: Box<dyn VerificationObserver>,
+    ) -> bool {
+        let obs: Arc<dyn VerificationObserver> = Arc::from(observer);
+        let verifs = self.verifs.clone();
+        RT.block_on(async {
+            if let Some(f) = verifs.lock().unwrap().get(&flow_id) {
+                return f.sas.accept().await.is_ok();
+            }
+            let Some(user) = self.core.resolve_other_user(&flow_id, other_user_id) else {
+                return false;
+            };
+            let Some(verification) = self
+                .core
+                .sdk
+                .encryption()
+                .get_verification(&user, &flow_id)
+                .await
+            else {
+                return false;
+            };
+            for _ in 0..25 {
+                if let Some(sas) = verification.clone().sas() {
+                    let sas_clone = sas.clone();
+                    let fid = flow_id.clone();
+                    let v = verifs.clone();
+                    let o = obs.clone();
+                    spawn_detached!(async move {
+                        Self::attach_sas_stream(v, fid, sas_clone, o).await;
+                    });
+                    return sas.accept().await.is_ok();
+                }
+                sleep(Duration::from_millis(120)).await;
+            }
+            false
+        })
+    }
+
+    pub fn cancel_verification_request(
+        &self,
+        flow_id: String,
+        other_user_id: Option<String>,
+    ) -> bool {
+        RT.block_on(async {
+            let user = if let Some(uid) = other_user_id {
+                match uid.parse::<OwnedUserId>() {
+                    Ok(u) => u,
+                    Err(_) => return false,
+                }
+            } else if let Some((u, _)) = self.inbox.lock().unwrap().get(&flow_id).cloned() {
+                u
+            } else {
+                return false;
+            };
+            if let Some(req) = self
+                .core
+                .sdk
+                .encryption()
+                .get_verification_request(&user, &flow_id)
+                .await
+            {
+                return req.cancel().await.is_ok();
+            }
+            if let Some(verification) = self
+                .core
+                .sdk
+                .encryption()
+                .get_verification(&user, &flow_id)
+                .await
+            {
+                if let Some(sas) = verification.sas() {
+                    return sas.cancel().await.is_ok();
+                }
+            }
+            false
+        })
+    }
+
     pub fn shutdown(&self) {
         self.shutdown_inner();
     }
@@ -2294,6 +2831,36 @@ impl Client {
         };
         platform::persist_session(&client.store_dir, &info).await?;
         Ok(())
+    }
+
+    fn wait_and_start_sas(
+        &self,
+        flow_id: String,
+        req: VerificationRequest,
+        obs: Arc<dyn VerificationObserver>,
+    ) {
+        let verifs = self.verifs.clone();
+        let h = spawn_task!(async move {
+            obs.on_phase(flow_id.clone(), SasPhase::Requested);
+            match req.start_sas().await {
+                Ok(Some(sas)) => {
+                    obs.on_phase(flow_id.clone(), SasPhase::Started);
+                    run_sas_loop(sas, &flow_id, &verifs, &obs).await;
+                }
+                Ok(None) => obs.on_error(flow_id.clone(), "SAS not started (None)".into()),
+                Err(e) => obs.on_error(flow_id.clone(), format!("start_sas error: {e}")),
+            }
+        });
+        self.guards.lock().unwrap().push(h);
+    }
+
+    async fn attach_sas_stream(
+        verifs: VerifMap,
+        flow_id: String,
+        sas: SasVerification,
+        obs: Arc<dyn VerificationObserver>,
+    ) {
+        run_sas_loop(sas, &flow_id, &verifs, &obs).await;
     }
 }
 
