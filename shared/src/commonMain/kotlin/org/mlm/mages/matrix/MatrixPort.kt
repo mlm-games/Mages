@@ -173,8 +173,8 @@ sealed class VerifEvent {
 data class EmojiEntry(val symbol: String, val description: String)
 
 interface VerificationService {
-    fun startDeviceVerification(deviceId: String): kotlinx.coroutines.flow.Flow<VerifEvent>
-    fun startUserVerification(userId: String): kotlinx.coroutines.flow.Flow<VerifEvent>
+    fun startDeviceVerification(deviceId: String): Flow<VerifEvent>
+    fun startUserVerification(userId: String): Flow<VerifEvent>
     suspend fun acceptVerificationRequest(flowId: String, otherUserId: String): Boolean
     suspend fun acceptSas(flowId: String, otherUserId: String): Boolean
     suspend fun confirmSas(flowId: String): Boolean
