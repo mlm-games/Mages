@@ -789,6 +789,10 @@ pub(crate) enum RoomListCmd {
     SetUnreadOnly(bool),
 }
 
+fn default_auth_api() -> String {
+    "matrix".to_owned()
+}
+
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SessionInfo {
     pub user_id: String,
@@ -796,7 +800,10 @@ pub(crate) struct SessionInfo {
     pub access_token: String,
     pub refresh_token: Option<String>,
     pub homeserver: String,
-    pub recovery_state: Option<String>,
+    #[serde(default = "default_auth_api")]
+    pub auth_api: String,
+    #[serde(default)]
+    pub client_id: Option<String>,
 }
 
 pub struct TokioDrop<T>(Option<T>);

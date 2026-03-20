@@ -83,8 +83,12 @@ use macros::*;
 
 use matrix_sdk::ruma::events::receipt::ReceiptThread;
 use matrix_sdk::{
-    Client as SdkClient, OwnedServerName, Room, RoomMemberships, SessionTokens,
+    Client as SdkClient, OwnedServerName, Room, RoomMemberships, SessionMeta, SessionTokens,
     authentication::matrix::MatrixSession,
+    authentication::{
+        AuthSession,
+        oauth::{ClientId, OAuthSession, UserSession},
+    },
     config::SyncSettings,
     media::{MediaFormat, MediaRequestParameters, MediaRetentionPolicy},
     ruma::{
@@ -472,22 +476,66 @@ impl Client {
             this.guards.lock().unwrap().push(h);
         }
 
+        // Session persistence - listen for token refreshes via subscribe_to_session_changes
+        {
+            let session_path = this.store_dir.clone();
+            let sdk = this.core.sdk.clone();
+            let h = spawn_task!(async move {
+                let mut rx = sdk.subscribe_to_session_changes();
+                loop {
+                    match rx.recv().await {
+                        Ok(matrix_sdk::SessionChange::TokensRefreshed) => {
+                            platform::build_and_persist_session(&sdk, &session_path).await;
+                        }
+                        Ok(matrix_sdk::SessionChange::UnknownToken(info)) => {
+                            if !info.soft_logout {
+                                platform::remove_session_file(&session_path);
+                            }
+                        }
+                        Err(_) => break,
+                    }
+                }
+            });
+            this.guards.lock().unwrap().push(h);
+        }
+
         // Restore session
         #[cfg(not(target_family = "wasm"))]
         RT.block_on(async {
             if let Some(info) = platform::load_session(&this.store_dir).await {
                 if let Ok(user_id) = info.user_id.parse::<OwnedUserId>() {
-                    let session = MatrixSession {
-                        meta: matrix_sdk::SessionMeta {
-                            user_id,
-                            device_id: info.device_id.clone().into(),
-                        },
-                        tokens: SessionTokens {
-                            access_token: info.access_token.clone(),
-                            refresh_token: info.refresh_token.clone(),
-                        },
+                    let meta = SessionMeta {
+                        user_id,
+                        device_id: info.device_id.into(),
                     };
-                    if this.core.sdk.restore_session(session).await.is_ok() {
+                    let tokens = SessionTokens {
+                        access_token: info.access_token,
+                        refresh_token: info.refresh_token,
+                    };
+                    let result = if info.auth_api == "oauth" {
+                        if let Some(cid) = info.client_id {
+                            this.core
+                                .sdk
+                                .restore_session(OAuthSession {
+                                    client_id: ClientId::new(cid),
+                                    user: UserSession { meta, tokens },
+                                })
+                                .await
+                        } else {
+                            // OAuth without client_id can't be restored — delete bad session
+                            platform::remove_session_file(&this.store_dir);
+                            Err(matrix_sdk::Error::UnknownError(
+                                "OAuth session missing client_id".into(),
+                            ))
+                        }
+                    } else {
+                        this.core
+                            .sdk
+                            .restore_session(MatrixSession { meta, tokens })
+                            .await
+                    };
+
+                    if result.is_ok() {
                         this.core
                             .sdk
                             .encryption()
@@ -510,34 +558,6 @@ impl Client {
                 }
             }
         });
-
-        // Token refresh persistence task
-        {
-            let sdk = this.core.sdk.clone();
-            let store = this.store_dir.clone();
-            let h = spawn_task!(async move {
-                let mut session_rx = sdk.subscribe_to_session_changes();
-                while let Ok(update) = session_rx.recv().await {
-                    if let matrix_sdk::SessionChange::TokensRefreshed = update {
-                        if let Some(sess) = sdk.matrix_auth().session() {
-                            let recovery_state = platform::load_session(&store)
-                                .await
-                                .and_then(|info| info.recovery_state);
-                            let info = SessionInfo {
-                                user_id: sess.meta.user_id.to_string(),
-                                device_id: sess.meta.device_id.to_string(),
-                                access_token: sess.tokens.access_token.clone(),
-                                refresh_token: sess.tokens.refresh_token.clone(),
-                                homeserver: sdk.homeserver().to_string(),
-                                recovery_state,
-                            };
-                            let _ = platform::persist_session(&store, &info).await;
-                        }
-                    }
-                }
-            });
-            this.guards.lock().unwrap().push(h);
-        }
 
         // Room key decryption retry task
         {
@@ -1272,17 +1292,7 @@ impl Client {
                 warn!("event_cache.subscribe() failed after login: {e:?}");
             }
             self.ensure_send_queue_supervision();
-            if let Some(sess) = self.core.sdk.matrix_auth().session() {
-                let info = SessionInfo {
-                    user_id: sess.meta.user_id.to_string(),
-                    device_id: sess.meta.device_id.to_string(),
-                    access_token: sess.tokens.access_token.clone(),
-                    refresh_token: sess.tokens.refresh_token.clone(),
-                    homeserver: self.core.sdk.homeserver().to_string(),
-                    recovery_state: None,
-                };
-                let _ = platform::persist_session(&self.store_dir, &info).await;
-            }
+            Self::persist_current_session(self).await;
             Ok(self.core.user_id_str())
         })
     }
@@ -1356,17 +1366,7 @@ impl Client {
                 warn!("event_cache.subscribe() failed after OAuth login: {e:?}");
             }
             self.ensure_send_queue_supervision();
-            if let Some(sess) = self.core.sdk.matrix_auth().session() {
-                let info = SessionInfo {
-                    user_id: sess.meta.user_id.to_string(),
-                    device_id: sess.meta.device_id.to_string(),
-                    access_token: sess.tokens.access_token.clone(),
-                    refresh_token: sess.tokens.refresh_token.clone(),
-                    homeserver: self.core.sdk.homeserver().to_string(),
-                    recovery_state: None,
-                };
-                let _ = platform::persist_session(&self.store_dir, &info).await;
-            }
+            Self::persist_current_session(self).await;
             Ok(self.core.user_id_str())
         })
     }
@@ -1396,17 +1396,7 @@ impl Client {
                 .send()
                 .await
                 .ffi()?;
-            if let Some(sess) = self.core.sdk.matrix_auth().session() {
-                let info = SessionInfo {
-                    user_id: sess.meta.user_id.to_string(),
-                    device_id: sess.meta.device_id.to_string(),
-                    access_token: sess.tokens.access_token.clone(),
-                    refresh_token: sess.tokens.refresh_token.clone(),
-                    homeserver: self.core.sdk.homeserver().to_string(),
-                    recovery_state: None,
-                };
-                platform::persist_session(&self.store_dir, &info).await?;
-            }
+            Self::persist_current_session(self).await;
             self.core.ensure_sync_service().await;
             Ok(())
         })
@@ -1449,17 +1439,7 @@ impl Client {
                     let _ = self.core.sdk.send(req).await;
                 }
             }
-            if let Some(sess) = oauth.user_session() {
-                let info = SessionInfo {
-                    user_id: sess.meta.user_id.to_string(),
-                    device_id: sess.meta.device_id.to_string(),
-                    access_token: sess.tokens.access_token.clone(),
-                    refresh_token: sess.tokens.refresh_token.clone(),
-                    homeserver: self.core.sdk.homeserver().to_string(),
-                    recovery_state: None,
-                };
-                platform::persist_session(&self.store_dir, &info).await?;
-            }
+            Self::persist_current_session(self).await;
             self.core.ensure_sync_service().await;
             Ok(())
         })
@@ -1491,7 +1471,7 @@ impl Client {
                 .unwrap_or_else(|_| UrlOrQuery::Query(callback_data));
             oauth.finish_login(callback).await.ffi()?;
             Self::maybe_update_device_name(self, device_name).await;
-            Self::persist_oauth_session(self).await?;
+            Self::persist_current_session(self).await;
             self.core.ensure_sync_service().await;
             Ok(())
         })
@@ -1524,8 +1504,8 @@ impl Client {
             if let Some(name) = device_name.as_deref() {
                 builder = builder.initial_device_display_name(name);
             }
-            let response = builder.await.ffi()?;
-            Self::persist_matrix_login_response(self, &response).await?;
+            let _response = builder.await.ffi()?;
+            Self::persist_current_session(self).await;
             self.core.ensure_sync_service().await;
             Ok(())
         })
@@ -1554,16 +1534,8 @@ impl Client {
             if let Some(name) = device_display_name.as_ref() {
                 req = req.initial_device_display_name(name);
             }
-            let res = req.send().await.ffi()?;
-            let info = SessionInfo {
-                user_id: res.user_id.to_string(),
-                device_id: res.device_id.to_string(),
-                access_token: res.access_token.clone(),
-                refresh_token: res.refresh_token.clone(),
-                homeserver: self.core.sdk.homeserver().to_string(),
-                recovery_state: None,
-            };
-            platform::persist_session(&self.store_dir, &info).await?;
+            let _res = req.send().await.ffi()?;
+            Self::persist_current_session(self).await;
             self.core
                 .sdk
                 .encryption()
@@ -1756,13 +1728,10 @@ impl Client {
         let store = self.store_dir.clone();
         let obs: Arc<dyn RecoveryObserver> = Arc::from(observer);
         let h = spawn_task!(async move {
-            obs.on_progress("Starting recovery setup…".into());
+            obs.on_progress("Starting recovery setup...".into());
             match sdk.encryption().recovery().enable().await {
                 Ok(key) => {
-                    if let Some(mut info) = platform::load_session(&store).await {
-                        info.recovery_state = Some(RecoveryState::Enabled.to_string());
-                        let _ = platform::persist_session(&store, &info).await;
-                    }
+                    platform::build_and_persist_session(&sdk, &store).await;
                     obs.on_done(key);
                 }
                 Err(e) => obs.on_error(format!("Recovery setup failed: {e}")),
@@ -1793,10 +1762,7 @@ impl Client {
                 .disable()
                 .await
                 .ffi()?;
-            if let Some(mut info) = platform::load_session(&self.store_dir).await {
-                info.recovery_state = Some(RecoveryState::Disabled.to_string());
-                let _ = platform::persist_session(&self.store_dir, &info).await;
-            }
+            Self::persist_current_session(self).await;
             Ok(())
         })
     }
@@ -2794,35 +2760,38 @@ impl Client {
         }
     }
 
-    async fn persist_oauth_session(client: &Client) -> Result<(), FfiError> {
-        if let Some(sess) = client.core.sdk.oauth().user_session() {
-            let info = SessionInfo {
-                user_id: sess.meta.user_id.to_string(),
-                device_id: sess.meta.device_id.to_string(),
-                access_token: sess.tokens.access_token.clone(),
-                refresh_token: sess.tokens.refresh_token.clone(),
-                homeserver: client.core.sdk.homeserver().to_string(),
-                recovery_state: None,
-            };
-            platform::persist_session(&client.store_dir, &info).await?;
-        }
-        Ok(())
+    async fn persist_current_session(client: &Client) {
+        platform::build_and_persist_session(&client.core.sdk, &client.store_dir).await;
     }
+}
 
-    async fn persist_matrix_login_response(
-        client: &Client,
-        response: &matrix_sdk::ruma::api::client::session::login::v3::Response,
-    ) -> Result<(), FfiError> {
+async fn persist_current_session(client: &Client) {
+    let sdk = &client.core.sdk;
+    let homeserver = sdk.homeserver().to_string();
+
+    if let Some(oauth_sess) = sdk.oauth().user_session() {
+        let client_id_str = sdk.oauth().client_id().map(|c| c.to_string());
         let info = SessionInfo {
-            user_id: response.user_id.to_string(),
-            device_id: response.device_id.clone().to_string(),
-            access_token: response.access_token.clone(),
-            refresh_token: response.refresh_token.clone(),
-            homeserver: client.core.sdk.homeserver().to_string(),
-            recovery_state: None,
+            user_id: oauth_sess.meta.user_id.to_string(),
+            device_id: oauth_sess.meta.device_id.to_string(),
+            access_token: oauth_sess.tokens.access_token.clone(),
+            refresh_token: oauth_sess.tokens.refresh_token.clone(),
+            homeserver,
+            auth_api: "oauth".to_string(),
+            client_id: client_id_str,
         };
-        platform::persist_session(&client.store_dir, &info).await?;
-        Ok(())
+        let _ = platform::persist_session(&client.store_dir, &info).await;
+    } else if let Some(matrix_sess) = sdk.matrix_auth().session() {
+        let info = SessionInfo {
+            user_id: matrix_sess.meta.user_id.to_string(),
+            device_id: matrix_sess.meta.device_id.to_string(),
+            access_token: matrix_sess.tokens.access_token.clone(),
+            refresh_token: matrix_sess.tokens.refresh_token.clone(),
+            homeserver,
+            auth_api: "matrix".to_string(),
+            client_id: None,
+        };
+        let _ = platform::persist_session(&client.store_dir, &info).await;
     }
 }
 

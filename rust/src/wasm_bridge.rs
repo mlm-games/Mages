@@ -624,6 +624,29 @@ impl WasmClient {
             widget_recv_subs: RefCell::new(HashMap::new()),
             verification_subs: RefCell::new(HashMap::new()),
         });
+
+        {
+            let weak_state = Rc::downgrade(&state);
+            let mut rx = state.core.sdk.subscribe_to_session_changes();
+            wasm_bindgen_futures::spawn_local(async move {
+                while let Ok(change) = rx.recv().await {
+                    let Some(s) = weak_state.upgrade() else {
+                        break;
+                    };
+                    match change {
+                        matrix_sdk::SessionChange::TokensRefreshed => {
+                            s.persist_session();
+                        }
+                        Ok(matrix_sdk::SessionChange::UnknownToken(info)) => {
+                            if !info.soft_logout {
+                                clear_wasm_session(&s.store_name);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
         Ok(WasmClient {
             async_state: Rc::new(RefCell::new(Some(state))),
         })

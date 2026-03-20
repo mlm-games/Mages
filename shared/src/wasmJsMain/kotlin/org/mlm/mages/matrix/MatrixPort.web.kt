@@ -68,6 +68,33 @@ private suspend fun Promise<JsAny?>.awaitAny(): JsAny? =
 private external fun bytesToUint8Array(bytes: JsAny): JsAny
 
 fun ByteArray.toJsUint8Array(): JsAny = bytesToUint8Array(this.toJsReference())
+
+@JsFun("""(url, redirectOrigin) => new Promise((resolve) => {
+    const w = window.open(url, '_blank', 'width=600,height=700,popup=yes');
+    if (!w) { resolve(null); return; }
+
+    const timer = setInterval(() => {
+        try {
+            if (w.location.origin === redirectOrigin) {
+                const href = w.location.href;
+                clearInterval(timer);
+                w.close();
+                resolve(href);
+            }
+        } catch (e) {
+            // popup is still on the auth server, keep waiting
+        }
+    }, 200);
+
+    const closeTimer = setInterval(() => {
+        if (w.closed) {
+            clearInterval(timer);
+            clearInterval(closeTimer);
+            resolve(null);
+        }
+    }, 500);
+})""")
+private external fun openOAuthPopup(url: String, redirectOrigin: String): Promise<JsAny?>
 // --
 
 class WebStubMatrixPort : MatrixPort, VerificationService {
@@ -78,34 +105,6 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
 
     private var nextConnectionObserverToken: ULong = 1uL
     private val connectionObserverStops = mutableMapOf<ULong, () -> Unit>()
-
-    companion object {
-        private const val PENDING_OAUTH_HS_KEY = "mages_pending_oauth_hs_v1"
-        private const val PENDING_OAUTH_ACCOUNT_ID_KEY = "mages_pending_oauth_account_id_v1"
-    }
-
-    private fun savePendingOauth(hs: String, accountId: String?) {
-        val storage = window.localStorage
-        storage.setItem(PENDING_OAUTH_HS_KEY, hs)
-        if (accountId != null) {
-            storage.setItem(PENDING_OAUTH_ACCOUNT_ID_KEY, accountId)
-        } else {
-            storage.removeItem(PENDING_OAUTH_ACCOUNT_ID_KEY)
-        }
-    }
-
-    private fun loadPendingOauth(): Pair<String, String?>? {
-        val storage = window.localStorage
-        val hs = storage.getItem(PENDING_OAUTH_HS_KEY) ?: return null
-        val accountId = storage.getItem(PENDING_OAUTH_ACCOUNT_ID_KEY)
-        return hs to accountId
-    }
-
-    private fun clearPendingOauth() {
-        val storage = window.localStorage
-        storage.removeItem(PENDING_OAUTH_HS_KEY)
-        storage.removeItem(PENDING_OAUTH_ACCOUNT_ID_KEY)
-    }
 
     private fun requireClient(): WasmClient {
         return client ?: throw IllegalStateException("Matrix client not initialized. Wait for init call.")
@@ -678,9 +677,8 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         deviceName: String?
     ): Boolean {
         return when (loginOauth(openUrl, deviceName)) {
-            MatrixPort.OauthLoginResult.Completed,
+            MatrixPort.OauthLoginResult.Completed -> true
             MatrixPort.OauthLoginResult.RedirectStarted -> true
-
             is MatrixPort.OauthLoginResult.Failed -> false
         }
     }
@@ -689,7 +687,6 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         openUrl: (String) -> Boolean,
         deviceName: String?
     ): MatrixPort.OauthLoginResult {
-        val hs = currentHs ?: return MatrixPort.OauthLoginResult.Failed("Matrix client not initialized")
         val redirectUri = URL(".", document.baseURI).href
 
         return try {
@@ -704,40 +701,34 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             val url = (obj["url"] as? JsonPrimitive)?.contentOrNull
             val error = (obj["error"] as? JsonPrimitive)?.contentOrNull
 
-            if (ok && !url.isNullOrBlank()) {
-                savePendingOauth(hs, currentAccountId)
-                window.location.href = url
-                MatrixPort.OauthLoginResult.RedirectStarted
+            if (!ok || url.isNullOrBlank()) {
+                return MatrixPort.OauthLoginResult.Failed(error ?: "OAuth start failed")
+            }
+
+            val redirectOrigin = URL(".", document.baseURI).origin
+            val callbackHref = openOAuthPopup(url, redirectOrigin)
+                .await<JsAny?>()
+                ?.toString()
+
+            if (callbackHref.isNullOrBlank()) {
+                return MatrixPort.OauthLoginResult.Failed("OAuth popup closed or blocked")
+            }
+
+            val finished = requireClient()
+                .finishLoginFromRedirect(callbackHref, "", null)
+                .await<Boolean>()
+
+            if (finished) {
+                MatrixPort.OauthLoginResult.Completed
             } else {
-                MatrixPort.OauthLoginResult.Failed(error ?: "OAuth start failed")
+                MatrixPort.OauthLoginResult.Failed("OAuth finish failed")
             }
         } catch (e: Exception) {
             MatrixPort.OauthLoginResult.Failed(e.message)
         }
     }
 
-    override suspend fun maybeFinishOauthRedirect(): Boolean {
-        val href = window.location.href
-        if (!href.contains("code=") && !href.contains("error=")) return false
-
-        if (client == null) {
-            val pending = loadPendingOauth() ?: return false
-            init(pending.first, pending.second)
-        }
-
-        val ok = requireClient()
-            .finishLoginFromRedirect(href, "", null)
-            .await<Boolean>()
-
-        if (ok) {
-            clearPendingOauth()
-            window.history.replaceState(null, "", URL(".", document.baseURI).href)
-        } else if (href.contains("error=")) {
-            clearPendingOauth()
-        }
-
-        return ok
-    }
+    override suspend fun maybeFinishOauthRedirect(): Boolean = false
 
     override suspend fun homeserverLoginDetails(): HomeserverLoginDetails =
         wasmJson.decodeFromJsonElement(

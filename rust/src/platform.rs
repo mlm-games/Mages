@@ -64,21 +64,6 @@ pub(crate) async fn load_session(store_dir: &Path) -> Option<SessionInfo> {
     }
 }
 
-pub(crate) async fn persist_session(store_dir: &Path, info: &SessionInfo) -> std::io::Result<()> {
-    #[cfg(not(target_family = "wasm"))]
-    {
-        tokio::fs::create_dir_all(store_dir).await?;
-        let payload = serde_json::to_string(info).unwrap();
-        tokio::fs::write(session_file(store_dir), payload).await
-    }
-
-    #[cfg(target_family = "wasm")]
-    {
-        let _ = (store_dir, info);
-        Ok(())
-    }
-}
-
 pub(crate) fn remove_session_file(store_dir: &Path) {
     #[cfg(not(target_family = "wasm"))]
     {
@@ -171,4 +156,44 @@ fn session_file(store_dir: &Path) -> PathBuf {
 
 fn room_list_cache_file(store_dir: &Path) -> PathBuf {
     store_dir.join("room_list_cache.json")
+}
+
+pub(crate) async fn build_and_persist_session(sdk: &matrix_sdk::Client, store_dir: &Path) {
+    #[cfg(not(target_family = "wasm"))]
+    {
+        use matrix_sdk::SessionMeta;
+        use matrix_sdk::authentication::oauth::OAuthSession;
+
+        let homeserver = sdk.homeserver().to_string();
+
+        if let Some(oauth_sess) = sdk.oauth().user_session() {
+            let client_id_str = sdk.oauth().client_id().map(|c| c.to_string());
+            let info = SessionInfo {
+                user_id: oauth_sess.meta.user_id.to_string(),
+                device_id: oauth_sess.meta.device_id.to_string(),
+                access_token: oauth_sess.tokens.access_token.clone(),
+                refresh_token: oauth_sess.tokens.refresh_token.clone(),
+                homeserver,
+                auth_api: "oauth".to_string(),
+                client_id: client_id_str,
+            };
+            let _ = persist_session(store_dir, &info).await;
+        } else if let Some(matrix_sess) = sdk.matrix_auth().session() {
+            let info = SessionInfo {
+                user_id: matrix_sess.meta.user_id.to_string(),
+                device_id: matrix_sess.meta.device_id.to_string(),
+                access_token: matrix_sess.tokens.access_token.clone(),
+                refresh_token: matrix_sess.tokens.refresh_token.clone(),
+                homeserver,
+                auth_api: "matrix".to_string(),
+                client_id: None,
+            };
+            let _ = persist_session(store_dir, &info).await;
+        }
+    }
+
+    #[cfg(target_family = "wasm")]
+    {
+        let _ = (sdk, store_dir);
+    }
 }
