@@ -1,8 +1,6 @@
 package org.mlm.mages.matrix
 
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.Flow
@@ -20,7 +18,6 @@ import org.mlm.mages.platform.MagesPaths
 class RustMatrixPort : MatrixPort, VerificationService {
     @Volatile
     private var client: FfiClient? = null
-    private val json = Json { ignoreUnknownKeys = true; classDiscriminator = "phase" }
     private val clientLock = Any()
     private var currentHs: String? = null
     private var currentAccountId: String? = null
@@ -473,6 +470,80 @@ class RustMatrixPort : MatrixPort, VerificationService {
                     }
                 }
             }.getOrElse { emptyList() }
+        }
+
+    private val json = Json { ignoreUnknownKeys = true; classDiscriminator = "phase" }
+
+    override fun startDeviceVerification(deviceId: String): Flow<VerifEvent> = callbackFlow {
+        val listener = object : mages.VerifEventListener {
+            override fun onEvent(eventJson: String) {
+                runCatching {
+                    json.decodeFromString<VerifEvent>(eventJson)
+                }.getOrNull()?.let { trySend(it) }
+            }
+        }
+        val flowId = withContext(Dispatchers.IO) {
+            client?.startDeviceVerification(deviceId, listener).orEmpty()
+        }
+        if (flowId.isBlank()) {
+            trySend(VerifEvent.Error("Failed to start device verification"))
+            channel.close()
+            return@callbackFlow
+        }
+        awaitClose { }
+    }
+
+    override fun startUserVerification(userId: String): Flow<VerifEvent> = callbackFlow {
+        val listener = object : mages.VerifEventListener {
+            override fun onEvent(eventJson: String) {
+                runCatching {
+                    json.decodeFromString<VerifEvent>(eventJson)
+                }.getOrNull()?.let { trySend(it) }
+            }
+        }
+        val flowId = withContext(Dispatchers.IO) {
+            client?.startUserVerification(userId, listener).orEmpty()
+        }
+        if (flowId.isBlank()) {
+            trySend(VerifEvent.Error("Failed to start user verification"))
+            channel.close()
+            return@callbackFlow
+        }
+        awaitClose { }
+    }
+
+    override fun acceptAndObserveVerification(flowId: String, otherUserId: String): Flow<VerifEvent> = callbackFlow {
+        val listener = object : mages.VerifEventListener {
+            override fun onEvent(eventJson: String) {
+                runCatching {
+                    json.decodeFromString<VerifEvent>(eventJson)
+                }.getOrNull()?.let { trySend(it) }
+            }
+        }
+        val ok = withContext(Dispatchers.IO) {
+            client?.acceptAndObserveVerification(flowId, otherUserId, listener) ?: false
+        }
+        if (!ok) {
+            trySend(VerifEvent.Error("Failed to accept verification"))
+            channel.close()
+            return@callbackFlow
+        }
+        awaitClose { }
+    }
+
+    override suspend fun acceptSas(flowId: String, otherUserId: String): Boolean =
+        withContext(Dispatchers.IO) {
+            client?.acceptSas(flowId, otherUserId.ifEmpty { null }) ?: false
+        }
+
+    override suspend fun confirmSas(flowId: String): Boolean =
+        withContext(Dispatchers.IO) {
+            client?.confirmSas(flowId) ?: false
+        }
+
+    override suspend fun cancelVerification(flowId: String): Boolean =
+        withContext(Dispatchers.IO) {
+            client?.cancelVerification(flowId) ?: false
         }
 
     override suspend fun logout(): Boolean =
@@ -1607,6 +1678,12 @@ private fun mages.SearchHit.toKotlin(): SearchHit =
         timestampMs = timestampMs
     )
 
+//private fun mages.DownloadResult.toKotlin(): DownloadResult =
+//    DownloadResult(
+//        path,
+//        bytes
+//    )
+
 private fun mages.RoomListEntry.toKotlinRoomListEntry(): RoomListEntry =
     RoomListEntry(
         roomId = roomId,
@@ -1638,65 +1715,6 @@ private fun mages.RoomListEntry.toKotlinRoomListEntry(): RoomListEntry =
         }
     )
 
-    override fun startDeviceVerification(deviceId: String): Flow<VerifEvent> = callbackFlow {
-        val listener = object : mages.VerifEventListener {
-            override fun onEvent(eventJson: String) {
-                runCatching {
-                    json.decodeFromString<VerifEvent>(eventJson)
-                }.getOrNull()?.let { trySend(it) }
-            }
-        }
-        val flowId = withContext(Dispatchers.IO) {
-            client?.startDeviceVerification(deviceId, listener).orEmpty()
-        }
-        if (flowId.isBlank()) {
-            trySend(VerifEvent.Error("Failed to start device verification"))
-            channel.close()
-            return@callbackFlow
-        }
-        awaitClose { }
-    }
-
-    override fun startUserVerification(userId: String): Flow<VerifEvent> = callbackFlow {
-        val listener = object : mages.VerifEventListener {
-            override fun onEvent(eventJson: String) {
-                runCatching {
-                    json.decodeFromString<VerifEvent>(eventJson)
-                }.getOrNull()?.let { trySend(it) }
-            }
-        }
-        val flowId = withContext(Dispatchers.IO) {
-            client?.startUserVerification(userId, listener).orEmpty()
-        }
-        if (flowId.isBlank()) {
-            trySend(VerifEvent.Error("Failed to start user verification"))
-            channel.close()
-            return@callbackFlow
-        }
-        awaitClose { }
-    }
-
-    override suspend fun acceptVerificationRequest(flowId: String, otherUserId: String): Boolean =
-        withContext(Dispatchers.IO) {
-            client?.acceptVerificationRequest(flowId, otherUserId.ifEmpty { null }) ?: false
-        }
-
-    override suspend fun acceptSas(flowId: String, otherUserId: String): Boolean =
-        withContext(Dispatchers.IO) {
-            client?.acceptSas(flowId, otherUserId.ifEmpty { null }) ?: false
-        }
-
-    override suspend fun confirmSas(flowId: String): Boolean =
-        withContext(Dispatchers.IO) {
-            client?.confirmSas(flowId) ?: false
-        }
-
-    override suspend fun cancelVerification(flowId: String): Boolean =
-        withContext(Dispatchers.IO) {
-            client?.cancelVerification(flowId) ?: false
-        }
-}
-
 
 private fun mages.PollData.toModel(): PollData {
     val mappedOptions = options.map { it.toModel() }
@@ -1707,7 +1725,7 @@ private fun mages.PollData.toModel(): PollData {
         question = question,
         kind = if (kind == mages.PollKind.DISCLOSED) PollKind.Disclosed else PollKind.Undisclosed,
         maxSelections = maxSelections.toLong(),
-        options = mappedOptions,
+        options = mappedOptions, //TODO: Use the new sent counts for all 3
         votes = voteMap,
         totalVotes = totalVotes.toLong(),
         mySelections = mySelections,
