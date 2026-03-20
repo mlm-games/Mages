@@ -207,7 +207,7 @@ class DiscoverViewModel(
     fun knockRoom(room: PublicRoom) {
         launch {
             updateState { copy(isBusy = true, error = null) }
-            val knockSuccess = runSafe { service.port.knock(room.alias ?: room.roomId) } ?: false
+            val knockSuccess = runSafe { service.port.knock(room.alias ?: room.roomId) }?.isSuccess ?: false
             updateState { copy(isBusy = false) }
 
             if (knockSuccess) {
@@ -257,7 +257,7 @@ class DiscoverViewModel(
     }
 
     private suspend fun knockAndResolve(idOrAlias: String): Result<String> {
-        val knockSuccess = runSafe { service.port.knock(idOrAlias) } ?: false
+        val knockSuccess = runSafe { service.port.knock(idOrAlias) }?.isSuccess ?: false
         return if (knockSuccess) {
             Result.failure(IllegalStateException("Knock request sent. Waiting for approval."))
         } else {

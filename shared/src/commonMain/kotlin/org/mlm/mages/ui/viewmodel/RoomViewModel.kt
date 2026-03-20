@@ -430,7 +430,7 @@ class RoomViewModel(
             val currentPinned = currentState.pinnedEventIds.toMutableList()
             if (event.eventId !in currentPinned) {
                 currentPinned.add(0, event.eventId) // Add to front
-                val ok = runSafe { service.port.setPinnedEvents(currentState.roomId, currentPinned) } ?: false
+                val ok = runSafe { service.port.setPinnedEvents(currentState.roomId, currentPinned) }?.isSuccess ?: false
                 if (ok) {
                     updateState { copy(pinnedEventIds = currentPinned) }
                     _events.send(Event.ShowError("Message pinned"))
@@ -451,7 +451,7 @@ class RoomViewModel(
             val currentPinned = currentState.pinnedEventIds.toMutableList()
             if (event.eventId in currentPinned) {
                 currentPinned.remove(event.eventId)
-                val ok = runSafe { service.port.setPinnedEvents(currentState.roomId, currentPinned) } ?: false
+                val ok = runSafe { service.port.setPinnedEvents(currentState.roomId, currentPinned) }?.isSuccess ?: false
                 if (ok) {
                     updateState { copy(pinnedEventIds = currentPinned) }
                     _events.send(Event.ShowError("Message unpinned"))
@@ -563,7 +563,7 @@ class RoomViewModel(
         launch {
             updateState { copy(isPaginatingBack = true) }
             try {
-                val hitStart = runSafe { service.port.paginateBack(s.roomId, 50) } ?: false
+                val hitStart = runSafe { service.port.paginateBack(s.roomId, 50) }?.isSuccess ?: false
                 updateState { copy(hitStart = hitStart || this.hitStart) }
 
                 // After pagination, recompute thread counts from timeline
@@ -848,8 +848,7 @@ class RoomViewModel(
 
             selected.forEachIndexed { idx, ev ->
                 _events.send(Event.ShowProgress(idx + 1, total, "Deleting…"))
-                val success = runCatching { service.port.redact(currentState.roomId, ev.eventId, null) }
-                    .getOrDefault(false)
+                val success = runSafe { service.port.redact(currentState.roomId, ev.eventId, null) }?.isSuccess ?: false
                 if (success) ok++
             }
 
@@ -902,7 +901,7 @@ class RoomViewModel(
         if (q.isBlank() || opts.size < 2) return
 
         launch {
-            val ok = service.port.sendPoll(currentState.roomId, q, opts)
+            val ok = service.port.sendPoll(currentState.roomId, q, opts).isSuccess
             if (ok) {
                 updateState { copy(showPollCreator = false) }
             } else {
@@ -975,7 +974,7 @@ class RoomViewModel(
                 }
             }.toList()
 
-            val ok = service.port.sendPollResponse(currentState.roomId, pollEventId, newSelections)
+            val ok = service.port.sendPollResponse(currentState.roomId, pollEventId, newSelections).isSuccess
             if (!ok) {
                 _events.send(Event.ShowError("Failed to submit vote"))
             }
@@ -984,7 +983,7 @@ class RoomViewModel(
 
     fun endPoll(pollEventId: String) {
         launch {
-            val ok = service.port.sendPollEnd(currentState.roomId, pollEventId)
+            val ok = service.port.sendPollEnd(currentState.roomId, pollEventId).isSuccess
             if (!ok) {
                 _events.send(Event.ShowError("Failed to end poll"))
             } else {
@@ -1297,15 +1296,16 @@ class RoomViewModel(
         return try {
             val attachment = event.attachment
 
-            if (attachment != null) {
+            val ok = if (attachment != null) {
                 service.port.sendExistingAttachment(
                     roomId = targetRoomId,
                     attachment = attachment,
                     body = event.body.takeIf { it.isNotBlank() && it != attachment.mxcUri }
-                )
+                ).isSuccess
             } else {
                 service.sendMessage(targetRoomId, event.body)
             }
+            ok
         } catch (e: Exception) {
             e.printStackTrace()
             false

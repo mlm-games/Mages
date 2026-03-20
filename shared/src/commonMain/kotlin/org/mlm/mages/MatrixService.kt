@@ -106,28 +106,28 @@ class MatrixService(
     fun timelineDiffs(roomId: String): Flow<TimelineDiff<MessageEvent>> = port.timelineDiffs(roomId)
 
     suspend fun sendMessage(roomId: String, body: String, formattedBody: String? = null): Boolean =
-        port.send(roomId, body, formattedBody)
+        port.send(roomId, body, formattedBody).isSuccess
 
     suspend fun paginateBack(roomId: String, count: Int) =
-        runCatching { port.paginateBack(roomId, count) }.getOrElse { false }
+        port.paginateBack(roomId, count).isSuccess
 
     suspend fun markRead(roomId: String) =
-        runCatching { port.markRead(roomId) }.getOrElse { false }
+        port.markRead(roomId).isSuccess
 
     suspend fun markReadAt(roomId: String, eventId: String) =
-        runCatching { port.markReadAt(roomId, eventId) }.getOrElse { false }
+        port.markReadAt(roomId, eventId).isSuccess
 
     suspend fun react(roomId: String, eventId: String, emoji: String) =
-        runCatching { port.react(roomId, eventId, emoji) }.getOrElse { false }
+        port.react(roomId, eventId, emoji).isSuccess
 
     suspend fun reply(roomId: String, inReplyToEventId: String, body: String, formattedBody: String? = null) =
-        runCatching { port.reply(roomId, inReplyToEventId, body, formattedBody) }.getOrElse { false }
+        port.reply(roomId, inReplyToEventId, body, formattedBody).isSuccess
 
     suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String? = null) =
-        runCatching { port.edit(roomId, targetEventId, newBody, formattedBody) }.getOrElse { false }
+        port.edit(roomId, targetEventId, newBody, formattedBody).isSuccess
 
     suspend fun redact(roomId: String, eventId: String, reason: String? = null) =
-        runCatching { port.redact(roomId, eventId, reason) }.getOrElse { false }
+        port.redact(roomId, eventId, reason).isSuccess
 
     fun observeTyping(roomId: String, onUpdate: (List<String>) -> Unit): ULong =
         port.observeTyping(roomId, onUpdate)
@@ -174,10 +174,10 @@ class MatrixService(
         childRoomId: String,
         order: String? = null,
         suggested: Boolean? = null
-    ): Boolean = runCatching { port.spaceAddChild(spaceId, childRoomId, order, suggested) }.getOrDefault(false)
+    ): Boolean = port.spaceAddChild(spaceId, childRoomId, order, suggested).isSuccess
 
     suspend fun spaceRemoveChild(spaceId: String, childRoomId: String): Boolean =
-        runCatching { port.spaceRemoveChild(spaceId, childRoomId) }.getOrDefault(false)
+        port.spaceRemoveChild(spaceId, childRoomId).isSuccess
 
     suspend fun spaceHierarchy(
         spaceId: String,
@@ -190,6 +190,6 @@ class MatrixService(
     }.getOrNull()
 
     suspend fun spaceInviteUser(spaceId: String, userId: String): Boolean =
-        runCatching { port.spaceInviteUser(spaceId, userId) }.getOrDefault(false)
+        port.spaceInviteUser(spaceId, userId).isSuccess
 
 }

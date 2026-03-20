@@ -512,21 +512,21 @@ interface MatrixPort {
     suspend fun listRooms(): List<RoomSummary>
     suspend fun recent(roomId: String, limit: Int = 50): List<MessageEvent>
     fun timelineDiffs(roomId: String): Flow<TimelineDiff<MessageEvent>>
-    suspend fun send(roomId: String, body: String, formattedBody: String? = null): Boolean
+    suspend fun send(roomId: String, body: String, formattedBody: String? = null): Result<Unit>
 
-    suspend fun sendQueueSetEnabled(enabled: Boolean): Boolean
+    suspend fun sendQueueSetEnabled(enabled: Boolean): Result<Unit>
 
     suspend fun sendExistingAttachment(
         roomId: String,
         attachment: AttachmentInfo,
         body: String? = null,
         onProgress: ((Long, Long?) -> Unit)? = null
-    ): Boolean
+    ): Result<Unit>
 
     fun isLoggedIn(): Boolean
     fun close()
 
-    suspend fun setTyping(roomId: String, typing: Boolean): Boolean
+    suspend fun setTyping(roomId: String, typing: Boolean): Result<Unit>
     fun whoami(): String?
     fun accountManagementUrl(): String?
     fun setupRecovery(observer: RecoveryObserver): Boolean
@@ -579,18 +579,18 @@ interface MatrixPort {
 
     fun stopTypingObserver(token: ULong)
 
-    suspend fun paginateBack(roomId: String, count: Int): Boolean
-    suspend fun paginateForward(roomId: String, count: Int): Boolean
-    suspend fun markRead(roomId: String): Boolean
-    suspend fun markReadAt(roomId: String, eventId: String): Boolean
-    suspend fun react(roomId: String, eventId: String, emoji: String): Boolean
-    suspend fun reply(roomId: String, inReplyToEventId: String, body: String, formattedBody: String? = null): Boolean
-    suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String? = null): Boolean
-    suspend fun redact(roomId: String, eventId: String, reason: String? = null): Boolean
+    suspend fun paginateBack(roomId: String, count: Int): Result<Boolean>
+    suspend fun paginateForward(roomId: String, count: Int): Result<Boolean>
+    suspend fun markRead(roomId: String): Result<Unit>
+    suspend fun markReadAt(roomId: String, eventId: String): Result<Unit>
+    suspend fun react(roomId: String, eventId: String, emoji: String): Result<Unit>
+    suspend fun reply(roomId: String, inReplyToEventId: String, body: String, formattedBody: String? = null): Result<Unit>
+    suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String? = null): Result<Unit>
+    suspend fun redact(roomId: String, eventId: String, reason: String? = null): Result<Unit>
     suspend fun getUserPowerLevel(roomId: String, userId: String): Long
     
     suspend fun getPinnedEvents(roomId: String): List<String>
-    suspend fun setPinnedEvents(roomId: String, eventIds: List<String>): Boolean
+    suspend fun setPinnedEvents(roomId: String, eventIds: List<String>): Result<Unit>
     
     fun observeTyping(roomId: String, onUpdate: (List<String>) -> Unit): ULong
 
@@ -638,7 +638,7 @@ interface MatrixPort {
     suspend fun roomUnreadStats(roomId: String): UnreadStats?
     suspend fun ownLastRead(roomId: String): Pair<String?, Long?>
     fun observeOwnReceipt(roomId: String, observer: ReceiptsObserver): ULong
-    suspend fun markFullyReadAt(roomId: String, eventId: String): Boolean
+    suspend fun markFullyReadAt(roomId: String, eventId: String): Result<Unit>
 
     interface RoomListObserver { fun onReset(items: List<RoomListEntry>); fun onUpdate(item: RoomListEntry) }
 
@@ -655,16 +655,16 @@ interface MatrixPort {
 
     fun roomListSetUnreadOnly(token: ULong, unreadOnly: Boolean): Boolean
 
-    suspend fun loginSsoLoopback(openUrl: (String) -> Boolean, deviceName: String? = null): Boolean
+    suspend fun loginSsoLoopback(openUrl: (String) -> Boolean, deviceName: String? = null): Result<Unit>
 
-    suspend fun loginOauthLoopback(openUrl: (String) -> Boolean, deviceName: String? = null): Boolean
+    suspend fun loginOauthLoopback(openUrl: (String) -> Boolean, deviceName: String? = null): Result<Unit>
 
     suspend fun loginOauth(
         openUrl: (String) -> Boolean,
         deviceName: String? = null
     ): OauthLoginResult {
-        val ok = loginOauthLoopback(openUrl, deviceName)
-        return if (ok && isLoggedIn()) {
+        val result = loginOauthLoopback(openUrl, deviceName)
+        return if (result.isSuccess && isLoggedIn()) {
             OauthLoginResult.Completed
         } else {
             OauthLoginResult.Failed("OAuth failed or was cancelled")
@@ -682,12 +682,12 @@ interface MatrixPort {
     suspend fun publicRooms(server: String? = null, search: String? = null, limit: Int = 50, since: String? = null): PublicRoomsPage
     suspend fun roomPreview(idOrAlias: String): Result<RoomPreview>
     suspend fun joinByIdOrAlias(idOrAlias: String): Result<Unit>
-    suspend fun knock(idOrAlias: String): Boolean
+    suspend fun knock(idOrAlias: String): Result<Unit>
     suspend fun ensureDm(userId: String): String?
     suspend fun resolveRoomId(idOrAlias: String): String?
 
     suspend fun listInvited(): List<RoomProfile>
-    suspend fun acceptInvite(roomId: String): Boolean
+    suspend fun acceptInvite(roomId: String): Result<Unit>
     suspend fun leaveRoom(roomId: String): Result<Unit>
 
     suspend fun createRoom(name: String?, topic: String?, invitees: List<String>, isPublic: Boolean, roomAlias: String?): String?
@@ -739,8 +739,8 @@ interface MatrixPort {
         childRoomId: String,
         order: String?,
         suggested: Boolean?
-    ): Boolean
-    suspend fun spaceRemoveChild(spaceId: String, childRoomId: String): Boolean
+    ): Result<Unit>
+    suspend fun spaceRemoveChild(spaceId: String, childRoomId: String): Result<Unit>
     suspend fun spaceHierarchy(
         spaceId: String,
         from: String?,
@@ -748,7 +748,7 @@ interface MatrixPort {
         maxDepth: Int?,
         suggestedOnly: Boolean
     ): SpaceHierarchyPage?
-    suspend fun spaceInviteUser(spaceId: String, userId: String): Boolean
+    suspend fun spaceInviteUser(spaceId: String, userId: String): Result<Unit>
 
     suspend fun setPresence(presence: Presence, status: String?): Result<Unit>
     suspend fun getPresence(userId: String): Pair<Presence, String?>?
@@ -759,8 +759,8 @@ interface MatrixPort {
 
     suspend fun roomDirectoryVisibility(roomId: String): RoomDirectoryVisibility?
     suspend fun setRoomDirectoryVisibility(roomId: String, visibility: RoomDirectoryVisibility): Result<Unit>
-    suspend fun publishRoomAlias(roomId: String, alias: String): Boolean
-    suspend fun unpublishRoomAlias(roomId: String, alias: String): Boolean
+    suspend fun publishRoomAlias(roomId: String, alias: String): Result<Unit>
+    suspend fun unpublishRoomAlias(roomId: String, alias: String): Result<Unit>
     suspend fun setRoomCanonicalAlias(roomId: String, alias: String?, altAliases: List<String>): Result<Unit>
     suspend fun roomAliases(roomId: String): List<String>
 
@@ -796,15 +796,15 @@ interface MatrixPort {
     fun observeLiveLocation(roomId: String, onShares: (List<LiveLocationShare>) -> Unit): ULong
     fun stopObserveLiveLocation(token: ULong)
 
-    suspend fun sendPoll(roomId: String, question: String, answers: List<String>): Boolean
+    suspend fun sendPoll(roomId: String, question: String, answers: List<String>): Result<Unit>
 
     fun seenByForEvent(roomId: String, eventId: String, limit: Int): List<SeenByEntry>
 
     suspend fun mxcThumbnailToCache(mxcUri: String, width: Int, height: Int, crop: Boolean): String
     suspend fun loadRoomListCache(): List<RoomListEntry>
 
-    suspend fun sendPollResponse(roomId: String, pollEventId: String, answers: List<String>): Boolean
-    suspend fun sendPollEnd(roomId: String, pollEventId: String): Boolean
+    suspend fun sendPollResponse(roomId: String, pollEventId: String, answers: List<String>): Result<Unit>
+    suspend fun sendPollEnd(roomId: String, pollEventId: String): Result<Unit>
     suspend fun startElementCall(
         roomId: String,
         intent: CallIntent,

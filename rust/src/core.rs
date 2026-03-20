@@ -260,34 +260,31 @@ impl CoreClient {
         room_id: String,
         body: String,
         formatted_body: Option<String>,
-    ) -> bool {
-        let Some(tl) = self.timeline(&room_id).await else {
-            return false;
-        };
+    ) -> Result<(), FfiError> {
+        let tl = self
+            .timeline(&room_id)
+            .await
+            .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
         let content = if let Some(fmt) = formatted_body {
             RoomMessageEventContent::text_html(body, fmt)
         } else {
             RoomMessageEventContent::text_plain(body)
         };
-        match tl.send(content.into()).await {
-            Ok(handle) => {
-                let items = tl.items().await;
-                if let Some(last) = items.last() {
-                    if let Some(ev) = last.as_event() {
-                        if ev.event_id().is_none() {
-                            if let Some(txn) = ev.transaction_id() {
-                                self.send_handles_by_txn
-                                    .lock()
-                                    .unwrap()
-                                    .insert(txn.to_string(), handle);
-                            }
-                        }
+        let handle = tl.send(content.into()).await.ffi()?;
+        let items = tl.items().await;
+        if let Some(last) = items.last() {
+            if let Some(ev) = last.as_event() {
+                if ev.event_id().is_none() {
+                    if let Some(txn) = ev.transaction_id() {
+                        self.send_handles_by_txn
+                            .lock()
+                            .unwrap()
+                            .insert(txn.to_string(), handle);
                     }
                 }
-                true
             }
-            Err(_) => false,
         }
+        Ok(())
     }
 
     pub async fn reply(
@@ -296,19 +293,19 @@ impl CoreClient {
         in_reply_to: String,
         body: String,
         formatted_body: Option<String>,
-    ) -> bool {
-        let Some(tl) = self.timeline(&room_id).await else {
-            return false;
-        };
-        let Ok(reply_to) = EventId::parse(&in_reply_to) else {
-            return false;
-        };
+    ) -> Result<(), FfiError> {
+        let tl = self
+            .timeline(&room_id)
+            .await
+            .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
+        let reply_to =
+            EventId::parse(&in_reply_to).map_err(|_| FfiError::Msg("invalid event id".into()))?;
         let content = if let Some(fmt) = formatted_body {
             MsgNoRel::text_html(body, fmt)
         } else {
             MsgNoRel::text_plain(body)
         };
-        tl.send_reply(content, reply_to.to_owned()).await.is_ok()
+        tl.send_reply(content, reply_to.to_owned()).await.ffi()
     }
 
     pub async fn edit(
@@ -317,46 +314,63 @@ impl CoreClient {
         target_event_id: String,
         new_body: String,
         formatted_body: Option<String>,
-    ) -> bool {
+    ) -> Result<(), FfiError> {
         use matrix_sdk::room::edit::EditedContent;
-        let Some(tl) = self.timeline(&room_id).await else {
-            return false;
-        };
-        let Ok(eid) = EventId::parse(&target_event_id) else {
-            return false;
-        };
-        let Some(item) = tl.item_by_event_id(&eid).await else {
-            return false;
-        };
+        let tl = self
+            .timeline(&room_id)
+            .await
+            .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
+        let eid = EventId::parse(&target_event_id)
+            .map_err(|_| FfiError::Msg("invalid event id".into()))?;
+        let item = tl
+            .item_by_event_id(&eid)
+            .await
+            .ok_or_else(|| FfiError::Msg("event not found".into()))?;
         let edited = EditedContent::RoomMessage(if let Some(fmt) = formatted_body {
             MsgNoRel::text_html(new_body, fmt)
         } else {
             MsgNoRel::text_plain(new_body)
         });
-        tl.edit(&item.identifier(), edited).await.is_ok()
+        tl.edit(&item.identifier(), edited).await.ffi()
     }
 
-    pub async fn redact(&self, room_id: String, event_id: String, reason: Option<String>) -> bool {
-        let Some(room) = self.room(&room_id) else {
-            return false;
-        };
-        let Ok(eid) = EventId::parse(&event_id) else {
-            return false;
-        };
-        room.redact(&eid, reason.as_deref(), None).await.is_ok()
+    pub async fn redact(
+        &self,
+        room_id: String,
+        event_id: String,
+        reason: Option<String>,
+    ) -> Result<(), FfiError> {
+        let room = self
+            .room(&room_id)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        let eid =
+            EventId::parse(&event_id).map_err(|_| FfiError::Msg("invalid event id".into()))?;
+        room.redact(&eid, reason.as_deref(), None)
+            .await
+            .ffi()
+            .map(|_| ())
     }
 
-    pub async fn react(&self, room_id: String, event_id: String, emoji: String) -> bool {
-        let Some(tl) = self.timeline(&room_id).await else {
-            return false;
-        };
-        let Ok(eid) = EventId::parse(&event_id) else {
-            return false;
-        };
-        let Some(item) = tl.item_by_event_id(&eid).await else {
-            return false;
-        };
-        tl.toggle_reaction(&item.identifier(), &emoji).await.is_ok()
+    pub async fn react(
+        &self,
+        room_id: String,
+        event_id: String,
+        emoji: String,
+    ) -> Result<(), FfiError> {
+        let tl = self
+            .timeline(&room_id)
+            .await
+            .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
+        let eid =
+            EventId::parse(&event_id).map_err(|_| FfiError::Msg("invalid event id".into()))?;
+        let item = tl
+            .item_by_event_id(&eid)
+            .await
+            .ok_or_else(|| FfiError::Msg("event not found".into()))?;
+        tl.toggle_reaction(&item.identifier(), &emoji)
+            .await
+            .ffi()
+            .map(|_| ())
     }
 
     pub async fn send_thread_text(
@@ -367,13 +381,13 @@ impl CoreClient {
         reply_to_event_id: Option<String>,
         latest_event_id: Option<String>,
         formatted_body: Option<String>,
-    ) -> bool {
-        let Some(tl) = self.timeline(&room_id).await else {
-            return false;
-        };
-        let Ok(root) = OwnedEventId::try_from(root_event_id) else {
-            return false;
-        };
+    ) -> Result<(), FfiError> {
+        let tl = self
+            .timeline(&room_id)
+            .await
+            .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
+        let root = OwnedEventId::try_from(root_event_id)
+            .map_err(|_| FfiError::Msg("invalid event id".into()))?;
         let mut content = if let Some(fmt) = formatted_body {
             RoomMessageEventContent::text_html(body, fmt)
         } else {
@@ -395,62 +409,72 @@ impl CoreClient {
             MsgRelation::Thread(ThreadRel::without_fallback(root))
         };
         content.relates_to = Some(relation);
-        tl.send(content.into()).await.is_ok()
+        tl.send(content.into()).await.ffi().map(|_| ())
     }
 
-    pub async fn mark_read(&self, room_id: String) -> bool {
-        let Some(tl) = self.timeline(&room_id).await else {
-            return false;
-        };
-        tl.mark_as_read(ReceiptType::ReadPrivate).await.is_ok()
+    pub async fn mark_read(&self, room_id: String) -> Result<(), FfiError> {
+        let tl = self
+            .timeline(&room_id)
+            .await
+            .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
+        tl.mark_as_read(ReceiptType::ReadPrivate)
+            .await
+            .ffi()
+            .map(|_| ())
     }
 
-    pub async fn mark_read_at(&self, room_id: String, event_id: String) -> bool {
-        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
-            return false;
-        };
-        let Ok(eid) = EventId::parse(event_id) else {
-            return false;
-        };
-        let Some(room) = self.sdk.get_room(&rid) else {
-            return false;
-        };
+    pub async fn mark_read_at(&self, room_id: String, event_id: String) -> Result<(), FfiError> {
+        let rid = OwnedRoomId::try_from(room_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid room id".into()))?;
+        let eid =
+            EventId::parse(&event_id).map_err(|_| FfiError::Msg("invalid event id".into()))?;
+        let room = self
+            .sdk
+            .get_room(&rid)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
         room.send_single_receipt(
             ReceiptType::ReadPrivate,
             ReceiptThread::Unthreaded,
             eid.to_owned(),
         )
         .await
-        .is_ok()
+        .ffi()
     }
 
-    pub async fn mark_fully_read_at(&self, room_id: String, event_id: String) -> bool {
-        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
-            return false;
-        };
-        let Ok(eid) = OwnedEventId::try_from(event_id) else {
-            return false;
-        };
-        let Some(room) = self.sdk.get_room(&rid) else {
-            return false;
-        };
+    pub async fn mark_fully_read_at(
+        &self,
+        room_id: String,
+        event_id: String,
+    ) -> Result<(), FfiError> {
+        let rid = OwnedRoomId::try_from(room_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid room id".into()))?;
+        let eid = OwnedEventId::try_from(event_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid event id".into()))?;
+        let room = self
+            .sdk
+            .get_room(&rid)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
         let receipts = matrix_sdk::room::Receipts::new()
             .private_read_receipt(eid.clone())
             .fully_read_marker(eid);
-        room.send_multiple_receipts(receipts).await.is_ok()
+        room.send_multiple_receipts(receipts).await.ffi()
     }
 
-    pub async fn set_mark_unread(&self, room_id: String, unread: bool) -> bool {
-        let Some(room) = self.room(&room_id) else {
-            return false;
-        };
-        room.set_unread_flag(unread).await.is_ok()
+    pub async fn set_mark_unread(&self, room_id: String, unread: bool) -> Result<(), FfiError> {
+        let room = self
+            .room(&room_id)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        room.set_unread_flag(unread).await.ffi()
     }
 
-    pub async fn is_marked_unread(&self, room_id: String) -> Option<bool> {
-        let rid = OwnedRoomId::try_from(room_id).ok()?;
-        let room = self.sdk.get_room(&rid)?;
-        Some(room.is_marked_unread())
+    pub async fn is_marked_unread(&self, room_id: String) -> Result<Option<bool>, FfiError> {
+        let rid = OwnedRoomId::try_from(room_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid room id".into()))?;
+        let room = self
+            .sdk
+            .get_room(&rid)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        Ok(Some(room.is_marked_unread()))
     }
 
     pub async fn own_last_read(&self, room_id: String) -> OwnReceipt {
@@ -482,22 +506,23 @@ impl CoreClient {
         room_id: String,
         event_id: String,
         user_id: String,
-    ) -> bool {
-        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
-            return false;
-        };
-        let Ok(eid) = EventId::parse(&event_id) else {
-            return false;
-        };
-        let Ok(uid) = user_id.parse::<OwnedUserId>() else {
-            return false;
-        };
-        let Some(tl) = self.timeline_mgr.timeline_for(&rid).await else {
-            return false;
-        };
-        let Some(latest) = tl.latest_user_read_receipt_timeline_event_id(&uid).await else {
-            return false;
-        };
+    ) -> Result<(), FfiError> {
+        let rid = OwnedRoomId::try_from(room_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid room id".into()))?;
+        let eid =
+            EventId::parse(&event_id).map_err(|_| FfiError::Msg("invalid event id".into()))?;
+        let uid = user_id
+            .parse::<OwnedUserId>()
+            .map_err(|_| FfiError::Msg("invalid user id".into()))?;
+        let tl = self
+            .timeline_mgr
+            .timeline_for(&rid)
+            .await
+            .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
+        let latest = tl
+            .latest_user_read_receipt_timeline_event_id(&uid)
+            .await
+            .ok_or_else(|| FfiError::Msg("no read receipt found".into()))?;
         let items = tl.items().await;
         let mut idx_latest = None;
         let mut idx_mine = None;
@@ -516,25 +541,31 @@ impl CoreClient {
                 break;
             }
         }
-        matches!((idx_mine, idx_latest), (Some(i_m), Some(i_l)) if i_l >= i_m)
+        if matches!((idx_mine, idx_latest), (Some(i_m), Some(i_l)) if i_l >= i_m) {
+            Ok(())
+        } else {
+            Err(FfiError::Msg("event not read by user".into()))
+        }
     }
 
-    pub async fn paginate_backwards(&self, room_id: String, count: u16) -> bool {
-        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
-            return false;
-        };
-        let Some(tl) = self.timeline_mgr.timeline_for(&rid).await else {
-            return false;
-        };
+    pub async fn paginate_backwards(&self, room_id: String, count: u16) -> Result<bool, FfiError> {
+        let rid = OwnedRoomId::try_from(room_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid room id".into()))?;
+        let tl = self
+            .timeline_mgr
+            .timeline_for(&rid)
+            .await
+            .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
         let me = self.user_id_str();
-        paginate_backwards_visible(&tl, &rid, &me, count as usize).await
+        Ok(paginate_backwards_visible(&tl, &rid, &me, count as usize).await)
     }
 
-    pub async fn paginate_forwards(&self, room_id: String, count: u16) -> bool {
-        let Some(tl) = self.timeline(&room_id).await else {
-            return false;
-        };
-        tl.paginate_forwards(count).await.unwrap_or(false)
+    pub async fn paginate_forwards(&self, room_id: String, count: u16) -> Result<bool, FfiError> {
+        let tl = self
+            .timeline(&room_id)
+            .await
+            .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
+        tl.paginate_forwards(count).await.ffi()
     }
 
     pub async fn recent_events(&self, room_id: String, limit: u32) -> Vec<MessageEvent> {
@@ -560,11 +591,11 @@ impl CoreClient {
         out
     }
 
-    pub async fn set_typing(&self, room_id: String, typing: bool) -> bool {
-        let Some(room) = self.room(&room_id) else {
-            return false;
-        };
-        room.typing_notice(typing).await.is_ok()
+    pub async fn set_typing(&self, room_id: String, typing: bool) -> Result<(), FfiError> {
+        let room = self
+            .room(&room_id)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        room.typing_notice(typing).await.ffi()
     }
 
     async fn build_room_profile(&self, room: &Room) -> Result<RoomProfile, FfiError> {
@@ -660,50 +691,71 @@ impl CoreClient {
             .collect())
     }
 
-    pub async fn room_unread_stats(&self, room_id: String) -> Option<UnreadStats> {
-        let rid = OwnedRoomId::try_from(room_id).ok()?;
-        let room = self.sdk.get_room(&rid)?;
-        Some(UnreadStats {
+    pub async fn room_unread_stats(
+        &self,
+        room_id: String,
+    ) -> Result<Option<UnreadStats>, FfiError> {
+        let rid = OwnedRoomId::try_from(room_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid room id".into()))?;
+        let room = self
+            .sdk
+            .get_room(&rid)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        Ok(Some(UnreadStats {
             messages: room.num_unread_messages(),
             notifications: room.num_unread_notifications(),
             mentions: room.num_unread_mentions(),
-        })
+        }))
     }
 
-    pub async fn room_tags(&self, room_id: String) -> Option<RoomTags> {
-        let rid = OwnedRoomId::try_from(room_id).ok()?;
-        let room = self.sdk.get_room(&rid)?;
-        Some(RoomTags {
+    pub async fn room_tags(&self, room_id: String) -> Result<Option<RoomTags>, FfiError> {
+        let rid = OwnedRoomId::try_from(room_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid room id".into()))?;
+        let room = self
+            .sdk
+            .get_room(&rid)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        Ok(Some(RoomTags {
             is_favourite: room.is_favourite(),
             is_low_priority: room.is_low_priority(),
-        })
+        }))
     }
 
-    pub async fn set_room_favourite(&self, room_id: String, fav: bool) -> bool {
-        let Some(room) = self.room(&room_id) else {
-            return false;
-        };
-        room.set_is_favourite(fav, None).await.is_ok()
+    pub async fn set_room_favourite(&self, room_id: String, fav: bool) -> Result<(), FfiError> {
+        let room = self
+            .room(&room_id)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        room.set_is_favourite(fav, None).await.ffi()
     }
 
-    pub async fn set_room_low_priority(&self, room_id: String, low: bool) -> bool {
-        let Some(room) = self.room(&room_id) else {
-            return false;
-        };
-        room.set_is_low_priority(low, None).await.is_ok()
+    pub async fn set_room_low_priority(&self, room_id: String, low: bool) -> Result<(), FfiError> {
+        let room = self
+            .room(&room_id)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        room.set_is_low_priority(low, None).await.ffi()
     }
 
-    pub async fn room_notification_mode(&self, room_id: String) -> Option<FfiRoomNotificationMode> {
-        let rid = OwnedRoomId::try_from(room_id).ok()?;
-        let room = self.sdk.get_room(&rid)?;
-        let mode = room.notification_mode().await?;
-        Some(match mode {
+    pub async fn room_notification_mode(
+        &self,
+        room_id: String,
+    ) -> Result<Option<FfiRoomNotificationMode>, FfiError> {
+        let rid = OwnedRoomId::try_from(room_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid room id".into()))?;
+        let room = self
+            .sdk
+            .get_room(&rid)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        let mode = room
+            .notification_mode()
+            .await
+            .ok_or_else(|| FfiError::Msg("notification mode unavailable".into()))?;
+        Ok(Some(match mode {
             RoomNotificationMode::AllMessages => FfiRoomNotificationMode::AllMessages,
             RoomNotificationMode::MentionsAndKeywordsOnly => {
                 FfiRoomNotificationMode::MentionsAndKeywordsOnly
             }
             RoomNotificationMode::Mute => FfiRoomNotificationMode::Mute,
-        })
+        }))
     }
 
     pub async fn set_room_notification_mode(
@@ -739,49 +791,63 @@ impl CoreClient {
             .unwrap_or_default()
     }
 
-    pub async fn set_pinned_events(&self, room_id: String, event_ids: Vec<String>) -> bool {
-        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
-            return false;
-        };
-        let Some(room) = self.sdk.get_room(&rid) else {
-            return false;
-        };
+    pub async fn set_pinned_events(
+        &self,
+        room_id: String,
+        event_ids: Vec<String>,
+    ) -> Result<(), FfiError> {
+        let rid = OwnedRoomId::try_from(room_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid room id".into()))?;
+        let room = self
+            .sdk
+            .get_room(&rid)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
         let parsed: Vec<_> = event_ids
             .iter()
             .filter_map(|id| EventId::parse(id).ok())
             .collect();
         room.send_state_event(RoomPinnedEventsEventContent::new(parsed))
             .await
-            .is_ok()
+            .ffi()
+            .map(|_| ())
     }
 
-    pub async fn set_room_name(&self, room_id: String, name: String) -> bool {
-        let Some(room) = self.room(&room_id) else {
-            return false;
-        };
+    pub async fn set_room_name(&self, room_id: String, name: String) -> Result<(), FfiError> {
+        let room = self
+            .room(&room_id)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
         room.send_state_event(RoomNameEventContent::new(name))
             .await
-            .is_ok()
+            .ffi()
+            .map(|_| ())
     }
 
-    pub async fn set_room_topic(&self, room_id: String, topic: String) -> bool {
-        let Some(room) = self.room(&room_id) else {
-            return false;
-        };
+    pub async fn set_room_topic(&self, room_id: String, topic: String) -> Result<(), FfiError> {
+        let room = self
+            .room(&room_id)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
         room.send_state_event(RoomTopicEventContent::new(topic))
             .await
-            .is_ok()
+            .ffi()
+            .map(|_| ())
     }
 
-    pub async fn dm_peer_user_id(&self, room_id: String) -> Option<String> {
-        let rid = OwnedRoomId::try_from(room_id).ok()?;
-        let room = self.sdk.get_room(&rid)?;
-        let me = self.sdk.user_id()?;
-        let members = room.members(RoomMemberships::ACTIVE).await.ok()?;
-        members
+    pub async fn dm_peer_user_id(&self, room_id: String) -> Result<Option<String>, FfiError> {
+        let rid = OwnedRoomId::try_from(room_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid room id".into()))?;
+        let room = self
+            .sdk
+            .get_room(&rid)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        let me = self
+            .sdk
+            .user_id()
+            .ok_or_else(|| FfiError::Msg("not logged in".into()))?;
+        let members = room.members(RoomMemberships::ACTIVE).await.ffi()?;
+        Ok(members
             .into_iter()
             .find(|m| m.user_id() != me)
-            .map(|m| m.user_id().to_string())
+            .map(|m| m.user_id().to_string()))
     }
 
     pub async fn dm_peer_avatar_url(room: &Room, me: Option<&UserId>) -> Option<String> {
@@ -799,14 +865,18 @@ impl CoreClient {
         member.avatar_url().map(|mxc| mxc.to_string())
     }
 
-    pub async fn ban_user(&self, room_id: String, user_id: String, reason: Option<String>) -> bool {
-        let Some(room) = self.room(&room_id) else {
-            return false;
-        };
-        let Ok(uid) = OwnedUserId::try_from(user_id) else {
-            return false;
-        };
-        room.ban_user(uid.as_ref(), reason.as_deref()).await.is_ok()
+    pub async fn ban_user(
+        &self,
+        room_id: String,
+        user_id: String,
+        reason: Option<String>,
+    ) -> Result<(), FfiError> {
+        let room = self
+            .room(&room_id)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        let uid = OwnedUserId::try_from(user_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid user id".into()))?;
+        room.ban_user(uid.as_ref(), reason.as_deref()).await.ffi()
     }
 
     pub async fn unban_user(
@@ -814,16 +884,13 @@ impl CoreClient {
         room_id: String,
         user_id: String,
         reason: Option<String>,
-    ) -> bool {
-        let Some(room) = self.room(&room_id) else {
-            return false;
-        };
-        let Ok(uid) = OwnedUserId::try_from(user_id) else {
-            return false;
-        };
-        room.unban_user(uid.as_ref(), reason.as_deref())
-            .await
-            .is_ok()
+    ) -> Result<(), FfiError> {
+        let room = self
+            .room(&room_id)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        let uid = OwnedUserId::try_from(user_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid user id".into()))?;
+        room.unban_user(uid.as_ref(), reason.as_deref()).await.ffi()
     }
 
     pub async fn kick_user(
@@ -831,33 +898,28 @@ impl CoreClient {
         room_id: String,
         user_id: String,
         reason: Option<String>,
-    ) -> bool {
-        let Some(room) = self.room(&room_id) else {
-            return false;
-        };
-        let Ok(uid) = OwnedUserId::try_from(user_id) else {
-            return false;
-        };
-        room.kick_user(uid.as_ref(), reason.as_deref())
-            .await
-            .is_ok()
+    ) -> Result<(), FfiError> {
+        let room = self
+            .room(&room_id)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        let uid = OwnedUserId::try_from(user_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid user id".into()))?;
+        room.kick_user(uid.as_ref(), reason.as_deref()).await.ffi()
     }
 
-    pub async fn invite_user(&self, room_id: String, user_id: String) -> bool {
-        let Some(room) = self.room(&room_id) else {
-            return false;
-        };
-        let Ok(uid) = OwnedUserId::try_from(user_id) else {
-            return false;
-        };
-        room.invite_user_by_id(uid.as_ref()).await.is_ok()
+    pub async fn invite_user(&self, room_id: String, user_id: String) -> Result<(), FfiError> {
+        let room = self
+            .room(&room_id)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        let uid = OwnedUserId::try_from(user_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid user id".into()))?;
+        room.invite_user_by_id(uid.as_ref()).await.ffi()
     }
 
-    pub async fn accept_invite(&self, room_id: String) -> bool {
-        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
-            return false;
-        };
-        self.sdk.join_room_by_id(&rid).await.is_ok()
+    pub async fn accept_invite(&self, room_id: String) -> Result<(), FfiError> {
+        let rid = OwnedRoomId::try_from(room_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid room id".into()))?;
+        self.sdk.join_room_by_id(&rid).await.ffi().map(|_| ())
     }
 
     pub async fn leave_room(&self, room_id: String) -> Result<(), FfiError> {
@@ -885,11 +947,11 @@ impl CoreClient {
         room.kick_user(&uid, reason.as_deref()).await.ffi()
     }
 
-    pub async fn enable_room_encryption(&self, room_id: String) -> bool {
-        let Some(room) = self.room(&room_id) else {
-            return false;
-        };
-        room.enable_encryption().await.is_ok()
+    pub async fn enable_room_encryption(&self, room_id: String) -> Result<(), FfiError> {
+        let room = self
+            .room(&room_id)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        room.enable_encryption().await.ffi()
     }
 
     pub async fn get_user_power_level(&self, room_id: String, user_id: String) -> i64 {
@@ -1173,11 +1235,11 @@ impl CoreClient {
             .collect())
     }
 
-    pub async fn is_user_ignored(&self, user_id: String) -> bool {
-        match user_id.parse::<OwnedUserId>() {
-            Ok(uid) => self.sdk.is_user_ignored(uid.as_ref()).await,
-            Err(_) => false,
-        }
+    pub async fn is_user_ignored(&self, user_id: String) -> Result<bool, FfiError> {
+        let uid = user_id
+            .parse::<OwnedUserId>()
+            .map_err(|_| FfiError::Msg("invalid user id".into()))?;
+        Ok(self.sdk.is_user_ignored(uid.as_ref()).await)
     }
 
     pub async fn report_content(
@@ -1336,23 +1398,23 @@ impl CoreClient {
         })
     }
 
-    pub async fn knock(&self, id_or_alias: String) -> bool {
-        let Ok(target) = OwnedRoomOrAliasId::try_from(id_or_alias) else {
-            return false;
-        };
-        self.sdk.knock(target, None, vec![]).await.is_ok()
+    pub async fn knock(&self, id_or_alias: String) -> Result<(), FfiError> {
+        let target = OwnedRoomOrAliasId::try_from(id_or_alias.as_str())
+            .map_err(|_| FfiError::Msg("invalid room id or alias".into()))?;
+        self.sdk.knock(target, None, vec![]).await.ffi().map(|_| ())
     }
 
-    pub async fn resolve_room_id(&self, id_or_alias: String) -> Option<String> {
+    pub async fn resolve_room_id(&self, id_or_alias: String) -> Result<Option<String>, FfiError> {
         if id_or_alias.starts_with('!') {
-            return Some(id_or_alias);
+            return Ok(Some(id_or_alias));
         }
         if id_or_alias.starts_with('#') {
-            let alias = OwnedRoomAliasId::try_from(id_or_alias).ok()?;
-            let resp = self.sdk.resolve_room_alias(&alias).await.ok()?;
-            return Some(resp.room_id.to_string());
+            let alias = OwnedRoomAliasId::try_from(id_or_alias.as_str())
+                .map_err(|_| FfiError::Msg("invalid room alias".into()))?;
+            let resp = self.sdk.resolve_room_alias(&alias).await.ffi()?;
+            return Ok(Some(resp.room_id.to_string()));
         }
-        None
+        Ok(None)
     }
 
     pub async fn ensure_dm(&self, user_id: String) -> Result<String, FfiError> {
@@ -1633,14 +1695,30 @@ impl CoreClient {
         })
     }
 
-    pub async fn room_successor(&self, room_id: String) -> Option<SuccessorRoomInfo> {
-        let rid = OwnedRoomId::try_from(room_id).ok()?;
-        self.sdk.get_room(&rid)?.successor_room().map(Into::into)
+    pub async fn room_successor(
+        &self,
+        room_id: String,
+    ) -> Result<Option<SuccessorRoomInfo>, FfiError> {
+        let rid = OwnedRoomId::try_from(room_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid room id".into()))?;
+        let room = self
+            .sdk
+            .get_room(&rid)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        Ok(room.successor_room().map(Into::into))
     }
 
-    pub async fn room_predecessor(&self, room_id: String) -> Option<PredecessorRoomInfo> {
-        let rid = OwnedRoomId::try_from(room_id).ok()?;
-        self.sdk.get_room(&rid)?.predecessor_room().map(Into::into)
+    pub async fn room_predecessor(
+        &self,
+        room_id: String,
+    ) -> Result<Option<PredecessorRoomInfo>, FfiError> {
+        let rid = OwnedRoomId::try_from(room_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid room id".into()))?;
+        let room = self
+            .sdk
+            .get_room(&rid)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        Ok(room.predecessor_room().map(Into::into))
     }
 
     pub async fn send_poll_start(
@@ -1720,14 +1798,14 @@ impl CoreClient {
         })
     }
 
-    pub async fn is_space(&self, room_id: String) -> bool {
-        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
-            return false;
-        };
-        self.sdk
+    pub async fn is_space(&self, room_id: String) -> Result<bool, FfiError> {
+        let rid = OwnedRoomId::try_from(room_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid room id".into()))?;
+        let room = self
+            .sdk
             .get_room(&rid)
-            .map(|r| r.is_space())
-            .unwrap_or(false)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        Ok(room.is_space())
     }
 
     pub async fn my_spaces(&self) -> Vec<SpaceInfo> {
@@ -1842,14 +1920,17 @@ impl CoreClient {
         })
     }
 
-    pub async fn space_invite_user(&self, space_id: String, user_id: String) -> bool {
-        let Some(room) = self.room(&space_id) else {
-            return false;
-        };
-        let Ok(uid) = OwnedUserId::try_from(user_id) else {
-            return false;
-        };
-        room.invite_user_by_id(&uid).await.is_ok()
+    pub async fn space_invite_user(
+        &self,
+        space_id: String,
+        user_id: String,
+    ) -> Result<(), FfiError> {
+        let room = self
+            .room(&space_id)
+            .ok_or_else(|| FfiError::Msg("space not found".into()))?;
+        let uid = OwnedUserId::try_from(user_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid user id".into()))?;
+        room.invite_user_by_id(&uid).await.ffi()
     }
 
     pub async fn start_live_location(
@@ -2030,14 +2111,9 @@ impl CoreClient {
         Ok(out)
     }
 
-    pub async fn account_management_url(&self) -> Option<String> {
-        self.sdk
-            .oauth()
-            .cached_server_metadata()
-            .await
-            .ok()?
-            .account_management_uri
-            .map(|u| u.to_string())
+    pub async fn account_management_url(&self) -> Result<Option<String>, FfiError> {
+        let metadata = self.sdk.oauth().cached_server_metadata().await.ffi()?;
+        Ok(metadata.account_management_uri.map(|u| u.to_string()))
     }
 
     pub async fn thread_replies(
@@ -2162,9 +2238,9 @@ impl CoreClient {
         })
     }
 
-    pub async fn send_queue_set_enabled(&self, enabled: bool) -> bool {
+    pub async fn send_queue_set_enabled(&self, enabled: bool) -> Result<(), FfiError> {
         self.sdk.send_queue().set_enabled(enabled).await;
-        true
+        Ok(())
     }
 
     #[cfg(not(target_family = "wasm"))]

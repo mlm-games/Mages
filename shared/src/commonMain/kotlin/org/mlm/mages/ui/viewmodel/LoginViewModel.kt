@@ -208,7 +208,7 @@ class LoginViewModel(
             try {
                 port.init(hs, accountId)
 
-                val ok = port.loginSsoLoopback(openUrl, deviceName = getDeviceDisplayName())
+                val ok = port.loginSsoLoopback(openUrl, deviceName = getDeviceDisplayName()).isSuccess
 
                 if (!ok || !port.isLoggedIn()) {
                     port.close()

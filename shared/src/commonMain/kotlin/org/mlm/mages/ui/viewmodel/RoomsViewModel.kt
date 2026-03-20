@@ -101,7 +101,7 @@ class RoomsViewModel(
 
     fun acceptInvite(roomId: String) {
         launch {
-            val success = runCatching { service.port.acceptInvite(roomId) }.getOrDefault(false)
+            val success = runCatching { service.port.acceptInvite(roomId) }.isSuccess
             if (success) {
                 recomputeGroupedRooms()
             }

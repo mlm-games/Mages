@@ -145,7 +145,7 @@ class ForwardPickerViewModel(
                     body = event.body.takeIf {
                         it.isNotBlank() && it != attachment.mxcUri && !it.startsWith("mxc://")
                     }
-                )
+                ).isSuccess
             } else {
                 service.sendMessage(targetRoomId, event.body)
             }

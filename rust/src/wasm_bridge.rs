@@ -1,68 +1,44 @@
 use crate::core::{CoreClient, TimelineManager, map_send_queue_update};
-use crate::errors::{IntoFfi, OptionFfi};
 use crate::types::*;
-use crate::verification_flow::drive_incoming_verification;
-use crate::verification_flow::{VerifEvent, drive_verification_request};
+use crate::verification_flow::{
+    VerifEvent, drive_incoming_verification, drive_verification_request,
+};
 use crate::{
     emit_timeline_reset_filled, latest_room_event_for, mages_client_metadata, map_vec_diff,
-    missing_reply_event_id, strip_matrix_path,
+    strip_matrix_path,
 };
+use crate::{webffi_err, webffi_not_init, webffi_option, webffi_unit, webffi_value};
 
 use futures_util::StreamExt;
 use futures_util::future::{AbortHandle, Abortable};
-use js_int::UInt;
 use js_sys::Function;
+
 use matrix_sdk::authentication::oauth::UrlOrQuery;
 use matrix_sdk::authentication::oauth::registration::language_tags::LanguageTag;
-use matrix_sdk::ruma::events::room::{
-    EncryptedFile, ImageInfo, MediaSource,
-    message::{
-        FileInfo, FileMessageEventContent, ImageMessageEventContent, MessageType,
-        Relation as MsgRelation, RoomMessageEventContent, VideoInfo, VideoMessageEventContent,
-    },
-    name::RoomNameEventContent,
-    topic::RoomTopicEventContent,
-};
+
+use matrix_sdk::ruma::events::room::{MediaSource, message::MessageType};
+
 use matrix_sdk::ruma::events::{
-    beacon::BeaconEventContent,
-    beacon_info::BeaconInfoEventContent,
-    key::verification::request::ToDeviceKeyVerificationRequestEvent,
-    receipt::SyncReceiptEvent,
-    relation::Thread as ThreadRel,
-    room::message::{RoomMessageEventContentWithoutRelation as MsgNoRel, SyncRoomMessageEvent},
-    space::child::SpaceChildEventContent,
+    key::verification::request::ToDeviceKeyVerificationRequestEvent, receipt::SyncReceiptEvent,
+    room::message::SyncRoomMessageEvent,
 };
-use matrix_sdk::ruma::{
-    EventId, OwnedDeviceId, OwnedEventId, OwnedRoomAliasId, OwnedRoomId, OwnedRoomOrAliasId,
-    OwnedUserId, SpaceChildOrder,
-    api::client::presence::{
-        get_presence::v3 as get_presence_v3, set_presence::v3 as set_presence_v3,
-    },
-    api::client::receipt::create_receipt::v3::ReceiptType,
-    events::{TimelineEventType, receipt::ReceiptThread, relation::RelationType},
-    owned_device_id,
-    presence::PresenceState,
-    room::JoinRuleSummary,
-    room::RoomType,
-};
+
+use matrix_sdk::ruma::{OwnedDeviceId, OwnedEventId, OwnedRoomId, OwnedUserId};
+
 use matrix_sdk::sleep::sleep;
+
 use matrix_sdk::widget::{
-    Capabilities, CapabilitiesProvider, ClientProperties, Intent as WidgetIntent,
-    VirtualElementCallWidgetConfig, VirtualElementCallWidgetProperties, WidgetDriver,
-    WidgetDriverHandle, WidgetSettings,
+    ClientProperties, Intent as WidgetIntent, VirtualElementCallWidgetConfig,
+    VirtualElementCallWidgetProperties, WidgetDriver, WidgetDriverHandle, WidgetSettings,
 };
+
 use matrix_sdk::{
-    Client as SdkClient, Room, RoomDisplayName, RoomMemberships, RoomState, SessionMeta,
-    SessionTokens,
-    authentication::{
-        AuthSession,
-        matrix::MatrixSession,
-        oauth::{ClientId, OAuthSession, UserSession},
-    },
-    encryption::verification::{Verification, VerificationRequest},
+    Client as SdkClient, Room, RoomDisplayName, RoomState,
+    authentication::AuthSession,
     encryption::{BackupDownloadStrategy, EncryptionSettings},
     media::{MediaFormat, MediaRequestParameters, MediaThumbnailSettings},
 };
+
 use matrix_sdk_ui::{
     eyeball_im::{Vector, VectorDiff},
     notification_client::{NotificationClient, NotificationProcessSetup, NotificationStatus},
@@ -70,17 +46,29 @@ use matrix_sdk_ui::{
     sync_service::{State, SyncService},
     timeline::RoomExt,
 };
+
 use serde_json;
+
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::rc::Rc;
 use std::sync::Arc;
+
+use wasm_bindgen::JsValue;
 use wasm_bindgen::prelude::*;
+
 use web_time::Duration;
 
-fn to_json<T: serde::Serialize>(v: &T) -> JsValue {
-    serde_wasm_bindgen::to_value(v)
+use matrix_sdk::authentication::matrix::MatrixSession;
+use matrix_sdk::authentication::oauth::{ClientId, OAuthSession, UserSession};
+use matrix_sdk::{SessionMeta, SessionTokens};
+
+use matrix_sdk::encryption::verification::Verification;
+
+pub fn to_json<T: serde::Serialize>(v: &T) -> JsValue {
+    let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
+    v.serialize(&serializer)
         .unwrap_or_else(|e| JsValue::from_str(&format!("{{\"error\":\"{e}\"}}")))
 }
 
@@ -104,9 +92,15 @@ macro_rules! wasm_delegate_bool {
         impl WasmClient {
             $(
                 #[wasm_bindgen(js_name = $js_name)]
-                pub async fn $method(&self, $($arg: $ty),*) -> bool {
-                    let Some(s) = self.state() else { return false; };
-                    s.core.$method($($arg),*).await
+                pub async fn $method(&self, $($arg: $ty),*) -> JsValue {
+                    let Some(s) = self.state() else {
+                        return to_json(&serde_json::json!({"ok":false,"error":"not initialized"}));
+                    };
+                    match s.core.$method($($arg),*).await {
+                        Ok(true) => to_json(&serde_json::json!({"ok":true})),
+                        Ok(false) => to_json(&serde_json::json!({"ok":false})),
+                        Err(e) => to_json(&serde_json::json!({"ok":false,"error":e.to_string()})),
+                    }
                 }
             )+
         }
@@ -119,9 +113,14 @@ macro_rules! wasm_delegate_result_bool {
         impl WasmClient {
             $(
                 #[wasm_bindgen(js_name = $js_name)]
-                pub async fn $method(&self, $($arg: $ty),*) -> bool {
-                    let Some(s) = self.state() else { return false; };
-                    s.core.$method($($arg),*).await.is_ok()
+                pub async fn $method(&self, $($arg: $ty),*) -> JsValue {
+                    let Some(s) = self.state() else {
+                        return to_json(&serde_json::json!({"ok":false,"error":"not initialized"}));
+                    };
+                    match s.core.$method($($arg),*).await {
+                        Ok(()) => to_json(&serde_json::json!({"ok":true})),
+                        Err(e) => to_json(&serde_json::json!({"ok":false,"error":e.to_string()})),
+                    }
                 }
             )+
         }
@@ -150,10 +149,12 @@ macro_rules! wasm_delegate_result_json {
             $(
                 #[wasm_bindgen(js_name = $js_name)]
                 pub async fn $method(&self, $($arg: $ty),*) -> JsValue {
-                    let Some(s) = self.state() else { return JsValue::NULL; };
+                    let Some(s) = self.state() else {
+                        return to_json(&serde_json::json!({"ok":false,"error":"not initialized"}));
+                    };
                     match s.core.$method($($arg),*).await {
-                        Ok(v) => to_json(&v),
-                        Err(_) => JsValue::NULL,
+                        Ok(v) => to_json(&serde_json::json!({"ok":true,"value":v})),
+                        Err(e) => to_json(&serde_json::json!({"ok":false,"error":e.to_string()})),
                     }
                 }
             )+
@@ -168,10 +169,15 @@ macro_rules! wasm_delegate_option_json {
             $(
                 #[wasm_bindgen(js_name = $js_name)]
                 pub async fn $method(&self, $($arg: $ty),*) -> JsValue {
-                    let Some(s) = self.state() else { return JsValue::NULL; };
+                    let Some(s) = self.state() else {
+                        return to_json(&serde_json::json!({"ok":false,"error":"not initialized"}));
+                    };
                     match s.core.$method($($arg),*).await {
-                        Some(v) => to_json(&v),
-                        None => JsValue::NULL,
+                        Ok(v) => match v {
+                            Some(val) => to_json(&serde_json::json!({"ok":true,"value":val})),
+                            None => to_json(&serde_json::json!({"ok":false,"error":"not found"})),
+                        },
+                        Err(e) => to_json(&serde_json::json!({"ok":false,"error":e.to_string()})),
                     }
                 }
             )+
@@ -474,6 +480,11 @@ impl WasmClient {
 }
 
 wasm_delegate_bool! {
+    "isSpace"              => is_space(room_id: String);
+    "isUserIgnored"        => is_user_ignored(user_id: String);
+}
+
+wasm_delegate_result_bool! {
     "markRead"             => mark_read(room_id: String);
     "markReadAt"           => mark_read_at(room_id: String, event_id: String);
     "markFullyReadAt"      => mark_fully_read_at(room_id: String, event_id: String);
@@ -487,9 +498,7 @@ wasm_delegate_bool! {
     "kickUser"             => kick_user(room_id: String, user_id: String, reason: Option<String>);
     "inviteUser"           => invite_user(room_id: String, user_id: String);
     "enableRoomEncryption" => enable_room_encryption(room_id: String);
-    "isSpace"              => is_space(room_id: String);
     "knock"                => knock(id_or_alias: String);
-    "isUserIgnored"        => is_user_ignored(user_id: String);
     "react"                => react(room_id: String, event_id: String, emoji: String);
     "spaceInviteUser"      => space_invite_user(space_id: String, user_id: String);
     "redact"               => redact(room_id: String, event_id: String, reason: Option<String>);
@@ -501,6 +510,13 @@ wasm_delegate_result_bool! {
     "leaveRoom"        => leave_room(room_id: String);
     "spaceAddChild"    => space_add_child(space_id: String, child_room_id: String, order: Option<String>, suggested: Option<bool>);
     "spaceRemoveChild" => space_remove_child(space_id: String, child_room_id: String);
+    "reportRoom"           => report_room(room_id: String, reason: Option<String>);
+    "sendPollEnd"         => send_poll_end(room_id: String, poll_event_id: String);
+    "stopLiveLocation"     => stop_live_location(room_id: String);
+    "sendLiveLocation"     => send_live_location(room_id: String, geo_uri: String);
+    "acceptKnockRequest"   => accept_knock_request(room_id: String, user_id: String);
+    "declineKnockRequest"  => decline_knock_request(room_id: String, user_id: String, reason: Option<String>);
+    "acceptInvite"         => accept_invite(room_id: String);
 }
 
 wasm_delegate_json! {
@@ -777,12 +793,7 @@ impl WasmClient {
             Ok(url) => UrlOrQuery::Url(url),
             Err(_) => UrlOrQuery::Query(callback_url_or_query),
         };
-        match state
-            .client()
-            .oauth()
-            .finish_login(url_or_query)
-            .await
-        {
+        match state.client().oauth().finish_login(url_or_query).await {
             Ok(_) => {}
             Err(e) => {
                 return to_json(&serde_json::json!({"ok": false, "error": e.to_string()}));
@@ -803,69 +814,72 @@ impl WasmClient {
     // Methods with wasm-specific signatures (cast, missing optional args)
 
     #[wasm_bindgen(js_name = sendMessage)]
-    pub async fn send_message(&self, room_id: String, body: String) -> bool {
+    pub async fn send_message(&self, room_id: String, body: String) -> JsValue {
         let Some(s) = self.state() else {
-            return false;
+            return webffi_not_init();
         };
-        s.core.send_message(room_id, body, None).await
+        webffi_unit(s.core.send_message(room_id, body, None).await)
     }
 
     #[wasm_bindgen(js_name = reply)]
-    pub async fn reply(&self, room_id: String, in_reply_to: String, body: String) -> bool {
+    pub async fn reply(&self, room_id: String, in_reply_to: String, body: String) -> JsValue {
         let Some(s) = self.state() else {
-            return false;
+            return webffi_not_init();
         };
-        s.core.reply(room_id, in_reply_to, body, None).await
+        webffi_unit(s.core.reply(room_id, in_reply_to, body, None).await)
     }
 
     #[wasm_bindgen(js_name = edit)]
-    pub async fn edit(&self, room_id: String, target_event_id: String, new_body: String) -> bool {
+    pub async fn edit(
+        &self,
+        room_id: String,
+        target_event_id: String,
+        new_body: String,
+    ) -> JsValue {
         let Some(s) = self.state() else {
-            return false;
+            return webffi_not_init();
         };
-        s.core.edit(room_id, target_event_id, new_body, None).await
+        webffi_unit(s.core.edit(room_id, target_event_id, new_body, None).await)
     }
 
     #[wasm_bindgen(js_name = paginateBackwards)]
-    pub async fn paginate_backwards(&self, room_id: String, count: u32) -> bool {
+    pub async fn paginate_backwards(&self, room_id: String, count: u32) -> JsValue {
         let Some(s) = self.state() else {
-            return false;
+            return webffi_not_init();
         };
-        s.core.paginate_backwards(room_id, count as u16).await
+        webffi_value(s.core.paginate_backwards(room_id, count as u16).await)
     }
 
     #[wasm_bindgen(js_name = paginateForwards)]
-    pub async fn paginate_forwards(&self, room_id: String, count: u32) -> bool {
+    pub async fn paginate_forwards(&self, room_id: String, count: u32) -> JsValue {
         let Some(s) = self.state() else {
-            return false;
+            return webffi_not_init();
         };
-        s.core.paginate_forwards(room_id, count as u16).await
-    }
-
-    #[wasm_bindgen(js_name = acceptInvite)]
-    pub async fn accept_invite(&self, room_id: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
-            return false;
-        };
-        s.client().join_room_by_id(&rid).await.is_ok()
+        webffi_value(s.core.paginate_forwards(room_id, count as u16).await)
     }
 
     #[wasm_bindgen(js_name = dmPeerUserId)]
-    pub async fn dm_peer_user_id(&self, room_id: String) -> Option<String> {
-        self.state()?.core.dm_peer_user_id(room_id).await
+    pub async fn dm_peer_user_id(&self, room_id: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return webffi_not_init();
+        };
+        webffi_value(s.core.dm_peer_user_id(room_id).await)
     }
 
     #[wasm_bindgen(js_name = ensureDm)]
-    pub async fn ensure_dm(&self, user_id: String) -> Option<String> {
-        self.state()?.core.ensure_dm(user_id).await.ok()
+    pub async fn ensure_dm(&self, user_id: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return webffi_not_init();
+        };
+        webffi_value(s.core.ensure_dm(user_id).await)
     }
 
     #[wasm_bindgen(js_name = resolveRoomId)]
-    pub async fn resolve_room_id(&self, id_or_alias: String) -> Option<String> {
-        self.state()?.core.resolve_room_id(id_or_alias).await
+    pub async fn resolve_room_id(&self, id_or_alias: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return webffi_not_init();
+        };
+        webffi_value(s.core.resolve_room_id(id_or_alias).await)
     }
 
     #[wasm_bindgen(js_name = joinByIdOrAlias)]
@@ -899,17 +913,17 @@ impl WasmClient {
     }
 
     #[wasm_bindgen(js_name = setPresence)]
-    pub async fn set_presence(&self, presence: String, status: Option<String>) -> bool {
+    pub async fn set_presence(&self, presence: String, status: Option<String>) -> JsValue {
         let p = match presence.as_str() {
             "Online" => Presence::Online,
             "Offline" => Presence::Offline,
             "Unavailable" => Presence::Unavailable,
-            _ => return false,
+            _ => return webffi_err("invalid presence state"),
         };
         let Some(s) = self.state() else {
-            return false;
+            return webffi_not_init();
         };
-        s.core.set_presence(p, status).await.is_ok()
+        webffi_unit(s.core.set_presence(p, status).await)
     }
 
     #[wasm_bindgen(js_name = isEventReadBy)]
@@ -918,38 +932,23 @@ impl WasmClient {
         room_id: String,
         event_id: String,
         user_id: String,
-    ) -> bool {
+    ) -> JsValue {
         let Some(s) = self.state() else {
-            return false;
+            return webffi_not_init();
         };
-        s.core.is_event_read_by(room_id, event_id, user_id).await
+        webffi_unit(s.core.is_event_read_by(room_id, event_id, user_id).await)
     }
 
     #[wasm_bindgen(js_name = startLiveLocation)]
-    pub async fn start_live_location(&self, room_id: String, duration_ms: f64) -> bool {
+    pub async fn start_live_location(&self, room_id: String, duration_ms: f64) -> JsValue {
         let Some(s) = self.state() else {
-            return false;
+            return webffi_not_init();
         };
-        s.core
-            .start_live_location(room_id, duration_ms as u64, None)
-            .await
-            .is_ok()
-    }
-
-    #[wasm_bindgen(js_name = stopLiveLocation)]
-    pub async fn stop_live_location(&self, room_id: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.stop_live_location(room_id).await.is_ok()
-    }
-
-    #[wasm_bindgen(js_name = sendLiveLocation)]
-    pub async fn send_live_location(&self, room_id: String, geo_uri: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.send_live_location(room_id, geo_uri).await.is_ok()
+        webffi_unit(
+            s.core
+                .start_live_location(room_id, duration_ms as u64, None)
+                .await,
+        )
     }
 
     #[wasm_bindgen(js_name = enterForeground)]
@@ -1393,27 +1392,35 @@ impl WasmClient {
     }
 
     #[wasm_bindgen(js_name = sendQueueSetEnabled)]
-    pub async fn send_queue_set_enabled(&self, enabled: bool) -> bool {
+    pub async fn send_queue_set_enabled(&self, enabled: bool) -> JsValue {
         let Some(s) = self.state() else {
-            return false;
+            return webffi_not_init();
         };
-        s.core.send_queue_set_enabled(enabled).await
+        webffi_unit(s.core.send_queue_set_enabled(enabled).await)
     }
 
     #[wasm_bindgen(js_name = setMarkUnread)]
-    pub async fn set_mark_unread(&self, room_id: String, unread: bool) -> bool {
+    pub async fn set_mark_unread(&self, room_id: String, unread: bool) -> JsValue {
         let Some(s) = self.state() else {
-            return false;
+            return webffi_not_init();
         };
-        s.core.set_mark_unread(room_id, unread).await
+        webffi_unit(s.core.set_mark_unread(room_id, unread).await)
     }
 
     #[wasm_bindgen(js_name = setPinnedEvents)]
-    pub async fn set_pinned_events(&self, room_id: String, event_ids: Vec<String>) -> bool {
+    pub async fn set_pinned_events(&self, room_id: String, event_ids: Vec<String>) -> JsValue {
         let Some(s) = self.state() else {
-            return false;
+            return webffi_not_init();
         };
-        s.core.set_pinned_events(room_id, event_ids).await
+        webffi_unit(s.core.set_pinned_events(room_id, event_ids).await)
+    }
+
+    #[wasm_bindgen(js_name = roomTags)]
+    pub async fn room_tags(&self, room_id: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return webffi_not_init();
+        };
+        webffi_option(s.core.room_tags(room_id).await)
     }
 
     #[wasm_bindgen(js_name = getPinnedEvents)]
@@ -1424,26 +1431,12 @@ impl WasmClient {
         to_json(&s.core.get_pinned_events(room_id).await)
     }
 
-    #[wasm_bindgen(js_name = roomTags)]
-    pub async fn room_tags(&self, room_id: String) -> JsValue {
-        let Some(s) = self.state() else {
-            return JsValue::NULL;
-        };
-        match s.core.room_tags(room_id).await {
-            Some(v) => to_json(&v),
-            None => JsValue::NULL,
-        }
-    }
-
     #[wasm_bindgen(js_name = roomNotificationMode)]
     pub async fn room_notification_mode(&self, room_id: String) -> JsValue {
         let Some(s) = self.state() else {
-            return JsValue::NULL;
+            return webffi_not_init();
         };
-        match s.core.room_notification_mode(room_id).await {
-            Some(v) => to_json(&v),
-            None => JsValue::NULL,
-        }
+        webffi_option(s.core.room_notification_mode(room_id).await)
     }
 
     #[wasm_bindgen(js_name = setRoomNotificationMode)]
@@ -1547,20 +1540,22 @@ impl WasmClient {
         reply_to_event_id: Option<String>,
         latest_event_id: Option<String>,
         formatted_body: Option<String>,
-    ) -> bool {
+    ) -> JsValue {
         let Some(s) = self.state() else {
-            return false;
+            return webffi_not_init();
         };
-        s.core
-            .send_thread_text(
-                room_id,
-                root_event_id,
-                body,
-                reply_to_event_id,
-                latest_event_id,
-                formatted_body,
-            )
-            .await
+        webffi_unit(
+            s.core
+                .send_thread_text(
+                    room_id,
+                    root_event_id,
+                    body,
+                    reply_to_event_id,
+                    latest_event_id,
+                    formatted_body,
+                )
+                .await,
+        )
     }
 
     #[wasm_bindgen(js_name = reactionsBatch)]
@@ -1773,38 +1768,6 @@ impl WasmClient {
             .is_ok()
     }
 
-    #[wasm_bindgen(js_name = reportRoom)]
-    pub async fn report_room(&self, room_id: String, reason: Option<String>) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.report_room(room_id, reason).await.is_ok()
-    }
-
-    #[wasm_bindgen(js_name = acceptKnockRequest)]
-    pub async fn accept_knock_request(&self, room_id: String, user_id: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.accept_knock_request(room_id, user_id).await.is_ok()
-    }
-
-    #[wasm_bindgen(js_name = declineKnockRequest)]
-    pub async fn decline_knock_request(
-        &self,
-        room_id: String,
-        user_id: String,
-        reason: Option<String>,
-    ) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core
-            .decline_knock_request(room_id, user_id, reason)
-            .await
-            .is_ok()
-    }
-
     #[wasm_bindgen(js_name = sendPollStart)]
     pub async fn send_poll_start(
         &self,
@@ -1847,14 +1810,6 @@ impl WasmClient {
             .send_poll_response(room_id, poll_event_id, answers)
             .await
             .is_ok()
-    }
-
-    #[wasm_bindgen(js_name = sendPollEnd)]
-    pub async fn send_poll_end(&self, room_id: String, poll_event_id: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.send_poll_end(room_id, poll_event_id).await.is_ok()
     }
 
     #[wasm_bindgen(js_name = seenByForEvent)]

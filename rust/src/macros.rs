@@ -1,3 +1,8 @@
+#[cfg(target_family = "wasm")]
+use crate::wasm_bridge::to_json;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::JsValue;
+
 macro_rules! abort_all_subs {
     ($self:expr; $($field:ident),+ $(,)?) => {
         $(
@@ -8,20 +13,6 @@ macro_rules! abort_all_subs {
     };
 }
 pub(crate) use abort_all_subs;
-
-macro_rules! delegate_bool {
-    ($($name:ident($($arg:ident : $ty:ty),* $(,)?));+ $(;)?) => {
-        #[uniffi::export]
-        impl Client {
-            $(
-                pub fn $name(&self, $($arg: $ty),*) -> bool {
-                    RT.block_on(self.core.$name($($arg),*))
-                }
-            )+
-        }
-    };
-}
-pub(crate) use delegate_bool;
 
 macro_rules! delegate_unit_result {
     ($($name:ident($($arg:ident : $ty:ty),* $(,)?));+ $(;)?) => {
@@ -56,7 +47,7 @@ macro_rules! delegate_option {
         #[uniffi::export]
         impl Client {
             $(
-                pub fn $name(&self, $($arg: $ty),*) -> Option<$ret> {
+                pub fn $name(&self, $($arg: $ty),*) -> Result<Option<$ret>, FfiError> {
                     RT.block_on(self.core.$name($($arg),*))
                 }
             )+
@@ -137,9 +128,9 @@ macro_rules! wasm_delegate_bool {
         impl WasmClient {
             $(
                 #[wasm_bindgen(js_name = $js_name)]
-                pub async fn $method(&self, $($arg: $ty),*) -> bool {
-                    let Some(s) = self.state() else { return false; };
-                    s.core.$method($($arg),*).await
+                pub async fn $method(&self, $($arg: $ty),*) -> JsValue {
+                    let Some(s) = self.state() else { return webffi_not_init(); };
+                    webffi_bool(s.core.$method($($arg),*).await)
                 }
             )+
         }
@@ -156,9 +147,9 @@ macro_rules! wasm_delegate_result_bool {
         impl WasmClient {
             $(
                 #[wasm_bindgen(js_name = $js_name)]
-                pub async fn $method(&self, $($arg: $ty),*) -> bool {
-                    let Some(s) = self.state() else { return false; };
-                    s.core.$method($($arg),*).await.is_ok()
+                pub async fn $method(&self, $($arg: $ty),*) -> JsValue {
+                    let Some(s) = self.state() else { return webffi_not_init(); };
+                    webffi_unit(s.core.$method($($arg),*).await)
                 }
             )+
         }
@@ -196,11 +187,8 @@ macro_rules! wasm_delegate_result_json {
             $(
                 #[wasm_bindgen(js_name = $js_name)]
                 pub async fn $method(&self, $($arg: $ty),*) -> JsValue {
-                    let Some(s) = self.state() else { return JsValue::NULL; };
-                    match s.core.$method($($arg),*).await {
-                        Ok(v) => to_json(&v),
-                        Err(_) => JsValue::NULL,
-                    }
+                    let Some(s) = self.state() else { return webffi_not_init(); };
+                    webffi_value(s.core.$method($($arg),*).await)
                 }
             )+
         }
@@ -218,16 +206,14 @@ macro_rules! wasm_delegate_option_json {
             $(
                 #[wasm_bindgen(js_name = $js_name)]
                 pub async fn $method(&self, $($arg: $ty),*) -> JsValue {
-                    let Some(s) = self.state() else { return JsValue::NULL; };
-                    match s.core.$method($($arg),*).await {
-                        Some(v) => to_json(&v),
-                        None => JsValue::NULL,
-                    }
+                    let Some(s) = self.state() else { return webffi_not_init(); };
+                    webffi_option(s.core.$method($($arg),*).await)
                 }
             )+
         }
     };
 }
+
 #[cfg(target_family = "wasm")]
 pub(crate) use wasm_delegate_option_json;
 
@@ -298,3 +284,49 @@ macro_rules! js_observer_noargs {
 }
 #[cfg(target_family = "wasm")]
 pub(crate) use js_observer_noargs;
+
+#[cfg(target_family = "wasm")]
+pub fn webffi_not_init() -> JsValue {
+    to_json(&serde_json::json!({"ok":false,"error":"not initialized"}))
+}
+
+#[cfg(target_family = "wasm")]
+pub fn webffi_err(msg: &str) -> JsValue {
+    to_json(&serde_json::json!({"ok":false,"error":msg}))
+}
+
+#[cfg(target_family = "wasm")]
+pub fn webffi_unit<E: std::fmt::Display>(r: Result<(), E>) -> JsValue {
+    match r {
+        Ok(()) => to_json(&serde_json::json!({"ok":true})),
+        Err(e) => to_json(&serde_json::json!({"ok":false,"error":e.to_string()})),
+    }
+}
+
+#[cfg(target_family = "wasm")]
+pub fn webffi_value<T: serde::Serialize, E: std::fmt::Display>(r: Result<T, E>) -> JsValue {
+    match r {
+        Ok(v) => to_json(&serde_json::json!({"ok":true,"value":v})),
+        Err(e) => to_json(&serde_json::json!({"ok":false,"error":e.to_string()})),
+    }
+}
+
+#[cfg(target_family = "wasm")]
+pub fn webffi_bool<E: std::fmt::Display>(r: Result<bool, E>) -> JsValue {
+    match r {
+        Ok(true) => to_json(&serde_json::json!({"ok":true})),
+        Ok(false) => to_json(&serde_json::json!({"ok":false})),
+        Err(e) => to_json(&serde_json::json!({"ok":false,"error":e.to_string()})),
+    }
+}
+
+#[cfg(target_family = "wasm")]
+pub fn webffi_option<T: serde::Serialize, E: std::fmt::Display>(
+    r: Result<Option<T>, E>,
+) -> JsValue {
+    match r {
+        Ok(Some(v)) => to_json(&serde_json::json!({"ok":true,"value":v})),
+        Ok(None) => to_json(&serde_json::json!({"ok":false,"error":"not found"})),
+        Err(e) => to_json(&serde_json::json!({"ok":false,"error":e.to_string()})),
+    }
+}

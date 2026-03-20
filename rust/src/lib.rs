@@ -141,7 +141,7 @@ static RT: Lazy<Runtime> = Lazy::new(|| {
         .expect("tokio runtime")
 });
 
-delegate_bool! {
+delegate_unit_result! {
     send_queue_set_enabled(enabled: bool);
     set_typing(room_id: String, typing: bool);
     send_message(room_id: String, body: String, formatted_body: Option<String>);
@@ -156,8 +156,6 @@ delegate_bool! {
     mark_read_at(room_id: String, event_id: String);
     mark_fully_read_at(room_id: String, event_id: String);
     set_mark_unread(room_id: String, unread: bool);
-    paginate_backwards(room_id: String, count: u16);
-    paginate_forwards(room_id: String, count: u16);
     ban_user(room_id: String, user_id: String, reason: Option<String>);
     unban_user(room_id: String, user_id: String, reason: Option<String>);
     kick_user(room_id: String, user_id: String, reason: Option<String>);
@@ -170,13 +168,8 @@ delegate_bool! {
     set_room_favourite(room_id: String, fav: bool);
     set_room_low_priority(room_id: String, low: bool);
     is_event_read_by(room_id: String, event_id: String, user_id: String);
-    is_user_ignored(user_id: String);
     knock(id_or_alias: String);
     space_invite_user(space_id: String, user_id: String);
-    is_space(room_id: String);
-}
-
-delegate_unit_result! {
     leave_room(room_id: String);
     set_room_notification_mode(room_id: String, mode: FfiRoomNotificationMode);
     set_room_canonical_alias(room_id: String, alias: Option<String>, alt_aliases: Vec<String>);
@@ -199,6 +192,11 @@ delegate_unit_result! {
     set_presence(state: Presence, status_msg: Option<String>);
     accept_knock_request(room_id: String, user_id: String);
     decline_knock_request(room_id: String, user_id: String, reason: Option<String>);
+}
+
+delegate_result! { bool; is_user_ignored(user_id: String); is_space(room_id: String);
+    paginate_backwards(room_id: String, count: u16);
+    paginate_forwards(room_id: String, count: u16);
 }
 
 delegate_result! { Vec<MemberSummary>; list_members(room_id: String); }
