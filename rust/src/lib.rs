@@ -8,12 +8,8 @@ use matrix_sdk::authentication::oauth::registration::language_tags::LanguageTag;
 use matrix_sdk::authentication::oauth::registration::{
     ApplicationType, ClientMetadata, Localized, OAuthGrantType,
 };
-use matrix_sdk::notification_settings::RoomNotificationMode as RsMode;
 use matrix_sdk::reqwest::Url;
-use matrix_sdk::ruma::OwnedEventId;
-use matrix_sdk::ruma::events::room::power_levels::UserPowerLevel;
 use matrix_sdk::ruma::events::{AnySyncMessageLikeEvent, AnySyncTimelineEvent};
-use matrix_sdk::ruma::room::JoinRuleSummary;
 use matrix_sdk::ruma::room_version_rules::RoomVersionRules;
 use matrix_sdk::ruma::serde::Raw;
 #[cfg(not(target_family = "wasm"))]
@@ -25,19 +21,11 @@ use matrix_sdk::utils::local_server::LocalServerBuilder;
 #[cfg(not(target_family = "wasm"))]
 use matrix_sdk::utils::local_server::LocalServerIpAddress;
 use matrix_sdk::{
-    EncryptionState, PredecessorRoom, RoomDisplayName, SuccessorRoom,
-    ruma::{
-        UserId,
-        directory::Filter,
-        events::{
-            ignored_user_list::IgnoredUserListEventContent,
-            room::{
-                ImageInfo,
-                message::{
-                    FileInfo, FileMessageEventContent, ImageMessageEventContent, VideoInfo,
-                    VideoMessageEventContent,
-                },
-            },
+    RoomDisplayName,
+    ruma::events::room::{
+        ImageInfo,
+        message::{
+            FileMessageEventContent, ImageMessageEventContent, VideoInfo, VideoMessageEventContent,
         },
     },
     widget::{VirtualElementCallWidgetConfig, VirtualElementCallWidgetProperties},
@@ -50,21 +38,19 @@ use matrix_sdk_ui::{
 };
 use mime::Mime;
 use once_cell::sync::Lazy;
-use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::sync::atomic::AtomicBool;
 use std::{
     collections::HashMap,
-    path::{Path, PathBuf},
+    path::PathBuf,
     sync::{
         Arc, Mutex,
         atomic::{AtomicU64, Ordering},
     },
-    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
-use std::{mem::ManuallyDrop, sync::atomic::AtomicBool};
 use tokio::runtime::Runtime;
-use tracing::{error, info, warn};
-use uniffi::{Enum, Object, Record, export, setup_scaffolding};
+use tracing::warn;
+use uniffi::{Object, export, setup_scaffolding};
 
 mod core;
 mod errors;
@@ -81,94 +67,55 @@ pub use types::*;
 use errors::{IntoFfi, OptionFfi, ffi_err};
 use macros::*;
 
-use matrix_sdk::ruma::events::receipt::ReceiptThread;
 use matrix_sdk::{
-    Client as SdkClient, OwnedServerName, Room, RoomMemberships, SessionMeta, SessionTokens,
+    Client as SdkClient, Room, SessionMeta, SessionTokens,
     authentication::matrix::MatrixSession,
-    authentication::{
-        AuthSession,
-        oauth::{ClientId, OAuthSession, UserSession},
-    },
-    config::SyncSettings,
-    media::{MediaFormat, MediaRequestParameters, MediaRetentionPolicy},
+    authentication::oauth::{ClientId, OAuthSession, UserSession},
+    media::{MediaFormat, MediaRequestParameters},
     ruma::{
-        OwnedRoomAliasId, OwnedRoomOrAliasId, SpaceChildOrder,
-        api::client::{
-            directory::get_public_rooms_filtered,
-            push::{Pusher, PusherIds, PusherInit, PusherKind},
-            room::Visibility,
-        },
-        events::room::{
-            EncryptedFile, MediaSource, name::RoomNameEventContent,
-            pinned_events::RoomPinnedEventsEventContent, topic::RoomTopicEventContent,
-        },
+        api::client::push::{Pusher, PusherIds, PusherInit, PusherKind},
+        events::room::{EncryptedFile, MediaSource},
         push::HttpPusherData,
-        room::RoomType,
     },
 };
 use matrix_sdk::{
     encryption::BackupDownloadStrategy,
     ruma::{
-        EventId, OwnedDeviceId, OwnedRoomId, OwnedUserId,
-        api::client::receipt::create_receipt::v3::ReceiptType,
-        events::call::invite::OriginalSyncCallInviteEvent, events::receipt::SyncReceiptEvent,
+        OwnedDeviceId, OwnedRoomId, OwnedUserId, events::call::invite::OriginalSyncCallInviteEvent,
+        events::receipt::SyncReceiptEvent,
     },
 };
 use matrix_sdk::{
     encryption::{EncryptionSettings, verification::Verification},
     ruma::{
         self,
-        api::client::profile::{AvatarUrl, DisplayName},
         events::{
             key::verification::request::ToDeviceKeyVerificationRequestEvent,
             room::message::{MessageType, SyncRoomMessageEvent},
         },
-        owned_device_id,
     },
 };
 use matrix_sdk_ui::{
-    encryption_sync_service::EncryptionSyncService,
     eyeball_im::VectorDiff,
     notification_client::{
         NotificationClient, NotificationEvent, NotificationProcessSetup, NotificationStatus,
     },
     room_list_service::filters,
-    sync_service::{State, SyncService},
+    sync_service::State,
     timeline::{
         EventSendState, EventTimelineItem, MsgLikeContent, MsgLikeKind, RoomExt as _, Timeline,
         TimelineItem, TimelineItemContent,
     },
 };
-use thiserror::Error;
 
-use ruma::{
-    api::{
-        Direction,
-        client::relations::get_relating_events_with_rel_type_and_event_type as get_relating,
-    },
-    events::{
-        TimelineEventType,
-        relation::{RelationType, Thread as ThreadRel},
-        room::message::{Relation as MsgRelation, RoomMessageEventContent},
-    },
-};
+use ruma::events::room::message::RoomMessageEventContent;
 
-use matrix_sdk::ruma::{
-    RoomVersionId,
-    api::client::presence::{
-        get_presence::v3 as get_presence_v3, set_presence::v3 as set_presence_v3,
+use matrix_sdk::ruma::events::poll::{
+    start::PollKind as RumaPollKind,
+    unstable_start::{
+        NewUnstablePollStartEventContent, UnstablePollAnswer, UnstablePollAnswers,
+        UnstablePollStartContentBlock,
     },
-    api::client::room::upgrade_room::v3 as upgrade_room_v3,
-    events::poll::{
-        start::PollKind as RumaPollKind,
-        unstable_end::UnstablePollEndEventContent,
-        unstable_response::UnstablePollResponseEventContent,
-        unstable_start::{
-            NewUnstablePollStartEventContent, UnstablePollAnswer, UnstablePollAnswers,
-            UnstablePollStartContentBlock,
-        },
-    },
-    presence::PresenceState,
 };
 use matrix_sdk::widget::{
     Capabilities, CapabilitiesProvider, ClientProperties, Intent as WidgetIntent, WidgetDriver,
@@ -312,7 +259,6 @@ pub struct Client {
     widget_handles: Mutex<HashMap<u64, WidgetDriverHandle>>,
     widget_driver_tasks: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     widget_recv_tasks: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
-    timeline_mgr: TokioDrop<TimelineManager>,
 }
 
 fn mages_client_metadata(redirect_uri: &Url) -> Raw<ClientMetadata> {
@@ -427,7 +373,6 @@ impl Client {
             .map_err(|e| FfiError::Msg(format!("failed to build client: {e}")))?;
 
         let core = Arc::new(CoreClient::new(inner.clone()));
-        let timeline_mgr = TokioDrop::new(core.timeline_mgr.clone());
         let (send_tx, mut send_rx) = tokio::sync::mpsc::unbounded_channel::<SendUpdate>();
 
         let this = Self {
@@ -455,7 +400,6 @@ impl Client {
             widget_driver_tasks: Mutex::new(HashMap::new()),
             widget_recv_tasks: Mutex::new(HashMap::new()),
             app_in_foreground: Arc::new(AtomicBool::new(false)),
-            timeline_mgr,
         };
 
         // send observer fan-out task
@@ -2762,36 +2706,6 @@ impl Client {
 
     async fn persist_current_session(client: &Client) {
         platform::build_and_persist_session(&client.core.sdk, &client.store_dir).await;
-    }
-}
-
-async fn persist_current_session(client: &Client) {
-    let sdk = &client.core.sdk;
-    let homeserver = sdk.homeserver().to_string();
-
-    if let Some(oauth_sess) = sdk.oauth().user_session() {
-        let client_id_str = sdk.oauth().client_id().map(|c| c.to_string());
-        let info = SessionInfo {
-            user_id: oauth_sess.meta.user_id.to_string(),
-            device_id: oauth_sess.meta.device_id.to_string(),
-            access_token: oauth_sess.tokens.access_token.clone(),
-            refresh_token: oauth_sess.tokens.refresh_token.clone(),
-            homeserver,
-            auth_api: "oauth".to_string(),
-            client_id: client_id_str,
-        };
-        let _ = platform::persist_session(&client.store_dir, &info).await;
-    } else if let Some(matrix_sess) = sdk.matrix_auth().session() {
-        let info = SessionInfo {
-            user_id: matrix_sess.meta.user_id.to_string(),
-            device_id: matrix_sess.meta.device_id.to_string(),
-            access_token: matrix_sess.tokens.access_token.clone(),
-            refresh_token: matrix_sess.tokens.refresh_token.clone(),
-            homeserver,
-            auth_api: "matrix".to_string(),
-            client_id: None,
-        };
-        let _ = platform::persist_session(&client.store_dir, &info).await;
     }
 }
 

@@ -2,23 +2,16 @@
 
 use std::{
     collections::{HashMap, HashSet},
-    panic::{AssertUnwindSafe, catch_unwind},
     sync::{Arc, Mutex},
     time::Duration,
 };
 
-use futures_util::StreamExt;
-use js_int::UInt;
 use matrix_sdk::{
-    Client as SdkClient, EncryptionState, Room, RoomDisplayName, RoomMemberships, RoomState,
-    SessionTokens,
-    authentication::matrix::MatrixSession,
-    encryption::EncryptionSettings,
-    media::{MediaFormat, MediaRequestParameters, MediaRetentionPolicy, MediaThumbnailSettings},
+    Client as SdkClient, EncryptionState, Room, RoomMemberships, RoomState,
     notification_settings::RoomNotificationMode,
     ruma::{
-        EventId, OwnedDeviceId, OwnedEventId, OwnedRoomAliasId, OwnedRoomId, OwnedRoomOrAliasId,
-        OwnedServerName, OwnedUserId, RoomVersionId, SpaceChildOrder, UserId,
+        EventId, OwnedEventId, OwnedRoomAliasId, OwnedRoomId, OwnedRoomOrAliasId, OwnedServerName,
+        OwnedUserId, RoomVersionId, SpaceChildOrder, UserId,
         api::client::{
             directory::get_public_rooms_filtered,
             presence::{get_presence::v3 as get_presence_v3, set_presence::v3 as set_presence_v3},
@@ -30,23 +23,15 @@ use matrix_sdk::{
             AnyMessageLikeEventContent,
             ignored_user_list::IgnoredUserListEventContent,
             poll::{
-                start::PollKind as RumaPollKind,
                 unstable_end::UnstablePollEndEventContent,
                 unstable_response::UnstablePollResponseEventContent,
-                unstable_start::{
-                    NewUnstablePollStartEventContent, UnstablePollAnswer, UnstablePollAnswers,
-                    UnstablePollStartContentBlock,
-                },
             },
             receipt::ReceiptThread,
             relation::Thread as ThreadRel,
             room::{
-                EncryptedFile, ImageInfo, MediaSource,
                 message::{
-                    FileInfo, FileMessageEventContent, ImageMessageEventContent, MessageType,
                     Relation as MsgRelation, RoomMessageEventContent,
-                    RoomMessageEventContentWithoutRelation as MsgNoRel, VideoInfo,
-                    VideoMessageEventContent,
+                    RoomMessageEventContentWithoutRelation as MsgNoRel,
                 },
                 name::RoomNameEventContent,
                 pinned_events::RoomPinnedEventsEventContent,
@@ -61,35 +46,21 @@ use matrix_sdk::{
     send_queue::SendHandle as SdkSendHandle,
 };
 use matrix_sdk_ui::{
-    eyeball_im::{Vector, VectorDiff},
-    notification_client::{
-        NotificationClient, NotificationEvent, NotificationProcessSetup, NotificationStatus,
-    },
-    room_list_service::filters,
-    sync_service::{State, SyncService},
-    timeline::{
-        EventSendState, EventTimelineItem, MsgLikeContent, MsgLikeKind, RoomExt as _, Timeline,
-        TimelineDetails, TimelineEventItemId, TimelineItem, TimelineItemContent,
-    },
+    sync_service::SyncService,
+    timeline::{RoomExt as _, Timeline},
 };
-use tracing::{error, info, warn};
+use tracing::warn;
 
-use crate::errors::{IntoFfi, OptionFfi, ffi_err};
+use crate::errors::{IntoFfi, OptionFfi};
 use crate::{
-    AttachmentInfo, AttachmentKind, BACKFILL_CHUNK, BackupState, CallInvite, DeviceSummary,
-    DirectoryUser, DownloadResult, ElementCallIntent, EncFile, FfiError, FfiRoomNotificationMode,
-    INITIAL_BACK_PAGINATION, KnockRequestSummary, LatestRoomEvent, LiveLocationBeaconState,
-    LiveLocationEvent, LiveLocationShareInfo, MAX_BACKFILL_ROUNDS, MIN_VISIBLE_AFTER_RESET,
-    MemberSummary, MessageEvent, OwnReceipt, PollData, PollDefinition, PollKind, PollOption,
+    DirectoryUser, FfiError, FfiRoomNotificationMode, INITIAL_BACK_PAGINATION, KnockRequestSummary,
+    LiveLocationBeaconState, MemberSummary, MessageEvent, OwnReceipt, PollDefinition,
     PredecessorRoomInfo, Presence, PresenceInfo, PublicRoom, PublicRoomsPage, ReactionSummary,
-    RecoveryState, RenderedNotification, RoomDirectoryVisibility, RoomHistoryVisibility,
-    RoomJoinRule, RoomListEntry, RoomPowerLevelChanges, RoomPowerLevels, RoomPreview,
-    RoomPreviewMembership, RoomProfile, RoomSummary, RoomTags, RoomUpgradeLinks,
-    SearchHit, SearchPage, SeenByEntry, SendState, SendUpdate, SpaceChildInfo,
+    RoomDirectoryVisibility, RoomHistoryVisibility, RoomJoinRule, RoomPowerLevelChanges,
+    RoomPowerLevels, RoomPreview, RoomPreviewMembership, RoomProfile, RoomSummary, RoomTags,
+    RoomUpgradeLinks, SearchHit, SearchPage, SeenByEntry, SendState, SendUpdate, SpaceChildInfo,
     SpaceHierarchyPage, SpaceInfo, SuccessorRoomInfo, ThreadPage, ThreadSummary, UnreadStats,
-    build_unstable_poll_content, emit_timeline_reset_filled,
-    latest_room_event_for, map_event_id_via_timeline, map_notification_item_to_rendered,
-    map_timeline_event, map_vec_diff, missing_reply_event_id, notification_event_ts_ms, now_ms,
+    build_unstable_poll_content, map_event_id_via_timeline, map_timeline_event,
     paginate_backwards_visible, timeline_event_filter,
 };
 

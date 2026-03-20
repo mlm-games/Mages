@@ -1,6 +1,6 @@
 use futures_util::StreamExt;
 use matrix_sdk::encryption::verification::{
-    SasState as SdkSasState, SasVerification, Verification, VerificationRequest,
+    SasState as SdkSasState, Verification, VerificationRequest,
     VerificationRequestState,
 };
 use serde::{Deserialize, Serialize};

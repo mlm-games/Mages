@@ -176,8 +176,8 @@ pub(crate) async fn persist_session(store_dir: &Path, info: &SessionInfo) -> std
 pub(crate) async fn build_and_persist_session(sdk: &matrix_sdk::Client, store_dir: &Path) {
     #[cfg(not(target_family = "wasm"))]
     {
-        use matrix_sdk::SessionMeta;
-        use matrix_sdk::authentication::oauth::OAuthSession;
+        
+        
 
         let homeserver = sdk.homeserver().to_string();
 

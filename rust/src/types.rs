@@ -1,12 +1,8 @@
-use matrix_sdk::ruma::events::room::power_levels::UserPowerLevel;
-use matrix_sdk::{EncryptionState, PredecessorRoom, RoomDisplayName, SuccessorRoom};
+use matrix_sdk::{PredecessorRoom, SuccessorRoom};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
-use std::sync::Arc;
-use uniffi::{export, Enum, Object, Record};
-
-use matrix_sdk::send_queue::SendHandle;
+use uniffi::{Enum, Record, export};
 
 use crate::RT;
 
@@ -779,7 +775,7 @@ impl From<PredecessorRoom> for PredecessorRoomInfo {
 }
 
 #[derive(Clone)]
-pub(crate) struct LiveLocationBeaconState {
+pub struct LiveLocationBeaconState {
     pub event_id: String,
     pub duration_ms: u64,
     pub description: Option<String>,
