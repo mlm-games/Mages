@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.mlm.mages.MatrixService
-import org.mlm.mages.matrix.EmojiEntry
 import org.mlm.mages.matrix.SasPhase
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.VerifEvent
@@ -212,11 +211,6 @@ class VerificationCoordinator(
         }
     }
 
-    /**
-     * Accept/Continue semantics:
-     * - Requested => accept VerificationRequest (request-level accept)
-     * - Ready/Started => accept SAS (sas-level accept; UI "Continue")
-     */
     fun acceptOrContinue() {
         val flowId = _state.value.sasFlowId
         if (flowId == null) {
@@ -230,27 +224,42 @@ class VerificationCoordinator(
         _state.value = _state.value.copy(sasContinuePressed = true, sasError = null)
 
         scope.launch {
-            val ok: Boolean = try {
-                when (phase) {
-                    SasPhase.Requested -> {
-                        verificationService?.acceptVerificationRequest(flowId, otherUser ?: "")
-                            ?: false
+            when (phase) {
+                SasPhase.Requested -> {
+                    try {
+                        verificationService
+                            ?.acceptAndObserveVerification(flowId, otherUser ?: "")
+                            ?.collect { event -> handleVerifEvent(event) }
+                            ?: run {
+                                _state.value = _state.value.copy(
+                                    sasContinuePressed = false,
+                                    sasError = "Verification service unavailable"
+                                )
+                            }
+                    } catch (e: Exception) {
+                        _state.value = _state.value.copy(
+                            sasPhase = SasPhase.Failed,
+                            sasError = e.message ?: "Accept failed",
+                            sasContinuePressed = false
+                        )
                     }
-                    SasPhase.Ready, SasPhase.Started -> {
-                        verificationService?.acceptSas(flowId, otherUser ?: "") ?: false
-                    }
-                    else -> false
                 }
-            } catch (e: Throwable) {
-                false
-            }
+                SasPhase.Ready, SasPhase.Started -> {
+                    val ok = try {
+                        verificationService?.acceptSas(flowId, otherUser ?: "") ?: false
+                    } catch (e: Throwable) { false }
 
-            val cur = _state.value
-            if (cur.sasFlowId == flowId) {
-                _state.value = cur.copy(
-                    sasContinuePressed = false,
-                    sasError = if (!ok) "Continue failed" else null
-                )
+                    val cur = _state.value
+                    if (cur.sasFlowId == flowId) {
+                        _state.value = cur.copy(
+                            sasContinuePressed = false,
+                            sasError = if (!ok) "Continue failed" else null
+                        )
+                    }
+                }
+                else -> {
+                    _state.value = _state.value.copy(sasContinuePressed = false)
+                }
             }
         }
     }

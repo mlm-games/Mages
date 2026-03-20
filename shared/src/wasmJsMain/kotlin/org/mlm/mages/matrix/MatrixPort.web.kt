@@ -2,6 +2,7 @@ package org.mlm.mages.matrix
 
 import kotlinx.browser.document
 import kotlinx.browser.window
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.channels.awaitClose
@@ -1200,8 +1201,24 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         awaitClose { }
     }
 
-    override suspend fun acceptVerificationRequest(flowId: String, otherUserId: String): Boolean =
-        requireClient().acceptVerificationRequest(flowId, otherUserId).awaitBool()
+    override fun acceptAndObserveVerification(flowId: String, otherUserId: String): Flow<VerifEvent> = callbackFlow {
+        val ok = requireClient().acceptAndObserveVerification(
+            flowId,
+            otherUserId,
+            jsCallback1 { event: JsAny? ->
+                val jsonStr = event?.toString() ?: return@jsCallback1
+                runCatching {
+                    verifJson.decodeFromString<VerifEvent>(jsonStr)
+                }.getOrNull()?.let { trySend(it) }
+            }
+        ).awaitBool()
+        if (!ok) {
+            trySend(VerifEvent.Error("Failed to accept verification"))
+            channel.close()
+            return@callbackFlow
+        }
+        awaitClose { }
+    }
 
     override suspend fun acceptSas(flowId: String, otherUserId: String): Boolean =
         requireClient().acceptSas(flowId, otherUserId).awaitBool()
@@ -1258,8 +1275,24 @@ class WebVerificationService(private val client: WasmClient) : VerificationServi
     override suspend fun cancelVerification(flowId: String): Boolean =
         client.cancelVerification(flowId).awaitBool()
 
-    override suspend fun acceptVerificationRequest(flowId: String, otherUserId: String): Boolean =
-        client.acceptVerificationRequest(flowId, otherUserId).awaitBool()
+    override fun acceptAndObserveVerification(flowId: String, otherUserId: String): Flow<VerifEvent> = callbackFlow {
+        val ok = client.acceptAndObserveVerification(
+            flowId,
+            otherUserId,
+            jsCallback1 { event: JsAny? ->
+                val jsonStr = event?.toString() ?: return@jsCallback1
+                runCatching {
+                    verifJson.decodeFromString<VerifEvent>(jsonStr)
+                }.getOrNull()?.let { trySend(it) }
+            }
+        ).awaitBool()
+        if (!ok) {
+            trySend(VerifEvent.Error("Failed to accept verification"))
+            channel.close()
+            return@callbackFlow
+        }
+        awaitClose { }
+    }
 
     override suspend fun acceptSas(flowId: String, otherUserId: String): Boolean =
         client.acceptSas(flowId, otherUserId).awaitBool()

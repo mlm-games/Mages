@@ -71,9 +71,9 @@ mod errors;
 mod macros;
 mod platform;
 mod types;
+mod verification_flow;
 #[cfg(target_family = "wasm")]
 mod wasm_bridge;
-mod verification_flow;
 
 pub use core::{CoreClient, TimelineManager};
 pub use types::*;
@@ -81,6 +81,7 @@ pub use types::*;
 use errors::{IntoFfi, OptionFfi, ffi_err};
 use macros::*;
 
+use matrix_sdk::ruma::events::receipt::ReceiptThread;
 use matrix_sdk::{
     Client as SdkClient, OwnedServerName, Room, RoomMemberships, SessionTokens,
     authentication::matrix::MatrixSession,
@@ -110,10 +111,7 @@ use matrix_sdk::{
     },
 };
 use matrix_sdk::{
-    encryption::{
-        EncryptionSettings,
-        verification::Verification,
-    },
+    encryption::{EncryptionSettings, verification::Verification},
     ruma::{
         self,
         api::client::profile::{AvatarUrl, DisplayName},
@@ -123,9 +121,6 @@ use matrix_sdk::{
         },
         owned_device_id,
     },
-};
-use matrix_sdk::{
-    ruma::events::receipt::ReceiptThread,
 };
 use matrix_sdk_ui::{
     encryption_sync_service::EncryptionSyncService,
@@ -2494,7 +2489,8 @@ impl Client {
         let emit_err = |lis: &Arc<dyn VerifEventListener>, msg: String| {
             let err = serde_json::to_string(&crate::verification_flow::VerifEvent::Error {
                 message: msg,
-            }).unwrap_or_default();
+            })
+            .unwrap_or_default();
             lis.on_event(err);
         };
 
@@ -2506,9 +2502,8 @@ impl Client {
             }
         };
         let device_id_owned = OwnedDeviceId::from(device_id);
-        let device = match RT.block_on(
-            self.core.sdk.encryption().get_device(me, &device_id_owned)
-        ) {
+        let device = match RT.block_on(self.core.sdk.encryption().get_device(me, &device_id_owned))
+        {
             Ok(Some(d)) => d,
             Ok(None) => {
                 emit_err(&lis, "Device not found".into());
@@ -2536,8 +2531,11 @@ impl Client {
             while let Some(event) = stream.next().await {
                 let json = serde_json::to_string(&event).unwrap_or_default();
                 lis2.on_event(json);
-                if matches!(event, crate::verification_flow::VerifEvent::Done) ||
-                    matches!(event, crate::verification_flow::VerifEvent::Cancelled { .. })
+                if matches!(event, crate::verification_flow::VerifEvent::Done)
+                    || matches!(
+                        event,
+                        crate::verification_flow::VerifEvent::Cancelled { .. }
+                    )
                 {
                     break;
                 }
@@ -2556,7 +2554,8 @@ impl Client {
         let emit_err = |lis: &Arc<dyn VerifEventListener>, msg: String| {
             let err = serde_json::to_string(&crate::verification_flow::VerifEvent::Error {
                 message: msg,
-            }).unwrap_or_default();
+            })
+            .unwrap_or_default();
             lis.on_event(err);
         };
 
@@ -2564,9 +2563,7 @@ impl Client {
             emit_err(&lis, "Invalid user ID".into());
             return String::new();
         };
-        let identity = match RT.block_on(
-            self.core.sdk.encryption().get_user_identity(&uid)
-        ) {
+        let identity = match RT.block_on(self.core.sdk.encryption().get_user_identity(&uid)) {
             Ok(Some(i)) => i,
             Ok(None) => {
                 emit_err(&lis, "User identity not found".into());
@@ -2594,8 +2591,11 @@ impl Client {
             while let Some(event) = stream.next().await {
                 let json = serde_json::to_string(&event).unwrap_or_default();
                 lis2.on_event(json);
-                if matches!(event, crate::verification_flow::VerifEvent::Done) ||
-                    matches!(event, crate::verification_flow::VerifEvent::Cancelled { .. })
+                if matches!(event, crate::verification_flow::VerifEvent::Done)
+                    || matches!(
+                        event,
+                        crate::verification_flow::VerifEvent::Cancelled { .. }
+                    )
                 {
                     break;
                 }
@@ -2612,12 +2612,24 @@ impl Client {
         };
 
         RT.block_on(async {
-            if let Some(v) = self.core.sdk.encryption().get_verification(me, &flow_id).await {
+            if let Some(v) = self
+                .core
+                .sdk
+                .encryption()
+                .get_verification(me, &flow_id)
+                .await
+            {
                 match v {
                     Verification::SasV1(sas) => sas.cancel().await.is_ok(),
                     _ => false,
                 }
-            } else if let Some(req) = self.core.sdk.encryption().get_verification_request(me, &flow_id).await {
+            } else if let Some(req) = self
+                .core
+                .sdk
+                .encryption()
+                .get_verification_request(me, &flow_id)
+                .await
+            {
                 req.cancel().await.is_ok()
             } else {
                 false
@@ -2632,7 +2644,13 @@ impl Client {
         };
 
         RT.block_on(async {
-            if let Some(Verification::SasV1(sas)) = self.core.sdk.encryption().get_verification(me, &flow_id).await {
+            if let Some(Verification::SasV1(sas)) = self
+                .core
+                .sdk
+                .encryption()
+                .get_verification(me, &flow_id)
+                .await
+            {
                 sas.confirm().await.is_ok()
             } else {
                 false
@@ -2640,7 +2658,11 @@ impl Client {
         })
     }
 
-    pub fn accept_verification_request(&self, flow_id: String, other_user_id: Option<String>) -> bool {
+    pub fn accept_verification_request(
+        &self,
+        flow_id: String,
+        other_user_id: Option<String>,
+    ) -> bool {
         let uid = match other_user_id {
             Some(u) => match u.parse::<OwnedUserId>() {
                 Ok(uid) => uid,
@@ -2653,11 +2675,19 @@ impl Client {
         };
 
         RT.block_on(async {
-            if let Some(req) = self.core.sdk.encryption().get_verification_request(&uid, &flow_id).await {
-                req.accept().await.is_ok()
-            } else {
-                false
+            for _ in 0..30 {
+                if let Some(req) = self
+                    .core
+                    .sdk
+                    .encryption()
+                    .get_verification_request(&uid, &flow_id)
+                    .await
+                {
+                    return req.accept().await.is_ok();
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(200)).await;
             }
+            false
         })
     }
 
@@ -2674,13 +2704,66 @@ impl Client {
         };
 
         RT.block_on(async {
-            if let Some(verification) = self.core.sdk.encryption().get_verification(&uid, &flow_id).await {
-                if let Some(sas) = verification.sas() {
-                    return sas.accept().await.is_ok();
+            for _ in 0..30 {
+                if let Some(verification) = self
+                    .core
+                    .sdk
+                    .encryption()
+                    .get_verification(&uid, &flow_id)
+                    .await
+                {
+                    if let Some(sas) = verification.sas() {
+                        return sas.accept().await.is_ok();
+                    }
                 }
+                tokio::time::sleep(std::time::Duration::from_millis(200)).await;
             }
             false
         })
+    }
+
+    pub fn accept_and_observe_verification(
+        &self,
+        flow_id: String,
+        other_user_id: String,
+        listener: Box<dyn VerifEventListener>,
+    ) -> bool {
+        let lis: Arc<dyn VerifEventListener> = Arc::from(listener);
+
+        let uid = match other_user_id.parse::<OwnedUserId>() {
+            Ok(u) => u,
+            Err(_) => return false,
+        };
+
+        let request = match RT.block_on(
+            self.core
+                .sdk
+                .encryption()
+                .get_verification_request(&uid, &flow_id),
+        ) {
+            Some(req) => req,
+            None => return false,
+        };
+
+        let lis2 = lis.clone();
+        let h = spawn_task!(async move {
+            let stream = crate::verification_flow::drive_incoming_verification(request).await;
+            futures_util::pin_mut!(stream);
+            while let Some(event) = stream.next().await {
+                let json = serde_json::to_string(&event).unwrap_or_default();
+                lis2.on_event(json);
+                if matches!(event, crate::verification_flow::VerifEvent::Done)
+                    || matches!(
+                        event,
+                        crate::verification_flow::VerifEvent::Cancelled { .. }
+                    )
+                {
+                    break;
+                }
+            }
+        });
+        self.guards.lock().unwrap().push(h);
+        true
     }
 
     pub fn shutdown(&self) {
@@ -2741,7 +2824,6 @@ impl Client {
         platform::persist_session(&client.store_dir, &info).await?;
         Ok(())
     }
-
 }
 
 impl Drop for Client {

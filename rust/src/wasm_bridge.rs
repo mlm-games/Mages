@@ -1,7 +1,8 @@
 use crate::core::{CoreClient, TimelineManager, map_send_queue_update};
 use crate::errors::{IntoFfi, OptionFfi};
 use crate::types::*;
-use crate::verification_flow::{drive_verification_request, VerifEvent};
+use crate::verification_flow::drive_incoming_verification;
+use crate::verification_flow::{VerifEvent, drive_verification_request};
 use crate::{
     emit_timeline_reset_filled, latest_room_event_for, mages_client_metadata, map_vec_diff,
     missing_reply_event_id, strip_matrix_path,
@@ -2265,31 +2266,35 @@ impl WasmClient {
         let me = match state.client().user_id() {
             Some(u) => u,
             None => {
-                call_js(&on_event, to_json(&VerifEvent::Error {
-                    message: "No user session".into(),
-                }));
+                call_js(
+                    &on_event,
+                    to_json(&VerifEvent::Error {
+                        message: "No user session".into(),
+                    }),
+                );
                 return String::new();
             }
         };
 
         let device_id = OwnedDeviceId::from(target_device_id);
-        let device = match state
-            .client()
-            .encryption()
-            .get_device(me, &device_id)
-            .await
-        {
+        let device = match state.client().encryption().get_device(me, &device_id).await {
             Ok(Some(d)) => d,
             Ok(None) => {
-                call_js(&on_event, to_json(&VerifEvent::Error {
-                    message: "Device not found".into(),
-                }));
+                call_js(
+                    &on_event,
+                    to_json(&VerifEvent::Error {
+                        message: "Device not found".into(),
+                    }),
+                );
                 return String::new();
             }
             Err(e) => {
-                call_js(&on_event, to_json(&VerifEvent::Error {
-                    message: format!("Failed to get device: {e}"),
-                }));
+                call_js(
+                    &on_event,
+                    to_json(&VerifEvent::Error {
+                        message: format!("Failed to get device: {e}"),
+                    }),
+                );
                 return String::new();
             }
         };
@@ -2297,9 +2302,12 @@ impl WasmClient {
         let request = match device.request_verification().await {
             Ok(r) => r,
             Err(e) => {
-                call_js(&on_event, to_json(&VerifEvent::Error {
-                    message: format!("Request verification failed: {e}"),
-                }));
+                call_js(
+                    &on_event,
+                    to_json(&VerifEvent::Error {
+                        message: format!("Request verification failed: {e}"),
+                    }),
+                );
                 return String::new();
             }
         };
@@ -2315,7 +2323,9 @@ impl WasmClient {
                 let json = serde_json::to_string(&event).unwrap_or_default();
                 let js_val = JsValue::from_str(&json);
                 call_js(&on_event, js_val);
-                if matches!(event, VerifEvent::Done) || matches!(event, VerifEvent::Cancelled { .. }) {
+                if matches!(event, VerifEvent::Done)
+                    || matches!(event, VerifEvent::Cancelled { .. })
+                {
                     break;
                 }
             }
@@ -2325,11 +2335,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen(js_name = startUserVerification)]
-    pub async fn start_user_verification(
-        &self,
-        user_id: String,
-        on_event: Function,
-    ) -> String {
+    pub async fn start_user_verification(&self, user_id: String, on_event: Function) -> String {
         let Some(state) = self.state() else {
             return String::new();
         };
@@ -2337,24 +2343,25 @@ impl WasmClient {
         let uid = match user_id.parse::<OwnedUserId>() {
             Ok(u) => u,
             Err(_) => {
-                call_js(&on_event, to_json(&VerifEvent::Error {
-                    message: "Invalid user ID".into(),
-                }));
+                call_js(
+                    &on_event,
+                    to_json(&VerifEvent::Error {
+                        message: "Invalid user ID".into(),
+                    }),
+                );
                 return String::new();
             }
         };
 
-        let identity = match state
-            .client()
-            .encryption()
-            .get_user_identity(&uid)
-            .await
-        {
+        let identity = match state.client().encryption().get_user_identity(&uid).await {
             Ok(Some(i)) => i,
             _ => {
-                call_js(&on_event, to_json(&VerifEvent::Error {
-                    message: "User identity not found".into(),
-                }));
+                call_js(
+                    &on_event,
+                    to_json(&VerifEvent::Error {
+                        message: "User identity not found".into(),
+                    }),
+                );
                 return String::new();
             }
         };
@@ -2362,9 +2369,12 @@ impl WasmClient {
         let request = match identity.request_verification().await {
             Ok(r) => r,
             Err(e) => {
-                call_js(&on_event, to_json(&VerifEvent::Error {
-                    message: format!("Request verification failed: {e}"),
-                }));
+                call_js(
+                    &on_event,
+                    to_json(&VerifEvent::Error {
+                        message: format!("Request verification failed: {e}"),
+                    }),
+                );
                 return String::new();
             }
         };
@@ -2380,7 +2390,9 @@ impl WasmClient {
                 let json = serde_json::to_string(&event).unwrap_or_default();
                 let js_val = JsValue::from_str(&json);
                 call_js(&on_event, js_val);
-                if matches!(event, VerifEvent::Done) || matches!(event, VerifEvent::Cancelled { .. }) {
+                if matches!(event, VerifEvent::Done)
+                    || matches!(event, VerifEvent::Cancelled { .. })
+                {
                     break;
                 }
             }
@@ -2446,7 +2458,11 @@ impl WasmClient {
     }
 
     #[wasm_bindgen(js_name = cancelVerificationWithUser)]
-    pub async fn cancel_verification_with_user(&self, flow_id: String, other_user_id: String) -> bool {
+    pub async fn cancel_verification_with_user(
+        &self,
+        flow_id: String,
+        other_user_id: String,
+    ) -> bool {
         let Some(state) = self.state() else {
             return false;
         };
@@ -2493,13 +2509,16 @@ impl WasmClient {
             Err(_) => return false,
         };
 
-        if let Some(req) = state
-            .client()
-            .encryption()
-            .get_verification_request(&uid, &flow_id)
-            .await
-        {
-            return req.accept().await.is_ok();
+        for _ in 0..30 {
+            if let Some(req) = state
+                .client()
+                .encryption()
+                .get_verification_request(&uid, &flow_id)
+                .await
+            {
+                return req.accept().await.is_ok();
+            }
+            sleep(Duration::from_millis(200)).await;
         }
         false
     }
@@ -2515,16 +2534,78 @@ impl WasmClient {
             Err(_) => return false,
         };
 
-        if let Some(verification) = state
-            .client()
-            .encryption()
-            .get_verification(&uid, &flow_id)
-            .await
-        {
-            if let Some(sas) = verification.sas() {
-                return sas.accept().await.is_ok();
+        for _ in 0..30 {
+            if let Some(verification) = state
+                .client()
+                .encryption()
+                .get_verification(&uid, &flow_id)
+                .await
+            {
+                if let Some(sas) = verification.sas() {
+                    return sas.accept().await.is_ok();
+                }
             }
+            sleep(Duration::from_millis(200)).await;
         }
         false
+    }
+
+    #[wasm_bindgen(js_name = acceptAndObserveVerification)]
+    pub async fn accept_and_observe_verification(
+        &self,
+        flow_id: String,
+        other_user_id: String,
+        on_event: Function,
+    ) -> bool {
+        let Some(state) = self.state() else {
+            return false;
+        };
+
+        let uid = match other_user_id.parse::<OwnedUserId>() {
+            Ok(u) => u,
+            Err(_) => {
+                call_js(
+                    &on_event,
+                    to_json(&VerifEvent::Error {
+                        message: "Invalid user ID".into(),
+                    }),
+                );
+                return false;
+            }
+        };
+
+        let request = match state
+            .client()
+            .encryption()
+            .get_verification_request(&uid, &flow_id)
+            .await
+        {
+            Some(req) => req,
+            None => {
+                call_js(
+                    &on_event,
+                    to_json(&VerifEvent::Error {
+                        message: "Verification request not found".into(),
+                    }),
+                );
+                return false;
+            }
+        };
+
+        wasm_bindgen_futures::spawn_local(async move {
+            let stream = drive_incoming_verification(request).await;
+            futures_util::pin_mut!(stream);
+            while let Some(event) = stream.next().await {
+                let json = serde_json::to_string(&event).unwrap_or_default();
+                call_js(&on_event, JsValue::from_str(&json));
+                if matches!(event, VerifEvent::Done)
+                    || matches!(event, VerifEvent::Cancelled { .. })
+                {
+                    break;
+                }
+            }
+        });
+
+        true
     }
 }

@@ -512,10 +512,24 @@ class RustMatrixPort : MatrixPort, VerificationService {
         awaitClose { }
     }
 
-    override suspend fun acceptVerificationRequest(flowId: String, otherUserId: String): Boolean =
-        withContext(Dispatchers.IO) {
-            client?.acceptVerificationRequest(flowId, otherUserId.ifEmpty { null }) ?: false
+    override fun acceptAndObserveVerification(flowId: String, otherUserId: String): Flow<VerifEvent> = callbackFlow {
+        val listener = object : mages.VerifEventListener {
+            override fun onEvent(eventJson: String) {
+                runCatching {
+                    json.decodeFromString<VerifEvent>(eventJson)
+                }.getOrNull()?.let { trySend(it) }
+            }
         }
+        val ok = withContext(Dispatchers.IO) {
+            client?.acceptAndObserveVerification(flowId, otherUserId, listener) ?: false
+        }
+        if (!ok) {
+            trySend(VerifEvent.Error("Failed to accept verification"))
+            channel.close()
+            return@callbackFlow
+        }
+        awaitClose { }
+    }
 
     override suspend fun acceptSas(flowId: String, otherUserId: String): Boolean =
         withContext(Dispatchers.IO) {
