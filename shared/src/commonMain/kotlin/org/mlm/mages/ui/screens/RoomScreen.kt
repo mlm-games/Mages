@@ -71,8 +71,12 @@ import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.AttachmentUploadStage
 import org.mlm.mages.ui.RoomUiState
-import org.mlm.mages.ui.util.fileName
-import org.mlm.mages.ui.util.guessMimeType
+import org.mlm.mages.ui.components.message.MessageAttachmentUi
+import org.mlm.mages.ui.components.message.MessageBubbleModel
+import org.mlm.mages.ui.components.message.MessageGroupingUi
+import org.mlm.mages.ui.components.message.MessageReplyUi
+import org.mlm.mages.ui.components.message.MessageSenderUi
+import org.mlm.mages.ui.components.message.MessageThreadUi
 
 @Suppress("NewApi")
 @Composable
@@ -616,7 +620,8 @@ fun RoomScreen(
                                             },
                                             highlightedEventId = state.highlightedEventId,
                                             viewModel = viewModel,
-                                            showMessageAvatars = settings.showMessageAvatars
+                                            showMessageAvatars = settings.showMessageAvatars,
+                                            showUsernameInDms = settings.showUsernameInDms
                                         )
                                     }
                                 }
@@ -1083,7 +1088,8 @@ private fun MessageItem(
     onSaveReturnPosition: (String) -> Unit,
     highlightedEventId: String? = null,
     viewModel: RoomViewModel,
-    showMessageAvatars: Boolean = true
+    showMessageAvatars: Boolean,
+    showUsernameInDms: Boolean,
 ) {
     val timestamp = event.timestampMs
 
@@ -1235,48 +1241,56 @@ private fun MessageItem(
                     .animateContentSize()
             ) {
                 MessageBubble(
+                    model = MessageBubbleModel(
+                    eventId = event.eventId,
                     isMine = isMine,
                     body = event.body,
                     formattedBody = event.formattedBody,
-                    sender = event.senderDisplayName,
-                    senderAvatarPath = state.avatarByUserId[event.sender],
-                    senderId = event.sender,
+                    sender = MessageSenderUi(
+                        id = event.sender,
+                        displayName = event.senderDisplayName,
+                        avatarPath = state.avatarByUserId[event.sender]
+                    ),
                     timestamp = timestamp,
-                    groupedWithPrev = shouldGroup,
-                    groupedWithNext = nextEvent != null &&
-                            nextEvent.sender == event.sender &&
-                            formatDate(nextEvent.timestampMs) == eventDate,
+                    grouping = MessageGroupingUi(
+                        groupedWithPrev = shouldGroup,
+                        groupedWithNext = nextEvent != null &&
+                                nextEvent.sender == event.sender &&
+                                formatDate(nextEvent.timestampMs) == eventDate
+                    ),
                     isDm = state.isDm,
                     showMessageAvatars = showMessageAvatars,
-                    reactionSummaries = chips,
-                    eventId = event.eventId,
-                    onLongPress = onLongPress,
-                    onReact = onReact,
-                    lastReadByOthersTs = state.lastIncomingFromOthersTs,
-                    thumbPath = state.thumbByEvent[event.eventId],
-                    attachmentKind = event.attachment?.kind,
-                    attachmentWidth = event.attachment?.width,
-                    attachmentHeight = event.attachment?.height,
-                    durationMs = event.attachment?.durationMs,
-                    onOpenAttachment = onOpenAttachment,
-                    replyPreview = event.replyToBody,
-                    replySender = event.replyToSenderDisplayName,
+                    showUsernameInDms = showUsernameInDms,
+                    reactions = chips,
+                    attachment = if (event.attachment?.kind != null) MessageAttachmentUi(
+                        thumbPath = state.thumbByEvent[event.eventId],
+                        kind = event.attachment?.kind,
+                        width = event.attachment?.width,
+                        height = event.attachment?.height,
+                        durationMs = event.attachment?.durationMs
+                    ) else null,
+                    reply = if (event.replyToBody != null) MessageReplyUi(
+                        sender = event.replyToSenderDisplayName,
+                        body = event.replyToBody
+                    ) else null,
                     sendState = event.sendState,
                     isEdited = event.isEdited,
                     poll = event.pollData,
+                    thread = state.threadCount[event.eventId]?.let { MessageThreadUi(it) }
+                    ),
+                    onLongPress = onLongPress,
+                    onReact = onReact,
+                    onOpenAttachment = onOpenAttachment,
                     onVote = { optionId ->
                         event.pollData?.let { p -> viewModel.votePoll(event.eventId, p, optionId) }
                     },
-                    onEndPoll = {
-                        viewModel.endPoll(event.eventId)
-                    },
+                    onEndPoll = { viewModel.endPoll(event.eventId) },
                     onReplyPreviewClick = event.replyToEventId?.let { rid ->
                         {
                             onSaveReturnPosition(event.eventId)
                             viewModel.jumpToEvent(rid)
                         }
                     },
-                    threadCount = state.threadCount[event.eventId],
                     onOpenThread = onOpenThread,
                     onSenderClick = if (!isMine && !state.isSelectionMode) {
                         { viewModel.selectMemberForAction(event.sender) }

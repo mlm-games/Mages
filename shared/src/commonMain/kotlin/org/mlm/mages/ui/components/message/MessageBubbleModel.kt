@@ -48,6 +48,7 @@ data class MessageBubbleModel(
     val timestamp: Long,
     val isDm: Boolean,
     val showMessageAvatars: Boolean = true,
+    val showUsernameInDms: Boolean = false,
     val grouping: MessageGroupingUi = MessageGroupingUi(),
     val reactions: List<ReactionSummary> = emptyList(),
     val reply: MessageReplyUi? = null,

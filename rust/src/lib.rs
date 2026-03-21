@@ -49,7 +49,7 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tokio::runtime::Runtime;
-use tracing::warn;
+use tracing::{info, warn};
 use uniffi::{Object, export, setup_scaffolding};
 
 mod core;
@@ -1820,18 +1820,17 @@ impl Client {
         let lang = language_tag
             .as_deref()
             .and_then(|s| LanguageTag::parse(s).ok());
-        let (widget_settings, widget_url, widget_base_url, parent_url) = RT.block_on(async {
+        let (widget_settings, widget_url, widget_base_url, resolved_parent) = RT.block_on(async {
             let rid = OwnedRoomId::try_from(room_id.as_str()).ffi()?;
             let Some(room) = inner.get_room(&rid) else {
                 return Err(ffi_err!("room not found"));
             };
-            let resolved_parent = parent_url.unwrap_or_else(|| {
-                "https://appassets.androidplatform.net/assets/element-call/index.html".to_owned()
-            });
+            let element_call_url = element_call_url.ok_or_else(|| {
+                ffi_err!("element_call_url is required - platform must provide embedded URL or explicit fallback")
+            })?;
+            let resolved_parent = parent_url.unwrap_or_else(|| element_call_url.clone());
             let props = VirtualElementCallWidgetProperties {
-                element_call_url: element_call_url.unwrap_or_else(|| {
-                    "https://appassets.androidplatform.net/element-call/index.html".to_owned()
-                }),
+                element_call_url,
                 parent_url: Some(resolved_parent.clone()),
                 widget_id: format!("mages-ecall-{}", session_id),
                 ..VirtualElementCallWidgetProperties::default()
@@ -1861,6 +1860,12 @@ impl Client {
                 .await
                 .ffi()?;
             let widget_base_url = settings.base_url().map(|u| u.to_string());
+            info!(
+                "Starting Element Call - parent_url: {}, widget_url: {}, widget_base_url: {:?}",
+                resolved_parent,
+                url,
+                widget_base_url
+            );
             Ok::<_, FfiError>((
                 settings,
                 url.to_string(),
@@ -1903,7 +1908,7 @@ impl Client {
             session_id,
             widget_url,
             widget_base_url,
-            parent_url,
+            parent_url: resolved_parent,
         })
     }
 

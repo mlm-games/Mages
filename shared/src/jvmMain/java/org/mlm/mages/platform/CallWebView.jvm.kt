@@ -94,6 +94,8 @@ private class JcefCallWebViewController(
     suspend fun load(url: String) {
         if (urlLoaded.get() == url || disposed.get()) return
 
+        println("[JcefCallWebView] Loading widget URL: $url")
+
         // if first time
         val needsDownload = !JcefRuntime.isInitialized()
         var infoDialog: JDialog? = null

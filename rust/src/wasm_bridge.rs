@@ -1906,10 +1906,12 @@ impl WasmClient {
         let lang = language_tag
             .as_deref()
             .and_then(|s| LanguageTag::parse(s).ok());
-        let resolved_parent = parent_url.unwrap_or_else(|| "https://call.element.io".to_owned());
+        let Some(element_call_url) = element_call_url else {
+            return JsValue::NULL;
+        };
+        let resolved_parent = parent_url.unwrap_or_else(|| element_call_url.clone());
         let props = VirtualElementCallWidgetProperties {
-            element_call_url: element_call_url
-                .unwrap_or_else(|| "https://call.element.io".to_owned()),
+            element_call_url,
             parent_url: Some(resolved_parent.clone()),
             widget_id: format!("mages-ecall-{}", session_id),
             ..VirtualElementCallWidgetProperties::default()

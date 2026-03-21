@@ -83,6 +83,13 @@ data class AppSettings(
     val showMessageAvatars: Boolean = true,
 
     @Setting(
+        title = "Show username in DMs",
+        category = Appearance::class,
+        type = Toggle::class
+    )
+    val showUsernameInDms: Boolean = false,
+
+    @Setting(
         title = "Enable notifications",
         description = "Show notifications (desktop polling + Android push)",
         category = Notifications::class,

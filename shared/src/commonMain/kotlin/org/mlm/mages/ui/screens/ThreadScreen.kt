@@ -35,6 +35,11 @@ import org.mlm.mages.ui.components.core.StatusBanner
 import org.mlm.mages.ui.components.core.BannerType
 import org.mlm.mages.ui.components.core.formatDisplayName
 import org.mlm.mages.ui.components.message.MessageBubble
+import org.mlm.mages.ui.components.message.MessageBubbleModel
+import org.mlm.mages.ui.components.message.MessageGroupingUi
+import org.mlm.mages.ui.components.message.MessageReplyUi
+import org.mlm.mages.ui.components.message.MessageAttachmentUi
+import org.mlm.mages.ui.components.message.MessageSenderUi
 import org.mlm.mages.ui.components.message.ReactionChipsRow
 import org.mlm.mages.ui.components.message.ReactionChipStyle
 import org.mlm.mages.ui.components.sheets.MessageActionSheet
@@ -574,28 +579,38 @@ private fun ThreadReplyMessage(
 
         Column(modifier = Modifier.weight(1f)) {
             MessageBubble(
-                isMine = isMine,
-                body = event.body,
-                formattedBody = event.formattedBody,
-                sender = if (grouped) null else event.senderDisplayName,
-                senderAvatarPath = avatarByUserId[event.sender],
-                senderId = event.sender,
-                timestamp = event.timestampMs,
-                groupedWithPrev = grouped,
-                groupedWithNext = groupedWithNext,
-                isDm = false,
-                reactionSummaries = reactionSummaries,
-                eventId = event.eventId,
-                onReact = onReact,
+                model = MessageBubbleModel(
+                    eventId = event.eventId,
+                    isMine = isMine,
+                    body = event.body,
+                    formattedBody = event.formattedBody,
+                    sender = if (grouped) null else MessageSenderUi(
+                        id = event.sender,
+                        displayName = event.senderDisplayName,
+                        avatarPath = avatarByUserId[event.sender]
+                    ),
+                    timestamp = event.timestampMs,
+                    grouping = MessageGroupingUi(
+                        groupedWithPrev = grouped,
+                        groupedWithNext = groupedWithNext
+                    ),
+                    isDm = false,
+                    reactions = reactionSummaries,
+                    reply = if (event.replyToBody != null) MessageReplyUi(
+                        sender = event.replyToSenderDisplayName,
+                        body = event.replyToBody
+                    ) else null,
+                    sendState = event.sendState,
+                    isEdited = event.isEdited,
+                    attachment = if (event.attachment?.kind != null) MessageAttachmentUi(
+                        kind = event.attachment?.kind,
+                        width = event.attachment?.width,
+                        height = event.attachment?.height,
+                        durationMs = event.attachment?.durationMs
+                    ) else null
+                ),
                 onLongPress = onLongPress,
-                replyPreview = event.replyToBody,
-                replySender = event.replyToSenderDisplayName,
-                sendState = event.sendState,
-                isEdited = event.isEdited,
-                attachmentKind = event.attachment?.kind,
-                attachmentWidth = event.attachment?.width,
-                attachmentHeight = event.attachment?.height,
-                durationMs = event.attachment?.durationMs
+                onReact = onReact
             )
         }
     }

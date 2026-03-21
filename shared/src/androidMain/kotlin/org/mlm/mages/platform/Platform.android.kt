@@ -66,10 +66,10 @@ fun Activity.enterPip() {
 }
 
 actual fun platformEmbeddedElementCallUrlOrNull(): String? {
-    return null
+    return "https://appassets.androidplatform.net/element-call/index.html"
 }
 
-actual fun platformEmbeddedElementCallParentUrlOrNull(): String? = null
+actual fun platformEmbeddedElementCallParentUrlOrNull(): String? = "https://appassets.androidplatform.net/element-call/index.html"
 
 actual class CameraPickerLauncher(
     private val fileKitLauncher: PhotoResultLauncher

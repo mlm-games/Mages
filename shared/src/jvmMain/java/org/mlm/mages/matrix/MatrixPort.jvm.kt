@@ -1446,6 +1446,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
 
         runCatching {
             withClient { cl ->
+                println("[MatrixPort] startElementCall: elementCallUrl=$elementCallUrl, parentUrl=$parentUrl, intent=$ffiIntent")
                 val info = cl.startElementCall(
                     roomId,
                     elementCallUrl,
@@ -1455,6 +1456,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
                     languageTag,
                     theme
                 )
+                println("[MatrixPort] startElementCall result: widgetUrl=${info.widgetUrl}, widgetBaseUrl=${info.widgetBaseUrl}, parentUrl=${info.parentUrl}")
                 CallSession(
                     sessionId = info.sessionId,
                     widgetUrl = info.widgetUrl,
