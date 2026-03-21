@@ -1,8 +1,19 @@
 use crate::core::{CoreClient, TimelineManager, map_send_queue_update};
+use crate::js_observer_json;
+use crate::js_observer_noargs;
 use crate::types::*;
 use crate::verification_flow::{
     VerifEvent, drive_incoming_verification, drive_verification_request,
 };
+use crate::wasm_delegate_bool;
+use crate::wasm_delegate_json;
+use crate::wasm_delegate_result_bool;
+use crate::wasm_delegate_result_json;
+use crate::webffi_bool;
+
+use crate::wasm_delegate_option_json;
+use crate::wasm_subscribe;
+use crate::wasm_unobserve;
 use crate::{
     emit_timeline_reset_filled, latest_room_event_for, mages_client_metadata, map_vec_diff,
     strip_matrix_path,
@@ -66,6 +77,11 @@ use matrix_sdk::{SessionMeta, SessionTokens};
 
 use matrix_sdk::encryption::verification::Verification;
 
+#[wasm_bindgen(start)]
+pub fn init() {
+    console_error_panic_hook::set_once();
+}
+
 pub fn to_json<T: serde::Serialize>(v: &T) -> JsValue {
     let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
     v.serialize(&serializer)
@@ -84,157 +100,6 @@ fn call_js(f: &Function, arg: JsValue) {
 }
 fn call_js0(f: &Function) {
     let _ = f.call0(&JsValue::NULL);
-}
-
-macro_rules! wasm_delegate_bool {
-    ($( $js_name:literal => $method:ident($($arg:ident : $ty:ty),*) );+ $(;)?) => {
-        #[wasm_bindgen]
-        impl WasmClient {
-            $(
-                #[wasm_bindgen(js_name = $js_name)]
-                pub async fn $method(&self, $($arg: $ty),*) -> JsValue {
-                    let Some(s) = self.state() else {
-                        return to_json(&serde_json::json!({"ok":false,"error":"not initialized"}));
-                    };
-                    match s.core.$method($($arg),*).await {
-                        Ok(true) => to_json(&serde_json::json!({"ok":true})),
-                        Ok(false) => to_json(&serde_json::json!({"ok":false})),
-                        Err(e) => to_json(&serde_json::json!({"ok":false,"error":e.to_string()})),
-                    }
-                }
-            )+
-        }
-    };
-}
-
-macro_rules! wasm_delegate_result_bool {
-    ($( $js_name:literal => $method:ident($($arg:ident : $ty:ty),*) );+ $(;)?) => {
-        #[wasm_bindgen]
-        impl WasmClient {
-            $(
-                #[wasm_bindgen(js_name = $js_name)]
-                pub async fn $method(&self, $($arg: $ty),*) -> JsValue {
-                    let Some(s) = self.state() else {
-                        return to_json(&serde_json::json!({"ok":false,"error":"not initialized"}));
-                    };
-                    match s.core.$method($($arg),*).await {
-                        Ok(()) => to_json(&serde_json::json!({"ok":true})),
-                        Err(e) => to_json(&serde_json::json!({"ok":false,"error":e.to_string()})),
-                    }
-                }
-            )+
-        }
-    };
-}
-
-macro_rules! wasm_delegate_json {
-    ($( $js_name:literal => $method:ident($($arg:ident : $ty:ty),*) or $default:expr );+ $(;)?) => {
-        #[wasm_bindgen]
-        impl WasmClient {
-            $(
-                #[wasm_bindgen(js_name = $js_name)]
-                pub async fn $method(&self, $($arg: $ty),*) -> JsValue {
-                    let Some(s) = self.state() else { return to_json(&$default); };
-                    to_json(&s.core.$method($($arg),*).await)
-                }
-            )+
-        }
-    };
-}
-
-macro_rules! wasm_delegate_result_json {
-    ($( $js_name:literal => $method:ident($($arg:ident : $ty:ty),*) );+ $(;)?) => {
-        #[wasm_bindgen]
-        impl WasmClient {
-            $(
-                #[wasm_bindgen(js_name = $js_name)]
-                pub async fn $method(&self, $($arg: $ty),*) -> JsValue {
-                    let Some(s) = self.state() else {
-                        return to_json(&serde_json::json!({"ok":false,"error":"not initialized"}));
-                    };
-                    match s.core.$method($($arg),*).await {
-                        Ok(v) => to_json(&serde_json::json!({"ok":true,"value":v})),
-                        Err(e) => to_json(&serde_json::json!({"ok":false,"error":e.to_string()})),
-                    }
-                }
-            )+
-        }
-    };
-}
-
-macro_rules! wasm_delegate_option_json {
-    ($( $js_name:literal => $method:ident($($arg:ident : $ty:ty),*) );+ $(;)?) => {
-        #[wasm_bindgen]
-        impl WasmClient {
-            $(
-                #[wasm_bindgen(js_name = $js_name)]
-                pub async fn $method(&self, $($arg: $ty),*) -> JsValue {
-                    let Some(s) = self.state() else {
-                        return to_json(&serde_json::json!({"ok":false,"error":"not initialized"}));
-                    };
-                    match s.core.$method($($arg),*).await {
-                        Ok(v) => match v {
-                            Some(val) => to_json(&serde_json::json!({"ok":true,"value":val})),
-                            None => to_json(&serde_json::json!({"ok":false,"error":"not found"})),
-                        },
-                        Err(e) => to_json(&serde_json::json!({"ok":false,"error":e.to_string()})),
-                    }
-                }
-            )+
-        }
-    };
-}
-
-macro_rules! wasm_unobserve {
-    ($( $js_name:literal => $method:ident($field:ident) );+ $(;)?) => {
-        #[wasm_bindgen]
-        impl WasmClient {
-            $(
-                #[wasm_bindgen(js_name = $js_name)]
-                pub fn $method(&self, sub_id: f64) -> bool {
-                    self.state().map(|s| Self::abort_sub(&s.$field, sub_id as u64)).unwrap_or(false)
-                }
-            )+
-        }
-    };
-}
-
-macro_rules! wasm_subscribe {
-    ($state:expr, $field:ident, $body:expr) => {{
-        let id = $state.next_sub_id();
-        let (ah, ar) = AbortHandle::new_pair();
-        $state.$field.borrow_mut().insert(id, ah);
-        wasm_bindgen_futures::spawn_local(async move {
-            let _ = Abortable::new($body, ar).await;
-        });
-        id as f64
-    }};
-}
-
-macro_rules! js_observer_json {
-    ($name:ident : $trait:ident :: $method:ident, $arg:ident : $ty:ty) => {
-        struct $name(Function);
-        impl $trait for $name {
-            fn $method(&self, $arg: $ty) {
-                call_js(&self.0, to_json(&$arg));
-            }
-        }
-        unsafe impl Send for $name {}
-        unsafe impl Sync for $name {}
-    };
-}
-
-macro_rules! js_observer_noargs {
-    ($name:ident : $trait:ident :: $method:ident) => {
-        struct $name(Function);
-        impl $trait for $name {
-            fn $method(&self) {
-                call_js0(&self.0);
-            }
-        }
-        unsafe impl Send for $name {}
-        unsafe impl Sync for $name {}
-    };
 }
 
 js_observer_json!(JsConnectionObserver: ConnectionObserver::on_connection_change, state: ConnectionState);

@@ -326,7 +326,7 @@ pub fn webffi_option<T: serde::Serialize, E: std::fmt::Display>(
 ) -> JsValue {
     match r {
         Ok(Some(v)) => to_json(&serde_json::json!({"ok":true,"value":v})),
-        Ok(None) => to_json(&serde_json::json!({"ok":false,"error":"not found"})),
+        Ok(None) => to_json(&serde_json::json!({"ok":true,"value":null})),
         Err(e) => to_json(&serde_json::json!({"ok":false,"error":e.to_string()})),
     }
 }

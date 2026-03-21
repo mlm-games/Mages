@@ -555,7 +555,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             ?: 0L
 
     override suspend fun getPinnedEvents(roomId: String): List<String> =
-        decodeStringList(requireClient().getPinnedEvents(roomId))
+        decodeStringList(requireClient().getPinnedEvents(roomId).awaitAny())
 
     override suspend fun setPinnedEvents(roomId: String, eventIds: List<String>): Result<Unit> =
         requireClient().setPinnedEvents(roomId, eventIds.toJsArray()).awaitUnitResult()
@@ -1038,7 +1038,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     )
 
     override suspend fun roomAliases(roomId: String): List<String> =
-        decodeStringList(requireClient().roomAliases(roomId))
+        decodeStringList(requireClient().roomAliases(roomId).awaitAny())
 
     override suspend fun roomJoinRule(roomId: String): RoomJoinRule? =
         decodeEnum(requireClient().roomJoinRule(roomId).awaitAny())
