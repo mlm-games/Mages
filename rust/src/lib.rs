@@ -260,16 +260,31 @@ pub struct Client {
 }
 
 fn mages_client_metadata(redirect_uri: &Url) -> Raw<ClientMetadata> {
+    let is_localhost = matches!(
+        redirect_uri.host_str(),
+        Some("localhost") | Some("127.0.0.1") | Some("[::1]")
+    );
+
+    let application_type = if is_localhost {
+        ApplicationType::Native
+    } else {
+        ApplicationType::Web
+    };
     let client_uri = Localized::new(
-        Url::parse("https://github.com/mlm-games/mages").expect("valid URL"),
+        if is_localhost {
+            Url::parse("https://github.com/mlm-games/mages").unwrap()
+        } else {
+            Url::parse(&redirect_uri.origin().ascii_serialization()).unwrap()
+        },
         [],
     );
+
     let metadata = ClientMetadata {
         client_name: Some(Localized::new("Mages".to_owned(), [])),
         policy_uri: Some(client_uri.clone()),
         tos_uri: Some(client_uri.clone()),
         ..ClientMetadata::new(
-            ApplicationType::Native,
+            application_type,
             vec![OAuthGrantType::AuthorizationCode {
                 redirect_uris: vec![redirect_uri.clone()],
             }],
