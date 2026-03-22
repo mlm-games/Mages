@@ -1,3 +1,11 @@
+## v4.3.2
+
+- Add floating timeline date display
+- Android: Select the correct audio device based on call method (#60)
+- Add a toggle for bubble appearance animations
+- fix android crash when trying to call
+
+
 ## v4.2.3
 
 - show calls in previews
