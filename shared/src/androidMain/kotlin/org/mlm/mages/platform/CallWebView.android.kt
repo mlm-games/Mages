@@ -78,72 +78,16 @@ private fun setupAudioDeviceBridge(webView: WebView) {
     
     val devicesJson = "[${devices.joinToString(",")}]"
     
-    val setupCallback = """
-        if (typeof controls !== 'undefined') {
-            controls.onOutputDeviceSelect = function(id) {
-                androidNativeBridge.setOutputDevice(id);
-            };
-        }
-    """.trimIndent()
-    
-    val setDevices = """
+    webView.evaluateJavascript(
+        """
         if (typeof controls !== 'undefined' && typeof controls.setAvailableOutputDevices === 'function') {
             controls.setAvailableOutputDevices($devicesJson);
         } else if (typeof controls !== 'undefined' && typeof controls.setAvailableAudioDevices === 'function') {
             controls.setAvailableAudioDevices($devicesJson);
         }
-    """.trimIndent()
-    
-    webView.evaluateJavascript(setupCallback, null)
-    webView.evaluateJavascript(setDevices, null)
-}
-
-class AudioDeviceBridge(
-    private val context: Context,
-    private val onDeviceSelected: (String) -> Unit
-) {
-    @Suppress("DEPRECATION")
-    @JavascriptInterface
-    fun setOutputDevice(id: String) {
-        Log.d("AudioBridge", "Device selected: $id")
-        onDeviceSelected(id)
-        
-        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        fun getDeviceById(deviceId: Int): AudioDeviceInfo? {
-            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                audioManager.availableCommunicationDevices.find { it.id == deviceId }
-            } else {
-                audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).find { it.id == deviceId }
-            }
-        }
-        
-        val deviceIdInt = id.toIntOrNull()
-        if (deviceIdInt != null) {
-            val device = getDeviceById(deviceIdInt)
-            if (device != null) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    audioManager.setCommunicationDevice(device)
-                    Log.d("AudioBridge", "Set communication device: ${device.type}")
-                } else {
-                    // Older Android versions, use speaker/bluetooth routing
-                    when (device.type) {
-                        AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> {
-                            audioManager.isSpeakerphoneOn = true
-                            audioManager.isBluetoothScoOn = false
-                        }
-                        AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> {
-                            audioManager.isSpeakerphoneOn = false
-                            audioManager.isBluetoothScoOn = true
-                        }
-                        else -> {
-                            audioManager.isSpeakerphoneOn = false
-                            audioManager.isBluetoothScoOn = false
-                        }
-                    }
-                }
-            }
-        }
-    }
+        """.trimIndent(),
+        null
+    )
 }
 
 @SuppressLint("SetJavaScriptEnabled", "ComposableNaming")
@@ -322,13 +266,6 @@ actual fun CallWebViewHost(
                         return true
                     }
                 }
-
-                webViewInstance.addJavascriptInterface(
-                    AudioDeviceBridge(context) { deviceId ->
-                        Log.d("AudioBridge", "Device selection callback: $deviceId")
-                    },
-                    "androidNativeBridge"
-                )
 
                 webViewClient = object : WebViewClientCompat() {
                     override fun shouldInterceptRequest(
