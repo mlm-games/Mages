@@ -108,8 +108,8 @@ class MatrixService(
     suspend fun sendMessage(roomId: String, body: String, formattedBody: String? = null): Boolean =
         port.send(roomId, body, formattedBody).isSuccess
 
-    suspend fun paginateBack(roomId: String, count: Int) =
-        port.paginateBack(roomId, count).isSuccess
+    suspend fun paginateBack(roomId: String, count: Int): Boolean =
+        port.paginateBack(roomId, count).getOrElse { false }
 
     suspend fun markRead(roomId: String) =
         port.markRead(roomId).isSuccess

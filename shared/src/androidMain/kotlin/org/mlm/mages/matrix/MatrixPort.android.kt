@@ -28,6 +28,8 @@ private inline fun <T> runWithFfiResult(block: () -> T): Result<T> =
         throw mapped
     }
 
+private val matrixDispatcher = Dispatchers.IO.limitedParallelism(4)
+
 class RustMatrixPort : MatrixPort, VerificationService {
     @Volatile
     private var client: FfiClient? = null
@@ -36,7 +38,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
     private var currentAccountId: String? = null
 
     override suspend fun init(hs: String, accountId: String?) =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             synchronized(clientLock) {
                 if (currentHs == hs && currentAccountId == accountId && client != null) return@synchronized
 
@@ -57,7 +59,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override fun close() {
-        runBlocking(Dispatchers.IO) {
+        runBlocking(matrixDispatcher) {
             synchronized(clientLock) {
                 withClient {
                     it.let { c ->
@@ -69,24 +71,24 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override suspend fun login(user: String, password: String, deviceDisplayName: String?) =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             withClient {
                 it.login(user, password, deviceDisplayName)
             }
         }
 
     override fun isLoggedIn(): Boolean =
-        runBlocking(Dispatchers.IO) {
+        runBlocking(matrixDispatcher) {
             synchronized(clientLock) { client?.isLoggedIn() ?: false }
         }
 
     override suspend fun listRooms(): List<RoomSummary> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             withClient { it.rooms().map { r -> r.toModel() } }
         }
 
     override suspend fun recent(roomId: String, limit: Int): List<MessageEvent> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             withClient { cl ->
                 cl.recentEvents(roomId, limit.toUInt()).map { it.toModel() }
             }
@@ -119,18 +121,18 @@ class RustMatrixPort : MatrixPort, VerificationService {
             }
         }
 
-        val token = withContext(Dispatchers.IO) {
+        val token = withContext(matrixDispatcher) {
             withClient { it.observeTimeline(roomId, obs) }
         }
         awaitClose {
-            runBlocking(Dispatchers.IO) {
+            runBlocking(matrixDispatcher) {
                 withClient { it.unobserveTimeline(token) }
             }
         }
     }
 
     override fun observeConnection(observer: MatrixPort.ConnectionObserver): ULong {
-        return runBlocking(Dispatchers.IO) {
+        return runBlocking(matrixDispatcher) {
             val cb = object : mages.ConnectionObserver {
                 override fun onConnectionChange(state: mages.ConnectionState) {
                     val mapped = when (state) {
@@ -148,13 +150,13 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override fun stopConnectionObserver(token: ULong) {
-        runBlocking(Dispatchers.IO) {
+        runBlocking(matrixDispatcher) {
             withClient { it.unobserveConnection(token) }
         }
     }
 
     override fun startVerificationInbox(observer: MatrixPort.VerificationInboxObserver): ULong {
-        return runBlocking(Dispatchers.IO) {
+        return runBlocking(matrixDispatcher) {
             val cb = object : mages.VerificationInboxObserver {
                 override fun onRequest(flowId: String, fromUser: String, fromDevice: String) {
                     observer.onRequest(flowId, fromUser, fromDevice)
@@ -169,18 +171,18 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override fun stopVerificationInbox(token: ULong) {
-        runBlocking(Dispatchers.IO) {
+        runBlocking(matrixDispatcher) {
             withClient { it.unobserveVerificationInbox(token) }
         }
     }
 
     override suspend fun send(roomId: String, body: String, formattedBody: String?): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.sendMessage(roomId, body, formattedBody) } }
         }
 
     override suspend fun sendQueueSetEnabled(enabled: Boolean): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.sendQueueSetEnabled(enabled) } }
         }
 
@@ -189,7 +191,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         attachment: AttachmentInfo,
         body: String?,
         onProgress: ((Long, Long?) -> Unit)?
-    ): Result<Unit> = withContext(Dispatchers.IO) {
+    ): Result<Unit> = withContext(matrixDispatcher) {
         val cb = if (onProgress != null) object : mages.ProgressObserver {
             override fun onProgress(sent: ULong, total: ULong?) {
                 onProgress(sent.toLong(), total?.toLong())
@@ -220,11 +222,11 @@ class RustMatrixPort : MatrixPort, VerificationService {
                 )
             }
         }
-        val token = withContext(Dispatchers.IO) {
+        val token = withContext(matrixDispatcher) {
             withClient { it.observeSends(obs) }
         }
         awaitClose {
-            runBlocking(Dispatchers.IO) {
+            runBlocking(matrixDispatcher) {
                 withClient { it.unobserveSends(token) }
             }
         }
@@ -233,23 +235,23 @@ class RustMatrixPort : MatrixPort, VerificationService {
     override suspend fun thumbnailToCache(
         info: AttachmentInfo, width: Int, height: Int, crop: Boolean
     ): Result<String> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.thumbnailToCache(info.toFfi(), width.toUInt(), height.toUInt(), crop) } }
         }
 
     override suspend fun setTyping(roomId: String, typing: Boolean): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.setTyping(roomId, typing) } }
         }
 
     override fun whoami(): String? {
-        return runBlocking(Dispatchers.IO) {
+        return runBlocking(matrixDispatcher) {
             withClient { it.whoami() }
         }
     }
 
     override suspend fun accountManagementUrl(): String? {
-        return withContext(Dispatchers.IO) {
+        return withContext(matrixDispatcher) {
             withClient { it.accountManagementUrl() }
         }
     }
@@ -266,7 +268,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
                 observer.onError(message)
             }
         }
-        return runBlocking(Dispatchers.IO) { withClient { it.setupRecovery(cb) } }
+        return runBlocking(matrixDispatcher) { withClient { it.setupRecovery(cb) } }
     }
 
     override fun observeRecoveryState(observer: MatrixPort.RecoveryStateObserver): ULong {
@@ -309,77 +311,77 @@ class RustMatrixPort : MatrixPort, VerificationService {
         withClient { it.unobserveBackupState(subId) }
 
     override suspend fun backupExistsOnServer(fetch: Boolean): Boolean =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.backupExistsOnServer(fetch) } }.isSuccess
         }
 
     override suspend fun setKeyBackupEnabled(enabled: Boolean): Boolean =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.setKeyBackupEnabled(enabled) } }.isSuccess
         }
 
     override suspend fun paginateBack(roomId: String, count: Int): Result<Boolean> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.paginateBackwards(roomId, count.toUShort()) } }
         }
 
     override suspend fun paginateForward(roomId: String, count: Int): Result<Boolean> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.paginateForwards(roomId, count.toUShort()) } }
         }
 
     override suspend fun markRead(roomId: String): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.markRead(roomId) } }
         }
 
     override suspend fun markReadAt(roomId: String, eventId: String): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.markReadAt(roomId, eventId) } }
         }
 
     override suspend fun react(roomId: String, eventId: String, emoji: String): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.react(roomId, eventId, emoji) } }
         }
 
     override suspend fun reply(roomId: String, inReplyToEventId: String, body: String, formattedBody: String?): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.reply(roomId, inReplyToEventId, body, formattedBody) } }
         }
 
     override suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String?): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.edit(roomId, targetEventId, newBody, formattedBody) } }
         }
 
     override suspend fun redact(roomId: String, eventId: String, reason: String?): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.redact(roomId, eventId, reason) } }
         }
 
     override suspend fun reportContent(roomId: String, eventId: String, score: Int?, reason: String?): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.reportContent(roomId, eventId, score, reason) } }
         }
 
     override suspend fun getUserPowerLevel(roomId: String, userId: String): Long =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.getUserPowerLevel(roomId, userId) } }.getOrDefault(-1L)
         }
 
     override suspend fun getPinnedEvents(roomId: String): List<String> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.getPinnedEvents(roomId) } }.getOrDefault(emptyList())
         }
 
     override suspend fun setPinnedEvents(roomId: String, eventIds: List<String>): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.setPinnedEvents(roomId, eventIds) } }
         }
 
     override fun observeTyping(roomId: String, onUpdate: (List<String>) -> Unit): ULong {
-        return runBlocking(Dispatchers.IO) {
+        return runBlocking(matrixDispatcher) {
             val obs = object : mages.TypingObserver {
                 override fun onUpdate(names: List<String>) {
                     onUpdate(names)
@@ -390,13 +392,13 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override fun stopTypingObserver(token: ULong) {
-        runBlocking(Dispatchers.IO) {
+        runBlocking(matrixDispatcher) {
             withClient { it.unobserveTyping(token) }
         }
     }
 
     override fun observeReceipts(roomId: String, observer: ReceiptsObserver): ULong {
-        return runBlocking(Dispatchers.IO) {
+        return runBlocking(matrixDispatcher) {
             val cb = object : mages.ReceiptsObserver {
                 override fun onChanged() {
                     observer.onChanged()
@@ -407,23 +409,23 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override fun stopReceiptsObserver(token: ULong) {
-        runBlocking(Dispatchers.IO) {
+        runBlocking(matrixDispatcher) {
             withClient { it.unobserveReceipts(token) }
         }
     }
 
     override suspend fun dmPeerUserId(roomId: String): String? =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.dmPeerUserId(roomId) } }.getOrNull()
         }
 
     override suspend fun isEventReadBy(roomId: String, eventId: String, userId: String): Boolean =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.isEventReadBy(roomId, eventId, userId) } }.isSuccess
         }
 
     override fun startCallInbox(observer: MatrixPort.CallObserver): ULong {
-        return runBlocking(Dispatchers.IO) {
+        return runBlocking(matrixDispatcher) {
             val cb = object : mages.CallObserver {
                 override fun onInvite(invite: mages.CallInvite) {
                     observer.onInvite(
@@ -442,13 +444,13 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override fun stopCallInbox(token: ULong) {
-        runBlocking(Dispatchers.IO) {
+        runBlocking(matrixDispatcher) {
             withClient { it.stopCallInbox(token) }
         }
     }
 
     override fun startSupervisedSync(observer: MatrixPort.SyncObserver) {
-        runBlocking(Dispatchers.IO) {
+        runBlocking(matrixDispatcher) {
             val cb = object : mages.SyncObserver {
                 override fun onState(status: mages.SyncStatus) {
                     val phase = when (status.phase) {
@@ -465,7 +467,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override suspend fun listMyDevices(): List<DeviceSummary> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runCatching {
                 withClient {
                     it.devices().map { d ->
@@ -491,7 +493,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
                 }.getOrNull()?.let { trySend(it) }
             }
         }
-        val flowId = withContext(Dispatchers.IO) {
+        val flowId = withContext(matrixDispatcher) {
             client?.startDeviceVerification(deviceId, listener).orEmpty()
         }
         if (flowId.isBlank()) {
@@ -510,7 +512,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
                 }.getOrNull()?.let { trySend(it) }
             }
         }
-        val flowId = withContext(Dispatchers.IO) {
+        val flowId = withContext(matrixDispatcher) {
             client?.startUserVerification(userId, listener).orEmpty()
         }
         if (flowId.isBlank()) {
@@ -529,7 +531,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
                 }.getOrNull()?.let { trySend(it) }
             }
         }
-        val ok = withContext(Dispatchers.IO) {
+        val ok = withContext(matrixDispatcher) {
             client?.acceptAndObserveVerification(flowId, otherUserId, listener) ?: false
         }
         if (!ok) {
@@ -541,38 +543,38 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override suspend fun acceptSas(flowId: String, otherUserId: String): Boolean =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             client?.acceptSas(flowId, otherUserId.ifEmpty { null }) ?: false
         }
 
     override suspend fun confirmSas(flowId: String): Boolean =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             client?.confirmSas(flowId) ?: false
         }
 
     override suspend fun cancelVerification(flowId: String): Boolean =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             client?.cancelVerification(flowId) ?: false
         }
 
     override suspend fun logout(): Boolean =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.logout() } }.isSuccess
         }
 
     override suspend fun retryByTxn(roomId: String, txnId: String): Boolean =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.retryByTxn(roomId, txnId) } }.isSuccess
         }
 
     override fun enterForeground() {
-        runBlocking(Dispatchers.IO) {
+        runBlocking(matrixDispatcher) {
             withClient { it.enterForeground() }
         }
     }
 
     override fun enterBackground() {
-        runBlocking(Dispatchers.IO) {
+        runBlocking(matrixDispatcher) {
             withClient { it.enterBackground() }
         }
     }
@@ -583,7 +585,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         mime: String,
         filename: String?,
         onProgress: ((Long, Long?) -> Unit)?
-    ): Boolean = withContext(Dispatchers.IO) {
+    ): Boolean = withContext(matrixDispatcher) {
         val cb = if (onProgress != null) object : mages.ProgressObserver {
             override fun onProgress(sent: ULong, total: ULong?) {
                 onProgress(sent.toLong(), total?.toLong())
@@ -596,12 +598,12 @@ class RustMatrixPort : MatrixPort, VerificationService {
         info: AttachmentInfo,
         filenameHint: String?
     ): Result<String> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.downloadAttachmentToCacheFile(info.toFfi(), filenameHint).path } }
         }
 
     override suspend fun recoverWithKey(recoveryKey: String): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.recoverWithKey(recoveryKey) } }
         }
 
@@ -612,19 +614,19 @@ class RustMatrixPort : MatrixPort, VerificationService {
         deviceName: String,
         lang: String,
         profileTag: String?,
-    ): Boolean = withContext(Dispatchers.IO) {
+    ): Boolean = withContext(matrixDispatcher) {
         runCatching {
             withClient { it.registerUnifiedpush(appId, pushKey, gatewayUrl, deviceName, lang, profileTag) }
         }.isSuccess
     }
 
     override suspend fun unregisterUnifiedPush(appId: String, pushKey: String): Boolean =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.unregisterUnifiedpush(appId, pushKey) } }.isSuccess
         }
 
     override suspend fun roomUnreadStats(roomId: String): UnreadStats? =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runCatching {
                 withClient {
                     it.roomUnreadStats(roomId)?.let { s ->
@@ -639,26 +641,26 @@ class RustMatrixPort : MatrixPort, VerificationService {
         }
 
     override suspend fun roomNotificationMode(roomId: String): RoomNotificationMode? =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.roomNotificationMode(roomId)?.toKotlin() } }.getOrNull()
         }
 
     override suspend fun setRoomNotificationMode(
         roomId: String,
         mode: RoomNotificationMode
-    ): Result<Unit> = withContext(Dispatchers.IO) {
+    ): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.setRoomNotificationMode(roomId, mode.toFfi()) } }
     }
 
     override suspend fun ownLastRead(roomId: String): Pair<String?, Long?> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runCatching {
                 withClient { it.ownLastRead(roomId).let { r -> r.eventId to r.tsMs?.toLong() } }
             }.getOrElse { null to null }
         }
 
     override fun observeOwnReceipt(roomId: String, observer: ReceiptsObserver): ULong {
-        return runBlocking(Dispatchers.IO) {
+        return runBlocking(matrixDispatcher) {
             val cb = object : mages.ReceiptsObserver {
                 override fun onChanged() {
                     observer.onChanged()
@@ -669,12 +671,12 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override suspend fun markFullyReadAt(roomId: String, eventId: String): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.markFullyReadAt(roomId, eventId) } }
         }
 
     override fun observeRoomList(observer: MatrixPort.RoomListObserver): ULong {
-        return runBlocking(Dispatchers.IO) {
+        return runBlocking(matrixDispatcher) {
             val cb = object : mages.RoomListObserver {
                 override fun onReset(items: List<mages.RoomListEntry>) {
                     val mapped = items.map { it.toKotlinRoomListEntry() }
@@ -690,13 +692,13 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override fun unobserveRoomList(token: ULong) {
-        runBlocking(Dispatchers.IO) {
+        runBlocking(matrixDispatcher) {
             withClient { it.unobserveRoomList(token) }
         }
     }
 
     override suspend fun fetchNotification(roomId: String, eventId: String): RenderedNotification? =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runCatching {
                 withClient {
                     it.fetchNotification(roomId, eventId)?.let { n ->
@@ -723,7 +725,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         sinceMs: Long,
         maxRooms: Int,
         maxEvents: Int
-    ): List<RenderedNotification> = withContext(Dispatchers.IO) {
+    ): List<RenderedNotification> = withContext(matrixDispatcher) {
         runCatching {
             withClient {
                 it.fetchNotificationsSince(
@@ -752,7 +754,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override fun roomListSetUnreadOnly(token: ULong, unreadOnly: Boolean): Boolean {
-        return runBlocking(Dispatchers.IO) {
+        return runBlocking(matrixDispatcher) {
             withClient {
                 it.roomListSetUnreadOnly(token, unreadOnly)
             }
@@ -762,7 +764,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
     override suspend fun loginSsoLoopback(
         openUrl: (String) -> Boolean,
         deviceName: String?
-    ): Result<Unit> = withContext(Dispatchers.IO) {
+    ): Result<Unit> = withContext(matrixDispatcher) {
         val opener = object : mages.UrlOpener {
             override fun open(url: String): Boolean = openUrl(url)
         }
@@ -772,14 +774,14 @@ class RustMatrixPort : MatrixPort, VerificationService {
     override suspend fun loginOauthLoopback(
         openUrl: (String) -> Boolean,
         deviceName: String?
-    ): Result<Unit> = withContext(Dispatchers.IO) {
+    ): Result<Unit> = withContext(matrixDispatcher) {
         val opener = object : mages.UrlOpener {
             override fun open(url: String): Boolean = openUrl(url)
         }
         runWithFfiResult { withClient { it.loginOauthLoopback(opener, deviceName) } }
     }
 
-    override suspend fun homeserverLoginDetails(): HomeserverLoginDetails = withContext(Dispatchers.IO) {
+    override suspend fun homeserverLoginDetails(): HomeserverLoginDetails = withContext(matrixDispatcher) {
         val details = withClient { it.homeserverLoginDetails() }
         HomeserverLoginDetails(
             supportsOauth = details.supportsOauth,
@@ -789,7 +791,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override suspend fun searchUsers(term: String, limit: Int): List<DirectoryUser> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runCatching {
                 withClient {
                     it.searchUsers(term, limit.toULong()).map { u ->
@@ -800,7 +802,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         }
 
     override suspend fun getUserProfile(userId: String): DirectoryUser? =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runCatching {
                 withClient {
                     val profile = it.getUserProfile(userId)
@@ -814,7 +816,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         search: String?,
         limit: Int,
         since: String?
-    ): PublicRoomsPage = withContext(Dispatchers.IO) {
+    ): PublicRoomsPage = withContext(matrixDispatcher) {
         val resp = withClient {
             it.publicRooms(server, search, limit.toUInt(), since)
         }
@@ -837,31 +839,31 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override suspend fun joinByIdOrAlias(idOrAlias: String): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.joinByIdOrAlias(idOrAlias) } }
         }
 
     override suspend fun roomPreview(idOrAlias: String): Result<RoomPreview> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.roomPreview(idOrAlias).toModel() } }
         }
 
     override suspend fun knock(idOrAlias: String): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.knock(idOrAlias) } }
         }
 
     override suspend fun ensureDm(userId: String): String? =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.ensureDm(userId) } }.getOrNull()
         }
 
     override suspend fun resolveRoomId(idOrAlias: String): String? =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.resolveRoomId(idOrAlias) } }.getOrNull()
         }
 
-    override suspend fun listInvited(): List<RoomProfile> = withContext(Dispatchers.IO) {
+    override suspend fun listInvited(): List<RoomProfile> = withContext(matrixDispatcher) {
         runCatching {
             withClient {
                 it.listInvited().map { p ->
@@ -882,33 +884,33 @@ class RustMatrixPort : MatrixPort, VerificationService {
         }.getOrElse { emptyList() }
     }
 
-    override suspend fun acceptInvite(roomId: String): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun acceptInvite(roomId: String): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.acceptInvite(roomId) } }
     }
 
-    override suspend fun leaveRoom(roomId: String): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun leaveRoom(roomId: String): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.leaveRoom(roomId) } }
     }
 
     override suspend fun createRoom(
         name: String?, topic: String?, invitees: List<String>, isPublic: Boolean, roomAlias: String?
-    ): String? = withContext(Dispatchers.IO) {
+    ): String? = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.createRoom(name, topic, invitees, isPublic, roomAlias) } }
             .onFailure { println("createRoom failed: ${it.message}") }
             .getOrNull()
     }
 
     override suspend fun setRoomName(roomId: String, name: String): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.setRoomName(roomId, name) } }.map { }
         }
 
     override suspend fun setRoomTopic(roomId: String, topic: String): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.setRoomTopic(roomId, topic) } }.map { }
         }
 
-    override suspend fun roomProfile(roomId: String): RoomProfile? = withContext(Dispatchers.IO) {
+    override suspend fun roomProfile(roomId: String): RoomProfile? = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.roomProfile(roomId) } }.getOrNull()?.let {
             RoomProfile(
                 it.roomId,
@@ -926,7 +928,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override suspend fun listMembers(roomId: String): List<MemberSummary> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.listMembers(roomId) } }
                 .getOrElse { emptyList() }.map {
                     MemberSummary(it.userId, it.displayName, it.avatarUrl, it.isMe, it.membership)
@@ -934,7 +936,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         }
 
     override suspend fun listKnockRequests(roomId: String): List<KnockRequestSummary> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.listKnockRequests(roomId) } }
                 .getOrElse { emptyList() }
                 .map {
@@ -951,7 +953,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         }
 
     override suspend fun reactions(roomId: String, eventId: String): List<ReactionSummary> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runCatching {
                 withClient {
                     it.reactionsForEvent(roomId, eventId)
@@ -963,7 +965,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
     override suspend fun reactionsBatch(
         roomId: String,
         eventIds: List<String>
-    ): Map<String, List<ReactionSummary>> = withContext(Dispatchers.IO) {
+    ): Map<String, List<ReactionSummary>> = withContext(matrixDispatcher) {
         runCatching {
             withClient {
                 it.reactionsBatch(roomId, eventIds)
@@ -979,7 +981,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         rootEventId: String,
         perPage: Int,
         maxPages: Int
-    ): ThreadSummary = withContext(Dispatchers.IO) {
+    ): ThreadSummary = withContext(matrixDispatcher) {
         val s = withClient {
             it.threadSummary(roomId, rootEventId, perPage.toUInt(), maxPages.toUInt())
         }
@@ -992,7 +994,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         from: String?,
         limit: Int,
         forward: Boolean
-    ): ThreadPage = withContext(Dispatchers.IO) {
+    ): ThreadPage = withContext(matrixDispatcher) {
         val page = withClient { it.threadReplies(roomId, rootEventId, from, limit.toUInt(), forward) }
         ThreadPage(
             rootEventId = page.rootEventId,
@@ -1010,17 +1012,17 @@ class RustMatrixPort : MatrixPort, VerificationService {
         replyToEventId: String?,
         latestEventId: String?,
         formattedBody: String?
-    ): Boolean = withContext(Dispatchers.IO) {
+    ): Boolean = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.sendThreadText(roomId, rootEventId, body, replyToEventId, latestEventId, formattedBody) } }.isSuccess
     }
 
     override suspend fun isSpace(roomId: String): Boolean =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.isSpace(roomId) } }.isSuccess
         }
 
     override suspend fun mySpaces(): List<SpaceInfo> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runCatching {
                 withClient {
                     it.mySpaces().map { space ->
@@ -1042,7 +1044,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         topic: String?,
         isPublic: Boolean,
         invitees: List<String>
-    ): String? = withContext(Dispatchers.IO) {
+    ): String? = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.createSpace(name, topic, isPublic, invitees) } }.getOrNull()
     }
 
@@ -1051,14 +1053,14 @@ class RustMatrixPort : MatrixPort, VerificationService {
         childRoomId: String,
         order: String?,
         suggested: Boolean?
-    ): Result<Unit> = withContext(Dispatchers.IO) {
+    ): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.spaceAddChild(spaceId, childRoomId, order, suggested) } }
     }
 
     override suspend fun spaceRemoveChild(
         spaceId: String,
         childRoomId: String
-    ): Result<Unit> = withContext(Dispatchers.IO) {
+    ): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.spaceRemoveChild(spaceId, childRoomId) } }
     }
 
@@ -1068,7 +1070,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         limit: Int,
         maxDepth: Int?,
         suggestedOnly: Boolean
-    ): SpaceHierarchyPage? = withContext(Dispatchers.IO) {
+    ): SpaceHierarchyPage? = withContext(matrixDispatcher) {
         runCatching {
             val page = withClient {
                 it.spaceHierarchy(
@@ -1100,96 +1102,96 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override suspend fun spaceInviteUser(spaceId: String, userId: String): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.spaceInviteUser(spaceId, userId) } }
         }
 
-    override suspend fun roomTags(roomId: String): Pair<Boolean, Boolean>? = withContext(Dispatchers.IO) {
+    override suspend fun roomTags(roomId: String): Pair<Boolean, Boolean>? = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.roomTags(roomId) } }.getOrNull()?.let {
             it.isFavourite to it.isLowPriority
         }
     }
 
     override suspend fun setRoomFavourite(roomId: String, favourite: Boolean): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.setRoomFavourite(roomId, favourite) } }.map { }
         }
 
     override suspend fun setRoomLowPriority(roomId: String, lowPriority: Boolean): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.setRoomLowPriority(roomId, lowPriority) } }.map { }
         }
 
     override suspend fun setPresence(presence: Presence, status: String?): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.setPresence(presence.toFfi(), status) } }.map { }
         }
 
     override suspend fun getPresence(userId: String): Pair<Presence, String?>? =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             val info = runWithFfiResult { withClient { it.getPresence(userId) } }.getOrNull()
                 ?: return@withContext null
             info.presence.toKotlin() to info.statusMsg
         }
 
-    override suspend fun ignoreUser(userId: String): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun ignoreUser(userId: String): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.ignoreUser(userId) } }
     }
 
-    override suspend fun unignoreUser(userId: String): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun unignoreUser(userId: String): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.unignoreUser(userId) } }
     }
 
-    override suspend fun ignoredUsers(): List<String> = withContext(Dispatchers.IO) {
+    override suspend fun ignoredUsers(): List<String> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.ignoredUsers() } }.getOrElse { emptyList() }
     }
 
     override suspend fun roomDirectoryVisibility(roomId: String): RoomDirectoryVisibility? =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.roomDirectoryVisibility(roomId) } }.getOrNull()?.toKotlin()
         }
 
     override suspend fun setRoomDirectoryVisibility(
         roomId: String,
         visibility: RoomDirectoryVisibility
-    ): Result<Unit> = withContext(Dispatchers.IO) {
+    ): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.setRoomDirectoryVisibility(roomId, visibility.toFfi()) } }
     }
 
-    override suspend fun publishRoomAlias(roomId: String, alias: String): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun publishRoomAlias(roomId: String, alias: String): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.publishRoomAlias(roomId, alias) } }.map { }
     }
 
-    override suspend fun unpublishRoomAlias(roomId: String, alias: String): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun unpublishRoomAlias(roomId: String, alias: String): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.unpublishRoomAlias(roomId, alias) } }.map { }
     }
 
     override suspend fun setRoomCanonicalAlias(roomId: String, alias: String?, altAliases: List<String>): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.setRoomCanonicalAlias(roomId, alias, altAliases) } }
         }
 
-    override suspend fun roomAliases(roomId: String): List<String> = withContext(Dispatchers.IO) {
+    override suspend fun roomAliases(roomId: String): List<String> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.roomAliases(roomId) } }.getOrDefault(emptyList())
     }
 
-    override suspend fun roomJoinRule(roomId: String): RoomJoinRule? = withContext(Dispatchers.IO) {
+    override suspend fun roomJoinRule(roomId: String): RoomJoinRule? = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.roomJoinRule(roomId) } }.getOrNull()?.toKotlin()
     }
 
-    override suspend fun setRoomJoinRule(roomId: String, rule: RoomJoinRule): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun setRoomJoinRule(roomId: String, rule: RoomJoinRule): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.setRoomJoinRule(roomId, rule.toFfi()) } }
     }
 
-    override suspend fun roomHistoryVisibility(roomId: String): RoomHistoryVisibility? = withContext(Dispatchers.IO) {
+    override suspend fun roomHistoryVisibility(roomId: String): RoomHistoryVisibility? = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.roomHistoryVisibility(roomId) } }.getOrNull()?.toKotlin()
     }
 
-    override suspend fun setRoomHistoryVisibility(roomId: String, visibility: RoomHistoryVisibility): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun setRoomHistoryVisibility(roomId: String, visibility: RoomHistoryVisibility): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.setRoomHistoryVisibility(roomId, visibility.toFfi()) } }
     }
 
-    override suspend fun roomPowerLevels(roomId: String): RoomPowerLevels? = withContext(Dispatchers.IO) {
+    override suspend fun roomPowerLevels(roomId: String): RoomPowerLevels? = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.roomPowerLevels(roomId) } }.getOrNull()?.let {
             RoomPowerLevels(
                 users = it.users,
@@ -1213,23 +1215,23 @@ class RustMatrixPort : MatrixPort, VerificationService {
         }
     }
 
-    override suspend fun canUserBan(roomId: String, userId: String): Boolean = withContext(Dispatchers.IO) {
+    override suspend fun canUserBan(roomId: String, userId: String): Boolean = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.canUserBan(roomId, userId) } }.isSuccess
     }
 
-    override suspend fun canUserInvite(roomId: String, userId: String): Boolean = withContext(Dispatchers.IO) {
+    override suspend fun canUserInvite(roomId: String, userId: String): Boolean = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.canUserInvite(roomId, userId) } }.isSuccess
     }
 
-    override suspend fun canUserRedactOther(roomId: String, userId: String): Boolean = withContext(Dispatchers.IO) {
+    override suspend fun canUserRedactOther(roomId: String, userId: String): Boolean = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.canUserRedactOther(roomId, userId) } }.isSuccess
     }
 
-    override suspend fun updatePowerLevelForUser(roomId: String, userId: String, powerLevel: Long): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun updatePowerLevelForUser(roomId: String, userId: String, powerLevel: Long): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.updatePowerLevelForUser(roomId, userId, powerLevel) } }
     }
 
-    override suspend fun applyPowerLevelChanges(roomId: String, changes: RoomPowerLevelChanges): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun applyPowerLevelChanges(roomId: String, changes: RoomPowerLevelChanges): Result<Unit> = withContext(matrixDispatcher) {
         runCatching {
             withClient {
                 it.applyPowerLevelChanges(
@@ -1252,51 +1254,51 @@ class RustMatrixPort : MatrixPort, VerificationService {
         }
     }
 
-    override suspend fun reportRoom(roomId: String, reason: String?): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun reportRoom(roomId: String, reason: String?): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.reportRoom(roomId, reason) } }
     }
 
     override suspend fun banUser(roomId: String, userId: String, reason: String?): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.banUser(roomId, userId, reason) } }.map { }
         }
 
     override suspend fun unbanUser(roomId: String, userId: String, reason: String?): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.unbanUser(roomId, userId, reason) } }.map { }
         }
 
     override suspend fun kickUser(roomId: String, userId: String, reason: String?): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.kickUser(roomId, userId, reason) } }.map { }
         }
 
     override suspend fun acceptKnockRequest(roomId: String, userId: String): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.acceptKnockRequest(roomId, userId) } }.map { }
         }
 
     override suspend fun declineKnockRequest(roomId: String, userId: String, reason: String?): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.declineKnockRequest(roomId, userId, reason) } }.map { }
         }
 
     override suspend fun inviteUser(roomId: String, userId: String): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.inviteUser(roomId, userId) } }.map { }
         }
 
-    override suspend fun enableRoomEncryption(roomId: String): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun enableRoomEncryption(roomId: String): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.enableRoomEncryption(roomId) } }.map { }
     }
 
-    override suspend fun roomSuccessor(roomId: String): RoomUpgradeInfo? = withContext(Dispatchers.IO) {
+    override suspend fun roomSuccessor(roomId: String): RoomUpgradeInfo? = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.roomSuccessor(roomId) } }.getOrNull()?.let { ffi ->
             RoomUpgradeInfo(roomId = ffi.roomId, reason = ffi.reason)
         }
     }
 
-    override suspend fun roomPredecessor(roomId: String): RoomPredecessorInfo? = withContext(Dispatchers.IO) {
+    override suspend fun roomPredecessor(roomId: String): RoomPredecessorInfo? = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.roomPredecessor(roomId) } }.getOrNull()?.let { ffi ->
             RoomPredecessorInfo(roomId = ffi.roomId)
         }
@@ -1305,17 +1307,17 @@ class RustMatrixPort : MatrixPort, VerificationService {
     override suspend fun startLiveLocationShare(
         roomId: String,
         durationMs: Long
-    ): Result<Unit> = withContext(Dispatchers.IO) {
+    ): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.startLiveLocation(roomId, durationMs.toULong(), null) } }
     }
 
     override suspend fun stopLiveLocationShare(roomId: String): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.stopLiveLocation(roomId) } }
         }
 
     override suspend fun sendLiveLocation(roomId: String, geoUri: String): Result<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.sendLiveLocation(roomId, geoUri) } }
         }
 
@@ -1323,7 +1325,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         roomId: String,
         onShares: (List<LiveLocationShare>) -> Unit
     ): ULong {
-        return runBlocking(Dispatchers.IO) {
+        return runBlocking(matrixDispatcher) {
             val cb = object : mages.LiveLocationObserver {
                 override fun onUpdate(shares: List<mages.LiveLocationShareInfo>) {
                     val mapped = shares.map {
@@ -1342,7 +1344,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override fun stopObserveLiveLocation(token: ULong) {
-        runBlocking(Dispatchers.IO) {
+        runBlocking(matrixDispatcher) {
             withClient { it.unobserveLiveLocation(token) }
         }
     }
@@ -1351,7 +1353,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         roomId: String,
         question: String,
         answers: List<String>
-    ): Result<Unit> = withContext(Dispatchers.IO) {
+    ): Result<Unit> = withContext(matrixDispatcher) {
         val def = mages.PollDefinition(
             question = question,
             answers = answers,
@@ -1365,14 +1367,14 @@ class RustMatrixPort : MatrixPort, VerificationService {
         roomId: String,
         pollEventId: String,
         answers: List<String>
-    ): Result<Unit> = withContext(Dispatchers.IO) {
+    ): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.sendPollResponse(roomId, pollEventId, answers) } }
     }
 
     override suspend fun sendPollEnd(
         roomId: String,
         pollEventId: String
-    ): Result<Unit> = withContext(Dispatchers.IO) {
+    ): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.sendPollEnd(roomId, pollEventId) } }
     }
 
@@ -1381,7 +1383,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         eventId: String,
         limit: Int
     ): List<SeenByEntry> {
-        return runBlocking(Dispatchers.IO) {
+        return runBlocking(matrixDispatcher) {
             withClient {
                 it.seenByForEvent(roomId, eventId, limit.toUInt()).map { entry ->
                     SeenByEntry(
@@ -1400,14 +1402,14 @@ class RustMatrixPort : MatrixPort, VerificationService {
         width: Int,
         height: Int,
         crop: Boolean
-    ): String = withContext(Dispatchers.IO) {
+    ): String = withContext(matrixDispatcher) {
         withClient {
             it.mxcThumbnailToCache(mxcUri, width.toUInt(), height.toUInt(), crop)
         }
     }
 
     override suspend fun loadRoomListCache(): List<RoomListEntry> =
-        withContext(Dispatchers.IO) {
+        withContext(matrixDispatcher) {
             withClient { cl ->
                 cl.loadRoomListCache().map { it.toKotlinRoomListEntry() }
             }
@@ -1418,7 +1420,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         query: String,
         limit: Int,
         offset: Int?
-    ): SearchPage = withContext(Dispatchers.IO) {
+    ): SearchPage = withContext(matrixDispatcher) {
         withClient {
             it.searchRoom(roomId, query, limit.toUInt(), offset?.toUInt()).toKotlin()
         }
@@ -1432,7 +1434,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         languageTag: String?,
         theme: String?,
         observer: CallWidgetObserver,
-    ): CallSession? = withContext(Dispatchers.IO) {
+    ): CallSession? = withContext(matrixDispatcher) {
         val ffiIntent = when (intent) {
             CallIntent.StartCall -> mages.ElementCallIntent.START_CALL
             CallIntent.JoinExisting -> mages.ElementCallIntent.JOIN_EXISTING
@@ -1468,14 +1470,14 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override fun callWidgetFromWebview(sessionId: ULong, message: String): Boolean {
-        return runBlocking(Dispatchers.IO) {
+        return runBlocking(matrixDispatcher) {
             runWithFfiResult { withClient { it.callWidgetFromWebview(sessionId, message) } }
                 .getOrDefault(false)
         }
     }
 
     override fun stopElementCall(sessionId: ULong): Boolean {
-        return runBlocking(Dispatchers.IO) {
+        return runBlocking(matrixDispatcher) {
             runWithFfiResult { withClient { it.stopElementCall(sessionId) } }.isSuccess
         }
     }

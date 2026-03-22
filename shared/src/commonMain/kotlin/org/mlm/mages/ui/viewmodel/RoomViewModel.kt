@@ -81,6 +81,7 @@ class RoomViewModel(
     private var draftJob: Job? = null
     private var hasTimelineSnapshot = false
     private var searchJob: Job? = null
+    private var paginationRecomputeJob: Job? = null
 
     // Track which event IDs we've checked via API for additional thread replies
     // (beyond what's visible in timeline)
@@ -118,40 +119,52 @@ class RoomViewModel(
     }
 
     private fun initialize() {
-        val myUserId = service.port.whoami()
-        updateState { copy(myUserId = myUserId) }
         observeTimeline()
         observeTyping()
         observeOwnReceipt()
         observeReceipts()
+
         loadNotificationMode()
         loadUpgradeInfo()
-        loadPowerLevel(myUserId)
         loadPinnedEvents()
 
         launch {
-            dmPeer = runSafe { service.port.dmPeerUserId(currentState.roomId) }
             val roomId = currentState.roomId
-            settingsRepo.update { it.copy(lastOpenedRoomId = roomId) }
 
-            val members = runSafe { service.port.listMembers(roomId) }.orEmpty()
-            if (members.isNotEmpty()) {
-                updateState { copy(roomMembers = members) }
-            }
+            val myUserId = service.port.whoami()
+            updateState { copy(myUserId = myUserId) }
+            loadPowerLevel(myUserId)
+
+            dmPeer = service.port.dmPeerUserId(roomId)
+
+            settingsRepo.update { it.copy(lastOpenedRoomId = roomId) }
 
             val savedDraft = loadDraft(roomId)
             if (!savedDraft.isNullOrBlank()) {
                 updateState { copy(input = savedDraft) }
             }
 
-            val profile = runSafe { service.port.roomProfile(currentState.roomId) }
+            val profile = service.port.roomProfile(roomId)
             if (profile != null) {
-                updateState { copy(isDm = profile.isDm, roomAvatarUrl = profile.avatarUrl, roomName = profile.name) }
+                updateState {
+                    copy(
+                        isDm = profile.isDm,
+                        roomAvatarUrl = profile.avatarUrl,
+                        roomName = profile.name
+                    )
+                }
 
                 profile.avatarUrl?.let { url ->
                     val path = service.avatars.resolve(url, px = 96, crop = true)
-                    if (path != null) updateState { copy(roomAvatarUrl = path) }
+                    if (path != null) {
+                        updateState { copy(roomAvatarUrl = path) }
+                    }
                 }
+            }
+
+            val members = service.port.listMembers(roomId)
+            if (members.isNotEmpty()) {
+                updateState { copy(roomMembers = members) }
             }
         }
 
@@ -562,16 +575,23 @@ class RoomViewModel(
 
         launch {
             updateState { copy(isPaginatingBack = true) }
+
             try {
-                val hitStart = runSafe { service.port.paginateBack(s.roomId, 50) }?.isSuccess ?: false
+                val hitStart = service.paginateBack(s.roomId, 50)
                 updateState { copy(hitStart = hitStart || this.hitStart) }
 
-                // After pagination, recompute thread counts from timeline
-                delay(500) // Give time for timeline diffs to arrive
-                recomputeThreadCountsFromTimeline()
+                scheduleThreadCountRecompute()
             } finally {
                 updateState { copy(isPaginatingBack = false) }
             }
+        }
+    }
+
+    private fun scheduleThreadCountRecompute() {
+        paginationRecomputeJob?.cancel()
+        paginationRecomputeJob = launch {
+            delay(150)
+            recomputeThreadCountsFromTimeline()
         }
     }
 
