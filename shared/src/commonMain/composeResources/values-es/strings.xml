@@ -37,6 +37,8 @@
     <string name="search_rooms">Buscar salas...</string>
     <string name="unread_only">Sin leer</string>
     <string name="loading_unread">Buscando mensajes no leídos…</string>
+    <string name="timeline_date_today">Hoy</string>
+    <string name="timeline_date_yesterday">Ayer</string>
     <string name="jump_to_unread">Ir al primer mensaje no leído</string>
     <string name="scroll_to_top">Ir arriba</string>
     <string name="spaces">Espacios</string>

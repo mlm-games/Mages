@@ -71,3 +71,26 @@ fun formatSeenBy(names: List<String>): String = when (names.size) {
     2 -> "Seen by ${names[0]} and ${names[1]}"
     else -> "Seen by ${names[0]}, ${names[1]} +${names.size - 2}"
 }
+
+@OptIn(ExperimentalTime::class)
+fun formatTimelineDate(
+    timestampMs: Long,
+    todayLabel: String,
+    yesterdayLabel: String,
+): String {
+    val instant = Instant.fromEpochMilliseconds(timestampMs)
+    val localDateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val yesterday = Clock.System.now().minus(1.days).toLocalDateTime(TimeZone.currentSystemDefault()).date
+
+    return when (localDateTime.date) {
+        today -> todayLabel
+        yesterday -> yesterdayLabel
+        else -> {
+            val month = localDateTime.month.name.lowercase()
+                .replaceFirstChar { it.uppercase() }
+                .take(3)
+            "${localDateTime.day} $month ${localDateTime.year}"
+        }
+    }
+}

@@ -32,6 +32,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.EventType
@@ -50,6 +51,7 @@ import org.mlm.mages.ui.components.message.MessageBubble
 import org.mlm.mages.ui.components.message.MessageStatusLine
 import org.mlm.mages.ui.components.message.SystemMessageItem
 import org.mlm.mages.ui.components.message.SeenByChip
+import org.mlm.mages.ui.components.core.FloatingTimelineDateChip
 import org.mlm.mages.ui.components.location.*
 import org.mlm.mages.ui.components.sheets.MemberActionsSheet
 import org.koin.compose.koinInject
@@ -58,7 +60,9 @@ import org.mlm.mages.ui.components.sheets.*
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatDate
 import org.mlm.mages.ui.util.formatTime
+import org.mlm.mages.ui.util.formatTimelineDate
 import org.mlm.mages.ui.util.formatTypingText
+import org.mlm.mages.ui.util.rememberTopVisibleRoomEventTimestamp
 import org.mlm.mages.ui.viewmodel.RoomViewModel
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.*
@@ -169,6 +173,63 @@ fun RoomScreen(
 
 
     val events = state.events
+
+    val todayLabel = stringResource(Res.string.timeline_date_today)
+    val yesterdayLabel = stringResource(Res.string.timeline_date_yesterday)
+
+    val topVisibleEventTimestamp = rememberTopVisibleRoomEventTimestamp(
+        listState = listState,
+        events = events,
+    )
+
+    val topVisibleDateLabel by remember(topVisibleEventTimestamp, todayLabel, yesterdayLabel) {
+        derivedStateOf {
+            topVisibleEventTimestamp?.let {
+                formatTimelineDate(
+                    timestampMs = it,
+                    todayLabel = todayLabel,
+                    yesterdayLabel = yesterdayLabel,
+                )
+            }
+        }
+    }
+
+    var scrollDateLabel by remember { mutableStateOf<String?>(null) }
+    var showScrollDateChip by remember { mutableStateOf(false) }
+
+    LaunchedEffect(state.hasTimelineSnapshot, events.size) {
+        if (!state.hasTimelineSnapshot || events.isEmpty()) {
+            scrollDateLabel = null
+            showScrollDateChip = false
+        }
+    }
+
+    LaunchedEffect(topVisibleDateLabel) {
+        if (topVisibleDateLabel != null) {
+            scrollDateLabel = topVisibleDateLabel
+        }
+    }
+
+    LaunchedEffect(
+        listState.isScrollInProgress,
+        topVisibleDateLabel,
+        state.hasTimelineSnapshot,
+        events.size,
+        seekingUnread,
+    ) {
+        if (
+            listState.isScrollInProgress &&
+            !seekingUnread &&
+            state.hasTimelineSnapshot &&
+            events.isNotEmpty() &&
+            topVisibleDateLabel != null
+        ) {
+            showScrollDateChip = true
+        } else {
+            delay(750)
+            showScrollDateChip = false
+        }
+    }
 
     // you always have exactly 1 header item (load_earlier OR start_of_conversation)
     fun listIndexForEventIndex(eventIndex: Int): Int = eventIndex + 1
@@ -660,6 +721,14 @@ fun RoomScreen(
                                 }
                             }
                         }
+
+                        FloatingTimelineDateChip(
+                            text = scrollDateLabel.orEmpty(),
+                            visible = showScrollDateChip && scrollDateLabel != null,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 12.dp),
+                        )
                     }
                 }
             }

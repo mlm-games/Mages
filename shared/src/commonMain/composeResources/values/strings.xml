@@ -37,6 +37,8 @@
     <string name="search_rooms">Search rooms...</string>
     <string name="unread_only">Unread only</string>
     <string name="loading_unread">Finding unread messages…</string>
+    <string name="timeline_date_today">Today</string>
+    <string name="timeline_date_yesterday">Yesterday</string>
     <string name="jump_to_unread">Jump to unread</string>
     <string name="scroll_to_top">Scroll to top</string>
     <string name="spaces">Spaces</string>
