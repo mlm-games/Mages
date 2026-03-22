@@ -108,6 +108,7 @@ dependencies {
 
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
+    implementation(libs.koin.compose.viewmodel)
     implementation(libs.androidx.datastore.preferences.core)
     implementation(libs.kmp.settings.core)
     implementation(libs.coil.compose)

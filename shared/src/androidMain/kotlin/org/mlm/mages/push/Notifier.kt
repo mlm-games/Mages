@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
 import android.content.res.Resources
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
@@ -403,26 +404,31 @@ object Notifier {
         roomName: String,
         eventId: String,
         senderName: String,
+        senderUserId: String,
         messageBody: String,
         timestamp: Long,
         notificationId: Int,
-        bubbleActivityClass: Class<*>,
+        bubbleActivityClass: Class<*>?,
         fullOpenIntent: PendingIntent,
+        senderAvatar: AvatarResult,
+        roomAvatar: AvatarResult,
+        isDm: Boolean = false,
     ) {
-        val icon = IconCompat.createWithResource(context, R.drawable.ic_notif_status_bar)
-
-        ConversationShortcutPublisher.publishOrUpdate(
-            context, roomId, roomName, senderName, icon, bubbleActivityClass
-        )
+        if (bubbleActivityClass != null) {
+            ConversationShortcutPublisher.publishOrUpdate(
+                context, roomId, roomName, senderName, roomAvatar.icon, bubbleActivityClass
+            )
+        }
 
         val sender = Person.Builder()
             .setName(senderName)
-            .setKey(roomId)
-            .setIcon(icon)
+            .setKey(senderUserId)
+            .setIcon(senderAvatar.icon)
             .build()
 
         val style = NotificationCompat.MessagingStyle(sender)
-            .setConversationTitle(roomName)
+            .setConversationTitle(if (isDm) null else roomName)
+            .setGroupConversation(!isDm)
             .addMessage(messageBody, timestamp, sender)
 
         val remoteInput = RemoteInput.Builder(KEY_TEXT_REPLY)
@@ -431,10 +437,11 @@ object Notifier {
         val replyIntent = PendingIntent.getBroadcast(
             context,
             REQUEST_REPLY + notificationId,
-             Intent(context, NotificationActionReceiver::class.java)
+            Intent(context, NotificationActionReceiver::class.java)
                 .setAction(NotificationActionReceiver.ACTION_REPLY)
                 .putExtra(ConversationShortcutPublisher.EXTRA_ROOM_ID, roomId)
-                .putExtra(NotificationActionReceiver.EXTRA_EVENT_ID, eventId),
+                .putExtra(NotificationActionReceiver.EXTRA_EVENT_ID, eventId)
+                .putExtra(NotificationActionReceiver.EXTRA_NOTIF_ID, notificationId),
             PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val replyAction = NotificationCompat.Action.Builder(
@@ -448,10 +455,7 @@ object Notifier {
                 .setAction(NotificationActionReceiver.ACTION_MARK_READ)
                 .putExtra(ConversationShortcutPublisher.EXTRA_ROOM_ID, roomId)
                 .putExtra(NotificationActionReceiver.EXTRA_EVENT_ID, eventId)
-                .putExtra(NotificationActionReceiver.EXTRA_NOTIF_ID, notificationId)
-                .putExtra(NotificationActionReceiver.EXTRA_ROOM_NAME, roomName)
-                .putExtra(NotificationActionReceiver.EXTRA_SENDER_NAME, senderName)
-                .putExtra(NotificationActionReceiver.EXTRA_MESSAGE_BODY, messageBody),
+                .putExtra(NotificationActionReceiver.EXTRA_NOTIF_ID, notificationId),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val markReadAction = NotificationCompat.Action.Builder(
@@ -469,7 +473,10 @@ object Notifier {
             .setOnlyAlertOnce(false)
             .setCategory(Notification.CATEGORY_MESSAGE)
 
-        if (BubbleEligibilityEvaluator.canBubble(context, roomId)) {
+        val largeIconBitmap = if (isDm) senderAvatar.bitmap else roomAvatar.bitmap
+        builder.setLargeIcon(largeIconBitmap)
+
+        if (bubbleActivityClass != null && BubbleEligibilityEvaluator.canBubble(context, roomId)) {
             val bubblePendingIntent = PendingIntent.getActivity(
                 context,
                 REQUEST_BUBBLE + notificationId,
@@ -478,7 +485,7 @@ object Notifier {
                 PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
             val bubbleMetadata = NotificationCompat.BubbleMetadata.Builder(
-                bubblePendingIntent, icon
+                bubblePendingIntent, roomAvatar.icon
             )
                 .setDesiredHeight((Resources.getSystem().displayMetrics.density * 480).toInt())
                 .setSuppressNotification(false)

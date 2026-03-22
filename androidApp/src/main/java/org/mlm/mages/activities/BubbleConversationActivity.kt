@@ -3,11 +3,9 @@ package org.mlm.mages.activities
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.runtime.LaunchedEffect
-import org.koin.androidx.viewmodel.ext.android.viewModel
+import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import org.mlm.mages.push.ConversationShortcutPublisher
-import org.mlm.mages.push.Notifier
 import org.mlm.mages.ui.screens.RoomScreen
 import org.mlm.mages.ui.theme.MainTheme
 import org.mlm.mages.ui.viewmodel.RoomViewModel
@@ -24,7 +22,7 @@ class BubbleConversationActivity : ComponentActivity() {
 
         setContent {
             MainTheme {
-                val vm: RoomViewModel by viewModel { parametersOf(roomId, "") }
+                val vm: RoomViewModel = koinViewModel { parametersOf(roomId, "") }
 
                 RoomScreen(
                     viewModel = vm,

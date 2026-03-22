@@ -16,6 +16,7 @@ import org.koin.core.component.inject
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.NotificationKind
 import org.mlm.mages.platform.SettingsProvider
+import org.mlm.mages.shared.R
 
 private fun parseNotifiedRooms(json: String): Set<String> {
     if (json.isBlank()) return emptySet()
@@ -182,23 +183,55 @@ class NotificationEnrichWorker(
                 }
 
                 // No need to cancel here; showConversationNotification uses the same notifId and will replace.
-                val notificationId = roomId.hashCode()
+                val notificationId = (roomId).hashCode()
                 val bubbleActivityClass = try {
                     Class.forName("org.mlm.mages.activities.BubbleConversationActivity")
                 } catch (_: ClassNotFoundException) {
-                    Class.forName("org.mlm.mages.MainActivity")
+                    null // not possible
                 }
+
+                val isDm = rendered.isDm
+
+                val senderAvatarUrl = runCatching {
+                    port.getUserProfile(rendered.senderUserId)?.avatarUrl
+                }.getOrNull()
+
+                val roomAvatarUrl = runCatching {
+                    port.roomProfile(roomId)?.avatarUrl
+                }.getOrNull()
+
+                val senderAvatar = NotificationAvatarHelper.resolve(
+                    context = applicationContext,
+                    service = service,
+                    avatarUrl = senderAvatarUrl,
+                    displayName = rendered.sender,
+                    userId = rendered.senderUserId,
+                    fallbackRes = R.drawable.ic_notif_status_bar,
+                )
+                val roomAvatar = NotificationAvatarHelper.resolve(
+                    context = applicationContext,
+                    service = service,
+                    avatarUrl = roomAvatarUrl,
+                    displayName = rendered.roomName,
+                    userId = roomId,
+                    fallbackRes = R.drawable.ic_notif_status_bar,
+                )
+
                 Notifier.showConversationNotification(
                     context = applicationContext,
                     roomId = roomId,
                     roomName = rendered.roomName,
                     senderName = rendered.sender,
+                    senderUserId = rendered.senderUserId,
                     messageBody = rendered.body,
                     eventId = eventId,
                     timestamp = System.currentTimeMillis(),
                     notificationId = notificationId,
                     bubbleActivityClass = bubbleActivityClass,
                     fullOpenIntent = buildFullOpenIntent(applicationContext, roomId),
+                    senderAvatar = senderAvatar,
+                    roomAvatar = roomAvatar,
+                    isDm = isDm,
                 )
                 return Result.success()
             }
