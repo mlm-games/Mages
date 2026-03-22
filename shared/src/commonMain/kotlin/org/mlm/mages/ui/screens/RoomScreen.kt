@@ -1427,15 +1427,16 @@ private fun MessageItem(
                         isMine = true
                     )
                 } else if (state.seenByEntries.isNotEmpty()) {
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Spacer(Modifier.weight(0.99f))
-
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Spacing.lg, vertical = Spacing.xs),
+                        horizontalArrangement = Arrangement.End
+                    ) {
                         SeenByChip(
                             entries = state.seenByEntries,
                             onClick = { viewModel.showReadReceiptsSheet(state.seenByEntries) }
                         )
-
-                        Spacer(Modifier.weight(0.01f))
                     }
                 }
             }
