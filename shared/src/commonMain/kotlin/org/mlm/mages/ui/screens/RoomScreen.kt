@@ -848,22 +848,16 @@ fun RoomScreen(
             onMarkReadHere = { viewModel.markReadHere(event); sheetEvent = null },
             onReplyInThread = { viewModel.openThread(event); sheetEvent = null },
             onShare = { viewModel.shareMessage(event) },
-            onForward = { viewModel.startForward(event); sheetEvent = null },
+            onForward = {
+                sheetEvent = null
+                event.eventId
+                    .takeIf { it.isNotBlank() }
+                    ?.let { onOpenForwardPicker(state.roomId, listOf(it)) }
+            },
             onSelect = { viewModel.enterSelectionMode(event.eventId) },
         )
     }
 
-    if (state.showForwardPicker && state.forwardingEvent != null) {
-        RoomPickerSheet(
-            event = state.forwardingEvent!!,
-            rooms = viewModel.filteredForwardRooms,
-            isLoading = state.isLoadingForwardRooms,
-            searchQuery = state.forwardSearchQuery,
-            onSearchChange = viewModel::setForwardSearch,
-            onRoomSelected = viewModel::forwardTo,
-            onDismiss = viewModel::cancelForward
-        )
-    }
     if (state.showRoomSearch) {
         RoomSearchSheet(
             query = state.roomSearchQuery,

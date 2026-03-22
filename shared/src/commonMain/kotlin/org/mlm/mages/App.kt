@@ -659,9 +659,24 @@ private fun AppContent(
                             ForwardPickerScreen(
                                 viewModel = viewModel,
                                 onBack = backStack::popBack,
-                                onForwardComplete = { roomId, roomName ->
-                                    backStack.popUntil { it is Route.Rooms }
-                                    backStack.add(Route.Room(roomId, roomName))
+                                onForwardComplete = { summary ->
+                                    when {
+                                        summary.totalRooms == 1 &&
+                                            summary.successfulRooms == 1 &&
+                                            summary.partialRooms == 0 &&
+                                            summary.failedRooms == 0 -> {
+                                            val room = summary.results.first()
+                                            backStack.popUntil { it is Route.Rooms }
+                                            backStack.add(Route.Room(room.roomId, room.roomName))
+                                        }
+
+                                        else -> {
+                                            backStack.popBack()
+                                            scope.launch {
+                                                snackbarManager.show(summary.userMessage())
+                                            }
+                                        }
+                                    }
                                 }
                             )
                         }
