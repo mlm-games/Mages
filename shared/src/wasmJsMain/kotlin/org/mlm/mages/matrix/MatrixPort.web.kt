@@ -636,10 +636,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         filename: String?,
         onProgress: ((Long, Long?) -> Unit)?
     ): Boolean {
-        val bytes = retrieveWebBlob(path)
-        if (bytes == null) {
-            throw Exception("Blob not found for path: $path")
-        }
+        val bytes = retrieveWebBlob(path) ?: throw Exception("Blob not found for path: $path")
         clearWebBlob(path)
         val result = requireClient().sendAttachmentBytes(roomId, filename ?: path, mime, bytes.toJsUint8Array()).awaitUnitResult()
         return result.isSuccess

@@ -1,7 +1,10 @@
 package org.mlm.mages.push
 
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import kotlinx.coroutines.flow.first
@@ -178,16 +181,24 @@ class NotificationEnrichWorker(
                     false
                 }
 
-                // No need to cancel here; showSingleEvent uses the same notifId and will replace.
-                AndroidNotificationHelper.showSingleEvent(
-                    applicationContext,
-                    AndroidNotificationHelper.NotificationText(
-                        title = title,
-                        body = rendered.body
-                    ),
+                // No need to cancel here; showConversationNotification uses the same notifId and will replace.
+                val notificationId = roomId.hashCode()
+                val bubbleActivityClass = try {
+                    Class.forName("org.mlm.mages.activities.BubbleConversationActivity")
+                } catch (_: ClassNotFoundException) {
+                    Class.forName("org.mlm.mages.MainActivity")
+                }
+                Notifier.showConversationNotification(
+                    context = applicationContext,
                     roomId = roomId,
+                    roomName = rendered.roomName,
+                    senderName = rendered.sender,
+                    messageBody = rendered.body,
                     eventId = eventId,
-                    playSound = playSound
+                    timestamp = System.currentTimeMillis(),
+                    notificationId = notificationId,
+                    bubbleActivityClass = bubbleActivityClass,
+                    fullOpenIntent = buildFullOpenIntent(applicationContext, roomId),
                 )
                 return Result.success()
             }
@@ -198,4 +209,20 @@ class NotificationEnrichWorker(
         const val KEY_ROOM_ID = "roomId"
         const val KEY_EVENT_ID = "eventId"
     }
+}
+
+private fun buildFullOpenIntent(context: Context, roomId: String): PendingIntent {
+    val uri = Uri.Builder()
+        .scheme("mages")
+        .authority("room")
+        .appendQueryParameter("id", roomId)
+        .build()
+    val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+        setPackage(context.packageName)
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+    }
+    return PendingIntent.getActivity(
+        context, roomId.hashCode(),
+        intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+    )
 }

@@ -21,10 +21,12 @@ import org.mlm.mages.push.PREF_INSTANCE
 import org.mlm.mages.push.PushManager.getEndpoint
 import org.mlm.mages.push.PusherReconciler
 import org.mlm.mages.settings.CopyUnifiedPushEndpointAction
+import org.mlm.mages.settings.OpenBubbleSettingsAction
 import org.mlm.mages.settings.OpenSystemNotificationSettingsAction
 import org.mlm.mages.settings.ReRegisterUnifiedPushAction
 import org.mlm.mages.settings.SelectUnifiedPushDistributorAction
 import org.unifiedpush.android.connector.UnifiedPush
+import androidx.core.net.toUri
 
 class MagesApp : Application() {
 
@@ -65,6 +67,30 @@ class MagesApp : Application() {
             val ep = getEndpoint(this, PREF_INSTANCE) ?: "<none>"
             val cm = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
             cm.setPrimaryClip(android.content.ClipData.newPlainText("UnifiedPush endpoint", ep))
+        }
+
+        ActionRegistry.register(OpenBubbleSettingsAction::class) {
+            val intent = when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+                    Intent(Settings.ACTION_APP_NOTIFICATION_BUBBLE_SETTINGS).apply {
+                        putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                }
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> {
+                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                        putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                }
+                else -> { // didn't exist
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = "package:$packageName".toUri()
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                }
+            }
+            startActivity(intent)
         }
 
 

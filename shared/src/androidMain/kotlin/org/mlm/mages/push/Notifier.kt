@@ -1,16 +1,21 @@
 package org.mlm.mages.push
 
+import android.app.Notification
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
+import android.content.res.Resources
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.app.Person
 import androidx.core.app.RemoteInput
+import androidx.core.graphics.drawable.IconCompat
 import androidx.core.net.toUri
 import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.flow.first
@@ -381,5 +386,141 @@ object AndroidNotificationHelper : KoinComponent {
                 )
             }
         }
+    }
+}
+
+object Notifier {
+
+    private const val REQUEST_BUBBLE = 2000
+    private const val REQUEST_CONTENT = 3000
+    private const val REQUEST_REPLY = 4000
+    private const val REQUEST_READ = 5000
+    private const val KEY_TEXT_REPLY = "key_text_reply"
+
+    fun showConversationNotification(
+        context: Context,
+        roomId: String,
+        roomName: String,
+        eventId: String,
+        senderName: String,
+        messageBody: String,
+        timestamp: Long,
+        notificationId: Int,
+        bubbleActivityClass: Class<*>,
+        fullOpenIntent: PendingIntent,
+    ) {
+        val icon = IconCompat.createWithResource(context, R.drawable.ic_notif_status_bar)
+
+        ConversationShortcutPublisher.publishOrUpdate(
+            context, roomId, roomName, senderName, icon, bubbleActivityClass
+        )
+
+        val sender = Person.Builder()
+            .setName(senderName)
+            .setKey(roomId)
+            .setIcon(icon)
+            .build()
+
+        val style = NotificationCompat.MessagingStyle(sender)
+            .setConversationTitle(roomName)
+            .addMessage(messageBody, timestamp, sender)
+
+        val remoteInput = RemoteInput.Builder(KEY_TEXT_REPLY)
+            .setLabel("Reply")
+            .build()
+        val replyIntent = PendingIntent.getBroadcast(
+            context,
+            REQUEST_REPLY + notificationId,
+             Intent(context, NotificationActionReceiver::class.java)
+                .setAction(NotificationActionReceiver.ACTION_REPLY)
+                .putExtra(ConversationShortcutPublisher.EXTRA_ROOM_ID, roomId)
+                .putExtra(NotificationActionReceiver.EXTRA_EVENT_ID, eventId),
+            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val replyAction = NotificationCompat.Action.Builder(
+            R.drawable.ic_notif_status_bar, "Reply", replyIntent
+        ).addRemoteInput(remoteInput).build()
+
+        val markReadIntent = PendingIntent.getBroadcast(
+            context,
+            REQUEST_READ + notificationId,
+            Intent(context, NotificationActionReceiver::class.java)
+                .setAction(NotificationActionReceiver.ACTION_MARK_READ)
+                .putExtra(ConversationShortcutPublisher.EXTRA_ROOM_ID, roomId)
+                .putExtra(NotificationActionReceiver.EXTRA_EVENT_ID, eventId)
+                .putExtra(NotificationActionReceiver.EXTRA_NOTIF_ID, notificationId)
+                .putExtra(NotificationActionReceiver.EXTRA_ROOM_NAME, roomName)
+                .putExtra(NotificationActionReceiver.EXTRA_SENDER_NAME, senderName)
+                .putExtra(NotificationActionReceiver.EXTRA_MESSAGE_BODY, messageBody),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val markReadAction = NotificationCompat.Action.Builder(
+            R.drawable.ic_notif_status_bar, "Mark read", markReadIntent
+        ).build()
+
+        val builder = NotificationCompat.Builder(context, AppNotificationChannels.CHANNEL_MESSAGES)
+            .setSmallIcon(R.drawable.ic_notif_status_bar)
+            .setStyle(style)
+            .setShortcutId(ConversationShortcutPublisher.shortcutId(roomId))
+            .setContentIntent(fullOpenIntent)
+            .addAction(replyAction)
+            .addAction(markReadAction)
+            .setAutoCancel(false)
+            .setOnlyAlertOnce(false)
+            .setCategory(Notification.CATEGORY_MESSAGE)
+
+        if (BubbleEligibilityEvaluator.canBubble(context, roomId)) {
+            val bubblePendingIntent = PendingIntent.getActivity(
+                context,
+                REQUEST_BUBBLE + notificationId,
+                Intent(context, bubbleActivityClass)
+                    .putExtra(ConversationShortcutPublisher.EXTRA_ROOM_ID, roomId),
+                PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+            val bubbleMetadata = NotificationCompat.BubbleMetadata.Builder(
+                bubblePendingIntent, icon
+            )
+                .setDesiredHeight((Resources.getSystem().displayMetrics.density * 480).toInt())
+                .setSuppressNotification(false)
+                .build()
+            builder.setBubbleMetadata(bubbleMetadata)
+        }
+
+        NotificationManagerCompat.from(context).notify(notificationId, builder.build())
+    }
+
+    fun suppressBubble(
+        context: Context,
+        roomId: String,
+        roomName: String,
+        senderName: String,
+        messageBody: String,
+        notificationId: Int,
+        bubbleActivityClass: Class<*>
+    ) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
+        val icon = IconCompat.createWithResource(context, R.drawable.ic_notif_status_bar)
+        val bubblePi = PendingIntent.getActivity(
+            context,
+            REQUEST_BUBBLE + notificationId,
+            Intent(context, bubbleActivityClass)
+                .putExtra(ConversationShortcutPublisher.EXTRA_ROOM_ID, roomId),
+            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val suppressed = NotificationCompat.BubbleMetadata.Builder(bubblePi, icon)
+            .setDesiredHeight((Resources.getSystem().displayMetrics.density * 640).toInt())
+            .setSuppressNotification(true)
+            .build()
+        val sender = Person.Builder().setName(senderName).setKey(roomId).build()
+        val style = NotificationCompat.MessagingStyle(sender)
+            .setConversationTitle(roomName)
+            .addMessage(messageBody, System.currentTimeMillis(), sender)
+        val builder = NotificationCompat.Builder(context, AppNotificationChannels.CHANNEL_MESSAGES)
+            .setSmallIcon(R.drawable.ic_notif_status_bar)
+            .setStyle(style)
+            .setShortcutId(ConversationShortcutPublisher.shortcutId(roomId))
+            .setBubbleMetadata(suppressed)
+            .setOnlyAlertOnce(true)
+        NotificationManagerCompat.from(context).notify(notificationId, builder.build())
     }
 }

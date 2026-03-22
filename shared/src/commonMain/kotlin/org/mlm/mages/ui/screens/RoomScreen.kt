@@ -90,7 +90,8 @@ fun RoomScreen(
     onRequestLocationPermissions: ((() -> Unit) -> Unit)? = null,
     onStartCall: () -> Unit,
     onStartVoiceCall: () -> Unit,
-    onOpenForwardPicker: (sourceRoomId: String, eventIds: List<String>) -> Unit
+    onOpenForwardPicker: (sourceRoomId: String, eventIds: List<String>) -> Unit,
+    isBubbleMode: Boolean = false,
 ) {
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
@@ -376,6 +377,11 @@ fun RoomScreen(
                     selectedCount = state.selectedEventIds.size,
                     onClearSelection = viewModel::clearSelection,
                     onSelectAll = viewModel::selectAllVisible
+                )
+            } else if (isBubbleMode) {
+                BubbleTopBar(
+                    roomName = state.roomName,
+                    avatarUrl = state.roomAvatarUrl
                 )
             } else {
                 RoomTopBar(
@@ -975,6 +981,39 @@ private fun RoomTopBar(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun BubbleTopBar(
+    roomName: String,
+    avatarUrl: String?,
+) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shadowElevation = 2.dp) {
+        TopAppBar(
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = CircleShape,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Avatar(
+                                name = roomName,
+                                avatarPath = avatarUrl,
+                                size = 32.dp
+                            )
+                        }
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Text(roomName, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            )
+        )
     }
 }
 

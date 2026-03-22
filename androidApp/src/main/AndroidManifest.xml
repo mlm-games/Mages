@@ -165,6 +165,14 @@
             android:taskAffinity=""
             android:theme="@style/Theme.AppCompat.DayNight.Dialog" />
 
+        <activity
+            android:name=".activities.BubbleConversationActivity"
+            android:allowEmbedded="true"
+            android:resizeableActivity="true"
+            android:documentLaunchMode="always"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar" />
+
 
         <service
             android:name=".push.AppPushService"

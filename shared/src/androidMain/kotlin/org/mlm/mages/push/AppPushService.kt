@@ -54,6 +54,7 @@ class AppPushService : PushService(), KoinComponent {
 
     override fun onMessage(message: PushMessage, instance: String) {
         AppNotificationChannels.ensureCreated(applicationContext)
+        AppNotificationChannels.ensureBubblesAllowed(applicationContext)
         val raw = try {
             message.content.toString(Charsets.UTF_8)
         } catch (e: Throwable) {

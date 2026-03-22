@@ -90,6 +90,16 @@ data class AppSettings(
     val showUsernameInDms: Boolean = false,
 
     @Setting(
+        title = "Chat bubbles",
+        description = "Open system settings to enable (or disable) conversation bubbles",
+        category = Notifications::class,
+        type = Button::class,
+        platforms = [SettingPlatform.ANDROID],
+    )
+    @ActionHandler(OpenBubbleSettingsAction::class)
+    val openBubbleSettings: Unit = Unit,
+
+    @Setting(
         title = "Enable notifications",
         description = "Show notifications (desktop polling + Android push)",
         category = Notifications::class,
@@ -294,4 +304,6 @@ object OpenSystemNotificationSettingsAction : SettingAction
 object SelectUnifiedPushDistributorAction : SettingAction
 object ReRegisterUnifiedPushAction : SettingAction
 object CopyUnifiedPushEndpointAction : SettingAction
+
+object OpenBubbleSettingsAction : SettingAction
 

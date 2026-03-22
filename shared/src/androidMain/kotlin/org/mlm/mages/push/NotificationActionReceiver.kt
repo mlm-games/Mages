@@ -5,6 +5,7 @@ import android.app.RemoteInput
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -32,7 +33,6 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                 when (intent.action) {
                     ACTION_DECLINE_CALL -> {
                         if (roomId != null) AndroidNotificationHelper.cancelCallNotification(context, roomId)
-                        // also cancel whatever notifId was passed (call notif id)
                     }
 
                     ACTION_ACCEPT_INVITE -> {
@@ -63,7 +63,24 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
 
                         if (port != null && service.isLoggedIn()) {
                             when (intent.action) {
-                                ACTION_MARK_READ -> port.markFullyReadAt(roomId, eventId)
+                                ACTION_MARK_READ -> {
+                                    port.markFullyReadAt(roomId, eventId)
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                                        && BubbleEligibilityEvaluator.canBubble(context, roomId)
+                                    ) {
+                                        val roomName = intent.getStringExtra(EXTRA_ROOM_NAME) ?: "Unknown"
+                                        val senderName = intent.getStringExtra(EXTRA_SENDER_NAME) ?: "Unknown"
+                                        val messageBody = intent.getStringExtra(EXTRA_MESSAGE_BODY) ?: ""
+                                        val bubbleActivityClass = try {
+                                            Class.forName("org.mlm.mages.activities.BubbleConversationActivity")
+                                        } catch (_: ClassNotFoundException) {
+                                            Class.forName("org.mlm.mages.MainActivity")
+                                        }
+                                        Notifier.suppressBubble(context, roomId, roomName, senderName, messageBody, notifId, bubbleActivityClass)
+                                    } else {
+                                        if (notifId != 0) nm.cancel(notifId)
+                                    }
+                                }
                                 ACTION_REPLY -> {
                                     val text = RemoteInput.getResultsFromIntent(intent)
                                         ?.getCharSequence(KEY_TEXT_REPLY)
@@ -75,13 +92,15 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                                         port.reply(roomId, eventId, text)
                                         port.markFullyReadAt(roomId, eventId)
                                     }
+                                    if (notifId != 0) nm.cancel(notifId)
                                 }
                             }
+                        } else {
+                            if (notifId != 0) nm.cancel(notifId)
                         }
                     }
                 }
             } finally {
-                if (notifId != 0) nm.cancel(notifId)
                 pending.finish()
             }
         }
@@ -97,6 +116,9 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
         const val EXTRA_ROOM_ID = "roomId"
         const val EXTRA_EVENT_ID = "eventId"
         const val EXTRA_NOTIF_ID = "notifId"
+        const val EXTRA_ROOM_NAME = "roomName"
+        const val EXTRA_SENDER_NAME = "senderName"
+        const val EXTRA_MESSAGE_BODY = "messageBody"
 
         const val KEY_TEXT_REPLY = "key_text_reply"
     }
