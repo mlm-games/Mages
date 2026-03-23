@@ -56,7 +56,7 @@ class CallManager(
         }
     }
 
-    fun onMessageFromWidget(message: String) {
+    suspend fun onMessageFromWidget(message: String) {
         val s = _call.value ?: return
         val port = service.portOrNull ?: return
         port.callWidgetFromWebview(s.sessionId, message)

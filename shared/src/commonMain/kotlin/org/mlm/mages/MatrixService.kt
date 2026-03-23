@@ -59,12 +59,14 @@ class MatrixService(
 
     fun isLoggedIn(): Boolean = clients.hasActiveClient()
 
+    suspend fun isLoggedInSuspend(): Boolean = clients.hasActiveClient()
+
     fun observeSends(): Flow<SendUpdate> = port.observeSends()
 
     suspend fun thumbnailToCache(info: AttachmentInfo, w: Int, h: Int, crop: Boolean) =
         port.thumbnailToCache(info, w, h, crop)
 
-    fun startSupervisedSync(externalObserver: MatrixPort.SyncObserver? = null) {
+    suspend fun startSupervisedSync(externalObserver: MatrixPort.SyncObserver? = null) {
         if (supervisedSyncStarted) return
         supervisedSyncStarted = true
 
@@ -129,7 +131,7 @@ class MatrixService(
     suspend fun redact(roomId: String, eventId: String, reason: String? = null) =
         port.redact(roomId, eventId, reason).isSuccess
 
-    fun observeTyping(roomId: String, onUpdate: (List<String>) -> Unit): ULong =
+    suspend fun observeTyping(roomId: String, onUpdate: (List<String>) -> Unit): ULong =
         port.observeTyping(roomId, onUpdate)
 
     fun stopTypingObserver(token: ULong) = port.stopTypingObserver(token)

@@ -206,7 +206,7 @@ class SecurityViewModel(
 
         launch {
             val port = service.portOrNull
-            if (port == null || !service.isLoggedIn()) {
+            if (port == null || !service.isLoggedInSuspend()) {
                 _events.send(Event.ShowError("Not logged in"))
                 return@launch
             }

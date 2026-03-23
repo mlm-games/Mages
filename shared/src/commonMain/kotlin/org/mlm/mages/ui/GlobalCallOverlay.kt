@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import org.mlm.mages.calls.CallManager
 import org.mlm.mages.platform.CallWebViewHost
 import org.mlm.mages.platform.SystemBarsEffect
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @Composable
@@ -29,6 +30,7 @@ fun GlobalCallOverlay(
     modifier: Modifier = Modifier
 ) {
     val call by callManager.call.collectAsState()
+    val scope = rememberCoroutineScope()
 
     val s = call ?: return
 
@@ -82,13 +84,27 @@ fun GlobalCallOverlay(
                 }
         }
 
+        val widgetMsgs = remember(s.sessionId) { kotlinx.coroutines.channels.Channel<String>(capacity = kotlinx.coroutines.channels.Channel.UNLIMITED) }
+
+        LaunchedEffect(s.sessionId) {
+            for (msg in widgetMsgs) {
+                callManager.onMessageFromWidget(msg)
+            }
+        }
+
+        DisposableEffect(s.sessionId) {
+            onDispose { widgetMsgs.close() }
+        }
+
         // WebView
         CallWebViewHost(
             widgetUrl = s.widgetUrl,
             minimized = isMin,
             widgetBaseUrl = s.widgetBaseUrl,
             modifier = webViewModifier,
-            onMessageFromWidget = { msg -> callManager.onMessageFromWidget(msg) },
+            onMessageFromWidget = { msg ->
+                widgetMsgs.trySend(msg)
+            },
             onClosed = { callManager.endCall() },
             onMinimizeRequested = { callManager.setMinimized(true) },
             onAttachController = { callManager.attachController(it) }

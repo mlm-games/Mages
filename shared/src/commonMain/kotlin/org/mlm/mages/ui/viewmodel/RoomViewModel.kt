@@ -1478,20 +1478,24 @@ class RoomViewModel(
     }
 
     private fun observeTyping() {
-        typingToken?.let { service.stopTypingObserver(it) }
-        typingToken = service.observeTyping(currentState.roomId) { names ->
-            updateState { copy(typingNames = names) }
+        launch {
+            typingToken?.let { service.stopTypingObserver(it) }
+            typingToken = service.observeTyping(currentState.roomId) { names ->
+                updateState { copy(typingNames = names) }
+            }
         }
     }
 
     private fun observeReceipts() {
-        receiptsToken?.let { service.port.stopReceiptsObserver(it) }
-        receiptsToken = service.port.observeReceipts(currentState.roomId, object : ReceiptsObserver {
-            override fun onChanged() {
-                recomputeReadStatuses()
-                refreshSeenBy()
-            }
-        })
+        launch {
+            receiptsToken?.let { service.port.stopReceiptsObserver(it) }
+            receiptsToken = service.port.observeReceipts(currentState.roomId, object : ReceiptsObserver {
+                override fun onChanged() {
+                    recomputeReadStatuses()
+                    refreshSeenBy()
+                }
+            })
+        }
     }
 
     private fun observeOwnReceipt() {
@@ -1501,16 +1505,18 @@ class RoomViewModel(
                 ?: updateState { copy(hasLoadedLastRead = true) }
         }
 
-        ownReceiptToken?.let { service.port.stopReceiptsObserver(it) }
-        ownReceiptToken = service.port.observeOwnReceipt(currentState.roomId, object : ReceiptsObserver {
-            override fun onChanged() {
-                launch {
-                    runSafe { service.port.ownLastRead(currentState.roomId) }
-                        ?.let { (_, ts) -> updateState { copy(lastReadTs = ts, hasLoadedLastRead = true) } }
-                        ?: updateState { copy(hasLoadedLastRead = true) }
+        launch {
+            ownReceiptToken?.let { service.port.stopReceiptsObserver(it) }
+            ownReceiptToken = service.port.observeOwnReceipt(currentState.roomId, object : ReceiptsObserver {
+                override fun onChanged() {
+                    launch {
+                        runSafe { service.port.ownLastRead(currentState.roomId) }
+                            ?.let { (_, ts) -> updateState { copy(lastReadTs = ts, hasLoadedLastRead = true) } }
+                            ?: updateState { copy(hasLoadedLastRead = true) }
+                    }
                 }
-            }
-        })
+            })
+        }
     }
 
     private fun recomputeLiveLocationShares() {

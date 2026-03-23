@@ -22,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.mlmgames.settings.core.annotations.SettingPlatform
+import io.github.mlmgames.settings.core.platform.currentPlatform
 import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.message_info
 import org.jetbrains.compose.resources.stringResource
@@ -94,7 +96,8 @@ fun MessageActionSheet(
                 onDismiss()
             }
             if (onShare != null) {
-                ActionItem(Icons.Default.Share, "Share") { onShare(); onDismiss() }
+                ActionItem(Icons.Default.Share,
+                    if (currentPlatform == SettingPlatform.WEB) "Download" else "Share") { onShare(); onDismiss() }
             }
             if (onForward != null) {
                 ActionItem(Icons.AutoMirrored.Filled.Forward, "Forward") { onForward(); onDismiss() }

@@ -152,7 +152,7 @@ class MatrixClients(
         return try {
             port.init(account.homeserver, account.id)
 
-            if (port.isLoggedIn()) {
+            if (port.isLoggedInSuspend()) {
                 _activePort = port
                 _activeAccount.value = account
                 accountStore.setActiveAccountId(account.id)

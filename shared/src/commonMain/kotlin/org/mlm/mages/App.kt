@@ -126,6 +126,8 @@ private fun AppContent(
         if (activeId != null && service.isLoggedIn()) Route.Rooms else Route.Login
     }
 
+    // isLoggedIn() calls in remember{} are non-suspend and safe for initialization
+
     val isDark = when (settings.themeMode) {
         ThemeMode.System.ordinal -> isSystemInDarkTheme()
         ThemeMode.Dark.ordinal -> true
@@ -167,7 +169,7 @@ private fun AppContent(
             BindLifecycle(service, resetSyncState = true)
 
             LaunchedEffect(activeId) {
-                if (activeId == null || !service.isLoggedIn()) {
+                if (activeId == null || !service.isLoggedInSuspend()) {
                     backStack.clear()
                     backStack.add(Route.Login)
                     return@LaunchedEffect
@@ -179,20 +181,20 @@ private fun AppContent(
             }
 
             LaunchedEffect(activeId) {
-                if (activeId == null || !service.isLoggedIn()) return@LaunchedEffect
+                if (activeId == null || !service.isLoggedInSuspend()) return@LaunchedEffect
                 settingsRepository.flow.collect { s ->
                     runCatching { service.port.setPresence(Presence.entries[s.presence], null) }
                 }
             }
 
             LaunchedEffect(activeId) {
-                if (activeId == null || !service.isLoggedIn()) return@LaunchedEffect
+                if (activeId == null || !service.isLoggedInSuspend()) return@LaunchedEffect
                 service.resetSyncState()
                 service.startSupervisedSync()
             }
 
             LaunchedEffect(activeId) {
-                if (activeId == null || !service.isLoggedIn()) return@LaunchedEffect
+                if (activeId == null || !service.isLoggedInSuspend()) return@LaunchedEffect
                 service.port.observeSends().collect { update ->
                     if (update.txnId.isBlank() && update.error?.contains("send queue disabled") == true) {
                         snackbarManager.show(
@@ -424,7 +426,7 @@ private fun AppContent(
                                     onRemoveAccount = { account ->
                                         scope.launch {
                                             service.removeAccount(account.id)
-                                            if (!service.isLoggedIn()) {
+                                            if (!service.isLoggedInSuspend()) {
                                                 backStack.replaceTop(Route.Login)
                                             } else {
                                                 sessionEpoch++

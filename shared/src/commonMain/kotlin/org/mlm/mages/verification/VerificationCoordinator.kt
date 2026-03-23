@@ -47,8 +47,8 @@ class VerificationCoordinator(
             service.activeAccount.collectLatest { account ->
                 reset()
                 if (account != null) {
-                    startInboxIfPossible()
                     initVerificationService()
+                    startInboxIfPossible()
                 }
             }
         }
@@ -67,9 +67,9 @@ class VerificationCoordinator(
         _state.value = VerificationUiState()
     }
 
-    private fun startInboxIfPossible() {
+    private suspend fun startInboxIfPossible() {
         val port = service.portOrNull ?: return
-        if (!service.isLoggedIn()) return
+        if (!service.isLoggedInSuspend()) return
 
         inboxToken = port.startVerificationInbox(object : MatrixPort.VerificationInboxObserver {
             override fun onRequest(flowId: String, fromUser: String, fromDevice: String) {
@@ -247,7 +247,7 @@ class VerificationCoordinator(
                 SasPhase.Ready, SasPhase.Started -> {
                     val ok = try {
                         verificationService?.acceptSas(flowId, otherUser ?: "") ?: false
-                    } catch (e: Throwable) { false }
+                    } catch (_: Throwable) { false }
 
                     val cur = _state.value
                     if (cur.sasFlowId == flowId) {

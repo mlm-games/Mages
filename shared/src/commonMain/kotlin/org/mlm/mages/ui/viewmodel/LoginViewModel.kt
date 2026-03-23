@@ -142,7 +142,7 @@ class LoginViewModel(
                 port.init(hs, accountId)
                 port.login(s.user, s.pass, getDeviceDisplayName())
 
-                if (!port.isLoggedIn()) {
+                if (!port.isLoggedInSuspend()) {
                     port.close()
                     updateState { copy(isBusy = false, error = "Login failed") }
                     return@launch
@@ -210,7 +210,7 @@ class LoginViewModel(
 
                 val ok = port.loginSsoLoopback(openUrl, deviceName = getDeviceDisplayName()).isSuccess
 
-                if (!ok || !port.isLoggedIn()) {
+                if (!ok || !port.isLoggedInSuspend()) {
                     port.close()
                     updateState { copy(isBusy = false, ssoInProgress = false, error = "SSO failed or was cancelled") }
                     return@launch

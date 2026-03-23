@@ -5,7 +5,7 @@ import org.mlm.mages.MatrixService
 object SessionBootstrapper {
     suspend fun ensureReadyAndSyncing(service: MatrixService) {
         runCatching { service.initFromDisk() }
-        if (!service.isLoggedIn() || service.portOrNull == null) return
+        if (!service.isLoggedInSuspend() || service.portOrNull == null) return
         service.startSupervisedSync()
     }
 

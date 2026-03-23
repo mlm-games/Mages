@@ -524,6 +524,7 @@ interface MatrixPort {
     ): Result<Unit>
 
     fun isLoggedIn(): Boolean
+    suspend fun isLoggedInSuspend(): Boolean
     fun close()
 
     suspend fun setTyping(roomId: String, typing: Boolean): Result<Unit>
@@ -531,10 +532,10 @@ interface MatrixPort {
     suspend fun accountManagementUrl(): String?
     fun setupRecovery(observer: RecoveryObserver): Boolean
     fun observeRecoveryState(observer: RecoveryStateObserver): ULong
-    fun unobserveRecoveryState(subId: ULong): Boolean
+    fun unobserveRecoveryState(subId: ULong): Unit
 
     fun observeBackupState(observer: BackupStateObserver): ULong
-    fun unobserveBackupState(subId: ULong): Boolean
+    fun unobserveBackupState(subId: ULong): Unit
 
     suspend fun backupExistsOnServer(fetch: Boolean = false): Boolean
     suspend fun setKeyBackupEnabled(enabled: Boolean): Boolean
@@ -566,10 +567,10 @@ interface MatrixPort {
         fun onUpdate(state: BackupState)
     }
 
-    fun observeConnection(observer: ConnectionObserver): ULong
+    suspend fun observeConnection(observer: ConnectionObserver): ULong
     fun stopConnectionObserver(token: ULong)
 
-    fun startVerificationInbox(observer: VerificationInboxObserver): ULong
+    suspend fun startVerificationInbox(observer: VerificationInboxObserver): ULong
     fun stopVerificationInbox(token: ULong)
     interface ConnectionObserver {
         fun onConnectionChange(state: ConnectionState)
@@ -592,9 +593,9 @@ interface MatrixPort {
     suspend fun getPinnedEvents(roomId: String): List<String>
     suspend fun setPinnedEvents(roomId: String, eventIds: List<String>): Result<Unit>
     
-    fun observeTyping(roomId: String, onUpdate: (List<String>) -> Unit): ULong
+    suspend fun observeTyping(roomId: String, onUpdate: (List<String>) -> Unit): ULong
 
-    fun startSupervisedSync(observer: SyncObserver)
+    suspend fun startSupervisedSync(observer: SyncObserver)
 
     suspend fun listMyDevices(): List<DeviceSummary>
 
@@ -624,25 +625,25 @@ interface MatrixPort {
     ): SearchPage
 
     suspend fun recoverWithKey(recoveryKey: String): Result<Unit>
-    fun observeReceipts(roomId: String, observer: ReceiptsObserver): ULong
+    suspend fun observeReceipts(roomId: String, observer: ReceiptsObserver): ULong
     fun stopReceiptsObserver(token: ULong)
     suspend fun dmPeerUserId(roomId: String): String?
     suspend fun isEventReadBy(roomId: String, eventId: String, userId: String): Boolean
 
     interface CallObserver { fun onInvite(invite: CallInvite) }
-    fun startCallInbox(observer: CallObserver): ULong
+    suspend fun startCallInbox(observer: CallObserver): ULong
     fun stopCallInbox(token: ULong)
     suspend fun registerUnifiedPush(appId: String, pushKey: String, gatewayUrl: String, deviceName: String, lang: String, profileTag: String? = null): Boolean
     suspend fun unregisterUnifiedPush(appId: String, pushKey: String): Boolean
 
     suspend fun roomUnreadStats(roomId: String): UnreadStats?
     suspend fun ownLastRead(roomId: String): Pair<String?, Long?>
-    fun observeOwnReceipt(roomId: String, observer: ReceiptsObserver): ULong
+    suspend fun observeOwnReceipt(roomId: String, observer: ReceiptsObserver): ULong
     suspend fun markFullyReadAt(roomId: String, eventId: String): Result<Unit>
 
     interface RoomListObserver { fun onReset(items: List<RoomListEntry>); fun onUpdate(item: RoomListEntry) }
 
-    fun observeRoomList(observer: RoomListObserver): ULong
+    suspend fun observeRoomList(observer: RoomListObserver): ULong
     fun unobserveRoomList(token: ULong)
 
     suspend fun fetchNotification(roomId: String, eventId: String): RenderedNotification?
@@ -653,7 +654,7 @@ interface MatrixPort {
         maxEvents: Int = 20
     ): List<RenderedNotification>
 
-    fun roomListSetUnreadOnly(token: ULong, unreadOnly: Boolean): Boolean
+    suspend fun roomListSetUnreadOnly(token: ULong, unreadOnly: Boolean): Boolean
 
     suspend fun loginSsoLoopback(openUrl: (String) -> Boolean, deviceName: String? = null): Result<Unit>
 
@@ -664,7 +665,7 @@ interface MatrixPort {
         deviceName: String? = null
     ): OauthLoginResult {
         val result = loginOauthLoopback(openUrl, deviceName)
-        return if (result.isSuccess && isLoggedIn()) {
+        return if (result.isSuccess && isLoggedInSuspend()) {
             OauthLoginResult.Completed
         } else {
             OauthLoginResult.Failed("OAuth failed or was cancelled")
@@ -793,7 +794,7 @@ interface MatrixPort {
     suspend fun startLiveLocationShare(roomId: String, durationMs: Long): Result<Unit>
     suspend fun stopLiveLocationShare(roomId: String): Result<Unit>
     suspend fun sendLiveLocation(roomId: String, geoUri: String): Result<Unit>
-    fun observeLiveLocation(roomId: String, onShares: (List<LiveLocationShare>) -> Unit): ULong
+    suspend fun observeLiveLocation(roomId: String, onShares: (List<LiveLocationShare>) -> Unit): ULong
     fun stopObserveLiveLocation(token: ULong)
 
     suspend fun sendPoll(roomId: String, question: String, answers: List<String>): Result<Unit>
@@ -816,7 +817,7 @@ interface MatrixPort {
     ): CallSession?
 
 
-    fun callWidgetFromWebview(sessionId: ULong, message: String): Boolean
+    suspend fun callWidgetFromWebview(sessionId: ULong, message: String): Boolean
     fun stopElementCall(sessionId: ULong): Boolean
 
 }

@@ -368,6 +368,8 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
 
     override fun isLoggedIn(): Boolean = client?.isLoggedIn() == true
 
+    override suspend fun isLoggedInSuspend(): Boolean = isLoggedIn()
+
     override fun close() {
         try { client?.free() } catch (e: Exception) { e.printStackTrace() }
         client = null
@@ -412,8 +414,9 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             }
         ).toULong()
 
-    override fun unobserveRecoveryState(subId: ULong): Boolean =
+    override fun unobserveRecoveryState(subId: ULong): Unit {
         requireClient().unobserveRecoveryState(subId.toDouble())
+    }
 
     override fun observeBackupState(observer: MatrixPort.BackupStateObserver): ULong =
         requireClient().observeBackupState(
@@ -425,8 +428,9 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             }
         ).toULong()
 
-    override fun unobserveBackupState(subId: ULong): Boolean =
+    override fun unobserveBackupState(subId: ULong): Unit {
         requireClient().unobserveBackupState(subId.toDouble())
+    }
 
     override suspend fun backupExistsOnServer(fetch: Boolean): Boolean =
         requireClient().backupExistsOnServer(fetch).awaitPlainBool()
@@ -482,7 +486,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         raw
     }
 
-    override fun observeConnection(observer: MatrixPort.ConnectionObserver): ULong {
+    override suspend fun observeConnection(observer: MatrixPort.ConnectionObserver): ULong {
         fun emit() {
             val connected = navigatorOnLine()
 
@@ -515,7 +519,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         connectionObserverStops.remove(token)?.invoke()
     }
 
-    override fun startVerificationInbox(observer: MatrixPort.VerificationInboxObserver): ULong =
+    override suspend fun startVerificationInbox(observer: MatrixPort.VerificationInboxObserver): ULong =
         requireClient().startVerificationInbox(
             jsCallback1 { payload: JsAny? ->
                 parseVerificationInboxPayload(payload)?.let { (flowId, fromUser, fromDevice) ->
@@ -589,7 +593,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun setPinnedEvents(roomId: String, eventIds: List<String>): Result<Unit> =
         requireClient().setPinnedEvents(roomId, eventIds.toJsArray()).awaitUnitResult()
 
-    override fun observeTyping(roomId: String, onUpdate: (List<String>) -> Unit): ULong =
+    override suspend fun observeTyping(roomId: String, onUpdate: (List<String>) -> Unit): ULong =
         requireClient().observeTyping(
             roomId,
             jsCallback1 { users: JsAny? ->
@@ -600,7 +604,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             }
         ).toULong()
 
-    override fun startSupervisedSync(observer: MatrixPort.SyncObserver) {
+    override suspend fun startSupervisedSync(observer: MatrixPort.SyncObserver) {
         client?.startSupervisedSync(
             jsCallback1 { stateValue: JsAny? ->
                 val state = runCatching {
@@ -667,7 +671,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         if (!ok) error("Recovery failed")
     }
 
-    override fun observeReceipts(roomId: String, observer: ReceiptsObserver): ULong =
+    override suspend fun observeReceipts(roomId: String, observer: ReceiptsObserver): ULong =
         requireClient().observeReceipts(roomId, jsCallback0 { observer.onChanged() }).toULong()
 
     override fun stopReceiptsObserver(token: ULong) {
@@ -680,7 +684,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun isEventReadBy(roomId: String, eventId: String, userId: String): Boolean =
         requireClient().isEventReadBy(roomId, eventId, userId).awaitBool()
 
-    override fun startCallInbox(observer: MatrixPort.CallObserver): ULong =
+    override suspend fun startCallInbox(observer: MatrixPort.CallObserver): ULong =
         requireClient().startCallInbox(
             jsCallback1 { payload: JsAny? ->
                 val invite = decodeValueOrNull<CallInvite>(payload, "startCallInbox")
@@ -710,10 +714,10 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun ownLastRead(roomId: String): Pair<String?, Long?> =
         decodeOwnLastRead(requireClient().ownLastRead(roomId).awaitAny())
 
-    override fun observeOwnReceipt(roomId: String, observer: ReceiptsObserver): ULong =
+    override suspend fun observeOwnReceipt(roomId: String, observer: ReceiptsObserver): ULong =
         requireClient().observeOwnReceipt(roomId, jsCallback0 { observer.onChanged() }).toULong()
 
-    override fun observeRoomList(observer: MatrixPort.RoomListObserver): ULong {
+    override suspend fun observeRoomList(observer: MatrixPort.RoomListObserver): ULong {
         val token = requireClient().observeRoomList(
             jsCallback1 { itemsValue: JsAny? ->
                 val raw = runCatching { itemsValue.toJsonArray() }.getOrElse {
@@ -756,7 +760,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             "fetchNotificationsSince"
         ) ?: emptyList()
 
-    override fun roomListSetUnreadOnly(token: ULong, unreadOnly: Boolean): Boolean =
+    override suspend fun roomListSetUnreadOnly(token: ULong, unreadOnly: Boolean): Boolean =
         requireClient().roomListSetUnreadOnly(token.toDouble(), unreadOnly)
 
     override suspend fun loginSsoLoopback(openUrl: (String) -> Boolean, deviceName: String?): Result<Unit> {
@@ -1169,7 +1173,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         return unitResult(result.ok, "send live location", result.error)
     }
 
-    override fun observeLiveLocation(roomId: String, onShares: (List<LiveLocationShare>) -> Unit): ULong =
+    override suspend fun observeLiveLocation(roomId: String, onShares: (List<LiveLocationShare>) -> Unit): ULong =
         requireClient().observeLiveLocation(
             roomId,
             jsCallback1 { payload: JsAny? ->
@@ -1231,7 +1235,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         return decodeValueOrNull<CallSession>(result, "startElementCall")
     }
 
-    override fun callWidgetFromWebview(sessionId: ULong, message: String): Boolean =
+    override suspend fun callWidgetFromWebview(sessionId: ULong, message: String): Boolean =
         requireClient().callWidgetFromWebview(sessionId.toDouble(), message)
 
     override fun stopElementCall(sessionId: ULong): Boolean =

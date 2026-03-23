@@ -132,7 +132,7 @@ actual fun CallWebViewHost(
 
             if (action in ELEMENT_SPECIFIC_ACTIONS) {
                 sendElementActionResponse(webView, message)
-                onMessageFromWidget(message)
+//                onMessageFromWidget(message)
 
                 when (action) {
                     "io.element.close", "im.vector.hangup" -> {
