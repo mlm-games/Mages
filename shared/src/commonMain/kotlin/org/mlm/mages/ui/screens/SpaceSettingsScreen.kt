@@ -417,9 +417,8 @@ private fun InviteUserToSpaceDialog(
                 enabled = isValid && !isSaving
             ) {
                 if (isSaving) {
-                    CircularProgressIndicator(
+                    CircularWavyProgressIndicator(
                         modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp
                     )
                     Spacer(Modifier.width(Spacing.sm))
                 }

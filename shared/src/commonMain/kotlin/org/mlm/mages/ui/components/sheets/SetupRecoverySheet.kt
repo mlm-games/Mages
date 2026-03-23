@@ -143,7 +143,7 @@ fun SetupRecoverySheet(
 
                         Spacer(Modifier.height(Spacing.md))
 
-                        LinearProgressIndicator(
+                        LinearWavyProgressIndicator(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(MaterialTheme.shapes.small)

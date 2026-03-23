@@ -359,9 +359,8 @@ private fun DevicesTab(
                 trailingContent = {
                     when {
                         isBusy || isKeyStorageEnabled == null ->
-                            CircularProgressIndicator(
+                            CircularWavyProgressIndicator(
                                 modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp
                             )
                         else ->
                             Switch(
@@ -420,9 +419,8 @@ private fun DevicesTab(
                 )
                 IconButton(onClick = onRefresh, enabled = !isLoading) {
                     if (isLoading) {
-                        CircularProgressIndicator(
+                        CircularWavyProgressIndicator(
                             modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
                         )
                     } else {
                         Icon(Icons.Default.Refresh, stringResource(Res.string.refresh))

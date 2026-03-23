@@ -158,7 +158,7 @@ fun CreateRoomSheet(
                         trailingIcon = {
                             when (aliasAvailability) {
                                 AliasAvailability.Checking -> {
-                                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                                    CircularWavyProgressIndicator(modifier = Modifier.size(20.dp))
                                 }
                                 AliasAvailability.Available -> {
                                     Icon(Icons.Default.Check, contentDescription = "Available", tint = MaterialTheme.colorScheme.primary)
@@ -257,9 +257,8 @@ fun CreateRoomSheet(
                     enabled = canCreate
                 ) {
                     if (isCreating) {
-                        CircularProgressIndicator(
+                        CircularWavyProgressIndicator(
                             modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                     } else {

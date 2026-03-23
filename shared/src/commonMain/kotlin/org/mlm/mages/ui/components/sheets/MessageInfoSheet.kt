@@ -14,7 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -170,7 +170,7 @@ fun MessageInfoSheet(
                     when {
                         isLoadingReaders -> {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                                CircularWavyProgressIndicator(modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(Spacing.md))
                                 Text(
                                     text = stringResource(Res.string.loading_read_receipts),

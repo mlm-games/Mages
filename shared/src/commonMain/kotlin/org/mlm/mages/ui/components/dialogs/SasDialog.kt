@@ -244,7 +244,7 @@ private fun SasPhaseContent(
         }
 
         else -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator()
+            CircularWavyProgressIndicator()
             Spacer(Modifier.height(Spacing.sm))
             Text("Preparing…")
         }

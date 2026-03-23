@@ -427,9 +427,8 @@ private fun CreateSpaceSheet(
                 shape = MaterialTheme.shapes.large
             ) {
                 if (isCreating) {
-                    CircularProgressIndicator(
+                    CircularWavyProgressIndicator(
                         modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {

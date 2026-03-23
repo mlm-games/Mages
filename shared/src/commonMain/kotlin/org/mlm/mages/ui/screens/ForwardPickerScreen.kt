@@ -197,7 +197,7 @@ private fun ForwardActionBar(
                         (progress.completedRooms * maxOf(progress.totalMessages, 1) + progress.currentMessage)
                             .coerceAtMost(totalWork)
 
-                    LinearProgressIndicator(
+                    LinearWavyProgressIndicator(
                         progress = { currentWork.toFloat() / totalWork.toFloat() },
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -210,9 +210,8 @@ private fun ForwardActionBar(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (state.isSubmitting) {
-                    CircularProgressIndicator(
+                    CircularWavyProgressIndicator(
                         modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                     Spacer(Modifier.width(8.dp))
@@ -352,9 +351,8 @@ private fun RoomForwardItem(
 
             when (status?.stage) {
                 RoomForwardStage.Sending -> {
-                    CircularProgressIndicator(
+                    CircularWavyProgressIndicator(
                         modifier = Modifier.size(22.dp),
-                        strokeWidth = 2.dp
                     )
                 }
 

@@ -185,9 +185,8 @@ fun EditableSettingField(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (isSaving) {
-                    CircularProgressIndicator(
+                    CircularWavyProgressIndicator(
                         modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp
                     )
                 } else {
                     Text("Save")

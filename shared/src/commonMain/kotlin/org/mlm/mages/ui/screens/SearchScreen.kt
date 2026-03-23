@@ -205,11 +205,10 @@ private fun SearchTopBar(
                         }
                     }
                     if (isSearching) {
-                        CircularProgressIndicator(
+                        CircularWavyProgressIndicator(
                             modifier = Modifier
                                 .size(24.dp)
                                 .padding(end = 4.dp),
-                            strokeWidth = 2.dp
                         )
                     }
                 }

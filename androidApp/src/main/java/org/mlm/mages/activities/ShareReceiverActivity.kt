@@ -42,12 +42,12 @@ import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -452,7 +452,7 @@ private fun ShareReceiverScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator()
+                        CircularWavyProgressIndicator()
                     }
                 }
 
@@ -518,7 +518,7 @@ private fun ShareActionBar(
                         text = "Sending to ${it.currentRoomName} (${it.currentRoomIndex}/${it.totalRooms})",
                         style = MaterialTheme.typography.bodyMedium
                     )
-                    LinearProgressIndicator(
+                    LinearWavyProgressIndicator(
                         progress = { it.currentRoomIndex.toFloat() / it.totalRooms.toFloat() },
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -531,9 +531,8 @@ private fun ShareActionBar(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (isSending) {
-                    CircularProgressIndicator(
+                    CircularWavyProgressIndicator(
                         modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                     Spacer(Modifier.width(8.dp))

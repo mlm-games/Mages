@@ -646,7 +646,7 @@ private fun FilesList(
                         .padding(Spacing.lg),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    CircularWavyProgressIndicator(modifier = Modifier.size(24.dp))
                 }
             }
         }
@@ -784,7 +784,7 @@ private fun LinksList(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                CircularWavyProgressIndicator()
             }
         }
         return
@@ -807,7 +807,7 @@ private fun LinksList(
                         .padding(Spacing.lg),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    CircularWavyProgressIndicator(modifier = Modifier.size(24.dp))
                 }
             }
         }

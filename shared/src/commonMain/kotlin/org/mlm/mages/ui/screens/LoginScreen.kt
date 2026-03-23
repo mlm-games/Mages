@@ -155,9 +155,8 @@ fun LoginScreen(
                         leadingIcon = { Icon(Icons.Default.Home, null) },
                         trailingIcon = {
                             if (state.isCheckingServer) {
-                                CircularProgressIndicator(
+                                CircularWavyProgressIndicator(
                                     modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp
                                 )
                             } else if (serverKnown) {
                                 Icon(

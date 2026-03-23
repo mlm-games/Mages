@@ -204,9 +204,8 @@ private fun ComposerInputRow(
             )
         ) {
             if (isUploadingAttachment) {
-                CircularProgressIndicator(
+                CircularWavyProgressIndicator(
                     modifier = Modifier.size(Sizes.iconMedium),
-                    strokeWidth = 2.dp,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else {

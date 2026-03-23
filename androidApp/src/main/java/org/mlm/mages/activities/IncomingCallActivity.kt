@@ -643,7 +643,7 @@ private fun ConnectingOverlay() {
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            CircularProgressIndicator(strokeWidth = 3.dp, modifier = Modifier.size(22.dp))
+            CircularWavyProgressIndicator(modifier = Modifier.size(22.dp))
             Spacer(Modifier.size(12.dp))
             Text(
                 "Connecting…",
