@@ -1,0 +1,2 @@
+- hide dup. circular indicator for unread messages
+- Change other Linear and Circular indicators to m3e wavy components

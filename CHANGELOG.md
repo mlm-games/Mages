@@ -1,3 +1,9 @@
+## v4.3.4
+
+- hide dup. circular indicator for unread messages
+- Change other Linear and Circular indicators to m3e wavy components
+
+
 ## v4.3.3
 
 - Add more details to message info sheet
