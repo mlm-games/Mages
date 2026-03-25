@@ -413,7 +413,13 @@ object Notifier {
         senderAvatar: AvatarResult,
         roomAvatar: AvatarResult,
         isDm: Boolean = false,
+        playSound: Boolean = true,
     ) {
+        val channelId = if (playSound) {
+            AppNotificationChannels.CHANNEL_MESSAGES
+        } else {
+            AppNotificationChannels.CHANNEL_MESSAGES_SILENT
+        }
         if (bubbleActivityClass != null) {
             ConversationShortcutPublisher.publishOrUpdate(
                 context, roomId, roomName, senderName, roomAvatar.icon, bubbleActivityClass
@@ -462,7 +468,7 @@ object Notifier {
             R.drawable.ic_notif_status_bar, "Mark read", markReadIntent
         ).build()
 
-        val builder = NotificationCompat.Builder(context, AppNotificationChannels.CHANNEL_MESSAGES)
+        val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_notif_status_bar)
             .setStyle(style)
             .setShortcutId(ConversationShortcutPublisher.shortcutId(roomId))
@@ -492,6 +498,8 @@ object Notifier {
                 .build()
             builder.setBubbleMetadata(bubbleMetadata)
         }
+
+        if (!playSound) builder.setSilent(true)
 
         NotificationManagerCompat.from(context).notify(notificationId, builder.build())
     }

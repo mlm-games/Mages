@@ -149,11 +149,6 @@ class NotificationEnrichWorker(
             }
 
             NotificationKind.Message -> {
-                // If the SDK says "not noisy" or local mentions-only filter suppresses, cancel placeholder.
-                if (!rendered.isNoisy) {
-                    nm.cancel(notifId)
-                    return Result.success()
-                }
                 if (settings.mentionsOnly && !rendered.hasMention) {
                     nm.cancel(notifId)
                     return Result.success()
@@ -165,7 +160,7 @@ class NotificationEnrichWorker(
                     "${rendered.sender} • ${rendered.roomName}"
                 }
 
-                val playSound = if (settings.notificationSound) {
+                val playSound = if (settings.notificationSound && rendered.isNoisy) {
                     if (settings.notifySoundOncePerRoom) {
                         val notifiedRooms = parseNotifiedRooms(settings.notifiedRoomsJson)
                         if (!notifiedRooms.contains(roomId)) {
@@ -232,6 +227,7 @@ class NotificationEnrichWorker(
                     senderAvatar = senderAvatar,
                     roomAvatar = roomAvatar,
                     isDm = isDm,
+                    playSound = playSound,
                 )
                 return Result.success()
             }
