@@ -447,6 +447,7 @@ impl Client {
                         Ok(matrix_sdk::SessionChange::UnknownToken(info)) => {
                             if !info.soft_logout {
                                 platform::remove_session_file(&session_path);
+                                platform::reset_store_dir(&session_path);
                             }
                         }
                         Err(_) => break,
@@ -492,25 +493,34 @@ impl Client {
                             .await
                     };
 
-                    if result.is_ok() {
-                        this.core
-                            .sdk
-                            .encryption()
-                            .wait_for_e2ee_initialization_tasks()
-                            .await;
-                        this.core.ensure_sync_service().await;
-                        if let Err(e) = this.core.sdk.event_cache().subscribe() {
-                            warn!("event_cache.subscribe() failed after login: {e:?}");
+                    match result {
+                        Ok(()) => {
+                            this.core
+                                .sdk
+                                .encryption()
+                                .wait_for_e2ee_initialization_tasks()
+                                .await;
+
+                            this.core.ensure_sync_service().await;
+
+                            if let Err(e) = this.core.sdk.event_cache().subscribe() {
+                                warn!("event_cache.subscribe() failed after login: {e:?}");
+                            }
+
+                            this.ensure_send_queue_supervision();
+
+                            this.core
+                                .sdk
+                                .send_queue()
+                                .respawn_tasks_for_rooms_with_unsent_requests()
+                                .await;
                         }
-                        this.ensure_send_queue_supervision();
-                        this.core
-                            .sdk
-                            .send_queue()
-                            .respawn_tasks_for_rooms_with_unsent_requests()
-                            .await;
-                    } else {
-                        platform::remove_session_file(&this.store_dir);
-                        platform::reset_store_dir(&this.store_dir);
+                        Err(e) => {
+                            warn!(
+                                "restore_session failed, resetting local store but preserving session: {e:?}"
+                            );
+                            platform::reset_store_dir(&this.store_dir);
+                        }
                     }
                 }
             }
@@ -543,6 +553,30 @@ impl Client {
         }
 
         Ok(this)
+    }
+
+    async fn finish_login_setup(&self) {
+        self.core
+            .sdk
+            .encryption()
+            .wait_for_e2ee_initialization_tasks()
+            .await;
+
+        self.core.ensure_sync_service().await;
+
+        if let Err(e) = self.core.sdk.event_cache().subscribe() {
+            warn!("event_cache.subscribe() failed after login: {e:?}");
+        }
+
+        self.ensure_send_queue_supervision();
+
+        self.core
+            .sdk
+            .send_queue()
+            .respawn_tasks_for_rooms_with_unsent_requests()
+            .await;
+
+        Self::persist_current_session(self).await;
     }
 
     pub fn room_profile(&self, room_id: String) -> Result<Option<RoomProfile>, FfiError> {
@@ -1239,17 +1273,7 @@ impl Client {
                 .send()
                 .await
                 .map_err(|e| FfiError::Msg(format!("login failed: {e}")))?;
-            self.core
-                .sdk
-                .encryption()
-                .wait_for_e2ee_initialization_tasks()
-                .await;
-            self.core.ensure_sync_service().await;
-            if let Err(e) = self.core.sdk.event_cache().subscribe() {
-                warn!("event_cache.subscribe() failed after login: {e:?}");
-            }
-            self.ensure_send_queue_supervision();
-            Self::persist_current_session(self).await;
+            self.finish_login_setup().await;
             Ok(self.core.user_id_str())
         })
     }
@@ -1313,17 +1337,7 @@ impl Client {
                 .finish_login(UrlOrQuery::Url(url))
                 .await
                 .map_err(|e| FfiError::Msg(format!("oauth finish failed: {e}")))?;
-            self.core
-                .sdk
-                .encryption()
-                .wait_for_e2ee_initialization_tasks()
-                .await;
-            self.core.ensure_sync_service().await;
-            if let Err(e) = self.core.sdk.event_cache().subscribe() {
-                warn!("event_cache.subscribe() failed after OAuth login: {e:?}");
-            }
-            self.ensure_send_queue_supervision();
-            Self::persist_current_session(self).await;
+            self.finish_login_setup().await;
             Ok(self.core.user_id_str())
         })
     }
@@ -1353,8 +1367,7 @@ impl Client {
                 .send()
                 .await
                 .ffi()?;
-            Self::persist_current_session(self).await;
-            self.core.ensure_sync_service().await;
+            self.finish_login_setup().await;
             Ok(())
         })
     }
@@ -1396,8 +1409,7 @@ impl Client {
                     let _ = self.core.sdk.send(req).await;
                 }
             }
-            Self::persist_current_session(self).await;
-            self.core.ensure_sync_service().await;
+            self.finish_login_setup().await;
             Ok(())
         })
     }
@@ -1428,8 +1440,7 @@ impl Client {
                 .unwrap_or_else(|_| UrlOrQuery::Query(callback_data));
             oauth.finish_login(callback).await.ffi()?;
             Self::maybe_update_device_name(self, device_name).await;
-            Self::persist_current_session(self).await;
-            self.core.ensure_sync_service().await;
+            self.finish_login_setup().await;
             Ok(())
         })
     }
@@ -1462,8 +1473,7 @@ impl Client {
                 builder = builder.initial_device_display_name(name);
             }
             let _response = builder.await.ffi()?;
-            Self::persist_current_session(self).await;
-            self.core.ensure_sync_service().await;
+            self.finish_login_setup().await;
             Ok(())
         })
     }
@@ -1492,22 +1502,7 @@ impl Client {
                 req = req.initial_device_display_name(name);
             }
             let _res = req.send().await.ffi()?;
-            Self::persist_current_session(self).await;
-            self.core
-                .sdk
-                .encryption()
-                .wait_for_e2ee_initialization_tasks()
-                .await;
-            self.core.ensure_sync_service().await;
-            if let Err(e) = self.core.sdk.event_cache().subscribe() {
-                warn!("event_cache.subscribe() failed after login: {e:?}");
-            }
-            self.ensure_send_queue_supervision();
-            self.core
-                .sdk
-                .send_queue()
-                .respawn_tasks_for_rooms_with_unsent_requests()
-                .await;
+            self.finish_login_setup().await;
             Ok(())
         })
     }

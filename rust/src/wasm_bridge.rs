@@ -1894,7 +1894,10 @@ impl WasmClient {
         };
         let mime_type: Mime = mime.parse().unwrap_or(mime::APPLICATION_OCTET_STREAM);
         let config = AttachmentConfig::new();
-        let result = room.send_attachment(&filename, &mime_type, data, config).await.map(|_| ());
+        let result = room
+            .send_attachment(&filename, &mime_type, data, config)
+            .await
+            .map(|_| ());
         webffi_unit(result)
     }
 
@@ -1928,10 +1931,12 @@ impl WasmClient {
             Ok(data) => {
                 let b64 = match base64_encode(&data) {
                     Ok(s) => s,
-                    Err(e) => return webffi_err(&format!(
-                        "base64 encode failed: {:?}",
-                        e.as_string().unwrap_or_default()
-                    )),
+                    Err(e) => {
+                        return webffi_err(&format!(
+                            "base64 encode failed: {:?}",
+                            e.as_string().unwrap_or_default()
+                        ));
+                    }
                 };
                 let mime = att
                     .mime

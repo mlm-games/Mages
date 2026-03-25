@@ -306,7 +306,8 @@ private fun formatMessagePreview(
             icon = Icons.Default.Call
         )
         LastMessageType.Encrypted -> MessagePreview(
-            text = "🔒 Encrypted message"
+            text = "Encrypted message",
+            icon = Icons.Default.Lock
         )
         LastMessageType.Redacted -> MessagePreview(
             text = senderPrefix + "Message deleted"

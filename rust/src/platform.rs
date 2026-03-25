@@ -151,7 +151,17 @@ pub(crate) fn search_index_config(store_dir: &Path) -> Option<SearchIndexConfig>
 }
 
 fn session_file(store_dir: &Path) -> PathBuf {
-    store_dir.join("session.json")
+    let mut name = store_dir
+        .file_name()
+        .map(|n| n.to_os_string())
+        .unwrap_or_else(|| "session".into());
+
+    name.push(".session.json");
+
+    store_dir
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join(name)
 }
 
 fn room_list_cache_file(store_dir: &Path) -> PathBuf {
@@ -161,9 +171,16 @@ fn room_list_cache_file(store_dir: &Path) -> PathBuf {
 pub(crate) async fn persist_session(store_dir: &Path, info: &SessionInfo) -> std::io::Result<()> {
     #[cfg(not(target_family = "wasm"))]
     {
-        tokio::fs::create_dir_all(store_dir).await?;
+        let path = session_file(store_dir);
+
+        if let Some(parent) = path.parent() {
+            tokio::fs::create_dir_all(parent).await?;
+        }
+
         let payload = serde_json::to_string(info).unwrap();
-        tokio::fs::write(session_file(store_dir), payload).await
+        let tmp_path = path.with_extension("tmp");
+        tokio::fs::write(&tmp_path, payload).await?;
+        tokio::fs::rename(&tmp_path, &path).await
     }
 
     #[cfg(target_family = "wasm")]
@@ -176,9 +193,6 @@ pub(crate) async fn persist_session(store_dir: &Path, info: &SessionInfo) -> std
 pub(crate) async fn build_and_persist_session(sdk: &matrix_sdk::Client, store_dir: &Path) {
     #[cfg(not(target_family = "wasm"))]
     {
-        
-        
-
         let homeserver = sdk.homeserver().to_string();
 
         if let Some(oauth_sess) = sdk.oauth().user_session() {

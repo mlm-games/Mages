@@ -2,7 +2,7 @@ use matrix_sdk::{PredecessorRoom, SuccessorRoom};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
-use uniffi::{export, Enum, Record};
+use uniffi::{Enum, Record, export};
 
 use crate::RT;
 
