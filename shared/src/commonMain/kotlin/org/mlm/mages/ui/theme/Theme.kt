@@ -93,7 +93,7 @@ val AppShapes = Shapes(
 @Composable
 fun MainTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColors: Boolean = false,
+    dynamicColors: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val colorScheme = getDynamicColorScheme(darkTheme, dynamicColors)
