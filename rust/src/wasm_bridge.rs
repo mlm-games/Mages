@@ -1073,7 +1073,7 @@ impl WasmClient {
                                     let is_dm = room.is_direct().await.unwrap_or(false);
                                     let mut avatar_url = room.avatar_url().map(|m| m.to_string());
                                     if avatar_url.is_none() && is_dm { avatar_url = CoreClient::dm_peer_avatar_url(room, s.client().user_id()).await; }
-                                    let latest_event = latest_room_event_for(s.tm(), room).await;
+                                    let latest_event = latest_room_event_for(room, s.tm()).await;
                                     snapshot.push(RoomListEntry {
                                         room_id: room.room_id().to_string(),
                                         name: item.cached_display_name().clone().unwrap_or(RoomDisplayName::Named(room.room_id().to_string())).to_string(),

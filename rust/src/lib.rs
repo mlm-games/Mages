@@ -903,7 +903,7 @@ impl Client {
                                 if avatar_url.is_none() && is_dm {
                                     avatar_url = CoreClient::dm_peer_avatar_url(room, core.sdk.user_id()).await;
                                 }
-                                let latest_event = latest_room_event_for(&core.timeline_mgr, room).await;
+                                let latest_event = latest_room_event_for(room, &core.timeline_mgr).await;
                                 snapshot.push(RoomListEntry {
                                     room_id: room.room_id().to_string(),
                                     name: item.cached_display_name().clone().unwrap_or(RoomDisplayName::Named(room.room_id().to_string())).to_string(),
@@ -2990,16 +2990,6 @@ fn map_timeline_event(
             body = "Call started".to_string();
             event_type = EventType::CallNotification;
         }
-        TimelineItemContent::LiveLocation(state) => {
-            body = render_timeline_text(ev);
-            event_type = EventType::LiveLocation;
-            live_location = state.latest_location().map(|location| LiveLocationEvent {
-                user_id: ev.sender().to_string(),
-                geo_uri: location.geo_uri().to_owned(),
-                ts_ms: location.ts().0.into(),
-                is_live: state.is_live(),
-            });
-        }
         _ => {
             body = render_timeline_text(ev);
         }
@@ -3211,7 +3201,6 @@ fn render_timeline_text(ev: &EventTimelineItem) -> String {
         TimelineItemContent::MembershipChange(change) => render_membership_change(ev, change),
         TimelineItemContent::ProfileChange(change) => render_profile_change(ev, change),
         TimelineItemContent::OtherState(state) => render_other_state(ev, state),
-        TimelineItemContent::LiveLocation(_) => render_other_state_like(ev),
 
         TimelineItemContent::FailedToParseMessageLike { event_type, .. } => {
             format!("Unsupported message-like event: {}", event_type)
@@ -3220,9 +3209,11 @@ fn render_timeline_text(ev: &EventTimelineItem) -> String {
             format!("Unsupported state event: {}", event_type)
         }
 
-        // don’t show call signalling messages
+        // don't show call signalling messages
         TimelineItemContent::CallInvite => String::new(),
         TimelineItemContent::RtcNotification => String::new(),
+
+        _ => String::new(),
     }
 }
 
@@ -3239,6 +3230,7 @@ fn render_msg_like(_ev: &EventTimelineItem, ml: &MsgLikeContent) -> String {
         Redacted => "Message deleted".to_string(),
         UnableToDecrypt(_e) => "Unable to decrypt this message".to_string(),
         Other(_) => "Custom message".to_string(),
+        LiveLocation(_) => "shared live location".to_string(),
     }
 }
 
@@ -3267,15 +3259,209 @@ pub(crate) fn timeline_event_filter(
 }
 
 pub(crate) async fn latest_room_event_for(
-    mgr: &TimelineManager,
     room: &Room,
+    mgr: &TimelineManager,
 ) -> Option<LatestRoomEvent> {
-    let rid = room.room_id().to_owned();
-    let tl = mgr.timeline_for(&rid).await?;
+    use matrix_sdk_ui::timeline::{LatestEventValue, RoomExt as _};
 
-    // Walk backwards to find the latest event we can turn into a room-list preview.
+    let latest = room.latest_event().await;
+
+    match latest {
+        LatestEventValue::None => {
+            let rid = room.room_id().to_owned();
+            latest_room_event_from_timeline_scan(mgr, &rid).await
+        }
+        LatestEventValue::Remote {
+            timestamp,
+            sender,
+            is_own: _,
+            profile: _,
+            content,
+        } => map_latest_event_from_content(content, timestamp, sender),
+        LatestEventValue::RemoteInvite {
+            timestamp,
+            inviter,
+            inviter_profile: _,
+        } => Some(LatestRoomEvent {
+            event_id: "".to_owned(),
+            sender: inviter.map(|u| u.to_string()).unwrap_or_default(),
+            body: Some("Invited you to join".to_owned()),
+            msgtype: None,
+            event_type: "m.room.member".to_owned(),
+            timestamp: i64::from(timestamp.get()),
+            is_redacted: false,
+            is_encrypted: false,
+        }),
+        LatestEventValue::Local {
+            timestamp,
+            sender,
+            profile: _,
+            content,
+            state: _,
+        } => map_latest_event_from_content(content, timestamp, sender),
+    }
+}
+
+fn map_latest_event_from_content(
+    content: matrix_sdk_ui::timeline::TimelineItemContent,
+    timestamp: ruma::MilliSecondsSinceUnixEpoch,
+    sender: ruma::OwnedUserId,
+) -> Option<LatestRoomEvent> {
+    use matrix_sdk_ui::timeline::TimelineItemContent;
+
+    let event_type: String;
+    let msgtype: Option<String>;
+    let body: Option<String>;
+    let is_redacted: bool;
+    let is_encrypted: bool;
+
+    match content {
+        TimelineItemContent::MsgLike(ml) => {
+            use matrix_sdk_ui::timeline::MsgLikeKind;
+            match &ml.kind {
+                MsgLikeKind::Message(m) => {
+                    let text = render_message_text(m);
+                    if text.trim().is_empty() {
+                        return None;
+                    }
+                    body = Some(text);
+                    event_type = "m.room.message".to_owned();
+                    msgtype = Some(match m.msgtype() {
+                        matrix_sdk::ruma::events::room::message::MessageType::Image(_) => {
+                            "m.image".to_owned()
+                        }
+                        matrix_sdk::ruma::events::room::message::MessageType::Video(_) => {
+                            "m.video".to_owned()
+                        }
+                        matrix_sdk::ruma::events::room::message::MessageType::Audio(_) => {
+                            "m.audio".to_owned()
+                        }
+                        matrix_sdk::ruma::events::room::message::MessageType::File(_) => {
+                            "m.file".to_owned()
+                        }
+                        matrix_sdk::ruma::events::room::message::MessageType::Text(_) => {
+                            "m.text".to_owned()
+                        }
+                        matrix_sdk::ruma::events::room::message::MessageType::Notice(_) => {
+                            "m.notice".to_owned()
+                        }
+                        matrix_sdk::ruma::events::room::message::MessageType::Emote(_) => {
+                            "m.emote".to_owned()
+                        }
+                        matrix_sdk::ruma::events::room::message::MessageType::Location(_) => {
+                            "m.location".to_owned()
+                        }
+                        _ => "m.text".to_owned(),
+                    });
+                    is_redacted = false;
+                    is_encrypted = false;
+                }
+                MsgLikeKind::Sticker(_) => {
+                    msgtype = Some("m.sticker".to_owned());
+                    body = None;
+                    event_type = "m.sticker".to_owned();
+                    is_redacted = false;
+                    is_encrypted = false;
+                }
+                MsgLikeKind::Poll(_) => {
+                    msgtype = None;
+                    body = Some("Started a poll".to_owned());
+                    event_type = "m.poll.start".to_owned();
+                    is_redacted = false;
+                    is_encrypted = false;
+                }
+                MsgLikeKind::Redacted => {
+                    msgtype = None;
+                    body = None;
+                    event_type = "m.room.message".to_owned();
+                    is_redacted = true;
+                    is_encrypted = false;
+                }
+                MsgLikeKind::UnableToDecrypt(_) => {
+                    msgtype = None;
+                    body = None;
+                    event_type = "m.room.encrypted".to_owned();
+                    is_redacted = false;
+                    is_encrypted = true;
+                }
+                MsgLikeKind::Other(_) => {
+                    msgtype = None;
+                    body = Some("Custom event".to_owned());
+                    event_type = "m.room.message".to_owned();
+                    is_redacted = false;
+                    is_encrypted = false;
+                }
+                MsgLikeKind::LiveLocation(_) => {
+                    msgtype = Some("m.location".to_owned());
+                    body = Some("shared live location".to_owned());
+                    event_type = "m.location".to_owned();
+                    is_redacted = false;
+                    is_encrypted = false;
+                }
+            }
+        }
+        TimelineItemContent::CallInvite => {
+            msgtype = None;
+            body = None;
+            event_type = "m.call.invite".to_owned();
+            is_redacted = false;
+            is_encrypted = false;
+        }
+        TimelineItemContent::RtcNotification => {
+            msgtype = None;
+            body = Some("Call started".to_owned());
+            event_type = "m.rtc.notification".to_owned();
+            is_redacted = false;
+            is_encrypted = false;
+        }
+        _ => {
+            return None;
+        }
+    };
+
+    if is_room_list_preview_noise(&event_type) {
+        return None;
+    }
+
+    Some(LatestRoomEvent {
+        event_id: "".to_owned(),
+        sender: sender.to_string(),
+        body,
+        msgtype,
+        event_type,
+        timestamp: i64::from(timestamp.get()),
+        is_redacted,
+        is_encrypted,
+    })
+}
+
+fn is_room_list_preview_noise(event_type: &str) -> bool {
+    event_type == "org.matrix.msc3401.call.member"
+        || event_type == "m.call.member"
+        || event_type == "m.rtc.member"
+}
+
+async fn latest_room_event_from_timeline_scan(
+    mgr: &TimelineManager,
+    room_id: &matrix_sdk::ruma::OwnedRoomId,
+) -> Option<LatestRoomEvent> {
+    let tl = mgr.timeline_for(room_id).await?;
+
     let items = tl.items().await;
-    let ev = items.iter().rev().find_map(|it| it.as_event())?;
+    for ev in items.iter().rev().filter_map(|it| it.as_event()) {
+        if let Some(mapped) = try_map_timeline_event(ev) {
+            if !is_room_list_preview_noise(&mapped.event_type) {
+                return Some(mapped);
+            }
+        }
+    }
+    None
+}
+
+fn try_map_timeline_event(
+    ev: &matrix_sdk_ui::timeline::EventTimelineItem,
+) -> Option<LatestRoomEvent> {
+    use matrix_sdk::ruma::events::room::message::MessageType;
 
     let ts: u64 = ev.timestamp().0.into();
     let event_id = ev.event_id().map(|e| e.to_string()).unwrap_or_default();
@@ -3286,8 +3472,6 @@ pub(crate) async fn latest_room_event_for(
     let mut is_redacted = false;
     let mut is_encrypted = false;
     let body: Option<String>;
-
-    use matrix_sdk::ruma::events::room::message::MessageType;
 
     match ev.content() {
         TimelineItemContent::MsgLike(ml) => match &ml.kind {
@@ -3329,6 +3513,10 @@ pub(crate) async fn latest_room_event_for(
             MsgLikeKind::Other(_) => {
                 body = Some("Custom event".to_owned());
             }
+            MsgLikeKind::LiveLocation(_) => {
+                msgtype = Some("m.location".to_owned());
+                body = Some("shared live location".to_owned());
+            }
         },
         TimelineItemContent::CallInvite => {
             event_type = "m.call.invite".to_owned();
@@ -3339,11 +3527,7 @@ pub(crate) async fn latest_room_event_for(
             body = Some("Call started".to_owned());
         }
         _ => {
-            let text = render_timeline_text(ev);
-            if text.trim().is_empty() {
-                return None;
-            }
-            body = Some(text);
+            return None;
         }
     }
 

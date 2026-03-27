@@ -59,7 +59,7 @@ fun RoomListItem(
                             .offset(x = 4.dp, y = (-4).dp)
                     ) {
                         Text(
-                        if (item.unreadCount > Limits.unreadBadgeCap) "${Limits.unreadBadgeCap}+" else item.unreadCount.toString(),
+                            if (item.unreadCount > Limits.unreadBadgeCap) "${Limits.unreadBadgeCap}+" else item.unreadCount.toString(),
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
@@ -273,47 +273,58 @@ private fun formatMessagePreview(
             val text = body?.take(Limits.previewCharsMedium)?.replace('\n', ' ') ?: "No messages yet"
             MessagePreview(text = senderPrefix + text)
         }
+
         LastMessageType.Image -> MessagePreview(
             text = senderPrefix + "Photo",
             icon = Icons.Default.Image
         )
+
         LastMessageType.Video -> MessagePreview(
             text = senderPrefix + "Video",
             icon = Icons.Default.Videocam
         )
+
         LastMessageType.Audio -> MessagePreview(
             text = senderPrefix + "Audio message",
             icon = Icons.Default.Mic
         )
+
         LastMessageType.File -> MessagePreview(
             text = senderPrefix + (body?.takeIf { !it.startsWith("mxc://") } ?: "File"),
             icon = Icons.Default.AttachFile
         )
+
         LastMessageType.Sticker -> MessagePreview(
             text = senderPrefix + "Sticker",
             icon = Icons.Default.EmojiEmotions
         )
+
         LastMessageType.Location -> MessagePreview(
             text = senderPrefix + "Location",
             icon = Icons.Default.LocationOn
         )
+
         LastMessageType.Poll -> MessagePreview(
             text = senderPrefix + "Poll",
             icon = Icons.Default.Poll
         )
+
         LastMessageType.Call -> MessagePreview(
             text = senderPrefix + "Call",
             icon = Icons.Default.Call
         )
+
         LastMessageType.Encrypted -> MessagePreview(
             text = "Encrypted message",
             icon = Icons.Default.Lock
         )
+
         LastMessageType.Redacted -> MessagePreview(
             text = senderPrefix + "Message deleted"
         )
+
         LastMessageType.Unknown -> MessagePreview(
-            text = body?.take(Limits.previewCharsMedium)?.replace('\n', ' ') ?: "Message"
+            text = body?.take(Limits.previewCharsMedium)?.replace('\n', ' ') ?: "Encrypted or Unknown Message"
         )
     }
 }
@@ -338,22 +349,25 @@ fun formatRelativeTime(timestamp: Long): String {
 
     return when {
         duration.inWholeMinutes < 1 -> "now"
-        duration.inWholeHours < 1   -> "${duration.inWholeMinutes}m"
+        duration.inWholeHours < 1 -> "${duration.inWholeMinutes}m"
         localNow.date == localMessage.date -> {
             "${pad2(localMessage.hour)}:${pad2(localMessage.minute)}"
         }
+
         localNow.date.minus(1, DateTimeUnit.DAY) == localMessage.date -> "Yesterday"
         duration.inWholeDays < 7 -> {
             localMessage.dayOfWeek.name.lowercase()
                 .replaceFirstChar { it.uppercase() }
                 .take(3)
         }
+
         localNow.year == localMessage.year -> {
             "${localMessage.day} " +
                     localMessage.month.name.lowercase()
                         .replaceFirstChar { it.uppercase() }
                         .take(3)
         }
+
         else -> {
             "${localMessage.day}/${localMessage.month.number}/${localMessage.year.toString().takeLast(2)}"
         }
