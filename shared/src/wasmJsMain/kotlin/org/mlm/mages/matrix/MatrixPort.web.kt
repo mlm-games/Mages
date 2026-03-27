@@ -179,6 +179,34 @@ fun ByteArray.toJsUint8Array(): JsAny {
 })""")
 private external fun openOAuthPopup(url: String, redirectOrigin: String): Promise<JsAny?>
 
+@JsFun("""(client, roomId, txnId) => {
+  if (!client) return Promise.resolve(false);
+  const fn = client.retryByTxn || client.retry_by_txn;
+  if (typeof fn !== 'function') return Promise.resolve(false);
+  try {
+    return Promise.resolve(fn.call(client, roomId, txnId));
+  } catch (_) {
+    return Promise.resolve(false);
+  }
+}""")
+private external fun retryByTxnInterop(
+  client: WasmClient,
+  roomId: String,
+  txnId: String
+): Promise<JsAny?>
+
+private suspend fun Promise<JsAny?>.awaitBoolLike(): Boolean {
+  val value = await<JsAny?>() ?: return false
+  val obj = value.toJsonObject()
+  if (obj != null) {
+    val inner = (obj["value"] as? JsonPrimitive)?.booleanOrNull
+    if (inner != null) return inner
+    val ok = (obj["ok"] as? JsonPrimitive)?.booleanOrNull
+    if (ok != null) return ok
+  }
+  return value.toString() == "true"
+}
+
 class WebStubMatrixPort : MatrixPort, VerificationService {
     private var client: WasmClient? = null
     private var currentHs: String? = null
@@ -557,7 +585,10 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         requireClient().unobserveVerificationInbox(token.toDouble())
     }
 
-    override suspend fun retryByTxn(roomId: String, txnId: String): Boolean = false
+    override suspend fun retryByTxn(roomId: String, txnId: String): Boolean =
+        runCatching {
+            retryByTxnInterop(requireClient(), roomId, txnId).awaitBoolLike()
+        }.getOrDefault(false)
 
     override fun stopTypingObserver(token: ULong) {
         requireClient().unobserveTyping(token.toDouble())
