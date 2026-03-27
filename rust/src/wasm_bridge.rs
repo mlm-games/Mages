@@ -24,7 +24,7 @@ use futures_util::StreamExt;
 use futures_util::future::{AbortHandle, Abortable};
 use js_sys::Function;
 
-use matrix_sdk::authentication::oauth::UrlOrQuery;
+use matrix_sdk::utils::UrlOrQuery;
 use matrix_sdk::authentication::oauth::registration::language_tags::LanguageTag;
 
 use matrix_sdk::ruma::events::room::{

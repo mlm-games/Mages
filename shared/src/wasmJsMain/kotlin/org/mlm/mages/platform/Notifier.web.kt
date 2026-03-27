@@ -20,7 +20,7 @@ actual object Notifier {
         createNotification(
             title = title,
             body = body,
-            icon = "/favicon.ico"
+            icon = "favicon.ico"
         )
     }
 

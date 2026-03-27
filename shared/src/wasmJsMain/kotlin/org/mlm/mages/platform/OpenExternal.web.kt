@@ -11,16 +11,22 @@ actual fun rememberFileOpener(): (String, String?) -> Boolean {
 }
 
 fun openUrl(url: String): Boolean {
+    val trimmed = url.trim()
+    if (trimmed.startsWith("javascript:", ignoreCase = true)) return false
+
     return try {
-        when {
-            url.startsWith("http://") || url.startsWith("https://") ->
-                window.open(url, "_blank", "noopener,noreferrer") != null
-
-            url.startsWith("blob:") || url.startsWith("data:") ->
-                window.open(url, "_blank") != null
-
-            else -> false
+        val a = document.createElement("a") as HTMLAnchorElement
+        a.href = trimmed
+        a.rel = "noopener noreferrer"
+        a.target = when {
+            trimmed.startsWith("http://") || trimmed.startsWith("https://") ||
+            trimmed.startsWith("blob:") || trimmed.startsWith("data:") -> "_blank"
+            else -> "_self"
         }
+        document.body?.appendChild(a)
+        a.click()
+        a.remove()
+        true
     } catch (_: Throwable) {
         false
     }

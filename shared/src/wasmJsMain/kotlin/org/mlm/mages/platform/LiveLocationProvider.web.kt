@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 
 actual class LiveLocationProvider actual constructor() {
-    actual val isSupported: Boolean = true
+    actual val isSupported: Boolean = false
     actual val canSend: Boolean = false
 
     actual suspend fun getCurrentLocation(): LocationResult = LocationResult.NotSupported

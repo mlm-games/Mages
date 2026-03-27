@@ -33,13 +33,17 @@ private class WebClipboardAttachmentHandler : ClipboardAttachmentHandler {
 
     fun detach() {
         document.removeEventListener("paste", pasteHandler)
+        lastFiles = emptyList()
     }
 
     override fun hasAttachment(): Boolean = lastFiles.isNotEmpty()
 
     override suspend fun getAttachments(): List<AttachmentData> {
+        val files = lastFiles
+        lastFiles = emptyList()
+
         val out = mutableListOf<AttachmentData>()
-        for (file in lastFiles) {
+        for (file in files) {
             try {
                 out += browserFileToAttachmentData(file)
             } catch (_: Throwable) {
