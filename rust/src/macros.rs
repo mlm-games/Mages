@@ -92,24 +92,6 @@ macro_rules! unsub {
 }
 pub(crate) use unsub;
 
-macro_rules! rt_delegate {
-    (
-        $(
-            $(#[$meta:meta])*
-            $vis:vis fn $name:ident(&self $(, $arg:ident : $ty:ty )* ) -> $ret:ty
-                => $call:expr;
-        )+
-    ) => {
-        $(
-            $(#[$meta])*
-            $vis fn $name(&self, $($arg : $ty),*) -> $ret {
-                RT.block_on($call)
-            }
-        )+
-    };
-}
-pub(crate) use rt_delegate;
-
 #[cfg(not(target_family = "wasm"))]
 macro_rules! spawn_task {
     ($fut:expr) => {

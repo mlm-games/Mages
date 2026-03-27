@@ -252,7 +252,9 @@ impl CoreClient {
 
         let user_id = match kind {
             PasswordLoginKind::Username => UserIdentifier::UserIdOrLocalpart(identifier),
-            PasswordLoginKind::Email => UserIdentifier::Email { address: identifier },
+            PasswordLoginKind::Email => UserIdentifier::Email {
+                address: identifier,
+            },
             PasswordLoginKind::Phone => {
                 let country = country.unwrap_or_default().trim().to_uppercase();
                 if country.len() != 2 {
@@ -268,10 +270,7 @@ impl CoreClient {
             }
         };
 
-        let mut builder = self
-            .sdk
-            .matrix_auth()
-            .login_identifier(user_id, &password);
+        let mut builder = self.sdk.matrix_auth().login_identifier(user_id, &password);
 
         if let Some(name) = device_display_name
             .as_deref()
@@ -1317,11 +1316,9 @@ impl CoreClient {
         score: Option<i32>,
         reason: Option<String>,
     ) -> Result<(), FfiError> {
-        use matrix_sdk::room::ReportedContentScore;
         let room = self.require_room(&room_id)?;
         let eid = Self::parse_eid(&event_id)?;
-        let s = score.and_then(|s| ReportedContentScore::try_from(s).ok());
-        room.report_content(eid, s, reason).await.map(|_| ()).ffi()
+        room.report_content(eid, reason).await.map(|_| ()).ffi()
     }
 
     pub async fn report_room(

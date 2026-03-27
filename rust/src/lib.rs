@@ -3,7 +3,8 @@
 use futures_util::StreamExt;
 use js_int::UInt;
 use matrix_sdk::RoomState;
-use matrix_sdk::authentication::oauth::UrlOrQuery;
+use matrix_sdk::utils::UrlOrQuery;
+
 use matrix_sdk::authentication::oauth::registration::language_tags::LanguageTag;
 use matrix_sdk::authentication::oauth::registration::{
     ApplicationType, ClientMetadata, Localized, OAuthGrantType,
@@ -1493,7 +1494,9 @@ impl Client {
         RT.block_on(async {
             let auth = self.core.sdk.matrix_auth();
             let callback_url = Url::parse(&callback_url).ffi()?;
-            let mut builder = auth.login_with_sso_callback(callback_url).ffi()?;
+            let mut builder = auth
+                .login_with_sso_callback(UrlOrQuery::Url(callback_url))
+                .ffi()?;
             if let Some(name) = device_name.as_deref() {
                 builder = builder.initial_device_display_name(name);
             }
