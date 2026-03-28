@@ -83,6 +83,8 @@ class RoomViewModel(
     private var searchJob: Job? = null
     private var paginationRecomputeJob: Job? = null
 
+    private var roomClass: RoomClass = RoomClass.PrivateGroup
+
     // Track which event IDs we've checked via API for additional thread replies
     // (beyond what's visible in timeline)
     private val checkedThreadRootsViaApi = mutableSetOf<String>()
@@ -118,6 +120,21 @@ class RoomViewModel(
         const val MESSAGE_INFO_READERS_LIMIT = 100
     }
 
+    private fun filteredVisibleEvents(items: List<MessageEvent>): List<MessageEvent> =
+        items
+            .withoutThreadReplies()
+            .applyTimelineVisibility(roomClass, settings.value.toTimelineVisibilitySettings())
+
+    private fun filteredDeltaEvents(items: List<MessageEvent>): List<MessageEvent> =
+        items.applyTimelineVisibility(roomClass, settings.value.toTimelineVisibilitySettings())
+
+    private fun recomputeVisibleEvents() {
+        updateState {
+            copy(events = filteredVisibleEvents(allEvents))
+        }
+        recomputeDerived()
+    }
+
     private var messageInfoRequestVersion: Long = 0L
 
     private fun isCurrentMessageInfoRequest(version: Long, eventId: String): Boolean {
@@ -131,14 +148,24 @@ class RoomViewModel(
     }
 
     private fun initialize() {
-        observeTimeline()
+        launch {
+            observeTimeline()
+        }
         observeTyping()
         observeOwnReceipt()
         observeReceipts()
-
         loadNotificationMode()
         loadUpgradeInfo()
         loadPinnedEvents()
+
+        launch {
+            settings
+                .map { it.toTimelineVisibilitySettings() }
+                .distinctUntilChanged()
+                .collect {
+                    recomputeVisibleEvents()
+                }
+        }
 
         launch {
             val roomId = currentState.roomId
@@ -158,6 +185,7 @@ class RoomViewModel(
 
             val profile = service.port.roomProfile(roomId)
             if (profile != null) {
+                roomClass = profile.roomClass()
                 updateState {
                     copy(
                         isDm = profile.isDm,
@@ -165,6 +193,7 @@ class RoomViewModel(
                         roomName = profile.name
                     )
                 }
+                recomputeVisibleEvents()
 
                 profile.avatarUrl?.let { url ->
                     val path = service.avatars.resolve(url, px = 96, crop = true)
@@ -329,7 +358,7 @@ class RoomViewModel(
                         val newAll = allEvents.toMutableList().also { it[idx] = updated }
                         copy(
                             allEvents = newAll,
-                            events = newAll.withoutThreadReplies().dedupByItemId(),
+                            events = filteredVisibleEvents(newAll).dedupByItemId(),
                             editing = null,
                             input = ""
                         )
@@ -1460,7 +1489,7 @@ class RoomViewModel(
             val newAll = r.list
             copy(
                 allEvents = newAll,
-                events = newAll.withoutThreadReplies(),
+                events = filteredVisibleEvents(newAll),
                 hasTimelineSnapshot = when {
                     r.reset -> true
                     r.cleared -> false
@@ -1469,8 +1498,9 @@ class RoomViewModel(
             )
         }
 
-        if (!didClear && delta.isNotEmpty()) {
-            postProcessNewEvents(delta)
+        val visibleDelta = filteredDeltaEvents(delta)
+        if (!didClear && visibleDelta.isNotEmpty()) {
+            postProcessNewEvents(visibleDelta)
         }
 
         recomputeLiveLocationShares()

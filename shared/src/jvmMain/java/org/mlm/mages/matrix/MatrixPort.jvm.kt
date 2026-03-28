@@ -91,7 +91,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
             }
         }
 
-    override fun isLoggedIn(): Boolean =
+    override fun isLoggedIn(): Boolean = // NOTE: Single use only
         runBlocking(matrixDispatcher) {
             synchronized(clientLock) { client?.isLoggedIn() ?: false }
         }
@@ -884,6 +884,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
                         p.memberCount.toLong(),
                         p.isEncrypted,
                         p.isDm,
+                        p.isPublic,
                         p.avatarUrl,
                         p.canonicalAlias,
                         p.altAliases,
@@ -929,6 +930,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
                 it.memberCount.toLong(),
                 it.isEncrypted,
                 it.isDm,
+                it.isPublic,
                 it.avatarUrl,
                 it.canonicalAlias,
                 it.altAliases,

@@ -248,6 +248,7 @@ data class RoomProfile(
     val memberCount: Long = 0,
     val isEncrypted: Boolean = false,
     val isDm: Boolean = false,
+    val isPublic: Boolean = false,
     val avatarUrl: String? = null,
     val canonicalAlias: String? = null,
     val altAliases: List<String> = emptyList(),

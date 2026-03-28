@@ -165,6 +165,7 @@ pub struct RoomProfile {
     pub member_count: u64,
     pub is_encrypted: bool,
     pub is_dm: bool,
+    pub is_public: bool,
     pub avatar_url: Option<String>,
     pub canonical_alias: Option<String>,
     pub alt_aliases: Vec<String>,

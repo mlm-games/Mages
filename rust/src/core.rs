@@ -676,6 +676,7 @@ impl CoreClient {
         let member_count = room.joined_members_count();
         let is_encrypted = matches!(room.encryption_state(), EncryptionState::Encrypted);
         let is_dm = room.is_direct().await.unwrap_or(false);
+        let is_public = room.is_public() == Some(true);
         let mut avatar_url = room.avatar_url().map(|m| m.to_string());
         let canonical_alias = room.canonical_alias().map(|a| a.to_string());
         let alt_aliases = room.alt_aliases().iter().map(|a| a.to_string()).collect();
@@ -697,6 +698,7 @@ impl CoreClient {
             member_count,
             is_encrypted,
             is_dm,
+            is_public,
             avatar_url,
             canonical_alias,
             alt_aliases,

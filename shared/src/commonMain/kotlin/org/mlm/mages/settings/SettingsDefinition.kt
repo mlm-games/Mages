@@ -6,11 +6,12 @@ import kotlinx.serialization.Serializable
 
 @CategoryDefinition(order = 0) object Account
 @CategoryDefinition(order = 1) object Appearance
-@CategoryDefinition(order = 2) object Notifications
-@CategoryDefinition(order = 3) object Privacy
-@CategoryDefinition(order = 4) object Calls
-@CategoryDefinition(order = 5) object Storage
-@CategoryDefinition(order = 6) object Advanced
+@CategoryDefinition(order = 2) object Timeline
+@CategoryDefinition(order = 3) object Notifications
+@CategoryDefinition(order = 4) object Privacy
+@CategoryDefinition(order = 5) object Calls
+@CategoryDefinition(order = 6) object Storage
+@CategoryDefinition(order = 7) object Advanced
 
 @Serializable
 enum class ThemeMode { System, Light, Dark }
@@ -97,6 +98,33 @@ data class AppSettings(
         platforms = [SettingPlatform.ANDROID]
     )
     val bubbleAnimations: Boolean = true,
+
+    @Setting(
+        title = "Hide membership events",
+        description = "Join/leave/invite events in rooms",
+        category = Timeline::class,
+        type = Dropdown::class,
+        options = ["Never", "Public Rooms", "Non-DMs (Direct Rooms)", "Always"]
+    )
+    val compactPublicRoomMembershipEvents: Int = 1,
+
+    @Setting(
+        title = "Hide profile changes",
+        description = "Display name/avatar changes in rooms",
+        category = Timeline::class,
+        type = Dropdown::class,
+        options = ["Never", "Public Rooms", "Non-DMs", "Always"]
+    )
+    val compactPublicRoomProfileChangeEvents: Int = 1,
+
+    @Setting(
+        title = "Hide topic changes",
+        description = "Room topic updates",
+        category = Timeline::class,
+        type = Dropdown::class,
+        options = ["Never", "Public Rooms", "Non-DMs", "Always"]
+    )
+    val compactPublicRoomTopicEvents: Int = 1,
 
     @Setting(
         title = "Chat bubbles",
