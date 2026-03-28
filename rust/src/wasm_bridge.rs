@@ -1,4 +1,4 @@
-use crate::core::{CoreClient, TimelineManager, map_send_queue_update};
+use crate::core::{CoreClient, TimelineManager, map_send_queue_update, room_list_membership};
 use crate::js_observer_json;
 use crate::js_observer_noargs;
 use crate::types::*;
@@ -1074,13 +1074,14 @@ impl WasmClient {
                                     let mut avatar_url = room.avatar_url().map(|m| m.to_string());
                                     if avatar_url.is_none() && is_dm { avatar_url = CoreClient::dm_peer_avatar_url(room, s.client().user_id()).await; }
                                     let latest_event = latest_room_event_for(room, s.tm()).await;
+                                    let membership = room_list_membership(room);
                                     snapshot.push(RoomListEntry {
                                         room_id: room.room_id().to_string(),
                                         name: item.cached_display_name().clone().unwrap_or(RoomDisplayName::Named(room.room_id().to_string())).to_string(),
                                         last_ts: room.recency_stamp().map_or(0, Into::into),
                                         notifications: room.num_unread_notifications(), messages: room.num_unread_messages(), mentions: room.num_unread_mentions(),
                                         marked_unread: room.is_marked_unread(), is_favourite: room.is_favourite(), is_low_priority: room.is_low_priority(),
-                                        is_invited: matches!(room.state(), RoomState::Invited), avatar_url, is_dm,
+                                        is_invited: matches!(room.state(), RoomState::Invited), membership, avatar_url, is_dm,
                                         is_encrypted: matches!(room.encryption_state(), matrix_sdk::EncryptionState::Encrypted),
                                         member_count: room.joined_members_count().min(u32::MAX as u64) as u32,
                                         topic: room.topic(), latest_event,

@@ -245,6 +245,7 @@ pub struct RoomListEntry {
     pub is_favourite: bool,
     pub is_low_priority: bool,
     pub is_invited: bool,
+    pub membership: RoomListMembership,
     pub avatar_url: Option<String>,
     pub is_dm: bool,
     pub is_encrypted: bool,
@@ -636,6 +637,15 @@ pub enum RoomHistoryVisibility {
     Joined,
     Shared,
     WorldReadable,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Enum)]
+pub enum RoomListMembership {
+    Joined,
+    Invited,
+    Left,
+    Knocked,
+    Banned,
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize, Enum)]

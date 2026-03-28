@@ -265,6 +265,15 @@ enum class RoomJoinRule {
 }
 
 @Serializable
+enum class RoomListMembership {
+    Joined,
+    Invited,
+    Left,
+    Knocked,
+    Banned,
+}
+
+@Serializable
 enum class RoomPreviewMembership {
     Joined,
     Invited,
@@ -348,6 +357,7 @@ data class RoomListEntry(
     val isFavourite: Boolean = false,
     val isLowPriority: Boolean = false,
     val isInvited: Boolean = false,
+    val membership: RoomListMembership = RoomListMembership.Joined,
 
     val avatarUrl: String? = null,
     val isDm: Boolean = false,

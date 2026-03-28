@@ -57,7 +57,7 @@ use crate::{
     LiveLocationBeaconState, MemberSummary, MessageEvent, OwnReceipt, PasswordLoginKind,
     PollDefinition, PredecessorRoomInfo, Presence, PresenceInfo, PublicRoom, PublicRoomsPage,
     ReactionSummary, RoomDirectoryVisibility, RoomHistoryVisibility, RoomJoinRule,
-    RoomPowerLevelChanges, RoomPowerLevels, RoomPreview, RoomPreviewMembership, RoomProfile,
+    RoomListMembership, RoomPowerLevelChanges, RoomPowerLevels, RoomPreview, RoomPreviewMembership, RoomProfile,
     RoomSummary, RoomTags, RoomUpgradeLinks, SearchHit, SearchPage, SeenByEntry, SendState,
     SendUpdate, SpaceChildInfo, SpaceHierarchyPage, SpaceInfo, SuccessorRoomInfo, ThreadPage,
     ThreadSummary, UnreadStats, build_unstable_poll_content, map_event_id_via_timeline,
@@ -75,6 +75,17 @@ macro_rules! spawn_detached_core {
     ($fut:expr) => {{
         wasm_bindgen_futures::spawn_local($fut);
     }};
+}
+
+pub fn room_list_membership(room: &matrix_sdk::Room) -> RoomListMembership {
+    use matrix_sdk::RoomState;
+    match room.state() {
+        RoomState::Joined => RoomListMembership::Joined,
+        RoomState::Invited => RoomListMembership::Invited,
+        RoomState::Left => RoomListMembership::Left,
+        RoomState::Knocked => RoomListMembership::Knocked,
+        RoomState::Banned => RoomListMembership::Banned,
+    }
 }
 
 #[derive(Clone)]

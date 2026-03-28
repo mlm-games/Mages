@@ -689,14 +689,31 @@ class RustMatrixPort : MatrixPort, VerificationService {
 
     override suspend fun observeRoomList(observer: MatrixPort.RoomListObserver): ULong =
         withContext(matrixDispatcher) {
+            val currentVisible = linkedMapOf<String, RoomListEntry>()
+
             val cb = object : mages.RoomListObserver {
                 override fun onReset(items: List<mages.RoomListEntry>) {
-                    val mapped = items.map { it.toKotlinRoomListEntry() }
-                    observer.onReset(mapped)
+                    currentVisible.clear()
+                    items.asSequence()
+                        .map { it.toKotlinRoomListEntry() }
+                        .filter { it.isVisibleInMainRoomList() }
+                        .forEach { currentVisible[it.roomId] = it }
+
+                    observer.onReset(currentVisible.values.toList())
                 }
 
                 override fun onUpdate(item: mages.RoomListEntry) {
-                    observer.onUpdate(item.toKotlinRoomListEntry())
+                    val mapped = item.toKotlinRoomListEntry()
+
+                    if (mapped.isVisibleInMainRoomList()) {
+                        currentVisible[mapped.roomId] = mapped
+                        observer.onUpdate(mapped)
+                    } else {
+                        val removed = currentVisible.remove(mapped.roomId)
+                        if (removed != null) {
+                            observer.onReset(currentVisible.values.toList())
+                        }
+                    }
                 }
             }
             withClient { it.observeRoomList(cb) }
@@ -1704,6 +1721,17 @@ private fun mages.SearchHit.toKotlin(): SearchHit =
 //        bytes
 //    )
 
+private fun mages.RoomListMembership.toKotlin(): RoomListMembership = when (this) {
+    mages.RoomListMembership.JOINED -> RoomListMembership.Joined
+    mages.RoomListMembership.INVITED -> RoomListMembership.Invited
+    mages.RoomListMembership.LEFT -> RoomListMembership.Left
+    mages.RoomListMembership.KNOCKED -> RoomListMembership.Knocked
+    mages.RoomListMembership.BANNED -> RoomListMembership.Banned
+}
+
+private fun RoomListEntry.isVisibleInMainRoomList(): Boolean =
+    membership == RoomListMembership.Joined || membership == RoomListMembership.Invited
+
 private fun mages.RoomListEntry.toKotlinRoomListEntry(): RoomListEntry =
     RoomListEntry(
         roomId = roomId,
@@ -1716,6 +1744,7 @@ private fun mages.RoomListEntry.toKotlinRoomListEntry(): RoomListEntry =
         isFavourite = isFavourite,
         isLowPriority = isLowPriority,
         isInvited = isInvited,
+        membership = membership.toKotlin(),
         avatarUrl = avatarUrl,
         isDm = isDm,
         isEncrypted = isEncrypted,

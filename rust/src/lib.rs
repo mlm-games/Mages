@@ -904,6 +904,7 @@ impl Client {
                                     avatar_url = CoreClient::dm_peer_avatar_url(room, core.sdk.user_id()).await;
                                 }
                                 let latest_event = latest_room_event_for(room, &core.timeline_mgr).await;
+                                let membership = core::room_list_membership(room);
                                 snapshot.push(RoomListEntry {
                                     room_id: room.room_id().to_string(),
                                     name: item.cached_display_name().clone().unwrap_or(RoomDisplayName::Named(room.room_id().to_string())).to_string(),
@@ -912,6 +913,7 @@ impl Client {
                                     marked_unread: room.is_marked_unread(), is_favourite: room.is_favourite(),
                                     is_low_priority: room.is_low_priority(),
                                     is_invited: matches!(room.state(), RoomState::Invited),
+                                    membership,
                                     avatar_url, is_dm,
                                     is_encrypted: matches!(room.encryption_state(), matrix_sdk::EncryptionState::Encrypted),
                                     member_count: room.joined_members_count().min(u32::MAX as u64) as u32,
