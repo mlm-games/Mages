@@ -324,7 +324,7 @@ private fun formatMessagePreview(
         )
 
         LastMessageType.Unknown -> MessagePreview(
-            text = body?.take(Limits.previewCharsMedium)?.replace('\n', ' ') ?: "Encrypted or Unknown Message"
+            text = body?.take(Limits.previewCharsMedium)?.replace('\n', ' ') ?: "Encrypted or Unknown message"
         )
     }
 }
