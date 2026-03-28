@@ -110,11 +110,31 @@ data class AppSettings(
 
     @Setting(
         title = "Enable notifications",
-        description = "Show notifications (desktop polling + Android push)",
+        description = "Show notifications (desktop & web polling + Android push)",
         category = Notifications::class,
         type = Toggle::class
     )
     val notificationsEnabled: Boolean = true,
+
+    @Setting(
+        title = "Request notification permission",
+        description = "Click to enable browser notifications",
+        category = Notifications::class,
+        type = Button::class,
+        platforms = [SettingPlatform.WEB],
+    )
+    @ActionHandler(RequestNotificationPermissionAction::class)
+    val requestNotificationPermission: Unit = Unit,
+
+    @Setting(
+        title = "Test browser notification",
+        description = "Click to test if notifications work",
+        category = Notifications::class,
+        type = Button::class,
+        platforms = [SettingPlatform.WEB],
+    )
+    @ActionHandler(TestNotificationAction::class)
+    val testNotification: Unit = Unit,
 
     @Setting(
         title = "Mentions only (local)",
@@ -315,4 +335,6 @@ object ReRegisterUnifiedPushAction : SettingAction
 object CopyUnifiedPushEndpointAction : SettingAction
 
 object OpenBubbleSettingsAction : SettingAction
+object RequestNotificationPermissionAction : SettingAction
+object TestNotificationAction : SettingAction
 

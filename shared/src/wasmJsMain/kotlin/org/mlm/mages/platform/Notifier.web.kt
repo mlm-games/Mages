@@ -4,12 +4,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import io.github.mlmgames.settings.core.SettingsRepository
-import org.mlm.mages.MatrixService
-import org.mlm.mages.settings.AppSettings
 import kotlinx.browser.window
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
+import org.mlm.mages.MatrixService
+import org.mlm.mages.matrix.RenderedNotification
+import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.util.nowMs
 import org.w3c.dom.events.Event
 
@@ -22,7 +23,7 @@ actual object Notifier {
         if (!notificationSupported()) return
         if (notificationPermission() != "granted") return
 
-        createNotification(
+        createBrowserNotification(
             title = title,
             body = body,
             icon = "favicon.ico"
@@ -96,15 +97,13 @@ actual fun BindNotifications(
             val baseline = if (settings.desktopNotifBaselineMs > 0L) {
                 settings.desktopNotifBaselineMs
             } else {
-                val now = nowMs()
-                settingsRepository.update { it.copy(desktopNotifBaselineMs = now) }
-                delay(15_000)
+                settingsRepository.update { it.copy(desktopNotifBaselineMs = nowMs()) }
                 continue
             }
 
             val ownUserId = port.whoami()
             val notifications = runCatching {
-                port.fetchNotificationsSince(baseline)
+                port.fetchNotificationsSince(baseline, 50, 20)
             }.getOrElse { emptyList() }
 
             var nextBaseline = baseline
@@ -142,8 +141,6 @@ actual fun BindNotifications(
 }
 
 @Composable
-actual fun rememberQuitApp(): () -> Unit {
-    return {
-        runCatching { window.close() }
-    }
+actual fun rememberQuitApp(): () -> Unit = {
+    runCatching { window.close() }
 }

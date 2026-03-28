@@ -1846,12 +1846,67 @@ impl WasmClient {
     #[wasm_bindgen(js_name = fetchNotificationsSince)]
     pub async fn fetch_notifications_since(
         &self,
-        _since_ts_ms: f64,
-        _max_rooms: u32,
-        _max_events: u32,
+        since_ts_ms: f64,
+        max_rooms: u32,
+        max_events: u32,
     ) -> JsValue {
-        // Simplified: not fully supported on wasm, return empty
-        to_json(&Vec::<RenderedNotification>::new())
+        let Some(state) = self.state() else {
+            return to_json(&Vec::<RenderedNotification>::new());
+        };
+
+        let since_ts_ms = since_ts_ms as u64;
+
+        let client = state.client();
+
+        let setup = match state.sync_service.borrow().as_ref().cloned() {
+            Some(svc) => NotificationProcessSetup::SingleProcess { sync_service: svc },
+            None => NotificationProcessSetup::MultipleProcesses,
+        };
+
+        let Ok(nc) = NotificationClient::new(client.clone(), setup).await else {
+            return to_json(&Vec::<RenderedNotification>::new());
+        };
+
+        let mut out = Vec::new();
+        let mut rooms_checked = 0u32;
+
+        for room in client.joined_rooms() {
+            if rooms_checked >= max_rooms {
+                break;
+            }
+            rooms_checked += 1;
+
+            let rid = room.room_id().to_owned();
+            let Ok(tl) = room.timeline().await else {
+                continue;
+            };
+            let (items, _stream) = tl.subscribe().await;
+            for it in items.iter().rev() {
+                let Some(ev) = it.as_event() else { continue };
+                let ts: u64 = ev.timestamp().0.into();
+                if ts <= since_ts_ms {
+                    break;
+                }
+                let Some(eid_ref) = ev.event_id() else {
+                    continue;
+                };
+                let status = match nc.get_notification(&rid, eid_ref).await {
+                    Ok(s) => s,
+                    Err(_) => continue,
+                };
+                let NotificationStatus::Event(item) = status else {
+                    continue;
+                };
+                let eid = eid_ref.to_owned();
+                if let Some(rendered) = crate::map_notification_item_to_rendered(&rid, &eid, &item) {
+                    out.push(rendered);
+                    if out.len() as u32 >= max_events {
+                        return to_json(&out);
+                    }
+                }
+            }
+        }
+        to_json(&out)
     }
 
     #[wasm_bindgen(js_name = sendExistingAttachment)]

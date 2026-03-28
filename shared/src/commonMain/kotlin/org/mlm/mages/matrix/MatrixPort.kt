@@ -175,7 +175,7 @@ data class EmojiEntry(val symbol: String, val description: String)
 interface VerificationService {
     fun startDeviceVerification(deviceId: String): Flow<VerifEvent>
     fun startUserVerification(userId: String): Flow<VerifEvent>
-    fun acceptAndObserveVerification(flowId: String, otherUserId: String): kotlinx.coroutines.flow.Flow<VerifEvent>
+    fun acceptAndObserveVerification(flowId: String, otherUserId: String): Flow<VerifEvent>
     suspend fun acceptSas(flowId: String, otherUserId: String): Boolean
     suspend fun confirmSas(flowId: String): Boolean
     suspend fun cancelVerification(flowId: String): Boolean
@@ -215,7 +215,7 @@ data class RenderedNotification(
     val tsMs: Long,
     val isDm: Boolean,
     val kind: NotificationKind,
-    val expiresAtMs: Long?
+    val expiresAtMs: Long? = null
 )
 
 @Serializable
@@ -229,13 +229,13 @@ data class PublicRoomsPage(val rooms: List<PublicRoom>, val nextBatch: String?, 
 @Serializable
 data class RoomPreview(
     val roomId: String,
-    val canonicalAlias: String?,
-    val name: String?,
-    val topic: String?,
-    val avatarUrl: String?,
+    val canonicalAlias: String? = null,
+    val name: String? = null,
+    val topic: String? = null,
+    val avatarUrl: String? = null,
     val memberCount: Long,
-    val worldReadable: Boolean?,
-    val joinRule: RoomJoinRule?,
+    val worldReadable: Boolean? = null,
+    val joinRule: RoomJoinRule? = null,
     val membership: RoomPreviewMembership?
 )
 @Serializable
@@ -370,7 +370,7 @@ data class KnockRequestSummary(
     val displayName: String? = null,
     val avatarUrl: String? = null,
     val reason: String? = null,
-    val tsMs: Long?,
+    val tsMs: Long? = null,
     val isSeen: Boolean,
 )
 
@@ -392,7 +392,7 @@ data class ThreadSummary(val rootEventId: String, val roomId: String, val count:
 data class SpaceInfo(
     val roomId: String,
     val name: String,
-    val topic: String?,
+    val topic: String? = null,
     val memberCount: Long,
     val isEncrypted: Boolean,
     val isPublic: Boolean,
@@ -541,10 +541,10 @@ interface MatrixPort {
     suspend fun accountManagementUrl(): String?
     fun setupRecovery(observer: RecoveryObserver): Boolean
     fun observeRecoveryState(observer: RecoveryStateObserver): ULong
-    fun unobserveRecoveryState(subId: ULong): Unit
+    fun unobserveRecoveryState(subId: ULong)
 
     fun observeBackupState(observer: BackupStateObserver): ULong
-    fun unobserveBackupState(subId: ULong): Unit
+    fun unobserveBackupState(subId: ULong)
 
     suspend fun backupExistsOnServer(fetch: Boolean = false): Boolean
     suspend fun setKeyBackupEnabled(enabled: Boolean): Boolean

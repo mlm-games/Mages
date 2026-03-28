@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -20,7 +21,7 @@ fun DesktopBackground(
     scope: CoroutineScope
 ) {
     val service: MatrixService = koinInject()
-    val settingsRepo: io.github.mlmgames.settings.core.SettingsRepository<AppSettings> = koinInject()
+    val settingsRepo: SettingsRepository<AppSettings> = koinInject()
     val settings by settingsRepo.flow.collectAsState(AppSettings())
 
     LaunchedEffect(Unit) {
@@ -69,6 +70,6 @@ fun DesktopBackground(
 fun DesktopAppContent(
     deepLinks: Flow<DeepLinkAction>
 ) {
-    val settingsRepo: io.github.mlmgames.settings.core.SettingsRepository<AppSettings> = koinInject()
+    val settingsRepo: SettingsRepository<AppSettings> = koinInject()
     App(settingsRepo, deepLinks)
 }

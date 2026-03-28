@@ -32,6 +32,7 @@ import org.mlm.mages.matrix.Presence
 import org.mlm.mages.matrix.SasPhase
 import org.mlm.mages.nav.*
 import org.mlm.mages.platform.BindLifecycle
+import org.mlm.mages.platform.BindNotifications
 import org.mlm.mages.platform.LocalAppLocale
 import org.mlm.mages.platform.ProvideAppLocale
 import org.mlm.mages.platform.platformEmbeddedElementCallParentUrlOrNull
@@ -95,6 +96,8 @@ private fun AppContent(
     val postError = rememberErrorPoster(snackbarManager)
     val callManager: CallManager = koinInject()
     val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
+
+    BindNotifications(service = service, settingsRepository = settingsRepository)
 
     var initDone by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
