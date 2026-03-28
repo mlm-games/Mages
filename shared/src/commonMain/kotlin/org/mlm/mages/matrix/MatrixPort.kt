@@ -215,7 +215,9 @@ data class RenderedNotification(
     val tsMs: Long,
     val isDm: Boolean,
     val kind: NotificationKind,
-    val expiresAtMs: Long? = null
+    val expiresAtMs: Long? = null,
+    val senderAvatarUrl: String? = null,
+    val roomAvatarUrl: String? = null,
 )
 
 @Serializable

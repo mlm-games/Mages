@@ -18,7 +18,7 @@ actual object Notifier {
     private var currentRoomId: String? = null
     private var windowFocused: Boolean = true
 
-    actual fun notifyRoom(title: String, body: String) {
+    actual fun notifyRoom(title: String, body: String, icon: String?) {
         if (!windowIsSecureContext()) return
         if (!notificationSupported()) return
         if (notificationPermission() != "granted") return
@@ -26,7 +26,7 @@ actual object Notifier {
         createBrowserNotification(
             title = title,
             body = body,
-            icon = "favicon.ico"
+            icon = icon
         )
     }
 
@@ -125,7 +125,19 @@ actual fun BindNotifications(
                     notification.roomName.ifBlank { notification.sender }
                 }
 
-                Notifier.notifyRoom(title, notification.body)
+                val avatarUrl = if (notification.isDm) {
+                    notification.senderAvatarUrl
+                } else {
+                    notification.roomAvatarUrl
+                }
+
+                val resolvedIcon = avatarUrl?.let { url ->
+                    runCatching {
+                        service.avatars.resolve(url, px = 96, crop = true)
+                    }.getOrNull()
+                }
+
+                Notifier.notifyRoom(title, notification.body, resolvedIcon)
             }
 
             if (nextBaseline != baseline) {

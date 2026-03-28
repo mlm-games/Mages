@@ -38,7 +38,7 @@ actual object Notifier {
     private fun appContextOrNull(): Context? =
         runCatching { GlobalContext.get().get<Context>() }.getOrNull()
 
-    actual fun notifyRoom(title: String, body: String) {
+    actual fun notifyRoom(title: String, body: String, icon: String?) {
         val ctx = appContextOrNull() ?: return
         val mgr = ctx.getSystemService<NotificationManager>() ?: return
 

@@ -17,8 +17,9 @@ actual object Notifier {
     private var windowFocused: Boolean = true
     private val roomsNotifiedWithSound = HashSet<String>()
 
-    actual fun notifyRoom(title: String, body: String) {
+    actual fun notifyRoom(title: String, body: String, icon: String?) {
         // Plain notifs without actions/context (used by other parts of the app)
+        //TODO: Use icon parameter later
         NotifierImpl.notify(app = "Mages", title = title, body = body, desktopEntry = "org.mlm.mages")
     }
 

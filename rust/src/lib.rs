@@ -4134,6 +4134,8 @@ pub fn map_notification_item_to_rendered(
         ts_ms,
         kind,
         expires_at_ms,
+        sender_avatar_url: item.sender_avatar_url.clone(),
+        room_avatar_url: item.room_avatar_url.clone(),
     })
 }
 

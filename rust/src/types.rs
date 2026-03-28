@@ -2,7 +2,7 @@ use matrix_sdk::{PredecessorRoom, SuccessorRoom};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
-use uniffi::{Enum, Record, export};
+use uniffi::{export, Enum, Record};
 
 use crate::RT;
 
@@ -146,6 +146,8 @@ pub struct RenderedNotification {
     pub is_dm: bool,
     pub kind: NotificationKind,
     pub expires_at_ms: Option<u64>,
+    pub sender_avatar_url: Option<String>,
+    pub room_avatar_url: Option<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Record)]
