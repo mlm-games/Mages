@@ -9,7 +9,7 @@ The goal was to have a cross‑platform desktop/mobile client, while not being a
 
 ## Status 
 
-This is experimental‑stage software. It is still in it's early stages, and might lack common features or have (game/use-breaking?) bugs (do open an issue if you've encountered any)
+This is experimental‑stage software. It is still in its early stages, and might lack common features or have (game/use-breaking?) bugs (do open an issue if you've encountered any)
 
 ## Features (as of the last README update)
 
@@ -33,7 +33,7 @@ This is experimental‑stage software. It is still in it's early stages, and mig
   - Also downloadable via AUR and snap-store.
 
 - **Other platforms**  
-  - The UI is Compose Multiplatform. In practice, only Android and Linux's AppImages are actively tested. Windows and Mac are tested rarely and are not signed/notarized. [Web](mlm-games.github.io/Mages) works, but isn't supposed to have feature parity (no notifications), and mostly useful for testing latest changes live or previewing the app.
+  - The UI is Compose Multiplatform. In practice, only Android and Linux's AppImages are actively tested. Windows and Mac are tested rarely and are not signed/notarized. [Web](https://mlm-games.github.io/Mages) works, but isn't supposed to have feature parity (no search functionality), and mostly useful for testing latest changes live or previewing the app.
 
 ## Architecture
 
@@ -75,12 +75,12 @@ Most Matrix‑specific logic lives in Rust; Kotlin mostly handles presentation.
 
 ## Version Trackers
 
-| Platform    | Version |
-|-------------|---------|
-| F-Droid     | [![F-Droid Version](https://img.shields.io/f-droid/v/org.mlm.mages)](https://f-droid.org/packages/org.mlm.mages/) |
-| AUR         | [![AUR Version](https://img.shields.io/aur/version/mages-bin)](https://aur.archlinux.org/packages/mages-bin) |
+| Platform   | Version                                                                                                                              |
+|------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| F-Droid    | [![F-Droid Version](https://img.shields.io/f-droid/v/org.mlm.mages)](https://f-droid.org/packages/org.mlm.mages/)                    |
+| AUR        | [![AUR Version](https://img.shields.io/aur/version/mages-bin)](https://aur.archlinux.org/packages/mages-bin)                         |
 | Flathub    | [![Flathub Version](https://img.shields.io/flathub/v/io.github.mlm_games.mages)](https://flathub.org/apps/io.github.mlm_games.mages) |
-| Snap Store | [![Snapcraft Version](https://img.shields.io/snapcraft/v/mages/latest/stable)](https://snapcraft.io/mages) |
+| Snap Store | [![Snapcraft Version](https://img.shields.io/snapcraft/v/mages/latest/stable)](https://snapcraft.io/mages)                           |
 
 ## Contributing
 
