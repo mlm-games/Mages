@@ -699,8 +699,7 @@ fun RoomScreen(
                                             viewModel = viewModel,
                                             showMessageAvatars = settings.showMessageAvatars,
                                             showUsernameInDms = settings.showUsernameInDms,
-                                            enableBubbleAnimations = settings.bubbleAnimations,
-                                            textRetainState = !settings.bubbleAnimations
+                                            enableBubbleAnimations = settings.bubbleAnimations
                                         )
                                     }
                                 }
@@ -1209,7 +1208,6 @@ private fun MessageItem(
     index: Int,
     events: List<MessageEvent>,
     state: RoomUiState,
-    textRetainState: Boolean,
     lastOutgoingIndex: Int,
     onLongPress: () -> Unit,
     onReply: () -> Unit,
@@ -1388,7 +1386,6 @@ private fun MessageItem(
                         variant = MessageBubbleVariant.Timeline,
                         resolvedPreviewPath = state.thumbByEvent[event.eventId],
                         senderVisible = true,
-                        textRetainState = textRetainState
                     )
                 ).copy(poll = event.pollData)
 

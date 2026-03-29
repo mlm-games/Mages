@@ -101,6 +101,5 @@ fun MessageEvent.toBubbleModel(
         poll = pollData,
         thread = ctx.threadCount?.let { count -> MessageThreadUi(count) },
         variant = ctx.variant,
-        textRetainState = ctx.textRetainState,
     )
 }

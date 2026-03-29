@@ -110,9 +110,6 @@ fun ThreadScreen(
     onDelete: suspend (MessageEvent) -> Boolean,
     enterSendsMessage: Boolean = false,
 ) {
-    val settingsRepository: SettingsRepository<AppSettings> = koinInject()
-    val settings by settingsRepository.flow.collectAsState(AppSettings())
-
     val scope = rememberCoroutineScope()
     var sheetEvent by remember { mutableStateOf<MessageEvent?>(null) }
     val listState = rememberLazyListState()
@@ -285,8 +282,7 @@ fun ThreadScreen(
                                 onReact = { emoji -> onReact(event, emoji) },
                                 onLongPress = { sheetEvent = event },
                                 grouped = shouldGroup,
-                                groupedWithNext = groupedWithNext,
-                                textRetainState = !settings.bubbleAnimations
+                                groupedWithNext = groupedWithNext
                             )
                         }
                     }
@@ -554,7 +550,6 @@ private fun ThreadReplyMessage(
     avatarByUserId: Map<String, String>,
     onReact: (String) -> Unit,
     onLongPress: () -> Unit,
-    textRetainState: Boolean,
     grouped: Boolean = false,
     groupedWithNext: Boolean = false
 ) {
@@ -593,7 +588,6 @@ private fun ThreadReplyMessage(
                     variant = MessageBubbleVariant.ThreadReply,
                     resolvedPreviewPath = null,
                     senderVisible = !grouped,
-                    textRetainState = textRetainState
                 )
             ).copy(
                 sendState = event.sendState,
