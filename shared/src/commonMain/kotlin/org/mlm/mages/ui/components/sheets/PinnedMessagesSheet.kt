@@ -14,25 +14,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import org.mlm.mages.MessageEvent
+import org.mlm.mages.ui.PinnedMessageUi
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
-import org.mlm.mages.ui.theme.Limits
 import org.mlm.mages.ui.util.formatTime
 
 @Composable
 fun PinnedMessagesSheet(
-    pinnedEventIds: List<String>,
-    events: List<MessageEvent>,
-    onEventClick: (MessageEvent) -> Unit,
-    onUnpin: (MessageEvent) -> Unit,
+    pinnedMessages: List<PinnedMessageUi>,
+    onEventClick: (String) -> Unit,
+    onUnpin: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val pinnedEvents = pinnedEventIds.mapNotNull { pinnedId ->
-        events.find { it.eventId == pinnedId }
-    }
-
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -60,109 +54,92 @@ fun PinnedMessagesSheet(
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.weight(1f))
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close")
-                }
+                Text(
+                    text = pinnedMessages.size.toString(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
-            HorizontalDivider()
-
-            if (pinnedEvents.isEmpty()) {
+            if (pinnedMessages.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 64.dp),
+                        .padding(Spacing.xl),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "No pinned messages",
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(Spacing.md),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                ) {
-                    items(pinnedEvents, key = { it.eventId }) { event ->
-                        PinnedMessageItem(
-                            event = event,
-                            onClick = { onEventClick(event) },
-                            onUnpin = { onUnpin(event) }
-                        )
+                return@Column
+            }
+
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                items(
+                    items = pinnedMessages,
+                    key = { it.eventId }
+                ) { pinned ->
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onEventClick(pinned.eventId) },
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PushPin,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+
+                            Spacer(Modifier.width(Spacing.sm))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = pinned.senderLabel ?: "Pinned message",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = pinned.previewText,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                if (!pinned.isResolved) {
+                                    Text(
+                                        text = "Tap to jump to the message in the timeline",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            IconButton(onClick = { onUnpin(pinned.eventId) }) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Unpin"
+                                )
+                            }
+                        }
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PinnedMessageItem(
-    event: MessageEvent,
-    onClick: () -> Unit,
-    onUnpin: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Spacing.md),
-            verticalAlignment = Alignment.Top
-        ) {
-            Avatar(
-                name = event.sender,
-                avatarPath = null, // We'd need to resolve avatar
-                size = Sizes.avatarSmall
-            )
-
-            Spacer(Modifier.width(Spacing.sm))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = event.sender,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(Modifier.width(Spacing.xs))
-                    Text(
-                        text = formatTime(event.timestampMs),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Spacer(Modifier.height(Spacing.xs))
-
-                Text(
-                    text = event.body.take(Limits.previewCharsLong),
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            IconButton(
-                onClick = onUnpin,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PushPin,
-                    contentDescription = "Unpin",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp)
-                )
             }
         }
     }

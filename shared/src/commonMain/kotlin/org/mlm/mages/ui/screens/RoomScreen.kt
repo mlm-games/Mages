@@ -76,6 +76,7 @@ import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.AttachmentUploadStage
+import org.mlm.mages.ui.PinnedMessageUi
 import org.mlm.mages.ui.RoomUiState
 import org.mlm.mages.ui.components.message.MessageAttachmentUi
 import org.mlm.mages.ui.components.message.MessageBubbleModel
@@ -456,6 +457,8 @@ fun RoomScreen(
                     hasActiveCall = state.hasActiveCallForRoom,
                     voiceCallAction = state.voiceCallAction,
                     videoCallAction = state.videoCallAction,
+                    pinnedMessages = state.pinnedMessages,
+                    onViewPinnedMessages = viewModel::showPinnedMessagesSheet,
                     onBack = onBack,
                     onOpenInfo = onOpenInfo,
                     onOpenSearch = viewModel::showRoomSearch,
@@ -856,7 +859,7 @@ fun RoomScreen(
             onEdit = { viewModel.startEdit(event); sheetEvent = null },
             onDelete = { viewModel.delete(event); sheetEvent = null },
             onPin = { if (state.pinAction.isEnabled) viewModel.pinEvent(event) },
-            onUnpin = { if (state.pinAction.isEnabled) viewModel.unpinEvent(event) },
+            onUnpin = { if (state.pinAction.isEnabled) viewModel.unpinEvent(event.eventId) },
             onReport = { viewModel.showReportDialog(event) },
             onShowMessageInfo = { viewModel.showMessageInfo(event) },
             onReact = { emoji -> 
@@ -892,23 +895,14 @@ fun RoomScreen(
         )
     }
 
-    if (state.pinnedEventIds.isNotEmpty()) {
-        PinnedMessageBanner(
-            pinnedEventIds = state.pinnedEventIds,
-            events = state.allEvents,
-            onViewAll = viewModel::showPinnedMessagesSheet,
-        )
-    }
-
     if (state.showPinnedMessagesSheet) {
         PinnedMessagesSheet(
-            pinnedEventIds = state.pinnedEventIds,
-            events = state.allEvents,
-            onEventClick = { event -> 
-                viewModel.jumpToEvent(event.eventId)
+            pinnedMessages = state.pinnedMessages,
+            onEventClick = { eventId ->
+                viewModel.jumpToEvent(eventId)
                 viewModel.hidePinnedMessagesSheet()
             },
-            onUnpin = { viewModel.unpinEvent(it) },
+            onUnpin = viewModel::unpinEvent,
             onDismiss = viewModel::hidePinnedMessagesSheet
         )
     }
@@ -958,6 +952,8 @@ private fun RoomTopBar(
     hasActiveCall: Boolean,
     voiceCallAction: ActionAvailabilityUi,
     videoCallAction: ActionAvailabilityUi,
+    pinnedMessages: List<PinnedMessageUi>,
+    onViewPinnedMessages: () -> Unit,
     onBack: () -> Unit,
     onOpenInfo: () -> Unit,
     onOpenSearch: () -> Unit,
@@ -1056,6 +1052,13 @@ private fun RoomTopBar(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                 )
             )
+
+            if (pinnedMessages.isNotEmpty()) {
+                PinnedMessageBanner(
+                    pinnedMessages = pinnedMessages,
+                    onViewAll = onViewPinnedMessages
+                )
+            }
 
             AnimatedVisibility(visible = isOffline) {
                 Surface(

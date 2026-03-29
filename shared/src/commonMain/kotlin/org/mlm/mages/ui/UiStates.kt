@@ -87,6 +87,16 @@ data class ActionAvailabilityUi(
     }
 }
 
+data class PinnedMessageUi(
+    val eventId: String,
+    val event: MessageEvent? = null,
+) {
+    val isResolved: Boolean get() = event != null
+    val senderLabel: String? get() = event?.senderDisplayName ?: event?.sender
+    val previewText: String get() = event?.body?.ifBlank { "Pinned message" } ?: "Pinned message"
+    val timestampMs: Long? get() = event?.timestampMs
+}
+
 data class MessageActionStateUi(
     val edit: ActionAvailabilityUi = ActionAvailabilityUi(),
     val delete: ActionAvailabilityUi = ActionAvailabilityUi(),
@@ -199,7 +209,19 @@ data class RoomUiState(
     val selectedMemberKickAction: ActionAvailabilityUi = ActionAvailabilityUi(),
     val selectedMemberBanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
     val selectedMemberUnbanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
-)
+) {
+    val pinnedMessages: List<PinnedMessageUi>
+        get() {
+            if (pinnedEventIds.isEmpty()) return emptyList()
+            val eventsById = allEvents.associateBy { it.eventId }
+            return pinnedEventIds.map { pinnedId ->
+                PinnedMessageUi(
+                    eventId = pinnedId,
+                    event = eventsById[pinnedId],
+                )
+            }
+        }
+}
 
 @Serializable
 enum class AttachmentUploadStage {

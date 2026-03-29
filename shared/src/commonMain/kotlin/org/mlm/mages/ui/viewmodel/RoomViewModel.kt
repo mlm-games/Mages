@@ -578,17 +578,22 @@ class RoomViewModel(
         }
     }
 
-    fun unpinEvent(event: MessageEvent) {
+    fun unpinEvent(eventId: String) {
         if (!currentState.pinAction.isEnabled) {
             launch { _events.send(Event.ShowError("You don't have permission to unpin messages")) }
             return
         }
-        if (event.eventId.isBlank()) return
+
+        if (eventId.isBlank()) return
+
         launch {
             val currentPinned = currentState.pinnedEventIds.toMutableList()
-            if (event.eventId in currentPinned) {
-                currentPinned.remove(event.eventId)
-                val ok = runSafe { service.port.setPinnedEvents(currentState.roomId, currentPinned) }?.isSuccess ?: false
+            if (eventId in currentPinned) {
+                currentPinned.remove(eventId)
+                val ok = runSafe {
+                    service.port.setPinnedEvents(currentState.roomId, currentPinned)
+                }?.isSuccess ?: false
+
                 if (ok) {
                     updateState { copy(pinnedEventIds = currentPinned) }
                     _events.send(Event.ShowError("Message unpinned"))
