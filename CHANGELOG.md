@@ -1,3 +1,12 @@
+## v4.3.6
+
+- Switching accounts clears previous cached recovery UI state (#68)
+- Hide left public rooms in UI (#69)
+- Add settings to hide few types of system timeline events
+- add email and phone number options for password login
+- Expose dynamic theme options to bubbles
+
+
 ## v4.3.5
 
 - Fix client id not being properly saved (might need to relogin)
