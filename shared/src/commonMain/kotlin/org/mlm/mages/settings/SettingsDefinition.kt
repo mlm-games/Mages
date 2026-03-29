@@ -119,7 +119,6 @@ data class AppSettings(
 
     @Setting(
         title = "Hide topic changes",
-        description = "Room topic updates",
         category = Timeline::class,
         type = Dropdown::class,
         options = ["Never", "Public Rooms", "Non-DMs", "Always"]
@@ -137,7 +136,6 @@ data class AppSettings(
 
     @Setting(
         title = "Hide room name changes",
-        description = "Room name updates",
         category = Timeline::class,
         type = Dropdown::class,
         options = ["Never", "Public Rooms", "Non-DMs", "Always"]
@@ -146,7 +144,6 @@ data class AppSettings(
 
     @Setting(
         title = "Hide room avatar changes",
-        description = "Room avatar updates",
         category = Timeline::class,
         type = Dropdown::class,
         options = ["Never", "Public Rooms", "Non-DMs", "Always"]
@@ -155,7 +152,6 @@ data class AppSettings(
 
     @Setting(
         title = "Hide encryption changes",
-        description = "Encryption state updates",
         category = Timeline::class,
         type = Dropdown::class,
         options = ["Never", "Public Rooms", "Non-DMs", "Always"]
@@ -164,7 +160,6 @@ data class AppSettings(
 
     @Setting(
         title = "Hide pinned-event updates",
-        description = "Pinned event list changes",
         category = Timeline::class,
         type = Dropdown::class,
         options = ["Never", "Public Rooms", "Non-DMs", "Always"]
@@ -209,7 +204,6 @@ data class AppSettings(
 
     @Setting(
         title = "Hide guest-access changes",
-        description = "Guest access updates",
         category = Timeline::class,
         type = Dropdown::class,
         options = ["Never", "Public Rooms", "Non-DMs", "Always"]
@@ -218,7 +212,6 @@ data class AppSettings(
 
     @Setting(
         title = "Hide server ACL changes",
-        description = "Server allow/deny list updates",
         category = Timeline::class,
         type = Dropdown::class,
         options = ["Never", "Public Rooms", "Non-DMs", "Always"]
@@ -236,7 +229,6 @@ data class AppSettings(
 
     @Setting(
         title = "Hide space-child events",
-        description = "Space hierarchy updates",
         category = Timeline::class,
         type = Dropdown::class,
         options = ["Never", "Public Rooms", "Non-DMs", "Always"]
