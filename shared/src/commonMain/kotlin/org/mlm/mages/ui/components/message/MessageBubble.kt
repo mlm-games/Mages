@@ -25,6 +25,9 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import mages.shared.generated.resources.Res
+import mages.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.matrix.SendState
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.MarkdownText
@@ -78,6 +81,11 @@ fun MessageBubble(
         0.dp
     }
     val renderedBody = model.formattedBody.toMarkdownMentionsOrNull() ?: model.body
+    val bubbleTextColor = if (isMine) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
 
     Column(
         modifier = modifier
@@ -144,16 +152,17 @@ fun MessageBubble(
                         }
                     }
 
-                    model.attachment?.let { attachment ->
-                        AttachmentThumbnail(
-                            thumbPath = attachment.thumbPath,
-                            attachmentKind = attachment.kind,
-                            durationMs = attachment.durationMs,
-                            isMine = isMine,
-                            onOpen = onOpenAttachment,
-                            attachmentWidth = attachment.width,
-                            attachmentHeight = attachment.height
-                        )
+                    when (val attachment = model.attachment) {
+                        is MessageAttachmentUi.File -> {
+                            FileAttachmentBubble(attachment, isMine, onOpenAttachment)
+                        }
+                        is MessageAttachmentUi.Image -> {
+                            ImageAttachmentBubble(attachment, isMine, onOpenAttachment)
+                        }
+                        is MessageAttachmentUi.Video -> {
+                            VideoAttachmentBubble(attachment, isMine, onOpenAttachment)
+                        }
+                        null -> { /* no attachment */ }
                     }
 
                     if (model.poll != null) {
@@ -163,11 +172,10 @@ fun MessageBubble(
                             onVote = { optId -> onVote?.invoke(optId) },
                             onEndPoll = { onEndPoll?.invoke() }
                         )
-                    } else if (model.body.isNotBlank()) {
+                    } else if (model.attachment == null && model.body.isNotBlank()) {
                         MarkdownText(
                             text = renderedBody,
-                            color = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
-                            else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = bubbleTextColor,
                         )
                     }
 
@@ -175,8 +183,7 @@ fun MessageBubble(
                         Text(
                             text = "(edited)",
                             style = MaterialTheme.typography.labelSmall,
-                            color = (if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
-                            else MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.6f),
+                            color = bubbleTextColor.copy(alpha = 0.6f),
                             modifier = Modifier.padding(top = 2.dp)
                         )
                     }
@@ -184,8 +191,7 @@ fun MessageBubble(
                     Text(
                         text = formatTime(model.timestamp),
                         style = MaterialTheme.typography.labelSmall,
-                        color = (if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
-                        else MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.7f),
+                        color = bubbleTextColor.copy(alpha = 0.7f),
                         modifier = Modifier.padding(top = Spacing.xs)
                     )
 
@@ -282,65 +288,84 @@ private fun ReplyPreview(isMine: Boolean, sender: String?, body: String, onClick
 }
 
 @Composable
-private fun AttachmentThumbnail(
-    thumbPath: String?,
-    attachmentKind: org.mlm.mages.AttachmentKind?,
-    durationMs: Long?,
+private fun FileAttachmentBubble(
+    attachment: MessageAttachmentUi.File,
     isMine: Boolean,
     onOpen: (() -> Unit)?,
-    attachmentWidth: Int? = null,
-    attachmentHeight: Int? = null
 ) {
-    if (attachmentKind == null) return
-
     val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
     else MaterialTheme.colorScheme.onSecondaryContainer
     val accentColor = if (isMine) MaterialTheme.colorScheme.primary
     else MaterialTheme.colorScheme.secondary
 
-    if (attachmentKind == org.mlm.mages.AttachmentKind.File) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(10.dp))
-                .background(contentColor.copy(alpha = 0.08f))
-                .border(1.dp, contentColor.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
-                .clickable(enabled = onOpen != null) { onOpen?.invoke() }
+    Box(
+        modifier = Modifier
+            .widthIn(max = 320.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(contentColor.copy(alpha = 0.08f))
+            .border(1.dp, contentColor.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
+            .clickable(enabled = onOpen != null) { onOpen?.invoke() }
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(accentColor.copy(alpha = 0.15f))
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(accentColor.copy(alpha = 0.15f))
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
-                        contentDescription = null,
-                        tint = accentColor,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    text = "Tap to open",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = contentColor
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(18.dp)
                 )
             }
-        }
-        Spacer(Modifier.height(6.dp))
-        return
-    }
 
-    if (thumbPath != null) {
-        val aspectRatio = if ((attachmentWidth ?: 0) > 0 && (attachmentHeight ?: 0) > 0) {
-            attachmentWidth!!.toFloat() / attachmentHeight!!.toFloat()
+            Spacer(Modifier.width(10.dp))
+
+            Column(modifier = Modifier.widthIn(max = 240.dp)) {
+                Text(
+                    text = attachment.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = contentColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                attachment.subtitle?.let { subtitle ->
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = contentColor.copy(alpha = 0.72f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ImageAttachmentBubble(
+    attachment: MessageAttachmentUi.Image,
+    isMine: Boolean,
+    onOpen: (() -> Unit)?,
+) {
+    val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
+    else MaterialTheme.colorScheme.onSecondaryContainer
+
+    val previewPath = attachment.previewPath
+
+    if (previewPath != null) {
+        val aspectRatio = if ((attachment.width ?: 0) > 0 && (attachment.height ?: 0) > 0) {
+            attachment.width!!.toFloat() / attachment.height!!.toFloat()
         } else null
 
         Box(
@@ -355,7 +380,62 @@ private fun AttachmentThumbnail(
         ) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalPlatformContext.current)
-                    .data(thumbPath)
+                    .data(previewPath)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 120.dp, max = 300.dp)
+            )
+        }
+    } else {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(contentColor.copy(alpha = 0.08f))
+                .border(1.dp, contentColor.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+        ) {
+            Text(
+                text = stringResource(Res.string.image),
+                modifier = Modifier.padding(12.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = contentColor
+            )
+        }
+    }
+}
+
+@Composable
+private fun VideoAttachmentBubble(
+    attachment: MessageAttachmentUi.Video,
+    isMine: Boolean,
+    onOpen: (() -> Unit)?,
+) {
+    val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
+    else MaterialTheme.colorScheme.onSecondaryContainer
+
+    val previewPath = attachment.previewPath
+
+    if (previewPath != null) {
+        val aspectRatio = if ((attachment.width ?: 0) > 0 && (attachment.height ?: 0) > 0) {
+            attachment.width!!.toFloat() / attachment.height!!.toFloat()
+        } else null
+
+        Box(
+            modifier = Modifier
+                .heightIn(min = 120.dp, max = 300.dp)
+                .sizeIn(maxHeight = 300.dp)
+                .then(
+                    if (aspectRatio != null) Modifier.aspectRatio(aspectRatio) else Modifier
+                )
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(enabled = onOpen != null) { onOpen?.invoke() }
+        ) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalPlatformContext.current)
+                    .data(previewPath)
                     .crossfade(true)
                     .build(),
                 contentDescription = null,
@@ -365,11 +445,10 @@ private fun AttachmentThumbnail(
                     .heightIn(min = 120.dp, max = 300.dp)
             )
 
-            if (attachmentKind == org.mlm.mages.AttachmentKind.Video && durationMs != null) {
-                DurationBadge(durationMs, Modifier.align(Alignment.BottomEnd).padding(6.dp))
+            attachment.durationMs?.let { duration ->
+                DurationBadge(duration, Modifier.align(Alignment.BottomEnd).padding(6.dp))
             }
         }
-        Spacer(Modifier.height(6.dp))
     } else {
         Box(
             modifier = Modifier
@@ -378,13 +457,12 @@ private fun AttachmentThumbnail(
                 .border(1.dp, contentColor.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
         ) {
             Text(
-                text = if (attachmentKind == org.mlm.mages.AttachmentKind.Video) "Video" else "Image",
+                text = stringResource(Res.string.video),
                 modifier = Modifier.padding(12.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = contentColor
             )
         }
-        Spacer(Modifier.height(6.dp))
     }
 }
 
@@ -468,5 +546,3 @@ fun BubbleWidthWrapper(
         }
     }
 }
-
-

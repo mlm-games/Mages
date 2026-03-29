@@ -1,6 +1,5 @@
 package org.mlm.mages.ui.components.message
 
-import org.mlm.mages.AttachmentKind
 import org.mlm.mages.matrix.PollData
 import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.matrix.SendState
@@ -27,16 +26,48 @@ data class MessageReplyUi(
     val body: String?,
 )
 
-data class MessageAttachmentUi(
-    val thumbPath: String? = null,
-    val kind: AttachmentKind? = null,
-    val width: Int? = null,
-    val height: Int? = null,
-    val durationMs: Long? = null,
-)
+sealed interface MessageAttachmentUi {
+    data class File(
+        val fileName: String?,
+        val mime: String?,
+        val sizeBytes: Long?,
+        val title: String,
+        val subtitle: String?,
+    ) : MessageAttachmentUi
+
+    data class Image(
+        val previewPath: String?,
+        val width: Int?,
+        val height: Int?,
+        val caption: String?,
+    ) : MessageAttachmentUi
+
+    data class Video(
+        val previewPath: String?,
+        val width: Int?,
+        val height: Int?,
+        val durationMs: Long?,
+        val caption: String?,
+    ) : MessageAttachmentUi
+}
 
 data class MessageThreadUi(
     val count: Int = 0,
+)
+
+data class MessageBubbleRenderContext(
+    val isMine: Boolean,
+    val isDm: Boolean,
+    val avatarPath: String?,
+    val groupedWithPrev: Boolean,
+    val groupedWithNext: Boolean,
+    val showMessageAvatars: Boolean = true,
+    val showUsernameInDms: Boolean = false,
+    val reactions: List<ReactionSummary> = emptyList(),
+    val threadCount: Int? = null,
+    val variant: MessageBubbleVariant = MessageBubbleVariant.Timeline,
+    val resolvedPreviewPath: String? = null,
+    val senderVisible: Boolean = true,
 )
 
 data class MessageBubbleModel(

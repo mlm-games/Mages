@@ -35,12 +35,10 @@ import org.mlm.mages.ui.components.core.StatusBanner
 import org.mlm.mages.ui.components.core.BannerType
 import org.mlm.mages.ui.components.core.formatDisplayName
 import org.mlm.mages.ui.components.message.MessageBubble
-import org.mlm.mages.ui.components.message.MessageBubbleModel
-import org.mlm.mages.ui.components.message.MessageGroupingUi
-import org.mlm.mages.ui.components.message.MessageReplyUi
-import org.mlm.mages.ui.components.message.MessageAttachmentUi
-import org.mlm.mages.ui.components.message.MessageSenderUi
+import org.mlm.mages.ui.components.message.MessageBubbleRenderContext
+import org.mlm.mages.ui.components.message.MessageBubbleVariant
 import org.mlm.mages.ui.components.message.ReactionChipsRow
+import org.mlm.mages.ui.components.message.toBubbleModel
 import org.mlm.mages.ui.components.message.ReactionChipStyle
 import org.mlm.mages.ui.components.sheets.MessageActionSheet
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
@@ -578,37 +576,25 @@ private fun ThreadReplyMessage(
         }
 
         Column(modifier = Modifier.weight(1f)) {
-            MessageBubble(
-                model = MessageBubbleModel(
-                    eventId = event.eventId,
+            val bubbleModel = event.toBubbleModel(
+                ctx = MessageBubbleRenderContext(
                     isMine = isMine,
-                    body = event.body,
-                    formattedBody = event.formattedBody,
-                    sender = if (grouped) null else MessageSenderUi(
-                        id = event.sender,
-                        displayName = event.senderDisplayName,
-                        avatarPath = avatarByUserId[event.sender]
-                    ),
-                    timestamp = event.timestampMs,
-                    grouping = MessageGroupingUi(
-                        groupedWithPrev = grouped,
-                        groupedWithNext = groupedWithNext
-                    ),
                     isDm = false,
+                    avatarPath = if (grouped) null else avatarByUserId[event.sender],
+                    groupedWithPrev = grouped,
+                    groupedWithNext = groupedWithNext,
                     reactions = reactionSummaries,
-                    reply = if (event.replyToBody != null) MessageReplyUi(
-                        sender = event.replyToSenderDisplayName,
-                        body = event.replyToBody
-                    ) else null,
-                    sendState = event.sendState,
-                    isEdited = event.isEdited,
-                    attachment = if (event.attachment?.kind != null) MessageAttachmentUi(
-                        kind = event.attachment?.kind,
-                        width = event.attachment?.width,
-                        height = event.attachment?.height,
-                        durationMs = event.attachment?.durationMs
-                    ) else null
-                ),
+                    threadCount = null,
+                    variant = MessageBubbleVariant.ThreadReply,
+                    resolvedPreviewPath = null,
+                    senderVisible = !grouped,
+                )
+            ).copy(
+                sendState = event.sendState,
+                isEdited = event.isEdited,
+            )
+            MessageBubble(
+                model = bubbleModel,
                 onLongPress = onLongPress,
                 onReact = onReact
             )

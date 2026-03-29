@@ -1,50 +1,105 @@
 package org.mlm.mages.ui.components.message
 
+import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MessageEvent
+import org.mlm.mages.ui.util.formatBytes
+
+private fun String.looksLikeFileName(): Boolean {
+    val value = trim()
+    return value.matches(Regex(""".+\.[A-Za-z0-9]{2,5}$""")) ||
+        value.matches(Regex("""(?i)(img|vid|pxl|dsc|screenshot)[-_ ]?\d+.*"""))
+}
+
+private fun String.normalizedAttachmentLabel(): String =
+    trim()
+        .lowercase()
+        .substringBeforeLast('.', this)
+        .replace('_', ' ')
+        .replace('-', ' ')
+        .replace(Regex("\\s+"), " ")
+
+private fun MessageEvent.toMediaCaption(): String? {
+    val text = body.trim()
+    val fileName = attachment?.fileName?.trim()
+
+    if (text.isEmpty()) return null
+    if (!fileName.isNullOrBlank() && text.normalizedAttachmentLabel() == fileName.normalizedAttachmentLabel()) {
+        return null
+    }
+    if (text.looksLikeFileName()) return null
+
+    return text
+}
+
+private fun buildAttachmentSubtitle(mime: String?, sizeBytes: Long?): String? {
+    val parts = buildList {
+        formatBytes(sizeBytes)?.let { add(it) }
+        mime?.takeIf { it.isNotBlank() }?.let { add(it) }
+    }
+    return parts.takeIf { it.isNotEmpty() }?.joinToString(" • ")
+}
+
+private fun MessageEvent.toAttachmentUi(
+    resolvedPreviewPath: String?
+): MessageAttachmentUi? {
+    val info = attachment ?: return null
+
+    return when (val kind = info.kind) {
+        AttachmentKind.File -> MessageAttachmentUi.File(
+            fileName = info.fileName,
+            mime = info.mime,
+            sizeBytes = info.sizeBytes,
+            title = info.fileName?.takeIf { it.isNotBlank() }
+                ?: body.trim().ifBlank { "File" },
+            subtitle = buildAttachmentSubtitle(info.mime, info.sizeBytes),
+        )
+        AttachmentKind.Image -> MessageAttachmentUi.Image(
+            previewPath = resolvedPreviewPath ?: info.thumbnailMxcUri,
+            width = info.width,
+            height = info.height,
+            caption = toMediaCaption(),
+        )
+        AttachmentKind.Video -> MessageAttachmentUi.Video(
+            previewPath = resolvedPreviewPath ?: info.thumbnailMxcUri,
+            width = info.width,
+            height = info.height,
+            durationMs = info.durationMs,
+            caption = toMediaCaption(),
+        )
+    }
+}
 
 fun MessageEvent.toBubbleModel(
-    isMine: Boolean,
-    isDm: Boolean,
-    avatarPath: String?,
-    groupedWithPrev: Boolean,
-    groupedWithNext: Boolean,
-    threadCount: Int? = null,
-    variant: MessageBubbleVariant = MessageBubbleVariant.Timeline,
+    ctx: MessageBubbleRenderContext
 ): MessageBubbleModel {
     return MessageBubbleModel(
         eventId = eventId,
-        isMine = isMine,
+        isMine = ctx.isMine,
         body = body,
         formattedBody = formattedBody,
-        sender = MessageSenderUi(
+        sender = if (ctx.senderVisible) MessageSenderUi(
             id = sender,
             displayName = senderDisplayName,
-            avatarPath = avatarPath,
-        ),
+            avatarPath = ctx.avatarPath,
+        ) else null,
         timestamp = timestampMs,
-        isDm = isDm,
+        isDm = ctx.isDm,
+        showMessageAvatars = ctx.showMessageAvatars,
+        showUsernameInDms = ctx.showUsernameInDms,
         grouping = MessageGroupingUi(
-            groupedWithPrev = groupedWithPrev,
-            groupedWithNext = groupedWithNext,
+            groupedWithPrev = ctx.groupedWithPrev,
+            groupedWithNext = ctx.groupedWithNext,
         ),
-        reactions = reactions,
+        reactions = ctx.reactions,
         reply = MessageReplyUi(
             sender = replyToSenderDisplayName,
             body = replyToBody,
         ),
         sendState = sendState,
-        attachment = attachment?.let {
-            MessageAttachmentUi(
-                thumbPath = it.thumbnailMxcUri,
-                kind = it.kind,
-                width = it.width,
-                height = it.height,
-                durationMs = it.durationMs,
-            )
-        },
+        attachment = toAttachmentUi(ctx.resolvedPreviewPath),
         isEdited = isEdited,
         poll = pollData,
-        thread = threadCount?.let { count -> MessageThreadUi(count) },
-        variant = variant,
+        thread = ctx.threadCount?.let { count -> MessageThreadUi(count) },
+        variant = ctx.variant,
     )
 }
