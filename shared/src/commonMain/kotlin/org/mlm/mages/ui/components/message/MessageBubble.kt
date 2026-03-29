@@ -176,6 +176,7 @@ fun MessageBubble(
                         MarkdownText(
                             text = renderedBody,
                             color = bubbleTextColor,
+                            retainState = model.textRetainState,
                         )
                     }
 

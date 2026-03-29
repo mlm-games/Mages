@@ -68,6 +68,7 @@ data class MessageBubbleRenderContext(
     val variant: MessageBubbleVariant = MessageBubbleVariant.Timeline,
     val resolvedPreviewPath: String? = null,
     val senderVisible: Boolean = true,
+    val textRetainState: Boolean
 )
 
 data class MessageBubbleModel(
@@ -88,5 +89,7 @@ data class MessageBubbleModel(
     val isEdited: Boolean = false,
     val poll: PollData? = null,
     val thread: MessageThreadUi? = null,
+
+    val textRetainState: Boolean,
     val variant: MessageBubbleVariant = MessageBubbleVariant.Timeline,
 )
