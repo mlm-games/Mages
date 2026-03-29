@@ -58,6 +58,7 @@ fun SecurityScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val settings by viewModel.settings.collectAsState()
+    val activeAccount by viewModel.activeAccount.collectAsState()
     val snackbarManager: SnackbarManager = koinInject()
     val postError = rememberErrorPoster(snackbarManager)
     val settingsSnackbarHostState = remember { SnackbarHostState() }
@@ -81,6 +82,13 @@ fun SecurityScreen(
             activeSheet = null
             viewModel.clearRecoverySubmitSuccess()
         }
+    }
+
+    LaunchedEffect(activeAccount?.id) {
+        verifyUserId = ""
+        showVerifyUserDialog = false
+        activeSheet = null
+        viewModel.dismissRecoveryKey()
     }
 
     LaunchedEffect(Unit) {
