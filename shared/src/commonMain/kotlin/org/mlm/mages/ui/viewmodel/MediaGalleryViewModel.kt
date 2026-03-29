@@ -11,14 +11,15 @@ import org.koin.core.component.inject
 import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MatrixService
 import org.mlm.mages.MessageEvent
+import org.mlm.mages.matrix.BackPaginationSession
+import org.mlm.mages.matrix.BackPaginationStatus
 import org.mlm.mages.matrix.TimelineDiff
 import org.mlm.mages.matrix.TimelineListReducer
 import org.mlm.mages.settings.AppSettings
 
 data class MediaGalleryUiState(
     val isLoading: Boolean = true,
-    val isPaginatingBack: Boolean = false,
-    val hitStart: Boolean = false,
+    val paginationStatus: BackPaginationStatus = BackPaginationStatus.Idle,
     val hasTimelineSnapshot: Boolean = false,
     val allEvents: List<MessageEvent> = emptyList(),
     val links: List<ExtractedLink> = emptyList(),
@@ -27,6 +28,14 @@ data class MediaGalleryUiState(
     val isSelectionMode: Boolean = false,
     val selectedIds: Set<String> = emptySet()
 ) {
+    val isPaginating: Boolean
+        get() = paginationStatus is BackPaginationStatus.Paginating
+
+    val hitStart: Boolean
+        get() = paginationStatus is BackPaginationStatus.TimelineStartReached
+
+    val showFooterLoader: Boolean get() = isPaginating
+
     val images: List<MessageEvent>
         get() = allEvents.filter { it.attachment?.kind == AttachmentKind.Image }
 
@@ -56,6 +65,16 @@ class MediaGalleryViewModel(
     private val service: MatrixService,
     private val roomId: String
 ) : BaseViewModel<MediaGalleryUiState>(MediaGalleryUiState()) {
+
+    private val backPaginationSession = BackPaginationSession(
+        scope = viewModelScope,
+        maxAttempts = MAX_SCAN_PAGES,
+    )
+
+    private companion object {
+        const val PAGE_SIZE = 50
+        const val MAX_SCAN_PAGES = 24
+    }
 
     private val settingsRepo: SettingsRepository<AppSettings> by inject()
 
@@ -110,6 +129,15 @@ class MediaGalleryViewModel(
 
     init {
         observeTimeline()
+        observePaginationStatus()
+    }
+
+    private fun observePaginationStatus() {
+        launch {
+            backPaginationSession.status.collect { status ->
+                updateState { copy(paginationStatus = status) }
+            }
+        }
     }
 
     private fun observeTimeline() {
@@ -180,17 +208,18 @@ class MediaGalleryViewModel(
     }
 
     fun loadMore() {
-        if (currentState.isPaginatingBack || currentState.hitStart) return
+        if (backPaginationSession.isActive || backPaginationSession.isTimelineStartReached) return
 
-        launch {
-            updateState { copy(isPaginatingBack = true) }
-            try {
-                val hitStart = runSafe { service.paginateBack(roomId, 50) } ?: false
-                updateState { copy(hitStart = hitStart) }
-            } finally {
-                updateState { copy(isPaginatingBack = false) }
-            }
-        }
+        val countBefore = currentState.allEvents.size
+
+        backPaginationSession.startSession(
+            paginateOnce = {
+                runSafe { service.paginateBack(roomId, PAGE_SIZE) } ?: false
+            },
+            shouldStop = {
+                currentState.allEvents.size > countBefore
+            },
+        )
     }
 
     // Selection

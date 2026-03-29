@@ -154,7 +154,7 @@ fun MediaGalleryScreen(
                             thumbnails = state.thumbnails,
                             selectedIds = state.selectedIds,
                             isSelectionMode = state.isSelectionMode,
-                            isPaginating = state.isPaginatingBack,
+                            isPaginating = state.showFooterLoader,
                             hitStart = state.hitStart,
                             onLoadMore = viewModel::loadMore,
                             onItemClick = { event ->
@@ -173,7 +173,7 @@ fun MediaGalleryScreen(
                             thumbnails = state.thumbnails,
                             selectedIds = state.selectedIds,
                             isSelectionMode = state.isSelectionMode,
-                            isPaginating = state.isPaginatingBack,
+                            isPaginating = state.showFooterLoader,
                             hitStart = state.hitStart,
                             onLoadMore = viewModel::loadMore,
                             onItemClick = { event ->
@@ -191,7 +191,7 @@ fun MediaGalleryScreen(
                             items = state.files,
                             selectedIds = state.selectedIds,
                             isSelectionMode = state.isSelectionMode,
-                            isPaginating = state.isPaginatingBack,
+                            isPaginating = state.showFooterLoader,
                             hitStart = state.hitStart,
                             onLoadMore = viewModel::loadMore,
                             onItemClick = { event ->
@@ -207,7 +207,7 @@ fun MediaGalleryScreen(
                         )
                         MediaTab.Links -> LinksList(
                             links = state.links,
-                            isPaginating = state.isPaginatingBack,
+                            isPaginating = state.showFooterLoader,
                             hitStart = state.hitStart,
                             onLoadMore = viewModel::loadMore,
                             onLinkClick = { url ->
