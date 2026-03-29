@@ -823,6 +823,47 @@ impl WasmClient {
         webffi_value(s.core.ensure_dm(user_id).await)
     }
 
+    #[wasm_bindgen(js_name = ensureDmIfAllowed)]
+    pub async fn ensure_dm_if_allowed(&self, room_id: String, user_id: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return webffi_not_init();
+        };
+        webffi_value(s.core.ensure_dm_if_allowed(room_id, user_id).await)
+    }
+
+    #[wasm_bindgen(js_name = roomActionState)]
+    pub async fn room_action_state(&self, room_id: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return webffi_not_init();
+        };
+        match s.core.room_action_state(room_id).await {
+            Ok(state) => to_json(&state),
+            _ => JsValue::NULL,
+        }
+    }
+
+    #[wasm_bindgen(js_name = memberActionState)]
+    pub async fn member_action_state(&self, room_id: String, user_id: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return webffi_not_init();
+        };
+        match s.core.member_action_state(room_id, user_id).await {
+            Ok(state) => to_json(&state),
+            _ => JsValue::NULL,
+        }
+    }
+
+    #[wasm_bindgen(js_name = messageActionState)]
+    pub async fn message_action_state(&self, room_id: String, event_id: String, sender_user_id: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return webffi_not_init();
+        };
+        match s.core.message_action_state(room_id, event_id, sender_user_id).await {
+            Ok(state) => to_json(&state),
+            _ => JsValue::NULL,
+        }
+    }
+
     #[wasm_bindgen(js_name = resolveRoomId)]
     pub async fn resolve_room_id(&self, id_or_alias: String) -> JsValue {
         let Some(s) = self.state() else {
