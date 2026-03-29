@@ -784,7 +784,7 @@ private fun LinksList(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularWavyProgressIndicator()
+                CircularProgressIndicator()
             }
         }
         return

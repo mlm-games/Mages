@@ -723,9 +723,9 @@ fun RoomScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-//                                    CircularWavyProgressIndicator(
-//                                        modifier = Modifier.size(16.dp),
-//                                    )
+                                    CircularWavyProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                    )
                                     Text(
                                         text = stringResource(Res.string.loading_unread),
                                         style = MaterialTheme.typography.bodySmall,
