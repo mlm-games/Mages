@@ -12,6 +12,8 @@ import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.provider.Settings
+import android.util.Log
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityManager
 import androidx.activity.ComponentActivity
@@ -37,16 +39,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
-import org.koin.android.ext.android.inject
-import org.mlm.mages.MainActivity
-import org.mlm.mages.calls.CallManager
-import org.mlm.mages.matrix.CallIntent
-import org.mlm.mages.platform.SettingsProvider
 import org.mlm.mages.push.AndroidNotificationHelper
-import org.mlm.mages.settings.appLanguageTagOrDefault
 import org.mlm.mages.ui.theme.MainTheme
 import org.mlm.mages.ui.components.core.Avatar
-import java.util.Locale
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -90,11 +85,21 @@ import kotlin.math.roundToInt
 
 private enum class CallSwipeValue { Center, Answer, Decline }
 
+private data class IncomingCallUiState(
+    val roomId: String,
+    val roomName: String,
+    val callerName: String,
+    val callerAvatarPath: String?,
+    val eventId: String?,
+    val isVoiceOnly: Boolean,
+    val isDm: Boolean,
+)
+
 class IncomingCallActivity : ComponentActivity() {
 
-    private val callManager: CallManager by inject()
     private var ringtone: Ringtone? = null
     private var vibrator: Vibrator? = null
+    private var uiState by mutableStateOf<IncomingCallUiState?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -116,36 +121,66 @@ class IncomingCallActivity : ComponentActivity() {
 
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        val roomId = intent.getStringExtra(EXTRA_ROOM_ID) ?: run {
+        applyIntent(intent)
+
+        setContent {
+            MainTheme {
+                val state = uiState
+                if (state == null) {
+                    LaunchedEffect(Unit) { finish() }
+                } else {
+                    IncomingCallScreen(
+                        roomName = state.roomName,
+                        callerName = state.callerName,
+                        callerAvatarPath = state.callerAvatarPath,
+                        isVoiceOnly = state.isVoiceOnly,
+                        onAccept = {
+                            stopRinging()
+                            acceptCall(
+                                roomId = state.roomId,
+                                eventId = state.eventId
+                            )
+                        },
+                        onDecline = {
+                            stopRinging()
+                            declineCall(state.roomId)
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        applyIntent(intent)
+    }
+
+    private fun applyIntent(intent: Intent?) {
+        val roomId = intent?.getStringExtra(EXTRA_ROOM_ID) ?: run {
             finish()
             return
         }
-        val roomName = intent.getStringExtra(EXTRA_ROOM_NAME) ?: "Unknown"
-        val callerName = intent.getStringExtra(EXTRA_CALLER_NAME) ?: "Unknown"
-        val callerAvatarUrl = intent.getStringExtra(EXTRA_CALLER_AVATAR)
-        val eventId = intent.getStringExtra(EXTRA_EVENT_ID)
-        val isVoiceOnly = intent.getBooleanExtra(EXTRA_IS_VOICE_ONLY, false)
-        val isDm = intent.getBooleanExtra(EXTRA_IS_DM, false)
 
-        startRinging()
+        val newState = IncomingCallUiState(
+            roomId = roomId,
+            roomName = intent.getStringExtra(EXTRA_ROOM_NAME) ?: "Unknown",
+            callerName = intent.getStringExtra(EXTRA_CALLER_NAME) ?: "Unknown",
+            callerAvatarPath = intent.getStringExtra(EXTRA_CALLER_AVATAR),
+            eventId = intent.getStringExtra(EXTRA_EVENT_ID),
+            isVoiceOnly = intent.getBooleanExtra(EXTRA_IS_VOICE_ONLY, false),
+            isDm = intent.getBooleanExtra(EXTRA_IS_DM, false),
+        )
 
-        setContent {
-            MainTheme(darkTheme = true) {
-                IncomingCallScreen(
-                    roomName = roomName,
-                    callerName = callerName,
-                    callerAvatarPath = callerAvatarUrl,
-                    isVoiceOnly = isVoiceOnly,
-                    onAccept = {
-                        stopRinging()
-                        acceptCall(roomId, roomName, isVoiceOnly, isDm)
-                    },
-                    onDecline = {
-                        stopRinging()
-                        declineCall(roomId)
-                    }
-                )
-            }
+        val shouldRestartRinging =
+            uiState?.roomId != newState.roomId || uiState?.eventId != newState.eventId
+
+        uiState = newState
+
+        if (shouldRestartRinging || ringtone == null) {
+            stopRinging()
+            startRinging()
         }
     }
 
@@ -172,16 +207,26 @@ class IncomingCallActivity : ComponentActivity() {
         }
 
         try {
-            val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            val ringtoneUri =
+                RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_RINGTONE)
+                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+                    ?: RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_NOTIFICATION)
+                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                    ?: Settings.System.DEFAULT_RINGTONE_URI
+                    ?: Settings.System.DEFAULT_NOTIFICATION_URI
+
             ringtone = RingtoneManager.getRingtone(this, ringtoneUri)
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                ringtone?.isLooping = true
+            if (ringtone == null) {
+                Log.w("IncomingCallActivity", "No ringtone could be resolved for uri=$ringtoneUri")
+            } else {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    ringtone?.isLooping = true
+                }
+                ringtone?.play()
             }
-
-            ringtone?.play()
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.w("IncomingCallActivity", "Failed to start ringtone", e)
         }
     }
 
@@ -190,48 +235,39 @@ class IncomingCallActivity : ComponentActivity() {
         ringtone?.stop()
     }
 
-    private fun acceptCall(roomId: String, roomName: String, isVoiceOnly: Boolean, isDm: Boolean) {
+    private fun acceptCall(roomId: String, eventId: String?) {
         lifecycleScope.launch {
             AndroidNotificationHelper.cancelCallNotification(this@IncomingCallActivity, roomId)
 
-            val callIntent = when {
-                isVoiceOnly && isDm -> CallIntent.JoinExistingVoiceDm
-                isDm -> CallIntent.JoinExisting
-                else -> CallIntent.JoinExisting
+            val uri = Uri.Builder()
+                .scheme("mages")
+                .authority("room")
+                .appendQueryParameter("id", roomId)
+                .appendQueryParameter("join_call", "1")
+                .apply {
+                    eventId?.let { appendQueryParameter("event", it) }
+                }
+                .build()
+
+            val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                setPackage(packageName)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
             }
 
-            val success = callManager.startOrJoinCall(
-                roomId = roomId,
-                roomName = roomName,
-                intent = callIntent,
-                elementCallUrl = null,
-                parentUrl = null,
-                languageTag = appLanguageTagOrDefault(
-                    languageIndex = SettingsProvider.get(this@IncomingCallActivity).get("language"),
-                    defaultTag = Locale.getDefault().toLanguageTag()
-                ),
-                theme = "dark"
+            Log.i(
+                "IncomingCallActivity",
+                "Accept pressed; launching call deep link roomId=$roomId eventId=$eventId uri=$uri"
             )
 
-            if (success) {
-                val intent =
-                    Intent(this@IncomingCallActivity, MainActivity::class.java).apply {
-                        flags =
-                            Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                        data = Uri.Builder()
-                            .scheme("mages")
-                            .authority("room")
-                            .appendQueryParameter("id", roomId)
-                            .appendQueryParameter("join_call", "1")
-                            .build()
-                    }
-                startActivity(intent)
-            }
+            startActivity(intent)
             finish()
         }
     }
 
     private fun declineCall(roomId: String) {
+        Log.i("IncomingCallActivity", "onDecline roomId=$roomId")
         AndroidNotificationHelper.cancelCallNotification(this, roomId)
         finish()
     }
@@ -269,6 +305,7 @@ class IncomingCallActivity : ComponentActivity() {
                 putExtra(EXTRA_IS_VOICE_ONLY, isVoiceOnly)
                 putExtra(EXTRA_IS_DM, isDm)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
                         Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
                         Intent.FLAG_ACTIVITY_NO_USER_ACTION
             }
@@ -295,39 +332,16 @@ private fun IncomingCallScreen(
 
     val scheme = MaterialTheme.colorScheme
 
-    val bgTransition = rememberInfiniteTransition(label = "bg")
-    val bgShift by bgTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(5000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "bgShift"
-    )
-
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(
-                        scheme.primary.copy(alpha = 0.25f),
-                        scheme.tertiary.copy(alpha = 0.12f),
-                        scheme.surface
-                    ),
-                    center = Offset(
-                        x = 0.2f + 0.6f * bgShift,
-                        y = 0.15f + 0.35f * (1f - bgShift)
-                    )
-                )
-            )
+            .background(scheme.surface)
             .systemBarsPadding()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 22.dp, vertical = 18.dp),
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             TopBanner(isVoiceOnly)

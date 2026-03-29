@@ -285,7 +285,7 @@ data class AppSettings(
         description = "Click to test if notifications work",
         category = Notifications::class,
         type = Button::class,
-        platforms = [SettingPlatform.WEB],
+        platforms = [SettingPlatform.WEB], // TODO: Doesn't seem to work?
     )
     @ActionHandler(TestNotificationAction::class)
     val testNotification: Unit = Unit,

@@ -152,8 +152,7 @@
             android:name=".activities.IncomingCallActivity"
             android:exported="false"
             android:excludeFromRecents="true"
-            android:launchMode="singleInstance"
-            android:taskAffinity=""
+            android:launchMode="singleTop"
             android:showOnLockScreen="true"
             android:turnScreenOn="true"
             android:theme="@style/Theme.AppCompat.DayNight.NoActionBar" />

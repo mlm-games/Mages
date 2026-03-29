@@ -70,6 +70,12 @@ object AndroidNotificationHelper : KoinComponent {
         mgr.notify(notifId, notification)
     }
 
+    private fun callNotificationId(roomId: String): Int =
+        ("call_$roomId").hashCode()
+
+    private fun callScreenRequestCode(roomId: String, eventId: String?): Int =
+        ("call_${roomId}_${eventId.orEmpty()}").hashCode()
+
     fun showIncomingCall(
         ctx: Context,
         roomId: String,
@@ -82,13 +88,21 @@ object AndroidNotificationHelper : KoinComponent {
     ) {
         AppNotificationChannels.ensureCreated(ctx)
         val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        val notifId = ("call_$roomId").hashCode()
+        val notifId = callNotificationId(roomId)
+        val screenRequestCode = callScreenRequestCode(roomId, eventId)
 
-        val fullScreenIntent = createFullScreenCallIntent(
-            ctx, roomId, roomName, callerName, eventId, callerAvatarPath,
+        val incomingScreenIntent = createFullScreenCallIntent(
+            ctx = ctx,
+            roomId = roomId,
+            roomName = roomName,
+            callerName = callerName,
+            eventId = eventId,
+            callerAvatarPath = callerAvatarPath,
+            requestCode = screenRequestCode,
             isVoiceOnly = isVoiceOnly,
             isDm = isDm
         )
+
         val joinIntent = createCallJoinIntent(ctx, roomId, eventId, notifId)
         val declineIntent = createCallDeclineIntent(ctx, roomId, notifId)
 
@@ -103,12 +117,12 @@ object AndroidNotificationHelper : KoinComponent {
             .setSmallIcon(R.drawable.ic_notif_status_bar)
             .setContentTitle(if (isVoiceOnly) "Incoming voice call" else "Incoming call")
             .setContentText(text)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_CALL)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
             .setOngoing(true)
             .setAutoCancel(false)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setContentIntent(joinIntent)
+            .setContentIntent(incomingScreenIntent ?: joinIntent)
             .addAction(R.drawable.ic_notif_status_bar, "Decline", declineIntent)
             .addAction(R.drawable.ic_notif_status_bar, "Answer", joinIntent)
             .setTimeoutAfter(60_000)
@@ -124,14 +138,22 @@ object AndroidNotificationHelper : KoinComponent {
             }
         }
 
-        fullScreenIntent?.let { builder.setFullScreenIntent(it, true) }
+        if (
+            incomingScreenIntent != null &&
+            (
+                Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE ||
+                    mgr.canUseFullScreenIntent()
+                )
+        ) {
+            builder.setFullScreenIntent(incomingScreenIntent, true)
+        }
 
         mgr.notify(notifId, builder.build())
     }
 
     fun cancelCallNotification(ctx: Context, roomId: String) {
         val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        mgr.cancel(("call_$roomId").hashCode())
+        mgr.cancel(callNotificationId(roomId))
     }
 
     fun showInviteNotification(
@@ -171,6 +193,7 @@ object AndroidNotificationHelper : KoinComponent {
         callerName: String,
         eventId: String?,
         callerAvatarPath: String? = null,
+        requestCode: Int,
         isVoiceOnly: Boolean = false,
         isDm: Boolean = false
     ): PendingIntent? {
@@ -179,15 +202,12 @@ object AndroidNotificationHelper : KoinComponent {
         val showCallScreen = runBlocking { settingsRepo.flow.first().showIncomingCallScreen }
         if (!showCallScreen) return null
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-            if (!mgr.canUseFullScreenIntent()) {
-                requestFullScreenNotificationPermission(ctx)
-            }
-        }
+        // Do not kick the user into system settings during an incoming call.
+        // If FSI is unavailable, we still return the PendingIntent so notification taps
+        // open the native incoming-call screen consistently.
 
         // reflection to avoid direct dependency
-        val intent = try {
+        val intent: Intent = try {
             val activityClass = Class.forName("org.mlm.mages.activities.IncomingCallActivity")
             Intent(ctx, activityClass).apply {
                 putExtra("room_id", roomId)
@@ -198,18 +218,19 @@ object AndroidNotificationHelper : KoinComponent {
                 putExtra("is_voice_only", isVoiceOnly)
                 putExtra("is_dm", isDm)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
                         Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
                         Intent.FLAG_ACTIVITY_NO_USER_ACTION
             }
         } catch (e: ClassNotFoundException) {
-            createCallJoinIntentRaw(ctx, roomId, eventId)
             e.printStackTrace()
+            createCallJoinIntentRaw(ctx, roomId, eventId)
         }
 
         return PendingIntent.getActivity(
             ctx,
-            roomId.hashCode(),
-            intent as Intent?,
+            requestCode,
+            intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
     }
