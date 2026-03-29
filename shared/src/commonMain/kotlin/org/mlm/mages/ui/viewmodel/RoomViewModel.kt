@@ -214,10 +214,10 @@ class RoomViewModel(
     private fun filteredVisibleEvents(items: List<MessageEvent>): List<MessageEvent> =
         items
             .withoutThreadReplies()
-            .applyTimelineVisibility(roomClass, settings.value.toTimelineVisibilitySettings())
+            .applySystemEventVisibility(roomClass, settings.value.toSystemEventVisibilitySettings())
 
     private fun filteredDeltaEvents(items: List<MessageEvent>): List<MessageEvent> =
-        items.applyTimelineVisibility(roomClass, settings.value.toTimelineVisibilitySettings())
+        items.applySystemEventVisibility(roomClass, settings.value.toSystemEventVisibilitySettings())
 
     private fun recomputeVisibleEvents() {
         updateState {
@@ -251,7 +251,7 @@ class RoomViewModel(
 
         launch {
             settings
-                .map { it.toTimelineVisibilitySettings() }
+                .map { it.toSystemEventVisibilitySettings() }
                 .distinctUntilChanged()
                 .collect {
                     recomputeVisibleEvents()

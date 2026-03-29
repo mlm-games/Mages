@@ -70,6 +70,8 @@ pub struct MessageEvent {
     pub poll_data: Option<PollData>,
     pub reactions: Vec<ReactionSummary>,
     pub event_type: EventType,
+    pub is_redacted: bool,
+    pub state_event_type: Option<String>,
     pub live_location: Option<LiveLocationEvent>,
 }
 

@@ -1610,6 +1610,8 @@ private fun mages.MessageEvent.toModel() = MessageEvent(
     pollData = pollData?.toModel(),
     reactions = reactions.map { ReactionSummary(it.key, it.count.toInt(), it.mine) },
     eventType = eventType.toKotlin(),
+    isRedacted = isRedacted,
+    stateEventType = stateEventType,
     liveLocation = liveLocation?.toModel(),
 )
 

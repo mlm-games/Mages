@@ -2917,9 +2917,12 @@ fn map_timeline_event(
     let mut poll_data: Option<PollData> = None;
     let mut reply_to_sender_display_name: Option<String> = None;
     let mut event_type = EventType::Message;
+    let content = ev.content();
+    let is_redacted = content.is_redacted();
+    let mut state_event_type: Option<String> = None;
     let mut live_location: Option<LiveLocationEvent> = None;
 
-    match ev.content() {
+    match content {
         TimelineItemContent::MsgLike(ml) => {
             if let Some(details) = &ml.in_reply_to {
                 reply_to_event_id = Some(details.event_id.to_string());
@@ -2986,6 +2989,7 @@ fn map_timeline_event(
         TimelineItemContent::OtherState(state) => {
             body = render_timeline_text(ev);
             event_type = map_other_state_type(state);
+            state_event_type = Some(state.content().event_type().to_string());
         }
         TimelineItemContent::CallInvite => {
             body = String::new();
@@ -3031,6 +3035,8 @@ fn map_timeline_event(
         poll_data,
         reactions,
         event_type,
+        is_redacted,
+        state_event_type,
         live_location,
     })
 }

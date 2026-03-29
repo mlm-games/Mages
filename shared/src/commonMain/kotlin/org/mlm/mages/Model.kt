@@ -30,6 +30,8 @@ data class MessageEvent(
     var pollData: PollData? = null,
     var reactions: List<ReactionSummary> = emptyList(),
     var eventType: EventType = EventType.Message,
+    var isRedacted: Boolean = false,
+    var stateEventType: String? = null,
     var liveLocation: LiveLocationEvent? = null,
 )
 

@@ -104,7 +104,7 @@ data class AppSettings(
         description = "Join/leave/invite events in rooms",
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Never", "Public Rooms", "Non-DMs (Direct Rooms)", "Always"]
+        options = ["Never", "Public Rooms", "Non-DMs", "Always"]
     )
     val compactPublicRoomMembershipEvents: Int = 1,
 
@@ -125,6 +125,132 @@ data class AppSettings(
         options = ["Never", "Public Rooms", "Non-DMs", "Always"]
     )
     val compactPublicRoomTopicEvents: Int = 1,
+
+    @Setting(
+        title = "Hide redacted events",
+        description = "Events whose content was removed by redaction",
+        category = Timeline::class,
+        type = Dropdown::class,
+        options = ["Never", "Public Rooms", "Non-DMs", "Always"]
+    )
+    val compactPublicRoomRedactedEvents: Int = 0,
+
+    @Setting(
+        title = "Hide room name changes",
+        description = "Room name updates",
+        category = Timeline::class,
+        type = Dropdown::class,
+        options = ["Never", "Public Rooms", "Non-DMs", "Always"]
+    )
+    val compactPublicRoomRoomNameEvents: Int = 0,
+
+    @Setting(
+        title = "Hide room avatar changes",
+        description = "Room avatar updates",
+        category = Timeline::class,
+        type = Dropdown::class,
+        options = ["Never", "Public Rooms", "Non-DMs", "Always"]
+    )
+    val compactPublicRoomRoomAvatarEvents: Int = 0,
+
+    @Setting(
+        title = "Hide encryption changes",
+        description = "Encryption state updates",
+        category = Timeline::class,
+        type = Dropdown::class,
+        options = ["Never", "Public Rooms", "Non-DMs", "Always"]
+    )
+    val compactPublicRoomRoomEncryptionEvents: Int = 0,
+
+    @Setting(
+        title = "Hide pinned-event updates",
+        description = "Pinned event list changes",
+        category = Timeline::class,
+        type = Dropdown::class,
+        options = ["Never", "Public Rooms", "Non-DMs", "Always"]
+    )
+    val compactPublicRoomRoomPinnedEvents: Int = 0,
+
+    @Setting(
+        title = "Hide power-level changes",
+        description = "Moderator/admin permission changes",
+        category = Timeline::class,
+        type = Dropdown::class,
+        options = ["Never", "Public Rooms", "Non-DMs", "Always"]
+    )
+    val compactPublicRoomRoomPowerLevelsEvents: Int = 0,
+
+    @Setting(
+        title = "Hide canonical alias changes",
+        description = "Primary alias changes",
+        category = Timeline::class,
+        type = Dropdown::class,
+        options = ["Never", "Public Rooms", "Non-DMs", "Always"]
+    )
+    val compactPublicRoomRoomCanonicalAliasEvents: Int = 0,
+
+    @Setting(
+        title = "Hide join-rule changes",
+        description = "Who can join the room",
+        category = Timeline::class,
+        type = Dropdown::class,
+        options = ["Never", "Public Rooms", "Non-DMs", "Always"]
+    )
+    val compactPublicRoomJoinRulesEvents: Int = 0,
+
+    @Setting(
+        title = "Hide history-visibility changes",
+        description = "Who can read room history",
+        category = Timeline::class,
+        type = Dropdown::class,
+        options = ["Never", "Public Rooms", "Non-DMs", "Always"]
+    )
+    val compactPublicRoomHistoryVisibilityEvents: Int = 0,
+
+    @Setting(
+        title = "Hide guest-access changes",
+        description = "Guest access updates",
+        category = Timeline::class,
+        type = Dropdown::class,
+        options = ["Never", "Public Rooms", "Non-DMs", "Always"]
+    )
+    val compactPublicRoomGuestAccessEvents: Int = 0,
+
+    @Setting(
+        title = "Hide server ACL changes",
+        description = "Server allow/deny list updates",
+        category = Timeline::class,
+        type = Dropdown::class,
+        options = ["Never", "Public Rooms", "Non-DMs", "Always"]
+    )
+    val compactPublicRoomServerAclEvents: Int = 0,
+
+    @Setting(
+        title = "Hide tombstone events",
+        description = "Room replacement / upgrade notices",
+        category = Timeline::class,
+        type = Dropdown::class,
+        options = ["Never", "Public Rooms", "Non-DMs", "Always"]
+    )
+    val compactPublicRoomTombstoneEvents: Int = 0,
+
+    @Setting(
+        title = "Hide space-child events",
+        description = "Space hierarchy updates",
+        category = Timeline::class,
+        type = Dropdown::class,
+        options = ["Never", "Public Rooms", "Non-DMs", "Always"]
+    )
+    val compactPublicRoomSpaceChildEvents: Int = 0,
+
+    @Setting(
+        title = "Hide other state events",
+        description = "Unknown or uncategorized room state updates",
+        category = Timeline::class,
+        type = Dropdown::class,
+        options = ["Never", "Public Rooms", "Non-DMs", "Always"]
+    )
+    val compactPublicRoomOtherStateEvents: Int = 0,
 
     @Setting(
         title = "Chat bubbles",
