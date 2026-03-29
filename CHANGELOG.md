@@ -1,3 +1,15 @@
+## v4.4.1
+
+- Set retain state to true for markdown text bubble anim is turned off
+- Revert "chore: set retain state to true for markdown text bubble anim is turned off"
+- Improve attachments by showing its name (and type) in attachment ui, and hide filenames for images and videos
+- voice call audio wiring fix
+- improve media gallery pagination
+- Fix pinned message banner (attach to the bottom of the topbar)
+- add more types to timeline messages hide options (including deleted messages)
+- Refactor message and room actions to only show if they are actionable (except for delete)
+
+
 ## v4.3.6
 
 - Switching accounts clears previous cached recovery UI state (#68)

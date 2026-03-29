@@ -46,6 +46,20 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.4.1" date="2026-03-29" type="stable">
+      <description>
+        <ul>
+          <li>Set retain state to true for markdown text bubble anim is turned off</li>
+          <li>Revert "chore: set retain state to true for markdown text bubble anim is turned off"</li>
+          <li>Improve attachments by showing its name (and type) in attachment ui, and hide filenames for images and videos</li>
+          <li>voice call audio wiring fix</li>
+          <li>improve media gallery pagination</li>
+          <li>Fix pinned message banner (attach to the bottom of the topbar)</li>
+          <li>add more types to timeline messages hide options (including deleted messages)</li>
+          <li>Refactor message and room actions to only show if they are actionable (except for delete)</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.3.6" date="2026-03-29" type="stable">
       <description>
         <ul>
