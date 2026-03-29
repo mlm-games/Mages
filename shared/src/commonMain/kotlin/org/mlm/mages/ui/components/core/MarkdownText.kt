@@ -4,6 +4,8 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextLinkStyles
@@ -13,9 +15,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.sp
 import com.mikepenz.markdown.m3.Markdown
-import com.mikepenz.markdown.m3.markdownColor // Ensure this import is present
+import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
+import com.mikepenz.markdown.model.rememberMarkdownState
+import io.github.mlmgames.settings.core.SettingsRepository
+import org.koin.compose.koinInject
 import org.mlm.mages.LocalMessageFontSize
+import org.mlm.mages.settings.AppSettings
 
 @Composable
 fun MarkdownText(
@@ -32,9 +38,17 @@ fun MarkdownText(
         fontSize = (fontSize.value * 0.9f).sp
     )
 
+    val settingsRepository : SettingsRepository<AppSettings> = koinInject()
+    val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
+
+    val markdownState = rememberMarkdownState(
+        text,
+        retainState = !settings.bubbleAnimations
+    )
+
     SelectionContainer {
         Markdown(
-            content = text,
+            markdownState,
             modifier = modifier,
             colors = markdownColor(
                 text = color,
