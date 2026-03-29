@@ -546,7 +546,10 @@ fun RoomInfoScreen(
                 onBan = { reason -> onBanUser(member.userId, reason) },
                 onUnban = { reason -> onUnbanUser(member.userId, reason) },
                 onIgnore = { onIgnoreUser(member.userId) },
-                canModerate = state.canKick || state.canBan,
+                dmAction = state.selectedMemberDmAction,
+                kickAction = state.selectedMemberKickAction,
+                banAction = state.selectedMemberBanAction,
+                unbanAction = state.selectedMemberUnbanAction,
                 isBanned = member.membership == "ban"
             )
         }

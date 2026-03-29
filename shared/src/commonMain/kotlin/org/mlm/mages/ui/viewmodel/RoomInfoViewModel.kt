@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import org.mlm.mages.MatrixService
+import org.mlm.mages.matrix.ActionAvailability
 import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.KnockRequestSummary
 import org.mlm.mages.matrix.RoomDirectoryVisibility
@@ -18,6 +19,8 @@ import org.mlm.mages.matrix.RoomPowerLevelChanges
 import org.mlm.mages.matrix.RoomPowerLevels
 import org.mlm.mages.matrix.RoomPredecessorInfo
 import org.mlm.mages.matrix.RoomProfile
+import org.mlm.mages.ui.ActionAvailabilityUi
+import org.mlm.mages.ui.ActionPresentationUi
 import org.mlm.mages.matrix.RoomUpgradeInfo
 
 data class RoomInfoUiState(
@@ -57,6 +60,10 @@ data class RoomInfoUiState(
     val myUserId: String? = null,
     val showMembers: Boolean = false,
     val selectedMemberForAction: MemberSummary? = null,
+    val selectedMemberDmAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val selectedMemberKickAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val selectedMemberBanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val selectedMemberUnbanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
     val showInviteDialog: Boolean = false,
 )
 
@@ -64,6 +71,16 @@ class RoomInfoViewModel(
     private val service: MatrixService,
     private val roomId: String
 ) : BaseViewModel<RoomInfoUiState>(RoomInfoUiState()) {
+
+    private fun ActionAvailability.toUi(): ActionAvailabilityUi =
+        ActionAvailabilityUi(
+            presentation = when (presentation) {
+                org.mlm.mages.matrix.ActionPresentation.Hidden -> ActionPresentationUi.Hidden
+                org.mlm.mages.matrix.ActionPresentation.Disabled -> ActionPresentationUi.Disabled
+                org.mlm.mages.matrix.ActionPresentation.Enabled -> ActionPresentationUi.Enabled
+            },
+            reason = reason,
+        )
 
     sealed class Event {
         object LeaveSuccess : Event()
@@ -134,18 +151,14 @@ class RoomInfoViewModel(
                 0L
             }
             val powerLevels = runSafe { service.port.roomPowerLevels(roomId) }
-            val canBan = runSafe { service.port.canUserBan(roomId, myUserId) } ?: false
-            val canInvite = runSafe { service.port.canUserInvite(roomId, myUserId) } ?: false
-            val canRedact = runSafe { service.port.canUserRedactOther(roomId, myUserId) } ?: false
-            val canKick = powerLevel >= 50
+            val actionState = runSafe { service.port.roomActionState(roomId) }
+            
+            val canInvite = actionState?.invite?.isEnabled == true
             val knockRequests = if (canInvite) {
                 runSafe { service.port.listKnockRequests(roomId) }.orEmpty()
             } else {
                 emptyList()
             }
-            val canEditName = powerLevel >= 50
-            val canEditTopic = powerLevel >= 50
-            val canManageSettings = powerLevel >= 100
 
             updateState {
                 copy(
@@ -164,13 +177,13 @@ class RoomInfoViewModel(
                     error = if (profile == null) "Failed to load room info" else null,
                     myPowerLevel = powerLevel,
                     powerLevels = powerLevels,
-                    canEditName = canEditName,
-                    canEditTopic = canEditTopic,
-                    canManageSettings = canManageSettings,
-                    canBan = canBan,
+                    canEditName = actionState?.editName?.isEnabled == true,
+                    canEditTopic = actionState?.editTopic?.isEnabled == true,
+                    canManageSettings = actionState?.manageSettings?.isEnabled == true,
+                    canBan = powerLevel >= (powerLevels?.ban ?: 50),
                     canInvite = canInvite,
-                    canRedact = canRedact,
-                    canKick = canKick,
+                    canRedact = actionState?.redactOthers?.isEnabled == true,
+                    canKick = powerLevel >= (powerLevels?.kick ?: 50),
                     knockRequests = knockRequests,
                     myUserId = myUserId,
                     notificationMode = notificationMode,
@@ -487,9 +500,36 @@ class RoomInfoViewModel(
 
     fun hideKnockRequests() = updateState { copy(showKnockRequests = false) }
 
-    fun selectMemberForAction(member: MemberSummary) = updateState { copy(selectedMemberForAction = member) }
+    fun selectMemberForAction(member: MemberSummary) {
+        updateState { copy(selectedMemberForAction = member) }
+        refreshMemberActionState(member.userId)
+    }
 
-    fun clearSelectedMember() = updateState { copy(selectedMemberForAction = null) }
+    private fun refreshMemberActionState(userId: String) {
+        launch {
+            val actionState = runSafe { service.port.memberActionState(roomId, userId) }
+            if (actionState != null && currentState.selectedMemberForAction?.userId == userId) {
+                updateState {
+                    copy(
+                        selectedMemberDmAction = actionState.directMessage.toUi(),
+                        selectedMemberKickAction = actionState.kick.toUi(),
+                        selectedMemberBanAction = actionState.ban.toUi(),
+                        selectedMemberUnbanAction = actionState.unban.toUi(),
+                    )
+                }
+            }
+        }
+    }
+
+    fun clearSelectedMember() = updateState { 
+        copy(
+            selectedMemberForAction = null,
+            selectedMemberDmAction = ActionAvailabilityUi(),
+            selectedMemberKickAction = ActionAvailabilityUi(),
+            selectedMemberBanAction = ActionAvailabilityUi(),
+            selectedMemberUnbanAction = ActionAvailabilityUi(),
+        ) 
+    }
 
     fun showInviteDialog() = updateState { copy(showInviteDialog = true) }
 

@@ -13,6 +13,11 @@ import mages.FfiRoomNotificationMode
 import mages.TimelineDiffKind
 import mages.Client as FfiClient
 import mages.RoomSummary as FfiRoom
+import mages.ActionAvailability as FfiActionAvailability
+import mages.ActionPresentation as FfiActionPresentation
+import mages.RoomActionState as FfiRoomActionState
+import mages.MemberActionState as FfiMemberActionState
+import mages.MessageActionState as FfiMessageActionState
 import org.mlm.mages.*
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.platformNeedsControlledAudioDevices
@@ -22,7 +27,7 @@ private inline fun <T> runWithFfiResult(block: () -> T): Result<T> =
         val mapped = (e as? FfiException)?.let { ex ->
             when (ex) {
                 is FfiException.Msg -> IllegalStateException(ex.v1)
-                else -> IllegalStateException(e.message ?: "Unknown error")
+//                else -> IllegalStateException(e.message ?: "Unknown error")
             }
         } ?: e as? Exception ?: IllegalStateException(e.toString())
         throw mapped
@@ -884,6 +889,68 @@ class RustMatrixPort : MatrixPort, VerificationService {
         withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.ensureDm(userId) } }.getOrNull()
         }
+
+    override suspend fun ensureDmIfAllowed(roomId: String, userId: String): String? =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.ensureDmIfAllowed(roomId, userId) } }.getOrNull()
+        }
+
+    override suspend fun roomActionState(roomId: String): RoomActionState? =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.roomActionState(roomId) } }.getOrNull()?.toModel()
+        }
+
+    override suspend fun memberActionState(roomId: String, userId: String): MemberActionState? =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.memberActionState(roomId, userId) } }.getOrNull()?.toModel()
+        }
+
+    override suspend fun messageActionState(roomId: String, eventId: String, senderUserId: String): MessageActionState? =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.messageActionState(roomId, eventId, senderUserId) } }.getOrNull()?.toModel()
+        }
+
+    private fun FfiRoomActionState.toModel() = RoomActionState(
+        roomId = roomId,
+        voiceCall = voiceCall.toModel(),
+        videoCall = videoCall.toModel(),
+        sendMessage = sendMessage.toModel(),
+        sendReaction = sendReaction.toModel(),
+        editName = editName.toModel(),
+        editTopic = editTopic.toModel(),
+        invite = invite.toModel(),
+        manageSettings = manageSettings.toModel(),
+        redactOthers = redactOthers.toModel(),
+        pin = pin.toModel(),
+    )
+
+    private fun FfiMemberActionState.toModel() = MemberActionState(
+        roomId = roomId,
+        userId = userId,
+        directMessage = directMessage.toModel(),
+        kick = kick.toModel(),
+        ban = ban.toModel(),
+        unban = unban.toModel(),
+    )
+
+    private fun FfiMessageActionState.toModel() = MessageActionState(
+        roomId = roomId,
+        eventId = eventId,
+        edit = edit.toModel(),
+        delete = delete.toModel(),
+        pin = pin.toModel(),
+        unpin = unpin.toModel(),
+        react = react.toModel(),
+    )
+
+    private fun FfiActionAvailability.toModel() = ActionAvailability(
+        presentation = when (presentation) {
+            FfiActionPresentation.HIDDEN -> ActionPresentation.Hidden
+            FfiActionPresentation.DISABLED -> ActionPresentation.Disabled
+            FfiActionPresentation.ENABLED -> ActionPresentation.Enabled
+        },
+        reason = reason,
+    )
 
     override suspend fun resolveRoomId(idOrAlias: String): String? =
         withContext(matrixDispatcher) {

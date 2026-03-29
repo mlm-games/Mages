@@ -54,6 +54,8 @@ import org.mlm.mages.ui.components.message.SeenByChip
 import org.mlm.mages.ui.components.core.FloatingTimelineDateChip
 import org.mlm.mages.ui.components.location.*
 import org.mlm.mages.ui.components.sheets.MemberActionsSheet
+import org.mlm.mages.ui.ActionAvailabilityUi
+import org.mlm.mages.ui.ActionPresentationUi
 import org.koin.compose.koinInject
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.sheets.*
@@ -451,12 +453,13 @@ fun RoomScreen(
                     avatarUrl = state.roomAvatarUrl,
                     typingNames = state.typingNames,
                     isOffline = state.isOffline,
-                    isDm = state.isDm,
+                    hasActiveCall = state.hasActiveCallForRoom,
+                    voiceCallAction = state.voiceCallAction,
+                    videoCallAction = state.videoCallAction,
                     onBack = onBack,
                     onOpenInfo = onOpenInfo,
                     onOpenSearch = viewModel::showRoomSearch,
                     onStartCall = onStartCall,
-                    hasActiveCall = state.hasActiveCallForRoom,
                     onStartVoiceCall = onStartVoiceCall,
                 )
             }
@@ -672,9 +675,16 @@ fun RoomScreen(
                                             events = events,
                                             state = state,
                                             lastOutgoingIndex = lastOutgoingIndex,
-                                            onLongPress = { sheetEvent = event },
+                                            onLongPress = { 
+                                                sheetEvent = event
+                                                viewModel.showMessageActions(event)
+                                            },
                                             onReply = { viewModel.startReply(event) },
-                                            onReact = { emoji -> viewModel.react(event, emoji) },
+                                            onReact = { emoji -> 
+                                                if (state.sendReactionAction.isEnabled) {
+                                                    viewModel.react(event, emoji)
+                                                }
+                                            },
                                             onOpenAttachment = {
                                                 viewModel.openAttachment(event) { path, mime ->
                                                     openExternal(path, mime)
@@ -834,21 +844,26 @@ fun RoomScreen(
     sheetEvent?.let { event ->
         val isMine = event.sender == state.myUserId
         val isPinned = event.eventId in state.pinnedEventIds
+        val msgActions = state.selectedMessageActions
         MessageActionSheet(
             event = event,
             isMine = isMine,
-            canDeleteOthers = state.canRedactOthers,
-            canPin = state.canPin,
+            canDeleteOthers = msgActions?.delete?.isEnabled ?: state.redactOthersAction.isEnabled,
+            canPin = msgActions?.pin?.isEnabled ?: state.pinAction.isEnabled,
             isPinned = isPinned,
-            onDismiss = { sheetEvent = null },
+            onDismiss = { sheetEvent = null; viewModel.clearSelectedMessageActions() },
             onReply = { viewModel.startReply(event); sheetEvent = null },
             onEdit = { viewModel.startEdit(event); sheetEvent = null },
             onDelete = { viewModel.delete(event); sheetEvent = null },
-            onPin = { viewModel.pinEvent(event) },
-            onUnpin = { viewModel.unpinEvent(event) },
+            onPin = { if (state.pinAction.isEnabled) viewModel.pinEvent(event) },
+            onUnpin = { if (state.pinAction.isEnabled) viewModel.unpinEvent(event) },
             onReport = { viewModel.showReportDialog(event) },
             onShowMessageInfo = { viewModel.showMessageInfo(event) },
-            onReact = { emoji -> viewModel.react(event, emoji) },
+            onReact = { emoji -> 
+                if (state.sendReactionAction.isEnabled) {
+                    viewModel.react(event, emoji)
+                }
+            },
             onMarkReadHere = { viewModel.markReadHere(event); sheetEvent = null },
             onReplyInThread = { viewModel.openThread(event); sheetEvent = null },
             onShare = { viewModel.shareMessage(event) },
@@ -919,12 +934,15 @@ fun RoomScreen(
         MemberActionsSheet(
             member = member.copy(avatarUrl = state.avatarByUserId[member.userId] ?: member.avatarUrl),
             onDismiss = viewModel::clearSelectedMember,
+            dmAction = state.selectedMemberDmAction,
+            kickAction = state.selectedMemberKickAction,
+            banAction = state.selectedMemberBanAction,
+            unbanAction = state.selectedMemberUnbanAction,
             onStartDm = { viewModel.startDmWith(member.userId) },
-            onKick = { _ -> },
-            onBan = { _ -> },
-            onUnban = { _ -> },
+            onKick = { reason -> viewModel.kickUser(member.userId, reason) },
+            onBan = { reason -> viewModel.banUser(member.userId, reason) },
+            onUnban = { reason -> viewModel.unbanUser(member.userId, reason) },
             onIgnore = { viewModel.ignoreUser(member.userId) },
-            canModerate = false,
             isBanned = member.membership == "ban"
         )
     }
@@ -938,7 +956,8 @@ private fun RoomTopBar(
     typingNames: List<String>,
     isOffline: Boolean,
     hasActiveCall: Boolean,
-    isDm: Boolean,
+    voiceCallAction: ActionAvailabilityUi,
+    videoCallAction: ActionAvailabilityUi,
     onBack: () -> Unit,
     onOpenInfo: () -> Unit,
     onOpenSearch: () -> Unit,
@@ -1001,26 +1020,29 @@ private fun RoomTopBar(
                                 contentDescription = stringResource(Res.string.join_call)
                             )
                         }
-                    } else if (isDm) {
-                        IconButton(onClick = onStartVoiceCall) {
-                            Icon(
-                                Icons.Default.Call,
-                                contentDescription = "Voice call"
-                            )
-                        }
-                        IconButton(onClick = onStartCall) {
-                            Icon(
-                                Icons.Default.Videocam,
-                                contentDescription = "Video call"
-                            )
-                        }
                     } else {
-                        IconButton(onClick = onStartCall) {
-                            Icon(
-                                Icons.Default.Call,
-                                contentDescription = stringResource(Res.string.start_call)
-                            )
+                        if (voiceCallAction.presentation != ActionPresentationUi.Hidden) {
+                            IconButton(
+                                onClick = onStartVoiceCall,
+                                enabled = voiceCallAction.isEnabled,
+                            ) {
+                                Icon(
+                                    Icons.Default.Call,
+                                    contentDescription = "Voice call"
+                                )
+                            }
                         }
+//                        if (videoCallAction.presentation != ActionPresentationUi.Hidden) { // TODO: Broken, Allow for rooms with high enough perms, when mod perm for it are added.?
+                            IconButton(
+                                onClick = onStartCall,
+//                                enabled = videoCallAction.isEnabled,
+                            ) {
+                                Icon(
+                                    Icons.Default.Videocam,
+                                    contentDescription = "Video call"
+                                )
+                            }
+//                        }
                     }
 
                     IconButton(onClick = onOpenInfo) {
@@ -1118,7 +1140,7 @@ private fun RoomBottomBar(
 
         MessageComposer(
             value = state.input,
-            enabled = true,
+            enabled = state.sendMessageAction.isEnabled,
             isOffline = state.isOffline,
             replyingTo = state.replyingTo,
             editing = state.editing,

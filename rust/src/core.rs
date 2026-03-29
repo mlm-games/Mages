@@ -53,11 +53,12 @@ use tracing::warn;
 
 use crate::errors::{IntoFfi, OptionFfi};
 use crate::{
-    DirectoryUser, FfiError, FfiRoomNotificationMode, INITIAL_BACK_PAGINATION, KnockRequestSummary,
-    LiveLocationBeaconState, MemberSummary, MessageEvent, OwnReceipt, PasswordLoginKind,
-    PollDefinition, PredecessorRoomInfo, Presence, PresenceInfo, PublicRoom, PublicRoomsPage,
-    ReactionSummary, RoomDirectoryVisibility, RoomHistoryVisibility, RoomJoinRule,
-    RoomListMembership, RoomPowerLevelChanges, RoomPowerLevels, RoomPreview, RoomPreviewMembership, RoomProfile,
+    ActionAvailability, ActionPresentation, DirectoryUser, FfiError, FfiRoomNotificationMode,
+    INITIAL_BACK_PAGINATION, KnockRequestSummary, LiveLocationBeaconState, MemberActionState,
+    MemberSummary, MessageActionState, MessageEvent, OwnReceipt, PasswordLoginKind, PollDefinition,
+    PredecessorRoomInfo, Presence, PresenceInfo, PublicRoom, PublicRoomsPage, ReactionSummary,
+    RoomActionState, RoomDirectoryVisibility, RoomHistoryVisibility, RoomJoinRule, RoomListMembership,
+    RoomPowerLevelChanges, RoomPowerLevels, RoomPreview, RoomPreviewMembership, RoomProfile,
     RoomSummary, RoomTags, RoomUpgradeLinks, SearchHit, SearchPage, SeenByEntry, SendState,
     SendUpdate, SpaceChildInfo, SpaceHierarchyPage, SpaceInfo, SuccessorRoomInfo, ThreadPage,
     ThreadSummary, UnreadStats, build_unstable_poll_content, map_event_id_via_timeline,
@@ -721,6 +722,420 @@ impl CoreClient {
         let rid = Self::parse_rid(&room_id)?;
         let room = self.sdk.get_room(&rid).or_ffi("room not found")?;
         Ok(Some(self.build_room_profile(&room).await?))
+    }
+
+    async fn resolve_room_action_state_impl(&self, room: &Room) -> Result<RoomActionState, FfiError> {
+        let is_dm = room.is_direct().await.unwrap_or(false);
+        let me = self.sdk.user_id();
+        
+        let power_levels = room.power_levels().await.ffi()?;
+        let my_level: i64 = if let Some(uid) = me.as_ref() {
+            power_levels
+                .users
+                .get(uid.as_ref() as &matrix_sdk::ruma::UserId)
+                .copied()
+                .map(|v| v.into())
+                .unwrap_or(0)
+        } else {
+            0
+        };
+
+        let events_default: i64 = power_levels.events_default.into();
+        let state_default: i64 = power_levels.state_default.into();
+        
+        let send_message = {
+            let min_level = power_levels
+                .events
+                .get(&matrix_sdk::ruma::events::TimelineEventType::RoomMessage)
+                .copied()
+                .map(|v| v.into())
+                .unwrap_or(events_default);
+            if my_level >= min_level {
+                ActionAvailability::enabled()
+            } else {
+                ActionAvailability::disabled("You don't have permission to send messages")
+            }
+        };
+
+        let send_reaction = {
+            let min_level = power_levels
+                .events
+                .get(&matrix_sdk::ruma::events::TimelineEventType::Reaction)
+                .copied()
+                .map(|v| v.into())
+                .unwrap_or(events_default);
+            if my_level >= min_level {
+                ActionAvailability::enabled()
+            } else {
+                ActionAvailability::disabled("You don't have permission to react")
+            }
+        };
+
+        let edit_name = {
+            let min_level: i64 = power_levels
+                .events
+                .get(&matrix_sdk::ruma::events::TimelineEventType::RoomName)
+                .copied()
+                .map(|v| v.into())
+                .unwrap_or(state_default);
+            if my_level >= min_level {
+                ActionAvailability::enabled()
+            } else {
+                ActionAvailability::disabled("You don't have permission to edit room name")
+            }
+        };
+
+        let edit_topic = {
+            let min_level: i64 = power_levels
+                .events
+                .get(&matrix_sdk::ruma::events::TimelineEventType::RoomTopic)
+                .copied()
+                .map(|v| v.into())
+                .unwrap_or(state_default);
+            if my_level >= min_level {
+                ActionAvailability::enabled()
+            } else {
+                ActionAvailability::disabled("You don't have permission to edit room topic")
+            }
+        };
+
+        let invite = {
+            let min_level: i64 = power_levels.invite.into();
+            if my_level >= min_level {
+                ActionAvailability::enabled()
+            } else {
+                ActionAvailability::disabled("You don't have permission to invite users")
+            }
+        };
+
+        let manage_settings = {
+            if my_level >= 100 {
+                ActionAvailability::enabled()
+            } else {
+                ActionAvailability::disabled("You don't have permission to manage room settings")
+            }
+        };
+
+        let redact_others = {
+            let min_level: i64 = power_levels.redact.into();
+            if my_level >= min_level {
+                ActionAvailability::enabled()
+            } else {
+                ActionAvailability::disabled("You don't have permission to redact others' messages")
+            }
+        };
+
+        let pin = {
+            let min_level = power_levels
+                .events
+                .get(&matrix_sdk::ruma::events::TimelineEventType::RoomPinnedEvents)
+                .copied()
+                .map(|v| v.into())
+                .unwrap_or(state_default);
+            if my_level >= min_level {
+                ActionAvailability::enabled()
+            } else {
+                ActionAvailability::disabled("You don't have permission to pin messages")
+            }
+        };
+
+        let voice_call = if is_dm {
+            ActionAvailability::enabled()
+        } else {
+            ActionAvailability::hidden()
+        };
+
+        let video_call = if is_dm {
+            ActionAvailability::enabled()
+        } else {
+            ActionAvailability::hidden()
+        };
+
+        Ok(RoomActionState {
+            room_id: room.room_id().to_string(),
+            voice_call,
+            video_call,
+            send_message,
+            send_reaction,
+            edit_name,
+            edit_topic,
+            invite,
+            manage_settings,
+            redact_others,
+            pin,
+        })
+    }
+
+    async fn resolve_member_action_state_impl(
+        &self,
+        room: &Room,
+        user_id: &str,
+    ) -> Result<MemberActionState, FfiError> {
+        let me = self
+            .sdk
+            .user_id()
+            .ok_or_else(|| FfiError::Msg("not logged in".into()))?;
+
+        let is_dm = room.is_direct().await.unwrap_or(false);
+        
+        let power_levels = room.power_levels().await.ffi()?;
+        let my_level: i64 = power_levels
+            .users
+            .get(me.as_ref() as &matrix_sdk::ruma::UserId)
+            .copied()
+            .map(|v| v.into())
+            .unwrap_or(0);
+
+        let target_user_id = matrix_sdk::ruma::OwnedUserId::try_from(&*user_id)
+            .map_err(|_| FfiError::Msg("invalid target user id".into()))?;
+        let target_level: i64 = power_levels
+            .users
+            .get(target_user_id.as_ref() as &matrix_sdk::ruma::UserId)
+            .copied()
+            .map(|v| v.into())
+            .unwrap_or(0);
+
+        let direct_message = if me.as_str() == user_id {
+            ActionAvailability::disabled("You cannot start a direct message with yourself.")
+        } else if is_dm {
+            ActionAvailability::enabled()
+        } else {
+            let members = room.members(RoomMemberships::ACTIVE).await.ffi()?;
+            let is_active_member = members
+                .into_iter()
+                .any(|member| member.user_id().as_str() == user_id);
+
+            if is_active_member {
+                ActionAvailability::enabled()
+            } else {
+                ActionAvailability::disabled(
+                    "You can only start a direct message with an active room member.",
+                )
+            }
+        };
+
+        let (kick, ban, unban) = if is_dm {
+            (
+                ActionAvailability::hidden(),
+                ActionAvailability::hidden(),
+                ActionAvailability::hidden(),
+            )
+        } else {
+            let min_kick_level: i64 = power_levels.kick.into();
+            let min_ban_level: i64 = power_levels.ban.into();
+
+            // Look up target membership
+            let target_member = room
+                .get_member(
+                    <&matrix_sdk::ruma::UserId>::try_from(user_id)
+                        .map_err(|_| FfiError::Msg("invalid user id".into()))?,
+                )
+                .await
+                .ffi()?;
+
+            let is_banned = target_member
+                .as_ref()
+                .map(|m| m.membership() == &matrix_sdk::ruma::events::room::member::MembershipState::Ban)
+                .unwrap_or(false);
+
+            if is_banned {
+                // Target is banned: only unban is relevant
+                let unban = if my_level < min_ban_level {
+                    ActionAvailability::disabled("You don't have permission to unban users")
+                } else if my_level <= target_level {
+                    ActionAvailability::disabled(
+                        "You cannot unban users with equal or higher power level",
+                    )
+                } else {
+                    ActionAvailability::enabled()
+                };
+                (
+                    ActionAvailability::hidden(),
+                    ActionAvailability::hidden(),
+                    unban,
+                )
+            } else {
+                // Target is not banned: kick and ban are relevant
+                let kick = if me.as_str() == user_id {
+                    ActionAvailability::disabled("You cannot kick yourself")
+                } else if my_level < min_kick_level {
+                    ActionAvailability::disabled("You don't have permission to kick users")
+                } else if my_level <= target_level {
+                    ActionAvailability::disabled(
+                        "You cannot kick users with equal or higher power level",
+                    )
+                } else {
+                    ActionAvailability::enabled()
+                };
+
+                let ban = if me.as_str() == user_id {
+                    ActionAvailability::disabled("You cannot ban yourself")
+                } else if my_level < min_ban_level {
+                    ActionAvailability::disabled("You don't have permission to ban users")
+                } else if my_level <= target_level {
+                    ActionAvailability::disabled(
+                        "You cannot ban users with equal or higher power level",
+                    )
+                } else {
+                    ActionAvailability::enabled()
+                };
+
+                (kick, ban, ActionAvailability::hidden())
+            }
+        };
+
+        Ok(MemberActionState {
+            room_id: room.room_id().to_string(),
+            user_id: user_id.to_owned(),
+            direct_message,
+            kick,
+            ban,
+            unban,
+        })
+    }
+
+    pub async fn room_action_state(&self, room_id: String) -> Result<RoomActionState, FfiError> {
+        let room = self.require_room(&room_id)?;
+        self.resolve_room_action_state_impl(&room).await
+    }
+
+    pub async fn member_action_state(
+        &self,
+        room_id: String,
+        user_id: String,
+    ) -> Result<MemberActionState, FfiError> {
+        let room = self.require_room(&room_id)?;
+        self.resolve_member_action_state_impl(&room, &user_id).await
+    }
+
+    pub async fn ensure_dm_if_allowed(
+        &self,
+        room_id: String,
+        user_id: String,
+    ) -> Result<String, FfiError> {
+        let room = self.require_room(&room_id)?;
+        let action_state = self.resolve_member_action_state_impl(&room, &user_id).await?;
+
+        if !matches!(
+            action_state.direct_message.presentation,
+            ActionPresentation::Enabled
+        ) {
+            return Err(FfiError::Msg(
+                action_state
+                    .direct_message
+                    .reason
+                    .unwrap_or_else(|| "You cannot start a direct message with this user.".into()),
+            ));
+        }
+
+        self.ensure_dm(user_id).await
+    }
+
+    async fn resolve_message_action_state_impl(
+        &self,
+        room: &Room,
+        event_id: &str,
+        sender_user_id: &str,
+    ) -> Result<MessageActionState, FfiError> {
+        let me = self
+            .sdk
+            .user_id()
+            .ok_or_else(|| FfiError::Msg("not logged in".into()))?;
+
+        let power_levels = room.power_levels().await.ffi()?;
+        let my_level: i64 = power_levels
+            .users
+            .get(me.as_ref() as &matrix_sdk::ruma::UserId)
+            .copied()
+            .map(|v| v.into())
+            .unwrap_or(0);
+
+        let sender_id = matrix_sdk::ruma::OwnedUserId::try_from(&*sender_user_id)
+            .map_err(|_| FfiError::Msg("invalid user id".into()))?;
+        let is_me = me.as_str() == sender_user_id;
+        
+        let sender_level: i64 = power_levels
+            .users
+            .get(sender_id.as_ref() as &matrix_sdk::ruma::UserId)
+            .copied()
+            .map(|v| v.into())
+            .unwrap_or(0);
+
+        let events_default: i64 = power_levels.events_default.into();
+        let state_default: i64 = power_levels.state_default.into();
+
+        let edit = {
+            if is_me {
+                ActionAvailability::enabled()
+            } else {
+                ActionAvailability::hidden()
+            }
+        };
+
+        let delete = {
+            if is_me {
+                ActionAvailability::enabled()
+            } else {
+                let min_level: i64 = power_levels.redact.into();
+                if my_level >= min_level && my_level > sender_level {
+                    ActionAvailability::enabled()
+                } else if my_level < min_level {
+                    ActionAvailability::disabled("You don't have permission to delete others' messages")
+                } else {
+                    ActionAvailability::disabled("You cannot delete messages from users with equal or higher power level")
+                }
+            }
+        };
+
+        let pin = {
+            let min_level = power_levels
+                .events
+                .get(&matrix_sdk::ruma::events::TimelineEventType::RoomPinnedEvents)
+                .copied()
+                .map(|v| v.into())
+                .unwrap_or(state_default);
+            if my_level >= min_level {
+                ActionAvailability::enabled()
+            } else {
+                ActionAvailability::disabled("You don't have permission to pin messages")
+            }
+        };
+
+        let unpin = pin.clone();
+
+        let react = {
+            let min_level = power_levels
+                .events
+                .get(&matrix_sdk::ruma::events::TimelineEventType::Reaction)
+                .copied()
+                .map(|v| v.into())
+                .unwrap_or(events_default);
+            if my_level >= min_level {
+                ActionAvailability::enabled()
+            } else {
+                ActionAvailability::disabled("You don't have permission to react")
+            }
+        };
+
+        Ok(MessageActionState {
+            room_id: room.room_id().to_string(),
+            event_id: event_id.to_string(),
+            edit,
+            delete,
+            pin,
+            unpin,
+            react,
+        })
+    }
+
+    pub async fn message_action_state(
+        &self,
+        room_id: String,
+        event_id: String,
+        sender_user_id: String,
+    ) -> Result<MessageActionState, FfiError> {
+        let room = self.require_room(&room_id)?;
+        self.resolve_message_action_state_impl(&room, &event_id, &sender_user_id).await
     }
 
     pub async fn list_members(&self, room_id: String) -> Result<Vec<MemberSummary>, FfiError> {

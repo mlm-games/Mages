@@ -211,7 +211,10 @@ delegate_result! { RoomDirectoryVisibility; room_directory_visibility(room_id: S
 delegate_result! { RoomJoinRule; room_join_rule(room_id: String); }
 delegate_result! { RoomHistoryVisibility; room_history_visibility(room_id: String); }
 delegate_result! { Vec<SeenByEntry>; seen_by_for_event(room_id: String, event_id: String, limit: u32); }
-delegate_result! { String; upgrade_room(room_id: String, new_version: String); ensure_dm(user_id: String); }
+delegate_result! { String; upgrade_room(room_id: String, new_version: String); ensure_dm(user_id: String); ensure_dm_if_allowed(room_id: String, user_id: String); }
+delegate_result! { RoomActionState; room_action_state(room_id: String); }
+delegate_result! { MemberActionState; member_action_state(room_id: String, user_id: String); }
+delegate_result! { MessageActionState; message_action_state(room_id: String, event_id: String, sender_user_id: String); }
 delegate_result! { Vec<KnockRequestSummary>; list_knock_requests(room_id: String); }
 delegate_result! { bool; can_user_ban(room_id: String, user_id: String); can_user_invite(room_id: String, user_id: String); can_user_redact_other(room_id: String, user_id: String); }
 

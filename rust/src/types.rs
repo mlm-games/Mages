@@ -181,6 +181,78 @@ pub struct MemberSummary {
     pub membership: String,
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, Enum)]
+pub enum ActionPresentation {
+    Hidden,
+    Disabled,
+    Enabled,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Record)]
+pub struct ActionAvailability {
+    pub presentation: ActionPresentation,
+    pub reason: Option<String>,
+}
+
+impl ActionAvailability {
+    pub fn hidden() -> Self {
+        Self {
+            presentation: ActionPresentation::Hidden,
+            reason: None,
+        }
+    }
+
+    pub fn disabled(reason: impl Into<String>) -> Self {
+        Self {
+            presentation: ActionPresentation::Disabled,
+            reason: Some(reason.into()),
+        }
+    }
+
+    pub fn enabled() -> Self {
+        Self {
+            presentation: ActionPresentation::Enabled,
+            reason: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Record)]
+pub struct RoomActionState {
+    pub room_id: String,
+    pub voice_call: ActionAvailability,
+    pub video_call: ActionAvailability,
+    pub send_message: ActionAvailability,
+    pub send_reaction: ActionAvailability,
+    pub edit_name: ActionAvailability,
+    pub edit_topic: ActionAvailability,
+    pub invite: ActionAvailability,
+    pub manage_settings: ActionAvailability,
+    pub redact_others: ActionAvailability,
+    pub pin: ActionAvailability,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Record)]
+pub struct MemberActionState {
+    pub room_id: String,
+    pub user_id: String,
+    pub direct_message: ActionAvailability,
+    pub kick: ActionAvailability,
+    pub ban: ActionAvailability,
+    pub unban: ActionAvailability,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Record)]
+pub struct MessageActionState {
+    pub room_id: String,
+    pub event_id: String,
+    pub edit: ActionAvailability,
+    pub delete: ActionAvailability,
+    pub pin: ActionAvailability,
+    pub unpin: ActionAvailability,
+    pub react: ActionAvailability,
+}
+
 #[derive(Clone, Debug, Record, Serialize, Deserialize)]
 pub struct KnockRequestSummary {
     pub event_id: String,

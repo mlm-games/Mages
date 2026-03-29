@@ -918,6 +918,12 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun ensureDm(userId: String): String? =
         requireClient().ensureDm(userId).awaitStringValue()
 
+    override suspend fun ensureDmIfAllowed(roomId: String, userId: String): String? =
+        decodeValueOrNull(
+            requireClient().ensureDmIfAllowed(roomId, userId).awaitAny(),
+            "ensureDmIfAllowed"
+        )
+
     override suspend fun resolveRoomId(idOrAlias: String): String? =
         requireClient().resolveRoomId(idOrAlias).awaitStringValue()
 
@@ -960,6 +966,24 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         decodeValueOrNull(
             requireClient().roomProfile(roomId).awaitAny(),
             "roomProfile"
+        )
+
+    override suspend fun roomActionState(roomId: String): RoomActionState? =
+        decodeValueOrNull(
+            requireClient().roomActionState(roomId).awaitAny(),
+            "roomActionState"
+        )
+
+    override suspend fun memberActionState(roomId: String, userId: String): MemberActionState? =
+        decodeValueOrNull(
+            requireClient().memberActionState(roomId, userId).awaitAny(),
+            "memberActionState"
+        )
+
+    override suspend fun messageActionState(roomId: String, eventId: String, senderUserId: String): MessageActionState? =
+        decodeValueOrNull(
+            requireClient().messageActionState(roomId, eventId, senderUserId).awaitAny(),
+            "messageActionState"
         )
 
     override suspend fun roomNotificationMode(roomId: String): RoomNotificationMode? {

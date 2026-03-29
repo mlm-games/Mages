@@ -67,6 +67,49 @@ enum class SasPhase { Created, Requested, Ready, Accepted, Started, Emojis, Conf
 @Serializable
 enum class SendState { Enqueued, Sending, Sent, Retrying, Failed }
 
+enum class ActionPresentation { Hidden, Disabled, Enabled }
+
+data class ActionAvailability(
+    val presentation: ActionPresentation,
+    val reason: String?,
+) {
+    val isEnabled: Boolean
+        get() = presentation == ActionPresentation.Enabled
+}
+
+data class RoomActionState(
+    val roomId: String,
+    val voiceCall: ActionAvailability,
+    val videoCall: ActionAvailability,
+    val sendMessage: ActionAvailability,
+    val sendReaction: ActionAvailability,
+    val editName: ActionAvailability,
+    val editTopic: ActionAvailability,
+    val invite: ActionAvailability,
+    val manageSettings: ActionAvailability,
+    val redactOthers: ActionAvailability,
+    val pin: ActionAvailability,
+)
+
+data class MemberActionState(
+    val roomId: String,
+    val userId: String,
+    val directMessage: ActionAvailability,
+    val kick: ActionAvailability,
+    val ban: ActionAvailability,
+    val unban: ActionAvailability,
+)
+
+data class MessageActionState(
+    val roomId: String,
+    val eventId: String,
+    val edit: ActionAvailability,
+    val delete: ActionAvailability,
+    val pin: ActionAvailability,
+    val unpin: ActionAvailability,
+    val react: ActionAvailability,
+)
+
 @Serializable
 enum class EventType {
     Message,
@@ -707,7 +750,12 @@ interface MatrixPort {
     suspend fun joinByIdOrAlias(idOrAlias: String): Result<Unit>
     suspend fun knock(idOrAlias: String): Result<Unit>
     suspend fun ensureDm(userId: String): String?
+    suspend fun ensureDmIfAllowed(roomId: String, userId: String): String?
     suspend fun resolveRoomId(idOrAlias: String): String?
+
+    suspend fun roomActionState(roomId: String): RoomActionState?
+    suspend fun memberActionState(roomId: String, userId: String): MemberActionState?
+    suspend fun messageActionState(roomId: String, eventId: String, senderUserId: String): MessageActionState?
 
     suspend fun listInvited(): List<RoomProfile>
     suspend fun acceptInvite(roomId: String): Result<Unit>

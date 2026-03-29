@@ -66,6 +66,35 @@ enum class RoomTypeFilter {
     Invites
 }
 
+enum class ActionPresentationUi {
+    Hidden,
+    Disabled,
+    Enabled,
+}
+
+data class ActionAvailabilityUi(
+    val presentation: ActionPresentationUi = ActionPresentationUi.Hidden,
+    val reason: String? = null,
+) {
+    val isEnabled: Boolean
+        get() = presentation == ActionPresentationUi.Enabled
+
+    companion object {
+        val Enabled = ActionAvailabilityUi(
+            presentation = ActionPresentationUi.Enabled,
+            reason = null,
+        )
+    }
+}
+
+data class MessageActionStateUi(
+    val edit: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val delete: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val pin: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val unpin: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val react: ActionAvailabilityUi = ActionAvailabilityUi(),
+)
+
 data class RoomUiState(
     val roomId: String,
     val roomName: String,
@@ -127,15 +156,26 @@ data class RoomUiState(
     val isRoomSearching: Boolean = false,
     val hasRoomSearched: Boolean = false,
     val hasActiveCallForRoom: Boolean = false,
+    
+    // Room action availability states
+    val voiceCallAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val videoCallAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val sendMessageAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val sendReactionAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val editNameAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val editTopicAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val inviteAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val manageSettingsAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val redactOthersAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val pinAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+
+    // Per-message action availability states (for selected message)
+    val selectedMessageActions: MessageActionStateUi? = null,
 
     val isSelectionMode: Boolean = false,
     val selectedEventIds: Set<String> = emptySet(),
 
     val myPowerLevel: Long = 0L,
-    val canRedactOthers: Boolean = false,
-    val canKick: Boolean = false,
-    val canBan: Boolean = false,
-    val canPin: Boolean = false,
 
     val pinnedEventIds: List<String> = emptyList(),
     val showPinnedMessagesSheet: Boolean = false,
@@ -155,6 +195,10 @@ data class RoomUiState(
     val readReceiptsForEvent: List<SeenByEntry> = emptyList(),
     val highlightedEventId: String? = null,
     val selectedMemberForAction: MemberSummary? = null,
+    val selectedMemberDmAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val selectedMemberKickAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val selectedMemberBanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val selectedMemberUnbanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
 )
 
 @Serializable

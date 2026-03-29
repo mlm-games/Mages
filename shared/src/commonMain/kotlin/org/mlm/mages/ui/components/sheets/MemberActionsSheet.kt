@@ -10,9 +10,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import org.mlm.mages.matrix.MemberSummary
+import org.mlm.mages.ui.ActionAvailabilityUi
+import org.mlm.mages.ui.ActionPresentationUi
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
@@ -26,9 +29,16 @@ fun MemberActionsSheet(
     onBan: (reason: String?) -> Unit,
     onUnban: (reason: String?) -> Unit,
     onIgnore: () -> Unit,
-    canModerate: Boolean = false,
+    dmAction: ActionAvailabilityUi = ActionAvailabilityUi.Enabled,
+    kickAction: ActionAvailabilityUi = ActionAvailabilityUi.Enabled,
+    banAction: ActionAvailabilityUi = ActionAvailabilityUi.Enabled,
+    unbanAction: ActionAvailabilityUi = ActionAvailabilityUi.Enabled,
     isBanned: Boolean = false
 ) {
+    val canModerate = kickAction.presentation != ActionPresentationUi.Hidden || 
+                      banAction.presentation != ActionPresentationUi.Hidden ||
+                      (isBanned && unbanAction.presentation != ActionPresentationUi.Hidden)
+    
     var showKickDialog by remember { mutableStateOf(false) }
     var showBanDialog by remember { mutableStateOf(false) }
     var reason by remember { mutableStateOf("") }
@@ -69,11 +79,19 @@ fun MemberActionsSheet(
             HorizontalDivider()
 
             // Actions
-            ActionItem(
-                icon = Icons.AutoMirrored.Filled.Chat,
-                title = "Send direct message",
-                onClick = { onStartDm(); onDismiss() }
-            )
+            if (dmAction.presentation != ActionPresentationUi.Hidden) {
+                ActionItem(
+                    icon = Icons.AutoMirrored.Filled.Chat,
+                    title = "Send direct message",
+                    subtitle = if (dmAction.presentation == ActionPresentationUi.Disabled) {
+                        dmAction.reason
+                    } else {
+                        null
+                    },
+                    enabled = dmAction.isEnabled,
+                    onClick = { onStartDm(); onDismiss() }
+                )
+            }
 
             ActionItem(
                 icon = Icons.Default.Block,
@@ -96,25 +114,32 @@ fun MemberActionsSheet(
                     ActionItem(
                         icon = Icons.Default.RemoveCircle,
                         title = "Unban user",
-                        subtitle = "Allow them to rejoin",
+                        subtitle = unbanAction.takeIf { it.presentation == ActionPresentationUi.Disabled }?.reason ?: "Allow them to rejoin",
+                        enabled = unbanAction.isEnabled,
                         onClick = { onUnban(null); onDismiss() }
                     )
                 } else {
-                    ActionItem(
-                        icon = Icons.AutoMirrored.Filled.ExitToApp,
-                        title = "Remove from room",
-                        subtitle = "Kick user from this room",
-                        tint = MaterialTheme.colorScheme.error,
-                        onClick = { showKickDialog = true }
-                    )
+                    if (kickAction.presentation != ActionPresentationUi.Hidden) {
+                        ActionItem(
+                            icon = Icons.AutoMirrored.Filled.ExitToApp,
+                            title = "Remove from room",
+                            subtitle = kickAction.takeIf { it.presentation == ActionPresentationUi.Disabled }?.reason ?: "Kick user from this room",
+                            enabled = kickAction.isEnabled,
+                            tint = MaterialTheme.colorScheme.error,
+                            onClick = { showKickDialog = true }
+                        )
+                    }
 
-                    ActionItem(
-                        icon = Icons.Default.Block,
-                        title = "Ban from room",
-                        subtitle = "Permanently remove and prevent rejoining",
-                        tint = MaterialTheme.colorScheme.error,
-                        onClick = { showBanDialog = true }
-                    )
+                    if (banAction.presentation != ActionPresentationUi.Hidden) {
+                        ActionItem(
+                            icon = Icons.Default.Block,
+                            title = "Ban from room",
+                            subtitle = banAction.takeIf { it.presentation == ActionPresentationUi.Disabled }?.reason ?: "Permanently remove and prevent rejoining",
+                            enabled = banAction.isEnabled,
+                            tint = MaterialTheme.colorScheme.error,
+                            onClick = { showBanDialog = true }
+                        )
+                    }
                 }
             }
         }
@@ -158,13 +183,26 @@ private fun ActionItem(
     title: String,
     subtitle: String? = null,
     tint: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
+    val resolvedTint =
+        if (enabled) tint else MaterialTheme.colorScheme.onSurfaceVariant
+
     ListItem(
-        headlineContent = { Text(title, color = tint) },
-        supportingContent = subtitle?.let { { Text(it) } },
-        leadingContent = { Icon(icon, null, tint = tint) },
-        modifier = Modifier.clickable { onClick() }
+        headlineContent = { Text(title, color = resolvedTint) },
+        supportingContent = subtitle?.let {
+            {
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        leadingContent = { Icon(icon, null, tint = resolvedTint) },
+        modifier = Modifier
+            .alpha(if (enabled) 1f else 0.6f)
+            .clickable(enabled = enabled) { onClick() }
     )
 }
 
