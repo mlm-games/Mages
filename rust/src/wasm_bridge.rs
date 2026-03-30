@@ -2096,6 +2096,49 @@ impl WasmClient {
         }
     }
 
+    #[wasm_bindgen(js_name = getMediaContent)]
+    pub async fn get_media_content(
+        &self,
+        info_json: String,
+        _use_thumbnail: bool,
+    ) -> JsValue {
+        let Some(state) = self.state() else {
+            return webffi_not_init();
+        };
+        let Ok(info): Result<StickerInfo, _> = serde_json::from_str(&info_json) else {
+            return webffi_err("invalid sticker JSON");
+        };
+        let mxc_uri = info.mxc_uri;
+        if mxc_uri.is_empty() {
+            return webffi_err("missing mxc_uri");
+        }
+        let source = if let Some(enc) = info.encrypted.as_ref() {
+            let Ok(ef): Result<matrix_sdk::ruma::events::room::EncryptedFile, _> =
+                serde_json::from_str(&enc.json)
+            else {
+                return webffi_err("invalid encrypted file JSON");
+            };
+            MediaSource::Encrypted(Box::new(ef))
+        } else {
+            MediaSource::Plain(mxc_uri.into())
+        };
+        let req = MediaRequestParameters {
+            source,
+            format: MediaFormat::File,
+        };
+        match state.client().media().get_media_content(&req, true).await {
+            Ok(data) => {
+                let b64 = match base64_encode(&data) {
+                    Ok(s) => s,
+                    Err(_) => return webffi_err("base64 encode failed"),
+                };
+                let mime = info.mime.unwrap_or_else(|| "image/png".to_string());
+                JsValue::from_str(&format!("data:{};base64,{}", mime, b64))
+            }
+            Err(e) => webffi_err(&format!("media download failed: {}", e)),
+        }
+    }
+
     #[wasm_bindgen(js_name = thumbnailToCache)]
     pub async fn thumbnail_to_cache(
         &self,

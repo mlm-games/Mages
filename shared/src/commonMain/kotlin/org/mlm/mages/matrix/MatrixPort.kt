@@ -692,6 +692,20 @@ interface MatrixPort {
         onProgress: ((Long, Long?) -> Unit)? = null,
     ): Boolean
 
+    suspend fun sendStickerFromPath(
+        roomId: String,
+        path: String,
+        mime: String,
+        body: String,
+        filename: String? = null,
+        onProgress: ((Long, Long?) -> Unit)? = null,
+    ): Boolean
+
+    suspend fun downloadStickerToCache(
+        info: org.mlm.mages.StickerInfo,
+        filenameHint: String? = null,
+    ): Result<String>
+
     suspend fun downloadAttachmentToCache(
         info: AttachmentInfo,
         filenameHint: String? = null

@@ -17,6 +17,7 @@ import kotlinx.serialization.json.decodeFromJsonElement
 import org.mlm.mages.AttachmentInfo
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.RoomSummary
+import org.mlm.mages.StickerInfo
 import org.mlm.mages.platform.clearWebBlob
 import org.mlm.mages.platform.retrieveWebBlob
 import org.mlm.mages.platform.navigatorOnLine
@@ -699,6 +700,16 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         return result.isSuccess
     }
 
+    override suspend fun sendStickerFromPath(
+        roomId: String,
+        path: String,
+        mime: String,
+        body: String,
+        filename: String?,
+        onProgress: ((Long, Long?) -> Unit)?
+    ): Boolean = false
+    
+
     override suspend fun downloadAttachmentToCache(
         info: AttachmentInfo,
         filenameHint: String?
@@ -707,6 +718,18 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             .downloadAttachmentToCacheFile(wasmJson.encodeToString(info), filenameHint)
             .awaitStringValue()
             ?: error("Attachment download failed")
+    }
+
+    override suspend fun downloadStickerToCache(
+        info: StickerInfo,
+        filenameHint: String?
+    ): Result<String> = runCatching {
+        val raw = requireClient()
+            .getMediaContent(wasmJson.encodeToString(info), false)
+            .await<JsAny?>()
+            ?.toString()
+            ?: error("Sticker download failed")
+        raw
     }
 
     override suspend fun searchRoom(

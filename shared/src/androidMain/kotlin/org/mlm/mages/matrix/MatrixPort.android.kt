@@ -622,6 +622,30 @@ class RustMatrixPort : MatrixPort, VerificationService {
             runWithFfiResult { withClient { it.downloadAttachmentToCacheFile(info.toFfi(), filenameHint).path } }
         }
 
+    override suspend fun sendStickerFromPath(
+        roomId: String,
+        path: String,
+        mime: String,
+        body: String,
+        filename: String?,
+        onProgress: ((Long, Long?) -> Unit)?
+    ): Boolean = withContext(matrixDispatcher) {
+        val cb = if (onProgress != null) object : mages.ProgressObserver {
+            override fun onProgress(sent: ULong, total: ULong?) {
+                onProgress(sent.toLong(), total?.toLong())
+            }
+        } else null
+        runWithFfiResult { withClient { it.sendStickerFromPath(roomId, path, mime, body, filename, cb) } }.isSuccess
+    }
+
+    override suspend fun downloadStickerToCache(
+        info: StickerInfo,
+        filenameHint: String?
+    ): Result<String> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.downloadStickerToCache(info.toFfi(), filenameHint).path } }
+        }
+
     override suspend fun recoverWithKey(recoveryKey: String): Result<Unit> =
         withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.recoverWithKey(recoveryKey) } }
@@ -1646,6 +1670,7 @@ private fun mages.MessageEvent.toModel() = MessageEvent(
     replyToSender = replyToSender,
     replyToBody = replyToBody,
     attachment = attachment?.toModel(),
+    sticker = sticker?.toModel(),
     threadRootEventId = threadRootEventId,
     isEdited = isEdited,
     senderAvatarUrl = senderAvatarUrl,
@@ -1736,6 +1761,28 @@ private fun AttachmentInfo.toFfi() = mages.AttachmentInfo(
     thumbnailMxcUri = thumbnailMxcUri,
     encrypted = encrypted?.toFfi(),
     thumbnailEncrypted = thumbnailEncrypted?.toFfi(),
+)
+
+private fun StickerInfo.toFfi() = mages.StickerInfo(
+    mxcUri = mxcUri,
+    mime = mime,
+    sizeBytes = sizeBytes?.toULong(),
+    width = width?.toUInt(),
+    height = height?.toUInt(),
+    thumbnailMxcUri = thumbnailMxcUri,
+    encrypted = encrypted?.toFfi(),
+    thumbnailEncrypted = thumbnailEncrypted?.toFfi(),
+)
+
+private fun mages.StickerInfo.toModel() = StickerInfo(
+    mxcUri = mxcUri,
+    mime = mime,
+    sizeBytes = sizeBytes?.toLong(),
+    width = width?.toInt(),
+    height = height?.toInt(),
+    thumbnailMxcUri = thumbnailMxcUri,
+    encrypted = encrypted?.toModel(),
+    thumbnailEncrypted = thumbnailEncrypted?.toModel(),
 )
 
 private fun RoomNotificationMode.toFfi(): FfiRoomNotificationMode = when (this) {

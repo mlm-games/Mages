@@ -55,6 +55,13 @@ data class MessageThreadUi(
     val count: Int = 0,
 )
 
+data class MessageStickerUi(
+    val thumbPath: String? = null,
+    val width: Int? = null,
+    val height: Int? = null,
+    val mime: String? = null,
+)
+
 data class MessageBubbleRenderContext(
     val isMine: Boolean,
     val isDm: Boolean,
@@ -85,6 +92,8 @@ data class MessageBubbleModel(
     val reply: MessageReplyUi? = null,
     val sendState: SendState? = null,
     val attachment: MessageAttachmentUi? = null,
+    val sticker: MessageStickerUi? = null,
+    val isSticker: Boolean = false,
     val isEdited: Boolean = false,
     val poll: PollData? = null,
     val thread: MessageThreadUi? = null,

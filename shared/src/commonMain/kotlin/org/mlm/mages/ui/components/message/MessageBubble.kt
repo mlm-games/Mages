@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Forum
+import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -67,6 +68,19 @@ fun MessageBubble(
     footerContent: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     val isMine = model.isMine
+
+    if (model.isSticker) {
+        StickerMessage(
+            model = model,
+            onLongPress = onLongPress,
+            onReact = onReact,
+            onOpen = onOpenAttachment,
+            onReplyPreviewClick = onReplyPreviewClick,
+            onSenderClick = onSenderClick,
+        )
+        return
+    }
+
     val isDm = model.isDm
     val showMessageAvatars = model.showMessageAvatars
     val grouping = model.grouping
@@ -461,6 +475,129 @@ private fun VideoAttachmentBubble(
                 modifier = Modifier.padding(12.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = contentColor
+            )
+        }
+    }
+}
+
+@Composable
+private fun StickerMessage(
+    model: MessageBubbleModel,
+    onLongPress: (() -> Unit)?,
+    onReact: ((String) -> Unit)?,
+    onOpen: (() -> Unit)?,
+    onReplyPreviewClick: (() -> Unit)?,
+    onSenderClick: (() -> Unit)?,
+) {
+    val isMine = model.isMine
+    val sticker = model.sticker ?: return
+    val grouping = model.grouping
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                start = if (isMine) 72.dp else Spacing.md,
+                end = if (isMine) Spacing.md else 72.dp,
+                top = if (grouping.groupedWithPrev) 2.dp else Spacing.sm,
+                bottom = 2.dp,
+            ),
+        horizontalAlignment = if (isMine) Alignment.End else Alignment.Start,
+    ) {
+        if (!isMine && model.sender != null && grouping.groupedWithPrev != true) {
+            val sender = model.sender
+            Text(
+                text = sender.displayName ?: sender.id ?: "",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .padding(bottom = 2.dp)
+                    .then(
+                        if (onSenderClick != null) Modifier.clickable { onSenderClick() }
+                        else Modifier
+                    ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        model.reply?.let { reply ->
+            val replyBody = reply.body
+            val replySender = reply.sender
+            if (replyBody != null || replySender != null) {
+                ReplyPreview(isMine, replySender ?: "", replyBody ?: "", onReplyPreviewClick)
+                Spacer(Modifier.height(4.dp))
+            }
+        }
+
+        val maxStickerSize = 200.dp
+        val aspectRatio = if ((sticker.width ?: 0) > 0 && (sticker.height ?: 0) > 0) {
+            sticker.width!!.toFloat() / sticker.height!!.toFloat()
+        } else 1f
+
+        Box(
+            modifier = Modifier
+                .widthIn(max = maxStickerSize)
+                .aspectRatio(aspectRatio, matchHeightConstraintsFirst = false)
+                .combinedClickable(
+                    onClick = { onOpen?.invoke() },
+                    onLongClick = onLongPress,
+                )
+        ) {
+            if (sticker.thumbPath != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalPlatformContext.current)
+                        .data(sticker.thumbPath)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = model.body.takeIf { it.isNotBlank() },
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(maxStickerSize)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            RoundedCornerShape(8.dp)
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.EmojiEmotions,
+                        contentDescription = "Sticker",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(48.dp),
+                    )
+                }
+            }
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(top = 2.dp),
+        ) {
+            Text(
+                text = formatTime(model.timestamp),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            )
+            if (model.isEdited) {
+                Text(
+                    text = "(edited)",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                )
+            }
+        }
+
+        if (!model.reactions.isNullOrEmpty()) {
+            ReactionChipsRow(
+                chips = model.reactions,
+                onClick = onReact,
+                modifier = Modifier.padding(top = 4.dp)
             )
         }
     }

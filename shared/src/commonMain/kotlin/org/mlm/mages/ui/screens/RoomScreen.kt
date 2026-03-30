@@ -153,6 +153,18 @@ fun RoomScreen(
         viewModel.hideAttachmentPicker()
     }
 
+    val stickerPicker = rememberFilePickerLauncher(
+        mode = FileKitMode.Multiple(),
+        type = FileKitType.Image
+    ) { files ->
+        scope.launch {
+            files?.forEach { file ->
+                viewModel.attachSticker(file.toAttachmentData())
+            }
+        }
+        viewModel.hideAttachmentPicker()
+    }
+
     val clipboardHandler = rememberClipboardAttachmentHandler()
 
     // Check when picker opens (not constantly)
@@ -784,7 +796,8 @@ fun RoomScreen(
             } else null,
             onDismiss = viewModel::hideAttachmentPicker,
             onCreatePoll = viewModel::showPollCreator,
-            onShareLocation = viewModel::showLiveLocation
+            onShareLocation = viewModel::showLiveLocation,
+            onPickSticker = { stickerPicker.launch() }
         )
     }
 

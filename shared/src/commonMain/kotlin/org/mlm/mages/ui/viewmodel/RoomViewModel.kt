@@ -28,6 +28,7 @@ import org.mlm.mages.ui.MessageActionStateUi
 import org.mlm.mages.ui.theme.Durations
 import org.mlm.mages.ui.RoomUiState
 import org.mlm.mages.ui.components.AttachmentData
+import org.mlm.mages.ui.components.OutgoingMediaMode
 import org.mlm.mages.ui.util.mimeToExtension
 import org.mlm.mages.ui.util.nowMs
 import kotlin.collections.map
@@ -415,6 +416,13 @@ class RoomViewModel(
                 showAttachmentPicker = false
             )
         }
+    }
+
+    fun attachSticker(data: AttachmentData) {
+        attachFile(data.copy(
+            mode = OutgoingMediaMode.Sticker,
+            altText = data.fileName
+        ))
     }
 
     fun removeAttachment(index: Int) {
@@ -878,24 +886,52 @@ class RoomViewModel(
                     )
                 }
 
-                val ok = service.sendAttachmentFromPath(
-                    roomId = currentState.roomId,
-                    path = data.path,
-                    mime = data.mimeType,
-                    filename = data.fileName
-                ) { sent, totalBytes ->
-                    val denom = (totalBytes ?: data.sizeBytes).coerceAtLeast(1L).toFloat()
-                    val p = (sent.toFloat() / denom).coerceIn(0f, 1f)
-                    val stage = when {
-                        sent <= 0L || p <= 0f -> AttachmentUploadStage.Preparing
-                        p >= 1f -> AttachmentUploadStage.Sending
-                        else -> AttachmentUploadStage.Uploading
+                val ok = when (data.mode) {
+                    OutgoingMediaMode.Attachment -> {
+                        service.sendAttachmentFromPath(
+                            roomId = currentState.roomId,
+                            path = data.path,
+                            mime = data.mimeType,
+                            filename = data.fileName
+                        ) { sent, totalBytes ->
+                            val denom = (totalBytes ?: data.sizeBytes).coerceAtLeast(1L).toFloat()
+                            val p = (sent.toFloat() / denom).coerceIn(0f, 1f)
+                            val stage = when {
+                                sent <= 0L || p <= 0f -> AttachmentUploadStage.Preparing
+                                p >= 1f -> AttachmentUploadStage.Sending
+                                else -> AttachmentUploadStage.Uploading
+                            }
+                            updateState {
+                                copy(
+                                    attachmentProgress = p,
+                                    attachmentUploadStage = stage,
+                                )
+                            }
+                        }
                     }
-                    updateState {
-                        copy(
-                            attachmentProgress = p,
-                            attachmentUploadStage = stage,
-                        )
+
+                    OutgoingMediaMode.Sticker -> {
+                        service.sendStickerFromPath(
+                            roomId = currentState.roomId,
+                            path = data.path,
+                            mime = data.mimeType,
+                            body = data.altText.ifBlank { data.fileName },
+                            filename = data.fileName
+                        ) { sent, totalBytes ->
+                            val denom = (totalBytes ?: data.sizeBytes).coerceAtLeast(1L).toFloat()
+                            val p = (sent.toFloat() / denom).coerceIn(0f, 1f)
+                            val stage = when {
+                                sent <= 0L || p <= 0f -> AttachmentUploadStage.Preparing
+                                p >= 1f -> AttachmentUploadStage.Sending
+                                else -> AttachmentUploadStage.Uploading
+                            }
+                            updateState {
+                                copy(
+                                    attachmentProgress = p,
+                                    attachmentUploadStage = stage,
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -941,35 +977,70 @@ class RoomViewModel(
     }
 
     fun openAttachment(event: MessageEvent, onOpen: (String, String?) -> Unit) {
-        val a = event.attachment ?: return
         launch {
-            val nameHint = event.body.takeIf { body ->
-                body.isNotBlank() &&
-                        body.contains('.') &&
-                        !body.startsWith("mxc://") &&
-                        !body.contains('\n') &&
-                        body.length < 256
-            } ?: run {
-                val ext = mimeToExtension(a.mime)
-                val base = event.eventId.ifBlank { "file" }
-                "$base.$ext"
-            }
+            val attachment = event.attachment
+            val sticker = event.sticker
 
-            service.port.downloadAttachmentToCache(a, nameHint)
-                .onSuccess { path ->
-                    if (path.isBlank()) {
-                        _events.send(
-                            Event.ShowError("Downloaded file is missing or empty: $path")
-                        )
-                        return@onSuccess
+            when {
+                attachment != null -> {
+                    val nameHint = event.body.takeIf { body ->
+                        body.isNotBlank() &&
+                                body.contains('.') &&
+                                !body.startsWith("mxc://") &&
+                                !body.contains('\n') &&
+                                body.length < 256
+                    } ?: run {
+                        val ext = mimeToExtension(attachment.mime)
+                        val base = event.eventId.ifBlank { "file" }
+                        "$base.$ext"
                     }
-                    onOpen(path, a.mime)
+
+                    service.port.downloadAttachmentToCache(attachment, nameHint)
+                        .onSuccess { path ->
+                            if (path.isBlank()) {
+                                _events.send(
+                                    Event.ShowError("Downloaded file is missing or empty: $path")
+                                )
+                                return@onSuccess
+                            }
+                            onOpen(path, attachment.mime)
+                        }
+                        .onFailure { t ->
+                            _events.send(
+                                Event.ShowError(t.message ?: "Download failed")
+                            )
+                        }
                 }
-                .onFailure { t ->
-                    _events.send(
-                        Event.ShowError(t.message ?: "Download failed")
-                    )
+
+                sticker != null -> {
+                    val nameHint = event.body.takeIf { body ->
+                        body.isNotBlank() &&
+                                !body.startsWith("mxc://") &&
+                                !body.contains('\n') &&
+                                body.length < 256
+                    } ?: run {
+                        val ext = mimeToExtension(sticker.mime)
+                        val base = event.eventId.ifBlank { "sticker" }
+                        "$base.$ext"
+                    }
+
+                    service.downloadStickerToCache(sticker, nameHint)
+                        .onSuccess { path ->
+                            if (path.isBlank()) {
+                                _events.send(
+                                    Event.ShowError("Downloaded sticker is missing or empty: $path")
+                                )
+                                return@onSuccess
+                            }
+                            onOpen(path, sticker.mime)
+                        }
+                        .onFailure { t ->
+                            _events.send(
+                                Event.ShowError(t.message ?: "Download failed")
+                            )
+                        }
                 }
+            }
         }
     }
 
@@ -977,8 +1048,9 @@ class RoomViewModel(
         launch {
             val text = event.body.takeIf { it.isNotBlank() }
             val attachment = event.attachment
+            val sticker = event.sticker
 
-            if (attachment == null) {
+            if (attachment == null && sticker == null) {
                 _events.send(
                     Event.ShareMessage(
                         text = text,
@@ -986,7 +1058,7 @@ class RoomViewModel(
                         mimeType = null
                     )
                 )
-            } else {
+            } else if (attachment != null) {
                 val nameHint = event.body.takeIf { body ->
                     body.isNotBlank() &&
                             body.contains('.') &&
@@ -1006,6 +1078,33 @@ class RoomViewModel(
                                 text = null,
                                 filePath = path,
                                 mimeType = attachment.mime
+                            )
+                        )
+                    }
+                    .onFailure { t ->
+                        _events.send(
+                            Event.ShowError(t.message ?: "Failed to prepare share")
+                        )
+                    }
+            } else if (sticker != null) {
+                val nameHint = event.body.takeIf { body ->
+                    body.isNotBlank() &&
+                            !body.startsWith("mxc://") &&
+                            !body.contains('\n') &&
+                            body.length < 256
+                } ?: run {
+                    val ext = mimeToExtension(sticker.mime)
+                    val base = event.eventId.ifBlank { "sticker" }
+                    "$base.$ext"
+                }
+
+                service.downloadStickerToCache(sticker, nameHint)
+                    .onSuccess { path ->
+                        _events.send(
+                            Event.ShareMessage(
+                                text = null,
+                                filePath = path,
+                                mimeType = sticker.mime
                             )
                         )
                     }
@@ -1077,12 +1176,20 @@ class RoomViewModel(
                 _events.send(Event.ShowProgress(i, total, "Preparing share…"))
 
                 val att = ev.attachment
+                val sticker = ev.sticker
                 if (att != null) {
                     val hint = ev.body.takeIf { it.contains('.') && !it.startsWith("mxc://") }
                     val path = service.port.downloadAttachmentToCache(att, hint).getOrNull()
                     if (path != null) {
                         files += path
                         mimes += att.mime
+                    }
+                } else if (sticker != null) {
+                    val hint = ev.body.takeIf { it.isNotBlank() && !it.startsWith("mxc://") }
+                    val path = service.downloadStickerToCache(sticker, hint).getOrNull()
+                    if (path != null) {
+                        files += path
+                        mimes += sticker.mime
                     }
                 } else {
                     val t = ev.body.trim()
@@ -1815,13 +1922,24 @@ class RoomViewModel(
         if (settings.value.blockMediaPreviews) return
 
         events.forEach { ev ->
-            val a = ev.attachment ?: return@forEach
-            if (a.kind != AttachmentKind.Image && a.kind != AttachmentKind.Video && a.thumbnailMxcUri == null) return@forEach
             if (currentState.thumbByEvent.containsKey(ev.eventId)) return@forEach
             if (ev.eventId.isBlank()) return@forEach
 
+            val a = ev.attachment
+            val s = ev.sticker
+            val mxc = when {
+                a != null -> {
+                    if (a.kind != AttachmentKind.Image && a.kind != AttachmentKind.Video && a.thumbnailMxcUri == null) return@forEach
+                    a.thumbnailMxcUri ?: a.mxcUri
+                }
+                s != null -> s.thumbnailMxcUri ?: s.mxcUri
+                else -> return@forEach
+            } ?: return@forEach
+
             launch {
-                service.thumbnailToCache(a, 320, 320, true).onSuccess { path ->
+                val thumbRequest = a?.let { service.thumbnailToCache(it, 320, 320, true) }
+                    ?: s?.let { service.downloadStickerToCache(it) }
+                thumbRequest?.onSuccess { path ->
                     updateState {
                         copy(thumbByEvent = thumbByEvent + (ev.eventId to path))
                     }

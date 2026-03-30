@@ -2196,6 +2196,125 @@ impl Client {
         })
     }
 
+    pub fn send_sticker_from_path(
+        &self,
+        room_id: String,
+        path: String,
+        mime: String,
+        body: String,
+        filename: Option<String>,
+        progress: Option<Box<dyn ProgressObserver>>,
+    ) -> bool {
+        RT.block_on(async {
+            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+                return false;
+            };
+            let Some(room) = self.core.sdk.get_room(&rid) else {
+                return false;
+            };
+            let data = match std::fs::read(&path) {
+                Ok(d) => d,
+                Err(_) => return false,
+            };
+            let mime_type: Mime = mime.parse().unwrap_or(mime::IMAGE_PNG);
+            if !mime.starts_with("image/") {
+                return false;
+            }
+            let data_len = data.len();
+
+            if let Some(p) = progress.as_ref() {
+                p.on_progress(0, Some(data_len as u64));
+            }
+
+            let upload = self.core.sdk.media().upload(&mime_type, data, None).await;
+
+            let Ok(response) = upload else {
+                return false;
+            };
+
+            if let Some(p) = progress.as_ref() {
+                p.on_progress(data_len as u64 / 2, Some(data_len as u64));
+            }
+
+            use matrix_sdk::ruma::assign;
+            use matrix_sdk::ruma::events::room::ImageInfo;
+            use matrix_sdk::ruma::events::sticker::StickerEventContent;
+
+            let info = assign!(ImageInfo::new(), {
+                mimetype: Some(mime_type.to_string()),
+                size: matrix_sdk::ruma::UInt::new(data_len as u64),
+            });
+
+            let content = StickerEventContent::new(body, info, response.content_uri);
+
+            let result = room.send(content).await;
+
+            if let Some(p) = progress {
+                p.on_progress(data_len as u64, Some(data_len as u64));
+            }
+
+            result.is_ok()
+        })
+    }
+
+    pub fn download_sticker_to_cache(
+        &self,
+        info: StickerInfo,
+        filename_hint: Option<String>,
+    ) -> Result<DownloadResult, FfiError> {
+        #[cfg(target_family = "wasm")]
+        return Err(FfiError::Msg("file downloads not supported on web".into()));
+
+        #[cfg(not(target_family = "wasm"))]
+        {
+            let dir = cache_dir(&self.store_dir);
+            platform::ensure_dir(&dir);
+            fn sanitize(name: &str) -> String {
+                let mut s = String::with_capacity(name.len());
+                for ch in name.chars() {
+                    if ch.is_ascii_alphanumeric() || "-_.".contains(ch) {
+                        s.push(ch);
+                    } else {
+                        s.push('_');
+                    }
+                }
+                s.trim_matches('_').to_string()
+            }
+            let hint = filename_hint
+                .as_deref()
+                .map(sanitize)
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| "sticker.bin".into());
+            let out = dir.join(format!("dl_{}_{}", now_ms(), hint));
+
+            RT.block_on(async {
+                let source = if let Some(enc) = info.encrypted.as_ref() {
+                    let ef: matrix_sdk::ruma::events::room::EncryptedFile =
+                        serde_json::from_str(&enc.json).ffi()?;
+                    matrix_sdk::ruma::events::room::MediaSource::Encrypted(Box::new(ef))
+                } else {
+                    matrix_sdk::ruma::events::room::MediaSource::Plain(info.mxc_uri.clone().into())
+                };
+                let req = MediaRequestParameters {
+                    source,
+                    format: MediaFormat::File,
+                };
+                let data = self
+                    .core
+                    .sdk
+                    .media()
+                    .get_media_content(&req, true)
+                    .await
+                    .ffi()?;
+                std::fs::write(&out, &data).ffi()?;
+                Ok(DownloadResult {
+                    path: out.to_string_lossy().to_string(),
+                    bytes: data.len() as u64,
+                })
+            })
+        }
+    }
+
     pub fn download_attachment_to_cache_file(
         &self,
         att: AttachmentInfo,
@@ -2916,6 +3035,7 @@ fn map_timeline_event(
     let mut reply_to_sender: Option<String> = None;
     let mut reply_to_body: Option<String> = None;
     let mut attachment: Option<AttachmentInfo> = None;
+    let mut sticker: Option<StickerInfo> = None;
     let thread_root_event_id = ev.content().thread_root().map(|id| id.to_string());
     let body: String;
     let mut formatted_body: Option<String> = None;
@@ -2975,9 +3095,66 @@ fn map_timeline_event(
                     poll_data = Some(data);
                     event_type = EventType::Poll;
                 }
-                MsgLikeKind::Sticker(_) => {
-                    body = render_msg_like(ev, ml);
+                MsgLikeKind::Sticker(sticker_event) => {
+                    body = sticker_event.content().body.clone();
                     event_type = EventType::Sticker;
+
+                    let content = sticker_event.content();
+                    let info = content.info.clone();
+                    let source = content.source.clone();
+
+                    fn media_source_to_mxc(
+                        source: &matrix_sdk::ruma::events::sticker::StickerMediaSource,
+                    ) -> String {
+                        match source {
+                            matrix_sdk::ruma::events::sticker::StickerMediaSource::Plain(url) => {
+                                url.to_string()
+                            }
+                            matrix_sdk::ruma::events::sticker::StickerMediaSource::Encrypted(
+                                file,
+                            ) => file.url.to_string(),
+                            _ => String::new(),
+                        }
+                    }
+
+                    fn enc_to_sticker_enc(
+                        source: &matrix_sdk::ruma::events::room::EncryptedFile,
+                    ) -> EncFile {
+                        enc_to_record(source)
+                    }
+
+                    let (mxc_uri, encrypted) = match &source {
+                        matrix_sdk::ruma::events::sticker::StickerMediaSource::Plain(url) => {
+                            (url.to_string(), None)
+                        }
+                        matrix_sdk::ruma::events::sticker::StickerMediaSource::Encrypted(file) => {
+                            (file.url.to_string(), Some(enc_to_sticker_enc(file)))
+                        }
+                        _ => (String::new(), None),
+                    };
+
+                    let (thumbnail_mxc_uri, thumbnail_encrypted) = match &info.thumbnail_source {
+                        Some(ts) => match ts {
+                            matrix_sdk::ruma::events::room::MediaSource::Plain(url) => {
+                                (Some(url.to_string()), None)
+                            }
+                            matrix_sdk::ruma::events::room::MediaSource::Encrypted(file) => {
+                                (Some(file.url.to_string()), Some(enc_to_sticker_enc(file)))
+                            }
+                        },
+                        None => (None, None),
+                    };
+
+                    sticker = Some(StickerInfo {
+                        mxc_uri,
+                        mime: info.mimetype.clone(),
+                        size_bytes: info.size.map(|v| v.try_into().unwrap_or(0)),
+                        width: info.width.map(|v| v.try_into().unwrap_or(0)),
+                        height: info.height.map(|v| v.try_into().unwrap_or(0)),
+                        thumbnail_mxc_uri,
+                        encrypted,
+                        thumbnail_encrypted,
+                    });
                 }
                 _ => {
                     body = render_msg_like(ev, ml);
@@ -3036,6 +3213,7 @@ fn map_timeline_event(
         reply_to_sender_display_name,
         reply_to_body,
         attachment,
+        sticker,
         thread_root_event_id,
         is_edited,
         poll_data,

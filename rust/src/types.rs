@@ -2,7 +2,7 @@ use matrix_sdk::{PredecessorRoom, SuccessorRoom};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
-use uniffi::{export, Enum, Record};
+use uniffi::{Enum, Record, export};
 
 use crate::RT;
 
@@ -65,6 +65,7 @@ pub struct MessageEvent {
     pub reply_to_sender_display_name: Option<String>,
     pub reply_to_body: Option<String>,
     pub attachment: Option<AttachmentInfo>,
+    pub sticker: Option<StickerInfo>,
     pub thread_root_event_id: Option<String>,
     pub is_edited: bool,
     pub poll_data: Option<PollData>,
@@ -99,6 +100,18 @@ pub struct AttachmentInfo {
     pub width: Option<u32>,
     pub height: Option<u32>,
     pub duration_ms: Option<u64>,
+    pub thumbnail_mxc_uri: Option<String>,
+    pub encrypted: Option<EncFile>,
+    pub thumbnail_encrypted: Option<EncFile>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Record)]
+pub struct StickerInfo {
+    pub mxc_uri: String,
+    pub mime: Option<String>,
+    pub size_bytes: Option<u64>,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
     pub thumbnail_mxc_uri: Option<String>,
     pub encrypted: Option<EncFile>,
     pub thumbnail_encrypted: Option<EncFile>,

@@ -160,6 +160,20 @@ class MatrixService(
         onProgress: ((Long, Long?) -> Unit)? = null
     ): Boolean = port.sendAttachmentFromPath(roomId, path, mime, filename, onProgress)
 
+    suspend fun sendStickerFromPath(
+        roomId: String,
+        path: String,
+        mime: String,
+        body: String,
+        filename: String? = null,
+        onProgress: ((Long, Long?) -> Unit)? = null,
+    ): Boolean = port.sendStickerFromPath(roomId, path, mime, body, filename, onProgress)
+
+    suspend fun downloadStickerToCache(
+        info: org.mlm.mages.StickerInfo,
+        filenameHint: String? = null,
+    ): Result<String> = port.downloadStickerToCache(info, filenameHint)
+
     suspend fun recoverWithKey(recoveryKey: String) =
         runCatching { port.recoverWithKey(recoveryKey) }.getOrElse { false }
 

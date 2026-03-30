@@ -25,6 +25,7 @@ data class MessageEvent(
     var replyToSenderDisplayName: String? = null,
     var replyToBody: String? = null,
     var attachment: AttachmentInfo? = null,
+    var sticker: StickerInfo? = null,
     var threadRootEventId: String? = null,
     var isEdited: Boolean = false,
     var pollData: PollData? = null,
@@ -71,6 +72,18 @@ data class AttachmentInfo(
     val width: Int? = null,
     val height: Int? = null,
     val durationMs: Long? = null,
+    val thumbnailMxcUri: String? = null,
+    val encrypted: EncFile? = null,
+    val thumbnailEncrypted: EncFile? = null,
+)
+
+@Serializable
+data class StickerInfo(
+    val mxcUri: String,
+    val mime: String? = null,
+    val sizeBytes: Long? = null,
+    val width: Int? = null,
+    val height: Int? = null,
     val thumbnailMxcUri: String? = null,
     val encrypted: EncFile? = null,
     val thumbnailEncrypted: EncFile? = null,

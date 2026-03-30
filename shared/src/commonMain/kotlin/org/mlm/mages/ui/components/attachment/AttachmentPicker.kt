@@ -17,6 +17,7 @@ import org.mlm.mages.ui.theme.Spacing
 @Composable
 fun AttachmentPicker(
     onPickImage: () -> Unit,
+    onPickSticker: () -> Unit,
     onPickVideo: () -> Unit,
     onPickDocument: () -> Unit,
     onPasteFromClipboard: (() -> Unit)?,
@@ -48,6 +49,12 @@ fun AttachmentPicker(
                 "Photo",
                 "Send an image from gallery"
             ) { onPickImage(); onDismiss() }
+
+            AttachmentOption(
+                Icons.Default.EmojiEmotions,
+                "Sticker",
+                "Send an image as a sticker"
+            ) { onPickSticker(); onDismiss() }
 
             AttachmentOption(
                 Icons.Default.VideoLibrary,

@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.ui.components.AttachmentData
+import org.mlm.mages.ui.components.OutgoingMediaMode
 import org.mlm.mages.ui.theme.Spacing
 
 @Composable
@@ -34,7 +35,10 @@ fun ComposerAttachmentTray(
                 onClick = {},
                 label = {
                     Text(
-                        attachment.fileName,
+                        buildString {
+                            append(attachment.fileName)
+                            if (attachment.mode == OutgoingMediaMode.Sticker) append(" Sticker")
+                        },
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.widthIn(max = 160.dp)

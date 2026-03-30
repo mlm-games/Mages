@@ -72,10 +72,18 @@ private fun MessageEvent.toAttachmentUi(
 fun MessageEvent.toBubbleModel(
     ctx: MessageBubbleRenderContext
 ): MessageBubbleModel {
+    val stickerData = sticker?.let {
+        MessageStickerUi(
+            thumbPath = ctx.resolvedPreviewPath ?: it.thumbnailMxcUri ?: it.mxcUri,
+            width = it.width,
+            height = it.height,
+            mime = it.mime,
+        )
+    }
     return MessageBubbleModel(
         eventId = eventId,
         isMine = ctx.isMine,
-        body = body,
+        body = if (stickerData != null) "" else body,
         formattedBody = formattedBody,
         sender = if (ctx.senderVisible) MessageSenderUi(
             id = sender,
@@ -97,6 +105,8 @@ fun MessageEvent.toBubbleModel(
         ),
         sendState = sendState,
         attachment = toAttachmentUi(ctx.resolvedPreviewPath),
+        sticker = stickerData,
+        isSticker = stickerData != null,
         isEdited = isEdited,
         poll = pollData,
         thread = ctx.threadCount?.let { count -> MessageThreadUi(count) },
