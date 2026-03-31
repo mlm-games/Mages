@@ -9,6 +9,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import org.mlm.mages.MatrixService
 import org.mlm.mages.NotifierImpl
+import org.mlm.mages.matrix.NotificationKind
 import org.mlm.mages.settings.AppSettings
 import kotlin.system.exitProcess
 
@@ -111,11 +112,18 @@ actual fun BindNotifications(
             for (n in items) {
                 if (n.eventId.isBlank()) continue
 
-                if (n.kind == org.mlm.mages.matrix.NotificationKind.Invite) {
+                if (n.tsMs > maxSeenTs) maxSeenTs = n.tsMs
+
+                if (recentlyNotified.size > 2000) {
+                    val nit = recentlyNotified.iterator()
+                    repeat(500) { if (nit.hasNext()) { nit.next(); nit.remove() } }
+                }
+                if (!recentlyNotified.add(n.eventId)) continue
+
+                if (n.kind == NotificationKind.Invite) {
                     if (settings.autoJoinInvites) {
                         runCatching { port.acceptInvite(n.roomId) }
                     } else {
-                        // no action buttons, just a notification
                         NotifierImpl.notify(
                             app = "Mages",
                             title = "Room Invite",
@@ -126,41 +134,41 @@ actual fun BindNotifications(
                     continue
                 }
 
-                if (n.tsMs > maxSeenTs) maxSeenTs = n.tsMs
-
-                if (recentlyNotified.size > 2000) {
-                    val nit = recentlyNotified.iterator()
-                    repeat(500) { if (nit.hasNext()) { nit.next(); nit.remove() } }
-                }
-
-                if (!recentlyNotified.add(n.eventId)) continue
-
                 val senderIsMe = me != null && me == n.senderUserId
                 if (!Notifier.shouldNotify(n.roomId, senderIsMe)) continue
 
                 val lastReadTs = lastReadByRoom[n.roomId] ?: runCatching {
                     port.ownLastRead(n.roomId).second ?: 0L
                 }.getOrDefault(0L).also { lastReadByRoom[n.roomId] = it }
-
                 if (lastReadTs > 0L && n.tsMs <= lastReadTs) continue
 
-                // Use server push evaluation
-                if (!n.isNoisy) continue
+                if (n.kind == NotificationKind.StateEvent) continue
 
                 val avatarPath = runCatching {
                     val profile = port.roomProfile(n.roomId)
                     service.avatars.resolve(profile?.avatarUrl, px = 96, crop = true)
                 }.getOrNull()
 
+                val title = if (n.isDm || n.sender == n.roomName) {
+                    n.sender
+                } else {
+                    "${n.sender} • ${n.roomName}"
+                }
+
+                val body = when (n.kind) {
+                    NotificationKind.Reaction -> n.body
+                    else -> "${n.sender}: ${n.body}"
+                }
+
                 val playSound = Notifier.shouldPlaySound(
                     roomId = n.roomId,
-                    soundEnabled = settings.notificationSound,
+                    soundEnabled = settings.notificationSound && n.isNoisy,
                     oncePerRoomEnabled = settings.notifySoundOncePerRoom
                 )
 
                 NotifierImpl.notifyMatrixEvent(
-                    title = n.roomName,
-                    body = "${n.sender}: ${n.body}",
+                    title = title,
+                    body = body,
                     roomId = n.roomId,
                     eventId = n.eventId,
                     hasMention = n.hasMention,

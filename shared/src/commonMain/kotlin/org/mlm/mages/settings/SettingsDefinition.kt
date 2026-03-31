@@ -255,6 +255,17 @@ data class AppSettings(
     val openBubbleSettings: Unit = Unit,
 
     @Setting(
+        title = "Notification rules",
+        description = "Manage messages, mentions, reactions, invites, and other server-backed notification rules",
+        category = Notifications::class,
+        type = Button::class,
+        dependsOn = "notificationsEnabled",
+        platforms = [SettingPlatform.JVM, SettingPlatform.ANDROID]
+    )
+    @ActionHandler(OpenNotificationRulesAction::class)
+    val openNotificationRules: Unit = Unit,
+
+    @Setting(
         title = "Enable notifications",
         description = "Show notifications (desktop & web polling + Android push)",
         category = Notifications::class,
@@ -282,14 +293,34 @@ data class AppSettings(
     @ActionHandler(TestNotificationAction::class)
     val testNotification: Unit = Unit,
 
+    @Deprecated("Replaced by server-backed push rule toggles in NotificationSettingsRepository")
     @Setting(
-        title = "Mentions only (local)",
-        description = "Only notify when you're mentioned (local filter)",
+        title = "Mentions only (legacy)",
+        description = "Deprecated — use notification toggles instead",
         category = Notifications::class,
         type = Toggle::class,
         dependsOn = "notificationsEnabled"
     )
     val mentionsOnly: Boolean = false,
+
+    @Setting(
+        title = "Show message preview",
+        description = "Show message content in notifications",
+        category = Notifications::class,
+        type = Toggle::class,
+        dependsOn = "notificationsEnabled"
+    )
+    val notificationShowPreview: Boolean = true,
+
+    @Setting(
+        title = "Vibrate",
+        description = "Vibrate on notification",
+        category = Notifications::class,
+        type = Toggle::class,
+        dependsOn = "notificationsEnabled",
+        platforms = [SettingPlatform.ANDROID]
+    )
+    val notificationVibrate: Boolean = true,
 
     @Setting(
         title = "Notification sound",
@@ -308,6 +339,39 @@ data class AppSettings(
         dependsOn = "notificationSound"
     )
     val notifySoundOncePerRoom: Boolean = false,
+
+    @Setting(
+        title = "Quiet hours",
+        description = "Suppress audible notifications during quiet hours",
+        category = Notifications::class,
+        type = Toggle::class,
+        dependsOn = "notificationsEnabled"
+    )
+    val quietHoursEnabled: Boolean = false,
+
+    @Setting(
+        title = "Quiet hours start",
+        description = "Start time (minutes from midnight, e.g. 1380=23:00)",
+        category = Notifications::class,
+        type = Slider::class,
+        min = 0f,
+        max = 1439f,
+        step = 15f,
+        dependsOn = "quietHoursEnabled"
+    )
+    val quietHoursStartMinutes: Int = 1380,
+
+    @Setting(
+        title = "Quiet hours end",
+        description = "End time (minutes from midnight, e.g. 420=07:00)",
+        category = Notifications::class,
+        type = Slider::class,
+        min = 0f,
+        max = 1439f,
+        step = 15f,
+        dependsOn = "quietHoursEnabled"
+    )
+    val quietHoursEndMinutes: Int = 420,
 
     @Setting(
         title = "Auto-join room invites",
@@ -481,6 +545,7 @@ object ReRegisterUnifiedPushAction : SettingAction
 object CopyUnifiedPushEndpointAction : SettingAction
 
 object OpenBubbleSettingsAction : SettingAction
+object OpenNotificationRulesAction : SettingAction
 object RequestNotificationPermissionAction : SettingAction
 object TestNotificationAction : SettingAction
 

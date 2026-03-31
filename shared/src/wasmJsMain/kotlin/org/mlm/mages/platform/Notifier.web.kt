@@ -3,13 +3,15 @@ package org.mlm.mages.platform
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.browser.window
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import org.mlm.mages.MatrixService
-import org.mlm.mages.matrix.RenderedNotification
+import org.mlm.mages.matrix.NotificationKind
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.util.nowMs
 import org.w3c.dom.events.Event
@@ -73,7 +75,15 @@ actual fun BindNotifications(
     service: MatrixService,
     settingsRepository: SettingsRepository<AppSettings>
 ) {
-    LaunchedEffect(service, settingsRepository) {
+    val activeAccount by service.activeAccount.collectAsState()
+    val activeId = activeAccount?.id
+
+    LaunchedEffect(activeId) {
+        if (activeId == null) return@LaunchedEffect
+        var firstPoll = true
+        val recentlyNotified = LinkedHashSet<String>()
+        val lastReadByRoom = HashMap<String, Long>()
+
         while (isActive) {
             val settings = settingsRepository.flow.first()
 
@@ -84,6 +94,9 @@ actual fun BindNotifications(
                 notificationPermission() != "granted" ||
                 !service.isLoggedIn()
             ) {
+                firstPoll = true
+                recentlyNotified.clear()
+                lastReadByRoom.clear()
                 delay(5_000)
                 continue
             }
@@ -101,28 +114,55 @@ actual fun BindNotifications(
                 continue
             }
 
+            val since = if (firstPoll) baseline else (baseline - 60_000L).coerceAtLeast(0L)
+            firstPoll = false
+
             val ownUserId = port.whoami()
             val notifications = runCatching {
-                port.fetchNotificationsSince(baseline, 50, 20)
+                port.fetchNotificationsSince(since, 50, 20)
             }.getOrElse { emptyList() }
 
             var nextBaseline = baseline
             val now = nowMs()
 
             for (notification in notifications.sortedBy { it.tsMs }) {
+                if (notification.eventId.isBlank()) continue
                 if (notification.tsMs <= baseline) continue
                 nextBaseline = maxOf(nextBaseline, notification.tsMs)
 
+                if (recentlyNotified.size > 2000) {
+                    val it = recentlyNotified.iterator()
+                    repeat(500) { if (it.hasNext()) { it.next(); it.remove() } }
+                }
+                if (!recentlyNotified.add(notification.eventId)) continue
+
                 if (notification.expiresAtMs != null && notification.expiresAtMs <= now) continue
-                if (settings.mentionsOnly && !notification.hasMention) continue
 
                 val senderIsMe = ownUserId != null && notification.senderUserId == ownUserId
                 if (!Notifier.shouldNotify(notification.roomId, senderIsMe)) continue
 
-                val title = if (notification.isDm) {
+                val lastReadTs = lastReadByRoom[notification.roomId] ?: runCatching {
+                    port.ownLastRead(notification.roomId).second ?: 0L
+                }.getOrDefault(0L).also { lastReadByRoom[notification.roomId] = it }
+                if (lastReadTs > 0L && notification.tsMs <= lastReadTs) continue
+
+                if (notification.kind == NotificationKind.Invite && settings.autoJoinInvites) {
+                    runCatching { port.acceptInvite(notification.roomId) }
+                    continue
+                }
+
+                if (notification.kind == NotificationKind.StateEvent) continue
+
+                val title = if (notification.isDm || notification.sender == notification.roomName) {
                     notification.sender
                 } else {
-                    notification.roomName.ifBlank { notification.sender }
+                    "${notification.sender} • ${notification.roomName.ifBlank { notification.sender }}"
+                }
+
+                val body = when (notification.kind) {
+                    NotificationKind.Reaction -> notification.body
+                    else -> if (notification.isDm) notification.body
+                            else "${notification.sender}: ${notification.body}"
                 }
 
                 val avatarUrl = if (notification.isDm) {
@@ -137,7 +177,7 @@ actual fun BindNotifications(
                     }.getOrNull()
                 }
 
-                Notifier.notifyRoom(title, notification.body, resolvedIcon)
+                Notifier.notifyRoom(title, body, resolvedIcon)
             }
 
             if (nextBaseline != baseline) {

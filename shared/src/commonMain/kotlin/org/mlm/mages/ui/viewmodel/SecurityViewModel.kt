@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.Presence
+import org.mlm.mages.settings.OpenNotificationRulesAction
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.SecurityUiState
 import org.mlm.mages.verification.VerificationCoordinator
@@ -30,6 +31,7 @@ class SecurityViewModel(
         data object LogoutSuccess : Event()
         data class ShowError(val message: String) : Event()
         data class ShowSuccess(val message: String) : Event()
+        data object NavigateToNotificationRules : Event()
     }
 
     private val _events = Channel<Event>(Channel.BUFFERED)
@@ -252,6 +254,10 @@ class SecurityViewModel(
     }
 
     suspend fun executeSettingAction(actionClass: KClass<out SettingAction>) {
+        if (actionClass == OpenNotificationRulesAction::class) {
+            _events.send(Event.NavigateToNotificationRules)
+            return
+        }
         ActionRegistry.execute(actionClass)
     }
 

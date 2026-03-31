@@ -9,6 +9,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import mages.FfiException
+import mages.FfiPushRuleKind
 import mages.FfiRoomNotificationMode
 import mages.TimelineDiffKind
 import mages.Client as FfiClient
@@ -668,6 +669,48 @@ class RustMatrixPort : MatrixPort, VerificationService {
         mode: RoomNotificationMode
     ): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.setRoomNotificationMode(roomId, mode.toFfi()) } }
+    }
+
+    override suspend fun isPushRuleEnabled(kind: PushRuleKind, ruleId: String): Result<Boolean> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.isPushRuleEnabled(kind.toFfi(), ruleId) } }
+        }
+
+    override suspend fun setPushRuleEnabled(
+        kind: PushRuleKind,
+        ruleId: String,
+        enabled: Boolean
+    ): Result<Unit> = withContext(matrixDispatcher) {
+        runWithFfiResult { withClient { it.setPushRuleEnabled(kind.toFfi(), ruleId, enabled) } }
+    }
+
+    override suspend fun isReactionNotificationsEnabled(): Result<Boolean> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.isReactionNotificationsEnabled() } }
+        }
+
+    override suspend fun setReactionNotificationsEnabled(enabled: Boolean): Result<Unit> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.setReactionNotificationsEnabled(enabled) } }
+        }
+
+    override suspend fun getDefaultRoomNotificationMode(
+        isEncrypted: Boolean,
+        isOneToOne: Boolean
+    ): Result<RoomNotificationMode> = withContext(matrixDispatcher) {
+        runWithFfiResult {
+            withClient { it.getDefaultRoomNotificationMode(isEncrypted, isOneToOne).toKotlin() }
+        }
+    }
+
+    override suspend fun setDefaultRoomNotificationMode(
+        isEncrypted: Boolean,
+        isOneToOne: Boolean,
+        mode: RoomNotificationMode
+    ): Result<Unit> = withContext(matrixDispatcher) {
+        runWithFfiResult {
+            withClient { it.setDefaultRoomNotificationMode(isEncrypted, isOneToOne, mode.toFfi()) }
+        }
     }
 
     override suspend fun ownLastRead(roomId: String): Pair<String?, Long?> =
@@ -1700,6 +1743,22 @@ private fun RoomNotificationMode.toFfi(): FfiRoomNotificationMode = when (this) 
     RoomNotificationMode.Mute -> FfiRoomNotificationMode.MUTE
 }
 
+private fun PushRuleKind.toFfi(): FfiPushRuleKind = when (this) {
+    PushRuleKind.Override -> FfiPushRuleKind.OVERRIDE
+    PushRuleKind.Underride -> FfiPushRuleKind.UNDERRIDE
+    PushRuleKind.Sender -> FfiPushRuleKind.SENDER
+    PushRuleKind.Room -> FfiPushRuleKind.ROOM
+    PushRuleKind.Content -> FfiPushRuleKind.CONTENT
+}
+
+private fun FfiPushRuleKind.toKotlin(): PushRuleKind = when (this) {
+    FfiPushRuleKind.OVERRIDE -> PushRuleKind.Override
+    FfiPushRuleKind.UNDERRIDE -> PushRuleKind.Underride
+    FfiPushRuleKind.SENDER -> PushRuleKind.Sender
+    FfiPushRuleKind.ROOM -> PushRuleKind.Room
+    FfiPushRuleKind.CONTENT -> PushRuleKind.Content
+}
+
 private fun Presence.toFfi(): mages.Presence = when (this) {
     Presence.Online -> mages.Presence.ONLINE
     Presence.Offline -> mages.Presence.OFFLINE
@@ -1762,6 +1821,7 @@ private fun mages.RoomHistoryVisibility.toKotlin(): RoomHistoryVisibility = when
 
 private fun mages.NotificationKind.toKotlin(): NotificationKind = when (this) {
     mages.NotificationKind.MESSAGE -> NotificationKind.Message
+    mages.NotificationKind.REACTION -> NotificationKind.Reaction
     mages.NotificationKind.CALL_RING -> NotificationKind.CallRing
     mages.NotificationKind.CALL_NOTIFY -> NotificationKind.CallNotify
     mages.NotificationKind.CALL_INVITE -> NotificationKind.CallInvite

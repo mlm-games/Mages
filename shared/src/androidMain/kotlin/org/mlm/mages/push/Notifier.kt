@@ -466,9 +466,12 @@ object Notifier {
             REQUEST_REPLY + notificationId,
             Intent(context, NotificationActionReceiver::class.java)
                 .setAction(NotificationActionReceiver.ACTION_REPLY)
-                .putExtra(ConversationShortcutPublisher.EXTRA_ROOM_ID, roomId)
+                .putExtra(NotificationActionReceiver.EXTRA_ROOM_ID, roomId)
                 .putExtra(NotificationActionReceiver.EXTRA_EVENT_ID, eventId)
-                .putExtra(NotificationActionReceiver.EXTRA_NOTIF_ID, notificationId),
+                .putExtra(NotificationActionReceiver.EXTRA_NOTIF_ID, notificationId)
+                .putExtra(NotificationActionReceiver.EXTRA_ROOM_NAME, roomName)
+                .putExtra(NotificationActionReceiver.EXTRA_SENDER_NAME, senderName)
+                .putExtra(NotificationActionReceiver.EXTRA_MESSAGE_BODY, messageBody),
             PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val replyAction = NotificationCompat.Action.Builder(
@@ -480,9 +483,12 @@ object Notifier {
             REQUEST_READ + notificationId,
             Intent(context, NotificationActionReceiver::class.java)
                 .setAction(NotificationActionReceiver.ACTION_MARK_READ)
-                .putExtra(ConversationShortcutPublisher.EXTRA_ROOM_ID, roomId)
+                .putExtra(NotificationActionReceiver.EXTRA_ROOM_ID, roomId)
                 .putExtra(NotificationActionReceiver.EXTRA_EVENT_ID, eventId)
-                .putExtra(NotificationActionReceiver.EXTRA_NOTIF_ID, notificationId),
+                .putExtra(NotificationActionReceiver.EXTRA_NOTIF_ID, notificationId)
+                .putExtra(NotificationActionReceiver.EXTRA_ROOM_NAME, roomName)
+                .putExtra(NotificationActionReceiver.EXTRA_SENDER_NAME, senderName)
+                .putExtra(NotificationActionReceiver.EXTRA_MESSAGE_BODY, messageBody),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val markReadAction = NotificationCompat.Action.Builder(

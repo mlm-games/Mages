@@ -614,6 +614,7 @@ pub enum BackupState {
 #[derive(Clone, Serialize, Deserialize, Enum)]
 pub enum NotificationKind {
     Message,
+    Reaction,
     CallRing,
     CallNotify,
     CallInvite,
@@ -626,6 +627,15 @@ pub enum FfiRoomNotificationMode {
     AllMessages,
     MentionsAndKeywordsOnly,
     Mute,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Enum)]
+pub enum FfiPushRuleKind {
+    Override,
+    Underride,
+    Sender,
+    Room,
+    Content,
 }
 
 #[derive(Clone, Serialize, Deserialize, Enum)]

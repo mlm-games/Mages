@@ -119,7 +119,7 @@ class NotificationEnrichWorker(
                     return Result.success()
                 }
 
-                // Expired? cancel placeholder (and don’t show).
+                // Expired? cancel placeholder (and don't show).
                 val expiresAt = rendered.expiresAtMs
                 if (expiresAt != null && System.currentTimeMillis() > expiresAt) {
                     nm.cancel(notifId)
@@ -148,11 +148,8 @@ class NotificationEnrichWorker(
                 return Result.success()
             }
 
-            NotificationKind.Message -> {
-                if (settings.mentionsOnly && !rendered.hasMention) {
-                    nm.cancel(notifId)
-                    return Result.success()
-                }
+            NotificationKind.Reaction -> {
+                val inQuietHours = settings.quietHoursEnabled && isInQuietHours(settings)
 
                 val title = if (rendered.isDm || rendered.sender == rendered.roomName) {
                     rendered.sender
@@ -160,7 +157,78 @@ class NotificationEnrichWorker(
                     "${rendered.sender} • ${rendered.roomName}"
                 }
 
-                val playSound = if (settings.notificationSound && rendered.isNoisy) {
+                val playSound = if (!inQuietHours && settings.notificationSound && rendered.isNoisy) {
+                    if (settings.notifySoundOncePerRoom) {
+                        val notifiedRooms = parseNotifiedRooms(settings.notifiedRoomsJson)
+                        if (!notifiedRooms.contains(roomId)) {
+                            val updated = notifiedRooms + roomId
+                            settingsRepo.update { it.copy(notifiedRoomsJson = Json.encodeToString(updated)) }
+                            true
+                        } else {
+                            false
+                        }
+                    } else {
+                        true
+                    }
+                } else {
+                    false
+                }
+
+                val senderAvatarUrl = runCatching {
+                    port.getUserProfile(rendered.senderUserId)?.avatarUrl
+                }.getOrNull()
+
+                val roomAvatarUrl = runCatching {
+                    port.roomProfile(roomId)?.avatarUrl
+                }.getOrNull()
+
+                val senderAvatar = NotificationAvatarHelper.resolve(
+                    context = applicationContext,
+                    service = service,
+                    avatarUrl = senderAvatarUrl,
+                    displayName = rendered.sender,
+                    userId = rendered.senderUserId,
+                    fallbackRes = R.drawable.ic_notif_status_bar,
+                )
+                val roomAvatar = NotificationAvatarHelper.resolve(
+                    context = applicationContext,
+                    service = service,
+                    avatarUrl = roomAvatarUrl,
+                    displayName = rendered.roomName,
+                    userId = roomId,
+                    fallbackRes = R.drawable.ic_notif_status_bar,
+                )
+
+                Notifier.showConversationNotification(
+                    context = applicationContext,
+                    roomId = roomId,
+                    roomName = rendered.roomName,
+                    senderName = title,
+                    senderUserId = rendered.senderUserId,
+                    messageBody = rendered.body,
+                    eventId = eventId,
+                    timestamp = rendered.tsMs,
+                    notificationId = notifId,
+                    bubbleActivityClass = bubbleActivityClass,
+                    fullOpenIntent = buildFullOpenIntent(applicationContext, roomId),
+                    senderAvatar = senderAvatar,
+                    roomAvatar = roomAvatar,
+                    isDm = rendered.isDm,
+                    playSound = playSound,
+                )
+                return Result.success()
+            }
+
+            NotificationKind.Message -> {
+                val inQuietHours = settings.quietHoursEnabled && isInQuietHours(settings)
+
+                val title = if (rendered.isDm || rendered.sender == rendered.roomName) {
+                    rendered.sender
+                } else {
+                    "${rendered.sender} • ${rendered.roomName}"
+                }
+
+                val playSound = if (!inQuietHours && settings.notificationSound && rendered.isNoisy) {
                     if (settings.notifySoundOncePerRoom) {
                         val notifiedRooms = parseNotifiedRooms(settings.notifiedRoomsJson)
                         if (!notifiedRooms.contains(roomId)) {
@@ -237,6 +305,20 @@ class NotificationEnrichWorker(
     companion object {
         const val KEY_ROOM_ID = "roomId"
         const val KEY_EVENT_ID = "eventId"
+    }
+}
+
+private fun isInQuietHours(settings: org.mlm.mages.settings.AppSettings): Boolean {
+    if (!settings.quietHoursEnabled) return false
+    val now = java.util.Calendar.getInstance()
+    val minuteOfDay = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 +
+        now.get(java.util.Calendar.MINUTE)
+    val start = settings.quietHoursStartMinutes
+    val end = settings.quietHoursEndMinutes
+    return if (start <= end) {
+        minuteOfDay in start until end
+    } else {
+        minuteOfDay >= start || minuteOfDay < end
     }
 }
 

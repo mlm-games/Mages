@@ -51,18 +51,24 @@ use matrix_sdk_ui::{
 };
 use tracing::warn;
 
-use crate::errors::{IntoFfi, OptionFfi};
 use crate::{
-    ActionAvailability, ActionPresentation, DirectoryUser, FfiError, FfiRoomNotificationMode,
-    INITIAL_BACK_PAGINATION, KnockRequestSummary, LiveLocationBeaconState, MemberActionState,
-    MemberSummary, MessageActionState, MessageEvent, OwnReceipt, PasswordLoginKind, PollDefinition,
-    PredecessorRoomInfo, Presence, PresenceInfo, PublicRoom, PublicRoomsPage, ReactionSummary,
-    RoomActionState, RoomDirectoryVisibility, RoomHistoryVisibility, RoomJoinRule, RoomListMembership,
-    RoomPowerLevelChanges, RoomPowerLevels, RoomPreview, RoomPreviewMembership, RoomProfile,
-    RoomSummary, RoomTags, RoomUpgradeLinks, SearchHit, SearchPage, SeenByEntry, SendState,
-    SendUpdate, SpaceChildInfo, SpaceHierarchyPage, SpaceInfo, SuccessorRoomInfo, ThreadPage,
-    ThreadSummary, UnreadStats, build_unstable_poll_content, map_event_id_via_timeline,
-    map_timeline_event, paginate_backwards_visible, timeline_event_filter,
+    ActionAvailability, ActionPresentation, DirectoryUser, FfiError, FfiPushRuleKind,
+    FfiRoomNotificationMode, INITIAL_BACK_PAGINATION, KnockRequestSummary, LiveLocationBeaconState,
+    MemberActionState, MemberSummary, MessageActionState, MessageEvent, OwnReceipt,
+    PasswordLoginKind, PollDefinition, PredecessorRoomInfo, Presence, PresenceInfo, PublicRoom,
+    PublicRoomsPage, ReactionSummary, RoomActionState, RoomDirectoryVisibility,
+    RoomHistoryVisibility, RoomJoinRule, RoomListMembership, RoomPowerLevelChanges,
+    RoomPowerLevels, RoomPreview, RoomPreviewMembership, RoomSummary, RoomTags, RoomUpgradeLinks,
+    SearchHit, SearchPage, SeenByEntry, SendState, SendUpdate, SpaceChildInfo, SpaceHierarchyPage,
+    SpaceInfo, SuccessorRoomInfo, ThreadPage, ThreadSummary, UnreadStats,
+    build_unstable_poll_content, map_event_id_via_timeline, map_timeline_event,
+    paginate_backwards_visible, timeline_event_filter,
+};
+
+const REACTION_NOTIFY_RULE_ID: &str = "org.mlm.mages.reaction.notify";
+use crate::{
+    RoomProfile,
+    errors::{IntoFfi, OptionFfi},
 };
 
 #[cfg(not(target_family = "wasm"))]
@@ -724,10 +730,13 @@ impl CoreClient {
         Ok(Some(self.build_room_profile(&room).await?))
     }
 
-    async fn resolve_room_action_state_impl(&self, room: &Room) -> Result<RoomActionState, FfiError> {
+    async fn resolve_room_action_state_impl(
+        &self,
+        room: &Room,
+    ) -> Result<RoomActionState, FfiError> {
         let is_dm = room.is_direct().await.unwrap_or(false);
         let me = self.sdk.user_id();
-        
+
         let power_levels = room.power_levels().await.ffi()?;
         let my_level: i64 = if let Some(uid) = me.as_ref() {
             power_levels
@@ -742,7 +751,7 @@ impl CoreClient {
 
         let events_default: i64 = power_levels.events_default.into();
         let state_default: i64 = power_levels.state_default.into();
-        
+
         let send_message = {
             let min_level = power_levels
                 .events
@@ -877,7 +886,7 @@ impl CoreClient {
             .ok_or_else(|| FfiError::Msg("not logged in".into()))?;
 
         let is_dm = room.is_direct().await.unwrap_or(false);
-        
+
         let power_levels = room.power_levels().await.ffi()?;
         let my_level: i64 = power_levels
             .users
@@ -935,7 +944,9 @@ impl CoreClient {
 
             let is_banned = target_member
                 .as_ref()
-                .map(|m| m.membership() == &matrix_sdk::ruma::events::room::member::MembershipState::Ban)
+                .map(|m| {
+                    m.membership() == &matrix_sdk::ruma::events::room::member::MembershipState::Ban
+                })
                 .unwrap_or(false);
 
             if is_banned {
@@ -1014,7 +1025,9 @@ impl CoreClient {
         user_id: String,
     ) -> Result<String, FfiError> {
         let room = self.require_room(&room_id)?;
-        let action_state = self.resolve_member_action_state_impl(&room, &user_id).await?;
+        let action_state = self
+            .resolve_member_action_state_impl(&room, &user_id)
+            .await?;
 
         if !matches!(
             action_state.direct_message.presentation,
@@ -1053,7 +1066,7 @@ impl CoreClient {
         let sender_id = matrix_sdk::ruma::OwnedUserId::try_from(&*sender_user_id)
             .map_err(|_| FfiError::Msg("invalid user id".into()))?;
         let is_me = me.as_str() == sender_user_id;
-        
+
         let sender_level: i64 = power_levels
             .users
             .get(sender_id.as_ref() as &matrix_sdk::ruma::UserId)
@@ -1080,9 +1093,13 @@ impl CoreClient {
                 if my_level >= min_level && my_level > sender_level {
                     ActionAvailability::enabled()
                 } else if my_level < min_level {
-                    ActionAvailability::disabled("You don't have permission to delete others' messages")
+                    ActionAvailability::disabled(
+                        "You don't have permission to delete others' messages",
+                    )
                 } else {
-                    ActionAvailability::disabled("You cannot delete messages from users with equal or higher power level")
+                    ActionAvailability::disabled(
+                        "You cannot delete messages from users with equal or higher power level",
+                    )
                 }
             }
         };
@@ -1135,7 +1152,8 @@ impl CoreClient {
         sender_user_id: String,
     ) -> Result<MessageActionState, FfiError> {
         let room = self.require_room(&room_id)?;
-        self.resolve_message_action_state_impl(&room, &event_id, &sender_user_id).await
+        self.resolve_message_action_state_impl(&room, &event_id, &sender_user_id)
+            .await
     }
 
     pub async fn list_members(&self, room_id: String) -> Result<Vec<MemberSummary>, FfiError> {
@@ -1270,6 +1288,173 @@ impl CoreClient {
             .notification_settings()
             .await
             .set_room_notification_mode(rid.as_ref(), sdk_mode)
+            .await
+            .ffi()
+    }
+
+    pub async fn is_push_rule_enabled(
+        &self,
+        kind: FfiPushRuleKind,
+        rule_id: String,
+    ) -> Result<bool, FfiError> {
+        use matrix_sdk::ruma::push::RuleKind;
+        let rk = match kind {
+            FfiPushRuleKind::Override => RuleKind::Override,
+            FfiPushRuleKind::Underride => RuleKind::Underride,
+            FfiPushRuleKind::Sender => RuleKind::Sender,
+            FfiPushRuleKind::Room => RuleKind::Room,
+            FfiPushRuleKind::Content => RuleKind::Content,
+        };
+        self.sdk
+            .notification_settings()
+            .await
+            .is_push_rule_enabled(rk, &rule_id)
+            .await
+            .ffi()
+    }
+
+    pub async fn set_push_rule_enabled(
+        &self,
+        kind: FfiPushRuleKind,
+        rule_id: String,
+        enabled: bool,
+    ) -> Result<(), FfiError> {
+        use matrix_sdk::ruma::push::RuleKind;
+        let rk = match kind {
+            FfiPushRuleKind::Override => RuleKind::Override,
+            FfiPushRuleKind::Underride => RuleKind::Underride,
+            FfiPushRuleKind::Sender => RuleKind::Sender,
+            FfiPushRuleKind::Room => RuleKind::Room,
+            FfiPushRuleKind::Content => RuleKind::Content,
+        };
+        self.sdk
+            .notification_settings()
+            .await
+            .set_push_rule_enabled(rk, &rule_id, enabled)
+            .await
+            .ffi()
+    }
+
+    pub async fn is_reaction_notifications_enabled(&self) -> Result<bool, FfiError> {
+        use matrix_sdk::ruma::push::RuleKind;
+
+        let settings = self.sdk.notification_settings().await;
+        let ruleset = settings.ruleset().await;
+
+        Ok(ruleset
+            .get(RuleKind::Override, REACTION_NOTIFY_RULE_ID)
+            .map(|rule| rule.enabled())
+            .unwrap_or(false))
+    }
+
+    pub async fn set_reaction_notifications_enabled(&self, enabled: bool) -> Result<(), FfiError> {
+        use matrix_sdk::ruma::push::{Action, PushCondition, RuleKind, Tweak};
+
+        let settings = self.sdk.notification_settings().await;
+        let rule_exists = settings
+            .ruleset()
+            .await
+            .get(RuleKind::Override, REACTION_NOTIFY_RULE_ID)
+            .is_some();
+
+        if enabled {
+            if !rule_exists {
+                settings
+                    .create_custom_conditional_push_rule(
+                        REACTION_NOTIFY_RULE_ID.to_owned(),
+                        RuleKind::Override,
+                        vec![Action::Notify, Action::SetTweak(Tweak::Highlight(false))],
+                        vec![PushCondition::EventMatch {
+                            key: "type".to_owned(),
+                            pattern: "m.reaction".to_owned(),
+                        }],
+                    )
+                    .await
+                    .map_err(|e| FfiError::Msg(e.to_string()))?;
+            }
+
+            settings
+                .set_push_rule_enabled(RuleKind::Override, REACTION_NOTIFY_RULE_ID, true)
+                .await
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
+        } else {
+            match settings
+                .set_push_rule_enabled(RuleKind::Override, REACTION_NOTIFY_RULE_ID, false)
+                .await
+            {
+                Ok(()) => {}
+                Err(e) if e.is_rule_not_found() => {}
+                Err(e) => return Err(FfiError::Msg(e.to_string())),
+            }
+
+            settings
+                .set_push_rule_enabled(RuleKind::Override, ".m.rule.reaction", true)
+                .await
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn get_default_room_notification_mode(
+        &self,
+        is_encrypted: bool,
+        is_one_to_one: bool,
+    ) -> Result<FfiRoomNotificationMode, FfiError> {
+        use matrix_sdk::notification_settings::{IsEncrypted, IsOneToOne};
+        let enc = if is_encrypted {
+            IsEncrypted::Yes
+        } else {
+            IsEncrypted::No
+        };
+        let oto = if is_one_to_one {
+            IsOneToOne::Yes
+        } else {
+            IsOneToOne::No
+        };
+        let mode = self
+            .sdk
+            .notification_settings()
+            .await
+            .get_default_room_notification_mode(enc, oto)
+            .await;
+        Ok(match mode {
+            RoomNotificationMode::AllMessages => FfiRoomNotificationMode::AllMessages,
+            RoomNotificationMode::MentionsAndKeywordsOnly => {
+                FfiRoomNotificationMode::MentionsAndKeywordsOnly
+            }
+            RoomNotificationMode::Mute => FfiRoomNotificationMode::Mute,
+        })
+    }
+
+    pub async fn set_default_room_notification_mode(
+        &self,
+        is_encrypted: bool,
+        is_one_to_one: bool,
+        mode: FfiRoomNotificationMode,
+    ) -> Result<(), FfiError> {
+        use matrix_sdk::notification_settings::{IsEncrypted, IsOneToOne};
+        let enc = if is_encrypted {
+            IsEncrypted::Yes
+        } else {
+            IsEncrypted::No
+        };
+        let oto = if is_one_to_one {
+            IsOneToOne::Yes
+        } else {
+            IsOneToOne::No
+        };
+        let sdk_mode = match mode {
+            FfiRoomNotificationMode::AllMessages => RoomNotificationMode::AllMessages,
+            FfiRoomNotificationMode::MentionsAndKeywordsOnly => {
+                RoomNotificationMode::MentionsAndKeywordsOnly
+            }
+            FfiRoomNotificationMode::Mute => RoomNotificationMode::Mute,
+        };
+        self.sdk
+            .notification_settings()
+            .await
+            .set_default_room_notification_mode(enc, oto, sdk_mode)
             .await
             .ffi()
     }
@@ -1741,7 +1926,7 @@ impl CoreClient {
         &self,
         room_id: String,
         event_id: String,
-        score: Option<i32>,
+        _score: Option<i32>,
         reason: Option<String>,
     ) -> Result<(), FfiError> {
         let room = self.require_room(&room_id)?;

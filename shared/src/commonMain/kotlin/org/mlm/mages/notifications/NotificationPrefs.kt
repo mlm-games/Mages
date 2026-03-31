@@ -1,4 +1,16 @@
+@file:Suppress("DEPRECATION")
+
 package org.mlm.mages.notifications
+
+/**
+ * Legacy room-level local notification filter.
+ *
+ * This will be replaced by server-backed per-room notification modes
+ * (already exposed via [MatrixPort.roomNotificationMode] /
+ * [MatrixPort.setRoomNotificationMode]) in a future version.
+ *
+ * Should probably remove this when applicable.
+ */
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences

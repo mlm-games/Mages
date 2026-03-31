@@ -1001,6 +1001,53 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         "set room notification mode"
     )
 
+    override suspend fun isPushRuleEnabled(kind: PushRuleKind, ruleId: String): Result<Boolean> {
+        return boolResult(
+            requireClient().isPushRuleEnabled(kind.name, ruleId).awaitPlainBool(),
+            "isPushRuleEnabled"
+        )
+    }
+
+    override suspend fun setPushRuleEnabled(
+        kind: PushRuleKind,
+        ruleId: String,
+        enabled: Boolean
+    ): Result<Unit> = unitResult(
+        requireClient().setPushRuleEnabled(kind.name, ruleId, enabled).awaitPlainBool(),
+        "set push rule enabled"
+    )
+
+    override suspend fun isReactionNotificationsEnabled(): Result<Boolean> =
+        boolResult(
+            requireClient().isReactionNotificationsEnabled().awaitPlainBool(),
+            "isReactionNotificationsEnabled"
+        )
+
+    override suspend fun setReactionNotificationsEnabled(
+        enabled: Boolean,
+    ): Result<Unit> = unitResult(
+        requireClient().setReactionNotificationsEnabled(enabled).awaitPlainBool(),
+        "setReactionNotificationsEnabled"
+    )
+
+    override suspend fun getDefaultRoomNotificationMode(
+        isEncrypted: Boolean,
+        isOneToOne: Boolean
+    ): Result<RoomNotificationMode> {
+        val name = requireClient().getDefaultRoomNotificationMode(isEncrypted, isOneToOne).awaitStringValue()
+        return name?.let { runCatching { enumValueOf<RoomNotificationMode>(it) } }
+            ?: Result.failure(IllegalStateException("No default mode returned"))
+    }
+
+    override suspend fun setDefaultRoomNotificationMode(
+        isEncrypted: Boolean,
+        isOneToOne: Boolean,
+        mode: RoomNotificationMode
+    ): Result<Unit> = unitResult(
+        requireClient().setDefaultRoomNotificationMode(isEncrypted, isOneToOne, mode.name).awaitPlainBool(),
+        "set default room notification mode"
+    )
+
     override suspend fun listMembers(roomId: String): List<MemberSummary> =
         requireClient().listMembers(roomId).awaitValue<List<MemberSummary>>() ?: emptyList()
 

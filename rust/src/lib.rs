@@ -173,6 +173,9 @@ delegate_unit_result! {
     space_invite_user(space_id: String, user_id: String);
     leave_room(room_id: String);
     set_room_notification_mode(room_id: String, mode: FfiRoomNotificationMode);
+    set_push_rule_enabled(kind: FfiPushRuleKind, rule_id: String, enabled: bool);
+    set_reaction_notifications_enabled(enabled: bool);
+    set_default_room_notification_mode(is_encrypted: bool, is_one_to_one: bool, mode: FfiRoomNotificationMode);
     set_room_canonical_alias(room_id: String, alias: Option<String>, alt_aliases: Vec<String>);
     set_room_directory_visibility(room_id: String, visibility: RoomDirectoryVisibility);
     set_room_join_rule(room_id: String, rule: RoomJoinRule);
@@ -219,6 +222,9 @@ delegate_result! { Vec<KnockRequestSummary>; list_knock_requests(room_id: String
 delegate_result! { bool; can_user_ban(room_id: String, user_id: String); can_user_invite(room_id: String, user_id: String); can_user_redact_other(room_id: String, user_id: String); }
 
 delegate_option! { FfiRoomNotificationMode; room_notification_mode(room_id: String); }
+delegate_result! { bool; is_push_rule_enabled(kind: FfiPushRuleKind, rule_id: String); }
+delegate_result! { bool; is_reaction_notifications_enabled(); }
+delegate_result! { FfiRoomNotificationMode; get_default_room_notification_mode(is_encrypted: bool, is_one_to_one: bool); }
 delegate_option! { UnreadStats; room_unread_stats(room_id: String); }
 delegate_option! { RoomTags; room_tags(room_id: String); }
 delegate_option! { String; dm_peer_user_id(room_id: String); resolve_room_id(id_or_alias: String); account_management_url(); }
@@ -4029,6 +4035,7 @@ fn classify_notification_kind_and_expiry(
 
     match ev {
         AnySyncTimelineEvent::MessageLike(m) => match m {
+            AnySyncMessageLikeEvent::Reaction(_) => (NotificationKind::Reaction, None),
             AnySyncMessageLikeEvent::RtcNotification(rtc) => {
                 if let Some(o) = rtc.as_original() {
                     let expires_at_ms: u64 = o
@@ -4051,7 +4058,6 @@ fn classify_notification_kind_and_expiry(
             _ => (NotificationKind::Message, None),
         },
         AnySyncTimelineEvent::State(_) => (NotificationKind::StateEvent, None),
-        // _ => (NotificationKind::Message, None),
     }
 }
 
@@ -4087,6 +4093,18 @@ pub fn map_notification_item_to_rendered(
 
         match ev {
             AnySyncTimelineEvent::MessageLike(msg) => match msg {
+                AnySyncMessageLikeEvent::Reaction(reaction) => {
+                    if let Some(orig) = reaction.as_original() {
+                        sender = item
+                            .sender_display_name
+                            .clone()
+                            .unwrap_or_else(|| orig.sender.localpart().to_string());
+                        let key = orig.content.relates_to.key.as_str();
+                        body = format!("Reacted {key}");
+                    } else {
+                        body = "Reacted to a message".to_owned();
+                    }
+                }
                 AnySyncMessageLikeEvent::RoomMessage(m) => {
                     if let Some(orig) = m.as_original() {
                         sender = item

@@ -21,6 +21,8 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import io.github.mlmgames.settings.core.SettingsRepository
+import io.github.mlmgames.settings.core.annotations.SettingPlatform
+import io.github.mlmgames.settings.core.platform.currentPlatform
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -97,7 +99,9 @@ private fun AppContent(
     val callManager: CallManager = koinInject()
     val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
 
-    BindNotifications(service = service, settingsRepository = settingsRepository)
+    if (currentPlatform == SettingPlatform.WEB) {
+        BindNotifications(service = service, settingsRepository = settingsRepository)
+    } //NOTE: web notifs , causes duplicate notifs on desktop if used there too (due to it being called on DesktopAppContent already).
 
     var initDone by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -397,6 +401,10 @@ private fun AppContent(
                                         is SecurityViewModel.Event.ShowSuccess -> {
                                             snackbarManager.show(event.message)
                                         }
+
+                                        SecurityViewModel.Event.NavigateToNotificationRules -> {
+                                            backStack.add(Route.NotificationRules)
+                                        }
                                     }
                                 }
                             }
@@ -683,6 +691,13 @@ private fun AppContent(
                                         }
                                     }
                                 }
+                            )
+                        }
+
+                        entry<Route.NotificationRules> {
+                            NotificationRulesScreen(
+                                matrixPort = service.port,
+                                onBack = backStack::popBack
                             )
                         }
                     }

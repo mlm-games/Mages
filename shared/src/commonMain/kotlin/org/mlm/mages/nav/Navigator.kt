@@ -47,6 +47,8 @@ sealed interface Route : NavKey {
     @Serializable data class SpaceSettings(val spaceId: String) : Route
 
     @Serializable data object Search : Route
+
+    @Serializable data object NotificationRules : Route
 }
 
 fun <T : NavKey> NavBackStack<T>.replaceTop(key: T) {
@@ -152,6 +154,7 @@ val routeSerializersModule = SerializersModule {
         subclass(Route.MediaGallery::class, Route.MediaGallery.serializer())
         subclass(Route.Search::class, Route.Search.serializer())
         subclass(Route.ForwardPicker::class, Route.ForwardPicker.serializer())
+        subclass(Route.NotificationRules::class, Route.NotificationRules.serializer())
     }
 }
 

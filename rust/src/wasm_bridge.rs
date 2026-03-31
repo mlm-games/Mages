@@ -2818,4 +2818,96 @@ impl WasmClient {
 
         true
     }
+
+    #[wasm_bindgen(js_name = isReactionNotificationsEnabled)]
+    pub async fn is_reaction_notifications_enabled(&self) -> JsValue {
+        let Some(s) = self.state() else {
+            return webffi_not_init();
+        };
+        webffi_value(s.core.is_reaction_notifications_enabled().await)
+    }
+
+    #[wasm_bindgen(js_name = setReactionNotificationsEnabled)]
+    pub async fn set_reaction_notifications_enabled(&self, enabled: bool) -> JsValue {
+        let Some(s) = self.state() else {
+            return webffi_not_init();
+        };
+        webffi_unit(s.core.set_reaction_notifications_enabled(enabled).await)
+    }
+
+    #[wasm_bindgen(js_name = isPushRuleEnabled)]
+    pub async fn is_push_rule_enabled(&self, kind: String, rule_id: String) -> JsValue {
+        let Some(s) = self.state() else {
+            return webffi_not_init();
+        };
+        let ffi_kind = match kind.as_str() {
+            "Override" => FfiPushRuleKind::Override,
+            "Underride" => FfiPushRuleKind::Underride,
+            "Sender" => FfiPushRuleKind::Sender,
+            "Room" => FfiPushRuleKind::Room,
+            "Content" => FfiPushRuleKind::Content,
+            _ => return webffi_err("invalid push rule kind"),
+        };
+        webffi_value(s.core.is_push_rule_enabled(ffi_kind, rule_id).await)
+    }
+
+    #[wasm_bindgen(js_name = setPushRuleEnabled)]
+    pub async fn set_push_rule_enabled(
+        &self,
+        kind: String,
+        rule_id: String,
+        enabled: bool,
+    ) -> JsValue {
+        let Some(s) = self.state() else {
+            return webffi_not_init();
+        };
+        let ffi_kind = match kind.as_str() {
+            "Override" => FfiPushRuleKind::Override,
+            "Underride" => FfiPushRuleKind::Underride,
+            "Sender" => FfiPushRuleKind::Sender,
+            "Room" => FfiPushRuleKind::Room,
+            "Content" => FfiPushRuleKind::Content,
+            _ => return webffi_err("invalid push rule kind"),
+        };
+        webffi_unit(s.core.set_push_rule_enabled(ffi_kind, rule_id, enabled).await)
+    }
+
+    #[wasm_bindgen(js_name = getDefaultRoomNotificationMode)]
+    pub async fn get_default_room_notification_mode(
+        &self,
+        is_encrypted: bool,
+        is_one_to_one: bool,
+    ) -> JsValue {
+        let Some(s) = self.state() else {
+            return webffi_not_init();
+        };
+        webffi_value(
+            s.core
+                .get_default_room_notification_mode(is_encrypted, is_one_to_one)
+                .await,
+        )
+    }
+
+    #[wasm_bindgen(js_name = setDefaultRoomNotificationMode)]
+    pub async fn set_default_room_notification_mode(
+        &self,
+        is_encrypted: bool,
+        is_one_to_one: bool,
+        mode: String,
+    ) -> JsValue {
+        let Some(s) = self.state() else {
+            return webffi_not_init();
+        };
+        let m = match mode.as_str() {
+            "AllMessages" => FfiRoomNotificationMode::AllMessages,
+            "MentionsAndKeywordsOnly" => FfiRoomNotificationMode::MentionsAndKeywordsOnly,
+            "Mute" => FfiRoomNotificationMode::Mute,
+            _ => return webffi_err("invalid notification mode"),
+        };
+        webffi_unit(
+            s.core
+                .set_default_room_notification_mode(is_encrypted, is_one_to_one, m)
+                .await,
+        )
+    }
 }

@@ -67,8 +67,10 @@ enum class SasPhase { Created, Requested, Ready, Accepted, Started, Emojis, Conf
 @Serializable
 enum class SendState { Enqueued, Sending, Sent, Retrying, Failed }
 
+@Serializable
 enum class ActionPresentation { Hidden, Disabled, Enabled }
 
+@Serializable
 data class ActionAvailability(
     val presentation: ActionPresentation,
     val reason: String?,
@@ -77,6 +79,7 @@ data class ActionAvailability(
         get() = presentation == ActionPresentation.Enabled
 }
 
+@Serializable
 data class RoomActionState(
     val roomId: String,
     val voiceCall: ActionAvailability,
@@ -91,6 +94,7 @@ data class RoomActionState(
     val pin: ActionAvailability,
 )
 
+@Serializable
 data class MemberActionState(
     val roomId: String,
     val userId: String,
@@ -100,6 +104,7 @@ data class MemberActionState(
     val unban: ActionAvailability,
 )
 
+@Serializable
 data class MessageActionState(
     val roomId: String,
     val eventId: String,
@@ -145,6 +150,15 @@ enum class RoomNotificationMode {
     AllMessages,
     MentionsAndKeywordsOnly,
     Mute
+}
+
+@Serializable
+enum class PushRuleKind {
+    Override,
+    Underride,
+    Sender,
+    Room,
+    Content
 }
 
 val RoomNotificationMode.displayName: String
@@ -238,6 +252,7 @@ data class CallInvite(
 @Serializable
 enum class NotificationKind {
     Message,
+    Reaction,
     CallRing,
     CallNotify,
     CallInvite,
@@ -769,6 +784,19 @@ interface MatrixPort {
 
     suspend fun roomNotificationMode(roomId: String): RoomNotificationMode?
     suspend fun setRoomNotificationMode(roomId: String, mode: RoomNotificationMode): Result<Unit>
+
+    suspend fun isPushRuleEnabled(kind: PushRuleKind, ruleId: String): Result<Boolean>
+    suspend fun setPushRuleEnabled(kind: PushRuleKind, ruleId: String, enabled: Boolean): Result<Unit>
+
+    suspend fun isReactionNotificationsEnabled(): Result<Boolean>
+    suspend fun setReactionNotificationsEnabled(enabled: Boolean): Result<Unit>
+
+    suspend fun getDefaultRoomNotificationMode(isEncrypted: Boolean, isOneToOne: Boolean): Result<RoomNotificationMode>
+    suspend fun setDefaultRoomNotificationMode(
+        isEncrypted: Boolean,
+        isOneToOne: Boolean,
+        mode: RoomNotificationMode
+    ): Result<Unit>
 
     suspend fun listMembers(roomId: String): List<MemberSummary>
     suspend fun listKnockRequests(roomId: String): List<KnockRequestSummary>
