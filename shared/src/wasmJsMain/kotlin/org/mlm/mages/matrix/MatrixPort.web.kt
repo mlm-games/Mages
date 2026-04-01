@@ -1038,7 +1038,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     )
 
     override suspend fun isReactionNotificationsEnabled(): Result<Boolean> =
-            return requireClient().isReactionNotificationsEnabled().awaitBoolResult()
+        requireClient().isReactionNotificationsEnabled().awaitBoolResult()
 
     override suspend fun setReactionNotificationsEnabled(
         enabled: Boolean,

@@ -1798,14 +1798,6 @@ private fun PushRuleKind.toFfi(): FfiPushRuleKind = when (this) {
     PushRuleKind.Content -> FfiPushRuleKind.CONTENT
 }
 
-private fun FfiPushRuleKind.toKotlin(): PushRuleKind = when (this) {
-    FfiPushRuleKind.OVERRIDE -> PushRuleKind.Override
-    FfiPushRuleKind.UNDERRIDE -> PushRuleKind.Underride
-    FfiPushRuleKind.SENDER -> PushRuleKind.Sender
-    FfiPushRuleKind.ROOM -> PushRuleKind.Room
-    FfiPushRuleKind.CONTENT -> PushRuleKind.Content
-}
-
 private fun Presence.toFfi(): mages.Presence = when (this) {
     Presence.Online -> mages.Presence.ONLINE
     Presence.Offline -> mages.Presence.OFFLINE

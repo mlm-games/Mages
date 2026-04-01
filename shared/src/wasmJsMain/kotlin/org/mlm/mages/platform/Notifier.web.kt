@@ -114,6 +114,8 @@ actual fun BindNotifications(
                 continue
             }
 
+            // First poll uses exact baseline (no lookback) to avoid dumping clips of notification at once.
+            // others look back 60s to catch any missed notifications.
             val since = if (firstPoll) baseline else (baseline - 60_000L).coerceAtLeast(0L)
             firstPoll = false
 
@@ -131,8 +133,7 @@ actual fun BindNotifications(
                 nextBaseline = maxOf(nextBaseline, notification.tsMs)
 
                 if (recentlyNotified.size > 2000) {
-                    val it = recentlyNotified.iterator()
-                    repeat(500) { if (it.hasNext()) { it.next(); it.remove() } }
+                    recentlyNotified.toList().take(500).forEach { recentlyNotified.remove(it) }
                 }
                 if (!recentlyNotified.add(notification.eventId)) continue
 

@@ -1377,6 +1377,11 @@ impl CoreClient {
                 .set_push_rule_enabled(RuleKind::Override, REACTION_NOTIFY_RULE_ID, true)
                 .await
                 .map_err(|e| FfiError::Msg(e.to_string()))?;
+
+            settings
+                .set_push_rule_enabled(RuleKind::Override, ".m.rule.reaction", false)
+                .await
+                .map_err(|e| FfiError::Msg(e.to_string()))?;
         } else {
             match settings
                 .set_push_rule_enabled(RuleKind::Override, REACTION_NOTIFY_RULE_ID, false)

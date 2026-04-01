@@ -251,6 +251,7 @@ private fun NotificationModeDropdown(
         RoomNotificationMode.MentionsAndKeywordsOnly,
         RoomNotificationMode.Mute,
     )
+    val hasError = value == null
     val currentValue = value ?: RoomNotificationMode.AllMessages
 
     Row(
@@ -260,11 +261,23 @@ private fun NotificationModeDropdown(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text = title, style = MaterialTheme.typography.bodyLarge)
+        Column {
+            Text(text = title, style = MaterialTheme.typography.bodyLarge)
+            if (hasError) {
+                Text(
+                    text = "Failed to load",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
 
         Box {
-            TextButton(onClick = { expanded = true }) {
-                Text(currentValue.displayName)
+            TextButton(
+                onClick = { expanded = true },
+                enabled = !hasError,
+            ) {
+                Text(if (hasError) "Error" else currentValue.displayName)
             }
 
             DropdownMenu(
