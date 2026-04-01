@@ -116,7 +116,7 @@ actual fun BindNotifications(
 
                 if (recentlyNotified.size > 2000) {
                     val nit = recentlyNotified.iterator()
-                    repeat(500) { if (nit.hasNext()) { nit.next(); nit.remove() } }
+                    repeat(500) { if (nit.hasNext()) { nit.next(); nit.remove() } } // desktop notifs do not appear...
                 }
                 if (!recentlyNotified.add(n.eventId)) continue
 

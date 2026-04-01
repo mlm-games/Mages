@@ -1025,10 +1025,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     )
 
     override suspend fun isPushRuleEnabled(kind: PushRuleKind, ruleId: String): Result<Boolean> {
-        return boolResult(
-            requireClient().isPushRuleEnabled(kind.name, ruleId).awaitPlainBool(),
-            "isPushRuleEnabled"
-        )
+            return requireClient().isPushRuleEnabled(kind.name, ruleId).awaitBoolResult()
     }
 
     override suspend fun setPushRuleEnabled(
@@ -1041,10 +1038,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     )
 
     override suspend fun isReactionNotificationsEnabled(): Result<Boolean> =
-        boolResult(
-            requireClient().isReactionNotificationsEnabled().awaitPlainBool(),
-            "isReactionNotificationsEnabled"
-        )
+            return requireClient().isReactionNotificationsEnabled().awaitBoolResult()
 
     override suspend fun setReactionNotificationsEnabled(
         enabled: Boolean,
