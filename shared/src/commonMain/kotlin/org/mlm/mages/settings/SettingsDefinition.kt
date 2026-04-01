@@ -260,7 +260,6 @@ data class AppSettings(
         category = Notifications::class,
         type = Button::class,
         dependsOn = "notificationsEnabled",
-        platforms = [SettingPlatform.JVM, SettingPlatform.ANDROID]
     )
     @ActionHandler(OpenNotificationRulesAction::class)
     val openNotificationRules: Unit = Unit,
@@ -288,7 +287,7 @@ data class AppSettings(
         description = "Click to test if notifications work",
         category = Notifications::class,
         type = Button::class,
-        platforms = [SettingPlatform.WEB], // TODO: Doesn't seem to work?
+        platforms = [SettingPlatform.WEB],
     )
     @ActionHandler(TestNotificationAction::class)
     val testNotification: Unit = Unit,
