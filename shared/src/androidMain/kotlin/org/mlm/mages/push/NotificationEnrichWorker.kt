@@ -9,7 +9,6 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -43,6 +42,12 @@ class NotificationEnrichWorker(
         val settingsRepo = SettingsProvider.get(applicationContext)
         val settings = settingsRepo.flow.first()
 
+        val bubbleActivityClass = try {
+            Class.forName("org.mlm.mages.activities.BubbleConversationActivity")
+        } catch (_: ClassNotFoundException) {
+            null // not possible
+        }
+
         // If user disabled notifications, remove placeholder immediately.
         if (!settings.notificationsEnabled) {
             nm.cancel(notifId)
@@ -68,7 +73,7 @@ class NotificationEnrichWorker(
         } ?: Fetch(timedOut = true, rendered = null)
 
         if (fetch.timedOut) {
-            // Retry a couple times, then stop (keep placeholder or cancel—choose one).
+            // Retry a couple of times, then stop (keep placeholder or cancel—choose one).
             // I recommend cancelling after a few attempts to avoid WorkManager spam + stale notifs.
             return if (runAttemptCount < 3) Result.retry() else {
                 nm.cancel(notifId)
@@ -246,14 +251,6 @@ class NotificationEnrichWorker(
                 }
 
                 // No need to cancel here; showConversationNotification uses the same notifId and will replace.
-                val notificationId = (roomId).hashCode()
-                val bubbleActivityClass = try {
-                    Class.forName("org.mlm.mages.activities.BubbleConversationActivity")
-                } catch (_: ClassNotFoundException) {
-                    null // not possible
-                }
-
-                val isDm = rendered.isDm
 
                 val senderAvatarUrl = runCatching {
                     port.getUserProfile(rendered.senderUserId)?.avatarUrl
@@ -284,17 +281,17 @@ class NotificationEnrichWorker(
                     context = applicationContext,
                     roomId = roomId,
                     roomName = rendered.roomName,
-                    senderName = rendered.sender,
+                    senderName = title,
                     senderUserId = rendered.senderUserId,
                     messageBody = rendered.body,
                     eventId = eventId,
-                    timestamp = System.currentTimeMillis(),
-                    notificationId = notificationId,
+                    timestamp = rendered.tsMs,
+                    notificationId = notifId,
                     bubbleActivityClass = bubbleActivityClass,
                     fullOpenIntent = buildFullOpenIntent(applicationContext, roomId),
                     senderAvatar = senderAvatar,
                     roomAvatar = roomAvatar,
-                    isDm = isDm,
+                    isDm = rendered.isDm,
                     playSound = playSound,
                 )
                 return Result.success()
@@ -318,7 +315,7 @@ private fun isInQuietHours(settings: org.mlm.mages.settings.AppSettings): Boolea
     return if (start <= end) {
         minuteOfDay in start until end
     } else {
-        minuteOfDay >= start || minuteOfDay < end
+        minuteOfDay !in end..<start
     }
 }
 
