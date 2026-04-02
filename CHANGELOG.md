@@ -1,3 +1,10 @@
+## v4.4.2
+
+- fix reaction notifications not being marked as read on android
+- basic stickers display and "send sticker from image" option (no image packs support) (#67)
+- Notification push rules UI
+
+
 ## v4.4.1
 
 - Set retain state to true for markdown text bubble anim is turned off

@@ -46,6 +46,15 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.4.2" date="2026-04-02" type="stable">
+      <description>
+        <ul>
+          <li>fix reaction notifications not being marked as read on android</li>
+          <li>basic stickers display and "send sticker from image" option (no image packs support) (#67)</li>
+          <li>Notification push rules UI</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.4.1" date="2026-03-29" type="stable">
       <description>
         <ul>
