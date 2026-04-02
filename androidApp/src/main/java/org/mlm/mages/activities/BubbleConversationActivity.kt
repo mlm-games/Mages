@@ -57,10 +57,9 @@ class BubbleConversationActivity : ComponentActivity() {
             val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
 
             val isDark = when (settings.themeMode) {
-                ThemeMode.System.ordinal -> isSystemInDarkTheme()
-                ThemeMode.Dark.ordinal -> true
-                ThemeMode.Light.ordinal -> false
-                else -> isSystemInDarkTheme()
+                ThemeMode.System -> isSystemInDarkTheme()
+                ThemeMode.Dark -> true
+                ThemeMode.Light -> false
             }
 
             MainTheme(isDark, settings.dynamicColors) {
