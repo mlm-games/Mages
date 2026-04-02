@@ -18,9 +18,9 @@ This is experimental‑stage software. It is still in its early stages, and migh
 - Room list with previews and unread counts
 - Room and thread timelines (text, media, polls, live-location sharing)
 - End‑to‑end encryption (via matrix‑sdk)
-- Spaces support
+- Spaces support (no sub-spaces support yet)
 - Simple presence / privacy settings
-- Android app and Linux desktop builds (Available on/as FDroid, AppImage (updatable via `Gear Lever` for example), AUR (`mages-bin`), snapcraft and flathub)
+- Android app and Linux desktop builds (Available on/as FDroid, AppImage (updatable via `Gear Lever` or similar tools), AUR (`mages-bin`), snapcraft and flathub)
 - Unsigned Windows and Mac builds
 - Experimental Audio and Video Calls Support (Screen sharing is only available on desktop)
 - Multi account and language (currently only spanish) support 
@@ -32,7 +32,7 @@ This is experimental‑stage software. It is still in its early stages, and migh
 
 - **Linux desktop**  
   - AppImage builds for x86_64 and aarch64.
-  - Also downloadable via AUR and snap-store.
+  - Downloadable via AUR and snap-store.
 
 - **Other platforms**  
   - The UI is Compose Multiplatform. In practice, only Android and Linux's AppImages are actively tested. Windows and Mac are tested rarely and are not signed/notarized. [Web](https://mlm-games.github.io/Mages) works, but isn't supposed to have feature parity (no search functionality), and mostly useful for testing latest changes live or previewing the app.
@@ -56,7 +56,7 @@ Most Matrix‑specific logic lives in Rust; Kotlin mostly handles presentation.
 
 - JDK 21
 - Kotlin/Gradle
-- Rust toolchain (stable)
+- Rust toolchain (stable) and compile targets (depending on target arch, running would specify them automatically)
 - For Android:
   - Android SDK + NDK (see `android-release` workflow for versions)
   - `cargo-ndk` (for building the Rust library for Android ABIs)
@@ -72,7 +72,12 @@ Most Matrix‑specific logic lives in Rust; Kotlin mostly handles presentation.
 
 ```bash
 ./gradlew :desktopApp:run
-# AppImage is assembled by the desktop release workflow
+```
+
+### Web
+
+```bash
+./gradlew :webApp:wasmJsBrowserDevelopmentRun
 ```
 
 ## Version Trackers
