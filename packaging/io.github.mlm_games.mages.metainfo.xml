@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.4.4" date="2026-04-02" type="stable">
+      <description>
+        <ul>
+          <li>Update release notes for v4.4.3</li>
+          <li>use m3 timepicker component for quiet time setting</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.4.3" date="2026-04-02" type="stable">
       <description>
         <ul>

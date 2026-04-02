@@ -1,3 +1,9 @@
+## v4.4.4
+
+- Update release notes for v4.4.3
+- use m3 timepicker component for quiet time setting
+
+
 ## v4.4.3
 
 - use m3 timepicker component for quiet time setting
