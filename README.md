@@ -5,7 +5,9 @@ Mages is an experimental matrix chat client.
 - UI: [Compose Multiplatform](https://www.jetbrains.com/lp/compose-multiplatform/)
 - Core: a Rust library built on top of [matrix-rust-sdk](https://github.com/matrix-org/matrix-rust-sdk), exposed to Kotlin via UniFFI (not using matrix-sdk-ffi)
 
-The goal was to have a cross‑platform desktop/mobile client, while not being as heavy as web apps (initially there were very few alternatives to element-desktop which notify, with proper screen-sharing support and that stay hidden in my tray (unlike neochat, though it has linux-specific push notifs via kunifiedpush, while this currently polls)). Although it might occasionally appear stable, it is never aiming to be as stable as element's clients (or other clients like fluffy or fractal which seem to have a user-focused goal)
+The goal was to have a cross‑platform desktop/mobile client, while not being as heavy as web apps (initially there were very few alternatives to element-desktop which notify, with proper screen-sharing support and that stay hidden in my tray (unlike neochat, though it has linux-specific push notifs via kunifiedpush, while this currently polls)). 
+
+The client might work well for most, but is never aiming to be as stable as element's clients (or other clients like fluffy or fractal which seem to have a user-focused goal)
 
 ## Status 
 
