@@ -333,25 +333,16 @@ data class AppSettings(
     val quietHoursEnabled: Boolean = false,
 
     @Setting(
-        title = "Quiet hours start",
-        description = "Start time (minutes from midnight, e.g. 1380=23:00)",
-        category = Notifications::class,
-        type = Slider::class,
-        min = 0f,
-        max = 1439f,
-        step = 15f,
+        title = "Quiet hours start time", category = Notifications::class,
+        type = TimePickerType::class,
         dependsOn = "quietHoursEnabled"
     )
     val quietHoursStartMinutes: Int = 1380,
 
     @Setting(
-        title = "Quiet hours end",
-        description = "End time (minutes from midnight, e.g. 420=07:00)",
+        title = "Quiet hours end time",
         category = Notifications::class,
-        type = Slider::class,
-        min = 0f,
-        max = 1439f,
-        step = 15f,
+        type = TimePickerType::class,
         dependsOn = "quietHoursEnabled"
     )
     val quietHoursEndMinutes: Int = 420,
