@@ -1,3 +1,8 @@
+## v4.4.3
+
+- use m3 timepicker component for quiet time setting
+
+
 ## v4.4.2
 
 - fix reaction notifications not being marked as read on android
