@@ -158,6 +158,25 @@ macro_rules! wasm_delegate_result_bool {
 #[cfg(target_family = "wasm")]
 pub(crate) use wasm_delegate_result_bool;
 
+/// Delegates async methods returning Result<bool, FfiError> as bool.
+#[cfg(target_family = "wasm")]
+macro_rules! wasm_delegate_result_bool_as_bool {
+    ($( $js_name:literal => $method:ident($($arg:ident : $ty:ty),*) );+ $(;)?) => {
+        #[wasm_bindgen]
+        impl WasmClient {
+            $(
+                #[wasm_bindgen(js_name = $js_name)]
+                pub async fn $method(&self, $($arg: $ty),*) -> JsValue {
+                    let Some(s) = self.state() else { return webffi_not_init(); };
+                    webffi_bool(s.core.$method($($arg),*).await)
+                }
+            )+
+        }
+    };
+}
+#[cfg(target_family = "wasm")]
+pub(crate) use wasm_delegate_result_bool_as_bool;
+
 /// Delegates async methods returning a value, serialized to JsValue.
 /// Requires a default expression for when state is None.
 #[cfg(target_family = "wasm")]
