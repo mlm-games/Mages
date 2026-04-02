@@ -130,6 +130,9 @@ class MatrixService(
     suspend fun markFullyReadAt(roomId: String, eventId: String) =
         port.markFullyReadAt(roomId, eventId).isSuccess
 
+    suspend fun markRoomSeenLatest(roomId: String, sendPublicReceipt: Boolean) =
+        port.markRoomSeenLatest(roomId, sendPublicReceipt).isSuccess
+
     suspend fun react(roomId: String, eventId: String, emoji: String) =
         port.react(roomId, eventId, emoji).isSuccess
 

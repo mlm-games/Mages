@@ -863,9 +863,29 @@ class RoomViewModel(
 
     fun markReadHere(event: MessageEvent) {
         if (event.eventId.isBlank()) return
-        if (!settings.value.sendReadReceipts) return
 
-        launch { service.markReadAt(event.roomId, event.eventId) }
+        launch {
+            runCatching {
+                service.markFullyReadAt(event.roomId, event.eventId)
+            }
+
+            if (settings.value.sendReadReceipts) {
+                runCatching {
+                    service.markReadAt(event.roomId, event.eventId)
+                }
+            }
+        }
+    }
+
+    fun markRoomSeen() {
+        launch {
+            runCatching {
+                service.markRoomSeenLatest(
+                    currentState.roomId,
+                    settings.value.sendReadReceipts
+                )
+            }
+        }
     }
 
     //  Attachments

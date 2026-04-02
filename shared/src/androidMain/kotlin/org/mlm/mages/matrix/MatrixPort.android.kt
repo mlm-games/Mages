@@ -760,6 +760,11 @@ class RustMatrixPort : MatrixPort, VerificationService {
             runWithFfiResult { withClient { it.markFullyReadAt(roomId, eventId) } }
         }
 
+    override suspend fun markRoomSeenLatest(roomId: String, sendPublicReceipt: Boolean): Result<Unit> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.markRoomSeenLatest(roomId, sendPublicReceipt) } }
+        }
+
     override suspend fun observeRoomList(observer: MatrixPort.RoomListObserver): ULong =
         withContext(matrixDispatcher) {
             val currentVisible = linkedMapOf<String, RoomListEntry>()

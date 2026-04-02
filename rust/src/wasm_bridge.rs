@@ -379,6 +379,7 @@ wasm_delegate_result_bool! {
     "markRead"             => mark_read(room_id: String);
     "markReadAt"           => mark_read_at(room_id: String, event_id: String);
     "markFullyReadAt"      => mark_fully_read_at(room_id: String, event_id: String);
+    "markRoomSeenLatest"   => mark_room_seen_latest(room_id: String, send_public_receipt: bool);
     "setTyping"            => set_typing(room_id: String, typing: bool);
     "setRoomFavourite"     => set_room_favourite(room_id: String, fav: bool);
     "setRoomLowPriority"   => set_room_low_priority(room_id: String, low: bool);

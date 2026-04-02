@@ -545,6 +545,28 @@ impl CoreClient {
         room.send_multiple_receipts(receipts).await.ffi()
     }
 
+    pub async fn mark_room_seen_latest(
+        &self,
+        room_id: String,
+        send_public_receipt: bool,
+    ) -> Result<(), FfiError> {
+        let tl = self
+            .timeline(&room_id)
+            .await
+            .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
+
+        let receipt_type = if send_public_receipt {
+            ReceiptType::Read
+        } else {
+            ReceiptType::ReadPrivate
+        };
+
+        tl.mark_as_read(receipt_type)
+            .await
+            .ffi()
+            .map(|_| ())
+    }
+
     pub async fn set_mark_unread(&self, room_id: String, unread: bool) -> Result<(), FfiError> {
         let room = self
             .room(&room_id)
@@ -672,6 +694,7 @@ impl CoreClient {
             })
             .take(limit as usize)
             .collect();
+
         out.reverse();
         out
     }

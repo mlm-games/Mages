@@ -156,6 +156,7 @@ delegate_unit_result! {
     mark_read(room_id: String);
     mark_read_at(room_id: String, event_id: String);
     mark_fully_read_at(room_id: String, event_id: String);
+    mark_room_seen_latest(room_id: String, send_public_receipt: bool);
     set_mark_unread(room_id: String, unread: bool);
     ban_user(room_id: String, user_id: String, reason: Option<String>);
     unban_user(room_id: String, user_id: String, reason: Option<String>);

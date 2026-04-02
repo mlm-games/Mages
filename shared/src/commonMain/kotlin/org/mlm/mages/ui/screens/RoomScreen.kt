@@ -395,8 +395,7 @@ fun RoomScreen(
     }
 
     LaunchedEffect(events.lastOrNull()?.itemId, isNearBottom, seekingUnread) {
-        val last = events.lastOrNull() ?: return@LaunchedEffect
-        if (isNearBottom && !seekingUnread) viewModel.markReadHere(last)
+        if (isNearBottom && !seekingUnread) viewModel.markRoomSeen()
     }
 
     LaunchedEffect(events.size) {
