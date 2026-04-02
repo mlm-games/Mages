@@ -2,6 +2,7 @@ package org.mlm.mages.matrix
 
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.settings.HideInRoomsMode
 
 enum class RoomClass {
     Direct,
@@ -38,6 +39,13 @@ enum class HideInRooms {
     }
 }
 
+fun HideInRoomsMode.matches(roomClass: RoomClass): Boolean = when (this) {
+    HideInRoomsMode.Never -> false
+    HideInRoomsMode.PublicRooms -> roomClass == RoomClass.PublicRoom
+    HideInRoomsMode.NonDMs -> roomClass != RoomClass.Direct
+    HideInRoomsMode.Always -> true
+}
+
 enum class SystemEventVisibilityKey {
     Redacted,
 
@@ -63,25 +71,25 @@ enum class SystemEventVisibilityKey {
 }
 
 data class SystemEventVisibilitySettings(
-    val membershipChange: HideInRooms,
-    val profileChange: HideInRooms,
-    val roomTopic: HideInRooms,
-    val redacted: HideInRooms,
-    val roomName: HideInRooms,
-    val roomAvatar: HideInRooms,
-    val roomEncryption: HideInRooms,
-    val roomPinnedEvents: HideInRooms,
-    val roomPowerLevels: HideInRooms,
-    val roomCanonicalAlias: HideInRooms,
-    val roomJoinRules: HideInRooms,
-    val roomHistoryVisibility: HideInRooms,
-    val roomGuestAccess: HideInRooms,
-    val roomServerAcl: HideInRooms,
-    val roomTombstone: HideInRooms,
-    val spaceChild: HideInRooms,
-    val otherState: HideInRooms,
+    val membershipChange: HideInRoomsMode,
+    val profileChange: HideInRoomsMode,
+    val roomTopic: HideInRoomsMode,
+    val redacted: HideInRoomsMode,
+    val roomName: HideInRoomsMode,
+    val roomAvatar: HideInRoomsMode,
+    val roomEncryption: HideInRoomsMode,
+    val roomPinnedEvents: HideInRoomsMode,
+    val roomPowerLevels: HideInRoomsMode,
+    val roomCanonicalAlias: HideInRoomsMode,
+    val roomJoinRules: HideInRoomsMode,
+    val roomHistoryVisibility: HideInRoomsMode,
+    val roomGuestAccess: HideInRoomsMode,
+    val roomServerAcl: HideInRoomsMode,
+    val roomTombstone: HideInRoomsMode,
+    val spaceChild: HideInRoomsMode,
+    val otherState: HideInRoomsMode,
 ) {
-    fun ruleFor(key: SystemEventVisibilityKey): HideInRooms = when (key) {
+    fun ruleFor(key: SystemEventVisibilityKey): HideInRoomsMode = when (key) {
         SystemEventVisibilityKey.Redacted -> redacted
         SystemEventVisibilityKey.MembershipChange -> membershipChange
         SystemEventVisibilityKey.ProfileChange -> profileChange
@@ -104,23 +112,23 @@ data class SystemEventVisibilitySettings(
 
 fun AppSettings.toSystemEventVisibilitySettings(): SystemEventVisibilitySettings =
     SystemEventVisibilitySettings(
-        membershipChange = HideInRooms.fromSettingIndex(compactPublicRoomMembershipEvents),
-        profileChange = HideInRooms.fromSettingIndex(compactPublicRoomProfileChangeEvents),
-        roomTopic = HideInRooms.fromSettingIndex(compactPublicRoomTopicEvents),
-        redacted = HideInRooms.fromSettingIndex(compactPublicRoomRedactedEvents),
-        roomName = HideInRooms.fromSettingIndex(compactPublicRoomRoomNameEvents),
-        roomAvatar = HideInRooms.fromSettingIndex(compactPublicRoomRoomAvatarEvents),
-        roomEncryption = HideInRooms.fromSettingIndex(compactPublicRoomRoomEncryptionEvents),
-        roomPinnedEvents = HideInRooms.fromSettingIndex(compactPublicRoomRoomPinnedEvents),
-        roomPowerLevels = HideInRooms.fromSettingIndex(compactPublicRoomRoomPowerLevelsEvents),
-        roomCanonicalAlias = HideInRooms.fromSettingIndex(compactPublicRoomRoomCanonicalAliasEvents),
-        roomJoinRules = HideInRooms.fromSettingIndex(compactPublicRoomJoinRulesEvents),
-        roomHistoryVisibility = HideInRooms.fromSettingIndex(compactPublicRoomHistoryVisibilityEvents),
-        roomGuestAccess = HideInRooms.fromSettingIndex(compactPublicRoomGuestAccessEvents),
-        roomServerAcl = HideInRooms.fromSettingIndex(compactPublicRoomServerAclEvents),
-        roomTombstone = HideInRooms.fromSettingIndex(compactPublicRoomTombstoneEvents),
-        spaceChild = HideInRooms.fromSettingIndex(compactPublicRoomSpaceChildEvents),
-        otherState = HideInRooms.fromSettingIndex(compactPublicRoomOtherStateEvents),
+        membershipChange = compactPublicRoomMembershipEvents,
+        profileChange = compactPublicRoomProfileChangeEvents,
+        roomTopic = compactPublicRoomTopicEvents,
+        redacted = compactPublicRoomRedactedEvents,
+        roomName = compactPublicRoomRoomNameEvents,
+        roomAvatar = compactPublicRoomRoomAvatarEvents,
+        roomEncryption = compactPublicRoomRoomEncryptionEvents,
+        roomPinnedEvents = compactPublicRoomRoomPinnedEvents,
+        roomPowerLevels = compactPublicRoomRoomPowerLevelsEvents,
+        roomCanonicalAlias = compactPublicRoomRoomCanonicalAliasEvents,
+        roomJoinRules = compactPublicRoomJoinRulesEvents,
+        roomHistoryVisibility = compactPublicRoomHistoryVisibilityEvents,
+        roomGuestAccess = compactPublicRoomGuestAccessEvents,
+        roomServerAcl = compactPublicRoomServerAclEvents,
+        roomTombstone = compactPublicRoomTombstoneEvents,
+        spaceChild = compactPublicRoomSpaceChildEvents,
+        otherState = compactPublicRoomOtherStateEvents,
     )
 
 private fun MessageEvent.systemVisibilityKeys(): List<SystemEventVisibilityKey> {

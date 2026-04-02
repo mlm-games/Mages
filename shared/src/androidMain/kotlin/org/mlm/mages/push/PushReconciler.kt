@@ -36,7 +36,7 @@ object PusherReconciler : KoinComponent {
 
         val settingsRepo = SettingsProvider.get(context)
         val languageTag = appLanguageTagOrDefault(
-            languageIndex = settingsRepo.get("language"),
+            language = settingsRepo.get("language"),
             defaultTag = Locale.getDefault().toLanguageTag()
         )
 

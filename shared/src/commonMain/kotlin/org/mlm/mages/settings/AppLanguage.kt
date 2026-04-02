@@ -9,12 +9,9 @@ enum class AppLanguage(val languageTag: String?) {
     Spanish("es")
 }
 
-fun AppSettings.appLanguage(): AppLanguage =
-    AppLanguage.entries.getOrElse(language) { AppLanguage.System }
+fun AppSettings.appLanguage(): AppLanguage = language
 
-fun AppSettings.appLanguageTagOrNull(): String? = appLanguage().languageTag
+fun AppSettings.appLanguageTagOrNull(): String? = language.languageTag
 
-fun appLanguageTagOrDefault(languageIndex: Int?, defaultTag: String): String =
-    languageIndex
-        ?.let { AppLanguage.entries.getOrElse(it) { AppLanguage.System }.languageTag }
-        ?: defaultTag
+fun appLanguageTagOrDefault(language: AppLanguage?, defaultTag: String): String =
+    language?.languageTag ?: defaultTag

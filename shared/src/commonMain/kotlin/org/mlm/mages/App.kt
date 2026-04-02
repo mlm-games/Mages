@@ -136,10 +136,9 @@ private fun AppContent(
     // isLoggedIn() calls in remember{} are non-suspend and safe for initialization
 
     val isDark = when (settings.themeMode) {
-        ThemeMode.System.ordinal -> isSystemInDarkTheme()
-        ThemeMode.Dark.ordinal -> true
-        ThemeMode.Light.ordinal -> false
-        else -> isSystemInDarkTheme()
+        ThemeMode.System -> isSystemInDarkTheme()
+        ThemeMode.Dark -> true
+        ThemeMode.Light -> false
     }
     val widgetTheme = if (isDark) "dark" else "light"
     val elementCallUrl =
@@ -190,7 +189,12 @@ private fun AppContent(
             LaunchedEffect(activeId) {
                 if (activeId == null || !service.isLoggedInSuspend()) return@LaunchedEffect
                 settingsRepository.flow.collect { s ->
-                    runCatching { service.port.setPresence(Presence.entries[s.presence], null) }
+                    val presence = when (s.presence) {
+                        org.mlm.mages.settings.PresenceMode.Online -> Presence.Online
+                        org.mlm.mages.settings.PresenceMode.Offline -> Presence.Offline
+                        org.mlm.mages.settings.PresenceMode.Unavailable -> Presence.Unavailable
+                    }
+                    runCatching { service.port.setPresence(presence, null) }
                 }
             }
 
