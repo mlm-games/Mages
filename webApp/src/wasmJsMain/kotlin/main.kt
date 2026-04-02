@@ -8,6 +8,7 @@ import io.github.mlmgames.settings.core.datastore.createSettingsDataStore
 import kotlinx.browser.window
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
@@ -61,7 +62,7 @@ fun main() {
 }
 
 @OptIn(FlowPreview::class)
-private fun browserDeepLinks(): kotlinx.coroutines.flow.Flow<DeepLinkAction> {
+private fun browserDeepLinks(): Flow<DeepLinkAction> {
     val deepLinkEmitter = MutableSharedFlow<DeepLinkAction>(
         replay = 0,
         extraBufferCapacity = 8

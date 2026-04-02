@@ -549,7 +549,7 @@ impl CoreClient {
         &self,
         room_id: String,
         send_public_receipt: bool,
-    ) -> Result<(), FfiError> {
+    ) -> Result<bool, FfiError> {
         let tl = self
             .timeline(&room_id)
             .await
@@ -564,7 +564,6 @@ impl CoreClient {
         tl.mark_as_read(receipt_type)
             .await
             .ffi()
-            .map(|_| ())
     }
 
     pub async fn set_mark_unread(&self, room_id: String, unread: bool) -> Result<(), FfiError> {

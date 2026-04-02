@@ -734,7 +734,7 @@ interface MatrixPort {
     suspend fun ownLastRead(roomId: String): Pair<String?, Long?>
     suspend fun observeOwnReceipt(roomId: String, observer: ReceiptsObserver): ULong
     suspend fun markFullyReadAt(roomId: String, eventId: String): Result<Unit>
-    suspend fun markRoomSeenLatest(roomId: String, sendPublicReceipt: Boolean): Result<Unit>
+    suspend fun markRoomSeenLatest(roomId: String, sendPublicReceipt: Boolean): Result<Boolean>
 
     interface RoomListObserver { fun onReset(items: List<RoomListEntry>); fun onUpdate(item: RoomListEntry) }
 

@@ -760,7 +760,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
             runWithFfiResult { withClient { it.markFullyReadAt(roomId, eventId) } }
         }
 
-    override suspend fun markRoomSeenLatest(roomId: String, sendPublicReceipt: Boolean): Result<Unit> =
+    override suspend fun markRoomSeenLatest(roomId: String, sendPublicReceipt: Boolean): Result<Boolean> =
         withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.markRoomSeenLatest(roomId, sendPublicReceipt) } }
         }
