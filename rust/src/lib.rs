@@ -3104,20 +3104,6 @@ fn map_timeline_event(
                     let info = content.info.clone();
                     let source = content.source.clone();
 
-                    fn media_source_to_mxc(
-                        source: &matrix_sdk::ruma::events::sticker::StickerMediaSource,
-                    ) -> String {
-                        match source {
-                            matrix_sdk::ruma::events::sticker::StickerMediaSource::Plain(url) => {
-                                url.to_string()
-                            }
-                            matrix_sdk::ruma::events::sticker::StickerMediaSource::Encrypted(
-                                file,
-                            ) => file.url.to_string(),
-                            _ => String::new(),
-                        }
-                    }
-
                     fn enc_to_sticker_enc(
                         source: &matrix_sdk::ruma::events::room::EncryptedFile,
                     ) -> EncFile {
@@ -3156,6 +3142,20 @@ fn map_timeline_event(
                         encrypted,
                         thumbnail_encrypted,
                     });
+                }
+                MsgLikeKind::LiveLocation(ll_state) => {
+                    event_type = EventType::LiveLocation;
+                    if let Some(beacon) = ll_state.latest_location() {
+                        live_location = Some(LiveLocationEvent {
+                            user_id: ev.sender().to_string(),
+                            geo_uri: beacon.geo_uri().to_owned(),
+                            ts_ms: beacon.ts().0.into(),
+                            is_live: ll_state.is_live(),
+                        });
+                        body = format!("{} shared live location", ev.sender());
+                    } else {
+                        body = format!("{} started sharing live location", ev.sender());
+                    }
                 }
                 _ => {
                     body = render_msg_like(ev, ml);
@@ -3411,10 +3411,6 @@ fn render_timeline_text(ev: &EventTimelineItem) -> String {
 
         _ => String::new(),
     }
-}
-
-fn render_other_state_like(ev: &EventTimelineItem) -> String {
-    format!("{} shared live location", ev.sender())
 }
 
 fn render_msg_like(_ev: &EventTimelineItem, ml: &MsgLikeContent) -> String {
