@@ -459,28 +459,6 @@ data class AppSettings(
     val copyUnifiedPushEndpoint: Unit = Unit,
 
     @Setting(
-        title = "Media cache max size (MB)",
-        description = "Limit media cache size; 0 = SDK default",
-        category = Storage::class,
-        type = Slider::class,
-        min = 0f,
-        max = 4096f,
-        step = 64f
-    )
-    val mediaCacheMaxMb: Float = 0f,
-
-    @Setting(
-        title = "Media max file size (MB)",
-        description = "Maximum media file size to keep; 0 = SDK default",
-        category = Storage::class,
-        type = Slider::class,
-        min = 0f,
-        max = 2048f,
-        step = 32f
-    )
-    val mediaMaxFileMb: Float = 0f,
-
-    @Setting(
         title = "Block media previews",
         description = "Don't auto-download thumbnails/previews",
         category = Storage::class,
