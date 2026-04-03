@@ -6,7 +6,7 @@ import android.os.Build
 
 object BubbleEligibilityEvaluator {
 
-    fun canBubble(context: Context, roomId: String): Boolean {
+    fun canBubble(context: Context): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return false
         val nm = context.getSystemService(NotificationManager::class.java)
 
@@ -17,6 +17,6 @@ object BubbleEligibilityEvaluator {
                 @Suppress("DEPRECATION") nm.areBubblesAllowed()
         }
 
-        return allowed && roomId.isNotBlank()
+        return allowed
     }
 }

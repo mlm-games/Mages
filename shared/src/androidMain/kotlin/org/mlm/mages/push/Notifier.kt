@@ -7,7 +7,6 @@ import android.content.Context
 import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
 import android.content.res.Resources
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
@@ -509,7 +508,7 @@ object Notifier {
         val largeIconBitmap = if (isDm) senderAvatar.bitmap else roomAvatar.bitmap
         builder.setLargeIcon(largeIconBitmap)
 
-        if (bubbleActivityClass != null && BubbleEligibilityEvaluator.canBubble(context, roomId)) {
+        if (bubbleActivityClass != null && BubbleEligibilityEvaluator.canBubble(context)) {
             val bubblePendingIntent = PendingIntent.getActivity(
                 context,
                 REQUEST_BUBBLE + notificationId,

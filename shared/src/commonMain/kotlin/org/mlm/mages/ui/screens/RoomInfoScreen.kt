@@ -21,8 +21,6 @@ import org.mlm.mages.matrix.RoomDirectoryVisibility
 import org.mlm.mages.matrix.RoomHistoryVisibility
 import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.RoomPowerLevelChanges
-import org.mlm.mages.matrix.RoomPowerLevels
-import org.mlm.mages.matrix.RoomProfile
 import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.ui.components.dialogs.ConfirmationDialog
 import org.mlm.mages.ui.components.dialogs.InviteUserDialog
@@ -44,7 +42,9 @@ import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
 import org.mlm.mages.ui.viewmodel.RoomInfoUiState
 import org.mlm.mages.ui.viewmodel.RoomInfoViewModel
 import org.mlm.mages.matrix.displayName
-import org.mlm.mages.ui.components.sheets.RoomNotificationSheet
+import io.github.mlmgames.settings.core.annotations.SettingPlatform
+import io.github.mlmgames.settings.core.platform.currentPlatform
+import org.mlm.mages.platform.RoomPlatformShortcuts
 
 @Composable
 fun RoomInfoRoute(
@@ -56,6 +56,22 @@ fun RoomInfoRoute(
     val state by viewModel.state.collectAsState()
     val snackbarManager: SnackbarManager = koinInject()
     val postError = rememberErrorPoster(snackbarManager)
+
+    val shortcutSupport = remember { RoomPlatformShortcuts.support() }
+
+
+    fun addHomeShortcut() {
+        val roomId = state.profile?.roomId ?: return
+        val roomName = state.profile?.name ?: state.editedName.takeIf { it.isNotBlank() }
+
+        RoomPlatformShortcuts.addHomeScreenShortcut(roomId, roomName)
+            .onSuccess {
+                snackbarManager.show("Shortcut added")
+            }
+            .onFailure {
+                postError(it.message ?: "Unable to add shortcut")
+            }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -108,6 +124,9 @@ fun RoomInfoRoute(
         onAcceptKnockRequest = viewModel::acceptKnockRequest,
         onDeclineKnockRequest = viewModel::declineKnockRequest,
         onClearSelectedMember = viewModel::clearSelectedMember,
+
+        showHomeScreenShortcut = currentPlatform == SettingPlatform.ANDROID && shortcutSupport.homeScreenShortcut,
+        onAddHomeScreenShortcut = ::addHomeShortcut,
     )
 }
 
@@ -152,6 +171,9 @@ fun RoomInfoScreen(
     onAcceptKnockRequest: (String) -> Unit,
     onDeclineKnockRequest: (String, String?) -> Unit,
     onClearSelectedMember: () -> Unit,
+
+    showHomeScreenShortcut: Boolean,
+    onAddHomeScreenShortcut: () -> Unit,
 ) {
     var showLeaveDialog by remember { mutableStateOf(false) }
     var showAliasesSheet by remember { mutableStateOf(false) }
@@ -394,6 +416,20 @@ fun RoomInfoScreen(
                                 title = "Room addresses",
                                 subtitle = state.profile?.canonicalAlias ?: "No primary address",
                                 onClick = { showAliasesSheet = true }
+                            )
+                        }
+                    }
+                }
+
+                if (showHomeScreenShortcut) {
+                    item {
+                        SettingsGroupHeader("Shortcuts")
+                        SettingsGroup {
+                            SettingsActionRow(
+                                icon = Icons.Default.Home,
+                                title = "Add to Home screen",
+                                subtitle = "Create a launcher shortcut for this room",
+                                onClick = onAddHomeScreenShortcut
                             )
                         }
                     }
@@ -797,13 +833,15 @@ private fun SettingsCopyRow(
     }
 }
 
+// Duplicated composables (kmp-settings - likes)
+
 /** A row with icon + title + optional subtitle, with an action button on the right. */
 @Composable
 private fun SettingsActionRow(
     icon: ImageVector,
     title: String,
     subtitle: String? = null,
-    actionText: String,
+    actionText: String? = null,
     enabled: Boolean = true,
     onClick: () -> Unit
 ) {
@@ -827,7 +865,9 @@ private fun SettingsActionRow(
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            Text(actionText, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            actionText?.let {
+                Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            }
         }
     }
 }
