@@ -309,4 +309,25 @@
     <string name="image">Image</string>
     <string name="video">Video</string>
     <string name="file">File</string>
+    <string name="media_cache">Media Cache</string>
+    <string name="media_cache_calculating">Calculating…</string>
+    <string name="media_cache_used_by_mages">Used by Mages</string>
+    <string name="media_cache_reclaimable">Reclaimable</string>
+    <string name="media_cache_clear">Clear</string>
+    <string name="media_cache_clear_thumbnails">Clear Thumbnails</string>
+    <string name="media_cache_clear_previews">Clear Previews</string>
+    <string name="media_cache_clear_temporary">Clear Temporary</string>
+    <string name="media_cache_clear_reclaimable">Clear Reclaimable</string>
+    <string name="media_cache_clear_all">Clear All</string>
+    <string name="media_cache_clear_except_saved">Clear Except Saved</string>
+    <string name="media_cache_avatars">Avatars</string>
+    <string name="media_cache_thumbnails">Thumbnails</string>
+    <string name="media_cache_previews">Previews</string>
+    <string name="media_cache_full_media">Full Media</string>
+    <string name="media_cache_saved">Saved</string>
+    <string name="auto_download_previews">Auto-download previews</string>
+    <string name="media_cache_storage_used">Storage used</string>
+    <string name="media_cache_clear_media_cache">Clear media cache</string>
+    <string name="media_cache_clear_confirm_title">Clear media cache?</string>
+    <string name="media_cache_clear_confirm_body">Local cached media will be removed. Your messages stay in your chats and media can download again when needed.</string>
 </resources>

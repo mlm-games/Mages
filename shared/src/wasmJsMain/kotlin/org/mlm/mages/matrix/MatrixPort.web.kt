@@ -1539,6 +1539,9 @@ class WebVerificationService(private val client: WasmClient) : VerificationServi
 
     override suspend fun acceptSas(flowId: String, otherUserId: String): Boolean =
         client.acceptSas(flowId, otherUserId).awaitPlainBool()
+
+    override suspend fun mediaCacheOverview(): MediaCacheOverview? = null
+    override suspend fun clearMediaCache(): Result<Unit> = Result.success(Unit)
 }
 
 actual fun createMatrixPort(): MatrixPort = WebStubMatrixPort()

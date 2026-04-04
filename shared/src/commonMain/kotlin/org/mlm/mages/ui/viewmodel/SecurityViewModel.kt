@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.Presence
+import org.mlm.mages.settings.OpenMediaCacheAction
 import org.mlm.mages.settings.OpenNotificationRulesAction
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.SecurityUiState
@@ -32,6 +33,7 @@ class SecurityViewModel(
         data class ShowError(val message: String) : Event()
         data class ShowSuccess(val message: String) : Event()
         data object NavigateToNotificationRules : Event()
+        data object NavigateToMediaCache : Event()
     }
 
     private val _events = Channel<Event>(Channel.BUFFERED)
@@ -256,6 +258,10 @@ class SecurityViewModel(
     suspend fun executeSettingAction(actionClass: KClass<out SettingAction>) {
         if (actionClass == OpenNotificationRulesAction::class) {
             _events.send(Event.NavigateToNotificationRules)
+            return
+        }
+        if (actionClass == OpenMediaCacheAction::class) {
+            _events.send(Event.NavigateToMediaCache)
             return
         }
         ActionRegistry.execute(actionClass)

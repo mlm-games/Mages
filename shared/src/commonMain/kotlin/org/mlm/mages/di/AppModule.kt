@@ -97,6 +97,8 @@ val viewModelModule = module {
     }
 
     viewModel { AccountsViewModel(get(), get()) }
+
+    viewModel { MediaCacheViewModel(get(), get()) }
 }
 
 fun appModules(settingsRepository: SettingsRepository<AppSettings>) = listOf(

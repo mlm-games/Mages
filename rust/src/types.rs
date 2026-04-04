@@ -308,6 +308,17 @@ pub struct OwnReceipt {
     pub ts_ms: Option<u64>,
 }
 
+#[derive(Clone, Copy, Serialize, Deserialize, Enum)]
+pub enum MediaClearScope {
+    All,
+    Temporary,
+}
+
+#[derive(Clone, Serialize, Deserialize, Record)]
+pub struct MediaCacheOverview {
+    pub total_bytes: u64,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, uniffi::Record)]
 pub struct LatestRoomEvent {
     pub event_id: String,

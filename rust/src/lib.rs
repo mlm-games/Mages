@@ -2615,6 +2615,38 @@ impl Client {
         })
     }
 
+    pub fn media_cache_overview(&self) -> MediaCacheOverview {
+        let dir = cache_dir(&self.store_dir);
+        let total_bytes = if dir.exists() {
+            std::fs::read_dir(&dir)
+                .map(|entries| {
+                    entries
+                        .flatten()
+                        .filter_map(|e| e.metadata().ok())
+                        .filter(|m| m.is_file())
+                        .map(|m| m.len())
+                        .sum()
+                })
+                .unwrap_or(0)
+        } else {
+            0
+        };
+        MediaCacheOverview { total_bytes }
+    }
+
+    pub fn clear_media_cache(&self) -> Result<(), FfiError> {
+        let dir = cache_dir(&self.store_dir);
+        if dir.exists() {
+            std::fs::remove_dir_all(&dir).ffi()?;
+            std::fs::create_dir_all(&dir).ffi()?;
+        }
+        Ok(())
+    }
+
+    pub fn run_media_cache_maintenance(&self) -> Result<(), FfiError> {
+        self.clear_media_cache()
+    }
+
     pub fn start_device_verification(
         &self,
         device_id: String,

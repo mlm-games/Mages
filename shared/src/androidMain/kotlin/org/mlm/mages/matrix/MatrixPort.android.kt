@@ -1964,4 +1964,19 @@ private fun mages.PollOption.toModel() = PollOption(
     isSelected = isSelected
 )
 
+override suspend fun mediaCacheOverview(): MediaCacheOverview? = withContext(matrixDispatcher) {
+    withClient {
+        runCatching {
+            val overview = it.mediaCacheOverview()
+            MediaCacheOverview(totalBytes = overview.totalBytes.toULong())
+        }.getOrNull()
+    }
+}
+
+override suspend fun clearMediaCache(): Result<Unit> = withContext(matrixDispatcher) {
+    withClient {
+        runWithFfiResult { it.clearMediaCache() }
+    }
+}
+
 actual fun createMatrixPort(): MatrixPort = RustMatrixPort()

@@ -933,7 +933,14 @@ interface MatrixPort {
     suspend fun callWidgetFromWebview(sessionId: ULong, message: String): Boolean
     fun stopElementCall(sessionId: ULong): Boolean
 
+    suspend fun mediaCacheOverview(): MediaCacheOverview?
+    suspend fun clearMediaCache(): Result<Unit>
 }
+
+@Serializable
+data class MediaCacheOverview(
+    val totalBytes: ULong,
+)
 
 expect fun createMatrixPort(): MatrixPort
 

@@ -409,6 +409,10 @@ private fun AppContent(
                                         SecurityViewModel.Event.NavigateToNotificationRules -> {
                                             backStack.add(Route.NotificationRules)
                                         }
+
+                                        SecurityViewModel.Event.NavigateToMediaCache -> {
+                                            backStack.add(Route.MediaCache)
+                                        }
                                     }
                                 }
                             }
@@ -701,6 +705,12 @@ private fun AppContent(
                         entry<Route.NotificationRules> {
                             NotificationRulesScreen(
                                 matrixPort = service.port,
+                                onBack = backStack::popBack
+                            )
+                        }
+
+                        entry<Route.MediaCache> {
+                            MediaCacheRoute(
                                 onBack = backStack::popBack
                             )
                         }

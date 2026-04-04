@@ -1644,6 +1644,21 @@ class RustMatrixPort : MatrixPort, VerificationService {
             runWithFfiResult { withClient { it.stopElementCall(sessionId) } }.isSuccess
         }
     }
+
+    override suspend fun mediaCacheOverview(): MediaCacheOverview? = withContext(matrixDispatcher) {
+        withClient {
+            runCatching {
+                val overview = it.mediaCacheOverview()
+                MediaCacheOverview(totalBytes = overview.totalBytes.toULong())
+            }.getOrNull()
+        }
+    }
+
+    override suspend fun clearMediaCache(): Result<Unit> = withContext(matrixDispatcher) {
+        withClient {
+            runWithFfiResult { it.clearMediaCache() }
+        }
+    }
 }
 
 private fun FfiRoom.toModel() = RoomSummary(id = id, name = name)
@@ -1936,7 +1951,6 @@ private fun mages.RoomListEntry.toKotlinRoomListEntry(): RoomListEntry =
             )
         }
     )
-
 
 private fun mages.PollData.toModel(): PollData {
     val mappedOptions = options.map { it.toModel() }

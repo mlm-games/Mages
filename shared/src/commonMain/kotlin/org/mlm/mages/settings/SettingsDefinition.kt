@@ -467,6 +467,15 @@ data class AppSettings(
     val blockMediaPreviews: Boolean = false,
 
     @Setting(
+        title = "Media Cache",
+        description = "View and manage cached media",
+        category = Storage::class,
+        type = Button::class
+    )
+    @ActionHandler(OpenMediaCacheAction::class)
+    val openMediaCache: Unit = Unit,
+
+    @Setting(
         title = "Start in tray",
         description = "Minimize to tray on launch",
         category = Advanced::class,
@@ -497,6 +506,7 @@ object CopyUnifiedPushEndpointAction : SettingAction
 
 object OpenBubbleSettingsAction : SettingAction
 object OpenNotificationRulesAction : SettingAction
+object OpenMediaCacheAction : SettingAction
 object RequestNotificationPermissionAction : SettingAction
 object TestNotificationAction : SettingAction
 
