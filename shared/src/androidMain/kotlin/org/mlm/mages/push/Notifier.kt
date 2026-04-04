@@ -155,6 +155,11 @@ object AndroidNotificationHelper : KoinComponent {
         mgr.cancel(callNotificationId(roomId))
     }
 
+    fun cancelRoomNotification(ctx: Context, roomId: String) {
+        val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        mgr.cancel(roomId.hashCode())
+    }
+
     fun showInviteNotification(
         ctx: Context,
         roomId: String,

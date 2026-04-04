@@ -428,6 +428,16 @@ data class AppSettings(
 //    @ActionHandler(OpenSystemNotificationSettingsAction::class)
 //    val openSystemNotificationSettings: Unit = Unit,
 
+//    @Setting(
+//        title = "Auto-register UnifiedPush",
+//        description = "Automatically register with a UnifiedPush distributor when available",
+//        category = Notifications::class,
+//        type = Toggle::class,
+//        platforms = [SettingPlatform.ANDROID],
+//    )
+    @Persisted
+    val autoRegisterPushDistributor: Boolean = true,
+
     @Setting(
         category = Notifications::class,
         type = Button::class,
@@ -470,7 +480,8 @@ data class AppSettings(
         title = "Media Cache",
         description = "View and manage cached media",
         category = Storage::class,
-        type = Button::class
+        type = Button::class,
+        platforms = [SettingPlatform.ANDROID, SettingPlatform.JVM]
     )
     @ActionHandler(OpenMediaCacheAction::class)
     val openMediaCache: Unit = Unit,

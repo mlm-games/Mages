@@ -21,6 +21,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.koin.core.context.GlobalContext
 import org.mlm.mages.MatrixService
+import org.mlm.mages.push.AndroidNotificationHelper
 import org.mlm.mages.push.PREF_INSTANCE
 import org.mlm.mages.push.PusherReconciler
 import org.mlm.mages.settings.AppSettings
@@ -70,6 +71,7 @@ actual object Notifier {
         currentRoomId = roomId
         if (roomId != null) {
             val ctx = appContextOrNull() ?: return
+            AndroidNotificationHelper.cancelRoomNotification(ctx, roomId)
             runBlocking {
                 val settingsRepo = SettingsProvider.get(ctx)
                 val settings = settingsRepo.flow.first()

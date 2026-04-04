@@ -22,7 +22,6 @@ import mages.MessageActionState as FfiMessageActionState
 import org.mlm.mages.*
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.platformNeedsControlledAudioDevices
-import kotlin.sequences.forEach
 
 private inline fun <T> runWithFfiResult(block: () -> T): Result<T> =
     runCatching(block).recoverCatching { e ->
@@ -1645,6 +1644,21 @@ class RustMatrixPort : MatrixPort, VerificationService {
             runWithFfiResult { withClient { it.stopElementCall(sessionId) } }.isSuccess
         }
     }
+
+    override suspend fun mediaCacheOverview(): MediaCacheOverview? = withContext(matrixDispatcher) {
+        withClient {
+            runCatching {
+                val overview = it.mediaCacheOverview()
+                MediaCacheOverview(totalBytes = overview.totalBytes)
+            }.getOrNull()
+        }
+    }
+
+    override suspend fun clearMediaCache(): Result<Unit> = withContext(matrixDispatcher) {
+        withClient {
+            runWithFfiResult { it.clearMediaCache() }
+        }
+    }
 }
 
 private fun FfiRoom.toModel() = RoomSummary(id = id, name = name)
@@ -1938,7 +1952,6 @@ private fun mages.RoomListEntry.toKotlinRoomListEntry(): RoomListEntry =
         }
     )
 
-
 private fun mages.PollData.toModel(): PollData {
     val mappedOptions = options.map { it.toModel() }
     val voteMap = options.associate { it.id to it.votes.toInt() }
@@ -1963,20 +1976,5 @@ private fun mages.PollOption.toModel() = PollOption(
     votes = votes.toLong(),
     isSelected = isSelected
 )
-
-override suspend fun mediaCacheOverview(): MediaCacheOverview? = withContext(matrixDispatcher) {
-    withClient {
-        runCatching {
-            val overview = it.mediaCacheOverview()
-            MediaCacheOverview(totalBytes = overview.totalBytes.toULong())
-        }.getOrNull()
-    }
-}
-
-override suspend fun clearMediaCache(): Result<Unit> = withContext(matrixDispatcher) {
-    withClient {
-        runWithFfiResult { it.clearMediaCache() }
-    }
-}
 
 actual fun createMatrixPort(): MatrixPort = RustMatrixPort()

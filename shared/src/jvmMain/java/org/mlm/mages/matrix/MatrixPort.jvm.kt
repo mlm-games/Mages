@@ -1649,7 +1649,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         withClient {
             runCatching {
                 val overview = it.mediaCacheOverview()
-                MediaCacheOverview(totalBytes = overview.totalBytes.toULong())
+                MediaCacheOverview(totalBytes = overview.totalBytes)
             }.getOrNull()
         }
     }

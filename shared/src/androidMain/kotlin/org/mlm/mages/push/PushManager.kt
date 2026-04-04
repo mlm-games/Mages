@@ -5,6 +5,9 @@ import android.util.Log
 import org.unifiedpush.android.connector.UnifiedPush
 import org.unifiedpush.android.connector.data.PushEndpoint
 import androidx.core.content.edit
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import org.mlm.mages.platform.SettingsProvider
 
 object PushManager {
     private const val PREFS_NAME = "unifiedpush_prefs"
@@ -12,6 +15,13 @@ object PushManager {
     const val DEFAULT_INSTANCE = "default"
 
     fun registerSilently(context: Context, instance: String = DEFAULT_INSTANCE) {
+        val settingsRepo = SettingsProvider.get(context)
+        val settings = runBlocking { settingsRepo.flow.first() }
+        if (!settings.autoRegisterPushDistributor) {
+            Log.i(TAG, "Auto-register disabled, skipping silent registration")
+            return
+        }
+
         val saved = UnifiedPush.getSavedDistributor(context)
         if (!saved.isNullOrBlank()) {
             Log.i(TAG, "Re-registering with saved distributor: $saved")

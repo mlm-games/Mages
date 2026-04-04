@@ -148,7 +148,7 @@ private external fun consoleLog(msg: String)
 
 @OptIn(ExperimentalEncodingApi::class)
 fun ByteArray.toJsUint8Array(): JsAny {
-    val b64 = Base64.Default.encode(this)
+    val b64 = Base64.encode(this)
     return base64ToUint8Array(b64)
 }
 
@@ -465,7 +465,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             }
         ).toULong()
 
-    override fun unobserveRecoveryState(subId: ULong): Unit {
+    override fun unobserveRecoveryState(subId: ULong) {
         requireClient().unobserveRecoveryState(subId.toDouble())
     }
 
@@ -479,7 +479,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             }
         ).toULong()
 
-    override fun unobserveBackupState(subId: ULong): Unit {
+    override fun unobserveBackupState(subId: ULong) {
         requireClient().unobserveBackupState(subId.toDouble())
     }
 
@@ -1385,6 +1385,10 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override fun stopElementCall(sessionId: ULong): Boolean =
         requireClient().stopElementCall(sessionId.toDouble())
 
+    override suspend fun mediaCacheOverview(): MediaCacheOverview? = null
+
+    override suspend fun clearMediaCache(): Result<Unit> = Result.success(Unit)
+
     override suspend fun roomPreview(idOrAlias: String): Result<RoomPreview> {
         val value = requireClient().roomPreview(idOrAlias).awaitValue<RoomPreview>()
         return if (value != null) Result.success(value)
@@ -1471,77 +1475,6 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
 
     override suspend fun cancelVerification(flowId: String): Boolean =
         requireClient().cancelVerification(flowId).awaitPlainBool()
-}
-
-class WebVerificationService(private val client: WasmClient) : VerificationService {
-    override fun startDeviceVerification(deviceId: String): Flow<VerifEvent> = callbackFlow {
-        val flowId = client.startDeviceVerification(
-            deviceId,
-            jsCallback1 { event: JsAny? ->
-                val jsonStr = event?.toString() ?: return@jsCallback1
-                val parsed = runCatching {
-                    verifJson.decodeFromString<VerifEvent>(jsonStr)
-                }.getOrNull() ?: return@jsCallback1
-                trySend(parsed)
-            }
-        ).await<JsAny?>()?.toString().orEmpty()
-        if (flowId.isBlank()) {
-            trySend(VerifEvent.Error("Failed to start device verification"))
-            channel.close()
-            return@callbackFlow
-        }
-        awaitClose { }
-    }
-
-    override fun startUserVerification(userId: String): Flow<VerifEvent> = callbackFlow {
-        val flowId = client.startUserVerification(
-            userId,
-            jsCallback1 { event: JsAny? ->
-                val jsonStr = event?.toString() ?: return@jsCallback1
-                val parsed = runCatching {
-                    verifJson.decodeFromString<VerifEvent>(jsonStr)
-                }.getOrNull() ?: return@jsCallback1
-                trySend(parsed)
-            }
-        ).await<JsAny?>()?.toString().orEmpty()
-        if (flowId.isBlank()) {
-            trySend(VerifEvent.Error("Failed to start user verification"))
-            channel.close()
-            return@callbackFlow
-        }
-        awaitClose { }
-    }
-
-    override suspend fun confirmSas(flowId: String): Boolean =
-        client.confirmSas(flowId).awaitPlainBool()
-
-    override suspend fun cancelVerification(flowId: String): Boolean =
-        client.cancelVerification(flowId).awaitPlainBool()
-
-    override fun acceptAndObserveVerification(flowId: String, otherUserId: String): Flow<VerifEvent> = callbackFlow {
-        val ok = client.acceptAndObserveVerification(
-            flowId,
-            otherUserId,
-            jsCallback1 { event: JsAny? ->
-                val jsonStr = event?.toString() ?: return@jsCallback1
-                runCatching {
-                    verifJson.decodeFromString<VerifEvent>(jsonStr)
-                }.getOrNull()?.let { trySend(it) }
-            }
-        ).awaitPlainBool()
-        if (!ok) {
-            trySend(VerifEvent.Error("Failed to accept verification"))
-            channel.close()
-            return@callbackFlow
-        }
-        awaitClose { }
-    }
-
-    override suspend fun acceptSas(flowId: String, otherUserId: String): Boolean =
-        client.acceptSas(flowId, otherUserId).awaitPlainBool()
-
-    override suspend fun mediaCacheOverview(): MediaCacheOverview? = null
-    override suspend fun clearMediaCache(): Result<Unit> = Result.success(Unit)
 }
 
 actual fun createMatrixPort(): MatrixPort = WebStubMatrixPort()
