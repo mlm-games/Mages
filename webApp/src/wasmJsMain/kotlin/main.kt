@@ -2,9 +2,7 @@ package org.mlm.mages
 
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
-import io.github.mlmgames.settings.core.SettingsRepository
 import io.github.mlmgames.settings.core.actions.ActionRegistry
-import io.github.mlmgames.settings.core.datastore.createSettingsDataStore
 import kotlinx.browser.window
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.MainScope
@@ -17,18 +15,15 @@ import org.mlm.mages.nav.DeepLinkAction
 import org.mlm.mages.nav.MatrixLink
 import org.mlm.mages.nav.parseMatrixLink
 import org.mlm.mages.platform.Notifier
+import org.mlm.mages.platform.SettingsProvider
 import org.mlm.mages.platform.requestNotificationPermissionFromUserGesture
-import org.mlm.mages.settings.AppSettingsSchema
 import org.mlm.mages.settings.RequestNotificationPermissionAction
 import org.mlm.mages.settings.TestNotificationAction
 import org.mlm.mages.ui.util.nowMs
 
 @OptIn(ExperimentalComposeUiApi::class, FlowPreview::class)
 fun main() {
-    val settingsRepo = SettingsRepository(
-        createSettingsDataStore("mages_settings"),
-        AppSettingsSchema
-    )
+    val settingsRepo = SettingsProvider.get()
 
     val appScope = MainScope()
 

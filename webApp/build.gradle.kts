@@ -67,7 +67,6 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.kmp.settings.core)
-            implementation(libs.androidx.datastore.preferences.core)
             implementation(libs.kotlinx.coroutines.core)
         }
     }
