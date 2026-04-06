@@ -5,17 +5,22 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import io.github.vinceglb.filekit.PlatformFile
 import kotlinx.browser.document
 import kotlinx.coroutines.launch
-import org.mlm.mages.ui.components.AttachmentData
+import org.mlm.mages.content.TransferItem
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.events.Event
+import org.w3c.files.File
+
+internal suspend fun browserFileToTransferItem(file: File): TransferItem =
+    PlatformFile(file).toTransferItem()
 
 actual fun Modifier.fileDrop(
     enabled: Boolean,
     onDragEnter: () -> Unit,
     onDragExit: () -> Unit,
-    onDrop: (List<AttachmentData>) -> Unit
+    onDrop: (List<TransferItem>) -> Unit
 ): Modifier = composed {
     if (!enabled) return@composed this
 
@@ -74,12 +79,12 @@ actual fun Modifier.fileDrop(
                 dragDepth = 0
 
                 scope.launch {
-                    val attachments = mutableListOf<AttachmentData>()
+                    val attachments = mutableListOf<TransferItem>()
                     val files = extractFilesFromDataTransfer(transfer)
 
                     for (file in files) {
                         try {
-                            attachments += browserFileToAttachmentData(file)
+                            attachments += browserFileToTransferItem(file)
                         } catch (_: Throwable) {
                         }
                     }

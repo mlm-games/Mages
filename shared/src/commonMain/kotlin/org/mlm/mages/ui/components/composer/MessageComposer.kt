@@ -22,6 +22,8 @@ import org.mlm.mages.platform.ClipboardAttachmentHandler
 import org.mlm.mages.platform.pasteInterceptor
 import org.mlm.mages.platform.sendShortcutHandler
 import org.mlm.mages.ui.components.AttachmentData
+import org.mlm.mages.ui.components.AttachmentSourceKind
+import org.mlm.mages.ui.components.toMagesAttachment
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 
@@ -157,7 +159,9 @@ private fun ComposerInputRow(
                     Modifier.pasteInterceptor {
                         if (clipboardHandler.hasAttachment()) {
                             scope.launch {
-                                clipboardHandler.getAttachments().forEach { onAttachmentPasted(it) }
+                                clipboardHandler.getAttachments().forEach { item ->
+                                    onAttachmentPasted(item.toMagesAttachment(AttachmentSourceKind.LocalPath))
+                                }
                             }
                             true
                         } else false

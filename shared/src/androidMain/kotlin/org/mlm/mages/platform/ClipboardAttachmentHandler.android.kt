@@ -10,8 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.mlm.mages.ui.components.AttachmentData
-import org.mlm.mages.ui.components.AttachmentSourceKind
+import org.mlm.mages.content.TransferItem
 import org.mlm.mages.ui.util.guessMimeType
 import java.io.File
 
@@ -40,7 +39,7 @@ private class AndroidClipboardAttachmentHandler(
         }
     }
 
-    override suspend fun getAttachments(): List<AttachmentData> =
+    override suspend fun getAttachments(): List<TransferItem> =
         withContext(Dispatchers.IO) {
             try {
                 val clip = cm?.primaryClip ?: return@withContext emptyList()
@@ -53,7 +52,7 @@ private class AndroidClipboardAttachmentHandler(
             }
         }
 
-    private fun processUri(uri: Uri): AttachmentData? {
+    private fun processUri(uri: Uri): TransferItem? {
         val resolver = context.contentResolver
         val displayName = queryDisplayName(resolver, uri)
             ?: "pasted_${System.currentTimeMillis()}"
@@ -70,12 +69,11 @@ private class AndroidClipboardAttachmentHandler(
             outFile.outputStream().use { input.copyTo(it) }
         } ?: return null
 
-        return AttachmentData(
+        return TransferItem(
+            fileName = displayName,
             path = outFile.absolutePath,
             mimeType = mimeType,
-            fileName = displayName,
             sizeBytes = outFile.length(),
-            sourceKind = AttachmentSourceKind.LocalPath
         )
     }
 

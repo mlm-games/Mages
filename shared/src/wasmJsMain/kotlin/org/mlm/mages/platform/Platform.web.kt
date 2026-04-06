@@ -9,11 +9,9 @@ import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.readBytes
 import kotlinx.browser.document
 import kotlinx.browser.window
-import org.mlm.mages.ui.components.AttachmentData
-import org.mlm.mages.ui.components.AttachmentSourceKind
+import org.mlm.mages.content.TransferItem
 import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.url.URL
-import org.w3c.files.File
 
 private val webBlobCache = mutableMapOf<String, ByteArray>()
 private var blobCounter = 0
@@ -88,21 +86,17 @@ actual fun rememberCameraPickerLauncher(
     return launcher
 }
 
-internal suspend fun browserFileToAttachmentData(file: File): AttachmentData {
-    return PlatformFile(file).toAttachmentData()
-}
-
-actual suspend fun PlatformFile.toAttachmentData(): AttachmentData {
+actual suspend fun PlatformFile.toTransferItem(): TransferItem {
     val bytes = readBytes()
     val blobId = generateBlobId()
     webBlobCache[blobId] = bytes
 
-    return AttachmentData(
+    return TransferItem(
+        fileName = name,
         path = blobId,
         mimeType = mimeType()?.toString() ?: "application/octet-stream",
-        fileName = name,
         sizeBytes = bytes.size.toLong(),
-        sourceKind = AttachmentSourceKind.WebBlobToken,
+        webObjectUrl = "webblob:$blobId",
     )
 }
 

@@ -3,7 +3,7 @@ package org.mlm.mages.platform
 import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import io.github.vinceglb.filekit.PlatformFile
-import org.mlm.mages.ui.components.AttachmentData
+import org.mlm.mages.content.TransferItem
 
 expect fun getDeviceDisplayName(): String
 
@@ -33,4 +33,4 @@ expect fun rememberCameraPickerLauncher(
 ): CameraPickerLauncher?
 
 
-expect suspend fun PlatformFile.toAttachmentData(): AttachmentData
+expect suspend fun PlatformFile.toTransferItem(): TransferItem

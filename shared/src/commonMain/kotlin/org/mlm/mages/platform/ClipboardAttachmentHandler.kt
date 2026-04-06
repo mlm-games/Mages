@@ -1,11 +1,11 @@
 package org.mlm.mages.platform
 
 import androidx.compose.runtime.Composable
-import org.mlm.mages.ui.components.AttachmentData
+import org.mlm.mages.content.TransferItem
 
 interface ClipboardAttachmentHandler {
     fun hasAttachment(): Boolean
-    suspend fun getAttachments(): List<AttachmentData>
+    suspend fun getAttachments(): List<TransferItem>
 }
 
 @Composable

@@ -73,7 +73,7 @@ enum class ActionPresentation { Hidden, Disabled, Enabled }
 @Serializable
 data class ActionAvailability(
     val presentation: ActionPresentation,
-    val reason: String?,
+    val reason: String? = null,
 ) {
     val isEnabled: Boolean
         get() = presentation == ActionPresentation.Enabled

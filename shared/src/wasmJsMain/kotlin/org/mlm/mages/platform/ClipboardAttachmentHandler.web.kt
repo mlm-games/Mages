@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import kotlinx.browser.document
-import org.mlm.mages.ui.components.AttachmentData
+import org.mlm.mages.content.TransferItem
 import org.w3c.dom.events.Event
 import org.w3c.files.File
 
@@ -38,14 +38,14 @@ private class WebClipboardAttachmentHandler : ClipboardAttachmentHandler {
 
     override fun hasAttachment(): Boolean = lastFiles.isNotEmpty()
 
-    override suspend fun getAttachments(): List<AttachmentData> {
+    override suspend fun getAttachments(): List<TransferItem> {
         val files = lastFiles
         lastFiles = emptyList()
 
-        val out = mutableListOf<AttachmentData>()
+        val out = mutableListOf<TransferItem>()
         for (file in files) {
             try {
-                out += browserFileToAttachmentData(file)
+                out += browserFileToTransferItem(file)
             } catch (_: Throwable) {
             }
         }

@@ -28,8 +28,7 @@ import kotlinx.coroutines.withContext
 import okio.buffer
 import okio.sink
 import org.koin.mp.KoinPlatform
-import org.mlm.mages.ui.components.AttachmentData
-import org.mlm.mages.ui.components.AttachmentSourceKind
+import org.mlm.mages.content.TransferItem
 import java.io.File
 
 actual fun getDeviceDisplayName(): String {
@@ -113,26 +112,24 @@ actual fun rememberCameraPickerLauncher(
     return remember(launcher) { CameraPickerLauncher(launcher) }
 }
 
-actual suspend fun PlatformFile.toAttachmentData(): AttachmentData =
+actual suspend fun PlatformFile.toTransferItem(): TransferItem =
     withContext(Dispatchers.IO) {
         val ctx = KoinPlatform.getKoin().get<Context>()
-        val resolver = ctx.contentResolver
 
-        val name = this@toAttachmentData.name
+        val name = this@toTransferItem.name
 
         val cacheDir = File(FileKit.cacheDir.toString(), "mages_uploads").apply { mkdirs() }
         val outFile = File(cacheDir, "${System.currentTimeMillis()}_$name")
 
-        val bytes = this@toAttachmentData.readBytes()
+        val bytes = this@toTransferItem.readBytes()
         outFile.sink().buffer().use { it.write(bytes) }
 
 
-        AttachmentData(
-            path = outFile.absolutePath,
-            mimeType = this@toAttachmentData.mimeType().toString(),
+        TransferItem(
             fileName = name,
+            path = outFile.absolutePath,
+            mimeType = this@toTransferItem.mimeType().toString(),
             sizeBytes = outFile.length(),
-            sourceKind = AttachmentSourceKind.LocalPath
         )
     }
 

@@ -4,8 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.mlm.mages.ui.components.AttachmentData
-import org.mlm.mages.ui.components.AttachmentSourceKind
+import org.mlm.mages.content.TransferItem
 import org.mlm.mages.ui.util.guessMimeType
 import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
@@ -28,7 +27,7 @@ private class JvmClipboardAttachmentHandler : ClipboardAttachmentHandler {
         c.isDataFlavorSupported(DataFlavor.imageFlavor)
     } catch (_: Exception) { false }
 
-    override suspend fun getAttachments(): List<AttachmentData> =
+    override suspend fun getAttachments(): List<TransferItem> =
         withContext(Dispatchers.IO) {
             try {
                 val contents = clipboard.getContents(null) ?: return@withContext emptyList()
@@ -36,9 +35,9 @@ private class JvmClipboardAttachmentHandler : ClipboardAttachmentHandler {
                 if (contents.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
                     @Suppress("UNCHECKED_CAST")
                     val files = contents.getTransferData(DataFlavor.javaFileListFlavor) as? List<File>
-                    return@withContext files
+                    return@withContext                     files
                         ?.filter { it.exists() }
-                        ?.map { it.toAttachment() }
+                        ?.map { it.toTransferItem() }
                         ?: emptyList()
                 }
 
@@ -51,15 +50,14 @@ private class JvmClipboardAttachmentHandler : ClipboardAttachmentHandler {
             } catch (_: Exception) { emptyList() }
         }
 
-    private fun File.toAttachment() = AttachmentData(
+    private fun File.toTransferItem() = TransferItem(
+        fileName = name,
         path = absolutePath,
         mimeType = guessMimeType(name),
-        fileName = name,
         sizeBytes = length(),
-        sourceKind = AttachmentSourceKind.LocalPath
     )
 
-    private fun java.awt.Image.saveToTemp(): AttachmentData? {
+    private fun java.awt.Image.saveToTemp(): TransferItem? {
         val bi = when (this) {
             is BufferedImage -> this
             else -> {
@@ -80,12 +78,11 @@ private class JvmClipboardAttachmentHandler : ClipboardAttachmentHandler {
         ).apply { mkdirs() }
         val f = File(dir, "clipboard_${System.currentTimeMillis()}.png")
         ImageIO.write(bi, "png", f)
-        return AttachmentData(
+        return TransferItem(
+            fileName = "clipboard_image.png",
             path = f.absolutePath,
             mimeType = "image/png",
-            fileName = "clipboard_image.png",
             sizeBytes = f.length(),
-            sourceKind = AttachmentSourceKind.LocalPath
         )
     }
 }

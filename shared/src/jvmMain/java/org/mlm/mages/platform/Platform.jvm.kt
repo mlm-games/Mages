@@ -3,8 +3,7 @@ package org.mlm.mages.platform
 import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import io.github.vinceglb.filekit.PlatformFile
-import org.mlm.mages.ui.components.AttachmentData
-import org.mlm.mages.ui.components.AttachmentSourceKind
+import org.mlm.mages.content.TransferItem
 import org.mlm.mages.ui.util.guessMimeType
 import java.io.File
 import java.net.InetAddress
@@ -59,17 +58,16 @@ actual fun rememberCameraPickerLauncher(
     return null
 }
 
-actual suspend fun PlatformFile.toAttachmentData(): AttachmentData {
+actual suspend fun PlatformFile.toTransferItem(): TransferItem {
     val file = this.file
     val mime = runCatching {
         Files.probeContentType(file.toPath())
     }.getOrNull() ?: guessMimeType(file.name)
 
-    return AttachmentData(
+    return TransferItem(
+        fileName = file.name,
         path = file.absolutePath,
         mimeType = mime,
-        fileName = file.name,
         sizeBytes = file.length(),
-        sourceKind = AttachmentSourceKind.LocalPath
     )
 }

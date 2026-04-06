@@ -39,6 +39,8 @@ import org.mlm.mages.matrix.EventType
 import org.mlm.mages.matrix.SendState
 import org.mlm.mages.platform.*
 import org.mlm.mages.ui.components.AttachmentData
+import org.mlm.mages.ui.components.AttachmentSourceKind
+import org.mlm.mages.ui.components.toMagesAttachment
 import androidx.compose.runtime.rememberCoroutineScope
 import org.mlm.mages.ui.components.RoomUpgradeBanner
 import org.mlm.mages.ui.components.attachment.AttachmentPicker
@@ -121,7 +123,7 @@ fun RoomScreen(
         type = FileKitType.Image
     ) { files ->
         scope.launch {
-            files?.forEach { viewModel.attachFile(it.toAttachmentData()) }
+            files?.forEach { viewModel.attachFile(it.toTransferItem().toMagesAttachment(AttachmentSourceKind.LocalPath)) }
         }
         viewModel.hideAttachmentPicker()
     }
@@ -131,7 +133,7 @@ fun RoomScreen(
         type = FileKitType.Video
     ) { files ->
         scope.launch {
-            files?.forEach { viewModel.attachFile(it.toAttachmentData()) }
+            files?.forEach { viewModel.attachFile(it.toTransferItem().toMagesAttachment(AttachmentSourceKind.LocalPath)) }
         }
         viewModel.hideAttachmentPicker()
     }
@@ -141,14 +143,14 @@ fun RoomScreen(
         type = FileKitType.File()
     ) { files ->
         scope.launch {
-            files?.forEach { viewModel.attachFile(it.toAttachmentData()) }
+            files?.forEach { viewModel.attachFile(it.toTransferItem().toMagesAttachment(AttachmentSourceKind.LocalPath)) }
         }
         viewModel.hideAttachmentPicker()
     }
 
     val cameraPicker = rememberCameraPickerLauncher { file ->
         scope.launch {
-            file?.let { viewModel.attachFile(it.toAttachmentData()) }
+            file?.let { viewModel.attachFile(it.toTransferItem().toMagesAttachment(AttachmentSourceKind.LocalPath)) }
         }
         viewModel.hideAttachmentPicker()
     }
@@ -159,7 +161,7 @@ fun RoomScreen(
     ) { files ->
         scope.launch {
             files?.forEach { file ->
-                viewModel.attachSticker(file.toAttachmentData())
+                viewModel.attachSticker(file.toTransferItem().toMagesAttachment(AttachmentSourceKind.LocalPath))
             }
         }
         viewModel.hideAttachmentPicker()
@@ -590,11 +592,11 @@ fun RoomScreen(
                     onDragEnter = { isDragging = true },
                     onDragExit = {
                         isDragging = false },
-                    onDrop = { attachments ->
+                    onDrop = { items ->
                         isDragging = false
-                        attachments.firstOrNull()?.let { attachment ->
+                        items.firstOrNull()?.let { item ->
                             try {
-                                viewModel.attachFile(attachment)
+                                viewModel.attachFile(item.toMagesAttachment(AttachmentSourceKind.LocalPath))
                             } catch (e: Exception) {
                                 e.printStackTrace()
                             }
@@ -789,7 +791,9 @@ fun RoomScreen(
             onPasteFromClipboard = if (clipboardHasAttachment) {
                 {
                     scope.launch {
-                        clipboardHandler.getAttachments().forEach { viewModel.attachFile(it) }
+                        clipboardHandler.getAttachments().forEach { item ->
+                            viewModel.attachFile(item.toMagesAttachment(AttachmentSourceKind.LocalPath))
+                        }
                     }
                 }
             } else null,

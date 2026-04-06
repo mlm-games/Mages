@@ -15,8 +15,7 @@ import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.draganddrop.mimeTypes
 import androidx.compose.ui.draganddrop.toAndroidDragEvent
 import androidx.compose.ui.platform.LocalContext
-import org.mlm.mages.ui.components.AttachmentData
-import org.mlm.mages.ui.components.AttachmentSourceKind
+import org.mlm.mages.content.TransferItem
 import java.io.File
 import androidx.core.net.toUri
 
@@ -25,7 +24,7 @@ actual fun Modifier.fileDrop(
     enabled: Boolean,
     onDragEnter: () -> Unit,
     onDragExit: () -> Unit,
-    onDrop: (List<AttachmentData>) -> Unit
+    onDrop: (List<TransferItem>) -> Unit
 ): Modifier = composed {
     if (!enabled) return@composed this
 
@@ -59,7 +58,7 @@ actual fun Modifier.fileDrop(
                 val dragEvent = event.toAndroidDragEvent()
                 val clip = dragEvent.clipData ?: return false
 
-                val attachments = mutableListOf<AttachmentData>()
+                val attachments = mutableListOf<TransferItem>()
 
                 for (i in 0 until clip.itemCount) {
                     val item = clip.getItemAt(i)
@@ -73,7 +72,7 @@ actual fun Modifier.fileDrop(
                         uri.path?.let { path ->
                             val file = File(path)
                             if (file.exists()) {
-                                attachments.add(file.toAttachmentData())
+                                attachments.add(file.toTransferItem())
                             }
                         }
                         continue
@@ -83,12 +82,11 @@ actual fun Modifier.fileDrop(
                     val cached = context.copyUriToCache(uri)
                     if (cached != null) {
                         attachments.add(
-                            AttachmentData(
+                            TransferItem(
+                                fileName = cached.substringAfterLast("/"),
                                 path = cached,
                                 mimeType = context.getMimeType(uri) ?: "application/octet-stream",
-                                fileName = cached.substringAfterLast("/"),
                                 sizeBytes = File(cached).length(),
-                                sourceKind = AttachmentSourceKind.LocalPath
                             )
                         )
                     }
@@ -145,12 +143,11 @@ private fun Context.queryDisplayName(uri: Uri): String? {
     }
 }
 
-private fun File.toAttachmentData(): AttachmentData {
-    return AttachmentData(
+private fun File.toTransferItem(): TransferItem {
+    return TransferItem(
+        fileName = name,
         path = absolutePath,
         mimeType = "application/octet-stream",
-        fileName = name,
         sizeBytes = length(),
-        sourceKind = AttachmentSourceKind.LocalPath
     )
 }
