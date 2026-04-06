@@ -35,7 +35,7 @@ This is experimental‑stage software. It is still in its early stages, and migh
   - Downloadable via AUR and snap-store.
 
 - **Other platforms**  
-  - The UI is Compose Multiplatform. In practice, only Android and Linux's AppImages are actively tested. Windows and Mac are tested rarely and are not signed/notarized. [Web](https://mlm-games.github.io/Mages) works, but isn't supposed to have feature parity (no search functionality), and mostly useful for testing latest changes live or previewing the app.
+  - The UI is Compose Multiplatform. In practice, only Android and Linux's AppImages are actively tested. Windows and Mac are tested rarely and are not signed/notarized. [Web](https://mlm-games.github.io/Mages) works, but isn't supposed to have feature parity (no search functionality), and mostly useful for testing newer unreleased changes or previewing the app.
 
 ## Architecture
 
