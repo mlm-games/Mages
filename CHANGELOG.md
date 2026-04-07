@@ -1,3 +1,10 @@
+## v4.4.5
+
+- android: Remove the room name from grp notifications
+- Android: Always capitalise first letter, and fix "Timeline" being shown as "go5" on release builds
+- Add home screen shortcuts support
+
+
 ## v4.4.4
 
 - Update release notes for v4.4.3
