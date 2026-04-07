@@ -7,7 +7,7 @@ Mages is an experimental matrix chat client.
 
 The goal was to have a cross‑platform desktop/mobile client, while not being as heavy as web apps (initially there were very few alternatives to element-desktop which notify, with proper screen-sharing support and that stay hidden in my tray (unlike neochat, though it has linux-specific push notifs via kunifiedpush, while this currently polls)). 
 
-The client might work well for most, but is never aiming to be as stable as element's clients (or other clients like fluffy or fractal which seem to have a user-focused goal)
+The client might work well for most, but is never aiming to be as stable as element's clients (or other clients like fluffy or fractal, for example, which seem to have a user-focused goal)
 
 ## Status 
 
