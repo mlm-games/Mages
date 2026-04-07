@@ -14,6 +14,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.NotificationKind
+import org.mlm.mages.matrix.RenderedNotification
 import org.mlm.mages.platform.SettingsProvider
 import org.mlm.mages.shared.R
 
@@ -64,7 +65,7 @@ class NotificationEnrichWorker(
         }
 
         // Distinguish timeout from "null result".
-        data class Fetch(val timedOut: Boolean, val rendered: org.mlm.mages.matrix.RenderedNotification?)
+        data class Fetch(val timedOut: Boolean, val rendered: RenderedNotification?)
 
         val fetch = withTimeoutOrNull(7_000) {
             // fetchNotification returns RenderedNotification? (null is a normal outcome)
@@ -156,11 +157,11 @@ class NotificationEnrichWorker(
             NotificationKind.Reaction -> {
                 val inQuietHours = settings.quietHoursEnabled && isInQuietHours(settings)
 
-                val title = if (rendered.isDm || rendered.sender == rendered.roomName) {
+                val title = // if (rendered.isDm || rendered.sender == rendered.roomName) {
                     rendered.sender
-                } else {
-                    "${rendered.sender} • ${rendered.roomName}"
-                }
+//                } else {
+//                    "${rendered.sender} • ${rendered.roomName}"
+//                }
 
                 val playSound = if (!inQuietHours && settings.notificationSound && rendered.isNoisy) {
                     if (settings.notifySoundOncePerRoom) {
