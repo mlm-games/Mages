@@ -197,6 +197,12 @@ struct WasmSessionInfo {
     access_token: String,
     refresh_token: Option<String>,
     homeserver: String,
+    #[serde(default = "default_token_valid")]
+    is_token_valid: bool,
+}
+
+fn default_token_valid() -> bool {
+    true
 }
 fn default_auth_api() -> String {
     "matrix".to_owned()
@@ -219,6 +225,10 @@ fn save_wasm_session(store_name: &str, session: &WasmSessionInfo) {
         return;
     };
     let _ = storage.set_item(&wasm_session_key(store_name), &raw);
+}
+
+fn update_wasm_session(store_name: &str, session: &WasmSessionInfo) {
+    save_wasm_session(store_name, session);
 }
 
 fn clear_wasm_session(store_name: &str) {
@@ -486,7 +496,7 @@ impl WasmClient {
             .build()
             .await
             .map_err(|e| JsValue::from_str(&format!("build failed: {e}")))?;
-        if let Some(info) = load_wasm_session(&store_name) {
+        if let Some(mut info) = load_wasm_session(&store_name) {
             if let Ok(user_id) = info.user_id.parse() {
                 let meta = SessionMeta {
                     user_id,
@@ -514,9 +524,18 @@ impl WasmClient {
                             .await;
                     }
                 } else {
-                    let _ = client.restore_session(MatrixSession { meta, tokens }).await;
+                    let result = client.restore_session(MatrixSession { meta, tokens }).await;
+                    if result.is_err() {
+                        let error_str = format!("{:?}", result);
+                        let is_auth_error = error_str.contains("AuthenticationRequired") ||
+                                error_str.contains("UnknownToken");
+                        if !is_auth_error {
+                            info.is_token_valid = false;
+                        }
+                    }
                 }
             }
+            update_wasm_session(&store_name, &info);
         }
         let core = Rc::new(CoreClient::new(client));
         let state = Rc::new(WasmAsyncState {

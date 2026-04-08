@@ -929,6 +929,12 @@ pub(crate) struct SessionInfo {
     pub auth_api: String,
     #[serde(default)]
     pub client_id: Option<String>,
+    #[serde(default = "default_token_valid")]
+    pub is_token_valid: bool,
+}
+
+fn default_token_valid() -> bool {
+    true
 }
 
 pub struct TokioDrop<T>(Option<T>);

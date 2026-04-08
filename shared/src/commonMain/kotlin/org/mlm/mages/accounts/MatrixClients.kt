@@ -152,7 +152,15 @@ class MatrixClients(
         return try {
             port.init(account.homeserver, account.id)
 
-            if (port.isLoggedInSuspend()) {
+            val loggedIn = try {
+                port.isLoggedInSuspend()
+            } catch (e: Exception) {
+                val isNetworkError = e.message?.contains("request error") == true ||
+                        e.message?.contains("connection") == true
+                isNetworkError && account.isTokenValid
+            }
+
+            if (loggedIn) {
                 _activePort = port
                 _activeAccount.value = account
                 accountStore.setActiveAccountId(account.id)

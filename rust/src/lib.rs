@@ -536,10 +536,18 @@ impl Client {
                                 .await;
                         }
                         Some(Err(e)) => {
-                            warn!(
-                                "restore_session failed, resetting local store but preserving session: {e:?}"
-                            );
-                            platform::reset_store_dir(&this.store_dir);
+                            warn!("restore_session failed: {e:?}");
+                            let error_str = format!("{e:?}");
+                            let is_auth_error = error_str.contains("AuthenticationRequired") 
+                                || error_str.contains("Invalid access token")
+                                || error_str.contains("UnknownToken");
+                            if let Some(mut session_info) = platform::load_session(&this.store_dir).await {
+                                session_info.is_token_valid = !is_auth_error;
+                                let _ = platform::persist_session(&this.store_dir, &session_info).await;
+                            }
+                            if is_auth_error {
+                                platform::reset_store_dir(&this.store_dir);
+                            }
                         }
                         None => {}
                     }

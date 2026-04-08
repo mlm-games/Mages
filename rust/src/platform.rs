@@ -259,6 +259,7 @@ pub(crate) async fn build_and_persist_session(sdk: &matrix_sdk::Client, store_di
                 homeserver,
                 auth_api: "oauth".to_string(),
                 client_id: Some(full.client_id.to_string()),
+                is_token_valid: true,
             };
             let _ = persist_session(store_dir, &info).await;
             return;
@@ -273,6 +274,7 @@ pub(crate) async fn build_and_persist_session(sdk: &matrix_sdk::Client, store_di
                 homeserver,
                 auth_api: "matrix".to_string(),
                 client_id: None,
+                is_token_valid: true,
             };
             let _ = persist_session(store_dir, &info).await;
             return;
