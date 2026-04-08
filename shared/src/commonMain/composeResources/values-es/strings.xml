@@ -5,9 +5,13 @@
     <string name="connecting">Conectando...</string>
     <string name="add_account">Agregar cuenta</string>
     <string name="welcome_to_mages">Bienvenido a Mages</string>
-    <string name="complete_login_in_browser">Completa el inicio de sesión en tu navegador</string>
+    <string
+        name="complete_login_in_browser"
+    >Completa el inicio de sesión en tu navegador</string>
     <string name="please_wait">Por favor espera</string>
-    <string name="sign_in_to_your_matrix_account">Inicia sesión en tu cuenta de Matrix</string>
+    <string
+        name="sign_in_to_your_matrix_account"
+    >Inicia sesión en tu cuenta de Matrix</string>
     <string name="username">Nombre de usuario</string>
     <string name="username_placeholder">@usuario:matrix.org</string>
     <string name="password">Contraseña</string>
@@ -156,7 +160,7 @@
     <string name="account">Cuenta</string>
     <string name="manage_account">Managicar Cuenta</string>
     <string name="appearance">Apariencia</string>
-    <string name="timeline">Timeline</string>
+    <string name="timeline">Línea de tiempo</string>
     <string name="calls">Llamadas</string>
     <string name="notifications">Notificaciones</string>
     <string name="storage">Almacenamiento</string>
