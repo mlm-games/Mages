@@ -177,10 +177,12 @@ fun SecurityScreen(
                     onToggleKeyStorage = viewModel::toggleKeyStorage,
                     onOpenAccountManagement = { url -> uriHandler.openUri(url) }
                 )
+
                 1 -> PrivacyTab(
                     ignoredUsers = state.ignoredUsers,
                     onUnignore = viewModel::unignoreUser
                 )
+
                 2 -> SettingsTab(
                     settings = settings,
                     schema = viewModel.settingsSchema,
@@ -215,6 +217,7 @@ fun SecurityScreen(
                         activeSheet = null
                     }
                 )
+
                 SecuritySheet.EnterRecoveryKey -> EnterRecoveryKeySheet(
                     viewModel = viewModel,
                     onResetRecovery = {
@@ -311,11 +314,13 @@ private fun DevicesTab(
                         stringResource(Res.string.recovery_enabled_subtitle),
                         onChangeRecovery
                     )
+
                     MatrixPort.RecoveryState.Incomplete -> Triple(
                         stringResource(Res.string.enter_recovery_key),
                         stringResource(Res.string.recovery_incomplete_subtitle),
                         onEnterRecoveryKey
                     )
+
                     else -> Triple(
                         stringResource(Res.string.set_up_recovery),
                         stringResource(Res.string.recovery_disabled_subtitle),
@@ -371,6 +376,7 @@ private fun DevicesTab(
                             CircularWavyProgressIndicator(
                                 modifier = Modifier.size(20.dp),
                             )
+
                         else ->
                             Switch(
                                 checked = checked,
@@ -671,6 +677,7 @@ private fun SettingsTab(
             categoryConfigs = listOf(
                 CategoryConfig(Account::class, stringResource(Res.string.account)),
                 CategoryConfig(Appearance::class, stringResource(Res.string.appearance)),
+                CategoryConfig(Timeline::class, stringResource(Res.string.timeline)),
                 CategoryConfig(Notifications::class, stringResource(Res.string.notifications)),
                 CategoryConfig(Privacy::class, stringResource(Res.string.privacy)),
                 CategoryConfig(Calls::class, stringResource(Res.string.calls)),

@@ -21,18 +21,24 @@
     <string name="hide_advanced_options">Ocultar opciones avanzadas</string>
     <string name="show_advanced_options">Mostrar opciones avanzadas</string>
     <string name="sign_in">Iniciar sesión</string>
-    <string name="or_use_password">O usar inicio de sesión con contraseña</string>
+    <string
+        name="or_use_password"
+    >O usar inicio de sesión con contraseña</string>
 
     <string name="rooms">Salas</string>
     <string name="favourites">Favoritos</string>
     <string name="low_priority">Baja prioridad</string>
     <string name="new_activity">Nueva actividad</string>
     <string name="offline">Sin conexión</string>
-    <string name="connect_to_internet">Conéctate a internet para cargar las salas. Si has abierto esta cuenta antes, tu lista de salas aparecerá aquí instantáneamente.</string>
+    <string
+        name="connect_to_internet"
+    >Conéctate a internet para cargar las salas. Si has abierto esta cuenta antes, tu lista de salas aparecerá aquí instantáneamente.</string>
     <string name="retry">Reintentar</string>
     <string name="no_rooms_found">No se encontraron salas</string>
     <string name="join_a_room">Únete a una sala para comenzar a chatear</string>
-    <string name="no_rooms_match">No hay salas que coincidan con &apos;%1$s&apos;</string>
+    <string
+        name="no_rooms_match"
+    >No hay salas que coincidan con &apos;%1$s&apos;</string>
     <string name="discover_rooms">Descubrir salas</string>
     <string name="search_rooms">Buscar salas...</string>
     <string name="unread_only">Sin leer</string>
@@ -50,11 +56,15 @@
     <string name="search_in_room">Buscar en %1$s</string>
     <string name="search_messages_placeholder">Buscar mensajes...</string>
     <string name="search_no_results">Sin resultados</string>
-    <string name="search_no_messages_for">No se encontraron mensajes para "%1$s"</string>
+    <string
+        name="search_no_messages_for"
+    >No se encontraron mensajes para "%1$s"</string>
     <string name="search_load_more">Cargar más resultados</string>
     <string name="search_this_room">Buscar en esta sala</string>
     <string name="search_all_messages">Buscar todos los mensajes</string>
-    <string name="search_min_chars">Ingresa al menos 2 caracteres para buscar</string>
+    <string
+        name="search_min_chars"
+    >Ingresa al menos 2 caracteres para buscar</string>
     <string name="search_error">Error en la búsqueda</string>
     <string name="clear_search">Limpiar búsqueda</string>
     <string name="search_no_results_found">No se encontraron resultados</string>
@@ -72,16 +82,24 @@
     <string name="clear">Limpiar</string>
     <string name="no_spaces_yet">Aún no hay espacios</string>
     <string name="no_spaces_found">No se encontraron espacios</string>
-    <string name="create_space_subtitle">Crea un espacio para organizar tus salas</string>
-    <string name="try_different_search">Prueba con otro término de búsqueda</string>
+    <string
+        name="create_space_subtitle"
+    >Crea un espacio para organizar tus salas</string>
+    <string
+        name="try_different_search"
+    >Prueba con otro término de búsqueda</string>
     <string name="space_name">Nombre del espacio *</string>
     <string name="space_name_placeholder">Mi espacio increíble</string>
     <string name="topic_optional">Tema (opcional)</string>
     <string name="topic_placeholder">¿De qué trata este espacio?</string>
     <string name="public_space">Espacio público</string>
     <string name="private_space">Espacio privado</string>
-    <string name="anyone_can_find_and_join">Cualquiera puede encontrar y unirse</string>
-    <string name="only_invited_users_can_join">Solo los usuarios invitados pueden unirse</string>
+    <string
+        name="anyone_can_find_and_join"
+    >Cualquiera puede encontrar y unirse</string>
+    <string
+        name="only_invited_users_can_join"
+    >Solo los usuarios invitados pueden unirse</string>
     <string name="invite_users_optional">Invitar usuarios (opcional)</string>
     <string name="user_placeholder">@usuario:servidor</string>
     <string name="add">Agregar</string>
@@ -90,8 +108,12 @@
     <string name="public">Público</string>
     <string name="members">%1$d miembros</string>
 
-    <string name="search_users_or_rooms">Buscar usuarios o salas públicas</string>
-    <string name="search_placeholder">p.ej., #linux:matrix.org o @usuario:servidor.com</string>
+    <string
+        name="search_users_or_rooms"
+    >Buscar usuarios o salas públicas</string>
+    <string
+        name="search_placeholder"
+    >p.ej., #linux:matrix.org o @usuario:servidor.com</string>
     <string name="users">Usuarios</string>
     <string name="public_rooms">Salas públicas</string>
     <string name="public_rooms_on">Salas públicas en %1$s</string>
@@ -100,19 +122,29 @@
     <string name="directory">Directorio:</string>
     <string name="home">inicio</string>
     <string name="add_custom_server">Agregar servidor personalizado...</string>
-    <string name="add_custom_server_title">Agregar servidor personalizado</string>
-    <string name="enter_homeserver_domain">Ingresa el dominio del servidor de origen para buscar en su directorio de salas públicas.</string>
+    <string
+        name="add_custom_server_title"
+    >Agregar servidor personalizado</string>
+    <string
+        name="enter_homeserver_domain"
+    >Ingresa el dominio del servidor de origen para buscar en su directorio de salas públicas.</string>
     <string name="server_domain">Dominio del servidor</string>
     <string name="server_domain_placeholder">p.ej., libera.chat</string>
     <string name="add_server">Agregar</string>
     <string name="cancel">Cancelar</string>
-    <string name="join_this_room">Únete a esta sala directamente por alias/ID</string>
+    <string
+        name="join_this_room"
+    >Únete a esta sala directamente por alias/ID</string>
     <string name="join">Unirse</string>
     <string name="message">Mensaje</string>
     <string name="no_results_for">Sin resultados para &apos;%1$s&apos;</string>
-    <string name="try_different_search_term">Prueba con otro término de búsqueda o servidor de directorio</string>
+    <string
+        name="try_different_search_term"
+    >Prueba con otro término de búsqueda o servidor de directorio</string>
     <string name="search_tips">Consejos de búsqueda</string>
-    <string name="join_room_by_alias">Únete a una sala por su alias completo</string>
+    <string
+        name="join_room_by_alias"
+    >Únete a una sala por su alias completo</string>
     <string name="start_dm_with_user">Iniciar DM con un usuario</string>
     <string name="search_rooms_by_topic">Buscar salas por tema</string>
     <string name="paste_matrix_link">Pega un enlace matrix.to</string>
@@ -124,6 +156,7 @@
     <string name="account">Cuenta</string>
     <string name="manage_account">Managicar Cuenta</string>
     <string name="appearance">Apariencia</string>
+    <string name="timeline">Timeline</string>
     <string name="calls">Llamadas</string>
     <string name="notifications">Notificaciones</string>
     <string name="storage">Almacenamiento</string>
@@ -139,12 +172,16 @@
     <string name="try_refreshing">Intenta actualizar la lista</string>
     <string name="ignored_users">Usuarios ignorados</string>
     <string name="no_ignored_users">Sin usuarios ignorados</string>
-    <string name="ignored_users_subtitle">Los usuarios que ignores no podrán enviarte mensajes</string>
+    <string
+        name="ignored_users_subtitle"
+    >Los usuarios que ignores no podrán enviarte mensajes</string>
     <string name="unignore">Dejar de ignorar</string>
     <string name="set_up_recovery">Configurar recuperación</string>
     <string name="change_recovery_key">Cambiar clave de recuperación</string>
     <string name="recovery_key">Clave de recuperación</string>
-    <string name="save_recovery_key_warning">Guarda esta clave en un lugar seguro. La necesitarás para restaurar tus mensajes cifrados si pierdes acceso a tus dispositivos.</string>
+    <string
+        name="save_recovery_key_warning"
+    >Guarda esta clave en un lugar seguro. La necesitarás para restaurar tus mensajes cifrados si pierdes acceso a tus dispositivos.</string>
     <string name="copy">Copiar</string>
     <string name="copied">Copiado</string>
 
@@ -154,9 +191,13 @@
     <string name="load_earlier_messages">Cargar mensajes anteriores</string>
     <string name="beginning_of_conversation">Inicio de la conversación</string>
     <string name="no_messages_yet">Aún no hay mensajes</string>
-    <string name="send_message_to_start">Envía un mensaje para comenzar la conversación</string>
+    <string
+        name="send_message_to_start"
+    >Envía un mensaje para comenzar la conversación</string>
     <string name="drop_file_to_send">Suelta un archivo para enviar</string>
-    <string name="offline_queued">Sin conexión - Los mensajes se pondrán en cola</string>
+    <string
+        name="offline_queued"
+    >Sin conexión - Los mensajes se pondrán en cola</string>
     <string name="share">Compartir</string>
     <string name="forward">Reenviar</string>
     <string name="delete">Eliminar</string>
@@ -198,35 +239,55 @@
     <string name="loading">Cargando...</string>
     <string name="submit">Enviar</string>
 
-    <string name="couldnt_find_message">No se pudo encontrar ese mensaje en el historial cargado.</string>
+    <string
+        name="couldnt_find_message"
+    >No se pudo encontrar ese mensaje en el historial cargado.</string>
     <string name="reply_failed">Error al responder</string>
     <string name="send_failed">Error al enviar</string>
     <string name="edit_failed">Error al editar</string>
     <string name="delete_failed">Error al eliminar</string>
     <string name="retry_failed">Error al reintentar</string>
-    <string name="no_permission_pin">No tienes permiso para fijar mensajes</string>
+    <string
+        name="no_permission_pin"
+    >No tienes permiso para fijar mensajes</string>
     <string name="message_pinned">Mensaje fijado</string>
     <string name="failed_to_pin">Error al fijar mensaje</string>
-    <string name="no_permission_unpin">No tienes permiso para des fijar mensajes</string>
+    <string
+        name="no_permission_unpin"
+    >No tienes permiso para des fijar mensajes</string>
     <string name="message_unpinned">Mensaje des fijar</string>
     <string name="failed_to_unpin">Error al des fijar mensaje</string>
     <string name="report_submitted">Reporte enviado</string>
     <string name="failed_to_submit_report">Error al enviar reporte</string>
     <string name="attachment_upload_failed">Error al subir archivo</string>
-    <string name="download_missing">El archivo descargado está vacío o no existe: %1$s</string>
+    <string
+        name="download_missing"
+    >El archivo descargado está vacío o no existe: %1$s</string>
     <string name="download_failed">Error al descargar</string>
     <string name="failed_to_prepare_share">Error al preparar compartir</string>
     <string name="nothing_to_share">Nada que compartir</string>
     <string name="deleting">Eliminando…</string>
     <string name="deleted_messages">Mensajes eliminados %1$d</string>
     <string name="deleted_partial">Eliminados %1$d de %2$d mensajes</string>
-    <string name="location_sharing_started">Compartir ubicación iniciado</string>
-    <string name="location_sharing_failed">Error al iniciar compartir ubicación</string>
-    <string name="location_sharing_stopped">Compartir ubicación detenido</string>
-    <string name="stop_location_failed">Error al detener compartir ubicación</string>
+    <string
+        name="location_sharing_started"
+    >Compartir ubicación iniciado</string>
+    <string
+        name="location_sharing_failed"
+    >Error al iniciar compartir ubicación</string>
+    <string
+        name="location_sharing_stopped"
+    >Compartir ubicación detenido</string>
+    <string
+        name="stop_location_failed"
+    >Error al detener compartir ubicación</string>
     <string name="failed_to_create_poll">Error al crear encuesta</string>
-    <string name="notification_updated">Configuración de notificaciones actualizada</string>
-    <string name="notification_failed">Error al actualizar notificaciones</string>
+    <string
+        name="notification_updated"
+    >Configuración de notificaciones actualizada</string>
+    <string
+        name="notification_failed"
+    >Error al actualizar notificaciones</string>
     <string name="upgraded_room">Sala actualizada</string>
     <string name="previous_room">Sala anterior</string>
     <string name="failed_to_submit_vote">Error al enviar voto</string>
@@ -242,47 +303,81 @@
     <string name="failed_to_invite">Error al invitar usuario</string>
     <string name="user_ignored">Usuario ignorado</string>
     <string name="failed_to_ignore">Error al ignorar usuario</string>
-    <string name="failed_to_start_conversation">Error al iniciar conversación</string>
+    <string
+        name="failed_to_start_conversation"
+    >Error al iniciar conversación</string>
     <string name="message_forwarded">Mensaje reenviado</string>
     <string name="preparing_share">Preparando compartir…</string>
 
     <string name="media_files">Archivos y medios</string>
     <string name="download">Descargar</string>
 
-    <string name="recovery_key_prompt_title">Descifrar historial de mensajes</string>
-    <string name="recovery_key_prompt_body">Ingresa tu clave de recuperación para restaurar el acceso a tus mensajes cifrados de otros dispositivos.</string>
+    <string
+        name="recovery_key_prompt_title"
+    >Descifrar historial de mensajes</string>
+    <string
+        name="recovery_key_prompt_body"
+    >Ingresa tu clave de recuperación para restaurar el acceso a tus mensajes cifrados de otros dispositivos.</string>
     <string name="enter_recovery_key">Ingresa la clave de recuperación</string>
     <string name="recovery_key_hint">Pega tu clave de recuperación aquí</string>
     <string name="recover">Recuperar</string>
     <string name="recovery_success">Historial de mensajes recuperado</string>
 
     <string name="setup_recovery_title">Configurar recuperación</string>
-    <string name="change_recovery_key_title">Cambiar clave de recuperación</string>
+    <string
+        name="change_recovery_key_title"
+    >Cambiar clave de recuperación</string>
     <string name="recovery_key_created">Clave de recuperación creada</string>
-    <string name="recovery_key_instructions">Tu clave de recuperación te permite recuperar el acceso a tus mensajes cifrados si pierdes todos tus dispositivos conectados.</string>
-    <string name="change_recovery_key_instructions">Se creará una nueva clave de recuperación. Tu clave anterior ya no funcionará.</string>
+    <string
+        name="recovery_key_instructions"
+    >Tu clave de recuperación te permite recuperar el acceso a tus mensajes cifrados si pierdes todos tus dispositivos conectados.</string>
+    <string
+        name="change_recovery_key_instructions"
+    >Se creará una nueva clave de recuperación. Tu clave anterior ya no funcionará.</string>
     <string name="i_have_saved_my_key">He guardado mi clave</string>
-    <string name="recovery_incomplete_subtitle">Ingresa tu clave de recuperación para completar la configuración y restaurar tu historial de mensajes.</string>
-    <string name="recovery_disabled_subtitle">Configura una clave de recuperación para restaurar mensajes cifrados en nuevos dispositivos.</string>
-    <string name="recovery_enabled_subtitle">Tus mensajes cifrados están respaldados.</string>
+    <string
+        name="recovery_incomplete_subtitle"
+    >Ingresa tu clave de recuperación para completar la configuración y restaurar tu historial de mensajes.</string>
+    <string
+        name="recovery_disabled_subtitle"
+    >Configura una clave de recuperación para restaurar mensajes cifrados en nuevos dispositivos.</string>
+    <string
+        name="recovery_enabled_subtitle"
+    >Tus mensajes cifrados están respaldados.</string>
     <string name="encryption">Cifrado</string>
     <string name="key_storage">Almacenamiento de claves</string>
-    <string name="key_storage_subtitle">Almacenando tus claves de forma segura en el servidor. Puedes desactivarlo, pero no podrás recuperarlas.</string>
+    <string
+        name="key_storage_subtitle"
+    >Almacenando tus claves de forma segura en el servidor. Puedes desactivarlo, pero no podrás recuperarlas.</string>
     <string name="incomplete_badge">Confirmar</string>
-    <string name="key_storage_disabled_error">El almacenamiento de claves está desactivado. Actívalo para configurar o cambiar tu clave de recuperación.</string>
+    <string
+        name="key_storage_disabled_error"
+    >El almacenamiento de claves está desactivado. Actívalo para configurar o cambiar tu clave de recuperación.</string>
     <string name="generate_recovery_key">Generar clave de recuperación</string>
-    <string name="generate_new_recovery_key">Generar nueva clave de recuperación</string>
-    <string name="create_new_recovery_key">Crear una nueva clave de recuperación</string>
+    <string
+        name="generate_new_recovery_key"
+    >Generar nueva clave de recuperación</string>
+    <string
+        name="create_new_recovery_key"
+    >Crear una nueva clave de recuperación</string>
 
     <string name="message_info">Información del mensaje</string>
     <string name="message_details">Detalles del mensaje</string>
     <string name="attachment_details">Detalles del archivo adjunto</string>
     <string name="read_receipts">Confirmaciones de lectura</string>
     <string name="read_by">Leído por</string>
-    <string name="loading_read_receipts">Cargando confirmaciones de lectura…</string>
-    <string name="failed_to_load_read_receipts">No se pudieron cargar las confirmaciones de lectura</string>
-    <string name="no_read_receipts_yet">Aún no hay confirmaciones de lectura</string>
-    <string name="showing_first_read_receipts">Mostrando las primeras %1$d confirmaciones</string>
+    <string
+        name="loading_read_receipts"
+    >Cargando confirmaciones de lectura…</string>
+    <string
+        name="failed_to_load_read_receipts"
+    >No se pudieron cargar las confirmaciones de lectura</string>
+    <string
+        name="no_read_receipts_yet"
+    >Aún no hay confirmaciones de lectura</string>
+    <string
+        name="showing_first_read_receipts"
+    >Mostrando las primeras %1$d confirmaciones</string>
     <string name="sender_name">Remitente</string>
     <string name="sender_id">ID del remitente</string>
     <string name="sent_at">Enviado el</string>

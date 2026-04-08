@@ -5,9 +5,13 @@
     <string name="connecting">Connecting...</string>
     <string name="add_account">Add Account</string>
     <string name="welcome_to_mages">Welcome to Mages</string>
-    <string name="complete_login_in_browser">Complete login in your browser</string>
+    <string
+        name="complete_login_in_browser"
+    >Complete login in your browser</string>
     <string name="please_wait">Please wait</string>
-    <string name="sign_in_to_your_matrix_account">Sign in to your Matrix account</string>
+    <string
+        name="sign_in_to_your_matrix_account"
+    >Sign in to your Matrix account</string>
     <string name="username">Username</string>
     <string name="username_placeholder">@user:matrix.org</string>
     <string name="password">Password</string>
@@ -28,7 +32,9 @@
     <string name="low_priority">Low Priority</string>
     <string name="new_activity">New activity</string>
     <string name="offline">Offline</string>
-    <string name="connect_to_internet">Connect to the internet to load rooms. If you&apos;ve opened this account before, your last room list will appear here instantly.</string>
+    <string
+        name="connect_to_internet"
+    >Connect to the internet to load rooms. If you&apos;ve opened this account before, your last room list will appear here instantly.</string>
     <string name="retry">Retry</string>
     <string name="no_rooms_found">No rooms found</string>
     <string name="join_a_room">Join a room to start chatting</string>
@@ -54,7 +60,9 @@
     <string name="search_load_more">Load more results</string>
     <string name="search_this_room">Search this room</string>
     <string name="search_all_messages">Search all messages</string>
-    <string name="search_min_chars">Enter at least 2 characters to search</string>
+    <string
+        name="search_min_chars"
+    >Enter at least 2 characters to search</string>
     <string name="search_error">Search failed</string>
     <string name="clear_search">Clear search</string>
     <string name="search_no_results_found">No results found</string>
@@ -72,7 +80,9 @@
     <string name="clear">Clear</string>
     <string name="no_spaces_yet">No spaces yet</string>
     <string name="no_spaces_found">No spaces found</string>
-    <string name="create_space_subtitle">Create a space to organize your rooms</string>
+    <string
+        name="create_space_subtitle"
+    >Create a space to organize your rooms</string>
     <string name="try_different_search">Try a different search term</string>
     <string name="space_name">Space name *</string>
     <string name="space_name_placeholder">My Awesome Space</string>
@@ -81,7 +91,9 @@
     <string name="public_space">Public Space</string>
     <string name="private_space">Private Space</string>
     <string name="anyone_can_find_and_join">Anyone can find and join</string>
-    <string name="only_invited_users_can_join">Only invited users can join</string>
+    <string
+        name="only_invited_users_can_join"
+    >Only invited users can join</string>
     <string name="invite_users_optional">Invite users (optional)</string>
     <string name="user_placeholder">@user:server</string>
     <string name="add">Add</string>
@@ -91,7 +103,9 @@
     <string name="members">%1$d members</string>
 
     <string name="search_users_or_rooms">Search users or public rooms</string>
-    <string name="search_placeholder">e.g., #linux:matrix.org or @user:server.com</string>
+    <string
+        name="search_placeholder"
+    >e.g., #linux:matrix.org or @user:server.com</string>
     <string name="users">Users</string>
     <string name="public_rooms">Public Rooms</string>
     <string name="public_rooms_on">Public rooms on %1$s</string>
@@ -101,7 +115,9 @@
     <string name="home">home</string>
     <string name="add_custom_server">Add custom server...</string>
     <string name="add_custom_server_title">Add custom server</string>
-    <string name="enter_homeserver_domain">Enter the homeserver domain to search its public room directory.</string>
+    <string
+        name="enter_homeserver_domain"
+    >Enter the homeserver domain to search its public room directory.</string>
     <string name="server_domain">Server domain</string>
     <string name="server_domain_placeholder">e.g., libera.chat</string>
     <string name="add_server">Add</string>
@@ -112,7 +128,9 @@
     <string name="unavailable">Unavailable</string>
     <string name="message">Message</string>
     <string name="no_results_for">No results for "%1$s"</string>
-    <string name="try_different_search_term">Try a different search term or directory server</string>
+    <string
+        name="try_different_search_term"
+    >Try a different search term or directory server</string>
     <string name="search_tips">Search tips</string>
     <string name="join_room_by_alias">Join a room by its full alias</string>
     <string name="start_dm_with_user">Start a DM with a user</string>
@@ -126,6 +144,7 @@
     <string name="account">Account</string>
     <string name="manage_account">Manage Account</string>
     <string name="appearance">Appearance</string>
+    <string name="timeline">Timeline</string>
     <string name="calls">Calls</string>
     <string name="notifications">Notifications</string>
     <string name="storage">Storage</string>
@@ -139,7 +158,9 @@
     <string name="set_up_recovery">Set up recovery</string>
     <string name="change_recovery_key">Change recovery key</string>
     <string name="recovery_key">Recovery Key</string>
-    <string name="save_recovery_key_warning">Save this key somewhere safe. You&apos;ll need it to restore your encrypted messages if you lose access to your devices.</string>
+    <string
+        name="save_recovery_key_warning"
+    >Save this key somewhere safe. You&apos;ll need it to restore your encrypted messages if you lose access to your devices.</string>
     <string name="copy">Copy</string>
     <string name="copied">Copied</string>
     <string name="your_devices">Your Devices</string>
@@ -147,7 +168,9 @@
     <string name="try_refreshing">Try refreshing the list</string>
     <string name="ignored_users">Ignored Users</string>
     <string name="no_ignored_users">No ignored users</string>
-    <string name="ignored_users_subtitle">Users you ignore won&apos;t be able to message you</string>
+    <string
+        name="ignored_users_subtitle"
+    >Users you ignore won&apos;t be able to message you</string>
     <string name="unignore">Unignore</string>
 
     <string name="jump_to_bottom">Jump to bottom</string>
@@ -156,7 +179,9 @@
     <string name="load_earlier_messages">Load earlier messages</string>
     <string name="beginning_of_conversation">Beginning of conversation</string>
     <string name="no_messages_yet">No messages yet</string>
-    <string name="send_message_to_start">Send a message to start the conversation</string>
+    <string
+        name="send_message_to_start"
+    >Send a message to start the conversation</string>
     <string name="drop_file_to_send">Drop file to send</string>
     <string name="offline_queued">Offline - Messages will be queued</string>
     <string name="share">Share</string>
@@ -200,22 +225,30 @@
     <string name="loading">Loading...</string>
     <string name="submit">Submit</string>
 
-    <string name="couldnt_find_message">Couldn't find that message in loaded history.</string>
+    <string
+        name="couldnt_find_message"
+    >Couldn't find that message in loaded history.</string>
     <string name="reply_failed">Reply failed</string>
     <string name="send_failed">Send failed</string>
     <string name="edit_failed">Edit failed</string>
     <string name="delete_failed">Delete failed</string>
     <string name="retry_failed">Retry failed</string>
-    <string name="no_permission_pin">You don&apos;t have permission to pin messages</string>
+    <string
+        name="no_permission_pin"
+    >You don&apos;t have permission to pin messages</string>
     <string name="message_pinned">Message pinned</string>
     <string name="failed_to_pin">Failed to pin message</string>
-    <string name="no_permission_unpin">You don&apos;t have permission to unpin messages</string>
+    <string
+        name="no_permission_unpin"
+    >You don&apos;t have permission to unpin messages</string>
     <string name="message_unpinned">Message unpinned</string>
     <string name="failed_to_unpin">Failed to unpin message</string>
     <string name="report_submitted">Report submitted</string>
     <string name="failed_to_submit_report">Failed to submit report</string>
     <string name="attachment_upload_failed">Attachment upload failed</string>
-    <string name="download_missing">Downloaded file is missing or empty: %1$s</string>
+    <string
+        name="download_missing"
+    >Downloaded file is missing or empty: %1$s</string>
     <string name="download_failed">Download failed</string>
     <string name="failed_to_prepare_share">Failed to prepare share</string>
     <string name="nothing_to_share">Nothing to share</string>
@@ -223,7 +256,9 @@
     <string name="deleted_messages">Deleted %1$d messages</string>
     <string name="deleted_partial">Deleted %1$d of %2$d messages</string>
     <string name="location_sharing_started">Location sharing started</string>
-    <string name="location_sharing_failed">Failed to start location sharing</string>
+    <string
+        name="location_sharing_failed"
+    >Failed to start location sharing</string>
     <string name="location_sharing_stopped">Location sharing stopped</string>
     <string name="stop_location_failed">Failed to stop location sharing</string>
     <string name="failed_to_create_poll">Failed to create poll</string>
@@ -244,7 +279,9 @@
     <string name="failed_to_invite">Failed to invite user</string>
     <string name="user_ignored">User ignored</string>
     <string name="failed_to_ignore">Failed to ignore user</string>
-    <string name="failed_to_start_conversation">Failed to start conversation</string>
+    <string
+        name="failed_to_start_conversation"
+    >Failed to start conversation</string>
     <string name="message_forwarded">Message forwarded</string>
     <string name="preparing_share">Preparing share…</string>
 
@@ -252,7 +289,9 @@
     <string name="download">Download</string>
 
     <string name="recovery_key_prompt_title">Decrypt message history</string>
-    <string name="recovery_key_prompt_body">Enter your recovery key to restore access to your encrypted messages from other devices.</string>
+    <string
+        name="recovery_key_prompt_body"
+    >Enter your recovery key to restore access to your encrypted messages from other devices.</string>
     <string name="enter_recovery_key">Enter recovery key</string>
     <string name="recovery_key_hint">Paste your recovery key here</string>
     <string name="recover">Recover</string>
@@ -261,17 +300,31 @@
     <string name="setup_recovery_title">Set up recovery</string>
     <string name="change_recovery_key_title">Change recovery key</string>
     <string name="recovery_key_created">Recovery key created</string>
-    <string name="recovery_key_instructions">Your recovery key lets you regain access to your encrypted messages if you lose all your signed-in devices.</string>
-    <string name="change_recovery_key_instructions">A new recovery key will be created. Your old recovery key will no longer work.</string>
+    <string
+        name="recovery_key_instructions"
+    >Your recovery key lets you regain access to your encrypted messages if you lose all your signed-in devices.</string>
+    <string
+        name="change_recovery_key_instructions"
+    >A new recovery key will be created. Your old recovery key will no longer work.</string>
     <string name="i_have_saved_my_key">I have saved my key</string>
-    <string name="recovery_incomplete_subtitle">Enter your recovery key to complete setup and restore your message history.</string>
-    <string name="recovery_disabled_subtitle">Set up a recovery key to restore encrypted messages on new devices.</string>
-    <string name="recovery_enabled_subtitle">Your encrypted messages are backed up.</string>
+    <string
+        name="recovery_incomplete_subtitle"
+    >Enter your recovery key to complete setup and restore your message history.</string>
+    <string
+        name="recovery_disabled_subtitle"
+    >Set up a recovery key to restore encrypted messages on new devices.</string>
+    <string
+        name="recovery_enabled_subtitle"
+    >Your encrypted messages are backed up.</string>
     <string name="encryption">Encryption</string>
     <string name="key_storage">Key storage</string>
-    <string name="key_storage_subtitle">Storing your keys securely on the server. You can turn this off, but you won&apos;t be able to recover them.</string>
+    <string
+        name="key_storage_subtitle"
+    >Storing your keys securely on the server. You can turn this off, but you won&apos;t be able to recover them.</string>
     <string name="incomplete_badge">Confirm</string>
-    <string name="key_storage_disabled_error">Key storage is off. Turn it on to set up or change your recovery key.</string>
+    <string
+        name="key_storage_disabled_error"
+    >Key storage is off. Turn it on to set up or change your recovery key.</string>
     <string name="generate_recovery_key">Generate recovery key</string>
     <string name="generate_new_recovery_key">Generate new recovery key</string>
     <string name="create_new_recovery_key">Create a new recovery key</string>
@@ -282,9 +335,13 @@
     <string name="read_receipts">Read receipts</string>
     <string name="read_by">Read by</string>
     <string name="loading_read_receipts">Loading read receipts…</string>
-    <string name="failed_to_load_read_receipts">Failed to load read receipts</string>
+    <string
+        name="failed_to_load_read_receipts"
+    >Failed to load read receipts</string>
     <string name="no_read_receipts_yet">No read receipts yet</string>
-    <string name="showing_first_read_receipts">Showing the first %1$d receipts</string>
+    <string
+        name="showing_first_read_receipts"
+    >Showing the first %1$d receipts</string>
     <string name="sender_name">Sender</string>
     <string name="sender_id">Sender ID</string>
     <string name="sent_at">Sent at</string>
@@ -329,5 +386,7 @@
     <string name="media_cache_storage_used">Storage used</string>
     <string name="media_cache_clear_media_cache">Clear media cache</string>
     <string name="media_cache_clear_confirm_title">Clear media cache?</string>
-    <string name="media_cache_clear_confirm_body">Local cached media will be removed. Your messages stay in your chats and media can download again when needed.</string>
+    <string
+        name="media_cache_clear_confirm_body"
+    >Local cached media will be removed. Your messages stay in your chats and media can download again when needed.</string>
 </resources>

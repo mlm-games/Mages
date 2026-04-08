@@ -9,5 +9,3 @@
 -dontwarn com.sun.jna.**
 
 -keep class mages.** { *; } # Needed for jna start error!
-
--keepnames class org.mlm.mages.settings.SettingsDefinition$* { *; }
