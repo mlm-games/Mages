@@ -307,6 +307,7 @@ impl WasmAsyncState {
                         access_token: sess.tokens.access_token,
                         refresh_token: sess.tokens.refresh_token,
                         homeserver: self.client().homeserver().to_string(),
+                        is_token_valid: true,
                     },
                 );
             }
@@ -322,6 +323,7 @@ impl WasmAsyncState {
                         access_token: sess.user.tokens.access_token,
                         refresh_token: sess.user.tokens.refresh_token,
                         homeserver: self.client().homeserver().to_string(),
+                        is_token_valid: true,
                     },
                 );
             }
@@ -500,11 +502,11 @@ impl WasmClient {
             if let Ok(user_id) = info.user_id.parse() {
                 let meta = SessionMeta {
                     user_id,
-                    device_id: info.device_id.into(),
+                    device_id: info.device_id.clone().into(),
                 };
                 let tokens = SessionTokens {
-                    access_token: info.access_token,
-                    refresh_token: info.refresh_token,
+                    access_token: info.access_token.clone(),
+                    refresh_token: info.refresh_token.clone(),
                 };
                 if info.auth_api == "oauth" {
                     if info.client_id.is_none() {
@@ -515,7 +517,7 @@ impl WasmClient {
                             )),
                         );
                         clear_wasm_session(&store_name);
-                    } else if let Some(cid) = info.client_id {
+                    } else if let Some(cid) = info.client_id.clone() {
                         let _ = client
                             .restore_session(OAuthSession {
                                 client_id: ClientId::new(cid),
