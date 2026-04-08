@@ -240,11 +240,16 @@ class LoginViewModel(
             try {
                 port.init(hs, accountId)
 
-                val ok = port.loginSsoLoopback(openUrl, deviceName = getDeviceDisplayName()).isSuccess
-
-                if (!ok || !port.isLoggedInSuspend()) {
+                val ssoResult = port.loginSsoLoopback(openUrl, deviceName = getDeviceDisplayName())
+                if (ssoResult.isFailure) {
                     port.close()
-                    updateState { copy(isBusy = false, ssoInProgress = false, error = "SSO failed or was cancelled") }
+                    updateState {
+                        copy(
+                            isBusy = false,
+                            ssoInProgress = false,
+                            error = ssoResult.exceptionOrNull()?.message ?: "SSO failed or was cancelled"
+                        )
+                    }
                     return@launch
                 }
 
@@ -329,7 +334,7 @@ class LoginViewModel(
                             copy(
                                 isBusy = false,
                                 oauthInProgress = false,
-                                error = result.message ?: "OAuth failed or was cancelled"
+                                error = result.message ?: "OAuth failed"
                             )
                         }
                         return@launch

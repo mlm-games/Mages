@@ -276,16 +276,24 @@ fn mages_client_metadata(redirect_uri: &Url) -> Raw<ClientMetadata> {
         Some("localhost") | Some("127.0.0.1") | Some("[::1]")
     );
 
-    let application_type = if is_localhost {
-        ApplicationType::Native
-    } else {
+    let is_web_redirect = matches!(redirect_uri.scheme(), "http" | "https");
+    let use_web_metadata = is_web_redirect && !is_localhost;
+
+    let application_type = if use_web_metadata {
         ApplicationType::Web
+    } else {
+        ApplicationType::Native
     };
+
+    let fallback_client_uri =
+        Url::parse("https://github.com/mlm-games/mages").expect("valid URL");
+
     let client_uri = Localized::new(
-        if is_localhost {
-            Url::parse("https://github.com/mlm-games/mages").unwrap()
+        if use_web_metadata {
+            Url::parse(&redirect_uri.origin().ascii_serialization())
+                .unwrap_or_else(|_| fallback_client_uri.clone())
         } else {
-            Url::parse(&redirect_uri.origin().ascii_serialization()).unwrap()
+            fallback_client_uri.clone()
         },
         [],
     );

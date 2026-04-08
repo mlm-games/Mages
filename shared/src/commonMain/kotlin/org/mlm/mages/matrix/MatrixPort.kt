@@ -760,10 +760,10 @@ interface MatrixPort {
         deviceName: String? = null
     ): OauthLoginResult {
         val result = loginOauthLoopback(openUrl, deviceName)
-        return if (result.isSuccess && isLoggedInSuspend()) {
+        return if (result.isSuccess) {
             OauthLoginResult.Completed
         } else {
-            OauthLoginResult.Failed("OAuth failed or was cancelled")
+            OauthLoginResult.Failed(result.exceptionOrNull()?.message ?: "OAuth failed or was cancelled")
         }
     }
 

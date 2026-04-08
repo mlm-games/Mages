@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import mages.FfiException
 import mages.FfiPushRuleKind
@@ -20,6 +21,7 @@ import mages.RoomActionState as FfiRoomActionState
 import mages.MemberActionState as FfiMemberActionState
 import mages.MessageActionState as FfiMessageActionState
 import org.mlm.mages.*
+import org.mlm.mages.platform.AndroidBrowserAuthCoordinator
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.platformNeedsControlledAudioDevices
 
@@ -869,20 +871,46 @@ class RustMatrixPort : MatrixPort, VerificationService {
         openUrl: (String) -> Boolean,
         deviceName: String?
     ): Result<Unit> = withContext(matrixDispatcher) {
-        val opener = object : mages.UrlOpener {
-            override fun open(url: String): Boolean = openUrl(url)
+        val pending = AndroidBrowserAuthCoordinator.beginLogin()
+        try {
+            val ssoUrl = runWithFfiResult {
+                withClient { it.startSsoLogin(AndroidBrowserAuthCoordinator.ssoRedirectUri, null) }
+            }.getOrElse { return@withContext Result.failure(it) }
+
+            if (!openUrl(ssoUrl)) {
+                return@withContext Result.failure(IllegalStateException("Failed to open SSO URL"))
+            }
+
+            val callback = withTimeoutOrNull(180_000) { pending.await() }
+                ?: return@withContext Result.failure(IllegalStateException("SSO callback timed out"))
+
+            runWithFfiResult { withClient { it.finishSsoLogin(callback, deviceName) } }
+        } finally {
+            AndroidBrowserAuthCoordinator.clear(pending)
         }
-        runWithFfiResult { withClient { it.loginSsoLoopback(opener, deviceName) } }
     }
 
     override suspend fun loginOauthLoopback(
         openUrl: (String) -> Boolean,
         deviceName: String?
     ): Result<Unit> = withContext(matrixDispatcher) {
-        val opener = object : mages.UrlOpener {
-            override fun open(url: String): Boolean = openUrl(url)
+        val pending = AndroidBrowserAuthCoordinator.beginLogin()
+        try {
+            val authUrl = runWithFfiResult {
+                withClient { it.startOauthLogin(AndroidBrowserAuthCoordinator.oauthRedirectUri) }
+            }.getOrElse { return@withContext Result.failure(it) }
+
+            if (!openUrl(authUrl)) {
+                return@withContext Result.failure(IllegalStateException("Failed to open OAuth URL"))
+            }
+
+            val callback = withTimeoutOrNull(180_000) { pending.await() }
+                ?: return@withContext Result.failure(IllegalStateException("OAuth callback timed out"))
+
+            runWithFfiResult { withClient { it.finishOauthLogin(callback, deviceName) } }
+        } finally {
+            AndroidBrowserAuthCoordinator.clear(pending)
         }
-        runWithFfiResult { withClient { it.loginOauthLoopback(opener, deviceName) } }
     }
 
     override suspend fun homeserverLoginDetails(): HomeserverLoginDetails = withContext(matrixDispatcher) {

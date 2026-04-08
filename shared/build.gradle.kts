@@ -657,6 +657,11 @@ val generateRustWasmBindings = tasks.register<GenerateRustWasmBindingsTask>("gen
     outputDir.set(layout.buildDirectory.dir("generated/rustWasmBindings"))
 }
 
+syncWebWasmAssets.configure {
+    dependsOn(generateRustWasmBindings)
+    from(generateRustWasmBindings.flatMap { it.outputDir })
+}
+
 val generateWasmExterns = tasks.register<GenerateWasmExternsTask>("generateWasmExterns") {
     dtsFile.set(generateRustWasmBindings.flatMap { it.outputDir.file("mages_ffi.d.ts") })
     outputKt.set(layout.buildDirectory.file("generated/wasmJs/kotlin/org/mlm/mages/matrix/WasmClientExterns.generated.kt"))
