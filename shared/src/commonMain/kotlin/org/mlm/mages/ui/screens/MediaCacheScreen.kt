@@ -165,7 +165,7 @@ fun MediaCacheScreen(
 
                 Spacer(Modifier.padding(6.dp))
 
-                Row(Modifier.fillMaxWidth(), Arrangement.Center) { Text("Room listings will be added later, once the sdk adds supports for caching based on room keys") }
+                Row(Modifier.fillMaxWidth(), Arrangement.Center) { Text("Room listings will be added later") }
 
                 state.error?.let {
                     Text(
