@@ -138,7 +138,12 @@ class MatrixClients(
         }
     }
 
-    fun hasActiveClient(): Boolean = _activePort?.isLoggedIn() == true
+    fun hasActiveClient(): Boolean {
+        val port = _activePort ?: return false
+        val sdkLoggedIn = runCatching { port.isLoggedIn() }.getOrDefault(false)
+        if (sdkLoggedIn) return true
+        return _activeAccount.value?.isTokenValid == true
+    }
 
     fun getAccounts(): List<MatrixAccount> = accountStore.accounts.value
 
@@ -155,12 +160,12 @@ class MatrixClients(
             val loggedIn = try {
                 port.isLoggedInSuspend()
             } catch (e: Exception) {
-                val isNetworkError = e.message?.contains("request error") == true ||
-                        e.message?.contains("connection") == true
-                isNetworkError && account.isTokenValid
+                false
             }
 
-            if (loggedIn) {
+            val shouldResumeSession = loggedIn || account.isTokenValid
+
+            if (shouldResumeSession) {
                 _activePort = port
                 _activeAccount.value = account
                 accountStore.setActiveAccountId(account.id)

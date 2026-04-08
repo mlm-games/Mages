@@ -364,11 +364,19 @@ impl Client {
         #[cfg(not(target_family = "wasm"))]
         let _ = std::fs::create_dir_all(&store_dir_path);
 
+        let use_direct_homeserver_url = account_id.is_some();
+
         let inner = RT
             .block_on(async {
                 #[cfg(target_arch = "wasm32")]
-                let client = SdkClient::builder()
-                    .server_name_or_homeserver_url(normalized)
+                let client = {
+                    let builder = if use_direct_homeserver_url {
+                        SdkClient::builder().homeserver_url(normalized.clone())
+                    } else {
+                        SdkClient::builder().server_name_or_homeserver_url(normalized.clone())
+                    };
+
+                    builder
                     .indexeddb_store("mages_store", None)
                     .with_encryption_settings(EncryptionSettings {
                         auto_enable_cross_signing: true,
@@ -378,14 +386,20 @@ impl Client {
                     })
                     .handle_refresh_tokens()
                     .build()
-                    .await;
+                    .await
+                };
 
                 #[cfg(not(target_arch = "wasm32"))]
                 let client = {
                     let idx = platform::search_index_config(&store_dir_path)
                         .expect("native builds require search index config");
-                    SdkClient::builder()
-                        .server_name_or_homeserver_url(normalized)
+                    let builder = if use_direct_homeserver_url {
+                        SdkClient::builder().homeserver_url(normalized.clone())
+                    } else {
+                        SdkClient::builder().server_name_or_homeserver_url(normalized.clone())
+                    };
+
+                    builder
                         .sqlite_store(&store_dir_path, None)
                         .search_index_store(SearchIndexStoreKind::EncryptedDirectory(
                             idx.dir, idx.key,
@@ -550,11 +564,15 @@ impl Client {
                                 || error_str.contains("Invalid access token")
                                 || error_str.contains("UnknownToken");
                             if let Some(mut session_info) = platform::load_session(&this.store_dir).await {
-                                session_info.is_token_valid = !is_auth_error;
-                                let _ = platform::persist_session(&this.store_dir, &session_info).await;
-                            }
-                            if is_auth_error {
-                                platform::reset_store_dir(&this.store_dir);
+                                if is_auth_error {
+                                    session_info.is_token_valid = false;
+                                    let _ = platform::persist_session(&this.store_dir, &session_info).await;
+                                    platform::reset_store_dir(&this.store_dir);
+                                } else {
+                                    // Network error - keep token valid for offline use
+                                    session_info.is_token_valid = true;
+                                    let _ = platform::persist_session(&this.store_dir, &session_info).await;
+                                }
                             }
                         }
                         None => {}

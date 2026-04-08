@@ -26,6 +26,7 @@ import io.github.mlmgames.settings.core.annotations.SettingPlatform
 import io.github.mlmgames.settings.core.platform.currentPlatform
 import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.message_info
+import mages.shared.generated.resources.retry
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.SendState
@@ -56,6 +57,7 @@ fun MessageActionSheet(
     onReplyInThread: (() -> Unit)? = null,
     onShare: (() -> Unit)? = null,
     onForward: (() -> Unit)? = null,
+    onRetry: (() -> Unit)? = null,
 ) {
     val clipboardManager = LocalClipboardManager.current
     var showEmojiPicker by remember { mutableStateOf(false) }
@@ -105,6 +107,9 @@ fun MessageActionSheet(
             ActionItem(Icons.AutoMirrored.Filled.Reply, "Reply") { onReply(); onDismiss() }
             if (onReplyInThread != null) {
                 ActionItem(Icons.Default.Forum, "Reply in thread") { onReplyInThread(); onDismiss() }
+            }
+            if (isMine && event.sendState == SendState.Failed && onRetry != null) {
+                ActionItem(Icons.Default.Refresh, stringResource(Res.string.retry)) { onRetry(); onDismiss() }
             }
             ActionItem(Icons.Default.Bookmark, "Mark as read here") { onMarkReadHere(); onDismiss() }
             if (isMine && event.sendState != SendState.Failed && event.eventId.isNotBlank()) {

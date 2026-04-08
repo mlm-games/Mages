@@ -485,8 +485,13 @@ impl WasmClient {
             .as_ref()
             .map(|id| format!("mages_store_{id}"))
             .unwrap_or_else(|| "mages_store".to_owned());
-        let client = SdkClient::builder()
-            .server_name_or_homeserver_url(normalized)
+        let builder = if account_id.is_some() {
+            SdkClient::builder().homeserver_url(normalized)
+        } else {
+            SdkClient::builder().server_name_or_homeserver_url(normalized)
+        };
+
+        let client = builder
             .indexeddb_store(&store_name, None)
             .with_encryption_settings(EncryptionSettings {
                 auto_enable_cross_signing: true,
@@ -537,7 +542,6 @@ impl WasmClient {
                     }
                 }
             }
-            update_wasm_session(&store_name, &info);
         }
         let core = Rc::new(CoreClient::new(client));
         let state = Rc::new(WasmAsyncState {

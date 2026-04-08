@@ -882,6 +882,10 @@ fun RoomScreen(
             },
             onMarkReadHere = { viewModel.markReadHere(event); sheetEvent = null },
             onReplyInThread = { viewModel.openThread(event); sheetEvent = null },
+            onRetry = {
+                viewModel.retry(event)
+                sheetEvent = null
+            },
             onShare = { viewModel.shareMessage(event) },
             onForward = {
                 sheetEvent = null
