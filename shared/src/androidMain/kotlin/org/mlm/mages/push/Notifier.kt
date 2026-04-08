@@ -513,7 +513,7 @@ object Notifier {
         val largeIconBitmap = if (isDm) senderAvatar.bitmap else roomAvatar.bitmap
         builder.setLargeIcon(largeIconBitmap)
 
-        if (bubbleActivityClass != null && BubbleEligibilityEvaluator.canBubble(context)) {
+        if (bubbleActivityClass != null && BubbleEligibilityEvaluator.canBubble(context, roomId)) {
             val bubblePendingIntent = PendingIntent.getActivity(
                 context,
                 REQUEST_BUBBLE + notificationId,

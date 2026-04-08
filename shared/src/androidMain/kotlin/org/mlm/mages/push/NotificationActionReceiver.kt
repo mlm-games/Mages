@@ -66,7 +66,7 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                                 ACTION_MARK_READ -> {
                                     port.markFullyReadAt(roomId, eventId)
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
-                                        && BubbleEligibilityEvaluator.canBubble(context)
+                                        && BubbleEligibilityEvaluator.canBubble(context, roomId)
                                     ) {
                                         val roomName = intent.getStringExtra(EXTRA_ROOM_NAME) ?: "Unknown"
                                         val senderName = intent.getStringExtra(EXTRA_SENDER_NAME) ?: "Unknown"
