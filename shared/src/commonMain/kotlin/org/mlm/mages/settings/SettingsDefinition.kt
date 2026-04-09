@@ -46,7 +46,7 @@ data class AppSettings(
         category = Appearance::class,
         type = Dropdown::class,
     )
-    val themeMode: ThemeMode = ThemeMode.Dark,
+    val themeMode: ThemeMode = ThemeMode.System,
 
     @Setting(
         title = "Dynamic Colors",
