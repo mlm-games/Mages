@@ -92,8 +92,8 @@ class LoginViewModel(
                 copy(
                     loginDetails = details,
                     isCheckingServer = false,
-                    showPasswordLogin = showPasswordLogin ||
-                            (!details.supportsOauth && !details.supportsSso && details.supportsPassword)
+                    // Always show password as fallback when no other auth methods available
+                    showPasswordLogin = !details.supportsOauth && !details.supportsSso && !details.supportsPassword
                 )
             }
         } catch (e: CancellationException) {

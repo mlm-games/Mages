@@ -190,10 +190,15 @@ fun LoginScreen(
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(20.dp),
                                 )
-                            } else if (serverKnown) {
+                            } else if (serverKnown && (passwordAvailable || oauthAvailable || ssoAvailable)) {
                                 Icon(
                                     Icons.Default.CheckCircle, null,
                                     tint = MaterialTheme.colorScheme.primary
+                                )
+                            } else if (serverKnown && !passwordAvailable && !oauthAvailable && !ssoAvailable) {
+                                Icon(
+                                    Icons.Default.Warning, "Homeserver has no login methods or might not exist",
+                                    tint = MaterialTheme.colorScheme.error
                                 )
                             }
                         },
