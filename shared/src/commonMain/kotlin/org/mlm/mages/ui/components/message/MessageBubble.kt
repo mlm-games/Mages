@@ -89,11 +89,7 @@ fun MessageBubble(
             if (isDm) { model.showUsernameInDms } else { !grouping.groupedWithPrev }
             )
     val showSenderAvatar = showSenderInfo && showMessageAvatars && !model.sender.id.isNullOrBlank()
-    val incomingBubbleStartPadding = if (!isMine && !isDm && showMessageAvatars) {
-        Spacing.lg
-    } else {
-        0.dp
-    }
+
     val renderedBody = model.formattedBody.toMarkdownMentionsOrNull() ?: model.body
     val bubbleTextColor = if (isMine) {
         MaterialTheme.colorScheme.onPrimaryContainer
@@ -147,7 +143,6 @@ fun MessageBubble(
         headerContent?.invoke(this)
 
         BubbleWidthWrapper(
-            modifier = Modifier.padding(start = incomingBubbleStartPadding),
             fractionOfParent = 0.75f
         ) {
             Surface(
