@@ -23,6 +23,9 @@ import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
 import org.mlm.mages.ui.components.snackbar.snackbarHost
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.*
+import org.mlm.mages.ui.components.sheets.RoomSelectionList
+import org.mlm.mages.ui.components.sheets.SelectedRoomsRow
+import org.mlm.mages.ui.components.sheets.SelectableRoomItem
 
 @Composable
 fun ForwardPickerScreen(
@@ -84,91 +87,24 @@ fun ForwardPickerScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            OutlinedTextField(
-                value = state.searchQuery,
-                onValueChange = viewModel::setSearchQuery,
-                enabled = !state.isSubmitting,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                placeholder = { Text("Search rooms...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (state.searchQuery.isNotEmpty()) {
-                        IconButton(
-                            onClick = { viewModel.setSearchQuery("") },
-                            enabled = !state.isSubmitting
-                        ) {
-                            Icon(Icons.Default.Close, contentDescription = "Clear")
-                        }
-                    }
-                },
-                singleLine = true,
-                shape = MaterialTheme.shapes.large
-            )
-
             if (state.selectedRooms.isNotEmpty()) {
                 SelectedRoomsRow(
-                    state = state,
-                    onRemove = viewModel::toggleRoomSelection
+                    rooms = state.selectedRooms,
+                    onRemove = viewModel::toggleRoomSelection,
+                    enabled = !state.isSubmitting
                 )
             }
 
-            when {
-                state.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        LoadingIndicator()
-                    }
-                }
-
-                state.filteredRooms.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = Icons.Default.SearchOff,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                text = "No rooms found",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                else -> {
-                    LazyColumn(
-                        contentPadding = PaddingValues(
-                            start = 0.dp,
-                            top = Spacing.xs,
-                            end = 0.dp,
-                            bottom = 112.dp
-                        )
-                    ) {
-                        items(
-                            items = state.filteredRooms,
-                            key = { it.roomId }
-                        ) { room ->
-                            RoomForwardItem(
-                                room = room,
-                                isSelected = room.roomId in state.selectedRoomIds,
-                                status = state.roomStatuses[room.roomId],
-                                enabled = !state.isSubmitting,
-                                onClick = { viewModel.toggleRoomSelection(room.roomId) }
-                            )
-                        }
-                    }
-                }
-            }
+            RoomSelectionList(
+                rooms = state.filteredRooms,
+                selectedRoomIds = state.selectedRoomIds,
+                searchQuery = state.searchQuery,
+                onSearchChange = viewModel::setSearchQuery,
+                onRoomToggle = viewModel::toggleRoomSelection,
+                isLoading = state.isLoading,
+                enabled = !state.isSubmitting,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }

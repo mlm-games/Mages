@@ -78,6 +78,8 @@ import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.ui.ForwardableRoom
 import org.mlm.mages.ui.theme.MainTheme
 import org.mlm.mages.ui.theme.Spacing
+import org.mlm.mages.ui.components.sheets.RoomSelectionList
+import org.mlm.mages.ui.components.sheets.SelectedRoomsRow
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
@@ -423,19 +425,6 @@ private fun ShareReceiverScreen(
 
             HorizontalDivider()
 
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                enabled = !isSending,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Spacing.md),
-                placeholder = { Text("Search rooms...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                singleLine = true,
-                shape = MaterialTheme.shapes.medium
-            )
-
             if (selectedRooms.isNotEmpty()) {
                 SelectedRoomsRow(
                     rooms = selectedRooms,
@@ -446,54 +435,22 @@ private fun ShareReceiverScreen(
                 )
             }
 
-            when {
-                isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularWavyProgressIndicator()
+            RoomSelectionList(
+                rooms = filteredRooms,
+                selectedRoomIds = selectedRoomIds,
+                searchQuery = searchQuery,
+                onSearchChange = { searchQuery = it },
+                onRoomToggle = { roomId ->
+                    selectedRoomIds = if (roomId in selectedRoomIds) {
+                        selectedRoomIds - roomId
+                    } else {
+                        selectedRoomIds + roomId
                     }
-                }
-
-                filteredRooms.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = if (searchQuery.isNotBlank()) {
-                                "No rooms found"
-                            } else {
-                                "No rooms available"
-                            },
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(bottom = 96.dp)
-                    ) {
-                        items(filteredRooms, key = { it.roomId }) { room ->
-                            ShareRoomItem(
-                                room = room,
-                                isSelected = room.roomId in selectedRoomIds,
-                                enabled = !isSending,
-                                onClick = {
-                                    selectedRoomIds = if (room.roomId in selectedRoomIds) {
-                                        selectedRoomIds - room.roomId
-                                    } else {
-                                        selectedRoomIds + room.roomId
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-            }
+                },
+                isLoading = isLoading,
+                enabled = !isSending,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
@@ -680,81 +637,6 @@ private fun SharePreview(
                         )
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ShareRoomItem(
-    room: ForwardableRoom,
-    isSelected: Boolean,
-    enabled: Boolean,
-    onClick: () -> Unit
-) {
-    val containerColor = if (isSelected) {
-        MaterialTheme.colorScheme.secondaryContainer
-    } else {
-        Color.Transparent
-    }
-
-    Surface(
-        color = containerColor,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(enabled = enabled, onClick = onClick)
-                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Checkbox(
-                checked = isSelected,
-                onCheckedChange = if (enabled) ({ onClick() }) else null
-            )
-
-            Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = CircleShape,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (room.isDm) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    } else {
-                        Text(
-                            text = room.name.take(2).uppercase(),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
-            }
-
-            Spacer(Modifier.width(Spacing.md))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = room.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = if (room.isDm) "Direct message" else "Room",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
     }
