@@ -1,3 +1,12 @@
+## v4.4.6
+
+- Remove the padding for bubbles, when displaying avatars
+- Use system theme, as the default theme
+- Android: fix Bubbles getting cancelled on opening a notification (fix #76, #73)
+- Android: fix Oauth (#56)
+- actually fix "timeline" issue
+
+
 ## v4.4.5
 
 - android: Remove the room name from grp notifications
