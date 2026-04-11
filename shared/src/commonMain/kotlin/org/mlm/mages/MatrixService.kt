@@ -115,8 +115,8 @@ class MatrixService(
 
     fun timelineDiffs(roomId: String): Flow<TimelineDiff<MessageEvent>> = port.timelineDiffs(roomId)
 
-    suspend fun sendMessage(roomId: String, body: String, formattedBody: String? = null): Boolean =
-        port.send(roomId, body, formattedBody).isSuccess
+    suspend fun sendMessage(roomId: String, body: String, formattedBody: String? = null): Result<Unit> =
+        port.send(roomId, body, formattedBody)
 
     suspend fun paginateBack(roomId: String, count: Int): Boolean =
         port.paginateBack(roomId, count).getOrElse { false }
@@ -136,14 +136,14 @@ class MatrixService(
     suspend fun react(roomId: String, eventId: String, emoji: String) =
         port.react(roomId, eventId, emoji).isSuccess
 
-    suspend fun reply(roomId: String, inReplyToEventId: String, body: String, formattedBody: String? = null) =
-        port.reply(roomId, inReplyToEventId, body, formattedBody).isSuccess
+    suspend fun reply(roomId: String, inReplyToEventId: String, body: String, formattedBody: String? = null): Result<Unit> =
+        port.reply(roomId, inReplyToEventId, body, formattedBody)
 
-    suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String? = null) =
-        port.edit(roomId, targetEventId, newBody, formattedBody).isSuccess
+    suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String? = null): Result<Unit> =
+        port.edit(roomId, targetEventId, newBody, formattedBody)
 
-    suspend fun redact(roomId: String, eventId: String, reason: String? = null) =
-        port.redact(roomId, eventId, reason).isSuccess
+    suspend fun redact(roomId: String, eventId: String, reason: String? = null): Result<Unit> =
+        port.redact(roomId, eventId, reason)
 
     suspend fun observeTyping(roomId: String, onUpdate: (List<String>) -> Unit): ULong =
         port.observeTyping(roomId, onUpdate)

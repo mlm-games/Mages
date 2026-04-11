@@ -375,10 +375,13 @@ class RoomViewModel(
                 launch {
                     saveDraft(s.roomId, "")
                     val replyTo = s.replyingTo
-                    if (replyTo != null) {
+                    val result = if (replyTo != null) {
                         service.reply(s.roomId, replyTo.eventId, plainText, formattedBody)
                     } else {
                         service.sendMessage(s.roomId, plainText, formattedBody)
+                    }
+                    if (result?.isSuccess != true) {
+                        _events.send(Event.ShowError(result.toUserMessage("Send failed")))
                     }
                     updateState { copy(replyingTo = null) }
                 }
@@ -392,18 +395,18 @@ class RoomViewModel(
             val formattedBody = text.toFormattedBodyOrNull()
             val replyTo = s.replyingTo
 
-            val ok = if (replyTo != null) {
+            val result = if (replyTo != null) {
                 service.reply(s.roomId, replyTo.eventId, plainText, formattedBody)
             } else {
                 service.sendMessage(s.roomId, plainText, formattedBody)
             }
 
-            if (ok) {
+            if (result?.isSuccess == true) {
                 updateState { copy(input = "", replyingTo = null) }
                 draftJob?.cancel()
                 saveDraft(currentState.roomId, "")
             } else {
-                _events.send(Event.ShowError(if (replyTo != null) "Reply failed" else "Send failed"))
+                _events.send(Event.ShowError(result.toUserMessage(if (replyTo != null) "Reply failed" else "Send failed")))
             }
         }
     }
@@ -448,8 +451,8 @@ class RoomViewModel(
         if (newBody.isBlank()) return
 
         launch {
-            val ok = service.edit(s.roomId, target.eventId, plainText, formattedBody)
-            if (ok) {
+            val result = service.edit(s.roomId, target.eventId, plainText, formattedBody)
+            if (result?.isSuccess == true) {
                 updateState {
                     val idx = allEvents.indexOfFirst { it.eventId == target.eventId }
                     if (idx == -1) {
@@ -466,7 +469,7 @@ class RoomViewModel(
                     }
                 }
             } else {
-                _events.send(Event.ShowError("Edit failed"))
+                _events.send(Event.ShowError(result.toUserMessage("Edit failed")))
             }
         }
     }
@@ -522,9 +525,9 @@ class RoomViewModel(
     fun delete(event: MessageEvent) {
         if (event.eventId.isBlank()) return
         launch {
-            val ok = service.redact(currentState.roomId, event.eventId, null)
-            if (!ok) {
-                _events.send(Event.ShowError("Delete failed"))
+            val result = service.redact(currentState.roomId, event.eventId, null)
+            if (result?.isSuccess != true) {
+                _events.send(Event.ShowError(result.toUserMessage("Delete failed")))
             }
         }
     }
@@ -536,9 +539,9 @@ class RoomViewModel(
                 service.retryByTxn(currentState.roomId, txn)
             } ?: false
 
-            val ok = if (triedPrecise) true else service.sendMessage(currentState.roomId, event.body.trim())
-            if (!ok) {
-                _events.send(Event.ShowError("Retry failed"))
+            val result = if (triedPrecise) Result.success(Unit) else service.sendMessage(currentState.roomId, event.body.trim())
+            if (result?.isSuccess != true) {
+                _events.send(Event.ShowError(result.toUserMessage("Retry failed")))
             }
         }
     }
@@ -1699,16 +1702,19 @@ class RoomViewModel(
         return try {
             val attachment = event.attachment
 
-            val ok = if (attachment != null) {
+            val result = if (attachment != null) {
                 service.port.sendExistingAttachment(
                     roomId = targetRoomId,
                     attachment = attachment,
                     body = event.body.takeIf { it.isNotBlank() && it != attachment.mxcUri }
-                ).isSuccess
+                )
             } else {
                 service.sendMessage(targetRoomId, event.body)
             }
-            ok
+            if (result?.isSuccess != true) {
+                _events.send(Event.ShowError(result.toUserMessage("Send failed")))
+            }
+            result?.isSuccess == true
         } catch (e: Exception) {
             e.printStackTrace()
             false

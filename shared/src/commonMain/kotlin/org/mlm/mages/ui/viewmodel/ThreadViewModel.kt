@@ -324,9 +324,9 @@ class ThreadViewModel(
         val token = currentState.nextBatch ?: return
         if (currentState.isLoading) return
 
-        launch(onError = {
+        launch(onError = { e ->
             updateState { copy(isLoading = false) }
-            launch { _events.send(Event.ShowError("Failed to load more messages")) }
+            launch { _events.send(Event.ShowError(e.message ?: "Failed to load more messages")) }
         }) {
             updateState { copy(isLoading = true) }
 
@@ -434,15 +434,15 @@ class ThreadViewModel(
 
         val plainText = newBody.toPlainComposerText()
         val formattedBody = newBody.toFormattedBodyOrNull()
-        val ok = runSafe { service.edit(roomId, editEvent.eventId, plainText, formattedBody) } ?: false
+        val result = runSafe { service.edit(roomId, editEvent.eventId, plainText, formattedBody) }
 
-        if (ok) {
+        if (result?.isSuccess == true) {
             updateState { copy(editingEvent = null, input = "") }
         } else {
-            _events.send(Event.ShowError("Failed to edit message"))
+            _events.send(Event.ShowError(result.toUserMessage("Failed to edit message")))
         }
 
-        return ok
+        return result?.isSuccess == true
     }
 
     /**
@@ -451,11 +451,11 @@ class ThreadViewModel(
     suspend fun delete(event: MessageEvent): Boolean {
         if (event.eventId.isBlank()) return false
 
-        val ok = runSafe { service.redact(roomId, event.eventId, null) } ?: false
-        if (!ok) {
-            _events.send(Event.ShowError("Failed to delete message"))
+        val result = runSafe { service.redact(roomId, event.eventId, null) }
+        if (result?.isSuccess != true) {
+            _events.send(Event.ShowError(result.toUserMessage("Failed to delete message")))
         }
-        return ok
+        return result?.isSuccess == true
     }
 
     /**
@@ -484,15 +484,15 @@ class ThreadViewModel(
         }
 
         // Send to server - message will appear via timeline diff
-        val ok = runSafe {
+        val result = runSafe {
             service.port.sendThreadText(roomId, rootEventId, plainText, replyToId, latestEventId, formattedBody)
-        } ?: false
-
-        if (!ok) {
-            _events.send(Event.ShowError("Failed to send message"))
         }
 
-        return ok
+        if (result?.isSuccess != true) {
+            _events.send(Event.ShowError(result.toUserMessage("Failed to send message")))
+        }
+
+        return result?.isSuccess == true
     }
 
     private fun String.toPlainComposerText(): String =

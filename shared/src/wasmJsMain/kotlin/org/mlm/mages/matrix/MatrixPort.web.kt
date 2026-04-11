@@ -1091,7 +1091,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         replyToEventId: String?,
         latestEventId: String?,
         formattedBody: String?
-    ): Boolean =
+    ): Result<Unit> =
         requireClient().sendThreadText(
             roomId,
             rootEventId,
@@ -1099,7 +1099,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             replyToEventId,
             latestEventId,
             formattedBody
-        ).awaitBool()
+        ).awaitUnitResult()
 
     override suspend fun threadSummary(
         roomId: String,

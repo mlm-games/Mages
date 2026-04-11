@@ -1208,8 +1208,8 @@ class RustMatrixPort : MatrixPort, VerificationService {
         replyToEventId: String?,
         latestEventId: String?,
         formattedBody: String?
-    ): Boolean = withContext(matrixDispatcher) {
-        runWithFfiResult { withClient { it.sendThreadText(roomId, rootEventId, body, replyToEventId, latestEventId, formattedBody) } }.isSuccess
+    ): Result<Unit> = withContext(matrixDispatcher) {
+        runWithFfiResult { withClient { it.sendThreadText(roomId, rootEventId, body, replyToEventId, latestEventId, formattedBody) } }
     }
 
     override suspend fun isSpace(roomId: String): Boolean =

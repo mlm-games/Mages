@@ -364,7 +364,7 @@ class ForwardPickerViewModel(
     ): Boolean {
         return try {
             val attachment = event.attachment
-            if (attachment != null) {
+            val result = if (attachment != null) {
                 service.port.sendExistingAttachment(
                     roomId = targetRoomId,
                     attachment = attachment,
@@ -373,11 +373,15 @@ class ForwardPickerViewModel(
                             it != attachment.mxcUri &&
                             !it.startsWith("mxc://")
                     }
-                ).isSuccess
+                )
             } else {
                 val body = event.body.takeIf { it.isNotBlank() } ?: return false
                 service.sendMessage(targetRoomId, body)
             }
+            if (result?.isSuccess != true) {
+                _events.send(Event.ShowError(result.toUserMessage("Send failed")))
+            }
+            result?.isSuccess == true
         } catch (e: Exception) {
             e.printStackTrace()
             false

@@ -829,7 +829,7 @@ interface MatrixPort {
         replyToEventId: String? = null,
         latestEventId: String? = null,
         formattedBody: String? = null,
-    ): Boolean
+    ): Result<Unit>
     suspend fun threadSummary(roomId: String, rootEventId: String, perPage: Int = 100, maxPages: Int = 10): ThreadSummary
 
     suspend fun threadReplies(
