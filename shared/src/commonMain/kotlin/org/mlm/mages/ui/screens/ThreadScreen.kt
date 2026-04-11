@@ -60,14 +60,6 @@ fun ThreadRoute(
     val settingsRepository: SettingsRepository<AppSettings> = koinInject()
     val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
 
-    LaunchedEffect(Unit) {
-        viewModel.events.collect { event ->
-            when (event) {
-                is ThreadViewModel.Event.ShowError -> postError(event.message)
-                is ThreadViewModel.Event.ShowSuccess -> snackbarManager.show(event.message)
-            }
-        }
-    }
 
     ThreadScreen(
         state = state,

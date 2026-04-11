@@ -503,6 +503,10 @@ private fun AppContent(
                                         is RoomInfoViewModel.Event.ShowSuccess -> {
                                             snackbarManager.show(event.message)
                                         }
+
+                                        RoomInfoViewModel.Event.LeaveSuccess -> {
+                                            backStack.popUntil { it is Route.Rooms }
+                                        }
                                     }
                                 }
                             }
@@ -519,6 +523,20 @@ private fun AppContent(
                             val viewModel: ThreadViewModel = koinViewModel(
                                 parameters = { parametersOf(key.roomId, key.rootEventId) }
                             )
+
+                            LaunchedEffect(Unit) {
+                                viewModel.events.collect { event ->
+                                    when (event) {
+                                        is ThreadViewModel.Event.ShowError -> {
+                                            postError(event.message)
+                                        }
+
+                                        is ThreadViewModel.Event.ShowSuccess -> {
+                                            snackbarManager.show(event.message)
+                                        }
+                                    }
+                                }
+                            }
 
                             ThreadRoute(
                                 viewModel = viewModel,
@@ -599,6 +617,25 @@ private fun AppContent(
                             val viewModel: SpaceSettingsViewModel = koinViewModel(
                                 parameters = { parametersOf(key.spaceId) }
                             )
+
+                            LaunchedEffect(Unit) {
+                                viewModel.events.collect { event ->
+                                    when (event) {
+                                        is SpaceSettingsViewModel.Event.ShowError -> {
+                                            postError(event.message)
+                                        }
+
+                                        is SpaceSettingsViewModel.Event.ShowSuccess -> {
+                                            snackbarManager.show(event.message)
+                                        }
+
+                                        SpaceSettingsViewModel.Event.LeaveSuccess -> {
+                                            backStack.popBack()
+                                            backStack.popBack()
+                                        }
+                                    }
+                                }
+                            }
 
                             SpaceSettingsScreen(
                                 viewModel = viewModel,

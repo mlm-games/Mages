@@ -21,7 +21,6 @@ import org.mlm.mages.nav.DeepLinkAction
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.Notifier
 import org.mlm.mages.platform.SettingsProvider
-import org.mlm.mages.settings.AppSettings
 import java.awt.event.WindowEvent
 import java.awt.event.WindowFocusListener
 import javax.swing.SwingUtilities

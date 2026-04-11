@@ -73,17 +73,6 @@ fun RoomInfoRoute(
             }
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.events.collect { event ->
-            when (event) {
-                RoomInfoViewModel.Event.LeaveSuccess -> onLeaveSuccess()
-                is RoomInfoViewModel.Event.OpenRoom -> { /* handled in App.kt */ }
-                is RoomInfoViewModel.Event.ShowError -> postError(event.message)
-                is RoomInfoViewModel.Event.ShowSuccess -> snackbarManager.show(event.message)
-            }
-        }
-    }
-
     RoomInfoScreen(
         state = state,
         onBack = onBack,

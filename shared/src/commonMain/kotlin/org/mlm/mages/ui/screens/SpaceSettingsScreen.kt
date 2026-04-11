@@ -44,15 +44,6 @@ fun SpaceSettingsScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.events.collect { event ->
-            when (event) {
-                is SpaceSettingsViewModel.Event.ShowError -> postError(event.message)
-                is SpaceSettingsViewModel.Event.ShowSuccess -> snackbarManager.show(event.message)
-                SpaceSettingsViewModel.Event.LeaveSuccess -> onLeaveSuccess()
-            }
-        }
-    }
 
     Scaffold(
         topBar = {
