@@ -401,7 +401,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     }
 
     override suspend fun send(roomId: String, body: String, formattedBody: String?): Result<Unit> {
-        return requireClient().sendMessage(roomId, body).awaitUnitResult()
+        return requireClient().sendMessage(roomId, body, formattedBody).awaitUnitResult()
     }
 
     override suspend fun sendQueueSetEnabled(enabled: Boolean): Result<Unit> =
@@ -621,7 +621,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         body: String,
         formattedBody: String?
     ): Result<Unit> =
-        requireClient().reply(roomId, inReplyToEventId, body).awaitUnitResult()
+        requireClient().reply(roomId, inReplyToEventId, body, formattedBody).awaitUnitResult()
 
     override suspend fun edit(
         roomId: String,
@@ -629,7 +629,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         newBody: String,
         formattedBody: String?
     ): Result<Unit> =
-        requireClient().edit(roomId, targetEventId, newBody).awaitUnitResult()
+        requireClient().edit(roomId, targetEventId, newBody, formattedBody).awaitUnitResult()
 
     override suspend fun redact(roomId: String, eventId: String, reason: String?): Result<Unit> =
         requireClient().redact(roomId, eventId, reason).awaitUnitResult()

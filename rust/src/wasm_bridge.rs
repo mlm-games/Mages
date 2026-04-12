@@ -784,19 +784,30 @@ impl WasmClient {
     // Methods with wasm-specific signatures (cast, missing optional args)
 
     #[wasm_bindgen(js_name = sendMessage)]
-    pub async fn send_message(&self, room_id: String, body: String) -> JsValue {
+    pub async fn send_message(
+        &self,
+        room_id: String,
+        body: String,
+        formatted_body: Option<String>,
+    ) -> JsValue {
         let Some(s) = self.state() else {
             return webffi_not_init();
         };
-        webffi_unit(s.core.send_message(room_id, body, None).await)
+        webffi_unit(s.core.send_message(room_id, body, formatted_body).await)
     }
 
     #[wasm_bindgen(js_name = reply)]
-    pub async fn reply(&self, room_id: String, in_reply_to: String, body: String) -> JsValue {
+    pub async fn reply(
+        &self,
+        room_id: String,
+        in_reply_to: String,
+        body: String,
+        formatted_body: Option<String>,
+    ) -> JsValue {
         let Some(s) = self.state() else {
             return webffi_not_init();
         };
-        webffi_unit(s.core.reply(room_id, in_reply_to, body, None).await)
+        webffi_unit(s.core.reply(room_id, in_reply_to, body, formatted_body).await)
     }
 
     #[wasm_bindgen(js_name = edit)]
@@ -805,11 +816,12 @@ impl WasmClient {
         room_id: String,
         target_event_id: String,
         new_body: String,
+        formatted_body: Option<String>,
     ) -> JsValue {
         let Some(s) = self.state() else {
             return webffi_not_init();
         };
-        webffi_unit(s.core.edit(room_id, target_event_id, new_body, None).await)
+        webffi_unit(s.core.edit(room_id, target_event_id, new_body, formatted_body).await)
     }
 
     #[wasm_bindgen(js_name = paginateBackwards)]
