@@ -67,7 +67,7 @@ class GadulkaAudioPlayer : AudioPlayer {
             player = GadulkaPlayer()
             _state.value = PlaybackState.Loading
 
-            val url = if (filePath.startsWith("http")) filePath else "file://$filePath"
+            val url = filePath.toPlaybackUrl()
             player?.setRate(playbackSpeed)
             withContext(Dispatchers.Default) {
                 player?.play(url)
@@ -213,6 +213,32 @@ class GadulkaAudioPlayer : AudioPlayer {
         }
         return player?.currentDuration()?.takeIf { it > 0L } ?: 0L
     }
+}
+
+private fun String.toPlaybackUrl(): String {
+    val value = trim()
+    return when {
+        value.startsWith("http://") || value.startsWith("https://") -> value
+        value.startsWith("file://") || value.startsWith("data:") || value.startsWith("blob:") -> value
+        value.contains(";base64,") -> value.normalizeBase64DataUrl()
+        else -> "file://$value"
+    }
+}
+
+private fun String.normalizeBase64DataUrl(): String {
+    val mimeCandidate = substringBefore(";base64,").trim()
+    val payload = substringAfter(";base64,", "").trim()
+    if (payload.isEmpty()) return this
+
+    val mime = when {
+        mimeCandidate.isEmpty() -> "application/octet-stream"
+        mimeCandidate.startsWith("/") -> "audio$mimeCandidate"
+        mimeCandidate.contains("/") && !mimeCandidate.contains(":") -> mimeCandidate
+        mimeCandidate.contains(":") -> "application/octet-stream"
+        else -> "audio/$mimeCandidate"
+    }
+
+    return "data:$mime;base64,$payload"
 }
 
 fun createAudioPlayer(): AudioPlayer = GadulkaAudioPlayer()
