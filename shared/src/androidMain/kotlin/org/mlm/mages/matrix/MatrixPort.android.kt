@@ -1729,6 +1729,7 @@ private fun mages.MessageEvent.toModel() = MessageEvent(
     isRedacted = isRedacted,
     stateEventType = stateEventType,
     liveLocation = liveLocation?.toModel(),
+    rawJson = rawJson,
 )
 
 private fun mages.LiveLocationEvent.toModel() = LiveLocationEvent(

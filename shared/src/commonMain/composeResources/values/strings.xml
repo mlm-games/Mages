@@ -330,6 +330,7 @@
     <string name="create_new_recovery_key">Create a new recovery key</string>
 
     <string name="message_info">Message info</string>
+    <string name="raw_json">Raw JSON</string>
     <string name="message_details">Message details</string>
     <string name="attachment_details">Attachment details</string>
     <string name="read_receipts">Read receipts</string>

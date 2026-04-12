@@ -74,6 +74,7 @@ pub struct MessageEvent {
     pub is_redacted: bool,
     pub state_event_type: Option<String>,
     pub live_location: Option<LiveLocationEvent>,
+    pub raw_json: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Record)]

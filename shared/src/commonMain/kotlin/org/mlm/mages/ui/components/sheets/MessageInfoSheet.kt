@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -162,6 +163,27 @@ fun MessageInfoSheet(
                         attachment = attachment,
                         onCopy = ::copy,
                     )
+                }
+            }
+
+            event.rawJson?.takeIf { it.isNotBlank() }?.let { json ->
+                item {
+                    SectionCard(title = stringResource(Res.string.raw_json)) {
+                        Text(
+                            text = json,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = FontFamily.Monospace,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = Spacing.sm),
+                        )
+                        IconButton(onClick = { copy(json) }) {
+                            Icon(
+                                Icons.Default.ContentCopy,
+                                contentDescription = stringResource(Res.string.copy),
+                            )
+                        }
+                    }
                 }
             }
 

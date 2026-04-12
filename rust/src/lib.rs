@@ -3069,6 +3069,12 @@ fn map_timeline_event(
 
     let direct_event_id = ev.event_id().map(|e| e.to_string());
 
+    let raw_json = ev.latest_json().and_then(|j| {
+        let mut buf = String::new();
+        let _ = serde_json::to_string(&*j).map(|s| buf = s);
+        if buf.is_empty() { None } else { Some(buf) }
+    });
+
     let sdk_send_state = ev.send_state();
     let (send_state, event_id_from_send_state) = match sdk_send_state {
         Some(EventSendState::NotSentYet { .. }) => (Some(SendState::Sending), None),
@@ -3289,6 +3295,7 @@ fn map_timeline_event(
         is_redacted,
         state_event_type,
         live_location,
+        raw_json,
     })
 }
 

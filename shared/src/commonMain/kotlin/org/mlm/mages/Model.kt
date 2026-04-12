@@ -34,6 +34,7 @@ data class MessageEvent(
     var isRedacted: Boolean = false,
     var stateEventType: String? = null,
     var liveLocation: LiveLocationEvent? = null,
+    var rawJson: String? = null,
 )
 
 @Serializable
