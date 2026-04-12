@@ -1639,13 +1639,13 @@ impl Client {
         att: AttachmentInfo,
         body: Option<String>,
         progress: Option<Box<dyn ProgressObserver>>,
-    ) -> bool {
+    ) -> Result<(), FfiError> {
         RT.block_on(async {
             let Ok(rid) = OwnedRoomId::try_from(room_id) else {
-                return false;
+                return Err(FfiError::Msg("invalid room id".into()));
             };
             let Some(room) = self.core.sdk.get_room(&rid) else {
-                return false;
+                return Err(FfiError::Msg("room not found".into()));
             };
             let default_caption = match att.kind {
                 AttachmentKind::Image => "Image",
@@ -1657,7 +1657,7 @@ impl Client {
                 let ef: matrix_sdk::ruma::events::room::EncryptedFile =
                     match serde_json::from_str(&enc.json) {
                         Ok(f) => f,
-                        Err(_) => return false,
+                        Err(e) => return Err(FfiError::Msg(format!("invalid encrypted file: {}", e))),
                     };
                 MediaSource::Encrypted(Box::new(ef))
             } else {
@@ -1702,7 +1702,7 @@ impl Client {
             if let Some(p) = progress {
                 p.on_progress(1, Some(1));
             }
-            res.is_ok()
+            res.map(|_| ()).ffi()
         })
     }
 

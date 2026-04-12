@@ -55,11 +55,11 @@ abstract class BaseViewModel<S>(initialState: S) : ViewModel(), KoinComponent {
     /**
      * Returns [userMessage] if successful, otherwise returns the exception message.
      */
-    protected fun Result<Unit>.toUserMessage(userMessage: String): String {
+    protected fun Result<*>.toUserMessage(userMessage: String): String {
         return exceptionOrNull()?.message ?: userMessage
     }
 
-    protected fun Result<Unit>?.toUserMessage(userMessage: String): String {
+    protected fun Result<*>?.toUserMessage(userMessage: String): String {
         return this?.exceptionOrNull()?.message ?: userMessage
     }
 

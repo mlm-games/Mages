@@ -221,7 +221,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
             }
         } else null
 
-        runWithFfiResult { withClient { it.sendExistingAttachment(roomId, attachment.toFfi(), body, cb) } }.map { }
+        runWithFfiResult { withClient { it.sendExistingAttachment(roomId, attachment.toFfi(), body, cb) } }
     }
 
     override fun observeSends(): Flow<SendUpdate> = callbackFlow {

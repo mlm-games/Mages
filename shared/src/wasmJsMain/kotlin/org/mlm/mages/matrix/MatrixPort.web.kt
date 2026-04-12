@@ -413,8 +413,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         body: String?,
         onProgress: ((Long, Long?) -> Unit)?
     ): Result<Unit> {
-        val result = requireClient().sendExistingAttachment(roomId, wasmJson.encodeToString(attachment), body).awaitResult()
-        return if (result.ok) Result.success(Unit) else Result.failure(Exception(result.error ?: "Send failed"))
+        return requireClient().sendExistingAttachment(roomId, wasmJson.encodeToString(attachment), body).awaitUnitResult()
     }
 
     override fun isLoggedIn(): Boolean = client?.isLoggedIn() == true

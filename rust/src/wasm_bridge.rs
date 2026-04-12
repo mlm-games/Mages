@@ -11,7 +11,6 @@ use crate::wasm_delegate_result_bool;
 use crate::wasm_delegate_result_bool_as_bool;
 use crate::wasm_delegate_result_json;
 use crate::webffi_bool;
-
 use crate::wasm_delegate_option_json;
 use crate::wasm_subscribe;
 use crate::wasm_unobserve;
@@ -410,6 +409,9 @@ wasm_delegate_result_bool! {
 
 wasm_delegate_result_bool_as_bool! {
     "markRoomSeenLatest"   => mark_room_seen_latest(room_id: String, send_public_receipt: bool);
+    "canUserBan"           => can_user_ban(room_id: String, user_id: String);
+    "canUserInvite"        => can_user_invite(room_id: String, user_id: String);
+    "canUserRedactOther"   => can_user_redact_other(room_id: String, user_id: String);
 }
 
 wasm_delegate_result_bool! {
@@ -1585,36 +1587,6 @@ impl WasmClient {
             return to_json(&HashMap::<String, Vec<ReactionSummary>>::new());
         };
         to_json(&s.core.reactions_batch(room_id, event_ids).await)
-    }
-
-    #[wasm_bindgen(js_name = canUserBan)]
-    pub async fn can_user_ban(&self, room_id: String, user_id: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core.can_user_ban(room_id, user_id).await.unwrap_or(false)
-    }
-
-    #[wasm_bindgen(js_name = canUserInvite)]
-    pub async fn can_user_invite(&self, room_id: String, user_id: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core
-            .can_user_invite(room_id, user_id)
-            .await
-            .unwrap_or(false)
-    }
-
-    #[wasm_bindgen(js_name = canUserRedactOther)]
-    pub async fn can_user_redact_other(&self, room_id: String, user_id: String) -> bool {
-        let Some(s) = self.state() else {
-            return false;
-        };
-        s.core
-            .can_user_redact_other(room_id, user_id)
-            .await
-            .unwrap_or(false)
     }
 
     #[wasm_bindgen(js_name = roomDirectoryVisibility)]
