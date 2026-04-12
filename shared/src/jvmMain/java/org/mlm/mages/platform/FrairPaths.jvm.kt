@@ -4,22 +4,30 @@ import io.github.vinceglb.filekit.FileKit
 import java.io.File
 
 actual object MagesPaths {
-    @Volatile private var storeDir: String? = null
+    @Volatile private var storeDirValue: String? = null
+    @Volatile private var cacheDirValue: String? = null
 
     actual fun init() {
-        if (storeDir == null) {
-            val base = File(getAppDataDir("mages"), "store")
-            if (!base.exists()) base.mkdirs()
-            storeDir = base.absolutePath
-        }
-
         FileKit.init("org.mlm.mages")
+        storeDir()
+        cacheDir()
     }
 
     actual fun storeDir(): String {
-        return storeDir ?: run {
-            init()
-            storeDir!!
+        return storeDirValue ?: run {
+            val base = File(getAppDataDir("mages"), "store")
+            base.mkdirs()
+            storeDirValue = base.absolutePath
+            base.absolutePath
+        }
+    }
+
+    actual fun cacheDir(): String {
+        return cacheDirValue ?: run {
+            val base = File(getAppDataDir("mages"), "cache")
+            base.mkdirs()
+            cacheDirValue = base.absolutePath
+            base.absolutePath
         }
     }
 
@@ -45,3 +53,7 @@ actual object MagesPaths {
         }
     }
 }
+
+actual val voiceMessageMimeType: String = "audio/wav"
+
+actual val voiceMessageExtension: String = "wav"

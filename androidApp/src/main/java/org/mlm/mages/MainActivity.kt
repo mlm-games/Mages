@@ -129,8 +129,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        MagesPaths.init(this)
-
         val settingsRepository: SettingsRepository<AppSettings> =
             SettingsProvider.get(applicationContext)
 

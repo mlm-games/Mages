@@ -26,7 +26,8 @@ use matrix_sdk::{
     ruma::events::room::{
         ImageInfo,
         message::{
-            FileMessageEventContent, ImageMessageEventContent, VideoInfo, VideoMessageEventContent,
+            AudioMessageEventContent, FileMessageEventContent, ImageMessageEventContent, VideoInfo,
+            VideoMessageEventContent,
         },
     },
     widget::{VirtualElementCallWidgetConfig, VirtualElementCallWidgetProperties},
@@ -285,8 +286,7 @@ fn mages_client_metadata(redirect_uri: &Url) -> Raw<ClientMetadata> {
         ApplicationType::Native
     };
 
-    let fallback_client_uri =
-        Url::parse("https://github.com/mlm-games/mages").expect("valid URL");
+    let fallback_client_uri = Url::parse("https://github.com/mlm-games/mages").expect("valid URL");
 
     let client_uri = Localized::new(
         if use_web_metadata {
@@ -377,16 +377,16 @@ impl Client {
                     };
 
                     builder
-                    .indexeddb_store("mages_store", None)
-                    .with_encryption_settings(EncryptionSettings {
-                        auto_enable_cross_signing: true,
-                        auto_enable_backups: true,
-                        backup_download_strategy: BackupDownloadStrategy::OneShot,
-                        ..Default::default()
-                    })
-                    .handle_refresh_tokens()
-                    .build()
-                    .await
+                        .indexeddb_store("mages_store", None)
+                        .with_encryption_settings(EncryptionSettings {
+                            auto_enable_cross_signing: true,
+                            auto_enable_backups: true,
+                            backup_download_strategy: BackupDownloadStrategy::OneShot,
+                            ..Default::default()
+                        })
+                        .handle_refresh_tokens()
+                        .build()
+                        .await
                 };
 
                 #[cfg(not(target_arch = "wasm32"))]
@@ -560,7 +560,7 @@ impl Client {
                         Some(Err(e)) => {
                             warn!("restore_session failed: {e:?}");
                             let error_str = format!("{e:?}");
-                            let is_auth_error = error_str.contains("AuthenticationRequired") 
+                            let is_auth_error = error_str.contains("AuthenticationRequired")
                                 || error_str.contains("Invalid access token")
                                 || error_str.contains("UnknownToken");
                             if let Some(mut session_info) = platform::load_session(&this.store_dir).await {
@@ -1650,6 +1650,7 @@ impl Client {
             let default_caption = match att.kind {
                 AttachmentKind::Image => "Image",
                 AttachmentKind::Video => "Video",
+                AttachmentKind::Audio => "Audio",
                 AttachmentKind::File => "File",
             };
             let caption = body.unwrap_or_else(|| default_caption.to_string());
@@ -1657,7 +1658,9 @@ impl Client {
                 let ef: matrix_sdk::ruma::events::room::EncryptedFile =
                     match serde_json::from_str(&enc.json) {
                         Ok(f) => f,
-                        Err(e) => return Err(FfiError::Msg(format!("invalid encrypted file: {}", e))),
+                        Err(e) => {
+                            return Err(FfiError::Msg(format!("invalid encrypted file: {}", e)));
+                        }
                     };
                 MediaSource::Encrypted(Box::new(ef))
             } else {
@@ -1692,6 +1695,15 @@ impl Client {
                     let mut file = FileMessageEventContent::new(caption.clone(), media_source);
                     file.info = Some(Box::new(info));
                     MessageType::File(file)
+                }
+                AttachmentKind::Audio => {
+                    let mut info = matrix_sdk::ruma::events::room::message::AudioInfo::new();
+                    info.mimetype = att.mime.clone();
+                    info.size = att.size_bytes.and_then(UInt::new);
+                    info.duration = att.duration_ms.map(Duration::from_millis);
+                    let mut audio = AudioMessageEventContent::new(caption.clone(), media_source);
+                    audio.info = Some(Box::new(info));
+                    MessageType::Audio(audio)
                 }
             };
             let content = RoomMessageEventContent::new(msgtype);
@@ -3395,7 +3407,6 @@ fn extract_attachment(msg: &matrix_sdk_ui::timeline::Message) -> Option<Attachme
                 width: w,
                 height: h,
                 duration_ms: dur,
-                // Fallback to full video if no explicit thumbnail
                 thumbnail_mxc_uri: thumb_mxc.or_else(|| Some(mxc_uri.clone())),
                 encrypted,
                 thumbnail_encrypted: thumb_enc,
@@ -3432,6 +3443,37 @@ fn extract_attachment(msg: &matrix_sdk_ui::timeline::Message) -> Option<Attachme
                 thumbnail_mxc_uri: thumb_mxc,
                 encrypted,
                 thumbnail_encrypted: thumb_enc,
+            })
+        }
+
+        MT::Audio(c) => {
+            let (mxc_uri, encrypted) = split_source(&c.source);
+            let file_name = Some(c.filename.clone().unwrap_or_else(|| c.body.clone()));
+
+            let (size, mime, dur) = c
+                .info
+                .as_ref()
+                .map(|info| {
+                    (
+                        info.size.map(u64::from),
+                        info.mimetype.clone(),
+                        info.duration.map(|d| d.as_millis() as u64),
+                    )
+                })
+                .unwrap_or((None, None, None));
+
+            Some(AttachmentInfo {
+                kind: AttachmentKind::Audio,
+                mxc_uri,
+                file_name,
+                mime,
+                size_bytes: size,
+                width: None,
+                height: None,
+                duration_ms: dur,
+                thumbnail_mxc_uri: None,
+                encrypted,
+                thumbnail_encrypted: None,
             })
         }
 

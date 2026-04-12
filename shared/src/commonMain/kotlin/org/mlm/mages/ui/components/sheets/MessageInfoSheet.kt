@@ -290,6 +290,7 @@ private fun AttachmentSection(
         AttachmentKind.Image -> stringResource(Res.string.image)
         AttachmentKind.Video -> stringResource(Res.string.video)
         AttachmentKind.File -> stringResource(Res.string.file)
+        AttachmentKind.Audio -> "Audio"
     }
 
     SectionCard(title = stringResource(Res.string.attachment_details)) {

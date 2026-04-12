@@ -1744,6 +1744,7 @@ private fun mages.AttachmentInfo.toModel() = AttachmentInfo(
     kind = when (kind) {
         mages.AttachmentKind.IMAGE -> AttachmentKind.Image
         mages.AttachmentKind.VIDEO -> AttachmentKind.Video
+        mages.AttachmentKind.AUDIO -> AttachmentKind.Audio
         mages.AttachmentKind.FILE -> AttachmentKind.File
     },
     mxcUri = mxcUri,
@@ -1770,6 +1771,7 @@ private fun AttachmentInfo.toFfi() = mages.AttachmentInfo(
         AttachmentKind.Image -> mages.AttachmentKind.IMAGE
         AttachmentKind.Video -> mages.AttachmentKind.VIDEO
         AttachmentKind.File -> mages.AttachmentKind.FILE
+        AttachmentKind.Audio -> mages.AttachmentKind.AUDIO
     },
     mxcUri = mxcUri,
     mime = mime,

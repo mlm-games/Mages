@@ -7,6 +7,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +25,7 @@ import org.mlm.mages.platform.sendShortcutHandler
 import org.mlm.mages.ui.components.AttachmentData
 import org.mlm.mages.ui.components.AttachmentSourceKind
 import org.mlm.mages.ui.components.toMagesAttachment
+import org.mlm.mages.ui.components.voice.VoiceRecorderBar
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 
@@ -49,6 +51,10 @@ fun MessageComposer(
     enterSendsMessage: Boolean = false,
     roomMembers: List<MemberSummary> = emptyList(),
     avatarPathByUserId: Map<String, String> = emptyMap(),
+    isRecordingVoice: Boolean = false,
+    onStartVoiceRecording: (() -> Unit)? = null,
+    onCancelVoiceRecording: (() -> Unit)? = null,
+    onVoiceRecordingComplete: ((filePath: String, durationMs: Long, waveform: List<Float>) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     var fieldValue by remember { mutableStateOf(TextFieldValue(value)) }
@@ -62,6 +68,15 @@ fun MessageComposer(
     val mentionQuery = remember(fieldValue) { findMentionQueryInternal(fieldValue) }
     val mentionSuggestions = remember(mentionQuery, roomMembers) {
         if (mentionQuery == null) emptyList() else filterMentionSuggestionsInternal(roomMembers, mentionQuery.query)
+    }
+
+    if (isRecordingVoice && onStartVoiceRecording != null && onCancelVoiceRecording != null && onVoiceRecordingComplete != null) {
+        VoiceRecorderBar(
+            onSend = onVoiceRecordingComplete,
+            onCancel = onCancelVoiceRecording,
+            modifier = modifier
+        )
+        return
     }
 
     Surface(
@@ -114,6 +129,7 @@ fun MessageComposer(
                 isOffline = isOffline,
                 editing = editing,
                 replyingTo = replyingTo,
+                onStartVoiceRecording = onStartVoiceRecording,
             )
         }
     }
@@ -135,6 +151,7 @@ private fun ComposerInputRow(
     isOffline: Boolean,
     editing: MessageEvent?,
     replyingTo: MessageEvent?,
+    onStartVoiceRecording: (() -> Unit)?,
 ) {
     Row(
         modifier = Modifier
@@ -199,11 +216,18 @@ private fun ComposerInputRow(
 
         Spacer(Modifier.width(Spacing.sm))
 
+        val canSend = enabled && (fieldValue.text.isNotBlank() || attachments.isNotEmpty()) && !isUploadingAttachment
+        val canRecordVoice = enabled && !isUploadingAttachment && fieldValue.text.isBlank() && attachments.isEmpty() && onStartVoiceRecording != null
+
         FilledIconButton(
-            onClick = onSend,
-            enabled = enabled
-                    && (fieldValue.text.isNotBlank() || attachments.isNotEmpty())
-                    && !isUploadingAttachment,
+            onClick = {
+                if (canSend) {
+                    onSend()
+                } else if (canRecordVoice) {
+                    onStartVoiceRecording()
+                }
+            },
+            enabled = canSend || canRecordVoice,
             colors = IconButtonDefaults.filledIconButtonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -215,8 +239,10 @@ private fun ComposerInputRow(
                     modifier = Modifier.size(Sizes.iconMedium),
                     color = MaterialTheme.colorScheme.onPrimary
                 )
-            } else {
+            } else if (canSend) {
                 Icon(Icons.AutoMirrored.Filled.Send, "Send")
+            } else {
+                Icon(Icons.Default.Mic, "Record voice")
             }
         }
     }

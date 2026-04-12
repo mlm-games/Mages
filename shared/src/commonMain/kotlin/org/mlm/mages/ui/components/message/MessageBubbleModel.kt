@@ -49,6 +49,12 @@ sealed interface MessageAttachmentUi {
         val durationMs: Long?,
         val caption: String?,
     ) : MessageAttachmentUi
+
+    data class Audio(
+        val filePath: String?,
+        val durationMs: Long?,
+        val waveform: List<Float>,
+    ) : MessageAttachmentUi
 }
 
 data class MessageThreadUi(
@@ -74,6 +80,8 @@ data class MessageBubbleRenderContext(
     val threadCount: Int? = null,
     val variant: MessageBubbleVariant = MessageBubbleVariant.Timeline,
     val resolvedPreviewPath: String? = null,
+    val resolvedAudioPath: String? = null,
+    val resolvedAudioWaveform: List<Float> = emptyList(),
     val senderVisible: Boolean = true,
 )
 

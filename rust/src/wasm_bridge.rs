@@ -7,13 +7,13 @@ use crate::verification_flow::{
 };
 use crate::wasm_delegate_bool;
 use crate::wasm_delegate_json;
+use crate::wasm_delegate_option_json;
 use crate::wasm_delegate_result_bool;
 use crate::wasm_delegate_result_bool_as_bool;
 use crate::wasm_delegate_result_json;
-use crate::webffi_bool;
-use crate::wasm_delegate_option_json;
 use crate::wasm_subscribe;
 use crate::wasm_unobserve;
+use crate::webffi_bool;
 use crate::{
     emit_timeline_reset_filled, latest_room_event_for, mages_client_metadata, map_vec_diff,
     strip_matrix_path,
@@ -24,14 +24,14 @@ use futures_util::StreamExt;
 use futures_util::future::{AbortHandle, Abortable};
 use js_sys::Function;
 
-use matrix_sdk::utils::UrlOrQuery;
 use matrix_sdk::authentication::oauth::registration::language_tags::LanguageTag;
+use matrix_sdk::utils::UrlOrQuery;
 
 use matrix_sdk::ruma::events::room::{
     ImageInfo, MediaSource,
     message::{
-        FileMessageEventContent, ImageMessageEventContent, MessageType, VideoInfo,
-        VideoMessageEventContent,
+        AudioMessageEventContent, FileMessageEventContent, ImageMessageEventContent, MessageType,
+        VideoInfo, VideoMessageEventContent,
     },
 };
 
@@ -517,12 +517,10 @@ impl WasmClient {
                 };
                 if info.auth_api == "oauth" {
                     if info.client_id.is_none() {
-                        web_sys::console::warn_1(
-                            &JsValue::from_str(&format!(
-                                "Stored OAuth session for {} is missing client_id. Removing invalid session and requiring re-login",
-                                info.user_id
-                            )),
-                        );
+                        web_sys::console::warn_1(&JsValue::from_str(&format!(
+                            "Stored OAuth session for {} is missing client_id. Removing invalid session and requiring re-login",
+                            info.user_id
+                        )));
                         clear_wasm_session(&store_name);
                     } else if let Some(cid) = info.client_id.clone() {
                         let _ = client
@@ -536,8 +534,8 @@ impl WasmClient {
                     let result = client.restore_session(MatrixSession { meta, tokens }).await;
                     if result.is_err() {
                         let error_str = format!("{:?}", result);
-                        let is_auth_error = error_str.contains("AuthenticationRequired") ||
-                                error_str.contains("UnknownToken");
+                        let is_auth_error = error_str.contains("AuthenticationRequired")
+                            || error_str.contains("UnknownToken");
                         if !is_auth_error {
                             info.is_token_valid = false;
                         }
@@ -807,7 +805,11 @@ impl WasmClient {
         let Some(s) = self.state() else {
             return webffi_not_init();
         };
-        webffi_unit(s.core.reply(room_id, in_reply_to, body, formatted_body).await)
+        webffi_unit(
+            s.core
+                .reply(room_id, in_reply_to, body, formatted_body)
+                .await,
+        )
     }
 
     #[wasm_bindgen(js_name = edit)]
@@ -821,7 +823,11 @@ impl WasmClient {
         let Some(s) = self.state() else {
             return webffi_not_init();
         };
-        webffi_unit(s.core.edit(room_id, target_event_id, new_body, formatted_body).await)
+        webffi_unit(
+            s.core
+                .edit(room_id, target_event_id, new_body, formatted_body)
+                .await,
+        )
     }
 
     #[wasm_bindgen(js_name = paginateBackwards)]
@@ -898,11 +904,20 @@ impl WasmClient {
     }
 
     #[wasm_bindgen(js_name = messageActionState)]
-    pub async fn message_action_state(&self, room_id: String, event_id: String, sender_user_id: String) -> JsValue {
+    pub async fn message_action_state(
+        &self,
+        room_id: String,
+        event_id: String,
+        sender_user_id: String,
+    ) -> JsValue {
         let Some(s) = self.state() else {
             return webffi_not_init();
         };
-        match s.core.message_action_state(room_id, event_id, sender_user_id).await {
+        match s
+            .core
+            .message_action_state(room_id, event_id, sender_user_id)
+            .await
+        {
             Ok(state) => to_json(&state),
             _ => JsValue::NULL,
         }
@@ -1954,7 +1969,8 @@ impl WasmClient {
                     continue;
                 };
                 let eid = eid_ref.to_owned();
-                if let Some(rendered) = crate::map_notification_item_to_rendered(&rid, &eid, &item) {
+                if let Some(rendered) = crate::map_notification_item_to_rendered(&rid, &eid, &item)
+                {
                     out.push(rendered);
                     if out.len() as u32 >= max_events {
                         return to_json(&out);
@@ -1987,6 +2003,7 @@ impl WasmClient {
         let default_caption = match att.kind {
             AttachmentKind::Image => "Image",
             AttachmentKind::Video => "Video",
+            AttachmentKind::Audio => "Audio",
             AttachmentKind::File => "File",
         };
         let caption = body.unwrap_or_else(|| default_caption.to_string());
@@ -2029,6 +2046,15 @@ impl WasmClient {
                 let mut file = FileMessageEventContent::new(caption.clone(), media_source);
                 file.info = Some(Box::new(info));
                 MessageType::File(file)
+            }
+            AttachmentKind::Audio => {
+                let mut info = matrix_sdk::ruma::events::room::message::AudioInfo::new();
+                info.mimetype = att.mime.clone();
+                info.size = att.size_bytes.and_then(matrix_sdk::ruma::UInt::new);
+                info.duration = att.duration_ms.map(Duration::from_millis);
+                let mut audio = AudioMessageEventContent::new(caption.clone(), media_source);
+                audio.info = Some(Box::new(info));
+                MessageType::Audio(audio)
             }
         };
         let content =
@@ -2111,11 +2137,7 @@ impl WasmClient {
     }
 
     #[wasm_bindgen(js_name = getMediaContent)]
-    pub async fn get_media_content(
-        &self,
-        info_json: String,
-        _use_thumbnail: bool,
-    ) -> JsValue {
+    pub async fn get_media_content(&self, info_json: String, _use_thumbnail: bool) -> JsValue {
         let Some(state) = self.state() else {
             return webffi_not_init();
         };
@@ -2926,7 +2948,11 @@ impl WasmClient {
             "Content" => FfiPushRuleKind::Content,
             _ => return webffi_err("invalid push rule kind"),
         };
-        webffi_unit(s.core.set_push_rule_enabled(ffi_kind, rule_id, enabled).await)
+        webffi_unit(
+            s.core
+                .set_push_rule_enabled(ffi_kind, rule_id, enabled)
+                .await,
+        )
     }
 
     #[wasm_bindgen(js_name = getDefaultRoomNotificationMode)]

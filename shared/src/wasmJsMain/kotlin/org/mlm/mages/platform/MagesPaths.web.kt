@@ -9,4 +9,12 @@ actual object MagesPaths {
         // Not used on web; matrix-sdk-indexeddb uses its own store.
         return "indexeddb://mages"
     }
+
+    actual fun cacheDir(): String {
+        return "indexeddb://mages-cache"
+    }
 }
+
+actual val voiceMessageMimeType: String = "audio/ogg"
+
+actual val voiceMessageExtension: String = "ogg"

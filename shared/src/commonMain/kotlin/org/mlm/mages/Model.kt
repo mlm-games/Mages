@@ -55,7 +55,7 @@ data class LiveLocationEvent(
 )
 
 @Serializable
-enum class AttachmentKind { Image, Video, File }
+enum class AttachmentKind { Image, Video, Audio, File }
 
 @Serializable
 data class EncFile(
@@ -76,6 +76,7 @@ data class AttachmentInfo(
     val thumbnailMxcUri: String? = null,
     val encrypted: EncFile? = null,
     val thumbnailEncrypted: EncFile? = null,
+    val waveform: List<Float>? = null,
 )
 
 @Serializable

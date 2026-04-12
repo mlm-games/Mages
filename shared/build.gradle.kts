@@ -79,6 +79,7 @@ kotlin {
 
             implementation(libs.filekit.core)
             implementation(libs.filekit.dialogs.compose)
+            implementation(libs.gadulka)
         }
 
         androidMain.dependencies {

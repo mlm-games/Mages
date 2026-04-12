@@ -35,8 +35,6 @@ class MagesApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        MagesPaths.init(this)
-
         val settingsRepo = SettingsProvider.get(this)
 
         AppNotificationChannels.ensureCreated(this)
@@ -98,6 +96,8 @@ class MagesApp : Application() {
             androidContext(this@MagesApp)
             modules(appModules(settingsRepo))
         }
+
+        MagesPaths.init()
 
         Log.i("Mages", "App initialized")
 

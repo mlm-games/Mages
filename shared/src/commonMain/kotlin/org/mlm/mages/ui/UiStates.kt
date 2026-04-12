@@ -136,6 +136,8 @@ data class RoomUiState(
     val avatarByUserId: Map<String, String> = emptyMap(),
     val roomMembers: List<MemberSummary> = emptyList(),
     val threadCount: Map<String, Int> = emptyMap(),
+    val audioFileByEvent: Map<String, String> = emptyMap(),
+    val waveformByEvent: Map<String, List<Float>> = emptyMap(),
 
     val liveLocationShares: Map<String, LiveLocationShare> = emptyMap(),
     val liveLocationSubToken: ULong? = null,
@@ -209,6 +211,13 @@ data class RoomUiState(
     val selectedMemberKickAction: ActionAvailabilityUi = ActionAvailabilityUi(),
     val selectedMemberBanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
     val selectedMemberUnbanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+
+    // Voice recording
+    val isRecordingVoice: Boolean = false,
+    val voiceRecordingPath: String? = null,
+    val voiceRecordingDurationMs: Long = 0L,
+    val voiceRecordingWaveform: List<Float> = emptyList(),
+    val showVoicePreview: Boolean = false,
 ) {
     val pinnedMessages: List<PinnedMessageUi>
         get() {

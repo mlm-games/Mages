@@ -40,7 +40,9 @@ private fun buildAttachmentSubtitle(mime: String?, sizeBytes: Long?): String? {
 }
 
 private fun MessageEvent.toAttachmentUi(
-    resolvedPreviewPath: String?
+    resolvedPreviewPath: String?,
+    resolvedAudioPath: String?,
+    resolvedAudioWaveform: List<Float>,
 ): MessageAttachmentUi? {
     val info = attachment ?: return null
 
@@ -65,6 +67,11 @@ private fun MessageEvent.toAttachmentUi(
             height = info.height,
             durationMs = info.durationMs,
             caption = toMediaCaption(),
+        )
+        AttachmentKind.Audio -> MessageAttachmentUi.Audio(
+            filePath = resolvedAudioPath,
+            durationMs = info.durationMs,
+            waveform = resolvedAudioWaveform.ifEmpty { info.waveform.orEmpty() },
         )
     }
 }
@@ -104,7 +111,11 @@ fun MessageEvent.toBubbleModel(
             body = replyToBody,
         ),
         sendState = sendState,
-        attachment = toAttachmentUi(ctx.resolvedPreviewPath),
+        attachment = toAttachmentUi(
+            resolvedPreviewPath = ctx.resolvedPreviewPath,
+            resolvedAudioPath = ctx.resolvedAudioPath,
+            resolvedAudioWaveform = ctx.resolvedAudioWaveform,
+        ),
         sticker = stickerData,
         isSticker = stickerData != null,
         isEdited = isEdited,

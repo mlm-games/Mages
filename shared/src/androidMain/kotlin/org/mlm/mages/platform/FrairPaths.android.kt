@@ -1,27 +1,31 @@
 package org.mlm.mages.platform
 
 import android.content.Context
+import org.koin.core.context.GlobalContext
 import java.io.File
 
 actual object MagesPaths {
-    @Volatile
-    private var storeDir: String? = null
-
-    fun init(context: Context) {
-        if (storeDir == null) {
-            val base = File(context.filesDir, "mages_store")
-            if (!base.exists()) base.mkdirs()
-            storeDir = base.absolutePath
-        }
-    }
+    private val appContextOrNull: Context?
+        get() = runCatching { GlobalContext.get().get<Context>() }.getOrNull()
 
     actual fun init() {
-        throw UnsupportedOperationException("Use init(context: Context) on Android")
+        storeDir()
+        cacheDir()
     }
 
     actual fun storeDir(): String {
-        return storeDir ?: throw IllegalStateException(
-            "MagesPaths not initialized. Call MagesPaths.init(context) in Application/Activity.onCreate."
-        )
+        val ctx = appContextOrNull ?: return ""
+        val dir = File(ctx.filesDir, "mages_store")
+        dir.mkdirs()
+        return dir.absolutePath
+    }
+
+    actual fun cacheDir(): String {
+        val ctx = appContextOrNull ?: return ""
+        return ctx.cacheDir.absolutePath
     }
 }
+
+actual val voiceMessageMimeType: String = "audio/ogg"
+
+actual val voiceMessageExtension: String = "ogg"

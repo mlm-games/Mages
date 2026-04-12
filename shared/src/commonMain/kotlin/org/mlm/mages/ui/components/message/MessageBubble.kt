@@ -33,6 +33,7 @@ import org.mlm.mages.matrix.SendState
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.MarkdownText
 import org.mlm.mages.ui.theme.Sizes
+import org.mlm.mages.ui.components.voice.VoiceMessageBubble
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatDuration
 import org.mlm.mages.ui.util.formatTime
@@ -172,6 +173,15 @@ fun MessageBubble(
                             VideoAttachmentBubble(attachment, isMine, onOpenAttachment)
                         }
                         null -> { /* no attachment */ }
+                        is MessageAttachmentUi.Audio -> {
+                            VoiceMessageBubble(
+                                filePath = attachment.filePath,
+                                durationMs = attachment.durationMs ?: 0L,
+                                waveformData = attachment.waveform,
+                                isMine = isMine,
+                            )
+                            Spacer(Modifier.height(Spacing.sm))
+                        }
                     }
 
                     if (model.poll != null) {
@@ -181,7 +191,7 @@ fun MessageBubble(
                             onVote = { optId -> onVote?.invoke(optId) },
                             onEndPoll = { onEndPoll?.invoke() }
                         )
-                    } else if (model.attachment == null && model.body.isNotBlank()) {
+                    } else if (model.attachment !is MessageAttachmentUi.Audio && model.body.isNotBlank()) {
                         MarkdownText(
                             text = renderedBody,
                             color = bubbleTextColor,

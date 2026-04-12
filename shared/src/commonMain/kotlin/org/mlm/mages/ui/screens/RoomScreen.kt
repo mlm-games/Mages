@@ -61,6 +61,7 @@ import org.mlm.mages.ui.ActionPresentationUi
 import org.koin.compose.koinInject
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.sheets.*
+import org.mlm.mages.ui.components.voice.VoicePreviewDialog
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatDate
 import org.mlm.mages.ui.util.formatTime
@@ -511,6 +512,9 @@ fun RoomScreen(
                         clipboardHandler = clipboardHandler,
                         onAttachmentPasted = { viewModel.attachFile(it) },
                         enterSendsMessage = settings.enterSendsMessage,
+                        onStartVoiceRecording = viewModel::startVoiceRecording,
+                        onCancelVoiceRecording = viewModel::cancelVoiceRecording,
+                        onVoiceRecordingComplete = viewModel::onVoiceRecordingComplete,
                     )
                 }
             }
@@ -957,6 +961,17 @@ fun RoomScreen(
             isBanned = member.membership == "ban"
         )
     }
+
+    if (state.showVoicePreview && state.voiceRecordingPath != null) {
+        VoicePreviewDialog(
+            filePath = state.voiceRecordingPath!!,
+            durationMs = state.voiceRecordingDurationMs,
+            waveformData = state.voiceRecordingWaveform,
+            onSend = viewModel::sendVoiceRecording,
+            onReRecord = viewModel::reRecordVoice,
+            onCancel = viewModel::cancelVoicePreview
+        )
+    }
 }
 
 @Composable
@@ -1140,6 +1155,9 @@ private fun RoomBottomBar(
     clipboardHandler: ClipboardAttachmentHandler? = null,
     onAttachmentPasted: ((AttachmentData) -> Unit)? = null,
     enterSendsMessage: Boolean = false,
+    onStartVoiceRecording: () -> Unit = {},
+    onCancelVoiceRecording: () -> Unit = {},
+    onVoiceRecordingComplete: (filePath: String, durationMs: Long, waveform: List<Float>) -> Unit = { _, _, _ -> },
 ) {
     Column(modifier = Modifier.navigationBarsPadding()) {
         ActionBanner(
@@ -1178,6 +1196,10 @@ private fun RoomBottomBar(
             enterSendsMessage = enterSendsMessage,
             roomMembers = state.roomMembers,
             avatarPathByUserId = state.avatarByUserId,
+            isRecordingVoice = state.isRecordingVoice,
+            onStartVoiceRecording = onStartVoiceRecording,
+            onCancelVoiceRecording = onCancelVoiceRecording,
+            onVoiceRecordingComplete = onVoiceRecordingComplete,
         )
     }
 }
@@ -1405,6 +1427,8 @@ private fun MessageItem(
                         threadCount = state.threadCount[event.eventId],
                         variant = MessageBubbleVariant.Timeline,
                         resolvedPreviewPath = state.thumbByEvent[event.eventId],
+                        resolvedAudioPath = state.audioFileByEvent[event.eventId],
+                        resolvedAudioWaveform = state.waveformByEvent[event.eventId].orEmpty(),
                         senderVisible = true,
                     )
                 ).copy(poll = event.pollData)

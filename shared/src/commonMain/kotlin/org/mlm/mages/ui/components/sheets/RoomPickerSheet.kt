@@ -79,6 +79,7 @@ fun RoomPickerSheet(
                         LoadingIndicator()
                     }
                 }
+
                 rooms.isEmpty() -> {
                     Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -97,6 +98,7 @@ fun RoomPickerSheet(
                         }
                     }
                 }
+
                 else -> {
                     LazyColumn(
                         modifier = Modifier.weight(1f),
@@ -163,7 +165,7 @@ private fun ForwardPreview(event: MessageEvent) {
                             when (att.kind) {
                                 AttachmentKind.Image -> Icons.Default.Image
                                 AttachmentKind.Video -> Icons.Default.Videocam
-//                                AttachmentKind.Audio -> Icons.Default.AudioFile
+                                AttachmentKind.Audio -> Icons.Default.AudioFile
                                 AttachmentKind.File -> Icons.Default.AttachFile
                             },
                             contentDescription = null,

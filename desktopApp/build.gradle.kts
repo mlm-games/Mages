@@ -4,10 +4,17 @@ plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.javafx)
 }
 
 kotlin {
     jvmToolchain(21)
+}
+
+javafx {
+    version = libs.versions.javafx.get()
+    modules("javafx.base", "javafx.graphics", "javafx.controls",
+            "javafx.swing", "javafx.web", "javafx.media")
 }
 
 dependencies {

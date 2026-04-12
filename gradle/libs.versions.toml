@@ -11,6 +11,8 @@ adaptiveNavigation3 = "1.3.0-alpha06"
 coilCompose = "3.4.0"
 connector = "3.3.2"
 elementCallEmbedded = "0.19.0"
+javafx = "21.0.2"
+javafxPlugin = "0.1.0"
 jcefmaven = "143.0.14"
 json = "20251224"
 koinComposeNavigation3 = "4.2.0"
@@ -83,6 +85,12 @@ embedded-fcm-distributor = { module = "org.unifiedpush.android:embedded-fcm-dist
 dbus-java-transport-native-unixsocket = { module = "com.github.hypfvieh:dbus-java-transport-native-unixsocket", version.ref = "dbusJavaTransportNativeUnixsocket" }
 dbus-java-core = { module = "com.github.hypfvieh:dbus-java-core", version.ref = "dbusJavaCore" }
 element-call-embedded = { module = "io.element.android:element-call-embedded", version.ref = "elementCallEmbedded" }
+javafx-base     = { module = "org.openjfx:javafx-base",     version.ref = "javafx" }
+javafx-graphics = { module = "org.openjfx:javafx-graphics", version.ref = "javafx" }
+javafx-controls = { module = "org.openjfx:javafx-controls", version.ref = "javafx" }
+javafx-swing    = { module = "org.openjfx:javafx-swing",    version.ref = "javafx" }
+javafx-web      = { module = "org.openjfx:javafx-web",      version.ref = "javafx" }
+javafx-media    = { module = "org.openjfx:javafx-media",    version.ref = "javafx" }
 jcefmaven = { module = "me.friwi:jcefmaven", version.ref = "jcefmaven" }
 json = { module = "org.json:json", version.ref = "json" }
 koin-compose-navigation3 = { module = "io.insert-koin:koin-compose-navigation3", version.ref = "koinComposeNavigation3" }
@@ -96,7 +104,7 @@ androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "a
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
 androidx-lifecycle-viewmodelCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
-kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing" }
+kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "coroutines" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
 kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version.ref = "kotlinxBrowser" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
@@ -121,6 +129,8 @@ kmp-settings-ui-compose = { module = "io.github.mlm-games:kmp-settings-ui-compos
 filekit-core = { module = "io.github.vinceglb:filekit-core", version.ref = "filekit" }
 filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
 
+gadulka = { module = "eu.iamkonstantin.kotlin:gadulka", version = "1.10.0" }
+
 maplibre-compose = { module = "org.maplibre.compose:maplibre-compose", version.ref = "maplibreCompose" }
 maplibre-native-bindings-jni = { module = "org.maplibre.compose:maplibre-native-bindings-jni", version.ref = "maplibreCompose" }
 
@@ -136,4 +146,5 @@ apk-dist = { id = "io.github.mlm-games.apk-dist", version.ref = "apkDist" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+javafx = { id = "org.openjfx.javafxplugin", version.ref = "javafxPlugin" }
 kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }

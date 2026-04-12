@@ -606,6 +606,7 @@ pub enum EventType {
 pub enum AttachmentKind {
     Image,
     Video,
+    Audio,
     File,
 }
 

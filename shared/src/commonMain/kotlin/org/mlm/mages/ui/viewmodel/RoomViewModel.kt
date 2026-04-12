@@ -15,8 +15,11 @@ import org.mlm.mages.platform.Notifier
 import org.mlm.mages.platform.ShareContent
 import org.mlm.mages.platform.LiveLocationProvider
 import org.mlm.mages.platform.LiveLocationSession
+import org.mlm.mages.platform.deleteDirectory
 import org.mlm.mages.platform.platformEmbeddedElementCallParentUrlOrNull
 import org.mlm.mages.platform.platformEmbeddedElementCallUrlOrNull
+import org.mlm.mages.platform.voiceMessageMimeType
+import org.mlm.mages.platform.voiceMessageExtension
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.ActionAvailabilityUi
 import org.mlm.mages.ui.ActionPresentationUi
@@ -1140,6 +1143,89 @@ class RoomViewModel(
         }
     }
 
+    fun onVoiceRecordingComplete(filePath: String, durationMs: Long, waveform: List<Float>) {
+        updateState {
+            copy(
+                isRecordingVoice = false,
+                voiceRecordingPath = filePath,
+                voiceRecordingDurationMs = durationMs,
+                voiceRecordingWaveform = waveform,
+                showVoicePreview = true
+            )
+        }
+    }
+
+    fun sendVoiceRecording() {
+        val path = currentState.voiceRecordingPath ?: return
+
+        updateState {
+            copy(
+                showVoicePreview = false,
+                voiceRecordingPath = null,
+                voiceRecordingDurationMs = 0L,
+                voiceRecordingWaveform = emptyList()
+            )
+        }
+
+        launch {
+            val mime = voiceMessageMimeType
+            val ok = service.sendAttachmentFromPath(
+                roomId = currentState.roomId,
+                path = path,
+                mime = mime,
+                filename = "voice_message.${voiceMessageExtension}"
+            ) { _, _ -> }
+
+            if (!ok) {
+                _events.send(Event.ShowError("Voice message upload failed"))
+            }
+        }
+    }
+
+    fun cancelVoicePreview() {
+        currentState.voiceRecordingPath?.let {
+            runCatching { deleteDirectory(it) }
+        }
+        updateState {
+            copy(
+                showVoicePreview = false,
+                voiceRecordingPath = null,
+                voiceRecordingDurationMs = 0L,
+                voiceRecordingWaveform = emptyList()
+            )
+        }
+    }
+
+    fun reRecordVoice() {
+        currentState.voiceRecordingPath?.let {
+            runCatching { deleteDirectory(it) }
+        }
+        updateState {
+            copy(
+                showVoicePreview = false,
+                voiceRecordingPath = null,
+                voiceRecordingDurationMs = 0L,
+                voiceRecordingWaveform = emptyList(),
+                isRecordingVoice = true
+            )
+        }
+    }
+
+    fun startVoiceRecording() {
+        updateState { copy(isRecordingVoice = true) }
+    }
+
+    fun cancelVoiceRecording() {
+        updateState {
+            copy(
+                isRecordingVoice = false,
+                voiceRecordingPath = null,
+                voiceRecordingDurationMs = 0L,
+                voiceRecordingWaveform = emptyList()
+            )
+        }
+    }
+
     fun enterSelectionMode(eventId: String) {
         if (eventId.isBlank()) return
         updateState { copy(isSelectionMode = true, selectedEventIds = setOf(eventId)) }
@@ -1563,6 +1649,7 @@ class RoomViewModel(
 
         prefetchThumbnailsForEvents(visible.takeLast(8))
         prefetchSenderAvatars(newEvents)
+        prefetchAudioForEvents(visible.takeLast(8))
     }
 
     private fun prefetchSenderAvatars(events: List<MessageEvent>) {
@@ -1953,7 +2040,7 @@ class RoomViewModel(
 
             val a = ev.attachment
             val s = ev.sticker
-            val mxc = when {
+            when {
                 a != null -> {
                     if (a.kind != AttachmentKind.Image && a.kind != AttachmentKind.Video && a.thumbnailMxcUri == null) return@forEach
                     a.thumbnailMxcUri ?: a.mxcUri
@@ -1970,6 +2057,28 @@ class RoomViewModel(
                         copy(thumbByEvent = thumbByEvent + (ev.eventId to path))
                     }
                 }
+            }
+        }
+    }
+
+    private fun prefetchAudioForEvents(events: List<MessageEvent>) {
+        events.forEach { ev ->
+            val a = ev.attachment ?: return@forEach
+            if (a.kind != AttachmentKind.Audio) return@forEach
+            if (currentState.audioFileByEvent.containsKey(ev.eventId)) return@forEach
+            if (ev.eventId.isBlank()) return@forEach
+
+            launch {
+                val nameHint = "voice_${ev.eventId}.${voiceMessageExtension}"
+                service.port.downloadAttachmentToCache(a, nameHint)
+                    .onSuccess { path ->
+                        updateState {
+                            copy(
+                                audioFileByEvent = audioFileByEvent + (ev.eventId to path),
+                                waveformByEvent = a.waveform?.let { waveformByEvent + (ev.eventId to it) } ?: waveformByEvent
+                            )
+                        }
+                    }
             }
         }
     }
