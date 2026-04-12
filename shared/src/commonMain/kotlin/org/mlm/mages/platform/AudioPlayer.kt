@@ -4,6 +4,7 @@ import eu.iamkonstantin.kotlin.gadulka.GadulkaPlayer
 import eu.iamkonstantin.kotlin.gadulka.GadulkaPlayerState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import org.mlm.mages.ui.util.nowMs
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -24,6 +25,7 @@ sealed class PlaybackState {
         val durationMs: Long,
         val isPaused: Boolean = false
     ) : PlaybackState()
+
     data class Error(val message: String) : PlaybackState()
 }
 
@@ -184,7 +186,8 @@ class GadulkaAudioPlayer : AudioPlayer {
                     }
 
                     if (!s.isPaused && resolvedDuration > 0L) {
-                        val reachedEnd = resolvedPosition >= (resolvedDuration - COMPLETION_EPSILON_MS).coerceAtLeast(0L)
+                        val reachedEnd =
+                            resolvedPosition >= (resolvedDuration - COMPLETION_EPSILON_MS).coerceAtLeast(0L)
                         if (reachedEnd || (gadulkaState == GadulkaPlayerState.IDLE && resolvedPosition >= resolvedDuration)) {
                             _state.value = PlaybackState.Idle
                             break
@@ -200,8 +203,8 @@ class GadulkaAudioPlayer : AudioPlayer {
     }
 
     private suspend fun awaitDurationReady(player: GadulkaPlayer?): Long {
-        val startMs = System.currentTimeMillis()
-        while (System.currentTimeMillis() - startMs < DURATION_WAIT_TIMEOUT_MS) {
+        val startMs = nowMs()
+        while (nowMs() - startMs < DURATION_WAIT_TIMEOUT_MS) {
             val value = player?.currentDuration()?.takeIf { it > 0L }
             if (value != null) {
                 return value
