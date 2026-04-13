@@ -1,0 +1,4 @@
+- Do not let the leave be clicked again, while the room is being left (#83)
+- cancel the notification after it has been clicked
+- experimental: audio handling
+- Add raw json display of a message to Message Info sheet
