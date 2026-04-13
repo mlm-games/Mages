@@ -1,3 +1,15 @@
+## v4.5.2
+
+- fix formatted body not being sent
+- Update release notes for v4.5.1
+- Turn off bubble animations by default, and use immediate mode rendering in the markdown library (#78)
+- Update release notes for v4.4.7
+- Do not let the leave be clicked again, while the room is being left (#83)
+- cancel the notification after it has been clicked
+- experimental: audio handling
+- Add raw json display of a message to Message Info sheet
+
+
 ## v4.5.1
 
 - Turn off bubble animations by default, and use immediate mode rendering in the markdown library (#78)
