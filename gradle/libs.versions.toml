@@ -17,6 +17,7 @@ jcefmaven = "143.0.14"
 json = "20251224"
 koinComposeNavigation3 = "4.2.0"
 material3 = "1.10.0-alpha05"
+markdown = "0.7.3"
 multiplatformMarkdownRenderer = "0.39.2"
 multiplatformMarkdownRendererM3 = "0.39.2"
 navigation3Ui = "1.0.0-alpha06"
@@ -45,7 +46,7 @@ uriKmp = "0.0.21"
 webkit = "1.15.0"
 workRuntimeKtx = "2.11.2"
 browser = "1.10.0"
-koin = "4.2.0"
+koin = "4.2.1"
 kmpSettingsCore = "0.7.3"
 ksp = "2.3.6"
 apkDist = "0.5.2"
@@ -133,6 +134,7 @@ gadulka = { module = "eu.iamkonstantin.kotlin:gadulka", version = "1.10.0" }
 
 maplibre-compose = { module = "org.maplibre.compose:maplibre-compose", version.ref = "maplibreCompose" }
 maplibre-native-bindings-jni = { module = "org.maplibre.compose:maplibre-native-bindings-jni", version.ref = "maplibreCompose" }
+markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
 
 
 [plugins]

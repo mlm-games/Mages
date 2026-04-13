@@ -7,6 +7,9 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.Json
+import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
+import org.intellij.markdown.html.HtmlGenerator
+import org.intellij.markdown.parser.MarkdownParser
 import org.koin.core.component.inject
 import org.mlm.mages.*
 import org.mlm.mages.calls.CallManager
@@ -484,26 +487,20 @@ class RoomViewModel(
                 if (label.startsWith("@")) label else "@$label"
             }
 
-    private fun String.toFormattedBodyOrNull(): String? {
-        val regex = Regex("\\[([^]]+)]\\(https://matrix\\.to/#/(@[^)]+)\\)")
-        if (!regex.containsMatchIn(this)) return null
+    private val markdownFlavour = CommonMarkFlavourDescriptor()
 
-        val html = buildString {
-            var lastIndex = 0
-            regex.findAll(this@toFormattedBodyOrNull).forEach { match ->
-                append(escapeHtml(this@toFormattedBodyOrNull.substring(lastIndex, match.range.first)))
-                val label = match.groupValues[1]
-                val userId = match.groupValues[2]
-                append("<a href=\"https://matrix.to/#/")
-                append(escapeHtmlAttribute(userId))
-                append("\">")
-                append(escapeHtml(if (label.startsWith("@")) label else "@$label"))
-                append("</a>")
-                lastIndex = match.range.last + 1
-            }
-            append(escapeHtml(this@toFormattedBodyOrNull.substring(lastIndex)))
+    private fun String.toFormattedBodyOrNull(): String? {
+        if (isBlank()) return null
+        val matrixMentionRegex = Regex("""\[([^\]]+)\]\(https://matrix\.to/#/(@[^)]+)\)""")
+        val processedText = matrixMentionRegex.replace(this) { match ->
+            val label = match.groupValues[1]
+            val userId = match.groupValues[2]
+            val escapedUserId = escapeHtmlAttribute(userId)
+            val displayLabel = if (label.startsWith("@")) escapeHtml(label) else "@${escapeHtml(label)}"
+            "<a href=\"https://matrix.to/#/$escapedUserId\">$displayLabel</a>"
         }
-        return html
+        val parsedTree = MarkdownParser(markdownFlavour).buildMarkdownTreeFromString(processedText)
+        return HtmlGenerator(processedText, parsedTree, markdownFlavour, false).generateHtml()
     }
 
     private fun escapeHtml(text: String): String = text
