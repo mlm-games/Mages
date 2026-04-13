@@ -472,7 +472,9 @@ class RoomInfoViewModel(
 
     fun leave() {
         launch {
+            updateState { copy(isSaving = true) }
             val result = runSafe { service.port.leaveRoom(roomId) }
+            updateState { copy(isSaving = false) }
             if (result?.isSuccess == true) {
                 _events.send(Event.LeaveSuccess)
             } else {

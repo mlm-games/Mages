@@ -482,7 +482,8 @@ fun RoomInfoScreen(
                         SettingsDangerRow(
                             icon = Icons.AutoMirrored.Filled.ExitToApp,
                             title = if (state.profile?.isDm == true) "End conversation" else "Leave room",
-                            onClick = { showLeaveDialog = true }
+                            onClick = { showLeaveDialog = true },
+                            enabled = !state.isSaving
                         )
                     }
                     Spacer(Modifier.height(Spacing.lg))
@@ -497,6 +498,7 @@ fun RoomInfoScreen(
                 confirmText = "Leave",
                 icon = Icons.Default.Warning,
                 isDestructive = true,
+                isLoading = state.isSaving,
                 onConfirm = { showLeaveDialog = false; onLeave() },
                 onDismiss = { showLeaveDialog = false }
             )
@@ -866,12 +868,15 @@ private fun SettingsActionRow(
 private fun SettingsDangerRow(
     icon: ImageVector,
     title: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    enabled: Boolean = true
 ) {
     Surface(
         onClick = onClick,
+        enabled = enabled,
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium
+        shape = MaterialTheme.shapes.medium,
+        color = if (enabled) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant
     ) {
         Row(
             modifier = Modifier
@@ -879,15 +884,22 @@ private fun SettingsDangerRow(
                 .padding(horizontal = Spacing.md, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(24.dp))
+            Icon(
+                icon, null,
+                tint = if (enabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.error.copy(alpha = 0.38f),
+                modifier = Modifier.size(24.dp)
+            )
             Spacer(Modifier.width(Spacing.md))
             Text(
                 title,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.error,
+                color = if (enabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.error.copy(alpha = 0.38f),
                 modifier = Modifier.weight(1f)
             )
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.error)
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight, null,
+                tint = if (enabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.error.copy(alpha = 0.38f)
+            )
         }
     }
 }
