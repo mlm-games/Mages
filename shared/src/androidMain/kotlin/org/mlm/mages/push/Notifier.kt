@@ -506,7 +506,7 @@ object Notifier {
             .setContentIntent(fullOpenIntent)
             .addAction(replyAction)
             .addAction(markReadAction)
-            .setAutoCancel(false)
+            .setAutoCancel(true)
             .setOnlyAlertOnce(false)
             .setCategory(Notification.CATEGORY_MESSAGE)
 
