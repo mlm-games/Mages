@@ -1,7 +1,7 @@
 [versions]
 composeMultiplatform = "1.11.0-alpha04"
 
-composeBom = "2026.04.00"
+composeBom = "2026.03.01"
 
 agp = "9.1.0"
 android-compileSdk = "36"
@@ -16,7 +16,7 @@ javafxPlugin = "0.1.0"
 jcefmaven = "143.0.14"
 json = "20251224"
 koinComposeNavigation3 = "4.2.1"
-material3 = "1.10.0-alpha05"
+material3 = "1.11.0-alpha06"
 markdown = "0.7.3"
 multiplatformMarkdownRenderer = "0.40.2"
 multiplatformMarkdownRendererM3 = "0.40.2"
@@ -130,7 +130,7 @@ kmp-settings-ui-compose = { module = "io.github.mlm-games:kmp-settings-ui-compos
 filekit-core = { module = "io.github.vinceglb:filekit-core", version.ref = "filekit" }
 filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
 
-gadulka = { module = "eu.iamkonstantin.kotlin:gadulka", version = "1.10.0" }
+gadulka = { module = "eu.iamkonstantin.kotlin:gadulka", version = "1.11.0" }
 
 maplibre-compose = { module = "org.maplibre.compose:maplibre-compose", version.ref = "maplibreCompose" }
 maplibre-native-bindings-jni = { module = "org.maplibre.compose:maplibre-native-bindings-jni", version.ref = "maplibreCompose" }
