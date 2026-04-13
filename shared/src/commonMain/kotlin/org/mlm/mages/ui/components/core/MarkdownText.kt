@@ -43,7 +43,7 @@ fun MarkdownText(
 
     val markdownState = rememberMarkdownState(
         text,
-        retainState = !settings.bubbleAnimations
+        immediate = !settings.bubbleAnimations
     )
 
     SelectionContainer {

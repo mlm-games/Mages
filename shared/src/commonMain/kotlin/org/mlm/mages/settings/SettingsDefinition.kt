@@ -96,9 +96,8 @@ data class AppSettings(
         description = "Animate messages as they appear",
         category = Appearance::class,
         type = Toggle::class,
-        platforms = [SettingPlatform.ANDROID]
     )
-    val bubbleAnimations: Boolean = true,
+    val bubbleAnimations: Boolean = false,
 
     @Setting(
         title = "Hide membership events",
