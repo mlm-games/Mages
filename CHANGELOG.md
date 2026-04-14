@@ -1,3 +1,9 @@
+## v4.5.4
+
+- Fix android voice message play logic
+- Update release notes for v4.5.3
+
+
 ## v4.5.3
 
 

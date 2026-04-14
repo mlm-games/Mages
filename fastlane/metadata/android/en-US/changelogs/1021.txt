@@ -1,0 +1,2 @@
+- Fix android voice message play logic
+- Update release notes for v4.5.3
