@@ -1,0 +1,1 @@
+- Handle newline like most other chatting apps (#84)

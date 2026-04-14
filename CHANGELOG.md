@@ -1,3 +1,8 @@
+## v4.5.5
+
+- Handle newline like most other chatting apps (#84)
+
+
 ## v4.5.4
 
 - Fix android voice message play logic
