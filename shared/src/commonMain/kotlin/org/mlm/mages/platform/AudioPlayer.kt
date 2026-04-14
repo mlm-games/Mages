@@ -1,9 +1,9 @@
 package org.mlm.mages.platform
 
+import eu.iamkonstantin.kotlin.gadulka.ErrorListener
 import eu.iamkonstantin.kotlin.gadulka.GadulkaPlayer
 import eu.iamkonstantin.kotlin.gadulka.GadulkaPlayerState
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import org.mlm.mages.ui.util.nowMs
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -58,29 +58,46 @@ class GadulkaAudioPlayer : AudioPlayer {
     private var playbackSpeed: Float = 1f
     private var updateJob: Job? = null
     private var pendingSeekMs: Long? = null
-    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private var currentPlaybackUrl: String? = null
+    private val scope = CoroutineScope(audioPlayerDispatcher + SupervisorJob())
 
     override suspend fun load(filePath: String) {
-        try {
-            stop()
-            player?.release()
-            player = GadulkaPlayer()
-            _state.value = PlaybackState.Loading
+        withContext(audioPlayerDispatcher) {
+            try {
+                stop()
+                player?.release()
+                val newPlayer = GadulkaPlayer()
+                newPlayer.setOnErrorListener(object : ErrorListener {
+                    override fun onError(message: String?) {
+                        updateJob?.cancel()
+                        updateJob = null
+                        currentPlaybackUrl?.let { platformReleasePlaybackUrl(it) }
+                        currentPlaybackUrl = null
+                        _state.value = PlaybackState.Error("Playback failed: ${message?.ifBlank { "unknown" } ?: "unknown"}")
+                    }
+                })
+                player = newPlayer
+                _state.value = PlaybackState.Loading
 
-            val url = filePath.toPlaybackUrl()
-            player?.setRate(playbackSpeed)
-            withContext(Dispatchers.Default) {
-                player?.play(url)
+                val url = filePath.toPlaybackUrl()
+                val preparedUrl = platformPreparePlaybackUrl(url)
+                currentPlaybackUrl = preparedUrl
+                newPlayer.setRate(playbackSpeed)
+                newPlayer.play(preparedUrl)
+
+                val dur = awaitDurationReady(player)
+                durationMs = dur
+                pendingSeekMs = null
+
+                if (_state.value is PlaybackState.Error) {
+                    return@withContext
+                }
+
+                _state.value = PlaybackState.Playing(0, durationMs, isPaused = false)
+                startUpdates()
+            } catch (e: Exception) {
+                _state.value = PlaybackState.Error("Load failed: ${e.message}")
             }
-
-            val dur = awaitDurationReady(player)
-            durationMs = dur
-            pendingSeekMs = null
-
-            _state.value = PlaybackState.Playing(0, durationMs, isPaused = false)
-            startUpdates()
-        } catch (e: Exception) {
-            _state.value = PlaybackState.Error("Load failed: ${e.message}")
         }
     }
 
@@ -108,6 +125,8 @@ class GadulkaAudioPlayer : AudioPlayer {
         player?.stop()
         updateJob?.cancel()
         updateJob = null
+        currentPlaybackUrl?.let { platformReleasePlaybackUrl(it) }
+        currentPlaybackUrl = null
         pendingSeekMs = null
         durationMs = 0
         _state.value = PlaybackState.Idle
@@ -143,12 +162,19 @@ class GadulkaAudioPlayer : AudioPlayer {
         scope.cancel()
         player?.release()
         player = null
+        currentPlaybackUrl?.let { platformReleasePlaybackUrl(it) }
+        currentPlaybackUrl = null
     }
 
     private fun startUpdates() {
         updateJob?.cancel()
         updateJob = scope.launch {
+            var lastTickAtMs = nowMs()
             while (isActive) {
+                val loopNowMs = nowMs()
+                val elapsedSinceLastTickMs = (loopNowMs - lastTickAtMs).coerceAtLeast(0L)
+                lastTickAtMs = loopNowMs
+
                 val p = player ?: break
                 val gadulkaState = p.currentPlayerState()
                 val pos = p.currentPosition() ?: 0L
@@ -178,6 +204,16 @@ class GadulkaAudioPlayer : AudioPlayer {
                                 seekTarget.coerceAtLeast(0L)
                             }
                         }
+                    }
+
+                    if (!s.isPaused && pendingSeekMs == null && gadulkaState == GadulkaPlayerState.PLAYING) {
+                        val predicted = s.positionMs + (elapsedSinceLastTickMs * playbackSpeed).toLong()
+                        val boundedPredicted = if (resolvedDuration > 0L) {
+                            predicted.coerceIn(0L, resolvedDuration)
+                        } else {
+                            predicted.coerceAtLeast(0L)
+                        }
+                        resolvedPosition = maxOf(resolvedPosition, boundedPredicted)
                     }
 
                     val next = s.copy(positionMs = resolvedPosition, durationMs = resolvedDuration)
@@ -219,22 +255,24 @@ private fun String.toPlaybackUrl(): String {
     val value = trim()
     return when {
         value.startsWith("http://") || value.startsWith("https://") -> value
-        value.startsWith("file://") || value.startsWith("data:") || value.startsWith("blob:") -> value
+        value.startsWith("file://") || value.startsWith("blob:") -> value
         value.contains(";base64,") -> value.normalizeBase64DataUrl()
+        value.startsWith("data:") -> value
         else -> "file://$value"
     }
 }
 
 private fun String.normalizeBase64DataUrl(): String {
-    val mimeCandidate = substringBefore(";base64,").trim()
-    val payload = substringAfter(";base64,", "").trim()
+    val mimeCandidateRaw = substringBefore(";base64,").trim()
+    val mimeCandidate = mimeCandidateRaw.removePrefix("data:").trim()
+    val payload = substringAfter(";base64,", "")
+        .filterNot { it.isWhitespace() }
     if (payload.isEmpty()) return this
 
     val mime = when {
         mimeCandidate.isEmpty() -> "application/octet-stream"
         mimeCandidate.startsWith("/") -> "audio$mimeCandidate"
-        mimeCandidate.contains("/") && !mimeCandidate.contains(":") -> mimeCandidate
-        mimeCandidate.contains(":") -> "application/octet-stream"
+        mimeCandidate.contains("/") -> mimeCandidate
         else -> "audio/$mimeCandidate"
     }
 

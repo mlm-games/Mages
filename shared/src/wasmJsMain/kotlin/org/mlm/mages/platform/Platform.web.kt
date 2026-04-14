@@ -9,6 +9,8 @@ import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.readBytes
 import kotlinx.browser.document
 import kotlinx.browser.window
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import org.mlm.mages.content.TransferItem
 import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.url.URL
@@ -17,6 +19,52 @@ private val webBlobCache = mutableMapOf<String, ByteArray>()
 private var blobCounter = 0
 
 private fun generateBlobId(): String = "web_blob_${blobCounter++}"
+
+actual val audioPlayerDispatcher: CoroutineDispatcher = Dispatchers.Default
+
+@JsFun("""(v) => {
+  if (typeof v !== 'string') return false;
+  return /^data:audio\/ogg(?:;[^,]*)?;base64,/i.test(v);
+}""")
+private external fun isOggBase64DataUrl(value: String): Boolean
+
+@JsFun("""(v) => {
+  if (typeof v !== 'string') return false;
+  return /^data:audio\/[^;]+(?:;[^,]*)?;base64,/i.test(v);
+}""")
+private external fun isAudioBase64DataUrl(value: String): Boolean
+
+@JsFun("""() => {
+  const a = document.createElement('audio');
+  const canPlay = (t) => {
+    try {
+      const r = a.canPlayType(t);
+      return r === 'probably' || r === 'maybe';
+    } catch (_) {
+      return false;
+    }
+  };
+  return canPlay('audio/ogg; codecs="opus"') || canPlay('audio/ogg;codecs=opus') || canPlay('audio/ogg');
+}""")
+private external fun browserSupportsOggPlayback(): Boolean
+
+@JsFun("""(base64, mime) => {
+  try {
+    const bin = atob(base64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const blob = new Blob([bytes], { type: mime || 'application/octet-stream' });
+    return URL.createObjectURL(blob);
+  } catch (_) {
+    return null;
+  }
+}""")
+private external fun createAudioBlobUrl(base64: String, mime: String): String?
+
+@JsFun("""(url) => {
+  try { URL.revokeObjectURL(url); } catch (_) {}
+}""")
+private external fun revokeBlobUrl(url: String)
 
 actual fun getDeviceDisplayName(): String = "Mages (Web)"
 
@@ -104,4 +152,36 @@ fun retrieveWebBlob(path: String): ByteArray? = webBlobCache[path]
 
 fun clearWebBlob(path: String) {
     webBlobCache.remove(path)
+}
+
+internal actual fun platformPreparePlaybackUrl(input: String): String {
+    if (!isAudioBase64DataUrl(input)) {
+        return input
+    }
+
+    if (isOggBase64DataUrl(input) && !browserSupportsOggPlayback()) {
+        throw IllegalStateException("This browser cannot play OGG/Opus audio")
+    }
+
+    val base64MarkerIndex = input.indexOf(";base64,")
+    if (base64MarkerIndex <= 5) {
+        return input
+    }
+
+    val mime = input
+        .substring(5, base64MarkerIndex)
+        .trim()
+        .ifBlank { "application/octet-stream" }
+    val payload = input
+        .substring(base64MarkerIndex + 8)
+        .filterNot { it.isWhitespace() }
+    if (payload.isEmpty()) return input
+
+    return createAudioBlobUrl(payload, mime) ?: input
+}
+
+internal actual fun platformReleasePlaybackUrl(url: String) {
+    if (url.startsWith("blob:")) {
+        revokeBlobUrl(url)
+    }
 }

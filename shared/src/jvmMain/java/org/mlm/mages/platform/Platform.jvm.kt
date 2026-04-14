@@ -3,6 +3,9 @@ package org.mlm.mages.platform
 import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import io.github.vinceglb.filekit.PlatformFile
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.swing.Swing
 import org.mlm.mages.content.TransferItem
 import org.mlm.mages.ui.util.guessMimeType
 import java.io.File
@@ -71,3 +74,9 @@ actual suspend fun PlatformFile.toTransferItem(): TransferItem {
         sizeBytes = file.length(),
     )
 }
+
+actual val audioPlayerDispatcher: CoroutineDispatcher = Dispatchers.Swing
+
+internal actual fun platformPreparePlaybackUrl(input: String): String = input
+
+internal actual fun platformReleasePlaybackUrl(url: String) = Unit

@@ -23,6 +23,7 @@ import io.github.vinceglb.filekit.dialogs.compose.rememberCameraPickerLauncher
 import io.github.vinceglb.filekit.mimeType
 import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.readBytes
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okio.buffer
@@ -132,6 +133,12 @@ actual suspend fun PlatformFile.toTransferItem(): TransferItem =
             sizeBytes = outFile.length(),
         )
     }
+
+actual val audioPlayerDispatcher: CoroutineDispatcher = Dispatchers.Main
+
+internal actual fun platformPreparePlaybackUrl(input: String): String = input
+
+internal actual fun platformReleasePlaybackUrl(url: String) = Unit
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
