@@ -41,8 +41,10 @@ fun MarkdownText(
     val settingsRepository : SettingsRepository<AppSettings> = koinInject()
     val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
 
+    val processedText = text.replace("\n", "  \n")
+
     val markdownState = rememberMarkdownState(
-        text,
+        processedText,
         immediate = !settings.bubbleAnimations
     )
 
