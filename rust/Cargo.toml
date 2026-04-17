@@ -52,9 +52,9 @@ tokio = { version = "1", features = [
     "time",
     "fs",
 ] }
-reqwest = { version = "0.12", default-features = false, features = [
+reqwest = { version = "0.13", default-features = false, features = [
     "json",
-    "rustls-tls",
+    "rustls",
 ] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
@@ -87,9 +87,9 @@ gloo-timers = "0.3"
 # getrandom 0.3 with wasm_js feature - needed for imbl 6.x -> rand_core 0.9 -> getrandom 0.3
 getrandom = { version = "0.3", features = ["wasm_js"] }
 # Disable gzip/brotli/zstd to avoid tower-http -> tokio -> mio
-reqwest = { version = "0.12", default-features = false, features = [
+reqwest = { version = "0.13", default-features = false, features = [
     "json",
-    "rustls-tls",
+    "rustls",
     "stream",
 ] }
 
