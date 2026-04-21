@@ -1,3 +1,8 @@
+## v4.5.6
+
+- bump vers
+
+
 ## v4.5.5
 
 - Handle newline like most other chatting apps (#84)
