@@ -191,7 +191,7 @@ fun MessageBubble(
                             onVote = { optId -> onVote?.invoke(optId) },
                             onEndPoll = { onEndPoll?.invoke() }
                         )
-                    } else if (model.attachment !is MessageAttachmentUi.Audio && model.body.isNotBlank()) {
+                    } else if (model.attachment == null && model.body.isNotBlank()) {
                         MarkdownText(
                             text = renderedBody,
                             color = bubbleTextColor,
