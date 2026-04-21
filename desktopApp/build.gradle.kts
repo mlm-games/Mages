@@ -13,8 +13,7 @@ kotlin {
 
 javafx {
     version = libs.versions.javafx.get()
-    modules("javafx.base", "javafx.graphics", "javafx.controls",
-            "javafx.swing", "javafx.web", "javafx.media")
+    modules("javafx.base", "javafx.graphics", "javafx.media")
 }
 
 dependencies {
