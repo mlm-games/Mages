@@ -111,16 +111,29 @@ jobs:
           
           val composeArm64 by configurations.creating
           val composeX64 by configurations.creating
+          val javafxArm64 by configurations.creating
+          val javafxX64 by configurations.creating
+
           
           dependencies {
               composeArm64("org.jetbrains.compose.desktop:desktop-jvm-linux-arm64:1.11.0-alpha04")
               composeX64("org.jetbrains.compose.desktop:desktop-jvm-linux-x64:1.11.0-alpha04")
+              
+              val javafxVersion = "21.0.1"
+              javafxArm64("org.openjfx:javafx-base:${javafxVersion}:linux-aarch64")
+              javafxArm64("org.openjfx:javafx-graphics:${javafxVersion}:linux-aarch64")
+              javafxArm64("org.openjfx:javafx-media:${javafxVersion}:linux-aarch64")
+              javafxArm64("org.openjfx:javafx-base:${javafxVersion}:linux")
+              javafxArm64("org.openjfx:javafx-graphics:${javafxVersion}:linux")
+              javafxArm64("org.openjfx:javafx-media:${javafxVersion}:linux")
           }
           
           tasks.register("fetch") {
               doLast {
                   configurations["composeArm64"].resolve()
                   configurations["composeX64"].resolve()
+                  configurations["javafxArm64"].resolve()
+                  configurations["javafxX64"].resolve()
                   println("Downloaded all platform deps")
               }
           }
