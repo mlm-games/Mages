@@ -1318,6 +1318,7 @@ private fun MessageItem(
 
     Box(
         modifier = Modifier
+            .then(if (enableBubbleAnimations) Modifier.animateContentSize() else Modifier)
             .fillMaxWidth()
             .combinedClickable(
                 onClick = {
