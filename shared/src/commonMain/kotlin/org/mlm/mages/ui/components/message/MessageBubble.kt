@@ -144,7 +144,7 @@ fun MessageBubble(
         headerContent?.invoke(this)
 
         BubbleWidthWrapper(
-            fractionOfParent = 0.75f
+            fractionOfParent = 0.9f
         ) {
             Surface(
                 color = if (isMine) MaterialTheme.colorScheme.primaryContainer
