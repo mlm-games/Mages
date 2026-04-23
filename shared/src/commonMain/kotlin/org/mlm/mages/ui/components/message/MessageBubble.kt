@@ -87,7 +87,7 @@ fun MessageBubble(
     val grouping = model.grouping
 
     val showSenderInfo = !isMine && !model.sender?.displayName.isNullOrBlank() && (
-            if (isDm) { model.showUsernameInDms } else { !grouping.groupedWithPrev }
+            if (isDm) { model.showUsernameInDms && !grouping.groupedWithPrev } else { !grouping.groupedWithPrev }
             )
     val showSenderAvatar = showSenderInfo && showMessageAvatars && !model.sender.id.isNullOrBlank()
 
