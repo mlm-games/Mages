@@ -123,9 +123,11 @@ jobs:
               javafxArm64("org.openjfx:javafx-base:${javafxVersion}:linux-aarch64")
               javafxArm64("org.openjfx:javafx-graphics:${javafxVersion}:linux-aarch64")
               javafxArm64("org.openjfx:javafx-media:${javafxVersion}:linux-aarch64")
+              javafxArm64("org.openjfx:javafx-swing:${javafxVersion}:linux-aarch64")
               javafxArm64("org.openjfx:javafx-base:${javafxVersion}:linux")
               javafxArm64("org.openjfx:javafx-graphics:${javafxVersion}:linux")
               javafxArm64("org.openjfx:javafx-media:${javafxVersion}:linux")
+              javafxArm64("org.openjfx:javafx-swing:${javafxVersion}:linux")
           }
           
           tasks.register("fetch") {
