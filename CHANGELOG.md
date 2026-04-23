@@ -1,3 +1,11 @@
+## v4.5.7
+
+- reduce the padding around floating date chip
+- Increase message bubble's max horiz. size
+- fix message grouping for username
+- fix audio crash
+
+
 ## v4.5.6
 
 - bump vers
