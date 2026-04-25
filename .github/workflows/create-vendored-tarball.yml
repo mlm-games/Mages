@@ -95,6 +95,9 @@ jobs:
           echo "Fetching JavaFX and Compose JARs"
           mkdir -p /tmp/fetch-project
 
+          cp gradlew /tmp/fetch-project/
+          cp -r gradle /tmp/fetch-project/
+
           cat > /tmp/fetch-project/settings.gradle.kts << 'SETTINGS'
           rootProject.name = "fetch-project"
           SETTINGS
@@ -142,7 +145,7 @@ jobs:
           }
           EOF
 
-          (cd /tmp/fetch-project && gradle --no-daemon -g "$GRADLE_USER_HOME" fetch)
+          (cd /tmp/fetch-project && ./gradlew --no-daemon -g "$GRADLE_USER_HOME" fetch)
 
           echo "Verifying BOTH Architectures are in cache"
           x64_jfx_count=$(find "$GRADLE_USER_HOME" -name "javafx-*-linux.jar" | wc -l)
