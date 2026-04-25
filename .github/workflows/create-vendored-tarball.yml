@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version_tag:
-        description: 'Version tag (e.g., 3.4.5)'
+        description: "Version tag (e.g., 3.4.5)"
         required: true
         type: string
       mark_prerelease:
@@ -28,8 +28,8 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@v5
         with:
-          java-version: '21'
-          distribution: 'temurin'
+          java-version: "21"
+          distribution: "temurin"
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -50,125 +50,131 @@ jobs:
       - name: Vendor Rust dependencies
         run: |
           set -e
-          
+
           mkdir -p .cargo vendor
-          
+
           echo " Vendor main project"
           cd rust
           cargo vendor --versioned-dirs ../vendor 2>&1 | tee /tmp/vendor-main.txt
           cd ..
-          
+
           echo "Main vendor: $(ls vendor | wc -l) packages"
-          
+
           echo ""
           echo " Vendor uniffi-bindgen"
           mkdir -p /tmp/vendor-uniffi
           cd rust/uniffi-bindgen
           cargo vendor --versioned-dirs /tmp/vendor-uniffi 2>&1 | tee /tmp/vendor-uniffi.txt
           cd ../..
-          
+
           echo ""
           echo " Merge uniffi deps"
           cp -r /tmp/vendor-uniffi/* vendor/ 2>/dev/null || true
-          
+
           echo "Merged vendor: $(ls vendor | wc -l) packages"
-          
+
           echo ""
           echo " Create config.toml"
           sed -n '/^To use vendored sources/,$p' /tmp/vendor-main.txt | tail -n +3 > .cargo/config.toml
           sed -i 's|directory = "../vendor"|directory = "vendor"|g' .cargo/config.toml
-          
+
           cat .cargo/config.toml
 
       - name: Vendor Gradle Dependencies (ALL platforms)
         run: |
           set -e
-          
+
           mkdir -p gradle-deps
           export GRADLE_USER_HOME=$(pwd)/gradle-deps
-          
-          echo " Building for current platform"
-          ./gradlew :desktopApp:createDistributable --no-daemon
-          
-          echo " Downloading linux-arm64 compose deps"
-          
-          # Create a temp project to fetch ARM64 deps
+
+          echo "Building x86_64 distributable"
+          ./gradlew :desktopApp:createDistributable \
+            --no-daemon \
+            --no-configuration-cache
+
+          echo "Fetching JavaFX and Compose JARs"
           mkdir -p /tmp/fetch-project
-          cat > /tmp/fetch-project/settings.gradle.kts << 'EOF'
-          rootProject.name = "fetch-deps"
-          EOF
-          
+
+          cat > /tmp/fetch-project/settings.gradle.kts << 'SETTINGS'
+          rootProject.name = "fetch-project"
+          SETTINGS
+
           cat > /tmp/fetch-project/build.gradle.kts << 'EOF'
           plugins {
               id("java")
           }
-          
+
           repositories {
               mavenCentral()
               google()
               maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
           }
-          
-          val composeArm64 by configurations.creating
-          val composeX64 by configurations.creating
-          val javafxArm64 by configurations.creating
-          val javafxX64 by configurations.creating
 
-          
+          val composeArm64 by configurations.creating { isTransitive = false }
+          val composeX64 by configurations.creating { isTransitive = false }
+          val javafxLinux by configurations.creating { isTransitive = false }
+          val javafxLinuxArm64 by configurations.creating { isTransitive = false }
+
           dependencies {
               composeArm64("org.jetbrains.compose.desktop:desktop-jvm-linux-arm64:1.11.0-alpha04")
               composeX64("org.jetbrains.compose.desktop:desktop-jvm-linux-x64:1.11.0-alpha04")
-              
-              val javafxVersion = "21.0.1"
-              javafxArm64("org.openjfx:javafx-base:${javafxVersion}:linux-aarch64")
-              javafxArm64("org.openjfx:javafx-graphics:${javafxVersion}:linux-aarch64")
-              javafxArm64("org.openjfx:javafx-media:${javafxVersion}:linux-aarch64")
-              javafxArm64("org.openjfx:javafx-swing:${javafxVersion}:linux-aarch64")
-              javafxArm64("org.openjfx:javafx-base:${javafxVersion}:linux")
-              javafxArm64("org.openjfx:javafx-graphics:${javafxVersion}:linux")
-              javafxArm64("org.openjfx:javafx-media:${javafxVersion}:linux")
-              javafxArm64("org.openjfx:javafx-swing:${javafxVersion}:linux")
+
+              val jfxVersion = "21.0.1"
+              javafxLinux("org.openjfx:javafx-base:$jfxVersion:linux")
+              javafxLinux("org.openjfx:javafx-graphics:$jfxVersion:linux")
+              javafxLinux("org.openjfx:javafx-media:$jfxVersion:linux")
+              javafxLinux("org.openjfx:javafx-swing:$jfxVersion:linux")
+
+              javafxLinuxArm64("org.openjfx:javafx-base:$jfxVersion:linux-aarch64")
+              javafxLinuxArm64("org.openjfx:javafx-graphics:$jfxVersion:linux-aarch64")
+              javafxLinuxArm64("org.openjfx:javafx-media:$jfxVersion:linux-aarch64")
+              javafxLinuxArm64("org.openjfx:javafx-swing:$jfxVersion:linux-aarch64")
           }
-          
+
           tasks.register("fetch") {
               doLast {
                   configurations["composeArm64"].resolve()
                   configurations["composeX64"].resolve()
-                  configurations["javafxArm64"].resolve()
-                  configurations["javafxX64"].resolve()
+                  configurations["javafxLinux"].resolve()
+                  configurations["javafxLinuxArm64"].resolve()
                   println("Downloaded all platform deps")
               }
           }
           EOF
-          
-          cd /tmp/fetch-project
-          gradle --no-daemon fetch
-          cd -
-          
-          echo " Cleaning up"
+
+          (cd /tmp/fetch-project && gradle --no-daemon -g "$GRADLE_USER_HOME" fetch)
+
+          echo "Verifying BOTH Architectures are in cache"
+          x64_jfx_count=$(find "$GRADLE_USER_HOME" -name "javafx-*-linux.jar" | wc -l)
+          arm64_jfx_count=$(find "$GRADLE_USER_HOME" -name "javafx-*-linux-aarch64.jar" | wc -l)
+
+          echo "Found $x64_jfx_count x64 JavaFX JARs"
+          echo "Found $arm64_jfx_count aarch64 JavaFX JARs"
+
+          echo "Cleaning build artifacts"
           ./gradlew clean --no-daemon
           rm -rf rust/target desktopApp/build shared/build
-          
+
           find gradle-deps -name "*.lock" -delete
           rm -rf gradle-deps/daemon gradle-deps/.tmp gradle-deps/kotlin-profile
-          
-          echo " Gradle cache size"
+
+          echo "Final cache size"
           du -sh gradle-deps
 
       - name: Create Fat Tarball
         run: |
           TARBALL_NAME="mages-${VERSION}-vendored-sources.tar.gz"
           mkdir -p package/mages
-          
+
           git archive --format=tar HEAD | tar -C package/mages -xf -
           cp -r vendor package/mages/
           cp -r .cargo package/mages/
           cp -r gradle-deps package/mages/
-          
+
           cd package
           tar -czf "../${TARBALL_NAME}" mages/
           cd ..
-          
+
           sha256sum "${TARBALL_NAME}" > "${TARBALL_NAME}.sha256"
           echo "SHA256: $(cat ${TARBALL_NAME}.sha256)"
 
