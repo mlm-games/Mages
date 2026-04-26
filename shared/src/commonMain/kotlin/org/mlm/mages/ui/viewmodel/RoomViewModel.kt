@@ -500,7 +500,10 @@ class RoomViewModel(
             "<a href=\"https://matrix.to/#/$escapedUserId\">$displayLabel</a>"
         }
         val parsedTree = MarkdownParser(markdownFlavour).buildMarkdownTreeFromString(processedText)
-        return HtmlGenerator(processedText, parsedTree, markdownFlavour, false).generateHtml()
+        var html = HtmlGenerator(processedText, parsedTree, markdownFlavour, false).generateHtml()
+        html = html.removeSurrounding("<body>", "</body>")
+        html = html.removeSurrounding("<p>", "</p>")
+        return html.ifBlank { null }
     }
 
     private fun escapeHtml(text: String): String = text
