@@ -1,13 +1,13 @@
 [versions]
-composeMultiplatform = "1.11.0-alpha04"
+composeMultiplatform = "1.11.0-beta03"
 
-composeBom = "2026.03.01"
+composeBom = "2026.04.01"
 
 agp = "9.2.0"
-android-compileSdk = "36"
+android-compileSdk = "37"
 android-minSdk = "24"
-android-targetSdk = "36"
-adaptiveNavigation3 = "1.3.0-alpha06"
+android-targetSdk = "37"
+adaptiveNavigation3 = "1.3.0-alpha07"
 coilCompose = "3.4.0"
 connector = "3.3.2"
 elementCallEmbedded = "0.19.2"
@@ -16,11 +16,11 @@ javafxPlugin = "0.1.0"
 jcefmaven = "143.0.14"
 json = "20251224"
 koinComposeNavigation3 = "4.2.1"
-material3 = "1.11.0-alpha06"
+material3 = "1.11.0-alpha07"
 markdown = "0.7.3"
 multiplatformMarkdownRenderer = "0.40.2"
 multiplatformMarkdownRendererM3 = "0.40.2"
-navigation3Ui = "1.0.0-alpha06"
+navigation3Ui = "1.1.0"
 pagingCompose = "3.4.2"
 slf4jSimple = "2.0.17"
 systemtray = "4.4"
@@ -32,10 +32,10 @@ androidx-core = "1.18.0"
 androidx-espresso = "3.7.0"
 androidx-lifecycle = "2.10.0"
 androidx-testExt = "1.3.0"
-datastorePreferencesCore = "1.3.0-alpha07"
+datastorePreferencesCore = "1.3.0-alpha08"
 jna = "5.18.1"
 junit = "4.13.2"
-kotlin = "2.3.20"
+kotlin = "2.3.21"
 kotlinxDatetime = "0.7.1"
 kotlinxBrowser = "0.5.0"
 materialIconsExtended = "1.7.3"
@@ -66,14 +66,14 @@ androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling
 
 androidx-paging-compose = { module = "androidx.paging:paging-compose", version.ref = "pagingCompose" }
 compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
-compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "composeMultiplatform" }
+#compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "composeMultiplatform" }
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
 compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
 compose-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
 compose-material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 
-#compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
+compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
 
 adaptive-navigation3 = { module = "org.jetbrains.compose.material3.adaptive:adaptive-navigation3", version.ref = "adaptiveNavigation3" }
 androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
