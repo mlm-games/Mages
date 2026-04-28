@@ -3279,7 +3279,7 @@ fn map_timeline_event(
             body = String::new();
             event_type = EventType::CallInvite;
         }
-        TimelineItemContent::RtcNotification { call_intent } => {
+        TimelineItemContent::RtcNotification { call_intent, .. } => {
             body = match call_intent {
                 Some(CallIntent::Video) => "Video Call started".to_string(),
                 Some(CallIntent::Audio) => "Audio Call started".to_string(),
@@ -3734,7 +3734,7 @@ fn map_latest_event_from_content(
             is_redacted = false;
             is_encrypted = false;
         }
-        TimelineItemContent::RtcNotification { call_intent } => {
+        TimelineItemContent::RtcNotification { call_intent, .. } => {
             msgtype = None;
             body = match call_intent {
                 Some(CallIntent::Video) => Some("Video Call started".to_string()),
@@ -3853,7 +3853,7 @@ fn try_map_timeline_event(
             event_type = "m.call.invite".to_owned();
             body = None;
         }
-        TimelineItemContent::RtcNotification { call_intent } => {
+        TimelineItemContent::RtcNotification { call_intent, .. } => {
             event_type = "m.rtc.notification".to_owned();
             body = match call_intent {
                 Some(CallIntent::Video) => Some("Video Call started".to_string()),
