@@ -3,6 +3,7 @@
 use futures_util::StreamExt;
 use js_int::UInt;
 use matrix_sdk::RoomState;
+use matrix_sdk::live_locations_observer::LiveLocationShare;
 use matrix_sdk::ruma::events::rtc::notification::CallIntent;
 use matrix_sdk::utils::UrlOrQuery;
 
@@ -1029,8 +1030,39 @@ impl Client {
                 return;
             };
             let observable = room.live_locations_observer().await;
-            let (_shares, stream) = observable.subscribe();
-            let _handle = stream;
+            let (initial_shares, stream) = observable.subscribe();
+            let mut all_shares: Vec<LiveLocationShareInfo> =
+                initial_shares.iter().map(map_live_location_share).collect();
+            let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(all_shares.clone())));
+            let mut stream = stream;
+            while let Some(diffs) = stream.next().await {
+                for diff in diffs {
+                    if let Some(mapped) = map_live_location_vec_diff(diff) {
+                        match mapped {
+                            VectorDiff::Insert { index, value } => all_shares.insert(index, value),
+                            VectorDiff::Set { index, value } => all_shares[index] = value,
+                            VectorDiff::Remove { index } => {
+                                all_shares.remove(index);
+                            }
+                            VectorDiff::PushBack { value } => all_shares.push(value),
+                            VectorDiff::PopBack => {
+                                all_shares.pop();
+                            }
+                            VectorDiff::PushFront { value } => all_shares.insert(0, value),
+                            VectorDiff::PopFront => {
+                                all_shares.remove(0);
+                            }
+                            VectorDiff::Clear => all_shares.clear(),
+                            VectorDiff::Truncate { length } => all_shares.truncate(length),
+                            VectorDiff::Append { values } => all_shares.extend(values),
+                            VectorDiff::Reset { values } => {
+                                all_shares = values.into_iter().collect();
+                            }
+                        }
+                    }
+                }
+                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(all_shares.clone())));
+            }
         })
     }
 
@@ -4111,6 +4143,51 @@ pub(crate) fn map_vec_diff(
             Some(TimelineDiffKind::Reset { values: vals })
         }
     }
+}
+
+pub(crate) fn map_live_location_share(s: &LiveLocationShare) -> LiveLocationShareInfo {
+    LiveLocationShareInfo {
+        user_id: s.user_id.to_string(),
+        geo_uri: s
+            .last_location
+            .as_ref()
+            .map(|l| l.location.uri.clone())
+            .unwrap_or_default(),
+        ts_ms: s.last_location.as_ref().map(|l| l.ts.0.into()).unwrap_or(0),
+        is_live: s.beacon_info.is_live(),
+    }
+}
+
+pub(crate) fn map_live_location_vec_diff(
+    diff: VectorDiff<LiveLocationShare>,
+) -> Option<VectorDiff<LiveLocationShareInfo>> {
+    Some(match diff {
+        VectorDiff::Append { values } => VectorDiff::Append {
+            values: values.iter().map(map_live_location_share).collect(),
+        },
+        VectorDiff::Insert { index, value } => VectorDiff::Insert {
+            index,
+            value: map_live_location_share(&value),
+        },
+        VectorDiff::Set { index, value } => VectorDiff::Set {
+            index,
+            value: map_live_location_share(&value),
+        },
+        VectorDiff::Remove { index } => VectorDiff::Remove { index },
+        VectorDiff::PushBack { value } => VectorDiff::PushBack {
+            value: map_live_location_share(&value),
+        },
+        VectorDiff::PopBack => VectorDiff::PopBack,
+        VectorDiff::PushFront { value } => VectorDiff::PushFront {
+            value: map_live_location_share(&value),
+        },
+        VectorDiff::PopFront => VectorDiff::PopFront,
+        VectorDiff::Clear => VectorDiff::Clear,
+        VectorDiff::Truncate { length } => VectorDiff::Truncate { length },
+        VectorDiff::Reset { values } => VectorDiff::Reset {
+            values: values.iter().map(map_live_location_share).collect(),
+        },
+    })
 }
 
 fn map_poll_state(state: &matrix_sdk_ui::timeline::PollState, me: &str) -> PollData {

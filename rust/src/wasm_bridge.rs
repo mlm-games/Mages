@@ -1,3 +1,4 @@
+use crate::{map_live_location_share, map_live_location_vec_diff};
 use crate::core::{CoreClient, TimelineManager, map_send_queue_update, room_list_membership};
 use crate::js_observer_json;
 use crate::js_observer_noargs;
@@ -1295,7 +1296,35 @@ impl WasmClient {
                 return;
             };
             let observable = room.live_locations_observer().await;
-            let _handle = observable.subscribe(obs);
+            let (initial_shares, stream) = observable.subscribe();
+            let mut all_shares: Vec<LiveLocationShareInfo> =
+                initial_shares.iter().map(map_live_location_share).collect();
+            let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(all_shares.clone())));
+            use futures_util::StreamExt;
+            use matrix_sdk_ui::eyeball_im::VectorDiff;
+            let mut stream = stream;
+            while let Some(diffs) = stream.next().await {
+                for diff in diffs {
+                    if let Some(mapped) = map_live_location_vec_diff(diff) {
+                        match mapped {
+                            VectorDiff::Insert { index, value } => all_shares.insert(index, value),
+                            VectorDiff::Set { index, value } => all_shares[index] = value,
+                            VectorDiff::Remove { index } => { all_shares.remove(index); }
+                            VectorDiff::PushBack { value } => all_shares.push(value),
+                            VectorDiff::PopBack => { all_shares.pop(); }
+                            VectorDiff::PushFront { value } => all_shares.insert(0, value),
+                            VectorDiff::PopFront => { all_shares.remove(0); }
+                            VectorDiff::Clear => all_shares.clear(),
+                            VectorDiff::Truncate { length } => all_shares.truncate(length),
+                            VectorDiff::Append { values } => all_shares.extend(values),
+                            VectorDiff::Reset { values } => {
+                                all_shares = values.into_iter().collect();
+                            }
+                        }
+                    }
+                }
+                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(all_shares.clone())));
+            }
         })
     }
 
