@@ -13,6 +13,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -116,6 +122,7 @@ fun SpacesScreen(
                         items(state.filteredSpaces, key = { it.roomId }) { space ->
                             SpaceCard(
                                 space = space,
+                                avatarPath = state.avatarPathByRoomId[space.roomId],
                                 onClick = { viewModel.openSpace(space) }
                             )
                         }
@@ -147,6 +154,7 @@ fun SpacesScreen(
 @Composable
 private fun SpaceCard(
     space: SpaceInfo,
+    avatarPath: String?,
     onClick: () -> Unit
 ) {
     Card(
@@ -163,18 +171,33 @@ private fun SpaceCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Space icon
-            Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.size(56.dp)
-            ) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Default.Workspaces,
-                        null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(28.dp)
-                    )
+            if (avatarPath != null) {
+                val ctx = LocalPlatformContext.current
+                AsyncImage(
+                    model = ImageRequest.Builder(ctx)
+                        .data(avatarPath)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(MaterialTheme.shapes.medium)
+                )
+            } else {
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.Workspaces,
+                            null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
                 }
             }
 

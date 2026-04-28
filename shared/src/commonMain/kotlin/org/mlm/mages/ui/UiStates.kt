@@ -168,7 +168,7 @@ data class RoomUiState(
     val isRoomSearching: Boolean = false,
     val hasRoomSearched: Boolean = false,
     val hasActiveCallForRoom: Boolean = false,
-    
+
     // Room action availability states
     val voiceCallAction: ActionAvailabilityUi = ActionAvailabilityUi(),
     val videoCallAction: ActionAvailabilityUi = ActionAvailabilityUi(),
@@ -309,6 +309,7 @@ data class SpacesUiState(
     val searchQuery: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
+    val avatarPathByRoomId: Map<String, String> = emptyMap(),
 
     // Create space
     val showCreateSpace: Boolean = false,

@@ -1200,7 +1200,8 @@ class RustMatrixPort : MatrixPort, VerificationService {
                             topic = space.topic,
                             memberCount = space.memberCount.toLong(),
                             isEncrypted = space.isEncrypted,
-                            isPublic = space.isPublic
+                            isPublic = space.isPublic,
+                            avatarUrl = space.avatarUrl
                         )
                     }
                 }

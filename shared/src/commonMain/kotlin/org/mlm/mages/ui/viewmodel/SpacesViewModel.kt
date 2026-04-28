@@ -41,7 +41,16 @@ class SpacesViewModel(
                     isLoading = false
                 )
             }
+            resolveSpaceAvatars(spaces)
             recomputeFilteredSpaces()
+        }
+    }
+
+    private fun resolveSpaceAvatars(spaces: List<SpaceInfo>) {
+        spaces.forEach { space ->
+            resolveAvatar(service, space.avatarUrl, 64) { path ->
+                copy(avatarPathByRoomId = avatarPathByRoomId + (space.roomId to path))
+            }
         }
     }
 
