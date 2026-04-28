@@ -17,6 +17,7 @@ use matrix_sdk::{
             presence::{get_presence::v3 as get_presence_v3, set_presence::v3 as set_presence_v3},
             receipt::create_receipt::v3::ReceiptType,
             room::{Visibility, upgrade_room::v3 as upgrade_room_v3},
+            uiaa::{EmailUserIdentifier, MatrixUserIdentifier, PhoneNumberUserIdentifier},
         },
         directory::{Filter, PublicRoomsChunk},
         events::{
@@ -280,10 +281,10 @@ impl CoreClient {
         }
 
         let user_id = match kind {
-            PasswordLoginKind::Username => UserIdentifier::UserIdOrLocalpart(identifier),
-            PasswordLoginKind::Email => UserIdentifier::Email {
-                address: identifier,
-            },
+            PasswordLoginKind::Username => {
+                UserIdentifier::Matrix(MatrixUserIdentifier::new(identifier))
+            }
+            PasswordLoginKind::Email => UserIdentifier::Email(EmailUserIdentifier::new(identifier)),
             PasswordLoginKind::Phone => {
                 let country = country.unwrap_or_default().trim().to_uppercase();
                 if country.len() != 2 {
@@ -291,11 +292,7 @@ impl CoreClient {
                         "phone login requires a 2-letter country code".into(),
                     ));
                 }
-
-                UserIdentifier::PhoneNumber {
-                    country,
-                    phone: identifier,
-                }
+                UserIdentifier::PhoneNumber(PhoneNumberUserIdentifier::new(country, identifier))
             }
         };
 
@@ -1394,11 +1391,18 @@ impl CoreClient {
                     .create_custom_conditional_push_rule(
                         REACTION_NOTIFY_RULE_ID.to_owned(),
                         RuleKind::Override,
-                        vec![Action::Notify, Action::SetTweak(Tweak::Highlight(false))],
-                        vec![PushCondition::EventMatch {
-                            key: "type".to_owned(),
-                            pattern: "m.reaction".to_owned(),
-                        }],
+                        vec![
+                            Action::Notify,
+                            Action::SetTweak(Tweak::Highlight(
+                                matrix_sdk::ruma::push::HighlightTweakValue::No,
+                            )),
+                        ],
+                        vec![PushCondition::EventMatch(
+                            matrix_sdk::ruma::push::EventMatchConditionData::new(
+                                "type".to_owned(),
+                                "m.reaction".to_owned(),
+                            ),
+                        )],
                     )
                     .await
                     .map_err(|e| FfiError::Msg(e.to_string()))?;

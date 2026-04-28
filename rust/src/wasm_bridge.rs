@@ -1294,27 +1294,8 @@ impl WasmClient {
             let Some(room) = s.client().get_room(&rid) else {
                 return;
             };
-            let observable = room.observe_live_location_shares();
-            let stream = observable.subscribe();
-            use futures_util::pin_mut;
-            pin_mut!(stream);
-            let mut latest: HashMap<String, LiveLocationShareInfo> = HashMap::new();
-            while let Some(event) = stream.next().await {
-                let info = LiveLocationShareInfo {
-                    user_id: event.user_id.to_string(),
-                    geo_uri: event.last_location.location.uri.to_string(),
-                    ts_ms: event.last_location.ts.0.into(),
-                    is_live: event
-                        .beacon_info
-                        .as_ref()
-                        .map(|i| i.is_live())
-                        .unwrap_or(true),
-                };
-                latest.insert(info.user_id.clone(), info);
-                let _ = catch_unwind(AssertUnwindSafe(|| {
-                    obs.on_update(latest.values().cloned().collect())
-                }));
-            }
+            let observable = room.live_locations_observer().await;
+            let _handle = observable.subscribe(obs);
         })
     }
 

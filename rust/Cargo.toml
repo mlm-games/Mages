@@ -38,7 +38,6 @@ matrix-sdk = { version = "0.16.0", default-features = false, features = [
     "e2e-encryption",
     "sqlite",
     "bundled-sqlite",
-    "rustls-tls",
     "sso-login",
     "automatic-room-key-forwarding",
     "experimental-search",
@@ -61,7 +60,6 @@ reqwest = { version = "0.13", default-features = false, features = [
 matrix-sdk = { version = "0.16.0", default-features = false, features = [
     "e2e-encryption",
     "indexeddb",
-    "rustls-tls",
     # "sso-login",  # Disabled - pulls in axum -> doesn't support wasm
     "automatic-room-key-forwarding",
     # "experimental-search",  # Disabled - tantivy -> fs4 -> rustix -> errno, no wasm support

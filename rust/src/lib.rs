@@ -3,6 +3,7 @@
 use futures_util::StreamExt;
 use js_int::UInt;
 use matrix_sdk::RoomState;
+use matrix_sdk::ruma::events::rtc::notification::CallIntent;
 use matrix_sdk::utils::UrlOrQuery;
 
 use matrix_sdk::authentication::oauth::registration::language_tags::LanguageTag;
@@ -1027,26 +1028,9 @@ impl Client {
             let Some(room) = sdk.get_room(&rid) else {
                 return;
             };
-            let observable = room.observe_live_location_shares();
-            let stream = observable.subscribe();
-            use futures_util::{StreamExt, pin_mut};
-            pin_mut!(stream);
-            let mut latest_shares: HashMap<String, LiveLocationShareInfo> = HashMap::new();
-            while let Some(event) = stream.next().await {
-                let info = LiveLocationShareInfo {
-                    user_id: event.user_id.to_string(),
-                    geo_uri: event.last_location.location.uri.to_string(),
-                    ts_ms: event.last_location.ts.0.into(),
-                    is_live: event
-                        .beacon_info
-                        .as_ref()
-                        .map(|i| i.is_live())
-                        .unwrap_or(true),
-                };
-                latest_shares.insert(info.user_id.clone(), info);
-                let snapshot = latest_shares.values().cloned().collect();
-                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(snapshot)));
-            }
+            let observable = room.live_locations_observer().await;
+            let (_shares, stream) = observable.subscribe();
+            let _handle = stream;
         })
     }
 
@@ -3263,8 +3247,12 @@ fn map_timeline_event(
             body = String::new();
             event_type = EventType::CallInvite;
         }
-        TimelineItemContent::RtcNotification => {
-            body = "Call started".to_string();
+        TimelineItemContent::RtcNotification { call_intent } => {
+            body = match call_intent {
+                Some(CallIntent::Video) => "Video Call started".to_string(),
+                Some(CallIntent::Audio) => "Audio Call started".to_string(),
+                Some(_) | None => "Call started".to_string(),
+            };
             event_type = EventType::CallNotification;
         }
         _ => {
@@ -3522,7 +3510,7 @@ fn render_timeline_text(ev: &EventTimelineItem) -> String {
 
         // don't show call signalling messages
         TimelineItemContent::CallInvite => String::new(),
-        TimelineItemContent::RtcNotification => String::new(),
+        TimelineItemContent::RtcNotification { .. } => String::new(),
 
         _ => String::new(),
     }
@@ -3714,9 +3702,13 @@ fn map_latest_event_from_content(
             is_redacted = false;
             is_encrypted = false;
         }
-        TimelineItemContent::RtcNotification => {
+        TimelineItemContent::RtcNotification { call_intent } => {
             msgtype = None;
-            body = Some("Call started".to_owned());
+            body = match call_intent {
+                Some(CallIntent::Video) => Some("Video Call started".to_string()),
+                Some(CallIntent::Audio) => Some("Audio Call started".to_string()),
+                Some(_) | None => Some("Call started".to_string()),
+            };
             event_type = "m.rtc.notification".to_owned();
             is_redacted = false;
             is_encrypted = false;
@@ -3829,9 +3821,13 @@ fn try_map_timeline_event(
             event_type = "m.call.invite".to_owned();
             body = None;
         }
-        TimelineItemContent::RtcNotification => {
+        TimelineItemContent::RtcNotification { call_intent } => {
             event_type = "m.rtc.notification".to_owned();
-            body = Some("Call started".to_owned());
+            body = match call_intent {
+                Some(CallIntent::Video) => Some("Video Call started".to_string()),
+                Some(CallIntent::Audio) => Some("Audio Call started".to_string()),
+                Some(_) | None => Some("Call started".to_string()),
+            };
         }
         _ => {
             return None;
@@ -4062,7 +4058,7 @@ pub(crate) fn map_vec_diff(
             .map(|v| TimelineDiffKind::PushFront { value: v }),
 
         VectorDiff::Set { index: _, value } => {
-            let item_id = value.unique_id().0.to_string();
+            let item_id = value.unique_id().0.clone();
             value
                 .as_event()
                 .and_then(|ei| {
@@ -4073,7 +4069,7 @@ pub(crate) fn map_vec_diff(
         }
 
         VectorDiff::Insert { index: _, value } => {
-            let item_id = value.unique_id().0.to_string();
+            let item_id = value.unique_id().0.clone();
             value
                 .as_event()
                 .and_then(|ei| {
