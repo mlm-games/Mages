@@ -1159,7 +1159,7 @@ private fun RoomBottomBar(
     onCancelVoiceRecording: () -> Unit = {},
     onVoiceRecordingComplete: (filePath: String, durationMs: Long, waveform: List<Float>) -> Unit = { _, _, _ -> },
 ) {
-    Column(modifier = Modifier.navigationBarsPadding()) {
+    Column(modifier = Modifier.navigationBarsPadding().imePadding()) {
         ActionBanner(
             replyingTo = state.replyingTo,
             editing = state.editing,
