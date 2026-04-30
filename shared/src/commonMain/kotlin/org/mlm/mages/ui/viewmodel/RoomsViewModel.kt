@@ -116,6 +116,43 @@ class RoomsViewModel(
         }
     }
 
+    fun markRead(roomId: String) {
+        launch {
+            service.port.markRead(roomId).onSuccess {
+                updateState {
+                    copy(unread = unread - roomId)
+                }
+                recomputeGroupedRooms()
+            }
+        }
+    }
+
+    fun toggleFavourite(roomId: String, currentFavourite: Boolean) {
+        launch {
+            service.port.setRoomFavourite(roomId, !currentFavourite).onSuccess {
+                updateState {
+                    copy(
+                        favourites = if (!currentFavourite) favourites + roomId else favourites - roomId
+                    )
+                }
+                recomputeGroupedRooms()
+            }
+        }
+    }
+
+    fun toggleLowPriority(roomId: String, currentLowPriority: Boolean) {
+        launch {
+            service.port.setRoomLowPriority(roomId, !currentLowPriority).onSuccess {
+                updateState {
+                    copy(
+                        lowPriority = if (!currentLowPriority) lowPriority + roomId else lowPriority - roomId
+                    )
+                }
+                recomputeGroupedRooms()
+            }
+        }
+    }
+
     fun refresh() {
         updateState { copy(isLoading = true) }
         runCatching { service.port.enterForeground() }

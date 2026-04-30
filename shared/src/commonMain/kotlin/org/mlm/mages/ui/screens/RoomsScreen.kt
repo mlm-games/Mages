@@ -26,6 +26,7 @@ import org.mlm.mages.ui.components.core.SectionHeader
 import org.mlm.mages.ui.components.core.ShimmerList
 import org.mlm.mages.ui.components.core.StatusBanner
 import org.mlm.mages.ui.components.core.BannerType
+import org.mlm.mages.ui.components.sheets.RoomActionsSheet
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.RoomsViewModel
 import org.jetbrains.compose.resources.stringResource
@@ -44,6 +45,8 @@ fun RoomsScreen(
     val state by viewModel.state.collectAsState()
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+
+    var selectedRoom by remember { mutableStateOf<Pair<String, String>?>(null) }
 
     val hasAnyRooms = state.favouriteItems.isNotEmpty() ||
             state.normalItems.isNotEmpty() ||
@@ -197,7 +200,8 @@ fun RoomsScreen(
                             val resolved = state.roomAvatarPath[item.roomId] ?: item.avatarUrl
                             RoomListItem(
                                 item = item.copy(avatarUrl = resolved),
-                                onClick = { viewModel.openRoom(RoomSummary(item.roomId, item.name)) }
+                                onClick = { viewModel.openRoom(RoomSummary(item.roomId, item.name)) },
+                                onLongClick = { selectedRoom = item.name to item.roomId }
                             )
                         }
                     }
@@ -225,7 +229,8 @@ fun RoomsScreen(
                             val resolved = state.roomAvatarPath[item.roomId] ?: item.avatarUrl
                             RoomListItem(
                                 item = item.copy(avatarUrl = resolved),
-                                onClick = { viewModel.openRoom(RoomSummary(item.roomId, item.name)) }
+                                onClick = { viewModel.openRoom(RoomSummary(item.roomId, item.name)) },
+                                onLongClick = { selectedRoom = item.name to item.roomId }
                             )
                         }
                     }
@@ -252,6 +257,7 @@ fun RoomsScreen(
                             RoomListItem(
                                 item = item.copy(avatarUrl = resolved),
                                 onClick = { viewModel.openRoom(RoomSummary(item.roomId, item.name)) },
+                                onLongClick = { selectedRoom = item.name to item.roomId },
                                 modifier = Modifier.alpha(0.6f)
                             )
                         }
@@ -278,6 +284,19 @@ fun RoomsScreen(
                 }
             }
         }
+    }
+
+    selectedRoom?.let { (name, roomId) ->
+        RoomActionsSheet(
+            roomName = name,
+            roomId = roomId,
+            isFavourite = roomId in state.favourites,
+            isLowPriority = roomId in state.lowPriority,
+            onDismiss = { selectedRoom = null },
+            onMarkRead = { viewModel.markRead(roomId) },
+            onToggleFavourite = { viewModel.toggleFavourite(roomId, roomId in state.favourites) },
+            onToggleLowPriority = { viewModel.toggleLowPriority(roomId, roomId in state.lowPriority) }
+        )
     }
 }
 
