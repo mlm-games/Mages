@@ -46,6 +46,18 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.6.1" date="2026-05-01" type="stable">
+      <description>
+        <ul>
+          <li>Add long press menu to mark rooms as read, or set room flags (#94)</li>
+          <li>live loc fix</li>
+          <li>resolve space avatars (#92)</li>
+          <li>bump target sdk to 37, and other lib vers</li>
+          <li>bump agp and element-call vers to 9.2.0 and 0.19.2 respectively</li>
+          <li>strip out &lt;body&gt; and &lt;p&gt; tags when sending markdown messages (#81)</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.5.7" date="2026-04-23" type="stable">
       <description>
         <ul>
