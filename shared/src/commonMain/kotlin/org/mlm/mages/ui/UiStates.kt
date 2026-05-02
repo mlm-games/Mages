@@ -392,6 +392,7 @@ enum class LastMessageType {
     Call,
     Encrypted,
     Redacted,
+    Membership,
     Unknown
 }
 

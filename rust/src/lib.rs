@@ -3745,7 +3745,41 @@ fn map_latest_event_from_content(
             is_redacted = false;
             is_encrypted = false;
         }
-        _ => {
+        TimelineItemContent::MembershipChange(ch) => {
+            use matrix_sdk_ui::timeline::MembershipChange as MC;
+            let subject = ch.user_id().to_string();
+            body = Some(match ch.change() {
+                Some(MC::Joined) => format!("{subject} joined the room"),
+                Some(MC::Left) => format!("{subject} left the room"),
+                Some(MC::Invited) => format!("{subject} was invited"),
+                Some(MC::Kicked) => format!("{subject} was removed"),
+                Some(MC::Banned) => format!("{subject} was banned"),
+                Some(MC::Unbanned) => format!("{subject} was unbanned"),
+                Some(MC::InvitationAccepted) => format!("{subject} joined"),
+                Some(MC::InvitationRejected) => format!("{subject} rejected invite"),
+                Some(MC::InvitationRevoked) => format!("{subject} invite revoked"),
+                Some(MC::KickedAndBanned) => format!("{subject} was removed and banned"),
+                Some(MC::Knocked) => format!("{subject} knocked"),
+                Some(MC::KnockAccepted) => format!("{subject} knock accepted"),
+                Some(MC::KnockDenied) => format!("{subject} knock denied"),
+                Some(MC::KnockRetracted) => format!("{subject} knock retracted"),
+                _ => format!("{subject} membership changed"),
+            });
+            msgtype = None;
+            event_type = "m.room.member".to_owned();
+            is_redacted = false;
+            is_encrypted = false;
+        }
+        TimelineItemContent::ProfileChange(_) => {
+            return None;
+        }
+        TimelineItemContent::OtherState(_) => {
+            return None;
+        }
+        TimelineItemContent::FailedToParseMessageLike { .. } => {
+            return None;
+        }
+        TimelineItemContent::FailedToParseState { .. } => {
             return None;
         }
     };
@@ -3861,7 +3895,41 @@ fn try_map_timeline_event(
                 Some(_) | None => Some("Call started".to_string()),
             };
         }
-        _ => {
+        TimelineItemContent::MembershipChange(ch) => {
+            use matrix_sdk_ui::timeline::MembershipChange as MC;
+            let subject = ch.user_id().to_string();
+            body = Some(match ch.change() {
+                Some(MC::Joined) => format!("{subject} joined the room"),
+                Some(MC::Left) => format!("{subject} left the room"),
+                Some(MC::Invited) => format!("{subject} was invited"),
+                Some(MC::Kicked) => format!("{subject} was removed"),
+                Some(MC::Banned) => format!("{subject} was banned"),
+                Some(MC::Unbanned) => format!("{subject} was unbanned"),
+                Some(MC::InvitationAccepted) => format!("{subject} joined"),
+                Some(MC::InvitationRejected) => format!("{subject} rejected invite"),
+                Some(MC::InvitationRevoked) => format!("{subject} invite revoked"),
+                Some(MC::KickedAndBanned) => format!("{subject} was removed and banned"),
+                Some(MC::Knocked) => format!("{subject} knocked"),
+                Some(MC::KnockAccepted) => format!("{subject} knock accepted"),
+                Some(MC::KnockDenied) => format!("{subject} knock denied"),
+                Some(MC::KnockRetracted) => format!("{subject} knock retracted"),
+                _ => format!("{subject} membership changed"),
+            });
+            msgtype = None;
+            event_type = "m.room.member".to_owned();
+            is_redacted = false;
+            is_encrypted = false;
+        }
+        TimelineItemContent::ProfileChange(_) => {
+            return None;
+        }
+        TimelineItemContent::OtherState(_) => {
+            return None;
+        }
+        TimelineItemContent::FailedToParseMessageLike { .. } => {
+            return None;
+        }
+        TimelineItemContent::FailedToParseState { .. } => {
             return None;
         }
     }

@@ -209,6 +209,7 @@ class RoomsViewModel(
             evType  == "m.call.invite"  -> LastMessageType.Call
             evType  == "m.rtc.notification" -> LastMessageType.Call
             evType  == "m.call.notify" -> LastMessageType.Call
+            evType  == "m.room.member" -> LastMessageType.Membership
             event.isEncrypted && event.body == null -> LastMessageType.Encrypted
             else -> LastMessageType.Text
         }

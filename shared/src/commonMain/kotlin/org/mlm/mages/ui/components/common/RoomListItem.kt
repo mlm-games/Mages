@@ -331,6 +331,10 @@ private fun formatMessagePreview(
             text = senderPrefix + "Message deleted"
         )
 
+        LastMessageType.Membership -> MessagePreview(
+            text = body?.take(Limits.previewCharsMedium)?.replace('\n', ' ') ?: "Membership changed"
+        )
+
         LastMessageType.Unknown -> MessagePreview(
             text = body?.take(Limits.previewCharsMedium)?.replace('\n', ' ') ?: "Encrypted or Unknown message"
         )
