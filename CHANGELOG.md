@@ -1,3 +1,14 @@
+## v4.6.2
+
+- Update release notes for v4.6.1
+- Add long press menu to mark rooms as read, or set room flags (#94)
+- live loc fix
+- resolve space avatars (#92)
+- bump target sdk to 37, and other lib vers
+- bump agp and element-call vers to 9.2.0 and 0.19.2 respectively
+- strip out <body> and <p> tags when sending markdown messages (#81)
+
+
 ## v4.6.1
 
 - Add long press menu to mark rooms as read, or set room flags (#94)
