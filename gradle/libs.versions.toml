@@ -1,9 +1,9 @@
 [versions]
-composeMultiplatform = "1.11.0-beta03"
+composeMultiplatform = "1.11.0-rc01"
 
-composeBom = "2026.04.01"
+composeBom = "2026.05.00"
 
-agp = "9.2.0"
+agp = "9.2.1"
 android-compileSdk = "37"
 android-minSdk = "24"
 android-targetSdk = "37"
@@ -13,15 +13,15 @@ connector = "3.3.2"
 elementCallEmbedded = "0.19.2"
 javafx = "21.0.1"
 javafxPlugin = "0.1.0"
-jcefmaven = "143.0.14"
+jcefmaven = "146.0.10"
 json = "20251224"
 koinComposeNavigation3 = "4.2.1"
 material3 = "1.11.0-alpha07"
 markdown = "0.7.3"
 multiplatformMarkdownRenderer = "0.40.2"
 multiplatformMarkdownRendererM3 = "0.40.2"
-navigation3Ui = "1.1.0"
-pagingCompose = "3.4.2"
+navigation3Ui = "1.1.1"
+pagingCompose = "3.5.0"
 slf4jSimple = "2.0.17"
 systemtray = "4.4"
 uiToolingPreview = "1.10.0"
@@ -32,18 +32,18 @@ androidx-core = "1.18.0"
 androidx-espresso = "3.7.0"
 androidx-lifecycle = "2.10.0"
 androidx-testExt = "1.3.0"
-datastorePreferencesCore = "1.3.0-alpha08"
+datastorePreferencesCore = "1.3.0-alpha09"
 jna = "5.18.1"
 junit = "4.13.2"
 kotlin = "2.3.21"
-kotlinxDatetime = "0.7.1"
+kotlinxDatetime = "0.8.0"
 kotlinxBrowser = "0.5.0"
 materialIconsExtended = "1.7.3"
 okio = "3.17.0"
 serialization = "1.11.0"
-coroutines = "1.10.2"
+coroutines = "1.11.0"
 uriKmp = "0.0.21"
-webkit = "1.15.0"
+webkit = "1.16.0"
 workRuntimeKtx = "2.11.2"
 browser = "1.10.0"
 koin = "4.2.1"
@@ -130,7 +130,7 @@ kmp-settings-ui-compose = { module = "io.github.mlm-games:kmp-settings-ui-compos
 filekit-core = { module = "io.github.vinceglb:filekit-core", version.ref = "filekit" }
 filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
 
-gadulka = { module = "eu.iamkonstantin.kotlin:gadulka", version = "1.11.0" }
+gadulka = { module = "eu.iamkonstantin.kotlin:gadulka", version = "1.13.0" }
 
 maplibre-compose = { module = "org.maplibre.compose:maplibre-compose", version.ref = "maplibreCompose" }
 maplibre-native-bindings-jni = { module = "org.maplibre.compose:maplibre-native-bindings-jni", version.ref = "maplibreCompose" }
