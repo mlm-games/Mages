@@ -22,30 +22,8 @@ class AccountStore(
     suspend fun init() {
         val settings = settingsRepository.flow.first()
 
-        val browserAccountsJson = BrowserAccountStorage.getAccountsJson()
-        val browserActiveAccountId = BrowserAccountStorage.getActiveAccountId()
-
-        val effectiveAccountsJson =
-            browserAccountsJson?.takeIf { it.isNotBlank() } ?: settings.accountsJson
-
-        val effectiveActiveAccountId =
-            browserActiveAccountId ?: settings.activeAccountId
-
-        _accounts.value = decodeAccounts(effectiveAccountsJson)
-        _activeAccountId.value = effectiveActiveAccountId
-
-        if (
-            BrowserAccountStorage.isAvailable &&
-            (effectiveAccountsJson != settings.accountsJson ||
-             effectiveActiveAccountId != settings.activeAccountId)
-        ) {
-            settingsRepository.update {
-                it.copy(
-                    accountsJson = effectiveAccountsJson,
-                    activeAccountId = effectiveActiveAccountId
-                )
-            }
-        }
+        _accounts.value = decodeAccounts(settings.accountsJson)
+        _activeAccountId.value = settings.activeAccountId
     }
 
     private fun decodeAccounts(raw: String?): List<MatrixAccount> {
@@ -59,10 +37,7 @@ class AccountStore(
 
     private suspend fun saveAccounts(accounts: List<MatrixAccount>) {
         val encoded = json.encodeToString(accounts)
-
         settingsRepository.update { it.copy(accountsJson = encoded) }
-        BrowserAccountStorage.setAccountsJson(encoded)
-
         _accounts.value = accounts
     }
 
@@ -73,7 +48,6 @@ class AccountStore(
 
     suspend fun setActiveAccountId(id: String?) {
         settingsRepository.update { it.copy(activeAccountId = id) }
-        BrowserAccountStorage.setActiveAccountId(id)
         _activeAccountId.value = id
     }
 
