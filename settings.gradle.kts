@@ -36,3 +36,11 @@ include(":shared")
 include(":androidApp")
 include(":desktopApp")
 include(":webApp")
+
+//includeBuild("../kmp-settings") {
+//    dependencySubstitution {
+//        substitute(module("io.github.mlm-games:kmp-settings-core")).using(project(":settings-core"))
+//        substitute(module("io.github.mlm-games:kmp-settings-ui-compose")).using(project(":settings-ui-compose"))
+//        substitute(module("io.github.mlm-games:kmp-settings-ksp")).using(project(":settings-ksp"))
+//    }
+//}

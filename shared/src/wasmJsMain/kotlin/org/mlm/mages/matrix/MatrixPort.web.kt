@@ -326,8 +326,8 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     }
 
     override suspend fun login(user: String, password: String, deviceDisplayName: String?) {
-        val result = requireClient().loginAsync(user, password, deviceDisplayName).await<String?>()
-        val error = result?.takeIf { it.isNotBlank() }
+        val result = requireClient().loginAsync(user, password, deviceDisplayName).await<JsAny?>()
+        val error = result.toJsonPrimitive()?.contentOrNull
         if (error != null) {
             throw IllegalStateException(error)
         }
@@ -337,8 +337,8 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     }
 
     override suspend fun loginEmail(email: String, password: String, deviceDisplayName: String?) {
-        val result = requireClient().loginEmail(email, password, deviceDisplayName).await<String?>()
-        val error = result?.takeIf { it.isNotBlank() }
+        val result = requireClient().loginEmail(email, password, deviceDisplayName).await<JsAny?>()
+        val error = result.toJsonPrimitive()?.contentOrNull
         if (error != null) {
             throw IllegalStateException(error)
         }
@@ -348,8 +348,8 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     }
 
     override suspend fun loginPhone(country: String, phone: String, password: String, deviceDisplayName: String?) {
-        val result = requireClient().loginPhone(country, phone, password, deviceDisplayName).await<String?>()
-        val error = result?.takeIf { it.isNotBlank() }
+        val result = requireClient().loginPhone(country, phone, password, deviceDisplayName).await<JsAny?>()
+        val error = result.toJsonPrimitive()?.contentOrNull
         if (error != null) {
             throw IllegalStateException(error)
         }
