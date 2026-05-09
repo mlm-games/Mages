@@ -117,7 +117,6 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.browser)
-            implementation(libs.androidx.datastore.preferences.core)
         }
     }
 }
