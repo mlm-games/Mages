@@ -914,6 +914,7 @@ pub struct LiveLocationBeaconState {
 
 pub(crate) enum RoomListCmd {
     SetUnreadOnly(bool),
+    UpdateVisibleRange((Vec<u64>, usize)),
 }
 
 fn default_auth_api() -> String {

@@ -841,6 +841,9 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun roomListSetUnreadOnly(token: ULong, unreadOnly: Boolean): Boolean =
         requireClient().roomListSetUnreadOnly(token.toDouble(), unreadOnly)
 
+    override suspend fun roomListUpdateVisibleRange(token: ULong, range: List<Int>, threshold: Int): Boolean =
+        requireClient().roomListUpdateVisibleRange(token.toDouble(), range.map { it.toULong().toDouble() }.toTypedArray(), threshold.toDouble())
+
     override suspend fun loginSsoLoopback(openUrl: (String) -> Boolean, deviceName: String?): Result<Unit> {
         return Result.failure(UnsupportedOperationException("SSO not supported on web"))
     }

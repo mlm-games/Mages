@@ -920,6 +920,15 @@ impl Client {
                                     controller.set_filter(Box::new(filters::new_filter_non_left()));
                                 }
                             }
+                            RoomListCmd::UpdateVisibleRange((range, threshold)) => {
+                                let total_items = items.len();
+                                if let Some(&position) = range.last() {
+                                    let threshold_idx = total_items.saturating_sub(threshold);
+                                    if total_items > 0 && position as usize >= threshold_idx {
+                                        let _ = controller.add_one_page();
+                                    }
+                                }
+                            }
                         }
                     }
                     Some(diffs) = stream.next() => {
@@ -987,6 +996,14 @@ impl Client {
     pub fn room_list_set_unread_only(&self, token: u64, unread_only: bool) -> bool {
         if let Some(tx) = self.room_list_cmds.lock().unwrap().get(&token).cloned() {
             tx.send(RoomListCmd::SetUnreadOnly(unread_only)).is_ok()
+        } else {
+            false
+        }
+    }
+
+    pub fn room_list_update_visible_range(&self, token: u64, range: Vec<u64>, threshold: u32) -> bool {
+        if let Some(tx) = self.room_list_cmds.lock().unwrap().get(&token).cloned() {
+            tx.send(RoomListCmd::UpdateVisibleRange((range, threshold as usize))).is_ok()
         } else {
             false
         }

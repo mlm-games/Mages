@@ -867,6 +867,13 @@ class RustMatrixPort : MatrixPort, VerificationService {
             }
         }
 
+    override suspend fun roomListUpdateVisibleRange(token: ULong, range: List<Int>, threshold: Int): Boolean =
+        withContext(matrixDispatcher) {
+            withClient {
+                it.roomListUpdateVisibleRange(token, range.map { it.toULong() }, threshold.toUInt())
+            }
+        }
+
     override suspend fun loginSsoLoopback(
         openUrl: (String) -> Boolean,
         deviceName: String?

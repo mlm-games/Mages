@@ -1903,6 +1903,19 @@ impl WasmClient {
         }
     }
 
+    #[wasm_bindgen(js_name = roomListUpdateVisibleRange)]
+    pub fn room_list_update_visible_range(&self, token: f64, range: JsValue, threshold: f64) -> bool {
+        let Some(state) = self.state() else {
+            return false;
+        };
+        let range_vec: Vec<u64> = serde_wasm_bindgen::from_value(range).unwrap_or_default();
+        if let Some(tx) = state.room_list_cmds.borrow().get(&(token as u64)).cloned() {
+            tx.send(RoomListCmd::UpdateVisibleRange((range_vec, threshold as usize))).is_ok()
+        } else {
+            false
+        }
+    }
+
     #[wasm_bindgen(js_name = observeOwnReceipt)]
     pub fn observe_own_receipt(&self, room_id: String, on_changed: Function) -> f64 {
         let Some(state) = self.state() else {

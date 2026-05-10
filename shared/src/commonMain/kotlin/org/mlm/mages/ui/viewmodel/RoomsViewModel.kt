@@ -158,6 +158,14 @@ class RoomsViewModel(
         runCatching { service.port.enterForeground() }
     }
 
+    fun updateVisibleRange(range: IntRange, threshold: Int = 60) {
+        roomListToken?.let { token ->
+            launch {
+                service.port.roomListUpdateVisibleRange(token, range.toList(), threshold)
+            }
+        }
+    }
+
     private fun mapRoomSummary(entry: RoomListEntry): RoomSummary {
         return RoomSummary(
             id = entry.roomId,

@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
@@ -78,6 +79,17 @@ fun RoomsScreen(
         if ((firstFavouriteId != null || firstNormalId != null) && listState.firstVisibleItemIndex > 0) {
             listState.animateScrollToItem(0)
         }
+    }
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo }
+            .collect { layoutInfo ->
+                val visible = layoutInfo.visibleItemsInfo
+                if (visible.isNotEmpty()) {
+                    val range = visible.first().index..visible.last().index
+                    viewModel.updateVisibleRange(range, 60)
+                }
+            }
     }
 
     val showScrollToTopFab by remember(listState, state) {

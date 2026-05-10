@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -124,7 +125,11 @@ fun RoomScreen(
         type = FileKitType.Image
     ) { files ->
         scope.launch {
-            files?.forEach { viewModel.attachFile(it.toTransferItem().toMagesAttachment(AttachmentSourceKind.LocalPath)) }
+            files?.forEach {
+                viewModel.attachFile(
+                    it.toTransferItem().toMagesAttachment(AttachmentSourceKind.LocalPath)
+                )
+            }
         }
         viewModel.hideAttachmentPicker()
     }
@@ -134,7 +139,11 @@ fun RoomScreen(
         type = FileKitType.Video
     ) { files ->
         scope.launch {
-            files?.forEach { viewModel.attachFile(it.toTransferItem().toMagesAttachment(AttachmentSourceKind.LocalPath)) }
+            files?.forEach {
+                viewModel.attachFile(
+                    it.toTransferItem().toMagesAttachment(AttachmentSourceKind.LocalPath)
+                )
+            }
         }
         viewModel.hideAttachmentPicker()
     }
@@ -144,7 +153,11 @@ fun RoomScreen(
         type = FileKitType.File()
     ) { files ->
         scope.launch {
-            files?.forEach { viewModel.attachFile(it.toTransferItem().toMagesAttachment(AttachmentSourceKind.LocalPath)) }
+            files?.forEach {
+                viewModel.attachFile(
+                    it.toTransferItem().toMagesAttachment(AttachmentSourceKind.LocalPath)
+                )
+            }
         }
         viewModel.hideAttachmentPicker()
     }
@@ -177,6 +190,15 @@ fun RoomScreen(
         if (state.showAttachmentPicker) {
             clipboardHasAttachment = clipboardHandler.hasAttachment()
         }
+    }
+
+    LaunchedEffect(listState, state.hitStart, state.isPaginatingBack) {
+        snapshotFlow { listState.firstVisibleItemIndex }
+            .collect { firstIndex ->
+                if (!state.hitStart && !state.isPaginatingBack && firstIndex < 5) {
+                    viewModel.paginateBack()
+                }
+            }
     }
 
     var isDragging by remember { mutableStateOf(false) }
@@ -294,9 +316,9 @@ fun RoomScreen(
             } else {
                 val unreadIdx = firstUnreadIndex
                 if (unreadIdx != null) {
-                val targetIndex = listIndexForEventIndex(unreadIdx)
-                listState.scrollToItem(targetIndex)
-                didInitialScroll = true
+                    val targetIndex = listIndexForEventIndex(unreadIdx)
+                    listState.scrollToItem(targetIndex)
+                    didInitialScroll = true
                 } else {
                     listState.scrollToItem(lastListIndex())
                     didInitialScroll = true
@@ -356,19 +378,24 @@ fun RoomScreen(
                     progressText = null
                     postError(event.message)
                 }
+
                 is RoomViewModel.Event.ShowSuccess -> {
                     progressText = null
                     snackbarManager.show(event.message)
                 }
+
                 is RoomViewModel.Event.NavigateToThread -> {
                     onNavigateToThread(event.roomId, event.eventId, event.roomName)
                 }
+
                 is RoomViewModel.Event.NavigateToRoom -> {
                     onNavigateToRoom(event.roomId, event.name)
                 }
+
                 is RoomViewModel.Event.NavigateBack -> {
                     onBack()
                 }
+
                 is RoomViewModel.Event.ShareMessage -> {
                     shareHandler(
                         ShareContent(
@@ -378,9 +405,11 @@ fun RoomScreen(
                         )
                     )
                 }
+
                 is RoomViewModel.Event.JumpToEvent -> {
                     pendingJumpEventId = event.eventId
                 }
+
                 is RoomViewModel.Event.ShareContentEvent -> {
                     progressText = null
                     shareHandler(event.content)
@@ -595,7 +624,8 @@ fun RoomScreen(
                     enabled = true,
                     onDragEnter = { isDragging = true },
                     onDragExit = {
-                        isDragging = false },
+                        isDragging = false
+                    },
                     onDrop = { items ->
                         isDragging = false
                         items.firstOrNull()?.let { item ->
@@ -692,12 +722,12 @@ fun RoomScreen(
                                             events = events,
                                             state = state,
                                             lastOutgoingIndex = lastOutgoingIndex,
-                                            onLongPress = { 
+                                            onLongPress = {
                                                 sheetEvent = event
                                                 viewModel.showMessageActions(event)
                                             },
                                             onReply = { viewModel.startReply(event) },
-                                            onReact = { emoji -> 
+                                            onReact = { emoji ->
                                                 if (state.sendReactionAction.isEnabled) {
                                                     viewModel.react(event, emoji)
                                                 }
@@ -784,7 +814,7 @@ fun RoomScreen(
         }
     }
 
-    //  Sheets & Dialogs 
+    //  Sheets & Dialogs
 
     if (state.showAttachmentPicker) {
         AttachmentPicker(
@@ -832,7 +862,8 @@ fun RoomScreen(
         LiveLocationMapViewer(
             shares = state.liveLocationShares,
             avatarPathByUserId = state.avatarByUserId,
-            displayNameByUserId = state.allEvents.asReversed().associate { it.sender to (it.senderDisplayName ?: it.sender) },
+            displayNameByUserId = state.allEvents.asReversed()
+                .associate { it.sender to (it.senderDisplayName ?: it.sender) },
             onDismiss = viewModel::hideLiveLocationMap,
             isCurrentlySharing = viewModel.isCurrentlySharingLocation,
             onStopSharing = if (viewModel.isCurrentlySharingLocation) viewModel::stopLiveLocation else null,
@@ -879,7 +910,7 @@ fun RoomScreen(
             onUnpin = { if (state.pinAction.isEnabled) viewModel.unpinEvent(event.eventId) },
             onReport = { viewModel.showReportDialog(event) },
             onShowMessageInfo = { viewModel.showMessageInfo(event) },
-            onReact = { emoji -> 
+            onReact = { emoji ->
                 if (state.sendReactionAction.isEnabled) {
                     viewModel.react(event, emoji)
                 }
@@ -931,7 +962,7 @@ fun RoomScreen(
     if (state.showReportDialog && state.reportingEvent != null) {
         ReportContentDialog(
             event = state.reportingEvent!!,
-            onReport = { reason, blockUser -> 
+            onReport = { reason, blockUser ->
                 viewModel.reportContent(state.reportingEvent!!, reason, blockUser)
             },
             onDismiss = viewModel::hideReportDialog
@@ -1012,7 +1043,12 @@ private fun RoomTopBar(
                         }
                         Spacer(Modifier.width(12.dp))
                         Column {
-                            Text(roomName, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                roomName,
+                                style = MaterialTheme.typography.titleMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                             AnimatedContent(
                                 targetState = typingNames.isNotEmpty(),
                                 transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -1061,15 +1097,15 @@ private fun RoomTopBar(
                             }
                         }
 //                        if (videoCallAction.presentation != ActionPresentationUi.Hidden) { // TODO: Broken, Allow for rooms with high enough perms, when mod perm for it are added.?
-                            IconButton(
-                                onClick = onStartCall,
+                        IconButton(
+                            onClick = onStartCall,
 //                                enabled = videoCallAction.isEnabled,
-                            ) {
-                                Icon(
-                                    Icons.Default.Videocam,
-                                    contentDescription = "Video call"
-                                )
-                            }
+                        ) {
+                            Icon(
+                                Icons.Default.Videocam,
+                                contentDescription = "Video call"
+                            )
+                        }
 //                        }
                     }
 
@@ -1132,7 +1168,12 @@ private fun BubbleTopBar(
                         }
                     }
                     Spacer(Modifier.width(8.dp))
-                    Text(roomName, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        roomName,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
@@ -1240,9 +1281,9 @@ private fun StartOfConversationChip() {
 
 private fun MessageEvent.rendersAsSystemMessage(): Boolean =
     eventType != EventType.Message &&
-        eventType != EventType.Poll &&
-        eventType != EventType.Sticker &&
-        body.isNotBlank()
+            eventType != EventType.Poll &&
+            eventType != EventType.Sticker &&
+            body.isNotBlank()
 
 @Composable
 private fun MessageItem(
@@ -1372,7 +1413,7 @@ private fun MessageItem(
             }
     ) {
         // Reply icon shown behind the bubble during swipe
-       val iconAlpha = (animatedSwipeOffsetPx / swipeThresholdPx).coerceIn(0f, 1f)
+        val iconAlpha = (animatedSwipeOffsetPx / swipeThresholdPx).coerceIn(0f, 1f)
 
         if (iconAlpha > 0.05f) {
             Box(
@@ -1488,6 +1529,7 @@ private fun MessageItem(
                     }
                 }
             }
+
             else -> {
                 val statusText = when (lastOutgoing.sendState) {
                     SendState.Sending, SendState.Retrying -> stringResource(Res.string.sending)
