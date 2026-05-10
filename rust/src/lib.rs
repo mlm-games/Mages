@@ -1001,9 +1001,15 @@ impl Client {
         }
     }
 
-    pub fn room_list_update_visible_range(&self, token: u64, range: Vec<u64>, threshold: u32) -> bool {
+    pub fn room_list_update_visible_range(
+        &self,
+        token: u64,
+        range: Vec<u64>,
+        threshold: u32,
+    ) -> bool {
         if let Some(tx) = self.room_list_cmds.lock().unwrap().get(&token).cloned() {
-            tx.send(RoomListCmd::UpdateVisibleRange((range, threshold as usize))).is_ok()
+            tx.send(RoomListCmd::UpdateVisibleRange((range, threshold as usize)))
+                .is_ok()
         } else {
             false
         }

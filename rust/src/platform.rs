@@ -1,7 +1,7 @@
 use crate::{RoomListEntry, SessionInfo};
 use once_cell::sync::Lazy;
 use std::path::{Path, PathBuf};
-use tracing::{warn, info};
+use tracing::{info, warn};
 
 #[cfg(not(target_family = "wasm"))]
 use tracing_subscriber::{EnvFilter, fmt};
@@ -74,7 +74,10 @@ pub(crate) async fn load_session(store_dir: &Path) -> Option<SessionInfo> {
 
                     match tokio::fs::rename(&old_path, &new_path).await {
                         Ok(()) => {
-                            info!("Migrated session file from {:?} to {:?}", old_path, new_path);
+                            info!(
+                                "Migrated session file from {:?} to {:?}",
+                                old_path, new_path
+                            );
                         }
                         Err(rename_err) => {
                             warn!(

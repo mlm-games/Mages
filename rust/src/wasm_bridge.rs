@@ -1,4 +1,3 @@
-use crate::{map_live_location_share, map_live_location_vec_diff};
 use crate::core::{CoreClient, TimelineManager, map_send_queue_update, room_list_membership};
 use crate::js_observer_json;
 use crate::js_observer_noargs;
@@ -19,6 +18,7 @@ use crate::{
     emit_timeline_reset_filled, latest_room_event_for, mages_client_metadata, map_vec_diff,
     strip_matrix_path,
 };
+use crate::{map_live_location_share, map_live_location_vec_diff};
 use crate::{webffi_err, webffi_not_init, webffi_option, webffi_unit, webffi_value};
 
 use futures_util::StreamExt;
@@ -1148,6 +1148,15 @@ impl WasmClient {
                                     if u { controller.set_filter(Box::new(filters::new_filter_all(vec![Box::new(filters::new_filter_non_left()), Box::new(filters::new_filter_unread())]))); }
                                     else { controller.set_filter(Box::new(filters::new_filter_non_left())); }
                                 }
+                                RoomListCmd::UpdateVisibleRange((range, threshold)) => {
+                                    let total_items = items.len();
+                                    if let Some(&position) = range.last() {
+                                        let threshold_idx = total_items.saturating_sub(threshold);
+                                        if total_items > 0 && position as usize >= threshold_idx {
+                                            let _ = controller.add_one_page();
+                                        }
+                                    }
+                                }
                             }
                         }
                         Some(diffs) = stream.next() => {
@@ -1309,11 +1318,17 @@ impl WasmClient {
                         match mapped {
                             VectorDiff::Insert { index, value } => all_shares.insert(index, value),
                             VectorDiff::Set { index, value } => all_shares[index] = value,
-                            VectorDiff::Remove { index } => { all_shares.remove(index); }
+                            VectorDiff::Remove { index } => {
+                                all_shares.remove(index);
+                            }
                             VectorDiff::PushBack { value } => all_shares.push(value),
-                            VectorDiff::PopBack => { all_shares.pop(); }
+                            VectorDiff::PopBack => {
+                                all_shares.pop();
+                            }
                             VectorDiff::PushFront { value } => all_shares.insert(0, value),
-                            VectorDiff::PopFront => { all_shares.remove(0); }
+                            VectorDiff::PopFront => {
+                                all_shares.remove(0);
+                            }
                             VectorDiff::Clear => all_shares.clear(),
                             VectorDiff::Truncate { length } => all_shares.truncate(length),
                             VectorDiff::Append { values } => all_shares.extend(values),
@@ -1904,13 +1919,22 @@ impl WasmClient {
     }
 
     #[wasm_bindgen(js_name = roomListUpdateVisibleRange)]
-    pub fn room_list_update_visible_range(&self, token: f64, range: JsValue, threshold: f64) -> bool {
+    pub fn room_list_update_visible_range(
+        &self,
+        token: f64,
+        range: JsValue,
+        threshold: f64,
+    ) -> bool {
         let Some(state) = self.state() else {
             return false;
         };
         let range_vec: Vec<u64> = serde_wasm_bindgen::from_value(range).unwrap_or_default();
         if let Some(tx) = state.room_list_cmds.borrow().get(&(token as u64)).cloned() {
-            tx.send(RoomListCmd::UpdateVisibleRange((range_vec, threshold as usize))).is_ok()
+            tx.send(RoomListCmd::UpdateVisibleRange((
+                range_vec,
+                threshold as usize,
+            )))
+            .is_ok()
         } else {
             false
         }
