@@ -192,10 +192,10 @@ fun RoomScreen(
         }
     }
 
-    LaunchedEffect(listState, state.hitStart, state.isPaginatingBack) {
+    LaunchedEffect(listState, state.hitStart, state.isPaginatingBack, settings.autoBackPagination) {
         snapshotFlow { listState.firstVisibleItemIndex }
             .collect { firstIndex ->
-                if (!state.hitStart && !state.isPaginatingBack && firstIndex < 5) {
+                if (settings.autoBackPagination && !state.hitStart && !state.isPaginatingBack && firstIndex < 5) {
                     viewModel.paginateBack()
                 }
             }

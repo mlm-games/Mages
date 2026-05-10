@@ -4,14 +4,29 @@ import io.github.mlmgames.settings.core.annotations.*
 import io.github.mlmgames.settings.core.types.*
 import kotlinx.serialization.Serializable
 
-@CategoryDefinition(order = 0) object Account
-@CategoryDefinition(order = 1) object Appearance
-@CategoryDefinition(order = 2) object Timeline
-@CategoryDefinition(order = 3) object Notifications
-@CategoryDefinition(order = 4) object Privacy
-@CategoryDefinition(order = 5) object Calls
-@CategoryDefinition(order = 6) object Storage
-@CategoryDefinition(order = 7) object Advanced
+@CategoryDefinition(order = 0)
+object Account
+
+@CategoryDefinition(order = 1)
+object Appearance
+
+@CategoryDefinition(order = 2)
+object Timeline
+
+@CategoryDefinition(order = 3)
+object Notifications
+
+@CategoryDefinition(order = 4)
+object Privacy
+
+@CategoryDefinition(order = 5)
+object Calls
+
+@CategoryDefinition(order = 6)
+object Storage
+
+@CategoryDefinition(order = 7)
+object Advanced
 
 @Serializable
 enum class ThemeMode { System, Light, Dark }
@@ -226,6 +241,14 @@ data class AppSettings(
         type = Dropdown::class,
     )
     val compactPublicRoomOtherStateEvents: HideInRoomsMode = HideInRoomsMode.Never,
+
+    @Setting(
+        title = "Auto-paginate older messages",
+        description = "Automatically load older messages when scrolling to top",
+        category = Timeline::class,
+        type = Toggle::class
+    )
+    val autoBackPagination: Boolean = true,
 
     @Setting(
         title = "Chat bubbles",
@@ -519,4 +542,3 @@ object OpenNotificationRulesAction : SettingAction
 object OpenMediaCacheAction : SettingAction
 object RequestNotificationPermissionAction : SettingAction
 object TestNotificationAction : SettingAction
-
