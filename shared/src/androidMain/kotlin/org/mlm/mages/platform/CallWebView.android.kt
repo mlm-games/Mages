@@ -4,9 +4,11 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Outline
+import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.os.Build
+import android.os.PowerManager
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
@@ -24,7 +26,11 @@ import androidx.webkit.WebViewClientCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import org.json.JSONObject
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
+import kotlinx.coroutines.sync.Mutex
+import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import org.koin.compose.koinInject
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
@@ -44,26 +50,58 @@ private val ELEMENT_SPECIFIC_ACTIONS = setOf(
     "im.vector.hangup",
 )
 
-private fun setupAudioDeviceBridge(webView: WebView) {
-    val audioManager = webView.context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+private val wantedDeviceTypes = listOf(
+    AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
+    AudioDeviceInfo.TYPE_USB_HEADSET,
+    AudioDeviceInfo.TYPE_USB_DEVICE,
+    AudioDeviceInfo.TYPE_USB_ACCESSORY,
+    AudioDeviceInfo.TYPE_WIRED_HEADSET,
+    AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
+    AudioDeviceInfo.TYPE_BUILTIN_SPEAKER,
+    AudioDeviceInfo.TYPE_BUILTIN_EARPIECE,
+)
 
-    runCatching {
-        audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
-    }.onFailure {
-        Log.w("AudioBridge", "Failed to enter communication mode before enumerating devices", it)
+private val audioDeviceComparator = Comparator<AudioDeviceInfo> { a, b ->
+    val indexOfA = wantedDeviceTypes.indexOf(a.type).let { if (it == -1) Int.MAX_VALUE else it }
+    val indexOfB = wantedDeviceTypes.indexOf(b.type).let { if (it == -1) Int.MAX_VALUE else it }
+    indexOfA.compareTo(indexOfB)
+}
+
+private fun deviceName(type: Int, name: String): String {
+    val typePart = when (type) {
+        AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> "Bluetooth"
+        AudioDeviceInfo.TYPE_USB_ACCESSORY -> "USB accessory"
+        AudioDeviceInfo.TYPE_USB_DEVICE -> "USB device"
+        AudioDeviceInfo.TYPE_USB_HEADSET -> "USB headset"
+        AudioDeviceInfo.TYPE_WIRED_HEADSET -> "Wired headset"
+        AudioDeviceInfo.TYPE_WIRED_HEADPHONES -> "Wired headphones"
+        AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "Built-in speaker"
+        AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> "Built-in earpiece"
+        else -> "Unknown"
     }
+    val isBuiltIn = type in listOf(
+        AudioDeviceInfo.TYPE_BUILTIN_SPEAKER,
+        AudioDeviceInfo.TYPE_BUILTIN_EARPIECE,
+        AudioDeviceInfo.TYPE_BUILTIN_MIC,
+        AudioDeviceInfo.TYPE_BUILTIN_SPEAKER_SAFE
+    )
+    return if (isBuiltIn) typePart else "$typePart - $name"
+}
 
+private fun listAudioDevices(audioManager: AudioManager): List<AudioDeviceInfo> {
     @Suppress("DEPRECATION")
-    fun getOutputDevices(): List<AudioDeviceInfo> {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            audioManager.availableCommunicationDevices
-        } else {
-            audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).filter { it.isSink }
-        }
-    }
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        audioManager.availableCommunicationDevices
+    } else {
+        audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).toList()
+    }.filter { it.type in wantedDeviceTypes && it.isSink }
+      .sortedWith(audioDeviceComparator)
+}
 
-    val devicesJson = org.json.JSONArray().apply {
-        getOutputDevices().forEach { device ->
+private fun buildAudioDevicesJson(audioManager: AudioManager): String {
+    val devices = listAudioDevices(audioManager)
+    return org.json.JSONArray().apply {
+        devices.forEach { device ->
             val isSpeaker = device.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER
             val isEarpiece = device.type == AudioDeviceInfo.TYPE_BUILTIN_EARPIECE
             val isExternalHeadset =
@@ -74,27 +112,25 @@ private fun setupAudioDeviceBridge(webView: WebView) {
                     device.type == AudioDeviceInfo.TYPE_USB_DEVICE ||
                     device.type == AudioDeviceInfo.TYPE_USB_ACCESSORY
 
-            val name = when (device.type) {
-                AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "Built-in speaker"
-                AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> "Built-in earpiece"
-                AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> "Bluetooth"
-                AudioDeviceInfo.TYPE_WIRED_HEADSET -> "Wired headset"
-                AudioDeviceInfo.TYPE_WIRED_HEADPHONES -> "Wired headphones"
-                AudioDeviceInfo.TYPE_USB_HEADSET -> "USB headset"
-                AudioDeviceInfo.TYPE_USB_DEVICE -> "USB device"
-                AudioDeviceInfo.TYPE_USB_ACCESSORY -> "USB accessory"
-                else -> device.productName?.toString() ?: "Unknown"
-            }
-
             put(JSONObject().apply {
                 put("id", device.id.toString())
-                put("name", name)
+                put("name", deviceName(device.type, device.productName?.toString() ?: ""))
                 put("isSpeaker", isSpeaker)
                 put("isEarpiece", isEarpiece)
                 put("isExternalHeadset", isExternalHeadset)
             })
         }
     }.toString()
+}
+
+private fun setupAudioDeviceBridge(webView: WebView, audioManager: AudioManager, audioDeviceBridge: AudioDeviceBridge) {
+    runCatching {
+        audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+    }.onFailure {
+        Log.w("AudioBridge", "Failed to enter communication mode before enumerating devices", it)
+    }
+
+    val devicesJson = buildAudioDevicesJson(audioManager)
 
     val setupCallback = """
         if (typeof controls !== 'undefined') {
@@ -105,6 +141,9 @@ private fun setupAudioDeviceBridge(webView: WebView) {
             if ('onAudioDeviceSelect' in controls) {
                 controls.onAudioDeviceSelect = outputHandler;
             }
+            controls.onAudioPlaybackStarted = function() {
+                androidNativeBridge.onTrackReady();
+            };
         }
     """.trimIndent()
 
@@ -123,6 +162,28 @@ private fun setupAudioDeviceBridge(webView: WebView) {
 private class AudioDeviceBridge(
     private val context: Context,
 ) {
+    private var webViewRef: WebView? = null
+    private var currentDeviceId: Int? = null
+    private var expectedNewCommunicationDeviceId: Int? = null
+    private var previousSelectedDevice: AudioDeviceInfo? = null
+    private var hasRegisteredCallbacks = false
+    private val isInCallMode = AtomicBoolean(false)
+    private val isWebViewAudioEnabled = AtomicBoolean(true)
+
+    private val disableBluetoothAudioDevices = Build.VERSION.SDK_INT < Build.VERSION_CODES.S
+
+    private val proximitySensorWakeLock by lazy {
+        context.getSystemService<PowerManager>()
+            ?.takeIf { it.isWakeLockLevelSupported(PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK) }
+            ?.newWakeLock(PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK, "${context.packageName}:ProximitySensorCallWakeLock")
+    }
+
+    private val proximitySensorMutex = Mutex()
+
+    fun setWebView(webView: android.webkit.WebView) {
+        webViewRef = webView
+    }
+
     @Suppress("DEPRECATION")
     @JavascriptInterface
     fun setOutputDevice(id: String) {
@@ -135,38 +196,284 @@ private class AudioDeviceBridge(
             audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).find { it.id == deviceIdInt }
         } ?: return
 
+        previousSelectedDevice = listAudioDevices(audioManager).find { it.id.toString() == id }
+
         runCatching {
             audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val applied = audioManager.setCommunicationDevice(device)
-                if (!applied) {
-                    Log.w("AudioBridge", "setCommunicationDevice returned false for id=$id type=${device.type}")
-                }
-            } else {
-                when (device.type) {
-                    AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> {
-                        audioManager.stopBluetoothSco()
-                        audioManager.isBluetoothScoOn = false
-                        audioManager.isSpeakerphoneOn = true
-                    }
-                    AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> {
-                        audioManager.isSpeakerphoneOn = false
-                        audioManager.startBluetoothSco()
-                        audioManager.isBluetoothScoOn = true
-                    }
-                    else -> {
-                        audioManager.stopBluetoothSco()
-                        audioManager.isBluetoothScoOn = false
-                        audioManager.isSpeakerphoneOn = false
-                    }
-                }
-            }
-
+            selectAudioDevice(device)
             Log.d("AudioBridge", "Applied output device id=$id type=${device.type}")
         }.onFailure {
             Log.w("AudioBridge", "Failed to apply output device id=$id", it)
         }
+    }
+
+    @Suppress("DEPRECATION")
+    @JavascriptInterface
+    fun onTrackReady() {
+        Log.d("AudioBridge", "Audio track ready")
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            if (hasRegisteredCallbacks) return@postDelayed
+            
+            audioManager.registerAudioDeviceCallback(audioDeviceCallback, null)
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                try {
+                    commsDeviceChangedListener?.let {
+                        audioManager.addOnCommunicationDeviceChangedListener(
+                            Executors.newSingleThreadExecutor(),
+                            it
+                        )
+                    }
+                } catch (e: Exception) {
+                    Log.w("AudioBridge", "Failed to add communication device listener", e)
+                }
+            }
+
+            val devices = listAudioDevices(audioManager)
+            setAvailableAudioDevicesInWebView(devices)
+            
+            val firstDevice = devices.firstOrNull()
+            if (firstDevice != null && currentDeviceId == null) {
+                selectAudioDevice(firstDevice)
+            }
+
+            hasRegisteredCallbacks = true
+        }, 2000)
+    }
+
+    private val commsDeviceChangedListener = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        AudioManager.OnCommunicationDeviceChangedListener { device ->
+            if (device != null && device.id == expectedNewCommunicationDeviceId) {
+                expectedNewCommunicationDeviceId = null
+                Log.d("AudioBridge", "Audio device changed, type: ${device.type}")
+                updateSelectedAudioDeviceInWebView(device.id.toString())
+            } else if (device != null && device.id != expectedNewCommunicationDeviceId) {
+                val expectedDeviceId = expectedNewCommunicationDeviceId
+                if (expectedDeviceId != null) {
+                    expectedNewCommunicationDeviceId = null
+                    selectAudioDeviceById(expectedDeviceId.toString())
+                }
+            } else {
+                expectedNewCommunicationDeviceId = null
+                Log.d("AudioBridge", "Audio device cleared")
+            }
+        }
+    } else null
+
+    private val audioDeviceCallback = object : AudioDeviceCallback() {
+        override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>?) {
+            val validNewDevices = addedDevices.orEmpty().filter { it.type in wantedDeviceTypes && it.isSink }
+            if (validNewDevices.isEmpty()) return
+
+            Log.d("AudioBridge", "Audio devices added: ${validNewDevices.size}")
+            
+            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val audioDevices = (listAudioDevices(audioManager) + validNewDevices).distinctBy { it.id }
+            setAvailableAudioDevicesInWebView(audioDevices)
+            
+            val firstDevice = audioDevices.firstOrNull()
+            if (firstDevice != null && (currentDeviceId == null || !audioDevices.any { it.id == currentDeviceId })) {
+                selectAudioDeviceById(firstDevice.id.toString())
+            }
+        }
+
+        override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>?) {
+            Log.d("AudioBridge", "Audio devices removed")
+            
+            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            setAvailableAudioDevicesInWebView(listAudioDevices(audioManager))
+
+            val removedCurrentDevice = removedDevices.orEmpty().any { it.id == currentDeviceId }
+            if (!removedCurrentDevice) return
+
+            val previousDevice = previousSelectedDevice
+            if (previousDevice != null) {
+                previousSelectedDevice = null
+                selectAudioDeviceById(previousDevice.id.toString())
+            } else {
+                val devices = listAudioDevices(audioManager)
+                val firstDevice = devices.firstOrNull()
+                if (firstDevice != null) {
+                    selectAudioDeviceById(firstDevice.id.toString())
+                }
+            }
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun selectAudioDevice(device: AudioDeviceInfo?) {
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        currentDeviceId = device?.id
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (device != null) {
+                runCatching {
+                    Log.d("AudioBridge", "Setting communication device: ${device.id} - ${deviceName(device.type, device.productName?.toString() ?: "")}")
+                    audioManager.setCommunicationDevice(device)
+                }.onFailure {
+                    Log.e("AudioBridge", "Could not set communication device.", it)
+                }
+            } else {
+                runCatching {
+                    audioManager.clearCommunicationDevice()
+                }.onFailure {
+                    Log.e("AudioBridge", "Could not clear communication device.", it)
+                }
+            }
+        } else {
+            if (device != null) {
+                if (device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO && disableBluetoothAudioDevices) {
+                    Log.w("AudioBridge", "Bluetooth audio devices are disabled on this Android version")
+                    setAudioEnabled(false)
+                    onInvalidAudioDeviceAdded()
+                    return
+                }
+                setAudioEnabled(true)
+                audioManager.isSpeakerphoneOn = device.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER
+                audioManager.isBluetoothScoOn = device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
+            } else {
+                audioManager.isSpeakerphoneOn = false
+                audioManager.isBluetoothScoOn = false
+            }
+        }
+
+        expectedNewCommunicationDeviceId = null
+
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            runCatching {
+                val held = proximitySensorMutex.tryLock()
+                try {
+                    if (device?.type == AudioDeviceInfo.TYPE_BUILTIN_EARPIECE && proximitySensorWakeLock?.isHeld == false) {
+                        proximitySensorWakeLock?.acquire(10000)
+                    } else if (proximitySensorWakeLock?.isHeld == true) {
+                        proximitySensorWakeLock?.release()
+                    }
+                } finally {
+                    if (held) proximitySensorMutex.unlock()
+                }
+            }
+        }
+    }
+
+    private fun selectAudioDeviceById(deviceId: String) {
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val audioDevice = audioManager.availableCommunicationDevices.find { it.id.toString() == deviceId }
+            selectAudioDevice(audioDevice)
+        } else {
+            val rawAudioDevices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+            val audioDevice = rawAudioDevices.find { it.id.toString() == deviceId }
+            selectAudioDevice(audioDevice)
+        }
+    }
+
+    private fun setAudioEnabled(enabled: Boolean) {
+        val webView = webViewRef ?: return
+        webView.post {
+            if (isWebViewAudioEnabled.getAndSet(enabled) != enabled) {
+                webView.evaluateJavascript(
+                    "if (typeof controls !== 'undefined' && typeof controls.setAudioEnabled === 'function') { controls.setAudioEnabled($enabled); }",
+                    null
+                )
+                Log.d("AudioBridge", "Setting audio enabled in Element Call: $enabled")
+            }
+        }
+    }
+
+    private fun onInvalidAudioDeviceAdded() {
+        Log.w("AudioBridge", "Invalid audio device added")
+    }
+
+    private fun setAvailableAudioDevicesInWebView(devices: List<AudioDeviceInfo>) {
+        val webView = webViewRef ?: return
+        val devicesJson = org.json.JSONArray().apply {
+            devices.forEach { device ->
+                val isSpeaker = device.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER
+                val isEarpiece = device.type == AudioDeviceInfo.TYPE_BUILTIN_EARPIECE
+                val isExternalHeadset =
+                    device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                        device.type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
+                        device.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
+                        device.type == AudioDeviceInfo.TYPE_USB_HEADSET ||
+                        device.type == AudioDeviceInfo.TYPE_USB_DEVICE ||
+                        device.type == AudioDeviceInfo.TYPE_USB_ACCESSORY
+
+                put(org.json.JSONObject().apply {
+                    put("id", device.id.toString())
+                    put("name", deviceName(device.type, device.productName?.toString() ?: ""))
+                    put("isSpeaker", isSpeaker)
+                    put("isEarpiece", isEarpiece)
+                    put("isExternalHeadset", isExternalHeadset)
+                })
+            }
+        }.toString()
+
+        webView.post {
+            webView.evaluateJavascript(
+                "if (typeof controls !== 'undefined' && typeof controls.setAvailableOutputDevices === 'function') { controls.setAvailableOutputDevices($devicesJson); }",
+                null
+            )
+        }
+    }
+
+    private fun updateSelectedAudioDeviceInWebView(deviceId: String) {
+        val webView = webViewRef ?: return
+        webView.post {
+            webView.evaluateJavascript(
+                "if (typeof controls !== 'undefined' && typeof controls.setOutputDevice === 'function') { controls.setOutputDevice('$deviceId'); }",
+                null
+            )
+        }
+    }
+
+    fun onCallStarted() {
+        if (!isInCallMode.compareAndSet(false, true)) {
+            Log.w("AudioBridge", "Audio: tried to enable webview in-call audio mode while already in it")
+            return
+        }
+        
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        audioManager.mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            AudioManager.MODE_IN_COMMUNICATION
+        } else {
+            AudioManager.MODE_NORMAL
+        }
+    }
+
+    fun onCallStopped() {
+        if (!isInCallMode.compareAndSet(true, false)) {
+            Log.w("AudioBridge", "Audio: tried to disable webview in-call audio mode while already disabled")
+            return
+        }
+
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        audioManager.mode = AudioManager.MODE_NORMAL
+
+        runCatching {
+            val held = proximitySensorMutex.tryLock()
+            try {
+                if (proximitySensorWakeLock?.isHeld == true) {
+                    proximitySensorWakeLock?.release()
+                }
+            } finally {
+                if (held) proximitySensorMutex.unlock()
+            }
+        }
+
+        if (!hasRegisteredCallbacks) return
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            commsDeviceChangedListener?.let {
+                runCatching { audioManager.removeOnCommunicationDeviceChangedListener(it) }
+            }
+            runCatching { audioManager.clearCommunicationDevice() }
+        }
+
+        runCatching { audioManager.unregisterAudioDeviceCallback(audioDeviceCallback) }
+        hasRegisteredCallbacks = false
     }
 }
 
@@ -186,6 +493,31 @@ actual fun CallWebViewHost(
     val activity = LocalActivity.current
     val webViewRef = remember { AtomicReference<WebView?>(null) }
     val density = LocalDensity.current
+    val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
+    val audioDeviceBridge = remember { AudioDeviceBridge(context) }
+
+    LaunchedEffect(minimized) {
+        if (minimized) {
+            audioDeviceBridge.onCallStarted()
+        } else {
+            audioDeviceBridge.onCallStopped()
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            audioDeviceBridge.onCallStopped()
+            onAttachController(null)
+            val wv = webViewRef.getAndSet(null)
+            wv?.apply {
+                stopLoading()
+                removeJavascriptInterface("elementX")
+                removeJavascriptInterface("androidNativeBridge")
+                webChromeClient = null
+                destroy()
+            }
+        }
+    }
 
     Log.d("WidgetBridge", "Loading URL: $widgetUrl")
 
@@ -212,15 +544,10 @@ actual fun CallWebViewHost(
 
             if (action in ELEMENT_SPECIFIC_ACTIONS) {
                 sendElementActionResponse(webView, message)
-//                onMessageFromWidget(message)
 
                 when (action) {
-                    "io.element.close", "im.vector.hangup" -> {
-                        onClosed()
-                    }
-                    "minimize" -> {
-                        onMinimizeRequested()
-                    }
+                    "io.element.close", "im.vector.hangup" -> onClosed()
+                    "minimize" -> onMinimizeRequested()
                     else -> {}
                 }
                 return
@@ -251,28 +578,12 @@ actual fun CallWebViewHost(
                 }
             }
 
-            override fun close() {
-                // Jvm only
-            }
+            override fun close() {}
         }
     }
 
     LaunchedEffect(controller) {
         onAttachController(controller)
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            onAttachController(null)
-            val wv = webViewRef.getAndSet(null)
-            wv?.apply {
-                stopLoading()
-                removeJavascriptInterface("elementX")
-                removeJavascriptInterface("androidNativeBridge")
-                webChromeClient = null
-                destroy()
-            }
-        }
     }
 
     val assetLoader = remember {
@@ -301,7 +612,6 @@ actual fun CallWebViewHost(
                 }
 
                 setBackgroundColor(Color.TRANSPARENT)
-
                 WebView.setWebContentsDebuggingEnabled(true)
 
                 settings.javaScriptEnabled = true
@@ -339,10 +649,8 @@ actual fun CallWebViewHost(
                     }, "elementX")
                 }
 
-                addJavascriptInterface(
-                    AudioDeviceBridge(context),
-                    "androidNativeBridge"
-                )
+                addJavascriptInterface(audioDeviceBridge, "androidNativeBridge")
+                audioDeviceBridge.setWebView(this)
 
                 webChromeClient = object : WebChromeClient() {
                     override fun onPermissionRequest(request: PermissionRequest) {
@@ -379,11 +687,8 @@ actual fun CallWebViewHost(
                         view.evaluateJavascript(
                             """
                             (function () {
-                                if (window.__MagesBridgeInstalled) {
-                                    return;
-                                }
+                                if (window.__MagesBridgeInstalled) return;
                                 window.__MagesBridgeInstalled = true;
-                                
                                 window.__MagesEchoBlock = new Set();
                                 
                                 function keyFor(data) {
@@ -405,19 +710,11 @@ actual fun CallWebViewHost(
                                 window.addEventListener('message', function(ev) {
                                     const data = ev.data;
                                     if (!data || typeof data !== 'object') return;
-                                    
                                     const key = keyFor(data);
-                                    if (key && window.__MagesEchoBlock.delete(key)) {
-                                        return;
-                                    }
-                                    
+                                    if (key && window.__MagesEchoBlock.delete(key)) return;
                                     const hasResponse = Object.prototype.hasOwnProperty.call(data, 'response');
-                                    const shouldForward = 
-                                        (!hasResponse && data.api === 'fromWidget') ||
-                                        (hasResponse && data.api === 'toWidget');
-                                    
+                                    const shouldForward = (!hasResponse && data.api === 'fromWidget') || (hasResponse && data.api === 'toWidget');
                                     if (!shouldForward) return;
-                                    
                                     if (typeof elementX !== 'undefined' && elementX.postMessage) {
                                         elementX.postMessage(JSON.stringify(data));
                                     }
@@ -428,7 +725,7 @@ actual fun CallWebViewHost(
                         )
                         
                         view.postDelayed({
-                            setupAudioDeviceBridge(view)
+                            setupAudioDeviceBridge(view, audioManager, audioDeviceBridge)
                         }, 500)
                     }
 
@@ -454,7 +751,7 @@ actual fun CallWebViewHost(
 
                         view?.let { wv ->
                             wv.postDelayed({
-                                setupAudioDeviceBridge(wv)
+                                setupAudioDeviceBridge(wv, audioManager, audioDeviceBridge)
                             }, 250)
                         }
                     }
@@ -466,7 +763,6 @@ actual fun CallWebViewHost(
         },
         update = { webView ->
             webViewRef.set(webView)
-            // for minimize/restore
             webView.invalidateOutline()
         }
     )
