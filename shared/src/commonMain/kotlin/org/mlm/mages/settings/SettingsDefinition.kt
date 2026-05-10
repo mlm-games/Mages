@@ -244,11 +244,12 @@ data class AppSettings(
 
     @Setting(
         title = "Auto-paginate older messages",
+
         description = "Automatically load older messages when scrolling to top",
         category = Timeline::class,
         type = Toggle::class
     )
-    val autoBackPagination: Boolean = true,
+    val autoBackPagination: Boolean = false,
 
     @Setting(
         title = "Chat bubbles",
