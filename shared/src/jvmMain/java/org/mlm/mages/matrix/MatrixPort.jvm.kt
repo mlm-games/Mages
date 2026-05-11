@@ -1423,7 +1423,9 @@ class RustMatrixPort : MatrixPort, VerificationService {
                         changes.roomName,
                         changes.roomAvatar,
                         changes.roomTopic,
-                        changes.spaceChild
+                        changes.spaceChild,
+                        changes.beacon,
+                        changes.beaconInfo,
                     )
                 )
             }

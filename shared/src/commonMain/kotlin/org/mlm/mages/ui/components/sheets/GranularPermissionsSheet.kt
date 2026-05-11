@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -224,6 +225,24 @@ private fun AdvancedPermissionsTab(
                 value = powerLevels?.spaceChild ?: 100,
                 canEdit = canEdit,
                 onValueChange = { onUpdatePowerLevels(RoomPowerLevelChanges(spaceChild = it)) }
+            )
+        }
+        item {
+            PermissionSliderRow(
+                label = "Share live location",
+                icon = Icons.Default.LocationOn,
+                value = powerLevels?.beacon ?: 0,
+                canEdit = canEdit,
+                onValueChange = { onUpdatePowerLevels(RoomPowerLevelChanges(beacon = it)) }
+            )
+        }
+        item {
+            PermissionSliderRow(
+                label = "Manage live location",
+                icon = Icons.Default.LocationOn,
+                value = powerLevels?.beaconInfo ?: 50,
+                canEdit = canEdit,
+                onValueChange = { onUpdatePowerLevels(RoomPowerLevelChanges(beaconInfo = it)) }
             )
         }
     }

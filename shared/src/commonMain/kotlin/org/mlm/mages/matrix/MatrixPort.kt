@@ -388,7 +388,9 @@ data class RoomPowerLevelChanges(
     val roomName: Long? = null,
     val roomAvatar: Long? = null,
     val roomTopic: Long? = null,
-    val spaceChild: Long? = null
+    val spaceChild: Long? = null,
+    val beacon: Long? = null,
+    val beaconInfo: Long? = null,
 )
 
 @Serializable
