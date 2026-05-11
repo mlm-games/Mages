@@ -522,6 +522,8 @@ pub struct RoomPowerLevelChanges {
     pub room_avatar: Option<i64>,
     pub room_topic: Option<i64>,
     pub space_child: Option<i64>,
+    pub beacon: Option<i64>,
+    pub beacon_info: Option<i64>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Record)]

@@ -34,7 +34,7 @@ web-time = "1.1"
 async-stream = "0.3.6"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-matrix-sdk = { version = "0.16.0", default-features = false, features = [
+matrix-sdk = { version = "0.17.0", default-features = false, features = [
     "e2e-encryption",
     "sqlite",
     "bundled-sqlite",
@@ -44,7 +44,7 @@ matrix-sdk = { version = "0.16.0", default-features = false, features = [
     "experimental-widgets",
     # "uniffi",
 ] }
-matrix-sdk-ui = { version = "0.16.0", default-features = false }
+matrix-sdk-ui = { version = "0.17.0", default-features = false }
 tokio = { version = "1", features = [
     "rt-multi-thread",
     "macros",
@@ -57,7 +57,7 @@ reqwest = { version = "0.13", default-features = false, features = [
 ] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-matrix-sdk = { version = "0.16.0", default-features = false, features = [
+matrix-sdk = { version = "0.17.0", default-features = false, features = [
     "e2e-encryption",
     "indexeddb",
     # "sso-login",  # Disabled - pulls in axum -> doesn't support wasm
@@ -65,7 +65,7 @@ matrix-sdk = { version = "0.16.0", default-features = false, features = [
     # "experimental-search",  # Disabled - tantivy -> fs4 -> rustix -> errno, no wasm support
     "experimental-widgets",
 ] }
-matrix-sdk-ui = { version = "0.16.0", default-features = false, features = [
+matrix-sdk-ui = { version = "0.17.0", default-features = false, features = [
     "js",
 ] }
 # tokio fs feautre - not supported on wasm

@@ -1783,6 +1783,8 @@ impl CoreClient {
             room_avatar: changes.room_avatar,
             room_topic: changes.room_topic,
             space_child: changes.space_child,
+            beacon: changes.beacon,
+            beacon_info: changes.beacon_info,
         };
         room.apply_power_level_changes(sdk).await.ffi()
     }
