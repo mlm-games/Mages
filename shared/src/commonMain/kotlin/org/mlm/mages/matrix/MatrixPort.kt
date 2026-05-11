@@ -373,7 +373,10 @@ data class RoomPowerLevels(
     val roomHistoryVisibility: Long,
     val roomJoinRules: Long,
     val roomPowerLevels: Long,
-    val spaceChild: Long
+    val spaceChild: Long,
+   val beacon: Long,
+   val beaconInfo: Long,
+
 )
 
 @Serializable

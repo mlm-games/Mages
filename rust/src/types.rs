@@ -507,6 +507,8 @@ pub struct RoomPowerLevels {
     pub room_join_rules: i64,
     pub room_power_levels: i64,
     pub space_child: i64,
+    pub beacon: i64,
+    pub beacon_info: i64,
 }
 
 #[derive(Clone, Serialize, Deserialize, Record)]

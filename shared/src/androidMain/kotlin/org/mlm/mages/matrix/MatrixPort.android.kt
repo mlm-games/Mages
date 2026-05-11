@@ -1414,7 +1414,9 @@ class RustMatrixPort : MatrixPort, VerificationService {
                 roomHistoryVisibility = it.roomHistoryVisibility,
                 roomJoinRules = it.roomJoinRules,
                 roomPowerLevels = it.roomPowerLevels,
-                spaceChild = it.spaceChild
+                spaceChild = it.spaceChild,
+               beacon = it.beacon,
+               beaconInfo = it.beaconInfo
             )
         }
     }

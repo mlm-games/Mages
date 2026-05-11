@@ -1738,6 +1738,8 @@ impl CoreClient {
             room_join_rules: el(&levels, "m.room.join_rules", state_default),
             room_power_levels: el(&levels, "m.room.power_levels", state_default),
             space_child: el(&levels, "m.space.child", state_default),
+            beacon: el(&levels, "m.room.beacon", state_default),
+            beacon_info: el(&levels, "m.room.beacon_info", state_default),
         })
     }
 
