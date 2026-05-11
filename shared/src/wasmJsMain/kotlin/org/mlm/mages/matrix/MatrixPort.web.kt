@@ -26,7 +26,10 @@ import org.w3c.dom.events.Event
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.js.JsAny
+import kotlin.js.JsArray
 import kotlin.js.Promise
+import kotlin.js.ExperimentalWasmJsInterop
+import kotlin.js.unsafeCast
 
 // -- Callback fns since Kotlin/Wasm cannot pass lambdas as JsAny? --
 
@@ -41,20 +44,6 @@ private external fun jsWidgetObserver(fn: (String) -> Unit): JsAny
 
 @JsFun("(arr) => arr")
 private external fun jsArrayPassthrough(arr: JsAny): JsAny
-
-@JsFun("() => []")
-private external fun createEmptyJsArray(): JsAny
-
-@JsFun("(arr, item) => { arr.push(item); }")
-private external fun pushToJsArray(arr: JsAny, item: String)
-
-fun List<String>.toJsArray(): JsAny {
-    val jsArr = createEmptyJsArray()
-    for (item in this) {
-        pushToJsArray(jsArr, item)
-    }
-    return jsArr
-}
 
 data class ResultWithError(val ok: Boolean, val error: String?) {
     companion object {
@@ -208,6 +197,15 @@ private suspend fun Promise<JsAny?>.awaitBoolLike(): Boolean {
   return value.toString() == "true"
 }
 
+private fun List<String>.toJsArray(): JsArray<JsAny> = JsArray<JsAny>().also { arr ->
+    forEachIndexed { i, v -> arr[i] = v as JsAny }
+}
+
+private fun List<Double>.toJsArray(): JsArray<JsAny> = JsArray<JsAny>().also { arr ->
+    forEachIndexed { i, v -> arr[i] = v as JsAny }
+}
+
+@OptIn(ExperimentalWasmJsInterop::class)
 class WebStubMatrixPort : MatrixPort, VerificationService {
     private var client: WasmClient? = null
     private var currentHs: String? = null
@@ -842,7 +840,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         requireClient().roomListSetUnreadOnly(token.toDouble(), unreadOnly)
 
     override suspend fun roomListUpdateVisibleRange(token: ULong, range: List<Int>, threshold: Int): Boolean =
-        requireClient().roomListUpdateVisibleRange(token.toDouble(), range.map { it.toULong().toDouble() }.toTypedArray(), threshold.toDouble())
+        requireClient().roomListUpdateVisibleRange(token.toDouble(), range.map { it.toDouble() }.toJsArray(), threshold.toDouble())
 
     override suspend fun loginSsoLoopback(openUrl: (String) -> Boolean, deviceName: String?): Result<Unit> {
         return Result.failure(UnsupportedOperationException("SSO not supported on web"))
