@@ -1,3 +1,9 @@
+## v4.6.3
+
+- Do not fallback to body as filename for media (#98), and show the caption below
+- Auto paginate when scrolling to the top
+
+
 ## v4.6.2
 
 - Update release notes for v4.6.1

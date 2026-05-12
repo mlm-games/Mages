@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.6.3" date="2026-05-12" type="stable">
+      <description>
+        <ul>
+          <li>Do not fallback to body as filename for media (#98), and show the caption below</li>
+          <li>Auto paginate when scrolling to the top</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.6.2" date="2026-05-04" type="stable">
       <description>
         <ul>

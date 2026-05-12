@@ -1,0 +1,2 @@
+- Do not fallback to body as filename for media (#98), and show the caption below
+- Auto paginate when scrolling to the top
