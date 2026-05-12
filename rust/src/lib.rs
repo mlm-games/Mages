@@ -3386,7 +3386,7 @@ fn extract_attachment(msg: &matrix_sdk_ui::timeline::Message) -> Option<Attachme
         MT::Image(c) => {
             // main image source
             let (mxc_uri, encrypted) = split_source(&c.source);
-            let file_name = Some(c.filename.clone().unwrap_or_else(|| c.body.clone()));
+            let file_name = c.filename.clone();
 
             // metadata + thumbnail
             let (w, h, size, mime, thumb_mxc, thumb_enc) = c
@@ -3422,7 +3422,7 @@ fn extract_attachment(msg: &matrix_sdk_ui::timeline::Message) -> Option<Attachme
 
         MT::Video(c) => {
             let (mxc_uri, encrypted) = split_source(&c.source);
-            let file_name = Some(c.filename.clone().unwrap_or_else(|| c.body.clone()));
+            let file_name = c.filename.clone();
 
             let (w, h, size, mime, dur, thumb_mxc, thumb_enc) = c
                 .info
@@ -3458,7 +3458,7 @@ fn extract_attachment(msg: &matrix_sdk_ui::timeline::Message) -> Option<Attachme
 
         MT::File(c) => {
             let (mxc_uri, encrypted) = split_source(&c.source);
-            let file_name = Some(c.filename.clone().unwrap_or_else(|| c.body.clone()));
+            let file_name = c.filename.clone();
 
             let (size, mime, thumb_mxc, thumb_enc) = c
                 .info
@@ -3491,7 +3491,7 @@ fn extract_attachment(msg: &matrix_sdk_ui::timeline::Message) -> Option<Attachme
 
         MT::Audio(c) => {
             let (mxc_uri, encrypted) = split_source(&c.source);
-            let file_name = Some(c.filename.clone().unwrap_or_else(|| c.body.clone()));
+            let file_name = c.filename.clone();
 
             let (size, mime, dur) = c
                 .info

@@ -387,27 +387,36 @@ private fun ImageAttachmentBubble(
             attachment.width!!.toFloat() / attachment.height!!.toFloat()
         } else null
 
-        Box(
-            modifier = Modifier
-                .heightIn(min = 120.dp, max = 300.dp)
-                .sizeIn(maxHeight = 300.dp)
-                .then(
-                    if (aspectRatio != null) Modifier.aspectRatio(aspectRatio) else Modifier
-                )
-                .clip(RoundedCornerShape(8.dp))
-                .clickable(enabled = onOpen != null) { onOpen?.invoke() }
-        ) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalPlatformContext.current)
-                    .data(previewPath)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
+        Column {
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
                     .heightIn(min = 120.dp, max = 300.dp)
-            )
+                    .sizeIn(maxHeight = 300.dp)
+                    .then(
+                        if (aspectRatio != null) Modifier.aspectRatio(aspectRatio) else Modifier
+                    )
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(enabled = onOpen != null) { onOpen?.invoke() }
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalPlatformContext.current)
+                        .data(previewPath)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 120.dp, max = 300.dp)
+                )
+            }
+            attachment.caption?.let { caption ->
+                MarkdownText(
+                    text = caption,
+                    color = contentColor,
+                    modifier = Modifier.padding(top = Spacing.xs)
+                )
+            }
         }
     } else {
         Box(
@@ -442,30 +451,39 @@ private fun VideoAttachmentBubble(
             attachment.width!!.toFloat() / attachment.height!!.toFloat()
         } else null
 
-        Box(
-            modifier = Modifier
-                .heightIn(min = 120.dp, max = 300.dp)
-                .sizeIn(maxHeight = 300.dp)
-                .then(
-                    if (aspectRatio != null) Modifier.aspectRatio(aspectRatio) else Modifier
-                )
-                .clip(RoundedCornerShape(8.dp))
-                .clickable(enabled = onOpen != null) { onOpen?.invoke() }
-        ) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalPlatformContext.current)
-                    .data(previewPath)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
+        Column {
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
                     .heightIn(min = 120.dp, max = 300.dp)
-            )
+                    .sizeIn(maxHeight = 300.dp)
+                    .then(
+                        if (aspectRatio != null) Modifier.aspectRatio(aspectRatio) else Modifier
+                    )
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(enabled = onOpen != null) { onOpen?.invoke() }
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalPlatformContext.current)
+                        .data(previewPath)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 120.dp, max = 300.dp)
+                )
 
-            attachment.durationMs?.let { duration ->
-                DurationBadge(duration, Modifier.align(Alignment.BottomEnd).padding(6.dp))
+                attachment.durationMs?.let { duration ->
+                    DurationBadge(duration, Modifier.align(Alignment.BottomEnd).padding(6.dp))
+                }
+            }
+            attachment.caption?.let { caption ->
+                MarkdownText(
+                    text = caption,
+                    color = contentColor,
+                    modifier = Modifier.padding(top = Spacing.xs)
+                )
             }
         }
     } else {
