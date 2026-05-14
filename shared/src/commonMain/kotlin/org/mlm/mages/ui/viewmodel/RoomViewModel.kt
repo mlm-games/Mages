@@ -389,7 +389,7 @@ class RoomViewModel(
                     if (result?.isSuccess != true) {
                         _events.send(Event.ShowError(result.toUserMessage("Send failed")))
                     }
-                    updateState { copy(replyingTo = null) }
+                    updateState { copy(replyingTo = null, seenByEntries = emptyList(), lastOutgoingRead = false) }
                 }
             }
             return
@@ -408,7 +408,7 @@ class RoomViewModel(
             }
 
             if (result?.isSuccess == true) {
-                updateState { copy(input = "", replyingTo = null) }
+                updateState { copy(input = "", replyingTo = null, seenByEntries = emptyList(), lastOutgoingRead = false) }
                 draftJob?.cancel()
                 saveDraft(currentState.roomId, "")
             } else {
