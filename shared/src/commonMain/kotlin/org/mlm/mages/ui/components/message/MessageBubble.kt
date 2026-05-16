@@ -70,6 +70,7 @@ fun MessageBubble(
     footerContent: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     val isMine = model.isMine
+    val horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
 
     if (model.isSticker) {
         StickerMessage(
@@ -106,7 +107,7 @@ fun MessageBubble(
                 horizontal = Spacing.md,
                 vertical = if (grouping.groupedWithPrev) 1.dp else 3.dp
             ),
-        horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
+        horizontalAlignment = horizontalAlignment
     ) {
         if (showSenderInfo) {
             if (showSenderAvatar) {
@@ -155,7 +156,10 @@ fun MessageBubble(
                 modifier = Modifier
                     .combinedClickable(onClick = {}, onLongClick = onLongPress)
             ) {
-                Column(Modifier.padding(Spacing.md)) {
+                Column(
+                    modifier = Modifier.padding(Spacing.md),
+                    horizontalAlignment = horizontalAlignment
+                ) {
                     model.reply?.let { reply ->
                         if (!reply.body.isNullOrBlank()) {
                             ReplyPreview(isMine, reply.sender, reply.body, onReplyPreviewClick)
@@ -196,6 +200,7 @@ fun MessageBubble(
                         MarkdownText(
                             text = renderedBody,
                             color = bubbleTextColor,
+                            modifier = Modifier.align(horizontalAlignment)
                         )
                     }
 
@@ -205,7 +210,7 @@ fun MessageBubble(
                         textColor = bubbleTextColor,
                         modifier = Modifier
                             .padding(top = Spacing.xs)
-                            .align(if (isMine) Alignment.End else Alignment.Start)
+                            .align(horizontalAlignment)
                     )
 
                     if (isMine && model.sendState == SendState.Failed) {
@@ -373,6 +378,7 @@ private fun ImageAttachmentBubble(
 ) {
     val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
     else MaterialTheme.colorScheme.onSecondaryContainer
+    val horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
 
     val previewPath = attachment.previewPath
 
@@ -381,7 +387,7 @@ private fun ImageAttachmentBubble(
             attachment.width!!.toFloat() / attachment.height!!.toFloat()
         } else null
 
-        Column {
+        Column(horizontalAlignment = horizontalAlignment) {
             Box(
                 modifier = Modifier
                     .heightIn(min = 120.dp, max = 300.dp)
@@ -410,7 +416,7 @@ private fun ImageAttachmentBubble(
                     color = contentColor,
                     modifier = Modifier
                         .padding(top = Spacing.xs)
-                        .align(if (isMine) Alignment.End else Alignment.Start)
+                        .align(horizontalAlignment)
                 )
             }
         }
@@ -430,6 +436,7 @@ private fun VideoAttachmentBubble(
 ) {
     val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
     else MaterialTheme.colorScheme.onSecondaryContainer
+    val horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
 
     val previewPath = attachment.previewPath
 
@@ -438,7 +445,7 @@ private fun VideoAttachmentBubble(
             attachment.width!!.toFloat() / attachment.height!!.toFloat()
         } else null
 
-        Column {
+        Column(horizontalAlignment = horizontalAlignment) {
             Box(
                 modifier = Modifier
                     .heightIn(min = 120.dp, max = 300.dp)
@@ -471,7 +478,7 @@ private fun VideoAttachmentBubble(
                     color = contentColor,
                     modifier = Modifier
                         .padding(top = Spacing.xs)
-                        .align(if (isMine) Alignment.End else Alignment.Start)
+                        .align(horizontalAlignment)
                 )
             }
         }
