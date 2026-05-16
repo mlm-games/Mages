@@ -364,24 +364,49 @@ class ForwardPickerViewModel(
     ): Boolean {
         return try {
             val attachment = event.attachment
-            val result = if (attachment != null) {
-                service.port.sendExistingAttachment(
-                    roomId = targetRoomId,
-                    attachment = attachment,
-                    body = event.body.takeIf {
-                        it.isNotBlank() &&
-                            it != attachment.mxcUri &&
-                            !it.startsWith("mxc://")
-                    }
-                )
-            } else {
-                val body = event.body.takeIf { it.isNotBlank() } ?: return false
-                service.sendMessage(targetRoomId, body)
+            val sticker = event.sticker
+            val result = when {
+                attachment != null -> {
+                    service.port.sendExistingAttachment(
+                        roomId = targetRoomId,
+                        attachment = attachment,
+                        body = event.body.takeIf {
+                            it.isNotBlank() &&
+                                attachment.fileName != null &&
+                                it != attachment.fileName
+                        }
+                    )
+                }
+                sticker != null -> {
+                    val path = service.downloadStickerToCache(sticker).getOrNull() ?: return false
+                    val body = event.body.takeIf { it.isNotBlank() } ?: "Sticker"
+                    service.port.sendStickerFromPath(
+                        roomId = targetRoomId,
+                        path = path,
+                        mime = sticker.mime ?: "image/png",
+                        body = body,
+                        filename = null
+                    ) { _, _ -> }
+                }
+                else -> {
+                    val body = event.body.takeIf { it.isNotBlank() } ?: return false
+                    service.sendMessage(targetRoomId, body)
+                }
             }
-            if (result?.isSuccess != true) {
-                _events.send(Event.ShowError(result.toUserMessage("Send failed")))
+            val ok = when (result) {
+                is Result<*> -> result.isSuccess
+                is Boolean -> result
+                else -> false
             }
-            result?.isSuccess == true
+            if (!ok) {
+                val message = if (result is Result<*>) {
+                    result.toUserMessage("Send failed")
+                } else {
+                    "Send failed"
+                }
+                _events.send(Event.ShowError(message))
+            }
+            ok
         } catch (e: Exception) {
             e.printStackTrace()
             false

@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import org.mlm.mages.matrix.MemberSummary
@@ -182,7 +183,7 @@ private fun ActionItem(
     icon: ImageVector,
     title: String,
     subtitle: String? = null,
-    tint: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
+    tint: Color = MaterialTheme.colorScheme.onSurface,
     enabled: Boolean = true,
     onClick: () -> Unit
 ) {

@@ -527,7 +527,7 @@ private fun StickerMessage(
             ),
         horizontalAlignment = if (isMine) Alignment.End else Alignment.Start,
     ) {
-        if (!isMine && model.sender != null && grouping.groupedWithPrev != true) {
+        if (!isMine && model.sender != null && !grouping.groupedWithPrev) {
             val sender = model.sender
             Text(
                 text = sender.displayName ?: sender.id ?: "",

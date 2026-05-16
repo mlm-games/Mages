@@ -1807,20 +1807,47 @@ class RoomViewModel(
     private suspend fun forwardMessage(event: MessageEvent, targetRoomId: String): Boolean {
         return try {
             val attachment = event.attachment
+            val sticker = event.sticker
 
-            val result = if (attachment != null) {
-                service.port.sendExistingAttachment(
-                    roomId = targetRoomId,
-                    attachment = attachment,
-                    body = event.body.takeIf { it.isNotBlank() && it != attachment.mxcUri }
-                )
-            } else {
-                service.sendMessage(targetRoomId, event.body)
+            val result = when {
+                attachment != null -> {
+                    service.port.sendExistingAttachment(
+                        roomId = targetRoomId,
+                        attachment = attachment,
+                        body = event.body.takeIf {
+                            it.isNotBlank() &&
+                                attachment.fileName != null &&
+                                it != attachment.fileName
+                        }
+                    )
+                }
+                sticker != null -> {
+                    val path = service.downloadStickerToCache(sticker).getOrNull() ?: return false
+                    val body = event.body.takeIf { it.isNotBlank() } ?: "Sticker"
+                    service.port.sendStickerFromPath(
+                        roomId = targetRoomId,
+                        path = path,
+                        mime = sticker.mime ?: "image/png",
+                        body = body,
+                        filename = null
+                    ) { _, _ -> }
+                }
+                else -> service.sendMessage(targetRoomId, event.body)
             }
-            if (result?.isSuccess != true) {
-                _events.send(Event.ShowError(result.toUserMessage("Send failed")))
+            val ok = when (result) {
+                is Result<*> -> result.isSuccess
+                is Boolean -> result
+                else -> false
             }
-            result?.isSuccess == true
+            if (!ok) {
+                val message = if (result is Result<*>) {
+                    result.toUserMessage("Send failed")
+                } else {
+                    "Send failed"
+                }
+                _events.send(Event.ShowError(message))
+            }
+            ok
         } catch (e: Exception) {
             e.printStackTrace()
             false
