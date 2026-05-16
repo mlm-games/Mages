@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -198,20 +199,13 @@ fun MessageBubble(
                         )
                     }
 
-                    if (model.isEdited) {
-                        Text(
-                            text = "(edited)",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = bubbleTextColor.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
-                    }
-
-                    Text(
-                        text = formatTime(model.timestamp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = bubbleTextColor.copy(alpha = 0.7f),
-                        modifier = Modifier.padding(top = Spacing.xs)
+                    MessageTimeAndStatus(
+                        timestamp = model.timestamp,
+                        isEdited = model.isEdited,
+                        textColor = bubbleTextColor,
+                        modifier = Modifier
+                            .padding(top = Spacing.xs)
+                            .align(if (isMine) Alignment.End else Alignment.Start)
                     )
 
                     if (isMine && model.sendState == SendState.Failed) {
@@ -414,24 +408,17 @@ private fun ImageAttachmentBubble(
                 MarkdownText(
                     text = caption,
                     color = contentColor,
-                    modifier = Modifier.padding(top = Spacing.xs)
+                    modifier = Modifier
+                        .padding(top = Spacing.xs)
+                        .align(if (isMine) Alignment.End else Alignment.Start)
                 )
             }
         }
     } else {
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(contentColor.copy(alpha = 0.08f))
-                .border(1.dp, contentColor.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
-        ) {
-            Text(
-                text = stringResource(Res.string.image),
-                modifier = Modifier.padding(12.dp),
-                style = MaterialTheme.typography.bodySmall,
-                color = contentColor
-            )
-        }
+        MediaPlaceholderBubble(
+            label = stringResource(Res.string.image),
+            contentColor = contentColor
+        )
     }
 }
 
@@ -482,7 +469,9 @@ private fun VideoAttachmentBubble(
                 MarkdownText(
                     text = caption,
                     color = contentColor,
-                    modifier = Modifier.padding(top = Spacing.xs)
+                    modifier = Modifier
+                        .padding(top = Spacing.xs)
+                        .align(if (isMine) Alignment.End else Alignment.Start)
                 )
             }
         }
@@ -597,24 +586,12 @@ private fun StickerMessage(
             }
         }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(top = 2.dp),
-        ) {
-            Text(
-                text = formatTime(model.timestamp),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            )
-            if (model.isEdited) {
-                Text(
-                    text = "(edited)",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                )
-            }
-        }
+        MessageTimeAndStatus(
+            timestamp = model.timestamp,
+            isEdited = model.isEdited,
+            textColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 2.dp)
+        )
 
         if (!model.reactions.isNullOrEmpty()) {
             ReactionChipsRow(
@@ -684,6 +661,54 @@ private fun FailedIndicator() {
             text = "Failed to send. Check your internet?",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.error
+        )
+    }
+}
+
+@Composable
+fun MessageTimeAndStatus(
+    timestamp: Long,
+    isEdited: Boolean,
+    textColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = formatTime(timestamp),
+            style = MaterialTheme.typography.labelSmall,
+            color = textColor.copy(alpha = 0.7f)
+        )
+        if (isEdited) {
+            Text(
+                text = "(edited)",
+                style = MaterialTheme.typography.labelSmall,
+                color = textColor.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+@Composable
+fun MediaPlaceholderBubble(
+    label: String,
+    contentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(contentColor.copy(alpha = 0.08f))
+            .border(1.dp, contentColor.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(12.dp),
+            style = MaterialTheme.typography.bodySmall,
+            color = contentColor
         )
     }
 }
