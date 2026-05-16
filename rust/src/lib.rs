@@ -2250,6 +2250,9 @@ impl Client {
         path: String,
         mime: String,
         filename: Option<String>,
+        caption: Option<String>,
+        formatted_caption: Option<String>,
+        reply_to_event_id: Option<String>,
         progress: Option<Box<dyn ProgressObserver>>,
     ) -> bool {
         RT.block_on(async {
@@ -2270,7 +2273,24 @@ impl Client {
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or("file".into())
             });
-            let config = matrix_sdk::attachment::AttachmentConfig::new();
+            let mut config = matrix_sdk::attachment::AttachmentConfig::new();
+            if let Some(c) = caption {
+                let text_content = if let Some(fc) = formatted_caption {
+                    matrix_sdk::ruma::events::room::message::TextMessageEventContent::html(c, fc)
+                } else {
+                    matrix_sdk::ruma::events::room::message::TextMessageEventContent::plain(c)
+                };
+                config = config.caption(Some(text_content));
+            }
+            if let Some(reply_id) = reply_to_event_id {
+                if let Ok(eid) = matrix_sdk::ruma::EventId::parse(&reply_id) {
+                    config = config.reply(Some(matrix_sdk::room::reply::Reply {
+                        event_id: eid.to_owned(),
+                        enforce_thread: matrix_sdk::room::reply::EnforceThread::Unthreaded,
+                        add_mentions: matrix_sdk::ruma::events::room::message::AddMentions::Yes,
+                    }));
+                }
+            }
             if let Some(p) = progress.as_ref() {
                 p.on_progress(0, Some(data.len() as u64));
             }

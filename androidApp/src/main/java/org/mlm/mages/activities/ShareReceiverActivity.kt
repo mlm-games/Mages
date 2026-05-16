@@ -703,14 +703,13 @@ private suspend fun sendPreparedSharedContent(
                     path = content.file.absolutePath,
                     mime = content.mimeType,
                     filename = content.fileName,
+                    caption = content.caption,
+                    formattedCaption = null,
+                    replyToEventId = null,
                     onProgress = null
                 )
 
-                if (success && !content.caption.isNullOrBlank()) {
-                    port.send(roomId, content.caption).isSuccess
-                } else {
-                    success
-                }
+                success
             }
 
             is PreparedSharedContent.MultipleFiles -> {

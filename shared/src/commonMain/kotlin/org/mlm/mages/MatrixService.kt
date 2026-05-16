@@ -163,8 +163,11 @@ class MatrixService(
         path: String,
         mime: String,
         filename: String? = null,
-        onProgress: ((Long, Long?) -> Unit)? = null
-    ): Boolean = port.sendAttachmentFromPath(roomId, path, mime, filename, onProgress)
+        caption: String? = null,
+        formattedCaption: String? = null,
+        replyToEventId: String? = null,
+        onProgress: ((sent: Long, total: Long?) -> Unit)? = null,
+    ): Boolean = port.sendAttachmentFromPath(roomId, path, mime, filename, caption, formattedCaption, replyToEventId, onProgress)
 
     suspend fun sendStickerFromPath(
         roomId: String,

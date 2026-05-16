@@ -694,6 +694,9 @@ interface MatrixPort {
         path: String,
         mime: String,
         filename: String? = null,
+        caption: String? = null,
+        formattedCaption: String? = null,
+        replyToEventId: String? = null,
         onProgress: ((Long, Long?) -> Unit)? = null,
     ): Boolean
 

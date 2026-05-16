@@ -4,29 +4,14 @@ import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.ui.util.formatBytes
 
-private fun String.looksLikeFileName(): Boolean {
-    val value = trim()
-    return value.matches(Regex(""".+\.[A-Za-z0-9]{2,5}$""")) ||
-        value.matches(Regex("""(?i)(img|vid|pxl|dsc|screenshot)[-_ ]?\d+.*"""))
-}
-
-private fun String.normalizedAttachmentLabel(): String =
-    trim()
-        .lowercase()
-        .substringBeforeLast('.', this)
-        .replace('_', ' ')
-        .replace('-', ' ')
-        .replace(Regex("\\s+"), " ")
-
 private fun MessageEvent.toMediaCaption(): String? {
     val text = body.trim()
     val fileName = attachment?.fileName?.trim()
 
     if (text.isEmpty()) return null
-    if (!fileName.isNullOrBlank() && text.normalizedAttachmentLabel() == fileName.normalizedAttachmentLabel()) {
+    if (fileName == null || text == fileName) {
         return null
     }
-    if (text.looksLikeFileName()) return null
 
     return text
 }

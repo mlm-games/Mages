@@ -64,7 +64,7 @@ fun MessageInfoSheet(
     val attachment = event.attachment
     val caption = event.body
         .trim()
-        .takeIf { it.isNotEmpty() && it != attachment?.fileName }
+        .takeIf { it.isNotEmpty() && attachment?.fileName != null && it != attachment.fileName }
 
     fun copy(value: String) {
         clipboardManager.setText(AnnotatedString(value))

@@ -603,14 +603,19 @@ class RustMatrixPort : MatrixPort, VerificationService {
         path: String,
         mime: String,
         filename: String?,
+        caption: String?,
+        formattedCaption: String?,
+        replyToEventId: String?,
         onProgress: ((Long, Long?) -> Unit)?
-    ): Boolean = withContext(matrixDispatcher) {
+    ): Boolean {
         val cb = if (onProgress != null) object : mages.ProgressObserver {
             override fun onProgress(sent: ULong, total: ULong?) {
                 onProgress(sent.toLong(), total?.toLong())
             }
         } else null
-        runWithFfiResult { withClient { it.sendAttachmentFromPath(roomId, path, mime, filename, cb) } }.isSuccess
+        return withContext(Dispatchers.IO) {
+            runWithFfiResult { withClient { it.sendAttachmentFromPath(roomId, path, mime, filename, caption, formattedCaption, replyToEventId, cb) } }.isSuccess
+        }
     }
 
     override suspend fun downloadAttachmentToCache(
@@ -1760,6 +1765,7 @@ private fun mages.AttachmentInfo.toModel() = AttachmentInfo(
         mages.AttachmentKind.FILE -> AttachmentKind.File
     },
     mxcUri = mxcUri,
+    fileName = fileName,
     mime = mime,
     sizeBytes = sizeBytes?.toLong(),
     width = width?.toInt(),

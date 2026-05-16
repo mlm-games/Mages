@@ -155,7 +155,7 @@ fun ByteArray.toJsUint8Array(): JsAny {
                 resolve(href);
             }
         } catch (e) {
-           
+
         }
     }, 200);
 
@@ -692,10 +692,14 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         path: String,
         mime: String,
         filename: String?,
+        caption: String?,
+        formattedCaption: String?,
+        replyToEventId: String?,
         onProgress: ((Long, Long?) -> Unit)?
     ): Boolean {
         val bytes = retrieveWebBlob(path) ?: throw Exception("Blob not found for path: $path")
         clearWebBlob(path)
+        // Hack: need to switch to a single fn for all platforms later
         val result = requireClient().sendAttachmentBytes(roomId, filename ?: path, mime, bytes.toJsUint8Array()).awaitUnitResult()
         return result.isSuccess
     }
@@ -708,7 +712,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         filename: String?,
         onProgress: ((Long, Long?) -> Unit)?
     ): Boolean = false
-    
+
 
     override suspend fun downloadAttachmentToCache(
         info: AttachmentInfo,

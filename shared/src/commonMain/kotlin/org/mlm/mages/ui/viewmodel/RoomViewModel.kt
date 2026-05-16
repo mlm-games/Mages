@@ -97,13 +97,13 @@ class RoomViewModel(
 
     private suspend fun refreshSelectedMemberActionState(userId: String?) {
         if (userId == null) {
-            updateState { 
+            updateState {
                 copy(
                     selectedMemberDmAction = ActionAvailabilityUi(),
                     selectedMemberKickAction = ActionAvailabilityUi(),
                     selectedMemberBanAction = ActionAvailabilityUi(),
                     selectedMemberUnbanAction = ActionAvailabilityUi(),
-                ) 
+                )
             }
             return
         }
@@ -370,49 +370,60 @@ class RoomViewModel(
         // If there are attachments, send them all, then send text
         if (pending.isNotEmpty() && !s.isUploadingAttachment) {
             updateState { copy(attachments = emptyList()) }
-            sendAttachmentsInternal(pending)
+            val text = s.input.trim()
+            val plainText = text.toPlainComposerText()
+            val formattedBody = text.toFormattedBodyOrNull()
 
             if (hasText) {
-                val text = s.input.trim()
-                val plainText = text.toPlainComposerText()
-                val formattedBody = text.toFormattedBodyOrNull()
                 updateState { copy(input = "") }
                 draftJob?.cancel()
-                launch {
-                    saveDraft(s.roomId, "")
-                    val replyTo = s.replyingTo
-                    val result = if (replyTo != null) {
-                        service.reply(s.roomId, replyTo.eventId, plainText, formattedBody)
-                    } else {
-                        service.sendMessage(s.roomId, plainText, formattedBody)
+                launch { saveDraft(s.roomId, "") }
+            }
+
+            val canUseCaption = hasText &&
+                pending.size == 1 &&
+                pending.first().mode == OutgoingMediaMode.Attachment
+
+            if (canUseCaption) {
+                sendAttachmentsInternal(pending, plainText, formattedBody, s.replyingTo?.eventId)
+            } else {
+                sendAttachmentsInternal(pending)
+                if (hasText) {
+                    launch {
+                        val replyTo = s.replyingTo
+                        val result = if (replyTo != null) {
+                            service.reply(s.roomId, replyTo.eventId, plainText, formattedBody)
+                        } else {
+                            service.sendMessage(s.roomId, plainText, formattedBody)
+                        }
+                        if (result?.isSuccess != true) {
+                            _events.send(Event.ShowError(result.toUserMessage(if (replyTo != null) "Reply failed" else "Send failed")))
+                        }
+                        updateState { copy(replyingTo = null, seenByEntries = emptyList(), lastOutgoingRead = false) }
                     }
-                    if (result?.isSuccess != true) {
-                        _events.send(Event.ShowError(result.toUserMessage("Send failed")))
-                    }
-                    updateState { copy(replyingTo = null, seenByEntries = emptyList(), lastOutgoingRead = false) }
                 }
             }
             return
         }
 
-        launch {
+        if (hasText) {
             val text = s.input.trim()
             val plainText = text.toPlainComposerText()
             val formattedBody = text.toFormattedBodyOrNull()
-            val replyTo = s.replyingTo
-
-            val result = if (replyTo != null) {
-                service.reply(s.roomId, replyTo.eventId, plainText, formattedBody)
-            } else {
-                service.sendMessage(s.roomId, plainText, formattedBody)
-            }
-
-            if (result?.isSuccess == true) {
-                updateState { copy(input = "", replyingTo = null, seenByEntries = emptyList(), lastOutgoingRead = false) }
-                draftJob?.cancel()
-                saveDraft(currentState.roomId, "")
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage(if (replyTo != null) "Reply failed" else "Send failed")))
+            updateState { copy(input = "") }
+            draftJob?.cancel()
+            launch {
+                saveDraft(s.roomId, "")
+                val replyTo = s.replyingTo
+                val result = if (replyTo != null) {
+                    service.reply(s.roomId, replyTo.eventId, plainText, formattedBody)
+                } else {
+                    service.sendMessage(s.roomId, plainText, formattedBody)
+                }
+                if (result?.isSuccess != true) {
+                    _events.send(Event.ShowError(result.toUserMessage(if (replyTo != null) "Reply failed" else "Send failed")))
+                }
+                updateState { copy(replyingTo = null, seenByEntries = emptyList(), lastOutgoingRead = false) }
             }
         }
     }
@@ -896,13 +907,23 @@ class RoomViewModel(
 
     //  Attachments
 
-    private fun sendAttachmentsInternal(items: List<AttachmentData>) {
+    private fun sendAttachmentsInternal(
+        items: List<AttachmentData>,
+        caption: String? = null,
+        formattedCaption: String? = null,
+        replyToEventId: String? = null
+    ) {
         if (currentState.isUploadingAttachment) return
 
         uploadJob = launch {
             val total = items.size
 
             for ((i, data) in items.withIndex()) {
+                val isLast = i == total - 1
+                val cap = if (isLast) caption else null
+                val fCap = if (isLast) formattedCaption else null
+                val replyId = if (isLast) replyToEventId else null
+
                 updateState {
                     copy(
                         isUploadingAttachment = true,
@@ -918,7 +939,10 @@ class RoomViewModel(
                             roomId = currentState.roomId,
                             path = data.path,
                             mime = data.mimeType,
-                            filename = data.fileName
+                            filename = data.fileName,
+                            caption = cap,
+                            formattedCaption = fCap,
+                            replyToEventId = replyId
                         ) { sent, totalBytes ->
                             val denom = (totalBytes ?: data.sizeBytes).coerceAtLeast(1L).toFloat()
                             val p = (sent.toFloat() / denom).coerceIn(0f, 1f)
@@ -1009,13 +1033,7 @@ class RoomViewModel(
 
             when {
                 attachment != null -> {
-                    val nameHint = event.body.takeIf { body ->
-                        body.isNotBlank() &&
-                                body.contains('.') &&
-                                !body.startsWith("mxc://") &&
-                                !body.contains('\n') &&
-                                body.length < 256
-                    } ?: run {
+                    val nameHint = attachment.fileName?.takeIf { it.isNotBlank() } ?: run {
                         val ext = mimeToExtension(attachment.mime)
                         val base = event.eventId.ifBlank { "file" }
                         "$base.$ext"
@@ -1085,13 +1103,8 @@ class RoomViewModel(
                     )
                 )
             } else if (attachment != null) {
-                val nameHint = event.body.takeIf { body ->
-                    body.isNotBlank() &&
-                            body.contains('.') &&
-                            !body.startsWith("mxc://") &&
-                            !body.contains('\n') &&
-                            body.length < 256
-                } ?: run {
+                val caption = event.body.trim().takeIf { it.isNotBlank() && it != attachment.fileName?.trim() }
+                val nameHint = attachment.fileName?.takeIf { it.isNotBlank() } ?: run {
                     val ext = mimeToExtension(attachment.mime)
                     val base = event.eventId.ifBlank { "file" }
                     "$base.$ext"
@@ -1101,7 +1114,7 @@ class RoomViewModel(
                     .onSuccess { path ->
                         _events.send(
                             Event.ShareMessage(
-                                text = null,
+                                text = caption,
                                 filePath = path,
                                 mimeType = attachment.mime
                             )
@@ -1287,11 +1300,17 @@ class RoomViewModel(
                 val att = ev.attachment
                 val sticker = ev.sticker
                 if (att != null) {
-                    val hint = ev.body.takeIf { it.contains('.') && !it.startsWith("mxc://") }
+                    val hint = att.fileName?.takeIf { it.isNotBlank() }
                     val path = service.port.downloadAttachmentToCache(att, hint).getOrNull()
                     if (path != null) {
                         files += path
                         mimes += att.mime
+                    }
+                    // HACK: Include caption (body) only if it differs from filename
+                    val body = ev.body.trim()
+                    val fileName = att.fileName?.trim()
+                    if (body.isNotBlank() && body != fileName) {
+                        texts += body
                     }
                 } else if (sticker != null) {
                     val hint = ev.body.takeIf { it.isNotBlank() && !it.startsWith("mxc://") }
