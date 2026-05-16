@@ -1,0 +1,2 @@
+- Fix filename being shown as caption (prev. release fix)
+- refresh seen by when sending a new message

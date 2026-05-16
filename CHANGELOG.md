@@ -1,3 +1,9 @@
+## v4.6.4
+
+- Fix filename being shown as caption (prev. release fix)
+- refresh seen by when sending a new message
+
+
 ## v4.6.3
 
 - Do not fallback to body as filename for media (#98), and show the caption below

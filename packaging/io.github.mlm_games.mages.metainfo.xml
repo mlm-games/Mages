@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.6.4" date="2026-05-16" type="stable">
+      <description>
+        <ul>
+          <li>Fix filename being shown as caption (prev. release fix)</li>
+          <li>refresh seen by when sending a new message</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.6.3" date="2026-05-12" type="stable">
       <description>
         <ul>
