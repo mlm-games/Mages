@@ -28,6 +28,7 @@ fun ReactionChipsRow(
     style: ReactionChipStyle = ReactionChipStyle.Timeline,
     maxVisible: Int? = null,
     avatarPathsByUserId: Map<String, String> = emptyMap(),
+    showAvatars: Boolean = false,
     onClick: ((String) -> Unit)? = null,
     onLongClick: ((String) -> Unit)? = null,
 ) {
@@ -44,6 +45,7 @@ fun ReactionChipsRow(
             ReactionChip(
                 chip = chip,
                 avatarPathsByUserId = avatarPathsByUserId,
+                showAvatars = showAvatars,
                 onClick = onClick,
                 onLongClick = onLongClick
             )
@@ -55,6 +57,7 @@ fun ReactionChipsRow(
 private fun ReactionChip(
     chip: ReactionSummary,
     avatarPathsByUserId: Map<String, String>,
+    showAvatars: Boolean = true,
     onClick: ((String) -> Unit)?,
     onLongClick: ((String) -> Unit)?
 ) {
@@ -95,7 +98,7 @@ private fun ReactionChip(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                if (userIdsWithAvatars.isNotEmpty()) {
+                if (showAvatars && userIdsWithAvatars.isNotEmpty()) {
                     Row(horizontalArrangement = Arrangement.spacedBy((-8).dp)) {
                         userIdsWithAvatars.take(3).forEach { (userId, avatarPath) ->
                             Avatar(

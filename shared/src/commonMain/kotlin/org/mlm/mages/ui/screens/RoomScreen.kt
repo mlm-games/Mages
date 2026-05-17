@@ -746,7 +746,8 @@ fun RoomScreen(
                                             viewModel = viewModel,
                                             showMessageAvatars = settings.showMessageAvatars,
                                             showUsernameInDms = settings.showUsernameInDms,
-                                            enableBubbleAnimations = settings.bubbleAnimations
+                                            enableBubbleAnimations = settings.bubbleAnimations,
+                                            showReactionAvatars = settings.showReactionAvatars
                                         )
                                     }
                                 }
@@ -1303,6 +1304,7 @@ private fun MessageItem(
     showMessageAvatars: Boolean,
     showUsernameInDms: Boolean,
     enableBubbleAnimations: Boolean = true,
+    showReactionAvatars: Boolean = true,
 ) {
     val timestamp = event.timestampMs
 
@@ -1471,6 +1473,7 @@ private fun MessageItem(
                         showUsernameInDms = showUsernameInDms,
                         reactions = chips,
                         reactionAvatarsByUserId = reactionAvatarMap,
+                        showReactionAvatars = showReactionAvatars,
                         threadCount = state.threadCount[event.eventId],
                         variant = MessageBubbleVariant.Timeline,
                         resolvedPreviewPath = state.thumbByEvent[event.eventId],

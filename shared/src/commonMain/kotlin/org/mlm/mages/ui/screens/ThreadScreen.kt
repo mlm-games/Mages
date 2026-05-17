@@ -83,6 +83,7 @@ fun ThreadRoute(
         onCancelEdit = viewModel::cancelEdit,
         onDelete = { ev -> viewModel.delete(ev) },
         enterSendsMessage = settings.enterSendsMessage,
+        showReactionAvatars = settings.showReactionAvatars,
     )
 }
 
@@ -101,6 +102,7 @@ fun ThreadScreen(
     onCancelEdit: () -> Unit,
     onDelete: suspend (MessageEvent) -> Boolean,
     enterSendsMessage: Boolean = false,
+    showReactionAvatars: Boolean = true,
 ) {
     val scope = rememberCoroutineScope()
     var sheetEvent by remember { mutableStateOf<MessageEvent?>(null) }
@@ -239,6 +241,7 @@ fun ThreadScreen(
                                     event = root,
                                     isMine = root.sender == myUserId,
                                     reactionSummaries = root.reactions,
+showReactionAvatars = showReactionAvatars,
                                     onReact = { emoji -> onReact(root, emoji) },
                                     onReply = { onStartReply(root) },
                                     onLongPress = { sheetEvent = root }
@@ -382,6 +385,7 @@ private fun ThreadRootMessage(
     event: MessageEvent,
     isMine: Boolean,
     reactionSummaries: List<ReactionSummary>,
+    showReactionAvatars: Boolean,
     onReact: (String) -> Unit,
     onReply: () -> Unit,
     onLongPress: () -> Unit
@@ -471,6 +475,7 @@ private fun ThreadRootMessage(
                     style = ReactionChipStyle.ThreadRoot,
                     maxVisible = 6,
                     avatarPathsByUserId = state.avatarByUserId,
+                    showAvatars = showReactionAvatars,
                     onClick = onReact,
                     modifier = Modifier.offset(y = (-12).dp).padding(horizontal = Spacing.xs)
                 )

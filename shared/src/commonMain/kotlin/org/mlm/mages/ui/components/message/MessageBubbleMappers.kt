@@ -92,6 +92,7 @@ fun MessageEvent.toBubbleModel(
         ),
         reactions = ctx.reactions,
         reactionAvatarsByUserId = ctx.reactionAvatarsByUserId,
+        showReactionAvatars = ctx.showReactionAvatars,
         reply = MessageReplyUi(
             sender = replyToSenderDisplayName,
             body = replyToBody,

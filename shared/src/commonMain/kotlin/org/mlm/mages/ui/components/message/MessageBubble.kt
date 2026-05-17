@@ -272,6 +272,7 @@ fun MessageBubble(
                 ReactionChipsRow(
                     chips = model.reactions,
                     avatarPathsByUserId = model.reactionAvatarsByUserId,
+                    showAvatars = model.showReactionAvatars,
                     onClick = onReact,
                     modifier = Modifier.padding(horizontal = Spacing.xs)
                 )
@@ -696,6 +697,7 @@ private fun StickerMessage(
             ReactionChipsRow(
                 chips = model.reactions,
                 avatarPathsByUserId = model.reactionAvatarsByUserId,
+                showAvatars = model.showReactionAvatars,
                 onClick = onReact,
                 modifier = Modifier.offset(y = (-10).dp).padding(horizontal = Spacing.xs)
             )

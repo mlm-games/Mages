@@ -100,6 +100,14 @@ data class AppSettings(
     val showMessageAvatars: Boolean = true,
 
     @Setting(
+        title = "Show reaction avatars",
+        description = "Display user avatars on reaction chips",
+        category = Appearance::class,
+        type = Toggle::class
+    )
+    val showReactionAvatars: Boolean = false,
+
+    @Setting(
         title = "Show username in DMs",
         category = Appearance::class,
         type = Toggle::class
