@@ -419,18 +419,17 @@ private fun ImageAttachmentBubble(
 ) {
     val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
     else MaterialTheme.colorScheme.onSecondaryContainer
+    val horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
 
     val previewPath = attachment.previewPath
+    val hasCaption = !attachment.caption.isNullOrBlank()
 
     if (previewPath != null) {
         val aspectRatio = if ((attachment.width ?: 0) > 0 && (attachment.height ?: 0) > 0) {
             attachment.width!!.toFloat() / attachment.height!!.toFloat()
         } else null
 
-        TimestampLayout(
-            position = TimestampPosition.Overlay,
-            timestamp = timestamp,
-        ) {
+        Column(horizontalAlignment = horizontalAlignment) {
             Box(
                 modifier = Modifier
                     .heightIn(min = 120.dp, max = 300.dp)
@@ -452,6 +451,31 @@ private fun ImageAttachmentBubble(
                         .fillMaxWidth()
                         .heightIn(min = 120.dp, max = 300.dp)
                 )
+                if (!hasCaption) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(4.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    ) {
+                        timestamp()
+                    }
+                }
+            }
+            if (hasCaption) {
+                TimestampLayout(
+                    position = TimestampPosition.Aligned,
+                    timestamp = timestamp,
+                ) {
+                    MarkdownText(
+                        text = attachment.caption!!,
+                        color = contentColor
+                    )
+                }
             }
         }
     } else {
@@ -471,18 +495,17 @@ private fun VideoAttachmentBubble(
 ) {
     val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
     else MaterialTheme.colorScheme.onSecondaryContainer
+    val horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
 
     val previewPath = attachment.previewPath
+    val hasCaption = !attachment.caption.isNullOrBlank()
 
     if (previewPath != null) {
         val aspectRatio = if ((attachment.width ?: 0) > 0 && (attachment.height ?: 0) > 0) {
             attachment.width!!.toFloat() / attachment.height!!.toFloat()
         } else null
 
-        TimestampLayout(
-            position = TimestampPosition.Overlay,
-            timestamp = timestamp,
-        ) {
+        Column(horizontalAlignment = horizontalAlignment) {
             Box(
                 modifier = Modifier
                     .heightIn(min = 120.dp, max = 300.dp)
@@ -507,6 +530,32 @@ private fun VideoAttachmentBubble(
 
                 attachment.durationMs?.let { duration ->
                     DurationBadge(duration, Modifier.align(Alignment.BottomEnd).padding(6.dp))
+                }
+
+                if (!hasCaption) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(4.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    ) {
+                        timestamp()
+                    }
+                }
+            }
+            if (hasCaption) {
+                TimestampLayout(
+                    position = TimestampPosition.Aligned,
+                    timestamp = timestamp,
+                ) {
+                    MarkdownText(
+                        text = attachment.caption!!,
+                        color = contentColor
+                    )
                 }
             }
         }
