@@ -1,3 +1,10 @@
+## v4.6.5
+
+- show avatars of users who reacted
+- Move reaction chips closer
+- Compact spacing for timestamp (#82)
+
+
 ## v4.6.4
 
 - Fix filename being shown as caption (prev. release fix)

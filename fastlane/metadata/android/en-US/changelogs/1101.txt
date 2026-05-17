@@ -1,0 +1,3 @@
+- show avatars of users who reacted
+- Move reaction chips closer
+- Compact spacing for timestamp (#82)

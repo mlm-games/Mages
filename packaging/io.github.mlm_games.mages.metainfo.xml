@@ -46,6 +46,15 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.6.5" date="2026-05-17" type="stable">
+      <description>
+        <ul>
+          <li>show avatars of users who reacted</li>
+          <li>Move reaction chips closer</li>
+          <li>Compact spacing for timestamp (#82)</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.6.4" date="2026-05-16" type="stable">
       <description>
         <ul>
