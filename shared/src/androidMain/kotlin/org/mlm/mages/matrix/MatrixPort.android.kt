@@ -1165,7 +1165,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
             runCatching {
                 withClient {
                     it.reactionsForEvent(roomId, eventId)
-                        .map { r -> ReactionSummary(r.key, r.count.toInt(), r.mine) }
+                        .map { r -> ReactionSummary(r.key, r.count.toInt(), r.mine, r.userIds) }
                 }
             }.getOrElse { emptyList() }
         }
@@ -1178,7 +1178,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
             withClient {
                 it.reactionsBatch(roomId, eventIds)
                     .mapValues { (_, chips) ->
-                        chips.map { c -> ReactionSummary(c.key, c.count.toInt(), c.mine) }
+                        chips.map { c -> ReactionSummary(c.key, c.count.toInt(), c.mine, c.userIds) }
                     }
             }
         }.getOrElse { emptyMap() }
@@ -1741,7 +1741,7 @@ private fun mages.MessageEvent.toModel() = MessageEvent(
     senderDisplayName = senderDisplayName,
     replyToSenderDisplayName = replyToSenderDisplayName,
     pollData = pollData?.toModel(),
-    reactions = reactions.map { ReactionSummary(it.key, it.count.toInt(), it.mine) },
+    reactions = reactions.map { ReactionSummary(it.key, it.count.toInt(), it.mine, it.userIds) },
     eventType = eventType.toKotlin(),
     isRedacted = isRedacted,
     stateEventType = stateEventType,

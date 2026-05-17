@@ -1334,6 +1334,10 @@ private fun MessageItem(
 
     // Message bubble
     val chips = event.reactions
+    val allUserIdsFromReactions = chips.flatMap { it.userIds }.distinct()
+    val reactionAvatarMap = allUserIdsFromReactions.associateWith { userId ->
+        state.avatarByUserId[userId]
+    }.filterValues { it != null }.mapValues { it.value!! }
     val prevEvent = events.getOrNull(index - 1)
     val shouldGroup = prevEvent != null &&
             prevEvent.sender == event.sender &&
@@ -1466,6 +1470,7 @@ private fun MessageItem(
                         showMessageAvatars = showMessageAvatars,
                         showUsernameInDms = showUsernameInDms,
                         reactions = chips,
+                        reactionAvatarsByUserId = reactionAvatarMap,
                         threadCount = state.threadCount[event.eventId],
                         variant = MessageBubbleVariant.Timeline,
                         resolvedPreviewPath = state.thumbByEvent[event.eventId],

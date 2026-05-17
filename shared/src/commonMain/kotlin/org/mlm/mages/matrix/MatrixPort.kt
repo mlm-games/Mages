@@ -451,7 +451,12 @@ data class KnockRequestSummary(
 )
 
 @Serializable
-data class ReactionSummary(val key: String, val count: Int, val mine: Boolean)
+data class ReactionSummary(
+    val key: String,
+    val count: Int,
+    val mine: Boolean,
+    @SerialName("user_ids") val userIds: List<String> = emptyList()
+)
 
 @Serializable
 data class ThreadPage(

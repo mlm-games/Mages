@@ -3120,10 +3120,12 @@ fn extract_reactions(content: &TimelineItemContent, me: &str) -> Vec<ReactionSum
         for (key, senders) in reactions_map.iter() {
             let count = senders.len() as u32;
             let me_reacted = senders.keys().any(|sender| sender.as_str() == me);
+            let user_ids: Vec<String> = senders.keys().take(3).map(|u| u.to_string()).collect();
             reactions.push(ReactionSummary {
                 key: key.clone(),
                 count,
                 mine: me_reacted,
+                user_ids,
             });
         }
     }

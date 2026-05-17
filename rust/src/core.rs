@@ -1881,10 +1881,12 @@ impl CoreClient {
             for (key, by_sender) in reactions.iter() {
                 let count = by_sender.len() as u32;
                 let mine = me.map(|u| by_sender.contains_key(u)).unwrap_or(false);
+                let user_ids: Vec<String> = by_sender.keys().take(3).map(|u| u.to_string()).collect();
                 out.push(ReactionSummary {
                     key: key.to_string(),
                     count,
                     mine,
+                    user_ids,
                 });
             }
         }
@@ -1917,10 +1919,12 @@ impl CoreClient {
                 for (key, senders) in reactions.iter() {
                     let count = senders.len() as u32;
                     let mine = me.map(|u| senders.keys().any(|s| s == u)).unwrap_or(false);
+                    let user_ids: Vec<String> = senders.keys().take(3).map(|u| u.to_string()).collect();
                     summaries.push(ReactionSummary {
                         key: key.clone(),
                         count,
                         mine,
+                        user_ids,
                     });
                 }
             }

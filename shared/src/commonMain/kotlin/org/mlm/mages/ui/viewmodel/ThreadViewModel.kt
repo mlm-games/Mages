@@ -180,6 +180,7 @@ class ThreadViewModel(
         // Track seen items
         newEvents.forEach { seenItemIds.add(it.itemId) }
         prefetchSenderAvatars(events)
+        prefetchReactionUserAvatars(events)
 
         updateState {
             // Find root message
@@ -423,6 +424,45 @@ class ThreadViewModel(
 
             if (resolved.isNotEmpty()) {
                 updateState { copy(avatarByUserId = avatarByUserId + resolved) }
+            }
+        }
+    }
+
+    private fun prefetchReactionUserAvatars(events: List<MessageEvent>) {
+        val userIds = events
+            .flatMap { event -> event.reactions.flatMap { it.userIds } }
+            .distinct()
+            .filter { it !in currentState.avatarByUserId }
+
+        if (userIds.isEmpty()) return
+
+        val members = currentState.roomMembers
+
+        launch {
+            val memberAvatars = members
+                .filter { it.userId in userIds }
+                .mapNotNull { member ->
+                    val avatarUrl = member.avatarUrl ?: return@mapNotNull null
+                    val path = service.avatars.resolve(avatarUrl, px = 64, crop = true)
+                    if (path != null) member.userId to path else null
+                }
+                .toMap()
+
+            val missingUserIds = userIds.filter { it !in memberAvatars }
+            if (missingUserIds.isNotEmpty()) {
+                val profileAvatars = missingUserIds.mapNotNull { userId ->
+                    val profile = runCatching { service.port.getUserProfile(userId) }.getOrNull()
+                    val avatarUrl = profile?.avatarUrl ?: return@mapNotNull null
+                    val path = service.avatars.resolve(avatarUrl, px = 64, crop = true)
+                    if (path != null) userId to path else null
+                }.toMap()
+
+                val allResolved = memberAvatars + profileAvatars
+                if (allResolved.isNotEmpty()) {
+                    updateState { copy(avatarByUserId = avatarByUserId + allResolved) }
+                }
+            } else if (memberAvatars.isNotEmpty()) {
+                updateState { copy(avatarByUserId = avatarByUserId + memberAvatars) }
             }
         }
     }

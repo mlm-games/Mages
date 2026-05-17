@@ -91,6 +91,7 @@ fun MessageEvent.toBubbleModel(
             groupedWithNext = ctx.groupedWithNext,
         ),
         reactions = ctx.reactions,
+        reactionAvatarsByUserId = ctx.reactionAvatarsByUserId,
         reply = MessageReplyUi(
             sender = replyToSenderDisplayName,
             body = replyToBody,

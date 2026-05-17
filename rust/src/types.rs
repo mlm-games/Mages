@@ -390,6 +390,8 @@ pub struct ReactionSummary {
     pub key: String,
     pub count: u32,
     pub mine: bool,
+    #[serde(default)]
+    pub user_ids: Vec<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Record)]

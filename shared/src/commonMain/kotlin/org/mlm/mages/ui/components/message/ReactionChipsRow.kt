@@ -3,7 +3,6 @@ package org.mlm.mages.ui.components.message
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -11,10 +10,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.mlm.mages.matrix.ReactionSummary
+import org.mlm.mages.ui.components.core.Avatar
+import org.mlm.mages.ui.theme.Sizes
 
 enum class ReactionChipStyle {
     Timeline,
@@ -27,6 +27,7 @@ fun ReactionChipsRow(
     modifier: Modifier = Modifier,
     style: ReactionChipStyle = ReactionChipStyle.Timeline,
     maxVisible: Int? = null,
+    avatarPathsByUserId: Map<String, String> = emptyMap(),
     onClick: ((String) -> Unit)? = null,
     onLongClick: ((String) -> Unit)? = null,
 ) {
@@ -42,6 +43,7 @@ fun ReactionChipsRow(
         visibleChips.forEach { chip ->
             ReactionChip(
                 chip = chip,
+                avatarPathsByUserId = avatarPathsByUserId,
                 onClick = onClick,
                 onLongClick = onLongClick
             )
@@ -52,6 +54,7 @@ fun ReactionChipsRow(
 @Composable
 private fun ReactionChip(
     chip: ReactionSummary,
+    avatarPathsByUserId: Map<String, String>,
     onClick: ((String) -> Unit)?,
     onLongClick: ((String) -> Unit)?
 ) {
@@ -67,6 +70,10 @@ private fun ReactionChip(
         MaterialTheme.colorScheme.onPrimaryContainer
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    val userIdsWithAvatars = chip.userIds.map { userId ->
+        userId to avatarPathsByUserId[userId]
     }
 
     Surface(
@@ -88,13 +95,26 @@ private fun ReactionChip(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
+                if (userIdsWithAvatars.isNotEmpty()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy((-8).dp)) {
+                        userIdsWithAvatars.take(3).forEach { (userId, avatarPath) ->
+                            Avatar(
+                                name = userId,
+                                avatarPath = avatarPath,
+                                size = 20.dp
+                            )
+                        }
+                    }
+                }
                 Text(
                     text = chip.key,
                     fontSize = 18.sp
                 )
                 if (chip.count > 1) {
+                    val overflow = chip.count - 3
+                    val displayCount = if (overflow > 0) "+$overflow" else chip.count.toString()
                     Text(
-                        text = chip.count.toString(),
+                        text = displayCount,
                         style = MaterialTheme.typography.labelSmall,
                         fontSize = 13.sp
                     )
