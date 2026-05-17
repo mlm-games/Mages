@@ -160,6 +160,14 @@ fun MessageBubble(
                     modifier = Modifier.padding(Spacing.md),
                     horizontalAlignment = horizontalAlignment
                 ) {
+                    val timestampContent = @Composable {
+                        MessageTimeAndStatus(
+                            timestamp = model.timestamp,
+                            isEdited = model.isEdited,
+                            textColor = bubbleTextColor
+                        )
+                    }
+
                     model.reply?.let { reply ->
                         if (!reply.body.isNullOrBlank()) {
                             ReplyPreview(isMine, reply.sender, reply.body, onReplyPreviewClick)
@@ -170,12 +178,29 @@ fun MessageBubble(
                     when (val attachment = model.attachment) {
                         is MessageAttachmentUi.File -> {
                             FileAttachmentBubble(attachment, isMine, onOpenAttachment)
+                            Spacer(Modifier.height(Spacing.xs))
+                            MessageTimeAndStatus(
+                                timestamp = model.timestamp,
+                                isEdited = model.isEdited,
+                                textColor = bubbleTextColor,
+                                modifier = Modifier.align(horizontalAlignment)
+                            )
                         }
                         is MessageAttachmentUi.Image -> {
-                            ImageAttachmentBubble(attachment, isMine, onOpenAttachment)
+                            ImageAttachmentBubble(
+                                attachment = attachment,
+                                isMine = isMine,
+                                onOpen = onOpenAttachment,
+                                timestamp = timestampContent
+                            )
                         }
                         is MessageAttachmentUi.Video -> {
-                            VideoAttachmentBubble(attachment, isMine, onOpenAttachment)
+                            VideoAttachmentBubble(
+                                attachment = attachment,
+                                isMine = isMine,
+                                onOpen = onOpenAttachment,
+                                timestamp = timestampContent
+                            )
                         }
                         null -> { /* no attachment */ }
                         is MessageAttachmentUi.Audio -> {
@@ -185,7 +210,13 @@ fun MessageBubble(
                                 waveformData = attachment.waveform,
                                 isMine = isMine,
                             )
-                            Spacer(Modifier.height(Spacing.sm))
+                            Spacer(Modifier.height(Spacing.xs))
+                            MessageTimeAndStatus(
+                                timestamp = model.timestamp,
+                                isEdited = model.isEdited,
+                                textColor = bubbleTextColor,
+                                modifier = Modifier.align(horizontalAlignment)
+                            )
                         }
                     }
 
@@ -196,22 +227,31 @@ fun MessageBubble(
                             onVote = { optId -> onVote?.invoke(optId) },
                             onEndPoll = { onEndPoll?.invoke() }
                         )
+                        Spacer(Modifier.height(Spacing.xs))
+                        MessageTimeAndStatus(
+                            timestamp = model.timestamp,
+                            isEdited = model.isEdited,
+                            textColor = bubbleTextColor,
+                            modifier = Modifier.align(horizontalAlignment)
+                        )
                     } else if (model.attachment == null && model.body.isNotBlank()) {
-                        MarkdownText(
-                            text = renderedBody,
-                            color = bubbleTextColor,
+                        TimestampLayout(
+                            position = TimestampPosition.Aligned,
+                            timestamp = timestampContent,
+                        ) {
+                            MarkdownText(
+                                text = renderedBody,
+                                color = bubbleTextColor
+                            )
+                        }
+                    } else if (model.attachment == null && model.body.isBlank()) {
+                        MessageTimeAndStatus(
+                            timestamp = model.timestamp,
+                            isEdited = model.isEdited,
+                            textColor = bubbleTextColor,
                             modifier = Modifier.align(horizontalAlignment)
                         )
                     }
-
-                    MessageTimeAndStatus(
-                        timestamp = model.timestamp,
-                        isEdited = model.isEdited,
-                        textColor = bubbleTextColor,
-                        modifier = Modifier
-                            .padding(top = Spacing.xs)
-                            .align(horizontalAlignment)
-                    )
 
                     if (isMine && model.sendState == SendState.Failed) {
                         FailedIndicator()
@@ -375,10 +415,10 @@ private fun ImageAttachmentBubble(
     attachment: MessageAttachmentUi.Image,
     isMine: Boolean,
     onOpen: (() -> Unit)?,
+    timestamp: @Composable () -> Unit,
 ) {
     val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
     else MaterialTheme.colorScheme.onSecondaryContainer
-    val horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
 
     val previewPath = attachment.previewPath
 
@@ -387,7 +427,10 @@ private fun ImageAttachmentBubble(
             attachment.width!!.toFloat() / attachment.height!!.toFloat()
         } else null
 
-        Column(horizontalAlignment = horizontalAlignment) {
+        TimestampLayout(
+            position = TimestampPosition.Overlay,
+            timestamp = timestamp,
+        ) {
             Box(
                 modifier = Modifier
                     .heightIn(min = 120.dp, max = 300.dp)
@@ -410,15 +453,6 @@ private fun ImageAttachmentBubble(
                         .heightIn(min = 120.dp, max = 300.dp)
                 )
             }
-            attachment.caption?.let { caption ->
-                MarkdownText(
-                    text = caption,
-                    color = contentColor,
-                    modifier = Modifier
-                        .padding(top = Spacing.xs)
-                        .align(horizontalAlignment)
-                )
-            }
         }
     } else {
         MediaPlaceholderBubble(
@@ -433,10 +467,10 @@ private fun VideoAttachmentBubble(
     attachment: MessageAttachmentUi.Video,
     isMine: Boolean,
     onOpen: (() -> Unit)?,
+    timestamp: @Composable () -> Unit,
 ) {
     val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
     else MaterialTheme.colorScheme.onSecondaryContainer
-    val horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
 
     val previewPath = attachment.previewPath
 
@@ -445,7 +479,10 @@ private fun VideoAttachmentBubble(
             attachment.width!!.toFloat() / attachment.height!!.toFloat()
         } else null
 
-        Column(horizontalAlignment = horizontalAlignment) {
+        TimestampLayout(
+            position = TimestampPosition.Overlay,
+            timestamp = timestamp,
+        ) {
             Box(
                 modifier = Modifier
                     .heightIn(min = 120.dp, max = 300.dp)
@@ -471,15 +508,6 @@ private fun VideoAttachmentBubble(
                 attachment.durationMs?.let { duration ->
                     DurationBadge(duration, Modifier.align(Alignment.BottomEnd).padding(6.dp))
                 }
-            }
-            attachment.caption?.let { caption ->
-                MarkdownText(
-                    text = caption,
-                    color = contentColor,
-                    modifier = Modifier
-                        .padding(top = Spacing.xs)
-                        .align(horizontalAlignment)
-                )
             }
         }
     } else {
@@ -554,51 +582,58 @@ private fun StickerMessage(
             sticker.width!!.toFloat() / sticker.height!!.toFloat()
         } else 1f
 
-        Box(
-            modifier = Modifier
-                .widthIn(max = maxStickerSize)
-                .aspectRatio(aspectRatio, matchHeightConstraintsFirst = false)
-                .combinedClickable(
-                    onClick = { onOpen?.invoke() },
-                    onLongClick = onLongPress,
-                )
+        val timestampContent = @Composable {
+            MessageTimeAndStatus(
+                timestamp = model.timestamp,
+                isEdited = model.isEdited,
+                textColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        TimestampLayout(
+            position = TimestampPosition.Overlay,
+            timestamp = timestampContent,
+            timestampPadding = 2.dp
         ) {
-            if (sticker.thumbPath != null) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalPlatformContext.current)
-                        .data(sticker.thumbPath)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = model.body.takeIf { it.isNotBlank() },
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(maxStickerSize)
-                        .background(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                            RoundedCornerShape(8.dp)
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.EmojiEmotions,
-                        contentDescription = "Sticker",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.size(48.dp),
+            Box(
+                modifier = Modifier
+                    .widthIn(max = maxStickerSize)
+                    .aspectRatio(aspectRatio, matchHeightConstraintsFirst = false)
+                    .combinedClickable(
+                        onClick = { onOpen?.invoke() },
+                        onLongClick = onLongPress,
                     )
+            ) {
+                if (sticker.thumbPath != null) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalPlatformContext.current)
+                            .data(sticker.thumbPath)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = model.body.takeIf { it.isNotBlank() },
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(maxStickerSize)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                RoundedCornerShape(8.dp)
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.EmojiEmotions,
+                            contentDescription = "Sticker",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.size(48.dp),
+                        )
+                    }
                 }
             }
         }
-
-        MessageTimeAndStatus(
-            timestamp = model.timestamp,
-            isEdited = model.isEdited,
-            textColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 2.dp)
-        )
 
         if (!model.reactions.isNullOrEmpty()) {
             ReactionChipsRow(
