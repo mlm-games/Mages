@@ -1,3 +1,11 @@
+## v4.7.1
+
+- Update release notes for v4.6.5
+- show avatars of users who reacted
+- Move reaction chips closer
+- Compact spacing for timestamp (#82)
+
+
 ## v4.6.5
 
 - show avatars of users who reacted
