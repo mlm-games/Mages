@@ -262,23 +262,30 @@ fun MessageBubble(
 
         footerContent?.invoke(this)
 
-        if (model.reactions.isNotEmpty()) {
-            ReactionChipsRow(
-                chips = model.reactions,
-                onClick = onReact,
-                modifier = Modifier.padding(top = 2.dp)
-            )
-        }
-
-        model.thread?.let { thread ->
-            if (thread.count > 0 && onOpenThread != null) {
-                if (model.reactions.isNotEmpty()) {
-                    Spacer(Modifier.height(2.dp))
-                }
-                ThreadIndicator(
-                    count = thread.count,
-                    onClick = onOpenThread
+        Column(
+            modifier = Modifier
+                .offset(y = (-10).dp) // To show the reactions over the message
+                .align(horizontalAlignment),
+            horizontalAlignment = horizontalAlignment
+        ) {
+            if (model.reactions.isNotEmpty()) {
+                ReactionChipsRow(
+                    chips = model.reactions,
+                    onClick = onReact,
+                    modifier = Modifier.padding(horizontal = Spacing.xs)
                 )
+            }
+
+            model.thread?.let { thread ->
+                if (thread.count > 0 && onOpenThread != null) {
+                    if (model.reactions.isNotEmpty()) {
+                        Spacer(Modifier.height((-2).dp))
+                    }
+                    ThreadIndicator(
+                        count = thread.count,
+                        onClick = onOpenThread
+                    )
+                }
             }
         }
     }
@@ -688,24 +695,22 @@ private fun StickerMessage(
             ReactionChipsRow(
                 chips = model.reactions,
                 onClick = onReact,
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier.offset(y = (-10).dp).padding(horizontal = Spacing.xs)
             )
         }
     }
 }
 
 @Composable
-private fun ThreadIndicator(
-    count: Int,
-    onClick: () -> Unit
-) {
+private fun ThreadIndicator(count: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         onClick = onClick,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = RoundedCornerShape(14.dp)
+        shape = RoundedCornerShape(12.dp),
+        modifier = modifier
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(

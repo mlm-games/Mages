@@ -70,9 +70,9 @@ private fun ReactionChip(
     }
 
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(2.dp, MaterialTheme.colorScheme.surface)
+        border = BorderStroke(3.dp, MaterialTheme.colorScheme.surface)
     ) {
         Surface(
             modifier = Modifier.combinedClickable(
