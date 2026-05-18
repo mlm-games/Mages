@@ -6,15 +6,17 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.WebFile
 import kotlinx.browser.document
 import kotlinx.coroutines.launch
 import org.mlm.mages.content.TransferItem
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.events.Event
 import org.w3c.files.File
+import kotlin.js.unsafeCast
 
 internal suspend fun browserFileToTransferItem(file: File): TransferItem =
-    PlatformFile(file).toTransferItem()
+    PlatformFile(WebFile.FileWrapper(file.unsafeCast())).toTransferItem()
 
 actual fun Modifier.fileDrop(
     enabled: Boolean,

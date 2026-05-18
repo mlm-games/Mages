@@ -4,9 +4,11 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.WebFile
 import io.github.vinceglb.filekit.mimeType
 import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.readBytes
+import kotlin.js.unsafeCast
 import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineDispatcher
@@ -113,7 +115,7 @@ actual class CameraPickerLauncher {
 
         input.addEventListener("change") {
             val browserFile = inputSelectedFile(input)
-            onResult?.invoke(browserFile?.let { PlatformFile(it) })
+            onResult?.invoke(browserFile?.let { PlatformFile(WebFile.FileWrapper(it.unsafeCast())) })
             document.body?.removeChild(input)
         }
 
