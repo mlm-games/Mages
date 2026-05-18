@@ -1,3 +1,9 @@
+## v4.7.2
+
+- Improve reactions avatar UI
+- fix reply not taking full message width
+
+
 ## v4.7.1
 
 - Update release notes for v4.6.5

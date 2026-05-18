@@ -1,0 +1,2 @@
+- Improve reactions avatar UI
+- fix reply not taking full message width

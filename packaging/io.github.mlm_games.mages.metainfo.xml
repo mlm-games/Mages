@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.7.2" date="2026-05-18" type="stable">
+      <description>
+        <ul>
+          <li>Improve reactions avatar UI</li>
+          <li>fix reply not taking full message width</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.7.1" date="2026-05-17" type="stable">
       <description>
         <ul>
