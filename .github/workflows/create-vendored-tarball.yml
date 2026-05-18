@@ -138,9 +138,9 @@ jobs:
               doLast {
                   val configs = listOf("composeArm64", "composeX64", "javafxLinux", "javafxLinuxArm64")
                   configs.forEach { name ->
-                      configurations.getByName(name).resolvedConfiguration.resolvedArtifacts.forEach { artifact ->
-                          println("Fetched: ${artifact.file.name}")
-                      }
+                      val config = configurations.getByName(name)
+                      val files = config.resolve()
+                      println("Resolved $name: ${files.size} files cached")
                   }
               }
           }
@@ -155,11 +155,12 @@ jobs:
           echo "Found $x64_jfx_count x64 JavaFX JARs"
           echo "Found $arm64_jfx_count aarch64 JavaFX JARs"
 
-          echo "Removing repository metadata to force offline compatibility"
+          echo "Removing repository metadata and checksums"
           find "$GRADLE_USER_HOME/caches/modules-2" -name "_remote.repositories" -delete
           find "$GRADLE_USER_HOME/caches/modules-2" -name "m2-repository-proxy.-*.properties" -delete
           find "$GRADLE_USER_HOME/caches/modules-2" -name "*.sha1" -delete
           find "$GRADLE_USER_HOME/caches/modules-2" -name "*.md5" -delete
+          find "$GRADLE_USER_HOME/caches/modules-2" -name "*.lastUpdated" -delete
 
           cp -r "$GRADLE_USER_HOME" gradle-deps
 
@@ -186,6 +187,16 @@ jobs:
               echo "OK: $jar"
             fi
           done
+
+      - name: Verify Metadata exists
+        run: |
+          export GRADLE_USER_HOME=/run/build/mages/gradle-deps
+          pom_count=$(find "$GRADLE_USER_HOME/caches/modules-2" -name "javafx-base-*.pom" | wc -l)
+          if [ "$pom_count" -eq 0 ]; then
+            echo "FAILURE: No POM files found in cache. Offline build WILL fail."
+            exit 1
+          fi
+          echo "Found $pom_count JavaFX POM files."
 
       - name: Create Fat Tarball
         run: |
