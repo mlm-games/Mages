@@ -9,7 +9,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
@@ -26,7 +25,6 @@ import org.mlm.mages.nav.DeepLinkAction
 import org.mlm.mages.nav.MatrixLink
 import org.mlm.mages.nav.handleMatrixLink
 import org.mlm.mages.nav.parseMatrixLink
-import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.SettingsProvider
 import org.mlm.mages.platform.AndroidBrowserAuthCoordinator
 import org.mlm.mages.push.AndroidNotificationHelper
@@ -37,6 +35,7 @@ import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.unifiedpush.android.connector.LinkActivityHelper
 import org.unifiedpush.android.connector.UnifiedPush
 import androidx.core.content.edit
+import co.touchlab.kermit.Logger
 
 class MainActivity : AppCompatActivity() {
 
@@ -165,7 +164,7 @@ class MainActivity : AppCompatActivity() {
     private fun initUnifiedPush() {
         val saved = UnifiedPush.getSavedDistributor(this)
         if (saved != null) {
-            Log.i("UP-Mages", "Saved distributor: $saved → registering")
+            Logger.i("Saved distributor: $saved → registering")
             UnifiedPush.register(this, PREF_INSTANCE)
             lifecycleScope.launch {
                 runCatching { PusherReconciler.ensureServerPusherRegistered(this@MainActivity) }
@@ -174,12 +173,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         val distributors = UnifiedPush.getDistributors(this)
-        Log.i("UP-Mages", "No saved distributor. Available: $distributors")
+        Logger.i("No saved distributor. Available: $distributors")
 
         when {
-            distributors.isEmpty() -> Log.w("UP-Mages", "No UnifiedPush distributor available")
+            distributors.isEmpty() -> Logger.w("No UnifiedPush distributor available")
             distributors.size == 1 -> {
-                Log.i("UP-Mages", "Auto-selecting single distributor: ${distributors[0]}")
+                Logger.i("Auto-selecting single distributor: ${distributors[0]}")
                 UnifiedPush.saveDistributor(this, distributors[0])
                 UnifiedPush.register(this, PREF_INSTANCE)
                 lifecycleScope.launch {
@@ -205,7 +204,7 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (linkHelper.onLinkActivityResult(requestCode, resultCode, data)) {
-            Log.i("UP-Mages", "Distributor selected")
+            Logger.i( "Distributor selected")
             UnifiedPush.register(this, PREF_INSTANCE)
             lifecycleScope.launch {
                 runCatching { PusherReconciler.ensureServerPusherRegistered(this@MainActivity) }

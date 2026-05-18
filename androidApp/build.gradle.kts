@@ -114,6 +114,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.element.call.embedded)
     implementation(libs.connector)
+    implementation(libs.kermit)
 
     implementation(libs.compose.material.icons.extended)
 }

@@ -4,7 +4,7 @@ import android.app.Application
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
-import android.util.Log
+import co.touchlab.kermit.Logger
 import io.github.mlmgames.settings.core.actions.ActionRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -99,7 +99,7 @@ class MagesApp : Application() {
 
         MagesPaths.init()
 
-        Log.i("Mages", "App initialized")
+        Logger.i("App initialized")
 
         appScope.launch {
             runCatching { PusherReconciler.ensureServerPusherRegistered(this@MagesApp) }

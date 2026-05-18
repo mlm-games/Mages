@@ -13,8 +13,8 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.provider.Settings
-import android.util.Log
 import android.view.WindowManager
+import co.touchlab.kermit.Logger
 import android.view.accessibility.AccessibilityManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -218,7 +218,7 @@ class IncomingCallActivity : ComponentActivity() {
             ringtone = RingtoneManager.getRingtone(this, ringtoneUri)
 
             if (ringtone == null) {
-                Log.w("IncomingCallActivity", "No ringtone could be resolved for uri=$ringtoneUri")
+                Logger.w { "No ringtone could be resolved for uri=$ringtoneUri" }
             } else {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     ringtone?.isLooping = true
@@ -226,7 +226,7 @@ class IncomingCallActivity : ComponentActivity() {
                 ringtone?.play()
             }
         } catch (e: Exception) {
-            Log.w("IncomingCallActivity", "Failed to start ringtone", e)
+            Logger.w(e) { "Failed to start ringtone" }
         }
     }
 
@@ -256,10 +256,7 @@ class IncomingCallActivity : ComponentActivity() {
                     Intent.FLAG_ACTIVITY_SINGLE_TOP
             }
 
-            Log.i(
-                "IncomingCallActivity",
-                "Accept pressed; launching call deep link roomId=$roomId eventId=$eventId uri=$uri"
-            )
+            Logger.i("Accept pressed; launching call deep link roomId=$roomId eventId=$eventId uri=$uri")
 
             startActivity(intent)
             finish()
@@ -267,7 +264,7 @@ class IncomingCallActivity : ComponentActivity() {
     }
 
     private fun declineCall(roomId: String) {
-        Log.i("IncomingCallActivity", "onDecline roomId=$roomId")
+        Logger.i("onDecline roomId=$roomId")
         AndroidNotificationHelper.cancelCallNotification(this, roomId)
         finish()
     }

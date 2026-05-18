@@ -1,8 +1,8 @@
 package org.mlm.mages.activities
 
 import android.os.Bundle
-import android.util.Log
 import androidx.appcompat.app.AlertDialog
+import co.touchlab.kermit.Logger
 import androidx.appcompat.app.AppCompatActivity
 import org.mlm.mages.push.PREF_INSTANCE
 import org.unifiedpush.android.connector.UnifiedPush
@@ -15,7 +15,7 @@ class DistributorPickerActivity : AppCompatActivity() {
         val distributors = UnifiedPush.getDistributors(this)
         val saved = UnifiedPush.getSavedDistributor(this)
 
-        Log.i("UP-Mages", "DistributorPicker: distributors=$distributors, saved=$saved")
+        Logger.i("DistributorPicker: distributors=$distributors, saved=$saved")
 
         when {
             distributors.isEmpty() -> {
