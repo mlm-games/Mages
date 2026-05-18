@@ -83,9 +83,10 @@ jobs:
       - name: Vendor Gradle Dependencies (ALL platforms)
         run: |
           set -e
-
-          mkdir -p gradle-deps
-          export GRADLE_USER_HOME=$(pwd)/gradle-deps
+          sudo mkdir -p /run/build/mages
+          sudo chown -R "$(id -u):$(id -g)" /run/build/mages
+          export GRADLE_USER_HOME=/run/build/mages/gradle-deps
+          mkdir -p "$GRADLE_USER_HOME"
 
           echo "Building x86_64 distributable"
           ./gradlew :desktopApp:createDistributable \
@@ -103,9 +104,7 @@ jobs:
           SETTINGS
 
           cat > /tmp/fetch-project/build.gradle.kts << 'EOF'
-          plugins {
-              id("java")
-          }
+          plugins { id("java") }
 
           repositories {
               mavenCentral()
@@ -113,16 +112,17 @@ jobs:
               maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
           }
 
-          val composeArm64 by configurations.creating { isTransitive = false }
-          val composeX64 by configurations.creating { isTransitive = false }
-          val javafxLinux by configurations.creating { isTransitive = false }
-          val javafxLinuxArm64 by configurations.creating { isTransitive = false }
+          val composeArm64 by configurations.creating
+          val composeX64 by configurations.creating
+          val javafxLinux by configurations.creating
+          val javafxLinuxArm64 by configurations.creating
 
           dependencies {
+              val jfxVersion = "21.0.1"
+
               composeArm64("org.jetbrains.compose.desktop:desktop-jvm-linux-arm64:1.11.0-rc01")
               composeX64("org.jetbrains.compose.desktop:desktop-jvm-linux-x64:1.11.0-rc01")
 
-              val jfxVersion = "21.0.1"
               javafxLinux("org.openjfx:javafx-base:$jfxVersion:linux")
               javafxLinux("org.openjfx:javafx-graphics:$jfxVersion:linux")
               javafxLinux("org.openjfx:javafx-media:$jfxVersion:linux")
@@ -134,14 +134,13 @@ jobs:
               javafxLinuxArm64("org.openjfx:javafx-swing:$jfxVersion:linux-aarch64")
           }
 
-          tasks.register("fetch") {
-              doLast {
-                  configurations["composeArm64"].resolve()
-                  configurations["composeX64"].resolve()
-                  configurations["javafxLinux"].resolve()
-                  configurations["javafxLinuxArm64"].resolve()
-                  println("Downloaded all platform deps")
-              }
+          tasks.register<Copy>("fetch") {
+              from(configurations["composeArm64"])
+              from(configurations["composeX64"])
+              from(configurations["javafxLinux"])
+              from(configurations["javafxLinuxArm64"])
+              into(layout.buildDirectory.dir("fetched-deps"))
+              doLast { println("Resolved ${outputs.files.files.size} artifacts") }
           }
           EOF
 
@@ -154,6 +153,8 @@ jobs:
           echo "Found $x64_jfx_count x64 JavaFX JARs"
           echo "Found $arm64_jfx_count aarch64 JavaFX JARs"
 
+          cp -r "$GRADLE_USER_HOME" gradle-deps
+
           echo "Cleaning build artifacts"
           ./gradlew clean --no-daemon
           rm -rf rust/target desktopApp/build shared/build
@@ -163,6 +164,20 @@ jobs:
 
           echo "Final cache size"
           du -sh gradle-deps
+
+      - name: Verify aarch64 JavaFX JARs are cached
+        run: |
+          export GRADLE_USER_HOME=/run/build/mages/gradle-deps
+          cache="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.openjfx"
+          for mod in javafx-base javafx-graphics javafx-media javafx-swing; do
+            jar=$(find "$cache/$mod" -name "*linux-aarch64.jar" 2>/dev/null | head -1)
+            if [ -z "$jar" ]; then
+              echo "MISSING: $mod linux-aarch64 JAR not in cache"
+              exit 1
+            else
+              echo "OK: $jar"
+            fi
+          done
 
       - name: Create Fat Tarball
         run: |
