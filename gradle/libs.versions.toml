@@ -10,7 +10,7 @@ android-targetSdk = "37"
 adaptiveNavigation3 = "1.3.0-alpha07"
 coilCompose = "3.4.0"
 connector = "3.3.2"
-elementCallEmbedded = "0.19.2"
+elementCallEmbedded = "0.19.3"
 javafx = "21.0.1"
 javafxPlugin = "0.1.0"
 jcefmaven = "146.0.10"
@@ -18,11 +18,11 @@ json = "20251224"
 koinComposeNavigation3 = "4.2.1"
 material3 = "1.11.0-alpha07"
 markdown = "0.7.3"
-multiplatformMarkdownRenderer = "0.40.2"
-multiplatformMarkdownRendererM3 = "0.40.2"
+multiplatformMarkdownRenderer = "0.41.0"
+multiplatformMarkdownRendererM3 = "0.41.0"
 navigation3Ui = "1.1.1"
 pagingCompose = "3.5.0"
-slf4jSimple = "2.0.17"
+slf4jSimple = "2.0.18"
 systemtray = "4.4"
 uiToolingPreview = "1.10.0"
 up-fcm = "3.1.0-rc1"
@@ -52,8 +52,9 @@ ksp = "2.3.6"
 apkDist = "0.5.2"
 dbusJavaCore = "5.1.1" # Do not bump these vers as FileKit depends on an older ver.
 dbusJavaTransportNativeUnixsocket = "5.1.1"
-filekit = "0.13.0"
+filekit = "0.14.1"
 maplibreCompose = "0.12.1"
+kermit = "2.1.0"
 
 
 [libraries]
@@ -132,6 +133,7 @@ filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose
 
 gadulka = { module = "eu.iamkonstantin.kotlin:gadulka", version = "1.13.0" }
 
+kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 maplibre-compose = { module = "org.maplibre.compose:maplibre-compose", version.ref = "maplibreCompose" }
 maplibre-native-bindings-jni = { module = "org.maplibre.compose:maplibre-native-bindings-jni", version.ref = "maplibreCompose" }
 markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
