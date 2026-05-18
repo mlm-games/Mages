@@ -1,6 +1,7 @@
 package org.mlm.mages.ui.components.message
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -66,62 +67,67 @@ private fun ReactionChip(
     val backgroundColor = if (isSelected) {
         MaterialTheme.colorScheme.primaryContainer
     } else {
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        MaterialTheme.colorScheme.surfaceContainer
     }
 
-    val contentColor = if (isSelected) {
-        MaterialTheme.colorScheme.onPrimaryContainer
+    val outlineColor = if (isSelected) {
+        MaterialTheme.colorScheme.surfaceContainerLow
     } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-    val userIdsWithAvatars = chip.userIds.map { userId ->
-        userId to avatarPathsByUserId[userId]
+        MaterialTheme.colorScheme.surfaceContainerLowest
     }
 
     Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(3.dp, MaterialTheme.colorScheme.surface)
+        modifier = Modifier.combinedClickable(
+            onClick = { onClick?.invoke(chip.key) },
+            onLongClick = { onLongClick?.invoke(chip.key) }
+        ),
+        shape = RoundedCornerShape(percent = 50),
+        color = backgroundColor,
+        border = BorderStroke(1.dp, outlineColor)
     ) {
-        Surface(
-            modifier = Modifier.combinedClickable(
-                onClick = { onClick?.invoke(chip.key) },
-                onLongClick = { onLongClick?.invoke(chip.key) }
-            ),
-            shape = RoundedCornerShape(12.dp),
-            color = backgroundColor,
-            contentColor = contentColor
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                if (showAvatars && userIdsWithAvatars.isNotEmpty()) {
-                    Row(horizontalArrangement = Arrangement.spacedBy((-8).dp)) {
-                        userIdsWithAvatars.take(3).forEach { (userId, avatarPath) ->
-                            Avatar(
-                                name = userId,
-                                avatarPath = avatarPath,
-                                size = 20.dp
-                            )
-                        }
+            Text(
+                text = chip.key,
+                fontSize = 16.sp,
+                lineHeight = 16.sp
+            )
+
+            if (showAvatars && chip.userIds.isNotEmpty()) {
+                val maxAvatars = 5
+                val userIdsToShow = chip.userIds.take(maxAvatars)
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy((-6).dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    userIdsToShow.forEach { userId ->
+                        Avatar(
+                            name = userId,
+                            avatarPath = avatarPathsByUserId[userId],
+                            size = 20.dp,
+                            modifier = Modifier.border(1.5.dp, backgroundColor, RoundedCornerShape(percent = 50))
+                        )
                     }
                 }
-                Text(
-                    text = chip.key,
-                    fontSize = 18.sp
-                )
-                if (chip.count > 1) {
-                    val overflow = chip.count - 3
-                    val displayCount = if (overflow > 0) "+$overflow" else chip.count.toString()
+
+                if (chip.count > userIdsToShow.size) {
                     Text(
-                        text = displayCount,
+                        text = "+${chip.count - userIdsToShow.size}",
                         style = MaterialTheme.typography.labelSmall,
-                        fontSize = 13.sp
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(start = 2.dp)
                     )
                 }
+            }
+            else {
+                Text("${chip.count}",
+                style = MaterialTheme.typography.labelSmall,
+                fontSize = 13.sp)
             }
         }
     }
