@@ -158,6 +158,8 @@ jobs:
           echo "Removing repository metadata to force offline compatibility"
           find "$GRADLE_USER_HOME/caches/modules-2" -name "_remote.repositories" -delete
           find "$GRADLE_USER_HOME/caches/modules-2" -name "m2-repository-proxy.-*.properties" -delete
+          find "$GRADLE_USER_HOME/caches/modules-2" -name "*.sha1" -delete
+          find "$GRADLE_USER_HOME/caches/modules-2" -name "*.md5" -delete
 
           cp -r "$GRADLE_USER_HOME" gradle-deps
 
