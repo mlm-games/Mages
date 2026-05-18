@@ -532,7 +532,9 @@ object Notifier {
 
         if (!playSound) builder.setSilent(true)
 
+        if (NotificationManagerCompat.from(context).areNotificationsEnabled()) {
             NotificationManagerCompat.from(context).notify(notificationId, builder.build())
+        }
     }
 
     fun suppressBubble(
@@ -567,7 +569,9 @@ object Notifier {
             .setShortcutId(ConversationShortcutPublisher.shortcutId(roomId))
             .setBubbleMetadata(suppressed)
             .setOnlyAlertOnce(true)
-        NotificationManagerCompat.from(context).notify(notificationId, builder.build())
+        if (NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+            NotificationManagerCompat.from(context).notify(notificationId, builder.build())
+        }
     }
 
     fun addReplyMessage(
@@ -661,7 +665,9 @@ object Notifier {
 
         builder.setSilent(true)
 
-        NotificationManagerCompat.from(context).notify(notificationId, builder.build())
+        if (NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+            NotificationManagerCompat.from(context).notify(notificationId, builder.build())
+        }
     }
 
     fun showQuickReplyNotification(
@@ -777,6 +783,8 @@ object Notifier {
 
         builder.setSilent(true)
 
-        NotificationManagerCompat.from(context).notify(notificationId, builder.build())
+        if (NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+            NotificationManagerCompat.from(context).notify(notificationId, builder.build())
+        }
     }
 }
