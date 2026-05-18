@@ -157,7 +157,7 @@ private fun ComposerInputRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(Spacing.sm),
-        verticalAlignment = Alignment.Bottom
+        verticalAlignment = Alignment.CenterVertically
     ) {
         AnimatedVisibility(visible = onAttach != null && !isUploadingAttachment) {
             IconButton(onClick = { onAttach?.invoke() }) {
