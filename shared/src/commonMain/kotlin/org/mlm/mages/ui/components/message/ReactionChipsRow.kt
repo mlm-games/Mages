@@ -109,7 +109,7 @@ private fun ReactionChip(
                             name = userId,
                             avatarPath = avatarPathsByUserId[userId],
                             size = 20.dp,
-                            modifier = Modifier.border(1.5.dp, backgroundColor, RoundedCornerShape(percent = 50))
+//                            modifier = Modifier.border(1.5.dp, outlineColor.copy(alpha = 0.9f), RoundedCornerShape(percent = 50))
                         )
                     }
                 }
