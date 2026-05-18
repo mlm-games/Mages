@@ -156,105 +156,143 @@ fun MessageBubble(
                 modifier = Modifier
                     .combinedClickable(onClick = {}, onLongClick = onLongPress)
             ) {
-                Column(
+                val timestampContent = @Composable {
+                    MessageTimeAndStatus(
+                        timestamp = model.timestamp,
+                        isEdited = model.isEdited,
+                        textColor = bubbleTextColor
+                    )
+                }
+
+                Layout(
                     modifier = Modifier.padding(Spacing.md),
-                    horizontalAlignment = horizontalAlignment
-                ) {
-                    val timestampContent = @Composable {
-                        MessageTimeAndStatus(
-                            timestamp = model.timestamp,
-                            isEdited = model.isEdited,
-                            textColor = bubbleTextColor
-                        )
-                    }
+                    content = {
+                        val hasReply = model.reply != null && !model.reply.body.isNullOrBlank()
+                        if (hasReply) {
+                            val reply = model.reply!!
+                            ReplyPreview(isMine, reply.sender, reply.body!!, onReplyPreviewClick)
+                        }
+                        Column(horizontalAlignment = horizontalAlignment) {
+                            when (val attachment = model.attachment) {
+                                is MessageAttachmentUi.File -> {
+                                    FileAttachmentBubble(attachment, isMine, onOpenAttachment)
+                                    Spacer(Modifier.height(Spacing.xs))
+                                    MessageTimeAndStatus(
+                                        timestamp = model.timestamp,
+                                        isEdited = model.isEdited,
+                                        textColor = bubbleTextColor,
+                                        modifier = Modifier.align(horizontalAlignment)
+                                    )
+                                }
+                                is MessageAttachmentUi.Image -> {
+                                    ImageAttachmentBubble(
+                                        attachment = attachment,
+                                        isMine = isMine,
+                                        onOpen = onOpenAttachment,
+                                        timestamp = timestampContent
+                                    )
+                                }
+                                is MessageAttachmentUi.Video -> {
+                                    VideoAttachmentBubble(
+                                        attachment = attachment,
+                                        isMine = isMine,
+                                        onOpen = onOpenAttachment,
+                                        timestamp = timestampContent
+                                    )
+                                }
+                                null -> { /* no attachment */ }
+                                is MessageAttachmentUi.Audio -> {
+                                    VoiceMessageBubble(
+                                        filePath = attachment.filePath,
+                                        durationMs = attachment.durationMs ?: 0L,
+                                        waveformData = attachment.waveform,
+                                        isMine = isMine,
+                                    )
+                                    Spacer(Modifier.height(Spacing.xs))
+                                    MessageTimeAndStatus(
+                                        timestamp = model.timestamp,
+                                        isEdited = model.isEdited,
+                                        textColor = bubbleTextColor,
+                                        modifier = Modifier.align(horizontalAlignment)
+                                    )
+                                }
+                            }
 
-                    model.reply?.let { reply ->
-                        if (!reply.body.isNullOrBlank()) {
-                            ReplyPreview(isMine, reply.sender, reply.body, onReplyPreviewClick)
-                            Spacer(Modifier.height(Spacing.sm))
+                            if (model.poll != null) {
+                                PollBubble(
+                                    poll = model.poll,
+                                    isMine = isMine,
+                                    onVote = { optId -> onVote?.invoke(optId) },
+                                    onEndPoll = { onEndPoll?.invoke() }
+                                )
+                                Spacer(Modifier.height(Spacing.xs))
+                                MessageTimeAndStatus(
+                                    timestamp = model.timestamp,
+                                    isEdited = model.isEdited,
+                                    textColor = bubbleTextColor,
+                                    modifier = Modifier.align(horizontalAlignment)
+                                )
+                            } else if (model.attachment == null && model.body.isNotBlank()) {
+                                TimestampLayout(
+                                    position = TimestampPosition.Aligned,
+                                    timestamp = timestampContent,
+                                ) {
+                                    MarkdownText(
+                                        text = renderedBody,
+                                        color = bubbleTextColor
+                                    )
+                                }
+                            } else if (model.attachment == null && model.body.isBlank()) {
+                                MessageTimeAndStatus(
+                                    timestamp = model.timestamp,
+                                    isEdited = model.isEdited,
+                                    textColor = bubbleTextColor,
+                                    modifier = Modifier.align(horizontalAlignment)
+                                )
+                            }
+
+                            if (isMine && model.sendState == SendState.Failed) {
+                                FailedIndicator()
+                            }
                         }
                     }
+                ) { measurables, constraints ->
+                    val hasReply = measurables.size > 1
+                    val looseConstraints = constraints.copy(minWidth = 0)
 
-                    when (val attachment = model.attachment) {
-                        is MessageAttachmentUi.File -> {
-                            FileAttachmentBubble(attachment, isMine, onOpenAttachment)
-                            Spacer(Modifier.height(Spacing.xs))
-                            MessageTimeAndStatus(
-                                timestamp = model.timestamp,
-                                isEdited = model.isEdited,
-                                textColor = bubbleTextColor,
-                                modifier = Modifier.align(horizontalAlignment)
-                            )
-                        }
-                        is MessageAttachmentUi.Image -> {
-                            ImageAttachmentBubble(
-                                attachment = attachment,
-                                isMine = isMine,
-                                onOpen = onOpenAttachment,
-                                timestamp = timestampContent
-                            )
-                        }
-                        is MessageAttachmentUi.Video -> {
-                            VideoAttachmentBubble(
-                                attachment = attachment,
-                                isMine = isMine,
-                                onOpen = onOpenAttachment,
-                                timestamp = timestampContent
-                            )
-                        }
-                        null -> { /* no attachment */ }
-                        is MessageAttachmentUi.Audio -> {
-                            VoiceMessageBubble(
-                                filePath = attachment.filePath,
-                                durationMs = attachment.durationMs ?: 0L,
-                                waveformData = attachment.waveform,
-                                isMine = isMine,
-                            )
-                            Spacer(Modifier.height(Spacing.xs))
-                            MessageTimeAndStatus(
-                                timestamp = model.timestamp,
-                                isEdited = model.isEdited,
-                                textColor = bubbleTextColor,
-                                modifier = Modifier.align(horizontalAlignment)
-                            )
-                        }
-                    }
+                    if (hasReply) {
+                        val replyMeasurable = measurables[0]
+                        val mainMeasurable = measurables[1]
 
-                    if (model.poll != null) {
-                        PollBubble(
-                            poll = model.poll,
-                            isMine = isMine,
-                            onVote = { optId -> onVote?.invoke(optId) },
-                            onEndPoll = { onEndPoll?.invoke() }
+                        val replyIntrinsicWidth = replyMeasurable.maxIntrinsicWidth(constraints.maxHeight)
+                            .coerceAtMost(constraints.maxWidth)
+                            .coerceAtLeast(0)
+
+                        val mainPlaceable = mainMeasurable.measure(looseConstraints)
+                        val contentWidth = maxOf(mainPlaceable.width, replyIntrinsicWidth)
+
+                        val replyPlaceable = replyMeasurable.measure(
+                            looseConstraints.copy(minWidth = contentWidth, maxWidth = contentWidth)
                         )
-                        Spacer(Modifier.height(Spacing.xs))
-                        MessageTimeAndStatus(
-                            timestamp = model.timestamp,
-                            isEdited = model.isEdited,
-                            textColor = bubbleTextColor,
-                            modifier = Modifier.align(horizontalAlignment)
-                        )
-                    } else if (model.attachment == null && model.body.isNotBlank()) {
-                        TimestampLayout(
-                            position = TimestampPosition.Aligned,
-                            timestamp = timestampContent,
-                        ) {
-                            MarkdownText(
-                                text = renderedBody,
-                                color = bubbleTextColor
+
+                        val spacing = 8.dp.roundToPx()
+                        val totalHeight = replyPlaceable.height + spacing + mainPlaceable.height
+
+                        layout(contentWidth, totalHeight) {
+                            replyPlaceable.place(0, 0)
+                            mainPlaceable.place(
+                                x = horizontalAlignment.align(mainPlaceable.width, contentWidth, layoutDirection),
+                                y = replyPlaceable.height + spacing
                             )
                         }
-                    } else if (model.attachment == null && model.body.isBlank()) {
-                        MessageTimeAndStatus(
-                            timestamp = model.timestamp,
-                            isEdited = model.isEdited,
-                            textColor = bubbleTextColor,
-                            modifier = Modifier.align(horizontalAlignment)
-                        )
-                    }
-
-                    if (isMine && model.sendState == SendState.Failed) {
-                        FailedIndicator()
+                    } else {
+                        val mainPlaceable = measurables[0].measure(looseConstraints)
+                        layout(mainPlaceable.width, mainPlaceable.height) {
+                            mainPlaceable.place(
+                                x = horizontalAlignment.align(mainPlaceable.width, mainPlaceable.width, layoutDirection),
+                                y = 0
+                            )
+                        }
                     }
                 }
             }
