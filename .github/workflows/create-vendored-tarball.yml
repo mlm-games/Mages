@@ -153,6 +153,10 @@ jobs:
           echo "Found $x64_jfx_count x64 JavaFX JARs"
           echo "Found $arm64_jfx_count aarch64 JavaFX JARs"
 
+          echo "Removing repository metadata to force offline compatibility"
+          find "$GRADLE_USER_HOME/caches/modules-2" -name "_remote.repositories" -delete
+          find "$GRADLE_USER_HOME/caches/modules-2" -name "m2-repository-proxy.-*.properties" -delete
+
           cp -r "$GRADLE_USER_HOME" gradle-deps
 
           echo "Cleaning build artifacts"
