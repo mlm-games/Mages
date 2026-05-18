@@ -134,13 +134,15 @@ jobs:
               javafxLinuxArm64("org.openjfx:javafx-swing:$jfxVersion:linux-aarch64")
           }
 
-          tasks.register<Copy>("fetch") {
-              from(configurations["composeArm64"])
-              from(configurations["composeX64"])
-              from(configurations["javafxLinux"])
-              from(configurations["javafxLinuxArm64"])
-              into(layout.buildDirectory.dir("fetched-deps"))
-              doLast { println("Resolved ${outputs.files.files.size} artifacts") }
+          tasks.register("fetch") {
+              doLast {
+                  val configs = listOf("composeArm64", "composeX64", "javafxLinux", "javafxLinuxArm64")
+                  configs.forEach { name ->
+                      configurations.getByName(name).resolvedConfiguration.resolvedArtifacts.forEach { artifact ->
+                          println("Fetched: ${artifact.file.name}")
+                      }
+                  }
+              }
           }
           EOF
 
