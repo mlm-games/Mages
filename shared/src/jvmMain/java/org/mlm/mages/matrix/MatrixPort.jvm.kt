@@ -65,12 +65,10 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override fun close() {
-        runBlocking(matrixDispatcher) {
-            synchronized(clientLock) {
-                withClient {
-                    it.let { c ->
-                        runCatching { c.shutdown() }
-                    }
+        synchronized(clientLock) {
+            withClient {
+                it.let { c ->
+                    runCatching { c.shutdown() }
                 }
             }
         }
@@ -150,9 +148,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
             withClient { it.observeTimeline(roomId, obs) }
         }
         awaitClose {
-            runBlocking(matrixDispatcher) {
-                withClient { it.unobserveTimeline(token) }
-            }
+            withClient { it.unobserveTimeline(token) }
         }
     }
 
@@ -174,9 +170,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         }
 
     override fun stopConnectionObserver(token: ULong) {
-        runBlocking(matrixDispatcher) {
-            withClient { it.unobserveConnection(token) }
-        }
+        withClient { it.unobserveConnection(token) }
     }
 
     override suspend fun startVerificationInbox(observer: MatrixPort.VerificationInboxObserver): ULong =
@@ -194,9 +188,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         }
 
     override fun stopVerificationInbox(token: ULong) {
-        runBlocking(matrixDispatcher) {
-            withClient { it.unobserveVerificationInbox(token) }
-        }
+        withClient { it.unobserveVerificationInbox(token) }
     }
 
     override suspend fun send(roomId: String, body: String, formattedBody: String?): Result<Unit> =
@@ -249,9 +241,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
             withClient { it.observeSends(obs) }
         }
         awaitClose {
-            runBlocking(matrixDispatcher) {
-                withClient { it.unobserveSends(token) }
-            }
+            withClient { it.unobserveSends(token) }
         }
     }
 
@@ -268,9 +258,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         }
 
     override fun whoami(): String? {
-        return runBlocking(matrixDispatcher) {
-            withClient { it.whoami() }
-        }
+        return withClient { it.whoami() }
     }
 
     override suspend fun accountManagementUrl(): String? {
@@ -291,7 +279,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
                 observer.onError(message)
             }
         }
-        return runBlocking(matrixDispatcher) { withClient { it.setupRecovery(cb) } }
+        return withClient { it.setupRecovery(cb) }
     }
 
     override fun observeRecoveryState(observer: MatrixPort.RecoveryStateObserver): ULong {
@@ -414,9 +402,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         }
 
     override fun stopTypingObserver(token: ULong) {
-        runBlocking(matrixDispatcher) {
-            withClient { it.unobserveTyping(token) }
-        }
+        withClient { it.unobserveTyping(token) }
     }
 
     override suspend fun observeReceipts(roomId: String, observer: ReceiptsObserver): ULong =
@@ -430,9 +416,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         }
 
     override fun stopReceiptsObserver(token: ULong) {
-        runBlocking(matrixDispatcher) {
-            withClient { it.unobserveReceipts(token) }
-        }
+        withClient { it.unobserveReceipts(token) }
     }
 
     override suspend fun dmPeerUserId(roomId: String): String? =
@@ -464,9 +448,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         }
 
     override fun stopCallInbox(token: ULong) {
-        runBlocking(matrixDispatcher) {
-            withClient { it.stopCallInbox(token) }
-        }
+        withClient { it.stopCallInbox(token) }
     }
 
     override suspend fun startSupervisedSync(observer: MatrixPort.SyncObserver) =
@@ -587,15 +569,11 @@ class RustMatrixPort : MatrixPort, VerificationService {
         }
 
     override fun enterForeground() {
-        runBlocking(matrixDispatcher) {
-            withClient { it.enterForeground() }
-        }
+        withClient { it.enterForeground() }
     }
 
     override fun enterBackground() {
-        runBlocking(matrixDispatcher) {
-            withClient { it.enterBackground() }
-        }
+        withClient { it.enterBackground() }
     }
 
     override suspend fun sendAttachmentFromPath(
@@ -802,9 +780,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         }
 
     override fun unobserveRoomList(token: ULong) {
-        runBlocking(matrixDispatcher) {
-            withClient { it.unobserveRoomList(token) }
-        }
+        withClient { it.unobserveRoomList(token) }
     }
 
     override suspend fun fetchNotification(roomId: String, eventId: String): RenderedNotification? =
@@ -1527,9 +1503,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override fun stopObserveLiveLocation(token: ULong) {
-        runBlocking(matrixDispatcher) {
-            withClient { it.unobserveLiveLocation(token) }
-        }
+        withClient { it.unobserveLiveLocation(token) }
     }
 
     override suspend fun sendPoll(
@@ -1657,9 +1631,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         }
 
     override fun stopElementCall(sessionId: ULong): Boolean {
-        return runBlocking(matrixDispatcher) {
-            runWithFfiResult { withClient { it.stopElementCall(sessionId) } }.isSuccess
-        }
+        return runWithFfiResult { withClient { it.stopElementCall(sessionId) } }.isSuccess
     }
 
     override suspend fun mediaCacheOverview(): MediaCacheOverview? = withContext(matrixDispatcher) {
