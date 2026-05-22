@@ -25,13 +25,6 @@ use matrix_sdk::utils::local_server::LocalServerBuilder;
 use matrix_sdk::utils::local_server::LocalServerIpAddress;
 use matrix_sdk::{
     RoomDisplayName,
-    ruma::events::room::{
-        ImageInfo,
-        message::{
-            AudioMessageEventContent, FileMessageEventContent, ImageMessageEventContent, VideoInfo,
-            VideoMessageEventContent,
-        },
-    },
     widget::{VirtualElementCallWidgetConfig, VirtualElementCallWidgetProperties},
 };
 use matrix_sdk_ui::notification_client::NotificationItem;
@@ -111,8 +104,6 @@ use matrix_sdk_ui::{
         TimelineItem, TimelineItemContent,
     },
 };
-
-use ruma::events::room::message::RoomMessageEventContent;
 
 use matrix_sdk::ruma::events::poll::{
     start::PollKind as RumaPollKind,
@@ -1679,82 +1670,14 @@ impl Client {
         body: Option<String>,
         progress: Option<Box<dyn ProgressObserver>>,
     ) -> Result<(), FfiError> {
-        RT.block_on(async {
-            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
-                return Err(FfiError::Msg("invalid room id".into()));
-            };
-            let Some(room) = self.core.sdk.get_room(&rid) else {
-                return Err(FfiError::Msg("room not found".into()));
-            };
-            let default_caption = match att.kind {
-                AttachmentKind::Image => "Image",
-                AttachmentKind::Video => "Video",
-                AttachmentKind::Audio => "Audio",
-                AttachmentKind::File => "File",
-            };
-            let caption = body.unwrap_or_else(|| default_caption.to_string());
-            let media_source = if let Some(enc) = att.encrypted.as_ref() {
-                let ef: matrix_sdk::ruma::events::room::EncryptedFile =
-                    match serde_json::from_str(&enc.json) {
-                        Ok(f) => f,
-                        Err(e) => {
-                            return Err(FfiError::Msg(format!("invalid encrypted file: {}", e)));
-                        }
-                    };
-                MediaSource::Encrypted(Box::new(ef))
-            } else {
-                MediaSource::Plain(att.mxc_uri.clone().into())
-            };
-            let msgtype = match att.kind {
-                AttachmentKind::Image => {
-                    let mut info = ImageInfo::new();
-                    info.mimetype = att.mime.clone();
-                    info.size = att.size_bytes.and_then(UInt::new);
-                    info.width = att.width.map(UInt::from);
-                    info.height = att.height.map(UInt::from);
-                    let mut img = ImageMessageEventContent::new(caption.clone(), media_source);
-                    img.info = Some(Box::new(info));
-                    MessageType::Image(img)
-                }
-                AttachmentKind::Video => {
-                    let mut info = VideoInfo::new();
-                    info.mimetype = att.mime.clone();
-                    info.size = att.size_bytes.and_then(UInt::new);
-                    info.width = att.width.map(UInt::from);
-                    info.height = att.height.map(UInt::from);
-                    info.duration = att.duration_ms.map(Duration::from_millis);
-                    let mut vid = VideoMessageEventContent::new(caption.clone(), media_source);
-                    vid.info = Some(Box::new(info));
-                    MessageType::Video(vid)
-                }
-                AttachmentKind::File => {
-                    let mut info = matrix_sdk::ruma::events::room::message::FileInfo::new();
-                    info.mimetype = att.mime.clone();
-                    info.size = att.size_bytes.and_then(UInt::new);
-                    let mut file = FileMessageEventContent::new(caption.clone(), media_source);
-                    file.info = Some(Box::new(info));
-                    MessageType::File(file)
-                }
-                AttachmentKind::Audio => {
-                    let mut info = matrix_sdk::ruma::events::room::message::AudioInfo::new();
-                    info.mimetype = att.mime.clone();
-                    info.size = att.size_bytes.and_then(UInt::new);
-                    info.duration = att.duration_ms.map(Duration::from_millis);
-                    let mut audio = AudioMessageEventContent::new(caption.clone(), media_source);
-                    audio.info = Some(Box::new(info));
-                    MessageType::Audio(audio)
-                }
-            };
-            let content = RoomMessageEventContent::new(msgtype);
-            if let Some(p) = progress.as_ref() {
-                p.on_progress(0, None);
-            }
-            let res = room.send(content).await;
-            if let Some(p) = progress {
-                p.on_progress(1, Some(1));
-            }
-            res.map(|_| ()).ffi()
-        })
+        if let Some(p) = progress.as_ref() {
+            p.on_progress(0, None);
+        }
+        let result = RT.block_on(self.core.send_existing_attachment(room_id, att, body));
+        if let Some(p) = progress {
+            p.on_progress(1, Some(1));
+        }
+        result
     }
 
     pub fn download_media(

@@ -29,11 +29,8 @@ use matrix_sdk::authentication::oauth::registration::language_tags::LanguageTag;
 use matrix_sdk::utils::UrlOrQuery;
 
 use matrix_sdk::ruma::events::room::{
-    ImageInfo, MediaSource,
-    message::{
-        AudioMessageEventContent, FileMessageEventContent, ImageMessageEventContent, MessageType,
-        VideoInfo, VideoMessageEventContent,
-    },
+    MediaSource,
+    message::MessageType,
 };
 
 use matrix_sdk::ruma::events::{
@@ -186,38 +183,17 @@ impl RecoveryObserver for JsRecoveryObserver {
 unsafe impl Send for JsRecoveryObserver {}
 unsafe impl Sync for JsRecoveryObserver {}
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-struct WasmSessionInfo {
-    #[serde(default = "default_auth_api")]
-    auth_api: String,
-    #[serde(default)]
-    client_id: Option<String>,
-    user_id: String,
-    device_id: String,
-    access_token: String,
-    refresh_token: Option<String>,
-    homeserver: String,
-    #[serde(default = "default_token_valid")]
-    is_token_valid: bool,
-}
-
-fn default_token_valid() -> bool {
-    true
-}
-fn default_auth_api() -> String {
-    "matrix".to_owned()
-}
 fn wasm_session_key(store_name: &str) -> String {
     format!("mages_session_{store_name}")
 }
 
-fn load_wasm_session(store_name: &str) -> Option<WasmSessionInfo> {
+fn load_wasm_session(store_name: &str) -> Option<SessionInfo> {
     let storage = web_sys::window()?.local_storage().ok()??;
     let raw = storage.get_item(&wasm_session_key(store_name)).ok()??;
     serde_json::from_str(&raw).ok()
 }
 
-fn save_wasm_session(store_name: &str, session: &WasmSessionInfo) {
+fn save_wasm_session(store_name: &str, session: &SessionInfo) {
     let Some(storage) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) else {
         return;
     };
@@ -227,7 +203,7 @@ fn save_wasm_session(store_name: &str, session: &WasmSessionInfo) {
     let _ = storage.set_item(&wasm_session_key(store_name), &raw);
 }
 
-fn update_wasm_session(store_name: &str, session: &WasmSessionInfo) {
+fn update_wasm_session(store_name: &str, session: &SessionInfo) {
     save_wasm_session(store_name, session);
 }
 
@@ -299,7 +275,7 @@ impl WasmAsyncState {
             Some(AuthSession::Matrix(sess)) => {
                 save_wasm_session(
                     &self.store_name,
-                    &WasmSessionInfo {
+                    &SessionInfo {
                         auth_api: "matrix".into(),
                         client_id: None,
                         user_id: sess.meta.user_id.to_string(),
@@ -315,7 +291,7 @@ impl WasmAsyncState {
                 let sess = *sess;
                 save_wasm_session(
                     &self.store_name,
-                    &WasmSessionInfo {
+                    &SessionInfo {
                         auth_api: "oauth".into(),
                         client_id: Some(sess.client_id.to_string()),
                         user_id: sess.user.meta.user_id.to_string(),
@@ -2038,75 +2014,10 @@ impl WasmClient {
         let Some(state) = self.state() else {
             return webffi_not_init();
         };
-        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
-            return webffi_err("invalid room_id");
-        };
-        let Some(room) = state.client().get_room(&rid) else {
-            return webffi_err("room not found");
-        };
         let Ok(att): Result<AttachmentInfo, _> = serde_json::from_str(&att_json) else {
             return webffi_err("invalid attachment JSON");
         };
-        let default_caption = match att.kind {
-            AttachmentKind::Image => "Image",
-            AttachmentKind::Video => "Video",
-            AttachmentKind::Audio => "Audio",
-            AttachmentKind::File => "File",
-        };
-        let caption = body.unwrap_or_else(|| default_caption.to_string());
-        let media_source = if let Some(enc) = att.encrypted.as_ref() {
-            let Ok(ef): Result<matrix_sdk::ruma::events::room::EncryptedFile, _> =
-                serde_json::from_str(&enc.json)
-            else {
-                return webffi_err("invalid encrypted file JSON");
-            };
-            MediaSource::Encrypted(Box::new(ef))
-        } else {
-            MediaSource::Plain(att.mxc_uri.clone().into())
-        };
-        let msgtype = match att.kind {
-            AttachmentKind::Image => {
-                let mut info = ImageInfo::new();
-                info.mimetype = att.mime.clone();
-                info.size = att.size_bytes.and_then(matrix_sdk::ruma::UInt::new);
-                info.width = att.width.map(matrix_sdk::ruma::UInt::from);
-                info.height = att.height.map(matrix_sdk::ruma::UInt::from);
-                let mut img = ImageMessageEventContent::new(caption.clone(), media_source);
-                img.info = Some(Box::new(info));
-                MessageType::Image(img)
-            }
-            AttachmentKind::Video => {
-                let mut info = VideoInfo::new();
-                info.mimetype = att.mime.clone();
-                info.size = att.size_bytes.and_then(matrix_sdk::ruma::UInt::new);
-                info.width = att.width.map(matrix_sdk::ruma::UInt::from);
-                info.height = att.height.map(matrix_sdk::ruma::UInt::from);
-                info.duration = att.duration_ms.map(Duration::from_millis);
-                let mut vid = VideoMessageEventContent::new(caption.clone(), media_source);
-                vid.info = Some(Box::new(info));
-                MessageType::Video(vid)
-            }
-            AttachmentKind::File => {
-                let mut info = matrix_sdk::ruma::events::room::message::FileInfo::new();
-                info.mimetype = att.mime.clone();
-                info.size = att.size_bytes.and_then(matrix_sdk::ruma::UInt::new);
-                let mut file = FileMessageEventContent::new(caption.clone(), media_source);
-                file.info = Some(Box::new(info));
-                MessageType::File(file)
-            }
-            AttachmentKind::Audio => {
-                let mut info = matrix_sdk::ruma::events::room::message::AudioInfo::new();
-                info.mimetype = att.mime.clone();
-                info.size = att.size_bytes.and_then(matrix_sdk::ruma::UInt::new);
-                info.duration = att.duration_ms.map(Duration::from_millis);
-                let mut audio = AudioMessageEventContent::new(caption.clone(), media_source);
-                audio.info = Some(Box::new(info));
-                MessageType::Audio(audio)
-            }
-        };
-        let content =
-            matrix_sdk::ruma::events::room::message::RoomMessageEventContent::new(msgtype);
-        let result = room.send(content).await.map(|_| ());
+        let result = state.core.send_existing_attachment(room_id, att, body).await;
         webffi_unit(result)
     }
 

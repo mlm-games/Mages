@@ -11,7 +11,7 @@ use matrix_sdk::{
     notification_settings::RoomNotificationMode,
     ruma::{
         EventId, OwnedEventId, OwnedRoomAliasId, OwnedRoomId, OwnedRoomOrAliasId, OwnedServerName,
-        OwnedUserId, RoomVersionId, SpaceChildOrder, UserId,
+        OwnedUserId, RoomVersionId, SpaceChildOrder, UInt, UserId,
         api::client::{
             directory::get_public_rooms_filtered,
             presence::{get_presence::v3 as get_presence_v3, set_presence::v3 as set_presence_v3},
@@ -30,9 +30,12 @@ use matrix_sdk::{
             receipt::ReceiptThread,
             relation::Thread as ThreadRel,
             room::{
+                EncryptedFile, ImageInfo, MediaSource,
                 message::{
-                    Relation as MsgRelation, RoomMessageEventContent,
-                    RoomMessageEventContentWithoutRelation as MsgNoRel,
+                    AudioInfo, AudioMessageEventContent, FileMessageEventContent,
+                    ImageMessageEventContent, MessageType, Relation as MsgRelation,
+                    RoomMessageEventContent, RoomMessageEventContentWithoutRelation as MsgNoRel,
+                    VideoInfo, VideoMessageEventContent,
                 },
                 name::RoomNameEventContent,
                 pinned_events::RoomPinnedEventsEventContent,
@@ -50,20 +53,20 @@ use matrix_sdk_ui::{
     sync_service::SyncService,
     timeline::{RoomExt as _, Timeline},
 };
+use serde_json;
 use tracing::warn;
 
 use crate::{
-    ActionAvailability, ActionPresentation, DirectoryUser, FfiError, FfiPushRuleKind,
-    FfiRoomNotificationMode, INITIAL_BACK_PAGINATION, KnockRequestSummary, LiveLocationBeaconState,
-    MemberActionState, MemberSummary, MessageActionState, MessageEvent, OwnReceipt,
-    PasswordLoginKind, PollDefinition, PredecessorRoomInfo, Presence, PresenceInfo, PublicRoom,
-    PublicRoomsPage, ReactionSummary, RoomActionState, RoomDirectoryVisibility,
-    RoomHistoryVisibility, RoomJoinRule, RoomListMembership, RoomPowerLevelChanges,
-    RoomPowerLevels, RoomPreview, RoomPreviewMembership, RoomSummary, RoomTags, RoomUpgradeLinks,
-    SearchHit, SearchPage, SeenByEntry, SendState, SendUpdate, SpaceChildInfo, SpaceHierarchyPage,
-    SpaceInfo, SuccessorRoomInfo, ThreadPage, ThreadSummary, UnreadStats,
-    build_unstable_poll_content, map_event_id_via_timeline, map_timeline_event,
-    paginate_backwards_visible, timeline_event_filter,
+    ActionAvailability, ActionPresentation, AttachmentInfo, AttachmentKind, DirectoryUser, FfiError,
+    FfiPushRuleKind, FfiRoomNotificationMode, INITIAL_BACK_PAGINATION, KnockRequestSummary,
+    LiveLocationBeaconState, MemberActionState, MemberSummary, MessageActionState, MessageEvent,
+    OwnReceipt, PasswordLoginKind, PollDefinition, PredecessorRoomInfo, Presence, PresenceInfo,
+    PublicRoom, PublicRoomsPage, ReactionSummary, RoomActionState, RoomDirectoryVisibility,
+    RoomHistoryVisibility, RoomJoinRule, RoomListMembership, RoomPowerLevelChanges, RoomPowerLevels,
+    RoomPreview, RoomPreviewMembership, RoomSummary, RoomTags, RoomUpgradeLinks, SearchHit,
+    SearchPage, SeenByEntry, SendState, SendUpdate, SpaceChildInfo, SpaceHierarchyPage, SpaceInfo,
+    SuccessorRoomInfo, ThreadPage, ThreadSummary, UnreadStats, build_unstable_poll_content,
+    map_event_id_via_timeline, map_timeline_event, paginate_backwards_visible, timeline_event_filter,
 };
 
 const REACTION_NOTIFY_RULE_ID: &str = "org.mlm.mages.reaction.notify";
@@ -1856,6 +1859,78 @@ impl CoreClient {
         };
         room.send_queue().set_enabled(enabled);
         true
+    }
+
+    pub async fn send_existing_attachment(
+        &self,
+        room_id: String,
+        att: AttachmentInfo,
+        body: Option<String>,
+    ) -> Result<(), FfiError> {
+        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+            return Err(FfiError::Msg("invalid room id".into()));
+        };
+        let Some(room) = self.sdk.get_room(&rid) else {
+            return Err(FfiError::Msg("room not found".into()));
+        };
+        let default_caption = match att.kind {
+            AttachmentKind::Image => "Image",
+            AttachmentKind::Video => "Video",
+            AttachmentKind::Audio => "Audio",
+            AttachmentKind::File => "File",
+        };
+        let caption = body.unwrap_or_else(|| default_caption.to_string());
+        let media_source = if let Some(enc) = att.encrypted.as_ref() {
+            let ef: EncryptedFile = match serde_json::from_str(&enc.json) {
+                Ok(f) => f,
+                Err(e) => return Err(FfiError::Msg(format!("invalid encrypted file: {e}"))),
+            };
+            MediaSource::Encrypted(Box::new(ef))
+        } else {
+            MediaSource::Plain(att.mxc_uri.clone().into())
+        };
+        let msgtype = match att.kind {
+            AttachmentKind::Image => {
+                let mut info = ImageInfo::new();
+                info.mimetype = att.mime.clone();
+                info.size = att.size_bytes.and_then(UInt::new);
+                info.width = att.width.map(UInt::from);
+                info.height = att.height.map(UInt::from);
+                let mut img = ImageMessageEventContent::new(caption, media_source);
+                img.info = Some(Box::new(info));
+                MessageType::Image(img)
+            }
+            AttachmentKind::Video => {
+                let mut info = VideoInfo::new();
+                info.mimetype = att.mime.clone();
+                info.size = att.size_bytes.and_then(UInt::new);
+                info.width = att.width.map(UInt::from);
+                info.height = att.height.map(UInt::from);
+                info.duration = att.duration_ms.map(Duration::from_millis);
+                let mut vid = VideoMessageEventContent::new(caption, media_source);
+                vid.info = Some(Box::new(info));
+                MessageType::Video(vid)
+            }
+            AttachmentKind::File => {
+                let mut info = matrix_sdk::ruma::events::room::message::FileInfo::new();
+                info.mimetype = att.mime.clone();
+                info.size = att.size_bytes.and_then(UInt::new);
+                let mut file = FileMessageEventContent::new(caption, media_source);
+                file.info = Some(Box::new(info));
+                MessageType::File(file)
+            }
+            AttachmentKind::Audio => {
+                let mut info = AudioInfo::new();
+                info.mimetype = att.mime.clone();
+                info.size = att.size_bytes.and_then(UInt::new);
+                info.duration = att.duration_ms.map(Duration::from_millis);
+                let mut audio = AudioMessageEventContent::new(caption, media_source);
+                audio.info = Some(Box::new(info));
+                MessageType::Audio(audio)
+            }
+        };
+        let content = RoomMessageEventContent::new(msgtype);
+        room.send(content).await.ffi().map(|_| ())
     }
 
     pub async fn reactions_for_event(
