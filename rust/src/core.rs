@@ -2,12 +2,15 @@
 
 use std::{
     collections::{HashMap, HashSet},
+    panic::{AssertUnwindSafe, catch_unwind},
     sync::{Arc, Mutex},
     time::Duration,
 };
 
+use futures_util::StreamExt;
+
 use matrix_sdk::{
-    Client as SdkClient, EncryptionState, Room, RoomMemberships, RoomState,
+    Client as SdkClient, EncryptionState, Room, RoomDisplayName, RoomMemberships, RoomState,
     notification_settings::RoomNotificationMode,
     ruma::{
         EventId, OwnedEventId, OwnedRoomAliasId, OwnedRoomId, OwnedRoomOrAliasId, OwnedServerName,
@@ -23,6 +26,7 @@ use matrix_sdk::{
         events::{
             AnyMessageLikeEventContent,
             ignored_user_list::IgnoredUserListEventContent,
+            key::verification::request::ToDeviceKeyVerificationRequestEvent,
             poll::{
                 unstable_end::UnstablePollEndEventContent,
                 unstable_response::UnstablePollResponseEventContent,
@@ -35,7 +39,7 @@ use matrix_sdk::{
                     AudioInfo, AudioMessageEventContent, FileMessageEventContent,
                     ImageMessageEventContent, MessageType, Relation as MsgRelation,
                     RoomMessageEventContent, RoomMessageEventContentWithoutRelation as MsgNoRel,
-                    VideoInfo, VideoMessageEventContent,
+                    SyncRoomMessageEvent, VideoInfo, VideoMessageEventContent,
                 },
                 name::RoomNameEventContent,
                 pinned_events::RoomPinnedEventsEventContent,
@@ -50,6 +54,8 @@ use matrix_sdk::{
     send_queue::SendHandle as SdkSendHandle,
 };
 use matrix_sdk_ui::{
+    eyeball_im::{Vector, VectorDiff},
+    room_list_service::RoomListItem,
     sync_service::SyncService,
     timeline::{RoomExt as _, Timeline},
 };
@@ -65,8 +71,9 @@ use crate::{
     RoomHistoryVisibility, RoomJoinRule, RoomListMembership, RoomPowerLevelChanges, RoomPowerLevels,
     RoomPreview, RoomPreviewMembership, RoomSummary, RoomTags, RoomUpgradeLinks, SearchHit,
     SearchPage, SeenByEntry, SendState, SendUpdate, SpaceChildInfo, SpaceHierarchyPage, SpaceInfo,
-    SuccessorRoomInfo, ThreadPage, ThreadSummary, UnreadStats, build_unstable_poll_content,
-    map_event_id_via_timeline, map_timeline_event, paginate_backwards_visible, timeline_event_filter,
+    RoomListEntry, VerificationInboxObserver, SuccessorRoomInfo, ThreadPage, ThreadSummary,
+    UnreadStats, build_unstable_poll_content, latest_room_event_for, map_event_id_via_timeline,
+    map_timeline_event, paginate_backwards_visible, timeline_event_filter,
 };
 
 const REACTION_NOTIFY_RULE_ID: &str = "org.mlm.mages.reaction.notify";
@@ -3129,6 +3136,99 @@ impl CoreClient {
         let tl = room.timeline().await.ok()?;
         Some(tl.subscribe_own_user_read_receipts_changed().await)
     }
+
+    pub async fn start_verification_inbox(&self, observer: &dyn VerificationInboxObserver) {
+        self.sdk.encryption().wait_for_e2ee_initialization_tasks().await;
+        if let Err(e) = self.sdk.event_cache().subscribe() {
+            warn!("verification_inbox: event_cache.subscribe() failed: {e:?}");
+        }
+        let td_handler = self.sdk.observe_events::<ToDeviceKeyVerificationRequestEvent, ()>();
+        let mut td_sub = td_handler.subscribe();
+        let ir_handler = self.sdk.observe_events::<SyncRoomMessageEvent, Room>();
+        let mut ir_sub = ir_handler.subscribe();
+        loop {
+            tokio::select! {
+                maybe = td_sub.next() => {
+                    if let Some((ev, ())) = maybe {
+                        let flow_id = ev.content.transaction_id.to_string();
+                        let from_user = ev.sender.to_string();
+                        let from_device = ev.content.from_device.to_string();
+                        let _ = catch_unwind(AssertUnwindSafe(|| observer.on_request(flow_id, from_user, from_device)));
+                    } else { break; }
+                }
+                maybe = ir_sub.next() => {
+                    if let Some((ev, _room)) = maybe {
+                        if let SyncRoomMessageEvent::Original(o) = ev {
+                            if let MessageType::VerificationRequest(_) = &o.content.msgtype {
+                                let flow_id = o.event_id.to_string();
+                                let from_user = o.sender.to_string();
+                                let _ = catch_unwind(AssertUnwindSafe(|| observer.on_request(flow_id, from_user, String::new())));
+                            }
+                        }
+                    } else { break; }
+                }
+            }
+        }
+    }
+
+    pub fn apply_vector_diff<T: Clone>(items: &mut Vector<T>, diffs: Vec<VectorDiff<T>>) -> bool {
+        let mut changed = false;
+        for diff in diffs {
+            match diff {
+                VectorDiff::Reset { values } => { *items = values; changed = true; }
+                VectorDiff::Clear => { items.clear(); changed = true; }
+                VectorDiff::PushFront { value } => { items.insert(0, value); changed = true; }
+                VectorDiff::PushBack { value } => { items.push_back(value); changed = true; }
+                VectorDiff::PopFront => { if !items.is_empty() { items.remove(0); changed = true; } }
+                VectorDiff::PopBack => { items.pop_back(); changed = true; }
+                VectorDiff::Insert { index, value } => { if index <= items.len() { items.insert(index, value); changed = true; } }
+                VectorDiff::Set { index, value } => { if index < items.len() { items[index] = value; changed = true; } }
+                VectorDiff::Remove { index } => { if index < items.len() { items.remove(index); changed = true; } }
+                VectorDiff::Truncate { length } => { items.truncate(length); changed = true; }
+                VectorDiff::Append { values } => { items.append(values); changed = true; }
+            }
+        }
+        changed
+    }
+
+    pub async fn build_room_list_snapshot(
+        &self,
+        items: &Vector<RoomListItem>,
+    ) -> Vec<RoomListEntry> {
+        let mut snapshot = Vec::with_capacity(items.len());
+        for item in items.iter() {
+            let room = &**item;
+            let last_ts = room.recency_stamp().map_or(0, |s| s.into());
+            let is_dm = room.is_direct().await.unwrap_or(false);
+            let mut avatar_url = room.avatar_url().map(|mxc| mxc.to_string());
+            if avatar_url.is_none() && is_dm {
+                avatar_url = Self::dm_peer_avatar_url(room, self.sdk.user_id()).await;
+            }
+            let latest_event = latest_room_event_for(room, &self.timeline_mgr).await;
+            let membership = room_list_membership(room);
+            snapshot.push(RoomListEntry {
+                room_id: room.room_id().to_string(),
+                name: item.cached_display_name().clone().unwrap_or(RoomDisplayName::Named(room.room_id().to_string())).to_string(),
+                last_ts,
+                notifications: room.num_unread_notifications(),
+                messages: room.num_unread_messages(),
+                mentions: room.num_unread_mentions(),
+                marked_unread: room.is_marked_unread(),
+                is_favourite: room.is_favourite(),
+                is_low_priority: room.is_low_priority(),
+                is_invited: matches!(room.state(), RoomState::Invited),
+                membership,
+                avatar_url,
+                is_dm,
+                is_encrypted: matches!(room.encryption_state(), matrix_sdk::EncryptionState::Encrypted),
+                member_count: room.joined_members_count().min(u32::MAX as u64) as u32,
+                topic: room.topic(),
+                latest_event,
+            });
+        }
+        snapshot
+    }
+
 }
 
 pub(crate) fn map_send_queue_update(

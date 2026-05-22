@@ -2,7 +2,6 @@
 
 use futures_util::StreamExt;
 use js_int::UInt;
-use matrix_sdk::RoomState;
 use matrix_sdk::live_locations_observer::LiveLocationShare;
 use matrix_sdk::ruma::events::rtc::notification::CallIntent;
 use matrix_sdk::utils::UrlOrQuery;
@@ -24,7 +23,6 @@ use matrix_sdk::utils::local_server::LocalServerBuilder;
 #[cfg(not(target_family = "wasm"))]
 use matrix_sdk::utils::local_server::LocalServerIpAddress;
 use matrix_sdk::{
-    RoomDisplayName,
     widget::{VirtualElementCallWidgetConfig, VirtualElementCallWidgetProperties},
 };
 use matrix_sdk_ui::notification_client::NotificationItem;
@@ -84,13 +82,7 @@ use matrix_sdk::{
 };
 use matrix_sdk::{
     encryption::{EncryptionSettings, verification::Verification},
-    ruma::{
-        self,
-        events::{
-            key::verification::request::ToDeviceKeyVerificationRequestEvent,
-            room::message::{MessageType, SyncRoomMessageEvent},
-        },
-    },
+    ruma::self,
 };
 use matrix_sdk_ui::{
     eyeball_im::VectorDiff,
@@ -923,49 +915,8 @@ impl Client {
                         }
                     }
                     Some(diffs) = stream.next() => {
-                        let mut changed = false;
-                        for diff in diffs {
-                            match diff {
-                                VectorDiff::Reset { values }  => { items = values;   changed = true; }
-                                VectorDiff::Clear             => { items.clear();     changed = true; }
-                                VectorDiff::PushFront { value } => { items.insert(0, value); changed = true; }
-                                VectorDiff::PushBack  { value } => { items.push_back(value); changed = true; }
-                                VectorDiff::PopFront => { if !items.is_empty() { items.remove(0); changed = true; } }
-                                VectorDiff::PopBack  => { items.pop_back(); changed = true; }
-                                VectorDiff::Insert { index, value } => { if index <= items.len() { items.insert(index, value); changed = true; } }
-                                VectorDiff::Set    { index, value } => { if index < items.len()  { items[index] = value;       changed = true; } }
-                                VectorDiff::Remove { index }        => { if index < items.len()  { items.remove(index);        changed = true; } }
-                                VectorDiff::Truncate { length }     => { items.truncate(length);  changed = true; }
-                                VectorDiff::Append   { values }     => { items.append(values);    changed = true; }
-                            }
-                        }
-                        if changed {
-                            let mut snapshot: Vec<RoomListEntry> = Vec::new();
-                            for item in items.iter() {
-                                let room = &**item;
-                                let last_ts  = room.recency_stamp().map_or(0, |s| s.into());
-                                let is_dm    = room.is_direct().await.unwrap_or(false);
-                                let mut avatar_url = room.avatar_url().map(|mxc| mxc.to_string());
-                                if avatar_url.is_none() && is_dm {
-                                    avatar_url = CoreClient::dm_peer_avatar_url(room, core.sdk.user_id()).await;
-                                }
-                                let latest_event = latest_room_event_for(room, &core.timeline_mgr).await;
-                                let membership = core::room_list_membership(room);
-                                snapshot.push(RoomListEntry {
-                                    room_id: room.room_id().to_string(),
-                                    name: item.cached_display_name().clone().unwrap_or(RoomDisplayName::Named(room.room_id().to_string())).to_string(),
-                                    last_ts, notifications: room.num_unread_notifications(),
-                                    messages: room.num_unread_messages(), mentions: room.num_unread_mentions(),
-                                    marked_unread: room.is_marked_unread(), is_favourite: room.is_favourite(),
-                                    is_low_priority: room.is_low_priority(),
-                                    is_invited: matches!(room.state(), RoomState::Invited),
-                                    membership,
-                                    avatar_url, is_dm,
-                                    is_encrypted: matches!(room.encryption_state(), matrix_sdk::EncryptionState::Encrypted),
-                                    member_count: room.joined_members_count().min(u32::MAX as u64) as u32,
-                                    topic: room.topic(), latest_event,
-                                });
-                            }
+                        if CoreClient::apply_vector_diff(&mut items, diffs) {
+                            let snapshot = core.build_room_list_snapshot(&items).await;
                             let _ = platform::write_room_list_cache(&store_dir, &snapshot).await;
                             let obs_clone = obs.clone();
                             let _ = catch_unwind(AssertUnwindSafe(move || obs_clone.on_reset(snapshot)));
@@ -1201,40 +1152,10 @@ impl Client {
     }
 
     pub fn start_verification_inbox(&self, observer: Box<dyn VerificationInboxObserver>) -> u64 {
-        let sdk = self.core.sdk.clone();
+        let core = self.core.clone();
         let obs: Arc<dyn VerificationInboxObserver> = Arc::from(observer);
         sub_manager!(self, inbox_subs, async move {
-            sdk.encryption().wait_for_e2ee_initialization_tasks().await;
-            if let Err(e) = sdk.event_cache().subscribe() {
-                warn!("verification_inbox: event_cache.subscribe() failed: {e:?}");
-            }
-            let td_handler = sdk.observe_events::<ToDeviceKeyVerificationRequestEvent, ()>();
-            let mut td_sub = td_handler.subscribe();
-            let ir_handler = sdk.observe_events::<SyncRoomMessageEvent, Room>();
-            let mut ir_sub = ir_handler.subscribe();
-            loop {
-                tokio::select! {
-                    maybe = td_sub.next() => {
-                        if let Some((ev, ())) = maybe {
-                            let flow_id = ev.content.transaction_id.to_string();
-                            let from_user = ev.sender.to_string();
-                            let from_device = ev.content.from_device.to_string();
-                            let _ = catch_unwind(AssertUnwindSafe(|| obs.on_request(flow_id, from_user, from_device)));
-                        } else { break; }
-                    }
-                    maybe = ir_sub.next() => {
-                        if let Some((ev, _room)) = maybe {
-                            if let SyncRoomMessageEvent::Original(o) = ev {
-                                if let MessageType::VerificationRequest(_) = &o.content.msgtype {
-                                    let flow_id = o.event_id.to_string();
-                                    let from_user = o.sender.to_string();
-                                    let _ = catch_unwind(AssertUnwindSafe(|| obs.on_request(flow_id, from_user, String::new())));
-                                }
-                            }
-                        } else { break; }
-                    }
-                }
-            }
+            core.start_verification_inbox(&*obs).await;
         })
     }
 

@@ -1136,43 +1136,8 @@ impl WasmClient {
                             }
                         }
                         Some(diffs) = stream.next() => {
-                            let mut changed = false;
-                            for diff in diffs {
-                                match diff {
-                                    VectorDiff::Reset { values } => { items = values; changed = true; }
-                                    VectorDiff::Clear => { items.clear(); changed = true; }
-                                    VectorDiff::PushFront { value } => { items.insert(0, value); changed = true; }
-                                    VectorDiff::PushBack { value } => { items.push_back(value); changed = true; }
-                                    VectorDiff::PopFront => { if !items.is_empty() { items.remove(0); changed = true; } }
-                                    VectorDiff::PopBack => { items.pop_back(); changed = true; }
-                                    VectorDiff::Insert { index, value } => { if index <= items.len() { items.insert(index, value); changed = true; } }
-                                    VectorDiff::Set { index, value } => { if index < items.len() { items[index] = value; changed = true; } }
-                                    VectorDiff::Remove { index } => { if index < items.len() { items.remove(index); changed = true; } }
-                                    VectorDiff::Truncate { length } => { items.truncate(length); changed = true; }
-                                    VectorDiff::Append { values } => { items.append(values); changed = true; }
-                                }
-                            }
-                            if changed {
-                                let mut snapshot = Vec::with_capacity(items.len());
-                                for item in items.iter() {
-                                    let room = &**item;
-                                    let is_dm = room.is_direct().await.unwrap_or(false);
-                                    let mut avatar_url = room.avatar_url().map(|m| m.to_string());
-                                    if avatar_url.is_none() && is_dm { avatar_url = CoreClient::dm_peer_avatar_url(room, s.client().user_id()).await; }
-                                    let latest_event = latest_room_event_for(room, s.tm()).await;
-                                    let membership = room_list_membership(room);
-                                    snapshot.push(RoomListEntry {
-                                        room_id: room.room_id().to_string(),
-                                        name: item.cached_display_name().clone().unwrap_or(RoomDisplayName::Named(room.room_id().to_string())).to_string(),
-                                        last_ts: room.recency_stamp().map_or(0, Into::into),
-                                        notifications: room.num_unread_notifications(), messages: room.num_unread_messages(), mentions: room.num_unread_mentions(),
-                                        marked_unread: room.is_marked_unread(), is_favourite: room.is_favourite(), is_low_priority: room.is_low_priority(),
-                                        is_invited: matches!(room.state(), RoomState::Invited), membership, avatar_url, is_dm,
-                                        is_encrypted: matches!(room.encryption_state(), matrix_sdk::EncryptionState::Encrypted),
-                                        member_count: room.joined_members_count().min(u32::MAX as u64) as u32,
-                                        topic: room.topic(), latest_event,
-                                    });
-                                }
+                            if CoreClient::apply_vector_diff(&mut items, diffs) {
+                                let snapshot = s.core.build_room_list_snapshot(&items).await;
                                 s.room_list_cache.replace(snapshot.clone());
                                 call_js(&on_reset, to_json(&snapshot));
                             }
@@ -1286,11 +1251,11 @@ impl WasmClient {
                 initial_shares.iter().map(map_live_location_share).collect();
             let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(all_shares.clone())));
             use futures_util::StreamExt;
-            use matrix_sdk_ui::eyeball_im::VectorDiff;
             let mut stream = stream;
             while let Some(diffs) = stream.next().await {
                 for diff in diffs {
                     if let Some(mapped) = map_live_location_vec_diff(diff) {
+                        use matrix_sdk_ui::eyeball_im::VectorDiff;
                         match mapped {
                             VectorDiff::Insert { index, value } => all_shares.insert(index, value),
                             VectorDiff::Set { index, value } => all_shares[index] = value,
@@ -1354,37 +1319,7 @@ impl WasmClient {
             Arc::new(JsVerificationInboxObserver(on_request, on_error));
         let s = state.clone();
         wasm_subscribe!(state, inbox_subs, async move {
-            s.client()
-                .encryption()
-                .wait_for_e2ee_initialization_tasks()
-                .await;
-            let _ = s.client().event_cache().subscribe();
-            let td = s
-                .client()
-                .observe_events::<ToDeviceKeyVerificationRequestEvent, ()>();
-            let mut td_sub = td.subscribe();
-            let ir = s.client().observe_events::<SyncRoomMessageEvent, Room>();
-            let mut ir_sub = ir.subscribe();
-            loop {
-                tokio::select! {
-                    maybe = td_sub.next() => {
-                        if let Some((ev, ())) = maybe {
-                            let fid = ev.content.transaction_id.to_string();
-                            let _ = catch_unwind(AssertUnwindSafe(|| obs.on_request(fid, ev.sender.to_string(), ev.content.from_device.to_string())));
-                        } else { break; }
-                    }
-                    maybe = ir_sub.next() => {
-                        if let Some((ev, _)) = maybe {
-                            if let SyncRoomMessageEvent::Original(o) = ev {
-                                if let MessageType::VerificationRequest(_) = &o.content.msgtype {
-                                    let fid = o.event_id.to_string();
-                                    let _ = catch_unwind(AssertUnwindSafe(|| obs.on_request(fid, o.sender.to_string(), String::new())));
-                                }
-                            }
-                        } else { break; }
-                    }
-                }
-            }
+            s.core.start_verification_inbox(&*obs).await;
         })
     }
 
