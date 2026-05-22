@@ -68,7 +68,7 @@ use serde_json;
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use crate::safe_call;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -1085,7 +1085,7 @@ impl WasmClient {
                         other => {
                             if let Some(mapped) = map_vec_diff(other, &rid, &tl, &me) {
                                 let o = obs.clone();
-                                let _ = catch_unwind(AssertUnwindSafe(move || o.on_diff(mapped)));
+                                safe_call(move || o.on_diff(mapped));
                             }
                         }
                     }
@@ -1183,7 +1183,7 @@ impl WasmClient {
                 names.dedup();
                 if names != last {
                     last = names.clone();
-                    let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(names)));
+                    safe_call(|| obs.on_update(names));
                 }
             }
         })
@@ -1208,7 +1208,7 @@ impl WasmClient {
             };
             let mut stream = tl.subscribe_own_user_read_receipts_changed().await;
             while let Some(()) = stream.next().await {
-                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_changed()));
+                safe_call(|| obs.on_changed());
             }
         })
     }
@@ -1249,7 +1249,7 @@ impl WasmClient {
             let (initial_shares, stream) = observable.subscribe();
             let mut all_shares: Vec<LiveLocationShareInfo> =
                 initial_shares.iter().map(map_live_location_share).collect();
-            let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(all_shares.clone())));
+            safe_call(|| obs.on_update(all_shares.clone()));
             use futures_util::StreamExt;
             let mut stream = stream;
             while let Some(diffs) = stream.next().await {
@@ -1279,7 +1279,7 @@ impl WasmClient {
                         }
                     }
                 }
-                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(all_shares.clone())));
+                safe_call(|| obs.on_update(all_shares.clone()));
             }
         })
     }
@@ -1305,7 +1305,7 @@ impl WasmClient {
                     is_video: ev.content.offer.sdp.contains("m=video"),
                     ts_ms: ev.origin_server_ts.0.into(),
                 };
-                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_invite(invite)));
+                safe_call(|| obs.on_invite(invite));
             }
         })
     }
@@ -1345,7 +1345,7 @@ impl WasmClient {
                     }
                     _ => RecoveryState::Unknown,
                 };
-                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(mapped)));
+                safe_call(|| obs.on_update(mapped));
             }
         })
     }
@@ -1372,7 +1372,7 @@ impl WasmClient {
                     }
                     _ => BackupState::Unknown,
                 };
-                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(mapped)));
+                safe_call(|| obs.on_update(mapped));
             }
         })
     }
@@ -1867,7 +1867,7 @@ impl WasmClient {
                 .observe_room_events::<SyncReceiptEvent, matrix_sdk::room::Room>(&rid);
             let mut sub = stream.subscribe();
             while let Some((_ev, _room)) = sub.next().await {
-                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_changed()));
+                safe_call(|| obs.on_changed());
             }
         })
     }

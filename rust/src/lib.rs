@@ -319,6 +319,22 @@ fn cache_dir(dir: &PathBuf) -> PathBuf {
     dir.join("media_cache")
 }
 
+pub(crate) fn sanitize_filename(name: &str) -> String {
+    let mut s = String::with_capacity(name.len());
+    for ch in name.chars() {
+        if ch.is_ascii_alphanumeric() || "-_.".contains(ch) {
+            s.push(ch);
+        } else {
+            s.push('_');
+        }
+    }
+    s.trim_matches('_').to_string()
+}
+
+pub(crate) fn safe_call<F: FnOnce()>(f: F) {
+    let _ = catch_unwind(AssertUnwindSafe(f));
+}
+
 #[export]
 impl Client {
     #[uniffi::constructor]
@@ -444,7 +460,7 @@ impl Client {
                     };
                     for obs in list {
                         let upd_clone = upd.clone();
-                        let _ = catch_unwind(AssertUnwindSafe(move || obs.on_update(upd_clone)));
+                        safe_call(move || obs.on_update(upd_clone));
                     }
                 }
             });
@@ -766,7 +782,7 @@ impl Client {
             while let Some(names) = stream.next().await {
                 if names != last {
                     last = names.clone();
-                    let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(names)));
+                    safe_call(|| obs.on_update(names));
                 }
             }
         })
@@ -787,7 +803,7 @@ impl Client {
                 return;
             };
             while let Some(()) = stream.next().await {
-                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_changed()));
+                safe_call(|| obs.on_changed());
             }
         })
     }
@@ -806,7 +822,7 @@ impl Client {
             let stream = sdk.observe_room_events::<SyncReceiptEvent, matrix_sdk::room::Room>(&rid);
             let mut sub = stream.subscribe();
             while let Some((_ev, _room)) = sub.next().await {
-                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_changed()));
+                safe_call(|| obs.on_changed());
             }
         })
     }
@@ -851,7 +867,7 @@ impl Client {
                         }
                         other => {
                             if let Some(mapped) = map_vec_diff(other, &room_id, &tl, &me) {
-                                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_diff(mapped)));
+                                safe_call(|| obs.on_diff(mapped));
                             }
                         }
                     }
@@ -919,7 +935,7 @@ impl Client {
                             let snapshot = core.build_room_list_snapshot(&items).await;
                             let _ = platform::write_room_list_cache(&store_dir, &snapshot).await;
                             let obs_clone = obs.clone();
-                            let _ = catch_unwind(AssertUnwindSafe(move || obs_clone.on_reset(snapshot)));
+                            safe_call(move || obs_clone.on_reset(snapshot));
                         }
                     }
                     else => break,
@@ -971,7 +987,7 @@ impl Client {
                     is_video: ev.content.offer.sdp.contains("m=video"),
                     ts_ms: ev.origin_server_ts.0.into(),
                 };
-                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_invite(invite)));
+                safe_call(|| obs.on_invite(invite));
             }
         })
     }
@@ -998,7 +1014,7 @@ impl Client {
             let (initial_shares, stream) = observable.subscribe();
             let mut all_shares: Vec<LiveLocationShareInfo> =
                 initial_shares.iter().map(map_live_location_share).collect();
-            let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(all_shares.clone())));
+            safe_call(|| obs.on_update(all_shares.clone()));
             let mut stream = stream;
             while let Some(diffs) = stream.next().await {
                 for diff in diffs {
@@ -1026,7 +1042,7 @@ impl Client {
                         }
                     }
                 }
-                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(all_shares.clone())));
+                safe_call(|| obs.on_update(all_shares.clone()));
             }
         })
     }
@@ -1103,7 +1119,7 @@ impl Client {
                     }
                     _ => RecoveryState::Unknown,
                 };
-                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(mapped)));
+                safe_call(|| obs.on_update(mapped));
             }
         })
     }
@@ -1142,7 +1158,7 @@ impl Client {
                     }
                     Err(_) => BackupState::Unknown,
                 };
-                let _ = catch_unwind(AssertUnwindSafe(|| obs.on_update(mapped)));
+                safe_call(|| obs.on_update(mapped));
             }
         })
     }
@@ -1169,7 +1185,7 @@ impl Client {
 
     pub fn enter_foreground(&self) {
         self.app_in_foreground
-            .store(true, std::sync::atomic::Ordering::SeqCst);
+            .store(true, Ordering::Release);
         let _ = RT.block_on(async {
             self.core.ensure_sync_service().await;
             if let Err(e) = self.core.sdk.event_cache().subscribe() {
@@ -1183,7 +1199,7 @@ impl Client {
 
     pub fn enter_background(&self) {
         self.app_in_foreground
-            .store(false, std::sync::atomic::Ordering::SeqCst);
+            .store(false, Ordering::Release);
         let _ = RT.block_on(async {
             if let Some(svc) = self.core.sync_service.lock().unwrap().as_ref().cloned() {
                 let _ = svc.stop().await;
@@ -1227,7 +1243,7 @@ impl Client {
                             phase: SyncPhase::Idle,
                             message: Some("Sync stopped".into()),
                         });
-                        if in_foreground.load(std::sync::atomic::Ordering::SeqCst) {
+                        if in_foreground.load(Ordering::Acquire) {
                             sleep(Duration::from_millis(500)).await;
                             svc.start().await;
                         }
@@ -1238,7 +1254,7 @@ impl Client {
                             message: Some(format!("Sync error: {err}")),
                         });
                         sleep(Duration::from_secs(2)).await;
-                        if in_foreground.load(std::sync::atomic::Ordering::SeqCst) {
+                        if in_foreground.load(Ordering::Acquire) {
                             svc.start().await;
                         }
                     }
@@ -1249,7 +1265,7 @@ impl Client {
     }
 
     fn ensure_send_queue_supervision(&self) {
-        if self.send_queue_supervised.swap(true, Ordering::SeqCst) {
+        if self.send_queue_supervised.swap(true, Ordering::AcqRel) {
             return;
         }
         let sdk = self.core.sdk.clone();
@@ -1900,7 +1916,7 @@ impl Client {
             let obs = obs.clone();
             spawn_task!(async move {
                 while let Some(msg) = handle.recv().await {
-                    let _ = catch_unwind(AssertUnwindSafe(|| obs.on_to_widget(msg)));
+                    safe_call(|| obs.on_to_widget(msg));
                 }
             })
         };
@@ -2219,20 +2235,9 @@ impl Client {
         {
             let dir = cache_dir(&self.store_dir);
             platform::ensure_dir(&dir);
-            fn sanitize(name: &str) -> String {
-                let mut s = String::with_capacity(name.len());
-                for ch in name.chars() {
-                    if ch.is_ascii_alphanumeric() || "-_.".contains(ch) {
-                        s.push(ch);
-                    } else {
-                        s.push('_');
-                    }
-                }
-                s.trim_matches('_').to_string()
-            }
             let hint = filename_hint
                 .as_deref()
-                .map(sanitize)
+                .map(sanitize_filename)
                 .filter(|s| !s.is_empty())
                 .unwrap_or_else(|| "sticker.bin".into());
             let out = dir.join(format!("dl_{}_{}", now_ms(), hint));
@@ -2277,20 +2282,9 @@ impl Client {
         {
             let dir = cache_dir(&self.store_dir);
             platform::ensure_dir(&dir);
-            fn sanitize(name: &str) -> String {
-                let mut s = String::with_capacity(name.len());
-                for ch in name.chars() {
-                    if ch.is_ascii_alphanumeric() || "-_.".contains(ch) {
-                        s.push(ch);
-                    } else {
-                        s.push('_');
-                    }
-                }
-                s.trim_matches('_').to_string()
-            }
             let hint = filename_hint
                 .as_deref()
-                .map(sanitize)
+                .map(sanitize_filename)
                 .filter(|s| !s.is_empty())
                 .unwrap_or_else(|| "file.bin".into());
             let out = dir.join(format!("dl_{}_{}", now_ms(), hint));
@@ -2444,17 +2438,6 @@ impl Client {
 
         let dir = cache_dir(&self.store_dir);
         platform::ensure_dir(&dir);
-        fn sanitize(name: &str) -> String {
-            let mut s = String::with_capacity(name.len());
-            for ch in name.chars() {
-                if ch.is_ascii_alphanumeric() || "-_.".contains(ch) {
-                    s.push(ch);
-                } else {
-                    s.push('_');
-                }
-            }
-            s.trim_matches('_').to_string()
-        }
         let key =
             blake3::hash(format!("{}-{}x{}-{}", name_key, width, height, use_crop).as_bytes())
                 .to_hex();
@@ -2471,7 +2454,7 @@ impl Client {
             height,
             if use_crop { "_crop" } else { "_scale" }
         );
-        let out = dir.join(sanitize(&fname));
+        let out = dir.join(sanitize_filename(&fname));
 
         #[cfg(not(target_family = "wasm"))]
         {
@@ -4317,9 +4300,9 @@ pub(crate) async fn emit_timeline_reset_filled(
 
     let mapped = map_room_view_all(tl, rid, me).await;
 
-    let _ = catch_unwind(AssertUnwindSafe(|| {
+    safe_call(|| {
         obs.on_diff(TimelineDiffKind::Reset { values: mapped })
-    }));
+    });
 }
 
 async fn paginate_backwards_visible(

@@ -1,8 +1,5 @@
-#![allow(dead_code)]
-
 use std::{
     collections::{HashMap, HashSet},
-    panic::{AssertUnwindSafe, catch_unwind},
     sync::{Arc, Mutex},
     time::Duration,
 };
@@ -80,6 +77,7 @@ const REACTION_NOTIFY_RULE_ID: &str = "org.mlm.mages.reaction.notify";
 use crate::{
     RoomProfile,
     errors::{IntoFfi, OptionFfi},
+    safe_call,
 };
 
 #[cfg(not(target_family = "wasm"))]
@@ -3153,7 +3151,7 @@ impl CoreClient {
                         let flow_id = ev.content.transaction_id.to_string();
                         let from_user = ev.sender.to_string();
                         let from_device = ev.content.from_device.to_string();
-                        let _ = catch_unwind(AssertUnwindSafe(|| observer.on_request(flow_id, from_user, from_device)));
+                        safe_call(|| observer.on_request(flow_id, from_user, from_device));
                     } else { break; }
                 }
                 maybe = ir_sub.next() => {
@@ -3162,7 +3160,7 @@ impl CoreClient {
                             if let MessageType::VerificationRequest(_) = &o.content.msgtype {
                                 let flow_id = o.event_id.to_string();
                                 let from_user = o.sender.to_string();
-                                let _ = catch_unwind(AssertUnwindSafe(|| observer.on_request(flow_id, from_user, String::new())));
+                                safe_call(|| observer.on_request(flow_id, from_user, String::new()));
                             }
                         }
                     } else { break; }
