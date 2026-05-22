@@ -566,11 +566,11 @@ class RoomViewModel(
     fun retry(event: MessageEvent) {
         if (event.body.isBlank()) return
         launch {
-            val triedPrecise = event.txnId?.let { txn ->
+            val retryResult = event.txnId?.let { txn ->
                 service.retryByTxn(currentState.roomId, txn)
-            } ?: false
+            }
 
-            val result = if (triedPrecise) Result.success(Unit) else service.sendMessage(currentState.roomId, event.body.trim())
+            val result = if (retryResult?.isSuccess == true) Result.success(Unit) else service.sendMessage(currentState.roomId, event.body.trim())
             if (result?.isSuccess != true) {
                 _events.send(Event.ShowError(result.toUserMessage("Retry failed")))
             }
@@ -875,7 +875,7 @@ class RoomViewModel(
             updateState { copy(isPaginatingBack = true) }
 
             try {
-                val hitStart = service.paginateBack(s.roomId, 50)
+                val hitStart = service.paginateBack(s.roomId, 50).getOrDefault(false)
                 updateState { copy(hitStart = hitStart || this.hitStart) }
 
                 scheduleThreadCountRecompute()
@@ -950,7 +950,7 @@ class RoomViewModel(
                     )
                 }
 
-                val ok = when (data.mode) {
+                val result = when (data.mode) {
                     OutgoingMediaMode.Attachment -> {
                         service.sendAttachmentFromPath(
                             roomId = currentState.roomId,
@@ -1002,7 +1002,7 @@ class RoomViewModel(
                     }
                 }
 
-                if (!ok) {
+                if (result.isFailure) {
                     val remaining = items.drop(i + 1)
                     updateState {
                         copy(
@@ -1013,7 +1013,7 @@ class RoomViewModel(
                             attachments = remaining
                         )
                     }
-                    _events.send(Event.ShowError("Upload failed: ${data.fileName}"))
+                    _events.send(Event.ShowError(result.toUserMessage("Upload failed: ${data.fileName}")))
                     return@launch
                 }
             }
@@ -1199,15 +1199,15 @@ class RoomViewModel(
 
         launch {
             val mime = voiceMessageMimeType
-            val ok = service.sendAttachmentFromPath(
+            val result = service.sendAttachmentFromPath(
                 roomId = currentState.roomId,
                 path = path,
                 mime = mime,
                 filename = "voice_message.${voiceMessageExtension}"
             ) { _, _ -> }
 
-            if (!ok) {
-                _events.send(Event.ShowError("Voice message upload failed"))
+            if (result.isFailure) {
+                _events.send(Event.ShowError(result.toUserMessage("Voice message upload failed")))
             }
         }
     }

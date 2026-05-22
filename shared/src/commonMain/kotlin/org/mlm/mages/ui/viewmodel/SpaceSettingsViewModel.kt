@@ -115,7 +115,7 @@ class SpaceSettingsViewModel(
                 childRoomId = roomId,
                 order = null,
                 suggested = suggested
-            )
+            ).isSuccess
         }
     }
 
@@ -127,7 +127,7 @@ class SpaceSettingsViewModel(
                 loadChildren()
                 loadAvailableRooms()
             }
-        ) { service.spaceRemoveChild(currentState.spaceId, childRoomId) }
+        ) { service.spaceRemoveChild(currentState.spaceId, childRoomId).isSuccess }
     }
 
     // Invite user dialog
@@ -156,7 +156,7 @@ class SpaceSettingsViewModel(
             onSuccess = {
                 updateState { copy(showInviteUser = false, inviteUserId = "") }
             }
-        ) { service.spaceInviteUser(currentState.spaceId, userId) }
+        ) { service.spaceInviteUser(currentState.spaceId, userId).isSuccess }
     }
 
     fun clearError() {
@@ -200,7 +200,7 @@ class SpaceSettingsViewModel(
         ) {
             updateState { copy(isLoading = true, error = null) }
 
-            val page = service.spaceHierarchy(
+            val result = service.spaceHierarchy(
                 spaceId = currentState.spaceId,
                 from = null,
                 limit = 100,
@@ -208,7 +208,8 @@ class SpaceSettingsViewModel(
                 suggestedOnly = false
             )
 
-            if (page != null) {
+            if (result.isSuccess) {
+                val page = result.getOrThrow()
                 val children = page.children.withoutSpace(currentState.spaceId)
 
                 hydrateMissingSpaceChildNames(service, children) { roomId, name ->
@@ -228,7 +229,7 @@ class SpaceSettingsViewModel(
 
                 updateState { copy(children = children, isLoading = false) }
             } else {
-                updateState { copy(isLoading = false, error = "Failed to load children") }
+                updateState { copy(isLoading = false, error = result.toUserMessage("Failed to load children")) }
             }
         }
     }

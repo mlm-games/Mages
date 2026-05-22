@@ -126,21 +126,22 @@ class SpacesViewModel(
         ) {
              updateState { copy(isCreating = true) }
 
-            val spaceId = service.createSpace(
+            val result = service.createSpace(
                 name = s.createName.trim(),
                 topic = s.createTopic.ifBlank { null },
                 isPublic = s.createIsPublic,
                 invitees = s.createInvitees
             )
 
-            if (spaceId != null) {
+            if (result.isSuccess) {
+                val spaceId = result.getOrThrow()
                 updateState { copy(isCreating = false, showCreateSpace = false) }
                 loadSpaces()
                 _events.send(Event.ShowSuccess("Space created"))
                 _events.send(Event.OpenSpace(spaceId, s.createName.trim()))
             } else {
                 updateState { copy(isCreating = false) }
-                _events.send(Event.ShowError("Failed to create space"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to create space")))
             }
         }
     }

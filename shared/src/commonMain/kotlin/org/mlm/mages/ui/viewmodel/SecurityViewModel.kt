@@ -285,7 +285,7 @@ class SecurityViewModel(
             }
         }) {
             updateStateIfCurrent(version) { copy(isLoadingDevices = true, error = null) }
-            val devices = service.listMyDevices()
+            val devices = service.listMyDevices().getOrThrow()
             updateStateIfCurrent(version) {
                 copy(devices = devices, isLoadingDevices = false)
             }
@@ -409,9 +409,9 @@ class SecurityViewModel(
 
     fun logout() {
         launch {
-            val ok = service.logout()
-            if (ok) _events.send(Event.LogoutSuccess)
-            else _events.send(Event.ShowError("Logout failed"))
+            val result = service.logout()
+            if (result.isSuccess) _events.send(Event.LogoutSuccess)
+            else _events.send(Event.ShowError(result.toUserMessage("Logout failed")))
         }
     }
 }

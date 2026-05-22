@@ -214,7 +214,7 @@ class MediaGalleryViewModel(
 
         backPaginationSession.startSession(
             paginateOnce = {
-                runSafe { service.paginateBack(roomId, PAGE_SIZE) } ?: false
+                runSafe { service.paginateBack(roomId, PAGE_SIZE).getOrDefault(false) } ?: false
             },
             shouldStop = {
                 currentState.allEvents.size > countBefore

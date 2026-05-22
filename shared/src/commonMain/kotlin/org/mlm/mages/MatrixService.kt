@@ -92,14 +92,16 @@ class MatrixService(
         _syncStatus.value = null
     }
 
-    suspend fun switchAccount(account: MatrixAccount): Boolean {
+    suspend fun switchAccount(account: MatrixAccount): Result<Unit> {
         resetSyncState()
         _avatars = null
-        val result = clients.switchTo(account)
-        if (result) {
+        val ok = clients.switchTo(account)
+        return if (ok) {
             _avatars = AvatarLoader(port)
+            Result.success(Unit)
+        } else {
+            Result.failure(Exception("Failed to switch account"))
         }
-        return result
     }
 
     suspend fun removeAccount(accountId: String) {
@@ -118,23 +120,23 @@ class MatrixService(
     suspend fun sendMessage(roomId: String, body: String, formattedBody: String? = null): Result<Unit> =
         port.send(roomId, body, formattedBody)
 
-    suspend fun paginateBack(roomId: String, count: Int): Boolean =
-        port.paginateBack(roomId, count).getOrElse { false }
+    suspend fun paginateBack(roomId: String, count: Int): Result<Boolean> =
+        port.paginateBack(roomId, count)
 
-    suspend fun markRead(roomId: String) =
-        port.markRead(roomId).isSuccess
+    suspend fun markRead(roomId: String): Result<Unit> =
+        port.markRead(roomId)
 
-    suspend fun markReadAt(roomId: String, eventId: String) =
-        port.markReadAt(roomId, eventId).isSuccess
+    suspend fun markReadAt(roomId: String, eventId: String): Result<Unit> =
+        port.markReadAt(roomId, eventId)
 
-    suspend fun markFullyReadAt(roomId: String, eventId: String) =
-        port.markFullyReadAt(roomId, eventId).isSuccess
+    suspend fun markFullyReadAt(roomId: String, eventId: String): Result<Unit> =
+        port.markFullyReadAt(roomId, eventId)
 
-    suspend fun markRoomSeenLatest(roomId: String, sendPublicReceipt: Boolean) =
-        port.markRoomSeenLatest(roomId, sendPublicReceipt).isSuccess
+    suspend fun markRoomSeenLatest(roomId: String, sendPublicReceipt: Boolean): Result<Boolean> =
+        port.markRoomSeenLatest(roomId, sendPublicReceipt)
 
-    suspend fun react(roomId: String, eventId: String, emoji: String) =
-        port.react(roomId, eventId, emoji).isSuccess
+    suspend fun react(roomId: String, eventId: String, emoji: String): Result<Unit> =
+        port.react(roomId, eventId, emoji)
 
     suspend fun reply(roomId: String, inReplyToEventId: String, body: String, formattedBody: String? = null): Result<Unit> =
         port.reply(roomId, inReplyToEventId, body, formattedBody)
@@ -150,12 +152,13 @@ class MatrixService(
 
     fun stopTypingObserver(token: ULong) = port.stopTypingObserver(token)
 
-    suspend fun listMyDevices(): List<DeviceSummary> =
-        runCatching { port.listMyDevices() }.getOrElse { emptyList() }
+    suspend fun listMyDevices(): Result<List<DeviceSummary>> =
+        runCatching { port.listMyDevices() }
 
-    suspend fun logout(): Boolean {
+    suspend fun logout(): Result<Unit> = runCatching {
         supervisedSyncStarted = false
-        return port.logout()
+        val ok = port.logout()
+        check(ok) { "Logout failed" }
     }
 
     suspend fun sendAttachmentFromPath(
@@ -167,7 +170,10 @@ class MatrixService(
         formattedCaption: String? = null,
         replyToEventId: String? = null,
         onProgress: ((sent: Long, total: Long?) -> Unit)? = null,
-    ): Boolean = port.sendAttachmentFromPath(roomId, path, mime, filename, caption, formattedCaption, replyToEventId, onProgress)
+    ): Result<Unit> = runCatching {
+        val ok = port.sendAttachmentFromPath(roomId, path, mime, filename, caption, formattedCaption, replyToEventId, onProgress)
+        check(ok) { "Failed to send attachment" }
+    }
 
     suspend fun sendStickerFromPath(
         roomId: String,
@@ -176,41 +182,49 @@ class MatrixService(
         body: String,
         filename: String? = null,
         onProgress: ((Long, Long?) -> Unit)? = null,
-    ): Boolean = port.sendStickerFromPath(roomId, path, mime, body, filename, onProgress)
+    ): Result<Unit> = runCatching {
+        val ok = port.sendStickerFromPath(roomId, path, mime, body, filename, onProgress)
+        check(ok) { "Failed to send sticker" }
+    }
 
     suspend fun downloadStickerToCache(
         info: org.mlm.mages.StickerInfo,
         filenameHint: String? = null,
     ): Result<String> = port.downloadStickerToCache(info, filenameHint)
 
-    suspend fun recoverWithKey(recoveryKey: String) =
-        runCatching { port.recoverWithKey(recoveryKey) }.getOrElse { false }
+    suspend fun recoverWithKey(recoveryKey: String): Result<Unit> =
+        port.recoverWithKey(recoveryKey)
 
-    suspend fun retryByTxn(roomId: String, txnId: String) =
-        runCatching { port.retryByTxn(roomId, txnId) }.getOrElse { false }
+    suspend fun retryByTxn(roomId: String, txnId: String): Result<Unit> = runCatching {
+        val ok = port.retryByTxn(roomId, txnId)
+        check(ok) { "Retry failed" }
+    }
 
     suspend fun isSpace(roomId: String): Boolean =
-        runCatching { port.isSpace(roomId) }.getOrDefault(false)
+        port.isSpace(roomId)
 
     suspend fun mySpaces(): List<SpaceInfo> =
-        runCatching { port.mySpaces() }.getOrDefault(emptyList())
+        port.mySpaces()
 
     suspend fun createSpace(
         name: String,
         topic: String?,
         isPublic: Boolean,
         invitees: List<String>
-    ): String? = runCatching { port.createSpace(name, topic, isPublic, invitees) }.getOrNull()
+    ): Result<String> {
+        val result = port.createSpace(name, topic, isPublic, invitees)
+        return if (result != null) Result.success(result) else Result.failure(Exception("Failed to create space"))
+    }
 
     suspend fun spaceAddChild(
         spaceId: String,
         childRoomId: String,
         order: String? = null,
         suggested: Boolean? = null
-    ): Boolean = port.spaceAddChild(spaceId, childRoomId, order, suggested).isSuccess
+    ): Result<Unit> = port.spaceAddChild(spaceId, childRoomId, order, suggested)
 
-    suspend fun spaceRemoveChild(spaceId: String, childRoomId: String): Boolean =
-        port.spaceRemoveChild(spaceId, childRoomId).isSuccess
+    suspend fun spaceRemoveChild(spaceId: String, childRoomId: String): Result<Unit> =
+        port.spaceRemoveChild(spaceId, childRoomId)
 
     suspend fun spaceHierarchy(
         spaceId: String,
@@ -218,11 +232,12 @@ class MatrixService(
         limit: Int = 50,
         maxDepth: Int? = null,
         suggestedOnly: Boolean = false
-    ): SpaceHierarchyPage? = runCatching {
-        port.spaceHierarchy(spaceId, from, limit, maxDepth, suggestedOnly)
-    }.getOrNull()
+    ): Result<SpaceHierarchyPage> {
+        val result = port.spaceHierarchy(spaceId, from, limit, maxDepth, suggestedOnly)
+        return if (result != null) Result.success(result) else Result.failure(Exception("Failed to load space contents"))
+    }
 
-    suspend fun spaceInviteUser(spaceId: String, userId: String): Boolean =
-        port.spaceInviteUser(spaceId, userId).isSuccess
+    suspend fun spaceInviteUser(spaceId: String, userId: String): Result<Unit> =
+        port.spaceInviteUser(spaceId, userId)
 
 }

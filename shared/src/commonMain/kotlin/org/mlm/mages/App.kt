@@ -429,12 +429,12 @@ private fun AppContent(
                                     activeAccountId = activeAccountId,
                                     onSelectAccount = { account ->
                                         scope.launch {
-                                            val success = service.switchAccount(account)
-                                            if (success) {
+                                            val result = service.switchAccount(account)
+                                            if (result.isSuccess) {
                                                 sessionEpoch++
                                                 snackbarManager.show("Switched to ${account.userId}")
                                             } else {
-                                                snackbarManager.showError("Failed to switch account")
+                                                snackbarManager.showError(result.exceptionOrNull()?.message ?: "Failed to switch account")
                                             }
                                         }
                                     },

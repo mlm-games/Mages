@@ -110,7 +110,7 @@ class SpaceDetailViewModel(
                 updateState { copy(isLoadingMore = true) }
             }
 
-            val page = service.spaceHierarchy(
+            val result = service.spaceHierarchy(
                 spaceId = currentState.spaceId,
                 from = from,
                 limit = 50,
@@ -118,7 +118,8 @@ class SpaceDetailViewModel(
                 suggestedOnly = false
             )
 
-            if (page != null) {
+            if (result.isSuccess) {
+                val page = result.getOrThrow()
                 val children = page.children.withoutSpace(currentState.spaceId)
                 val newHierarchy = mergeSpaceChildren(currentState.hierarchy, children, append = from != null)
 
@@ -159,7 +160,7 @@ class SpaceDetailViewModel(
                     copy(
                         isLoading = false,
                         isLoadingMore = false,
-                        error = "Failed to load space contents"
+                        error = result.toUserMessage("Failed to load space contents")
                     ) 
                 }
             }

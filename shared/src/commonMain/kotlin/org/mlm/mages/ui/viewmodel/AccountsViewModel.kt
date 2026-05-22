@@ -51,14 +51,14 @@ class AccountsViewModel(
         }) {
             updateState { copy(isSwitching = true, error = null) }
 
-            val success = service.switchAccount(account)
+            val result = service.switchAccount(account)
 
             updateState { copy(isSwitching = false) }
 
-            if (success) {
+            if (result.isSuccess) {
                 _events.send(Event.AccountSwitched)
             } else {
-                _events.send(Event.ShowError("Failed to switch to ${account.userId}"))
+                _events.send(Event.ShowError(result.toUserMessage("Failed to switch to ${account.userId}")))
             }
         }
     }
