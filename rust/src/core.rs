@@ -60,17 +60,18 @@ use serde_json;
 use tracing::warn;
 
 use crate::{
-    ActionAvailability, ActionPresentation, AttachmentInfo, AttachmentKind, DirectoryUser, FfiError,
-    FfiPushRuleKind, FfiRoomNotificationMode, INITIAL_BACK_PAGINATION, KnockRequestSummary,
-    LiveLocationBeaconState, MemberActionState, MemberSummary, MessageActionState, MessageEvent,
-    OwnReceipt, PasswordLoginKind, PollDefinition, PredecessorRoomInfo, Presence, PresenceInfo,
-    PublicRoom, PublicRoomsPage, ReactionSummary, RoomActionState, RoomDirectoryVisibility,
-    RoomHistoryVisibility, RoomJoinRule, RoomListMembership, RoomPowerLevelChanges, RoomPowerLevels,
-    RoomPreview, RoomPreviewMembership, RoomSummary, RoomTags, RoomUpgradeLinks, SearchHit,
-    SearchPage, SeenByEntry, SendState, SendUpdate, SpaceChildInfo, SpaceHierarchyPage, SpaceInfo,
-    RoomListEntry, VerificationInboxObserver, SuccessorRoomInfo, ThreadPage, ThreadSummary,
-    UnreadStats, build_unstable_poll_content, latest_room_event_for, map_event_id_via_timeline,
-    map_timeline_event, paginate_backwards_visible, timeline_event_filter,
+    ActionAvailability, ActionPresentation, AttachmentInfo, AttachmentKind, DirectoryUser,
+    FfiError, FfiPushRuleKind, FfiRoomNotificationMode, INITIAL_BACK_PAGINATION,
+    KnockRequestSummary, LiveLocationBeaconState, MemberActionState, MemberSummary,
+    MessageActionState, MessageEvent, OwnReceipt, PasswordLoginKind, PollDefinition,
+    PredecessorRoomInfo, Presence, PresenceInfo, PublicRoom, PublicRoomsPage, ReactionSummary,
+    RoomActionState, RoomDirectoryVisibility, RoomHistoryVisibility, RoomJoinRule, RoomListEntry,
+    RoomListMembership, RoomPowerLevelChanges, RoomPowerLevels, RoomPreview, RoomPreviewMembership,
+    RoomSummary, RoomTags, RoomUpgradeLinks, SearchHit, SearchPage, SeenByEntry, SendState,
+    SendUpdate, SpaceChildInfo, SpaceHierarchyPage, SpaceInfo, SuccessorRoomInfo, ThreadPage,
+    ThreadSummary, UnreadStats, VerificationInboxObserver, build_unstable_poll_content,
+    latest_room_event_for, map_event_id_via_timeline, map_timeline_event,
+    paginate_backwards_visible, timeline_event_filter,
 };
 
 const REACTION_NOTIFY_RULE_ID: &str = "org.mlm.mages.reaction.notify";
@@ -1961,7 +1962,8 @@ impl CoreClient {
             for (key, by_sender) in reactions.iter() {
                 let count = by_sender.len() as u32;
                 let mine = me.map(|u| by_sender.contains_key(u)).unwrap_or(false);
-                let user_ids: Vec<String> = by_sender.keys().take(3).map(|u| u.to_string()).collect();
+                let user_ids: Vec<String> =
+                    by_sender.keys().take(3).map(|u| u.to_string()).collect();
                 out.push(ReactionSummary {
                     key: key.to_string(),
                     count,
@@ -1999,7 +2001,8 @@ impl CoreClient {
                 for (key, senders) in reactions.iter() {
                     let count = senders.len() as u32;
                     let mine = me.map(|u| senders.keys().any(|s| s == u)).unwrap_or(false);
-                    let user_ids: Vec<String> = senders.keys().take(3).map(|u| u.to_string()).collect();
+                    let user_ids: Vec<String> =
+                        senders.keys().take(3).map(|u| u.to_string()).collect();
                     summaries.push(ReactionSummary {
                         key: key.clone(),
                         count,
@@ -3136,11 +3139,16 @@ impl CoreClient {
     }
 
     pub async fn start_verification_inbox(&self, observer: &dyn VerificationInboxObserver) {
-        self.sdk.encryption().wait_for_e2ee_initialization_tasks().await;
+        self.sdk
+            .encryption()
+            .wait_for_e2ee_initialization_tasks()
+            .await;
         if let Err(e) = self.sdk.event_cache().subscribe() {
             warn!("verification_inbox: event_cache.subscribe() failed: {e:?}");
         }
-        let td_handler = self.sdk.observe_events::<ToDeviceKeyVerificationRequestEvent, ()>();
+        let td_handler = self
+            .sdk
+            .observe_events::<ToDeviceKeyVerificationRequestEvent, ()>();
         let mut td_sub = td_handler.subscribe();
         let ir_handler = self.sdk.observe_events::<SyncRoomMessageEvent, Room>();
         let mut ir_sub = ir_handler.subscribe();
@@ -3173,17 +3181,58 @@ impl CoreClient {
         let mut changed = false;
         for diff in diffs {
             match diff {
-                VectorDiff::Reset { values } => { *items = values; changed = true; }
-                VectorDiff::Clear => { items.clear(); changed = true; }
-                VectorDiff::PushFront { value } => { items.insert(0, value); changed = true; }
-                VectorDiff::PushBack { value } => { items.push_back(value); changed = true; }
-                VectorDiff::PopFront => { if !items.is_empty() { items.remove(0); changed = true; } }
-                VectorDiff::PopBack => { items.pop_back(); changed = true; }
-                VectorDiff::Insert { index, value } => { if index <= items.len() { items.insert(index, value); changed = true; } }
-                VectorDiff::Set { index, value } => { if index < items.len() { items[index] = value; changed = true; } }
-                VectorDiff::Remove { index } => { if index < items.len() { items.remove(index); changed = true; } }
-                VectorDiff::Truncate { length } => { items.truncate(length); changed = true; }
-                VectorDiff::Append { values } => { items.append(values); changed = true; }
+                VectorDiff::Reset { values } => {
+                    *items = values;
+                    changed = true;
+                }
+                VectorDiff::Clear => {
+                    items.clear();
+                    changed = true;
+                }
+                VectorDiff::PushFront { value } => {
+                    items.insert(0, value);
+                    changed = true;
+                }
+                VectorDiff::PushBack { value } => {
+                    items.push_back(value);
+                    changed = true;
+                }
+                VectorDiff::PopFront => {
+                    if !items.is_empty() {
+                        items.remove(0);
+                        changed = true;
+                    }
+                }
+                VectorDiff::PopBack => {
+                    items.pop_back();
+                    changed = true;
+                }
+                VectorDiff::Insert { index, value } => {
+                    if index <= items.len() {
+                        items.insert(index, value);
+                        changed = true;
+                    }
+                }
+                VectorDiff::Set { index, value } => {
+                    if index < items.len() {
+                        items[index] = value;
+                        changed = true;
+                    }
+                }
+                VectorDiff::Remove { index } => {
+                    if index < items.len() {
+                        items.remove(index);
+                        changed = true;
+                    }
+                }
+                VectorDiff::Truncate { length } => {
+                    items.truncate(length);
+                    changed = true;
+                }
+                VectorDiff::Append { values } => {
+                    items.append(values);
+                    changed = true;
+                }
             }
         }
         changed
@@ -3206,7 +3255,11 @@ impl CoreClient {
             let membership = room_list_membership(room);
             snapshot.push(RoomListEntry {
                 room_id: room.room_id().to_string(),
-                name: item.cached_display_name().clone().unwrap_or(RoomDisplayName::Named(room.room_id().to_string())).to_string(),
+                name: item
+                    .cached_display_name()
+                    .clone()
+                    .unwrap_or(RoomDisplayName::Named(room.room_id().to_string()))
+                    .to_string(),
                 last_ts,
                 notifications: room.num_unread_notifications(),
                 messages: room.num_unread_messages(),
@@ -3218,7 +3271,10 @@ impl CoreClient {
                 membership,
                 avatar_url,
                 is_dm,
-                is_encrypted: matches!(room.encryption_state(), matrix_sdk::EncryptionState::Encrypted),
+                is_encrypted: matches!(
+                    room.encryption_state(),
+                    matrix_sdk::EncryptionState::Encrypted
+                ),
                 member_count: room.joined_members_count().min(u32::MAX as u64) as u32,
                 topic: room.topic(),
                 latest_event,
@@ -3226,7 +3282,6 @@ impl CoreClient {
         }
         snapshot
     }
-
 }
 
 pub(crate) fn map_send_queue_update(

@@ -22,9 +22,7 @@ use matrix_sdk::sleep::sleep;
 use matrix_sdk::utils::local_server::LocalServerBuilder;
 #[cfg(not(target_family = "wasm"))]
 use matrix_sdk::utils::local_server::LocalServerIpAddress;
-use matrix_sdk::{
-    widget::{VirtualElementCallWidgetConfig, VirtualElementCallWidgetProperties},
-};
+use matrix_sdk::widget::{VirtualElementCallWidgetConfig, VirtualElementCallWidgetProperties};
 use matrix_sdk_ui::notification_client::NotificationItem;
 use matrix_sdk_ui::timeline::default_event_filter;
 use matrix_sdk_ui::{
@@ -82,7 +80,7 @@ use matrix_sdk::{
 };
 use matrix_sdk::{
     encryption::{EncryptionSettings, verification::Verification},
-    ruma::self,
+    ruma,
 };
 use matrix_sdk_ui::{
     eyeball_im::VectorDiff,
@@ -1184,8 +1182,7 @@ impl Client {
     }
 
     pub fn enter_foreground(&self) {
-        self.app_in_foreground
-            .store(true, Ordering::Release);
+        self.app_in_foreground.store(true, Ordering::Release);
         let _ = RT.block_on(async {
             self.core.ensure_sync_service().await;
             if let Err(e) = self.core.sdk.event_cache().subscribe() {
@@ -1198,8 +1195,7 @@ impl Client {
     }
 
     pub fn enter_background(&self) {
-        self.app_in_foreground
-            .store(false, Ordering::Release);
+        self.app_in_foreground.store(false, Ordering::Release);
         let _ = RT.block_on(async {
             if let Some(svc) = self.core.sync_service.lock().unwrap().as_ref().cloned() {
                 let _ = svc.stop().await;
@@ -4223,30 +4219,6 @@ async fn count_visible_room_view(tl: &Arc<Timeline>, rid: &OwnedRoomId, me: &str
         .count()
 }
 
-async fn is_at_timeline_start(tl: &Arc<Timeline>) -> bool {
-    let items = tl.items().await;
-    items.iter().any(|it| it.is_timeline_start())
-}
-
-async fn map_visible_room_view(
-    tl: &Arc<Timeline>,
-    rid: &OwnedRoomId,
-    me: &str,
-) -> Vec<MessageEvent> {
-    let items = tl.items().await;
-    items
-        .iter()
-        .filter_map(|it| {
-            it.as_event().and_then(|ei| {
-                fetch_reply_if_needed(ei, tl);
-                map_timeline_event(ei, rid.as_str(), Some(&it.unique_id().0.to_string()), me)
-            })
-        })
-        // room view hides thread replies
-        .filter(|ev| ev.thread_root_event_id.is_none())
-        .collect()
-}
-
 async fn map_room_view_all(tl: &Arc<Timeline>, rid: &OwnedRoomId, me: &str) -> Vec<MessageEvent> {
     let items = tl.items().await;
     items
@@ -4260,49 +4232,15 @@ async fn map_room_view_all(tl: &Arc<Timeline>, rid: &OwnedRoomId, me: &str) -> V
         .collect()
 }
 
-async fn backfill_until_min_visible(
-    tl: &Arc<Timeline>,
-    rid: &OwnedRoomId,
-    me: &str,
-    min_visible: usize,
-) {
-    for _ in 0..MAX_BACKFILL_ROUNDS {
-        if is_at_timeline_start(tl).await {
-            break;
-        }
-
-        let visible_now = map_visible_room_view(tl, rid, me).await.len();
-        if visible_now >= min_visible {
-            break;
-        }
-
-        // adds more events to the start of the timeline
-        let hit_start = tl.paginate_backwards(BACKFILL_CHUNK).await.unwrap_or(false);
-        if hit_start {
-            break;
-        }
-    }
-}
-
 pub(crate) async fn emit_timeline_reset_filled(
     obs: &Arc<dyn TimelineObserver>,
     tl: &Arc<Timeline>,
     rid: &OwnedRoomId,
     me: &str,
 ) {
-    let mut visible = map_visible_room_view(tl, rid, me).await;
-
-    // If empty/small and not at timeline start, backfill
-    if visible.len() < MIN_VISIBLE_AFTER_RESET && !is_at_timeline_start(tl).await {
-        backfill_until_min_visible(tl, rid, me, MIN_VISIBLE_AFTER_RESET).await;
-        visible = map_visible_room_view(tl, rid, me).await;
-    }
-
     let mapped = map_room_view_all(tl, rid, me).await;
 
-    safe_call(|| {
-        obs.on_diff(TimelineDiffKind::Reset { values: mapped })
-    });
+    safe_call(|| obs.on_diff(TimelineDiffKind::Reset { values: mapped }));
 }
 
 async fn paginate_backwards_visible(

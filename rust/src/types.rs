@@ -6,9 +6,6 @@ use uniffi::{Enum, Record, export};
 
 use crate::RT;
 
-pub(crate) const MIN_VISIBLE_AFTER_RESET: usize = 20;
-pub(crate) const BACKFILL_CHUNK: u16 = 20;
-pub(crate) const MAX_BACKFILL_ROUNDS: u8 = 8;
 pub(crate) const INITIAL_BACK_PAGINATION: u16 = 20;
 
 #[derive(Debug, thiserror::Error, Serialize, uniffi::Error)]
