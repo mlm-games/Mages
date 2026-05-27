@@ -450,7 +450,8 @@ abstract class GenerateWasmExternsTask : DefaultTask() {
                     sb.appendLine("        fun createAsync(")
                     sb.appendLine("            homeserverUrl: String,")
                     sb.appendLine("            baseStoreDir: String,")
-                    sb.appendLine("            accountId: String? = definedExternally")
+                    sb.appendLine("            accountId: String? = definedExternally,")
+                    sb.appendLine("            proxyUrl: String? = definedExternally")
                     sb.appendLine("        ): Promise<JsAny?>")
                 } else {
                     val ktParams = convertParams(m.params)
