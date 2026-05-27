@@ -1070,16 +1070,70 @@ impl WasmClient {
             let Some(tl) = mgr.timeline_for(&rid).await else {
                 return;
             };
-            let (_items, mut stream) = tl.subscribe().await;
+            let (items, mut stream) = tl.subscribe().await;
             emit_timeline_reset_filled(&obs, &tl, &rid, &me).await;
+            let mut item_ids: Vec<String> = items
+                .iter()
+                .map(|item| item.unique_id().0.to_string())
+                .collect();
             while let Some(diffs) = stream.next().await {
                 for diff in diffs {
+                    match &diff {
+                        VectorDiff::Append { values } => {
+                            item_ids
+                                .extend(values.iter().map(|v| v.unique_id().0.to_string()));
+                        }
+                        VectorDiff::PushBack { value } => {
+                            item_ids.push(value.unique_id().0.to_string());
+                        }
+                        VectorDiff::PushFront { value } => {
+                            item_ids.insert(0, value.unique_id().0.to_string());
+                        }
+                        VectorDiff::Insert { index, value } => {
+                            let idx = (*index).min(item_ids.len());
+                            item_ids.insert(idx, value.unique_id().0.to_string());
+                        }
+                        VectorDiff::Set { index, value } => {
+                            if let Some(id) = item_ids.get_mut(*index) {
+                                *id = value.unique_id().0.to_string();
+                            }
+                        }
+                        VectorDiff::Remove { index } => {
+                            if *index < item_ids.len() {
+                                let removed = item_ids.remove(*index);
+                                let o = obs.clone();
+                                safe_call(move || {
+                                    o.on_diff(TimelineDiffKind::RemoveByItemId {
+                                        item_id: removed,
+                                    })
+                                });
+                            }
+                        }
+                        VectorDiff::Clear => {
+                            item_ids.clear();
+                        }
+                        VectorDiff::Reset { values } => {
+                            item_ids = values
+                                .iter()
+                                .map(|v| v.unique_id().0.to_string())
+                                .collect();
+                        }
+                        VectorDiff::PopBack => {
+                            item_ids.pop();
+                        }
+                        VectorDiff::PopFront => {
+                            if !item_ids.is_empty() {
+                                item_ids.remove(0);
+                            }
+                        }
+                        VectorDiff::Truncate { length } => {
+                            item_ids.truncate(*length as usize);
+                        }
+                    }
+
                     match diff {
-                        VectorDiff::Remove { .. }
-                        | VectorDiff::PopBack
-                        | VectorDiff::PopFront
-                        | VectorDiff::Truncate { .. }
-                        | VectorDiff::Clear => {
+                        VectorDiff::Remove { .. } => {}
+                        VectorDiff::Clear => {
                             emit_timeline_reset_filled(&obs, &tl, &rid, &me).await;
                         }
                         other => {
