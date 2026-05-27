@@ -211,6 +211,10 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     private var currentHs: String? = null
     private var currentAccountId: String? = null
     private var currentProxyUrl: String? = null
+    private var isInForeground: Boolean = true
+
+    private var nextConnectionObserverToken: ULong = 1uL
+    private val connectionObserverStops = mutableMapOf<ULong, () -> Unit>()
 
     override suspend fun init(hs: String, accountId: String?, proxyUrl: String?) {
         if (currentHs == hs && currentAccountId == accountId && currentProxyUrl == proxyUrl && client != null) return
@@ -226,6 +230,10 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         currentHs = hs
         currentAccountId = accountId
         currentProxyUrl = proxyUrl
+    }
+
+    private fun requireClient(): WasmClient {
+        return client ?: throw IllegalStateException("Matrix client not initialized. Wait for init call.")
     }
 
     private fun requireClientOrNull(): WasmClient? = client
@@ -316,21 +324,6 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         val fromUser = (obj["fromUser"] as? JsonPrimitive)?.content ?: return null
         val fromDevice = (obj["fromDevice"] as? JsonPrimitive)?.content ?: ""
         return Triple(flowId, fromUser, fromDevice)
-    }
-
-    override suspend fun init(hs: String, accountId: String?, proxyUrl: String?) {
-        if (currentHs == hs && currentAccountId == accountId && client != null) return
-
-        ensureWasmBridgeReady()
-        client?.free()
-        client = createWasmClient(
-            hs,
-            org.mlm.mages.platform.MagesPaths.storeDir(),
-            accountId,
-            proxyUrl,
-        )
-        currentHs = hs
-        currentAccountId = accountId
     }
 
     override suspend fun login(user: String, password: String, deviceDisplayName: String?) {
