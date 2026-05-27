@@ -44,20 +44,22 @@ class RustMatrixPort : MatrixPort, VerificationService {
     private val clientLock = Any()
     private var currentHs: String? = null
     private var currentAccountId: String? = null
+    private var currentProxyUrl: String? = null
 
-    override suspend fun init(hs: String, accountId: String?) =
+    override suspend fun init(hs: String, accountId: String?, proxyUrl: String?) =
         withContext(matrixDispatcher) {
             synchronized(clientLock) {
-                if (currentHs == hs && currentAccountId == accountId && client != null) return@synchronized
+                if (currentHs == hs && currentAccountId == accountId && currentProxyUrl == proxyUrl && client != null) return@synchronized
 
                 client?.let { c ->
                     runCatching { c.shutdown() }
                     runCatching { c.close() }
                 }
 
-                client = FfiClient(hs, MagesPaths.storeDir(), accountId)
+                client = FfiClient(hs, MagesPaths.storeDir(), accountId, proxyUrl)
                 currentHs = hs
                 currentAccountId = accountId
+                currentProxyUrl = proxyUrl
             }
         }
 

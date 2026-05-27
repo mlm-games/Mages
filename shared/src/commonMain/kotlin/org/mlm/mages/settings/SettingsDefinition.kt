@@ -539,6 +539,24 @@ data class AppSettings(
         type = Toggle::class
     )
     val enterSendsMessage: Boolean = false,
+
+    @Setting(
+        title = "Use proxy",
+        description = "Route all traffic through a SOCKS5 or HTTP proxy",
+        category = Advanced::class,
+        type = Toggle::class,
+        platforms = [SettingPlatform.ANDROID, SettingPlatform.JVM],
+    )
+    val proxyEnabled: Boolean = false,
+
+    @Setting(
+        title = "Proxy URL",
+        category = Advanced::class,
+        type = TextInput::class,
+        dependsOn = "proxyEnabled",
+        platforms = [SettingPlatform.ANDROID, SettingPlatform.JVM],
+    )
+    val proxyUrl: String = "",
 )
 
 object OpenSystemNotificationSettingsAction : SettingAction

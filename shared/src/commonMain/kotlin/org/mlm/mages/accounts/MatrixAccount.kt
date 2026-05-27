@@ -13,5 +13,6 @@ data class MatrixAccount(
     val displayName: String? = null,   // Cached display name
     val avatarUrl: String? = null,
     val addedAtMs: Long = 0, // Whenever this account was added
-    val isTokenValid: Boolean = true
+    val isTokenValid: Boolean = true,
+    val proxyUrl: String? = null,
 )

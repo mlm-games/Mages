@@ -144,9 +144,11 @@ class LoginViewModel(
 
             val accountId = newAccountId()
             val port = createMatrixPort()
+            val settings = settingsRepository.flow.first()
+            val proxyUrl = if (settings.proxyEnabled) settings.proxyUrl.takeIf { it.isNotBlank() } else null
 
             try {
-                port.init(hs, accountId)
+                port.init(hs, accountId, proxyUrl)
 
                 when (s.passwordLoginKind) {
                     PasswordLoginKind.Username -> {
@@ -193,7 +195,8 @@ class LoginViewModel(
                     homeserver = hs,
                     deviceId = "",
                     accessToken = "",
-                    addedAtMs = Clock.System.now().toEpochMilliseconds()
+                    addedAtMs = Clock.System.now().toEpochMilliseconds(),
+                    proxyUrl = proxyUrl,
                 )
 
                 matrixClients.addLoggedInAccount(account, port)
@@ -236,9 +239,11 @@ class LoginViewModel(
 
             val accountId = newAccountId()
             val port = createMatrixPort()
+            val settings = settingsRepository.flow.first()
+            val proxyUrl = if (settings.proxyEnabled) settings.proxyUrl.takeIf { it.isNotBlank() } else null
 
             try {
-                port.init(hs, accountId)
+                port.init(hs, accountId, proxyUrl)
 
                 val ssoResult = port.loginSsoLoopback(openUrl, deviceName = getDeviceDisplayName())
                 if (ssoResult.isFailure) {
@@ -266,7 +271,8 @@ class LoginViewModel(
                     homeserver = hs,
                     deviceId = "",
                     accessToken = "",
-                    addedAtMs = Clock.System.now().toEpochMilliseconds()
+                    addedAtMs = Clock.System.now().toEpochMilliseconds(),
+                    proxyUrl = proxyUrl,
                 )
 
                 matrixClients.addLoggedInAccount(account, port)
@@ -318,9 +324,11 @@ class LoginViewModel(
 
             val accountId = newAccountId()
             val port = createMatrixPort()
+            val settings = settingsRepository.flow.first()
+            val proxyUrl = if (settings.proxyEnabled) settings.proxyUrl.takeIf { it.isNotBlank() } else null
 
             try {
-                port.init(hs, accountId)
+                port.init(hs, accountId, proxyUrl)
 
                 when (val result = port.loginOauth(openUrl, deviceName = getDeviceDisplayName())) {
                     MatrixPort.OauthLoginResult.RedirectStarted -> {
@@ -358,7 +366,8 @@ class LoginViewModel(
                     homeserver = hs,
                     deviceId = "",
                     accessToken = "",
-                    addedAtMs = Clock.System.now().toEpochMilliseconds()
+                    addedAtMs = Clock.System.now().toEpochMilliseconds(),
+                    proxyUrl = proxyUrl,
                 )
 
                 matrixClients.addLoggedInAccount(account, port)

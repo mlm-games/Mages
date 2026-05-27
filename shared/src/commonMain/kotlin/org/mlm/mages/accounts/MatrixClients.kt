@@ -34,7 +34,7 @@ class MatrixClients(
     /**
      * Restores the previously active account if available.
      */
-    suspend fun initFromDisk(): Boolean = mutex.withLock {
+    suspend fun initFromDisk(proxyUrl: String? = null): Boolean = mutex.withLock {
         // Already initialized
         _activePort?.let { existing ->
             _isReady.value = true
@@ -51,7 +51,7 @@ class MatrixClients(
         }
 
         if (account != null) {
-            return@withLock initAccountInternal(account)
+            return@withLock initAccountInternal(account, proxyUrl)
         }
 
         // No accounts, so log in
@@ -59,7 +59,7 @@ class MatrixClients(
         false
     }
 
-    suspend fun switchTo(account: MatrixAccount): Boolean = mutex.withLock {
+    suspend fun switchTo(account: MatrixAccount, proxyUrl: String? = null): Boolean = mutex.withLock {
         // Close current client if any
         _activePort?.let { port ->
             runCatching { port.close() }
@@ -67,7 +67,7 @@ class MatrixClients(
         _activePort = null
         _activeAccount.value = null
 
-        return@withLock initAccountInternal(account)
+        return@withLock initAccountInternal(account, proxyUrl)
     }
 
     /**
@@ -147,15 +147,16 @@ class MatrixClients(
 
     fun getAccounts(): List<MatrixAccount> = accountStore.accounts.value
 
-    private suspend fun initAccountInternal(account: MatrixAccount): Boolean {
+    private suspend fun initAccountInternal(account: MatrixAccount, proxyUrl: String? = null): Boolean {
         _activePort?.let { runCatching { it.close() } }
         _activePort = null
         _activeAccount.value = null
 
         val port = createMatrixPort()
+        val effectiveProxy = proxyUrl ?: account.proxyUrl
 
         return try {
-            port.init(account.homeserver, account.id)
+            port.init(account.homeserver, account.id, effectiveProxy)
 
             val loggedIn = try {
                 port.isLoggedInSuspend()

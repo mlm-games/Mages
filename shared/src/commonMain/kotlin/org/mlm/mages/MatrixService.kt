@@ -41,8 +41,8 @@ class MatrixService(
             return newLoader
         }
 
-    suspend fun initFromDisk(): Boolean {
-        val result = clients.initFromDisk()
+    suspend fun initFromDisk(proxyUrl: String? = null): Boolean {
+        val result = clients.initFromDisk(proxyUrl)
         if (result && clients.portOrNull != null) {
             _avatars = AvatarLoader(port)
         }

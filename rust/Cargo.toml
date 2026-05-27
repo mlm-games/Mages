@@ -39,6 +39,7 @@ matrix-sdk = { version = "0.17.0", default-features = false, features = [
     "sqlite",
     "bundled-sqlite",
     "sso-login",
+    "socks",
     "automatic-room-key-forwarding",
     "experimental-search",
     "experimental-widgets",

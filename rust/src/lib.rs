@@ -340,6 +340,7 @@ impl Client {
         homeserver_url: String,
         base_store_dir: String,
         account_id: Option<String>,
+        proxy: Option<String>,
     ) -> Result<Self, FfiError> {
         platform::init_tracing();
 
@@ -398,7 +399,7 @@ impl Client {
                         SdkClient::builder().server_name_or_homeserver_url(normalized.clone())
                     };
 
-                    builder
+                    let builder = builder
                         .sqlite_store(&store_dir_path, None)
                         .search_index_store(SearchIndexStoreKind::EncryptedDirectory(
                             idx.dir, idx.key,
@@ -409,9 +410,15 @@ impl Client {
                             backup_download_strategy: BackupDownloadStrategy::OneShot,
                             ..Default::default()
                         })
-                        .handle_refresh_tokens()
-                        .build()
-                        .await
+                        .handle_refresh_tokens();
+
+                    let builder = if let Some(ref proxy_url) = proxy {
+                        builder.proxy(proxy_url)
+                    } else {
+                        builder
+                    };
+
+                    builder.build().await
                 };
                 client
             })

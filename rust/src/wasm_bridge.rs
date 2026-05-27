@@ -451,6 +451,7 @@ impl WasmClient {
         homeserver_url: String,
         _base_store_dir: String,
         account_id: Option<String>,
+        _proxy: Option<String>,
     ) -> Result<WasmClient, JsValue> {
         let normalized = {
             let raw = homeserver_url.trim();
