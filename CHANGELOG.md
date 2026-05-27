@@ -1,3 +1,8 @@
+## v4.7.4
+
+- Remove extra backfill pagination logic (#102)
+
+
 ## v4.7.3
 
 
