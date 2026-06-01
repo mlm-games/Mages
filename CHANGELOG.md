@@ -1,3 +1,8 @@
+## v4.7.5
+
+- support http or socks proxies (#86)
+
+
 ## v4.7.4
 
 - Remove extra backfill pagination logic (#102)
