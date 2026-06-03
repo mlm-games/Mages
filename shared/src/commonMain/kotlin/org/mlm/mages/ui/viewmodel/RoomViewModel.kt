@@ -1970,8 +1970,7 @@ class RoomViewModel(
             if (diff is TimelineDiff.RemoveByItemId) {
                 val isLocalEcho = allEvents.any {
                     it.itemId == diff.itemId &&
-                        it.sendState != null &&
-                        it.sendState != SendState.Sent
+                        it.sendState != null
                 }
                 if (isLocalEcho) {
                     return@updateState this
@@ -1992,7 +1991,7 @@ class RoomViewModel(
             var newAll = r.list
             if (r.reset && newAll.size < allEvents.size) {
                 val lostPending = allEvents.filter { ev ->
-                    ev.sendState != null && ev.sendState != SendState.Sent &&
+                    ev.sendState != null &&
                         newAll.none { it.itemId == ev.itemId }
                 }
                 if (lostPending.isNotEmpty()) {
