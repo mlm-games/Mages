@@ -1967,6 +1967,17 @@ class RoomViewModel(
                 return@updateState this
             }
 
+            if (diff is TimelineDiff.RemoveByItemId) {
+                val isLocalEcho = allEvents.any {
+                    it.itemId == diff.itemId &&
+                        it.sendState != null &&
+                        it.sendState != SendState.Sent
+                }
+                if (isLocalEcho) {
+                    return@updateState this
+                }
+            }
+
             val r = TimelineListReducer.apply(
                 current = allEvents,
                 diff = diff,
@@ -1978,7 +1989,19 @@ class RoomViewModel(
             delta = r.delta
             didClear = r.cleared
 
-            val newAll = r.list
+            var newAll = r.list
+            if (r.reset && newAll.size < allEvents.size) {
+                val lostPending = allEvents.filter { ev ->
+                    ev.sendState != null && ev.sendState != SendState.Sent &&
+                        newAll.none { it.itemId == ev.itemId }
+                }
+                if (lostPending.isNotEmpty()) {
+                    newAll = newAll.toMutableList().also { list ->
+                        lostPending.forEach { list.insertSorted(it, { it.timestampMs }, { it.stableKey() }) }
+                    }
+                }
+            }
+
             copy(
                 allEvents = newAll,
                 events = filteredVisibleEvents(newAll),
@@ -2194,9 +2217,9 @@ class RoomViewModel(
 
     private fun MessageEvent.stableKey(): String =
         when {
-            eventId.isNotBlank() -> "e:$eventId"
             !txnId.isNullOrBlank() -> "t:$txnId"
-            else -> "i:$itemId" // fallback
+            eventId.isNotBlank() -> "e:$eventId"
+            else -> "i:$itemId"
         }
 
     //  Draft helpers
