@@ -46,6 +46,15 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.8.1" date="2026-06-03" type="stable">
+      <description>
+        <ul>
+          <li>Do not highlight voice button</li>
+          <li>show outgoing for all sent messages</li>
+          <li>fix timeline being reset when multiple messages were sent</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.7.5" date="2026-06-01" type="stable">
       <description>
         <ul>

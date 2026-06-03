@@ -1,1 +1,3 @@
-- support http or socks proxies (#86)
+- Do not highlight voice button
+- show outgoing for all sent messages
+- fix timeline being reset when multiple messages were sent

@@ -1,3 +1,10 @@
+## v4.8.1
+
+- Do not highlight voice button
+- show outgoing for all sent messages
+- fix timeline being reset when multiple messages were sent
+
+
 ## v4.7.5
 
 - support http or socks proxies (#86)
