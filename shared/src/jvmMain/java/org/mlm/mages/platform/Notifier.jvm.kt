@@ -5,11 +5,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import io.github.mlmgames.settings.core.SettingsRepository
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import org.mlm.mages.MatrixService
 import org.mlm.mages.NotifierImpl
 import org.mlm.mages.matrix.NotificationKind
+import org.mlm.mages.push.LinuxPushHandler
 import org.mlm.mages.settings.AppSettings
 import kotlin.system.exitProcess
 
@@ -68,6 +70,16 @@ actual fun BindNotifications(
     LaunchedEffect(activeId) {
         if (activeId == null) return@LaunchedEffect
 
+        val pushHandler = LinuxPushHandler(service, settingsRepository, activeId)
+        if (pushHandler.init()) {
+            try {
+                awaitCancellation()
+            } finally {
+                pushHandler.shutdown()
+            }
+            return@LaunchedEffect
+        }
+        System.err.println("[UP] falling back to polling")
         var firstPoll = true
         val recentlyNotified = LinkedHashSet<String>()
         val lastReadByRoom = HashMap<String, Long>()

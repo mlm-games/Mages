@@ -21,6 +21,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.mlm.mages.MatrixService
 import org.mlm.mages.platform.SettingsProvider
+import org.mlm.mages.push.extractMatrixPushPayload
 import org.mlm.mages.settings.appLanguageTagOrDefault
 import org.unifiedpush.android.connector.PushService
 import org.unifiedpush.android.connector.data.PushEndpoint
@@ -201,41 +202,4 @@ fun removeEndpoint(context: Context, instance: String) {
     }
 }
 
-private fun extractMatrixPushPayload(raw: String): List<Pair<String, String>> {
-    if (raw.isBlank()) return emptyList()
-    return try {
-        val obj = org.json.JSONObject(raw)
-        val pairs = mutableListOf<Pair<String, String>>()
 
-        val notification = obj.optJSONObject("notification")
-        if (notification != null) {
-            val eid = notification.optString("event_id", "")
-            val rid = notification.optString("room_id", "")
-            if (eid.isNotBlank() && rid.isNotBlank()) {
-                pairs += rid to eid
-                return pairs
-            }
-        }
-
-        if (obj.has("event_id") && obj.has("room_id")) {
-            val eid = obj.optString("event_id")
-            val rid = obj.optString("room_id")
-            if (eid.isNotBlank() && rid.isNotBlank()) pairs += rid to eid
-        }
-
-        val keys = arrayOf("events", "notifications")
-        for (k in keys) {
-            val arr = obj.optJSONArray(k) ?: continue
-            for (i in 0 until arr.length()) {
-                val it = arr.optJSONObject(i) ?: continue
-                val eid = it.optString("event_id")
-                val rid = it.optString("room_id")
-                if (eid.isNotBlank() && rid.isNotBlank()) pairs += rid to eid
-            }
-        }
-
-        pairs.distinct()
-    } catch (_: Throwable) {
-        emptyList()
-    }
-}
