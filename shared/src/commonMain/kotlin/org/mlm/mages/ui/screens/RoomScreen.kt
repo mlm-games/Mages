@@ -712,7 +712,7 @@ fun RoomScreen(
                                             index = eventIndex,
                                             events = events,
                                             state = state,
-                                            lastOutgoingIndex = lastOutgoingIndex,
+                                            isLastOutgoing = eventIndex == lastOutgoingIndex,
                                             onLongPress = {
                                                 sheetEvent = event
                                                 viewModel.showMessageActions(event)
@@ -1296,7 +1296,7 @@ private fun MessageItem(
     index: Int,
     events: List<MessageEvent>,
     state: RoomUiState,
-    lastOutgoingIndex: Int,
+    isLastOutgoing: Boolean,
     onLongPress: () -> Unit,
     onReply: () -> Unit,
     onReact: (String) -> Unit,
@@ -1512,43 +1512,48 @@ private fun MessageItem(
 
         Spacer(Modifier.height(1.dp))
 
-        if (index == lastOutgoingIndex && lastOutgoingIndex >= 0) {
-            Spacer(Modifier.height(2.dp))
-
-            val lastOutgoing = events.getOrNull(lastOutgoingIndex) ?: return@Column
-
-            val isSeen = state.lastOutgoingRead || state.seenByEntries.isNotEmpty()
-
-            when {
-                isSeen -> {
-                    if (state.isDm) {
-                        MessageStatusLine(
-                            text = stringResource(Res.string.seen, formatTime(lastOutgoing.timestampMs)),
-                            isMine = true
-                        )
-                    } else if (state.seenByEntries.isNotEmpty()) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = Spacing.lg, vertical = Spacing.xs),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            SeenByChip(
-                                entries = state.seenByEntries,
-                                onClick = { viewModel.showReadReceiptsSheet(state.seenByEntries) }
-                            )
+        when (event.sendState) {
+            SendState.Sending, SendState.Retrying -> {
+                Spacer(Modifier.height(2.dp))
+                MessageStatusLine(text = stringResource(Res.string.sending), isMine = true)
+            }
+            SendState.Enqueued -> {
+                Spacer(Modifier.height(2.dp))
+                MessageStatusLine(text = stringResource(Res.string.queued), isMine = true)
+            }
+            SendState.Failed -> {
+                Spacer(Modifier.height(2.dp))
+                MessageStatusLine(text = stringResource(Res.string.failed_to_send), isMine = true)
+            }
+            SendState.Sent, null -> {
+                if (isLastOutgoing) {
+                    Spacer(Modifier.height(2.dp))
+                    val isSeen = state.lastOutgoingRead || state.seenByEntries.isNotEmpty()
+                    when {
+                        isSeen -> {
+                            if (state.isDm) {
+                                MessageStatusLine(
+                                    text = stringResource(Res.string.seen, formatTime(event.timestampMs)),
+                                    isMine = true
+                                )
+                            } else if (state.seenByEntries.isNotEmpty()) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = Spacing.lg, vertical = Spacing.xs),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    SeenByChip(
+                                        entries = state.seenByEntries,
+                                        onClick = { viewModel.showReadReceiptsSheet(state.seenByEntries) }
+                                    )
+                                }
+                            }
+                        }
+                        else -> {
+                            MessageStatusLine(text = stringResource(Res.string.delivered), isMine = true)
                         }
                     }
-                }
-
-                else -> {
-                    val statusText = when (lastOutgoing.sendState) {
-                        SendState.Sending, SendState.Retrying -> stringResource(Res.string.sending)
-                        SendState.Enqueued -> stringResource(Res.string.queued)
-                        SendState.Failed -> stringResource(Res.string.failed_to_send)
-                        SendState.Sent, null -> stringResource(Res.string.delivered)
-                    }
-                    MessageStatusLine(text = statusText, isMine = true)
                 }
             }
         }
