@@ -6,7 +6,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -120,15 +119,15 @@ fun ThreadScreen(
 
     val isNearBottom by remember(listState, totalItems) {
         derivedStateOf {
-            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-            totalItems == 0 || lastVisible >= totalItems - 1
+            val firstVisible = listState.layoutInfo.visibleItemsInfo.firstOrNull()?.index ?: -1
+            totalItems == 0 || firstVisible <= 3
         }
     }
 
     // Auto-scroll when new message appears
     LaunchedEffect(state.replies.lastOrNull()?.itemId, isNearBottom) {
         if (isNearBottom && totalItems > 0) {
-            listState.animateScrollToItem(totalItems - 1)
+            listState.animateScrollToItem(0)
         }
     }
 
@@ -168,7 +167,7 @@ fun ThreadScreen(
                     onClick = {
                         scope.launch {
                             if (totalItems > 0) {
-                                listState.animateScrollToItem(totalItems - 1)
+                                listState.animateScrollToItem(0)
                             }
                         }
                     },
@@ -222,15 +221,40 @@ fun ThreadScreen(
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = Spacing.sm)
+                        contentPadding = PaddingValues(bottom = Spacing.sm),
+                        reverseLayout = true
                     ) {
-                        if (state.nextBatch != null) {
-                            item(key = "load_more") {
-                                LoadMoreButton(
-                                    isLoading = state.isLoading,
-                                    onClick = onLoadMore,
-                                    text = "Load earlier messages"
-                                )
+                        items(
+                            count = state.replies.size,
+                            key = { i -> "reply_${state.replies[state.replies.lastIndex - i].itemId}" }
+                        ) { dslIndex ->
+                            val replyIndex = state.replies.lastIndex - dslIndex
+                            val event = state.replies[replyIndex]
+                            val prevEvent = state.replies.getOrNull(replyIndex - 1)
+                            val shouldGroup = prevEvent != null &&
+                                    prevEvent.sender == event.sender &&
+                                    (event.timestampMs - prevEvent.timestampMs) < 300_000
+
+                            val nextEvent = state.replies.getOrNull(replyIndex + 1)
+                            val groupedWithNext = nextEvent != null &&
+                                    nextEvent.sender == event.sender &&
+                                    (nextEvent.timestampMs - event.timestampMs) < 300_000
+
+                            ThreadReplyMessage(
+                                event = event,
+                                isMine = event.sender == myUserId,
+                                reactionSummaries = event.reactions,
+                                avatarByUserId = state.avatarByUserId,
+                                onReact = { emoji -> onReact(event, emoji) },
+                                onLongPress = { sheetEvent = event },
+                                grouped = shouldGroup,
+                                groupedWithNext = groupedWithNext
+                            )
+                        }
+
+                        if (state.replies.isNotEmpty()) {
+                            item(key = "divider") {
+                                ThreadDivider(replyCount = state.replies.size)
                             }
                         }
 
@@ -247,38 +271,16 @@ showReactionAvatars = showReactionAvatars,
                                     onLongPress = { sheetEvent = root }
                                 )
                             }
-
-                            if (state.replies.isNotEmpty()) {
-                                item(key = "divider") {
-                                    ThreadDivider(replyCount = state.replies.size)
-                                }
-                            }
                         }
 
-                        itemsIndexed(
-                            items = state.replies,
-                            key = { _, ev -> "reply_${ev.itemId}" }
-                        ) { index, event ->
-                            val prevEvent = state.replies.getOrNull(index - 1)
-                            val shouldGroup = prevEvent != null &&
-                                    prevEvent.sender == event.sender &&
-                                    (event.timestampMs - prevEvent.timestampMs) < 300_000
-
-                            val nextEvent = state.replies.getOrNull(index + 1)
-                            val groupedWithNext = nextEvent != null &&
-                                    nextEvent.sender == event.sender &&
-                                    (nextEvent.timestampMs - event.timestampMs) < 300_000
-
-                            ThreadReplyMessage(
-                                event = event,
-                                isMine = event.sender == myUserId,
-                                reactionSummaries = event.reactions,
-                                avatarByUserId = state.avatarByUserId,
-                                onReact = { emoji -> onReact(event, emoji) },
-                                onLongPress = { sheetEvent = event },
-                                grouped = shouldGroup,
-                                groupedWithNext = groupedWithNext
-                            )
+                        if (state.nextBatch != null) {
+                            item(key = "load_more") {
+                                LoadMoreButton(
+                                    isLoading = state.isLoading,
+                                    onClick = onLoadMore,
+                                    text = "Load earlier messages"
+                                )
+                            }
                         }
                     }
                 }

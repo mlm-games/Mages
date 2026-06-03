@@ -16,16 +16,16 @@ fun rememberTopVisibleRoomEventTimestamp(
         derivedStateOf {
             if (events.isEmpty()) return@derivedStateOf null
 
-            for (visibleItem in listState.layoutInfo.visibleItemsInfo) {
-                val eventIndex = visibleItem.index - 1
-                if (eventIndex in events.indices) {
+            for (i in listState.layoutInfo.visibleItemsInfo.lastIndex downTo 0) {
+                val visibleItem = listState.layoutInfo.visibleItemsInfo[i]
+                val dslIndex = visibleItem.index
+                if (dslIndex < events.size) {
+                    val eventIndex = events.lastIndex - dslIndex
                     return@derivedStateOf events[eventIndex].timestampMs
                 }
             }
-
             null
         }
     }
-
     return timestamp
 }

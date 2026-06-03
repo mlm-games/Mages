@@ -9,7 +9,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -195,8 +194,11 @@ fun RoomScreen(
     LaunchedEffect(listState, state.hitStart, state.isPaginatingBack, settings.autoBackPagination) {
         snapshotFlow { listState.firstVisibleItemIndex }
             .collect { firstIndex ->
-                if (settings.autoBackPagination && !state.hitStart && !state.isPaginatingBack && firstIndex < 5) {
-                    viewModel.paginateBack()
+                if (settings.autoBackPagination && !state.hitStart && !state.isPaginatingBack) {
+                    val topIndex = state.events.size
+                    if (firstIndex >= topIndex - 5) {
+                        viewModel.paginateBack()
+                    }
                 }
             }
     }
@@ -268,15 +270,14 @@ fun RoomScreen(
         }
     }
 
-    // you always have exactly 1 header item (load_earlier OR start_of_conversation)
-    fun listIndexForEventIndex(eventIndex: Int): Int = eventIndex + 1
-    fun lastListIndex(): Int = if (events.isEmpty()) 0 else listIndexForEventIndex(events.lastIndex)
+    fun listIndexForEventIndex(eventIndex: Int): Int = events.lastIndex - eventIndex
+    fun lastListIndex(): Int = 0
 
 
     val isNearBottom by remember(listState, events) {
         derivedStateOf {
-            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-            events.isNotEmpty() && lastVisible >= lastListIndex() - 3
+            val firstVisible = listState.layoutInfo.visibleItemsInfo.firstOrNull()?.index ?: -1
+            events.isNotEmpty() && firstVisible <= 3
         }
     }
 
@@ -679,24 +680,9 @@ fun RoomScreen(
                             state = listState,
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(vertical = 8.dp),
-                            reverseLayout = false
+                            reverseLayout = true
                         ) {
-                            // Always show load more button at top (even when empty)
-                            if (!state.hitStart) {
-                                item(key = "load_earlier") {
-                                    LoadEarlierButton(
-                                        isLoading = state.isPaginatingBack,
-                                        onClick = viewModel::paginateBack
-                                    )
-                                }
-                            } else {
-                                item(key = "start_of_conversation") {
-                                    StartOfConversationChip()
-                                }
-                            }
-
                             if (events.isEmpty()) {
-                                // Show empty state as a list item so load more stays visible
                                 item(key = "empty_state") {
                                     Box(
                                         modifier = Modifier
@@ -712,13 +698,18 @@ fun RoomScreen(
                                     }
                                 }
                             } else {
-                                itemsIndexed(events, key = { _, e -> e.itemId }) { index, event ->
+                                items(
+                                    count = events.size,
+                                    key = { i -> events[events.lastIndex - i].itemId }
+                                ) { dslIndex ->
+                                    val eventIndex = events.lastIndex - dslIndex
+                                    val event = events[eventIndex]
                                     if (event.rendersAsSystemMessage()) {
                                         SystemMessageItem(event = event)
                                     } else {
                                         MessageItem(
                                             event = event,
-                                            index = index,
+                                            index = eventIndex,
                                             events = events,
                                             state = state,
                                             lastOutgoingIndex = lastOutgoingIndex,
@@ -750,6 +741,19 @@ fun RoomScreen(
                                             showReactionAvatars = settings.showReactionAvatars
                                         )
                                     }
+                                }
+                            }
+
+                            if (!state.hitStart) {
+                                item(key = "load_earlier") {
+                                    LoadEarlierButton(
+                                        isLoading = state.isPaginatingBack,
+                                        onClick = viewModel::paginateBack
+                                    )
+                                }
+                            } else {
+                                item(key = "start_of_conversation") {
+                                    StartOfConversationChip()
                                 }
                             }
                         }
@@ -1306,246 +1310,246 @@ private fun MessageItem(
     enableBubbleAnimations: Boolean = true,
     showReactionAvatars: Boolean = true,
 ) {
-    val timestamp = event.timestampMs
+    Column {
+        val timestamp = event.timestampMs
 
-    val eventDate = formatDate(timestamp)
-    val prevDate = events.getOrNull(index - 1)?.let { formatDate(it.timestampMs) }
+        val eventDate = formatDate(timestamp)
+        val prevDate = events.getOrNull(index - 1)?.let { formatDate(it.timestampMs) }
 
-    // Date header
-    if (prevDate != eventDate) {
-        DateHeader(eventDate)
-    }
-
-    // Unread divider
-    val lastReadTs = state.lastReadTs
-    val myId = state.myUserId
-    val isFromMe = myId != null && event.sender == myId
-
-    if (!isFromMe && lastReadTs != null) {
-        val prev = events.getOrNull(index - 1)
-        val prevIsFromMe = prev != null && myId != null && prev.sender == myId
-        val prevTs = prev?.timestampMs
-
-        val justCrossed = timestamp > lastReadTs &&
-                (prev == null || prevIsFromMe || (prevTs != null && prevTs <= lastReadTs))
-
-        if (justCrossed) {
-            UnreadDivider()
+        // Date header
+        if (prevDate != eventDate) {
+            DateHeader(eventDate)
         }
-    }
 
-    // Message bubble
-    val chips = event.reactions
-    val allUserIdsFromReactions = chips.flatMap { it.userIds }.distinct()
-    val reactionAvatarMap = allUserIdsFromReactions.associateWith { userId ->
-        state.avatarByUserId[userId]
-    }.filterValues { it != null }.mapValues { it.value!! }
-    val prevEvent = events.getOrNull(index - 1)
-    val shouldGroup = prevEvent != null &&
-            prevEvent.sender == event.sender &&
-            prevDate == eventDate
-    val nextEvent = events.getOrNull(index + 1)
+        // Unread divider
+        val lastReadTs = state.lastReadTs
+        val myId = state.myUserId
+        val isFromMe = myId != null && event.sender == myId
 
-    val isMine = event.sender == state.myUserId
+        if (!isFromMe && lastReadTs != null) {
+            val prev = events.getOrNull(index - 1)
+            val prevIsFromMe = prev != null && myId != null && prev.sender == myId
+            val prevTs = prev?.timestampMs
 
-    val isSelected = state.isSelectionMode && event.eventId in state.selectedEventIds
+            val justCrossed = timestamp > lastReadTs &&
+                    (prev == null || prevIsFromMe || (prevTs != null && prevTs <= lastReadTs))
 
-    // Swipe-to-reply state
-    var swipeOffsetPx by remember { mutableFloatStateOf(0f) }
-    val animatedSwipeOffsetPx by animateFloatAsState(
-        targetValue = swipeOffsetPx,
-        animationSpec = tween(durationMillis = 180, easing = LinearOutSlowInEasing),
-        label = "replySwipeOffset"
-    )
-    val density = LocalDensity.current
-    val swipeThresholdPx = remember(density) { with(density) { 72.dp.toPx() } }
-    var replyTriggered by remember { mutableStateOf(false) }
-    var hapticTriggered by remember { mutableStateOf(false) }
-    val haptics = LocalHapticFeedback.current
-
-    Box(
-        modifier = Modifier
-            .then(if (enableBubbleAnimations) Modifier.animateContentSize() else Modifier)
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = {
-                    if (state.isSelectionMode) {
-                        viewModel.toggleSelected(event.eventId)
-                    }
-                },
-                onLongClick = {
-                    if (state.isSelectionMode) viewModel.toggleSelected(event.eventId)
-                    else onLongPress()
-                }
-            )
-            .then(
-                if (isSelected) Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
-                else Modifier
-            )
-            .pointerInput(state.isSelectionMode) {
-                if (state.isSelectionMode) return@pointerInput
-                detectHorizontalDragGestures(
-                    onDragEnd = {
-                        if (swipeOffsetPx >= swipeThresholdPx && !replyTriggered) {
-                            replyTriggered = true
-                            onReply()
-                        }
-                        swipeOffsetPx = 0f
-                        replyTriggered = false
-                        hapticTriggered = false
-                    },
-                    onDragCancel = {
-                        swipeOffsetPx = 0f
-                        replyTriggered = false
-                        hapticTriggered = false
-                    },
-                    onHorizontalDrag = { _, dragAmount ->
-                        // Only allow right-swipe (positive) for others, left-swipe (negative) for mine
-                        val newOffset = if (isMine) {
-                            (swipeOffsetPx - dragAmount).coerceAtLeast(0f)
-                        } else {
-                            (swipeOffsetPx + dragAmount).coerceAtLeast(0f)
-                        }
-                        swipeOffsetPx = newOffset.coerceAtMost(swipeThresholdPx * 1.2f)
-
-                        if (swipeOffsetPx >= swipeThresholdPx && !hapticTriggered) {
-                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            hapticTriggered = true
-                        } else if (swipeOffsetPx < swipeThresholdPx && hapticTriggered) {
-                            hapticTriggered = false
-                        }
-                    }
-                )
-            }
-    ) {
-        // Reply icon shown behind the bubble during swipe
-        val iconAlpha = (animatedSwipeOffsetPx / swipeThresholdPx).coerceIn(0f, 1f)
-
-        if (iconAlpha > 0.05f) {
-            Box(
-                modifier = Modifier
-                    .align(if (isMine) Alignment.CenterEnd else Alignment.CenterStart)
-                    .padding(horizontal = Spacing.lg),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Reply,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = iconAlpha),
-                    modifier = Modifier.size(24.dp)
-                )
+            if (justCrossed) {
+                UnreadDivider()
             }
         }
 
-        val bubbleOffset = if (isMine) -animatedSwipeOffsetPx else animatedSwipeOffsetPx
+        // Message bubble
+        val chips = event.reactions
+        val allUserIdsFromReactions = chips.flatMap { it.userIds }.distinct()
+        val reactionAvatarMap = allUserIdsFromReactions.associateWith { userId ->
+            state.avatarByUserId[userId]
+        }.filterValues { it != null }.mapValues { it.value!! }
+        val prevEvent = events.getOrNull(index - 1)
+        val shouldGroup = prevEvent != null &&
+                prevEvent.sender == event.sender &&
+                prevDate == eventDate
+        val nextEvent = events.getOrNull(index + 1)
+
+        val isMine = event.sender == state.myUserId
+
+        val isSelected = state.isSelectionMode && event.eventId in state.selectedEventIds
+
+        // Swipe-to-reply state
+        var swipeOffsetPx by remember { mutableFloatStateOf(0f) }
+        val animatedSwipeOffsetPx by animateFloatAsState(
+            targetValue = swipeOffsetPx,
+            animationSpec = tween(durationMillis = 180, easing = LinearOutSlowInEasing),
+            label = "replySwipeOffset"
+        )
+        val density = LocalDensity.current
+        val swipeThresholdPx = remember(density) { with(density) { 72.dp.toPx() } }
+        var replyTriggered by remember { mutableStateOf(false) }
+        var hapticTriggered by remember { mutableStateOf(false) }
+        val haptics = LocalHapticFeedback.current
 
         Box(
             modifier = Modifier
+                .then(if (enableBubbleAnimations) Modifier.animateContentSize() else Modifier)
                 .fillMaxWidth()
-                .graphicsLayer { translationX = bubbleOffset }
-        ) {
-            val isHighlighted = highlightedEventId == event.eventId
+                .combinedClickable(
+                    onClick = {
+                        if (state.isSelectionMode) {
+                            viewModel.toggleSelected(event.eventId)
+                        }
+                    },
+                    onLongClick = {
+                        if (state.isSelectionMode) viewModel.toggleSelected(event.eventId)
+                        else onLongPress()
+                    }
+                )
+                .then(
+                    if (isSelected) Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                    else Modifier
+                )
+                .pointerInput(state.isSelectionMode) {
+                    if (state.isSelectionMode) return@pointerInput
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            if (swipeOffsetPx >= swipeThresholdPx && !replyTriggered) {
+                                replyTriggered = true
+                                onReply()
+                            }
+                            swipeOffsetPx = 0f
+                            replyTriggered = false
+                            hapticTriggered = false
+                        },
+                        onDragCancel = {
+                            swipeOffsetPx = 0f
+                            replyTriggered = false
+                            hapticTriggered = false
+                        },
+                        onHorizontalDrag = { _, dragAmount ->
+                            val newOffset = if (isMine) {
+                                (swipeOffsetPx - dragAmount).coerceAtLeast(0f)
+                            } else {
+                                (swipeOffsetPx + dragAmount).coerceAtLeast(0f)
+                            }
+                            swipeOffsetPx = newOffset.coerceAtMost(swipeThresholdPx * 1.2f)
 
-            val highlightAlpha by animateFloatAsState(
-                targetValue = if (isHighlighted) 1f else 0f,
-                animationSpec = tween(durationMillis = 900, easing = LinearOutSlowInEasing),
-                label = "highlight"
-            )
+                            if (swipeOffsetPx >= swipeThresholdPx && !hapticTriggered) {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                hapticTriggered = true
+                            } else if (swipeOffsetPx < swipeThresholdPx && hapticTriggered) {
+                                hapticTriggered = false
+                            }
+                        }
+                    )
+                }
+        ) {
+            val iconAlpha = (animatedSwipeOffsetPx / swipeThresholdPx).coerceIn(0f, 1f)
+
+            if (iconAlpha > 0.05f) {
+                Box(
+                    modifier = Modifier
+                        .align(if (isMine) Alignment.CenterEnd else Alignment.CenterStart)
+                        .padding(horizontal = Spacing.lg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Reply,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = iconAlpha),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            val bubbleOffset = if (isMine) -animatedSwipeOffsetPx else animatedSwipeOffsetPx
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.14f * highlightAlpha)
-                    )
-                    .then(if (enableBubbleAnimations) Modifier.animateContentSize() else Modifier)
+                    .graphicsLayer { translationX = bubbleOffset }
             ) {
-                val bubbleModel = event.toBubbleModel(
-                    ctx = MessageBubbleRenderContext(
-                        isMine = isMine,
-                        isDm = state.isDm,
-                        avatarPath = state.avatarByUserId[event.sender],
-                        groupedWithPrev = shouldGroup,
-                        groupedWithNext = nextEvent != null &&
-                                nextEvent.sender == event.sender &&
-                                formatDate(nextEvent.timestampMs) == eventDate,
-                        showMessageAvatars = showMessageAvatars,
-                        showUsernameInDms = showUsernameInDms,
-                        reactions = chips,
-                        reactionAvatarsByUserId = reactionAvatarMap,
-                        showReactionAvatars = showReactionAvatars,
-                        threadCount = state.threadCount[event.eventId],
-                        variant = MessageBubbleVariant.Timeline,
-                        resolvedPreviewPath = state.thumbByEvent[event.eventId],
-                        resolvedAudioPath = state.audioFileByEvent[event.eventId],
-                        resolvedAudioWaveform = state.waveformByEvent[event.eventId].orEmpty(),
-                        senderVisible = true,
-                    )
-                ).copy(poll = event.pollData)
+                val isHighlighted = highlightedEventId == event.eventId
 
-                MessageBubble(
-                    model = bubbleModel,
-                    onLongPress = onLongPress,
-                    onReact = onReact,
-                    onOpenAttachment = onOpenAttachment,
-                    onVote = { optionId ->
-                        event.pollData?.let { p -> viewModel.votePoll(event.eventId, p, optionId) }
-                    },
-                    onEndPoll = { viewModel.endPoll(event.eventId) },
-                    onReplyPreviewClick = event.replyToEventId?.let { rid ->
-                        {
-                            onSaveReturnPosition(event.eventId)
-                            viewModel.jumpToEvent(rid)
-                        }
-                    },
-                    onOpenThread = onOpenThread,
-                    onSenderClick = if (!isMine && !state.isSelectionMode) {
-                        { viewModel.selectMemberForAction(event.sender) }
-                    } else null
+                val highlightAlpha by animateFloatAsState(
+                    targetValue = if (isHighlighted) 1f else 0f,
+                    animationSpec = tween(durationMillis = 900, easing = LinearOutSlowInEasing),
+                    label = "highlight"
                 )
-            }
-        } // end bubble offset Box
-    } // end outer Box
-    Spacer(Modifier.height(1.dp))
 
-    // Read / send status for last outgoing message
-    if (index == lastOutgoingIndex && lastOutgoingIndex >= 0) {
-        Spacer(Modifier.height(2.dp))
-
-        val lastOutgoing = events.getOrNull(lastOutgoingIndex) ?: return
-
-        val isSeen = state.lastOutgoingRead || state.seenByEntries.isNotEmpty()
-
-        when {
-            isSeen -> {
-                if (state.isDm) {
-                    MessageStatusLine(
-                        text = stringResource(Res.string.seen, formatTime(lastOutgoing.timestampMs)),
-                        isMine = true
-                    )
-                } else if (state.seenByEntries.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = Spacing.lg, vertical = Spacing.xs),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        SeenByChip(
-                            entries = state.seenByEntries,
-                            onClick = { viewModel.showReadReceiptsSheet(state.seenByEntries) }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.14f * highlightAlpha)
                         )
+                        .then(if (enableBubbleAnimations) Modifier.animateContentSize() else Modifier)
+                ) {
+                    val bubbleModel = event.toBubbleModel(
+                        ctx = MessageBubbleRenderContext(
+                            isMine = isMine,
+                            isDm = state.isDm,
+                            avatarPath = state.avatarByUserId[event.sender],
+                            groupedWithPrev = shouldGroup,
+                            groupedWithNext = nextEvent != null &&
+                                    nextEvent.sender == event.sender &&
+                                    formatDate(nextEvent.timestampMs) == eventDate,
+                            showMessageAvatars = showMessageAvatars,
+                            showUsernameInDms = showUsernameInDms,
+                            reactions = chips,
+                            reactionAvatarsByUserId = reactionAvatarMap,
+                            showReactionAvatars = showReactionAvatars,
+                            threadCount = state.threadCount[event.eventId],
+                            variant = MessageBubbleVariant.Timeline,
+                            resolvedPreviewPath = state.thumbByEvent[event.eventId],
+                            resolvedAudioPath = state.audioFileByEvent[event.eventId],
+                            resolvedAudioWaveform = state.waveformByEvent[event.eventId].orEmpty(),
+                            senderVisible = true,
+                        )
+                    ).copy(poll = event.pollData)
+
+                    MessageBubble(
+                        model = bubbleModel,
+                        onLongPress = onLongPress,
+                        onReact = onReact,
+                        onOpenAttachment = onOpenAttachment,
+                        onVote = { optionId ->
+                            event.pollData?.let { p -> viewModel.votePoll(event.eventId, p, optionId) }
+                        },
+                        onEndPoll = { viewModel.endPoll(event.eventId) },
+                        onReplyPreviewClick = event.replyToEventId?.let { rid ->
+                            {
+                                onSaveReturnPosition(event.eventId)
+                                viewModel.jumpToEvent(rid)
+                            }
+                        },
+                        onOpenThread = onOpenThread,
+                        onSenderClick = if (!isMine && !state.isSelectionMode) {
+                            { viewModel.selectMemberForAction(event.sender) }
+                        } else null
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(1.dp))
+
+        if (index == lastOutgoingIndex && lastOutgoingIndex >= 0) {
+            Spacer(Modifier.height(2.dp))
+
+            val lastOutgoing = events.getOrNull(lastOutgoingIndex) ?: return@Column
+
+            val isSeen = state.lastOutgoingRead || state.seenByEntries.isNotEmpty()
+
+            when {
+                isSeen -> {
+                    if (state.isDm) {
+                        MessageStatusLine(
+                            text = stringResource(Res.string.seen, formatTime(lastOutgoing.timestampMs)),
+                            isMine = true
+                        )
+                    } else if (state.seenByEntries.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = Spacing.lg, vertical = Spacing.xs),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            SeenByChip(
+                                entries = state.seenByEntries,
+                                onClick = { viewModel.showReadReceiptsSheet(state.seenByEntries) }
+                            )
+                        }
                     }
                 }
-            }
 
-            else -> {
-                val statusText = when (lastOutgoing.sendState) {
-                    SendState.Sending, SendState.Retrying -> stringResource(Res.string.sending)
-                    SendState.Enqueued -> stringResource(Res.string.queued)
-                    SendState.Failed -> stringResource(Res.string.failed_to_send)
-                    SendState.Sent, null -> stringResource(Res.string.delivered)
+                else -> {
+                    val statusText = when (lastOutgoing.sendState) {
+                        SendState.Sending, SendState.Retrying -> stringResource(Res.string.sending)
+                        SendState.Enqueued -> stringResource(Res.string.queued)
+                        SendState.Failed -> stringResource(Res.string.failed_to_send)
+                        SendState.Sent, null -> stringResource(Res.string.delivered)
+                    }
+                    MessageStatusLine(text = statusText, isMine = true)
                 }
-                MessageStatusLine(text = statusText, isMine = true)
             }
         }
     }
