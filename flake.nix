@@ -15,11 +15,23 @@
           config.allowUnfree = true;
         };
 
+        androidRelease =
+          let
+            importYAML =
+              file:
+              builtins.fromJSON (
+                builtins.readFile (
+                  pkgs.runCommand "converted-yaml.json" { } ''${pkgs.yj}/bin/yj < "${file}" > "$out"''
+                )
+              );
+          in
+          importYAML ./.github/workflows/release-android.yml;
+
         # this must be a full version, since it's used to find aapt2
-        buildToolsVersion = "36.0.0";
+        buildToolsVersion = androidRelease.env.ANDROID_BUILD_TOOLS;
 
         androidComposition = pkgs.androidenv.composeAndroidPackages {
-          platformVersions = [ "37" ];
+          platformVersions = [ androidRelease.env.ANDROID_API ];
           buildToolsVersions = [ buildToolsVersion ];
           includeNDK = true;
         };
