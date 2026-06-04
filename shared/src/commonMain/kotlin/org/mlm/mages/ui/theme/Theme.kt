@@ -48,6 +48,34 @@ private val DarkColorScheme = darkColorScheme(
     onTertiaryContainer = Color(0xFFFFD8E4)
 )
 
+private val BlackColorScheme = darkColorScheme(
+    primary = AppColors.Purple80,
+    secondary = AppColors.PurpleGrey80,
+    tertiary = AppColors.Pink80,
+
+    surface = Color(0xFF1A1C1E),
+    onSurface = Color(0xFFE2E2E6),
+    surfaceVariant = Color(0xFF44474E),
+    onSurfaceVariant = Color(0xFFC4C6D0),
+
+    surfaceBright = Color(0xFF38393E),
+    surfaceDim = Color(0xFF121318),
+    surfaceContainerLowest = Color(0xFF0C0E13),
+    surfaceContainerLow = Color(0xFF1A1C22),
+    surfaceContainer = Color(0xFF1E2025),
+    surfaceContainerHigh = Color(0xFF282A2F),
+    surfaceContainerHighest = Color(0xFF33353A),
+
+    background = Color(0xFF000000),
+    onBackground = Color(0xFFE2E2E6),
+    primaryContainer = Color(0xFF4F378B),
+    onPrimaryContainer = Color(0xFFEADDFF),
+    secondaryContainer = Color(0xFF36424C),
+    onSecondaryContainer = Color(0xFFDCE7F1),
+    tertiaryContainer = Color(0xFF633B48),
+    onTertiaryContainer = Color(0xFFFFD8E4)
+)
+
 private val LightColorScheme = lightColorScheme(
     primary = AppColors.Purple40,
     secondary = AppColors.PurpleGrey40,
@@ -93,11 +121,12 @@ val AppShapes = Shapes(
 @Composable
 fun MainTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    blackTheme: Boolean = false,
     dynamicColors: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val colorScheme = getDynamicColorScheme(darkTheme, dynamicColors)
-        ?: if (darkTheme) DarkColorScheme else LightColorScheme
+        ?: if (blackTheme) BlackColorScheme else if (darkTheme) DarkColorScheme else LightColorScheme
 
     MaterialExpressiveTheme(
         colorScheme = colorScheme,

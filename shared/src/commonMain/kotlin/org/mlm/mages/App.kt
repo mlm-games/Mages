@@ -140,6 +140,7 @@ private fun AppContent(
         ThemeMode.System -> isSystemInDarkTheme()
         ThemeMode.Dark -> true
         ThemeMode.Light -> false
+        ThemeMode.Black -> true
     }
     val widgetTheme = if (isDark) "dark" else "light"
     val elementCallUrl =
@@ -149,6 +150,7 @@ private fun AppContent(
     ProvideAppLocale(settings.appLanguageTagOrNull()) {
         MainTheme(
             darkTheme = isDark,
+            blackTheme = settings.themeMode == ThemeMode.Black,
             dynamicColors = settings.dynamicColors
         ) {
             val languageTag = LocalAppLocale.current

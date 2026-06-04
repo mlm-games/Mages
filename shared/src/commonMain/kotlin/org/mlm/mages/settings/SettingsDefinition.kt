@@ -57,7 +57,7 @@ data class AppSettings(
 
     @Setting(
         title = "Theme",
-        description = "System / Light / Dark",
+        description = "System / Light / Dark / Black",
         category = Appearance::class,
         type = Dropdown::class,
     )
