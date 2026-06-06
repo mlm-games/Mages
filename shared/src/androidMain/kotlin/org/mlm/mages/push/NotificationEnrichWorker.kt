@@ -228,11 +228,7 @@ class NotificationEnrichWorker(
             NotificationKind.Message -> {
                 val inQuietHours = settings.quietHoursEnabled && isInQuietHours(settings)
 
-                val title = if (rendered.isDm || rendered.sender == rendered.roomName) {
-                    rendered.sender
-                } else {
-                    "${rendered.sender} • ${rendered.roomName}"
-                }
+                val title = rendered.sender
 
                 val playSound = if (!inQuietHours && settings.notificationSound && rendered.isNoisy) {
                     if (settings.notifySoundOncePerRoom) {
