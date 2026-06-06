@@ -1,3 +1,10 @@
+## v4.8.2
+
+- Show multiple notifications from a room at once
+- rem duplicate grp name in notifications
+- Linux unifiedpush support
+
+
 ## v4.8.1
 
 - Do not highlight voice button
