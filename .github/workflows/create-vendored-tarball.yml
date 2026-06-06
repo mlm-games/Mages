@@ -120,8 +120,8 @@ jobs:
           dependencies {
               val jfxVersion = "21.0.1"
 
-              composeArm64("org.jetbrains.compose.desktop:desktop-jvm-linux-arm64:1.11.0-rc01")
-              composeX64("org.jetbrains.compose.desktop:desktop-jvm-linux-x64:1.11.0-rc01")
+              composeArm64("org.jetbrains.compose.desktop:desktop-jvm-linux-arm64:1.11.1")
+              composeX64("org.jetbrains.compose.desktop:desktop-jvm-linux-x64:1.11.1")
 
               javafxLinux("org.openjfx:javafx-base:$jfxVersion:linux")
               javafxLinux("org.openjfx:javafx-graphics:$jfxVersion:linux")
