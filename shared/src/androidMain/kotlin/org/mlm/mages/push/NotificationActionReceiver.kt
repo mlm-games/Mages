@@ -67,20 +67,9 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                             when (intent.action) {
                                 ACTION_MARK_READ -> {
                                     port.markFullyReadAt(roomId, eventId)
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
-                                        && BubbleEligibilityEvaluator.canBubble(context, roomId)
-                                    ) {
-                                        val roomName = intent.getStringExtra(EXTRA_ROOM_NAME) ?: "Unknown"
-                                        val senderName = intent.getStringExtra(EXTRA_SENDER_NAME) ?: "Unknown"
-                                        val messageBody = intent.getStringExtra(EXTRA_MESSAGE_BODY) ?: ""
-                                        val bubbleActivityClass = try {
-                                            Class.forName("org.mlm.mages.activities.BubbleConversationActivity")
-                                        } catch (_: ClassNotFoundException) {
-                                            Class.forName("org.mlm.mages.MainActivity")
-                                        }
-                                        Notifier.suppressBubble(context, roomId, roomName, senderName, messageBody, notifId, bubbleActivityClass)
-                                    } else {
-                                        if (notifId != 0) nm.cancel(notifId)
+                                    if (notifId != 0) {
+                                        nm.cancel(notifId)
+                                        Notifier.updateSummaryNotification(context)
                                     }
                                 }
                                 ACTION_REPLY -> {
@@ -166,12 +155,18 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                                             isDm = isDm,
                                         )
                                     } else {
-                                        if (notifId != 0) nm.cancel(notifId)
+                                        if (notifId != 0) {
+                                            nm.cancel(notifId)
+                                            Notifier.updateSummaryNotification(context)
+                                        }
                                     }
                                 }
                             }
                         } else {
-                            if (notifId != 0) nm.cancel(notifId)
+                            if (notifId != 0) {
+                                nm.cancel(notifId)
+                                Notifier.updateSummaryNotification(context)
+                            }
                         }
                     }
                 }

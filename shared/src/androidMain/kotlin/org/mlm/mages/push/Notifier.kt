@@ -153,11 +153,13 @@ object AndroidNotificationHelper : KoinComponent {
     fun cancelCallNotification(ctx: Context, roomId: String) {
         val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         mgr.cancel(callNotificationId(roomId))
+        Notifier.updateSummaryNotification(ctx)
     }
 
     fun cancelRoomNotification(ctx: Context, roomId: String) {
         val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        mgr.cancel(roomId.hashCode())
+        mgr.cancel(roomId.hashCode()) // TODO: shouldnt cancel if it is a bubble?
+        Notifier.updateSummaryNotification(ctx)
     }
 
     fun showInviteNotification(
@@ -417,6 +419,9 @@ object AndroidNotificationHelper : KoinComponent {
 
 object Notifier {
 
+    private fun groupKey(context: Context) = "${context.packageName}.NOTIFICATIONS"
+    private val SUMMARY_NOTIFICATION_ID = "org.mlm.mages.NOTIFICATIONS.summary".hashCode()
+
     private const val REQUEST_BUBBLE = 2000
     private const val REQUEST_CONTENT = 3000
     private const val REQUEST_REPLY = 4000
@@ -457,9 +462,15 @@ object Notifier {
             .setIcon(senderAvatar.icon)
             .build()
 
-        val style = NotificationCompat.MessagingStyle(sender)
+        val nm = NotificationManagerCompat.from(context)
+        val existingStyle = nm.activeNotifications
+            .find { it.id == notificationId }
+            ?.notification
+            ?.let { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it) }
+
+        val style = (existingStyle ?: NotificationCompat.MessagingStyle(sender)
             .setConversationTitle(if (isDm) null else roomName)
-            .setGroupConversation(!isDm)
+            .setGroupConversation(!isDm))
             .addMessage(messageBody, timestamp, sender)
 
         val remoteInput = RemoteInput.Builder(KEY_TEXT_REPLY)
@@ -509,6 +520,8 @@ object Notifier {
             .setAutoCancel(true)
             .setOnlyAlertOnce(false)
             .setCategory(Notification.CATEGORY_MESSAGE)
+            .setGroup(groupKey(context))
+            .setGroupSummary(false)
 
         val largeIconBitmap = if (isDm) senderAvatar.bitmap else roomAvatar.bitmap
         builder.setLargeIcon(largeIconBitmap)
@@ -532,9 +545,11 @@ object Notifier {
 
         if (!playSound) builder.setSilent(true)
 
-        if (NotificationManagerCompat.from(context).areNotificationsEnabled()) {
-            NotificationManagerCompat.from(context).notify(notificationId, builder.build())
+        if (nm.areNotificationsEnabled()) {
+            nm.notify(notificationId, builder.build())
         }
+
+        updateSummaryNotification(context)
     }
 
     fun suppressBubble(
@@ -569,105 +584,43 @@ object Notifier {
             .setShortcutId(ConversationShortcutPublisher.shortcutId(roomId))
             .setBubbleMetadata(suppressed)
             .setOnlyAlertOnce(true)
+            .setGroup(groupKey(context))
+            .setGroupSummary(false)
         if (NotificationManagerCompat.from(context).areNotificationsEnabled()) {
             NotificationManagerCompat.from(context).notify(notificationId, builder.build())
         }
+        updateSummaryNotification(context)
     }
 
-    fun addReplyMessage(
-        context: Context,
-        roomId: String,
-        roomName: String,
-        eventId: String,
-        notificationId: Int,
-        replyText: String,
-        myUserId: String,
-        myUserName: String,
-        myAvatar: AvatarResult,
-        bubbleActivityClass: Class<*>?,
-        fullOpenIntent: PendingIntent,
-        isDm: Boolean,
-    ) {
-        val channelId = AppNotificationChannels.CHANNEL_MESSAGES_SILENT
+    fun updateSummaryNotification(context: Context) {
+        val nm = NotificationManagerCompat.from(context)
+        val activeNotifications = nm.activeNotifications
 
-        val me = Person.Builder()
-            .setName(myUserName)
-            .setKey(myUserId)
-            .setIcon(myAvatar.icon)
-            .build()
+        val roomNotifIds = activeNotifications
+            .filter {
+                it.id != SUMMARY_NOTIFICATION_ID &&
+                (it.notification.channelId == AppNotificationChannels.CHANNEL_MESSAGES ||
+                 it.notification.channelId == AppNotificationChannels.CHANNEL_MESSAGES_SILENT)
+            }
+            .map { it.id }
+            .distinct()
 
-        val style = NotificationCompat.MessagingStyle(me)
-            .setConversationTitle(if (isDm) null else roomName)
-            .setGroupConversation(!isDm)
-            .addMessage(replyText, System.currentTimeMillis(), me)
+        if (roomNotifIds.size < 2) {
+            nm.cancel(SUMMARY_NOTIFICATION_ID)
+            return
+        }
 
-        val remoteInput = RemoteInput.Builder(KEY_TEXT_REPLY)
-            .setLabel("Reply")
-            .build()
-        val replyIntent = PendingIntent.getBroadcast(
-            context,
-            REQUEST_REPLY + notificationId,
-            Intent(context, NotificationActionReceiver::class.java)
-                .setAction(NotificationActionReceiver.ACTION_REPLY)
-                .putExtra(NotificationActionReceiver.EXTRA_ROOM_ID, roomId)
-                .putExtra(NotificationActionReceiver.EXTRA_EVENT_ID, eventId)
-                .putExtra(NotificationActionReceiver.EXTRA_NOTIF_ID, notificationId)
-                .putExtra(NotificationActionReceiver.EXTRA_ROOM_NAME, roomName),
-            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-        val replyAction = NotificationCompat.Action.Builder(
-            R.drawable.ic_notif_status_bar, "Reply", replyIntent
-        ).addRemoteInput(remoteInput).build()
-
-        val markReadIntent = PendingIntent.getBroadcast(
-            context,
-            REQUEST_READ + notificationId,
-            Intent(context, NotificationActionReceiver::class.java)
-                .setAction(NotificationActionReceiver.ACTION_MARK_READ)
-                .putExtra(NotificationActionReceiver.EXTRA_ROOM_ID, roomId)
-                .putExtra(NotificationActionReceiver.EXTRA_EVENT_ID, eventId)
-                .putExtra(NotificationActionReceiver.EXTRA_NOTIF_ID, notificationId),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-        val markReadAction = NotificationCompat.Action.Builder(
-            R.drawable.ic_notif_status_bar, "Mark read", markReadIntent
-        ).build()
-
-        val builder = NotificationCompat.Builder(context, channelId)
+        val summary = NotificationCompat.Builder(context, AppNotificationChannels.CHANNEL_MESSAGES_SILENT)
             .setSmallIcon(R.drawable.ic_notif_status_bar)
-            .setStyle(style)
-            .setShortcutId(ConversationShortcutPublisher.shortcutId(roomId))
-            .setContentIntent(fullOpenIntent)
-            .addAction(replyAction)
-            .addAction(markReadAction)
+            .setContentTitle("${roomNotifIds.size} conversation(s)")
+            .setContentText("${roomNotifIds.size} conversation(s)")
+            .setGroup(groupKey(context))
+            .setGroupSummary(true)
             .setAutoCancel(true)
-            .setOnlyAlertOnce(false)
-            .setCategory(Notification.CATEGORY_MESSAGE)
+            .setSilent(true)
+            .build()
 
-        builder.setLargeIcon(myAvatar.bitmap)
-
-        if (bubbleActivityClass != null && BubbleEligibilityEvaluator.canBubble(context, roomId)) {
-            val bubblePendingIntent = PendingIntent.getActivity(
-                context,
-                REQUEST_BUBBLE + notificationId,
-                Intent(context, bubbleActivityClass)
-                    .putExtra(ConversationShortcutPublisher.EXTRA_ROOM_ID, roomId),
-                PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            )
-            val bubbleMetadata = NotificationCompat.BubbleMetadata.Builder(
-                bubblePendingIntent, myAvatar.icon
-            )
-                .setDesiredHeight((Resources.getSystem().displayMetrics.density * 480).toInt())
-                .setSuppressNotification(false)
-                .build()
-            builder.setBubbleMetadata(bubbleMetadata)
-        }
-
-        builder.setSilent(true)
-
-        if (NotificationManagerCompat.from(context).areNotificationsEnabled()) {
-            NotificationManagerCompat.from(context).notify(notificationId, builder.build())
-        }
+        nm.notify(SUMMARY_NOTIFICATION_ID, summary)
     }
 
     fun showQuickReplyNotification(
@@ -701,15 +654,21 @@ object Notifier {
             .setIcon(contactAvatar.icon)
             .build()
 
-        val style = NotificationCompat.MessagingStyle(me)
-            .setConversationTitle(if (isDm) null else roomName)
-            .setGroupConversation(!isDm)
+        val nm = NotificationManagerCompat.from(context)
+        val existingStyle = nm.activeNotifications
+            .find { it.id == notificationId }
+            ?.notification
+            ?.let { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it) }
 
-        if (originalMessage.isNotEmpty()) {
+        val style = (existingStyle ?: NotificationCompat.MessagingStyle(me)
+            .setConversationTitle(if (isDm) null else roomName)
+            .setGroupConversation(!isDm))
+
+        if (originalMessage.isNotEmpty() && existingStyle == null) {
             style.addMessage(originalMessage, System.currentTimeMillis() - 2000, contact)
         }
 
-        style.addMessage(replyText, System.currentTimeMillis(), null as Person?)
+        style.addMessage(replyText, System.currentTimeMillis(), me)
 
         val remoteInput = RemoteInput.Builder(KEY_TEXT_REPLY)
             .setLabel("Reply")
@@ -756,6 +715,8 @@ object Notifier {
             .setAutoCancel(true)
             .setOnlyAlertOnce(false)
             .setCategory(Notification.CATEGORY_MESSAGE)
+            .setGroup(groupKey(context))
+            .setGroupSummary(false)
 
         if (isDm) {
             builder.setLargeIcon(myAvatar.bitmap)
@@ -783,8 +744,10 @@ object Notifier {
 
         builder.setSilent(true)
 
-        if (NotificationManagerCompat.from(context).areNotificationsEnabled()) {
-            NotificationManagerCompat.from(context).notify(notificationId, builder.build())
+        if (nm.areNotificationsEnabled()) {
+            nm.notify(notificationId, builder.build())
         }
+
+        updateSummaryNotification(context)
     }
 }
