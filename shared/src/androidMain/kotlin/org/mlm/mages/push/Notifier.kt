@@ -552,46 +552,6 @@ object Notifier {
         updateSummaryNotification(context)
     }
 
-    fun suppressBubble(
-        context: Context,
-        roomId: String,
-        roomName: String,
-        senderName: String,
-        messageBody: String,
-        notificationId: Int,
-        bubbleActivityClass: Class<*>
-    ) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
-        val icon = IconCompat.createWithResource(context, R.drawable.ic_notif_status_bar)
-        val bubblePi = PendingIntent.getActivity(
-            context,
-            REQUEST_BUBBLE + notificationId,
-            Intent(context, bubbleActivityClass)
-                .putExtra(ConversationShortcutPublisher.EXTRA_ROOM_ID, roomId),
-            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-        val suppressed = NotificationCompat.BubbleMetadata.Builder(bubblePi, icon)
-            .setDesiredHeight((Resources.getSystem().displayMetrics.density * 640).toInt())
-            .setSuppressNotification(true)
-            .build()
-        val sender = Person.Builder().setName(senderName).setKey(roomId).build()
-        val style = NotificationCompat.MessagingStyle(sender)
-            .setConversationTitle(roomName)
-            .addMessage(messageBody, System.currentTimeMillis(), sender)
-        val builder = NotificationCompat.Builder(context, AppNotificationChannels.CHANNEL_MESSAGES)
-            .setSmallIcon(R.drawable.ic_notif_status_bar)
-            .setStyle(style)
-            .setShortcutId(ConversationShortcutPublisher.shortcutId(roomId))
-            .setBubbleMetadata(suppressed)
-            .setOnlyAlertOnce(true)
-            .setGroup(groupKey(context))
-            .setGroupSummary(false)
-        if (NotificationManagerCompat.from(context).areNotificationsEnabled()) {
-            NotificationManagerCompat.from(context).notify(notificationId, builder.build())
-        }
-        updateSummaryNotification(context)
-    }
-
     fun updateSummaryNotification(context: Context) {
         val nm = NotificationManagerCompat.from(context)
         val activeNotifications = nm.activeNotifications
