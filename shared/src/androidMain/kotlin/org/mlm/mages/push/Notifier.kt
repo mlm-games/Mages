@@ -15,7 +15,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.core.app.RemoteInput
-import androidx.core.graphics.drawable.IconCompat
 import androidx.core.net.toUri
 import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.flow.first
@@ -28,46 +27,6 @@ import org.mlm.mages.shared.R
 object AndroidNotificationHelper : KoinComponent {
 
     data class NotificationText(val title: String, val body: String)
-
-    fun showSingleEvent(
-        ctx: Context,
-        n: NotificationText,
-        roomId: String,
-        eventId: String,
-        playSound: Boolean = true
-    ) {
-        AppNotificationChannels.ensureCreated(ctx)
-        val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-
-        val channelId = if (playSound)
-            AppNotificationChannels.CHANNEL_MESSAGES
-        else
-            AppNotificationChannels.CHANNEL_MESSAGES_SILENT
-
-        val notifId = (roomId).hashCode()
-
-        val activeMessageCount = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            mgr.activeNotifications.count {
-                it.notification.channelId == AppNotificationChannels.CHANNEL_MESSAGES ||
-                        it.notification.channelId == AppNotificationChannels.CHANNEL_MESSAGES_SILENT
-            }
-        } else 0
-        val badgeCount = activeMessageCount + 1
-
-        val notification = NotificationCompat.Builder(ctx, channelId)
-            .setSmallIcon(R.drawable.ic_notif_status_bar)
-            .setContentTitle(n.title)
-            .setContentText(n.body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(n.body))
-            .setContentIntent(createOpenIntent(ctx, roomId, eventId, notifId))
-            .addAction(createReplyAction(ctx, roomId, eventId, notifId))
-            .addAction(createMarkReadAction(ctx, roomId, eventId, notifId))
-            .setNumber(badgeCount)
-            .setAutoCancel(true)
-            .build()
-
-        mgr.notify(notifId, notification)
-    }
 
     private fun callNotificationId(roomId: String): Int =
         ("call_$roomId").hashCode()
