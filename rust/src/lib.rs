@@ -137,9 +137,9 @@ delegate_unit_result! {
     send_thread_text(room_id: String, root_event_id: String, body: String,
                      reply_to_event_id: Option<String>, latest_event_id: Option<String>,
                      formatted_body: Option<String>);
-    mark_read(room_id: String);
-    mark_read_at(room_id: String, event_id: String);
-    mark_fully_read_at(room_id: String, event_id: String);
+    mark_read(room_id: String, send_public_receipt: bool);
+    mark_read_at(room_id: String, event_id: String, send_public_receipt: bool);
+    mark_fully_read_at(room_id: String, event_id: String, send_public_receipt: bool);
     set_mark_unread(room_id: String, unread: bool);
     ban_user(room_id: String, user_id: String, reason: Option<String>);
     unban_user(room_id: String, user_id: String, reason: Option<String>);

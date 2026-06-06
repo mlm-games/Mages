@@ -397,8 +397,8 @@ data class AppSettings(
     val androidNotifBaselineMs: Long = 0L,
 
     @Setting(
-        title = "Send read receipts",
-        description = "When disabled, Mages will not send read receipts / fully-read markers",
+        title = "Send public read receipts",
+        description = "When enabled, other users can see when you've read their messages",
         category = Privacy::class,
         type = Toggle::class
     )

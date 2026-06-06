@@ -6,11 +6,16 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import io.github.mlmgames.settings.core.SettingsRepository
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
+import org.koin.core.component.inject
 import org.mlm.mages.MatrixService
 import org.mlm.mages.RoomSummary
 import org.mlm.mages.matrix.LatestRoomEvent
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.RoomListEntry
+import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.LastMessageType
 import org.mlm.mages.ui.RoomListItemUi
 import org.mlm.mages.ui.RoomTypeFilter
@@ -19,6 +24,10 @@ import org.mlm.mages.ui.RoomsUiState
 class RoomsViewModel(
     private val service: MatrixService
 ) : BaseViewModel<RoomsUiState>(RoomsUiState(isLoading = true)) {
+
+    private val settingsRepo: SettingsRepository<AppSettings> by inject()
+    private val settings = settingsRepo.flow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
 
     // One-time events
     sealed class Event {
@@ -118,7 +127,7 @@ class RoomsViewModel(
 
     fun markRead(roomId: String) {
         launch {
-            service.port.markRead(roomId).onSuccess {
+            service.port.markRead(roomId, settings.value.sendReadReceipts).onSuccess {
                 updateState {
                     copy(unread = unread - roomId)
                 }

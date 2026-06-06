@@ -123,14 +123,14 @@ class MatrixService(
     suspend fun paginateBack(roomId: String, count: Int): Result<Boolean> =
         port.paginateBack(roomId, count)
 
-    suspend fun markRead(roomId: String): Result<Unit> =
-        port.markRead(roomId)
+    suspend fun markRead(roomId: String, sendPublicReceipt: Boolean = true): Result<Unit> =
+        port.markRead(roomId, sendPublicReceipt)
 
-    suspend fun markReadAt(roomId: String, eventId: String): Result<Unit> =
-        port.markReadAt(roomId, eventId)
+    suspend fun markReadAt(roomId: String, eventId: String, sendPublicReceipt: Boolean = true): Result<Unit> =
+        port.markReadAt(roomId, eventId, sendPublicReceipt)
 
-    suspend fun markFullyReadAt(roomId: String, eventId: String): Result<Unit> =
-        port.markFullyReadAt(roomId, eventId)
+    suspend fun markFullyReadAt(roomId: String, eventId: String, sendPublicReceipt: Boolean = true): Result<Unit> =
+        port.markFullyReadAt(roomId, eventId, sendPublicReceipt)
 
     suspend fun markRoomSeenLatest(roomId: String, sendPublicReceipt: Boolean): Result<Boolean> =
         port.markRoomSeenLatest(roomId, sendPublicReceipt)

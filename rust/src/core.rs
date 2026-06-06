@@ -514,18 +514,29 @@ impl CoreClient {
         tl.send(content.into()).await.ffi().map(|_| ())
     }
 
-    pub async fn mark_read(&self, room_id: String) -> Result<(), FfiError> {
+    pub async fn mark_read(
+        &self,
+        room_id: String,
+        send_public_receipt: bool,
+    ) -> Result<(), FfiError> {
         let tl = self
             .timeline(&room_id)
             .await
             .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
-        tl.mark_as_read(ReceiptType::ReadPrivate)
-            .await
-            .ffi()
-            .map(|_| ())
+        let receipt_type = if send_public_receipt {
+            ReceiptType::Read
+        } else {
+            ReceiptType::ReadPrivate
+        };
+        tl.mark_as_read(receipt_type).await.ffi().map(|_| ())
     }
 
-    pub async fn mark_read_at(&self, room_id: String, event_id: String) -> Result<(), FfiError> {
+    pub async fn mark_read_at(
+        &self,
+        room_id: String,
+        event_id: String,
+        send_public_receipt: bool,
+    ) -> Result<(), FfiError> {
         let rid = OwnedRoomId::try_from(room_id.as_str())
             .map_err(|_| FfiError::Msg("invalid room id".into()))?;
         let eid =
@@ -534,19 +545,21 @@ impl CoreClient {
             .sdk
             .get_room(&rid)
             .ok_or_else(|| FfiError::Msg("room not found".into()))?;
-        room.send_single_receipt(
-            ReceiptType::ReadPrivate,
-            ReceiptThread::Unthreaded,
-            eid.to_owned(),
-        )
-        .await
-        .ffi()
+        let receipt_type = if send_public_receipt {
+            ReceiptType::Read
+        } else {
+            ReceiptType::ReadPrivate
+        };
+        room.send_single_receipt(receipt_type, ReceiptThread::Unthreaded, eid.to_owned())
+            .await
+            .ffi()
     }
 
     pub async fn mark_fully_read_at(
         &self,
         room_id: String,
         event_id: String,
+        send_public_receipt: bool,
     ) -> Result<(), FfiError> {
         let rid = OwnedRoomId::try_from(room_id.as_str())
             .map_err(|_| FfiError::Msg("invalid room id".into()))?;
@@ -556,9 +569,15 @@ impl CoreClient {
             .sdk
             .get_room(&rid)
             .ok_or_else(|| FfiError::Msg("room not found".into()))?;
-        let receipts = matrix_sdk::room::Receipts::new()
-            .private_read_receipt(eid.clone())
-            .fully_read_marker(eid);
+        let receipts = if send_public_receipt {
+            matrix_sdk::room::Receipts::new()
+                .public_read_receipt(eid.clone())
+                .fully_read_marker(eid)
+        } else {
+            matrix_sdk::room::Receipts::new()
+                .private_read_receipt(eid.clone())
+                .fully_read_marker(eid)
+        };
         room.send_multiple_receipts(receipts).await.ffi()
     }
 

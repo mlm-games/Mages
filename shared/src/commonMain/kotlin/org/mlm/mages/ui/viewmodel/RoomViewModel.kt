@@ -900,13 +900,11 @@ class RoomViewModel(
 
         launch {
             runCatching {
-                service.markFullyReadAt(event.roomId, event.eventId)
-            }
-
-            if (settings.value.sendReadReceipts) {
-                runCatching {
-                    service.markReadAt(event.roomId, event.eventId)
-                }
+                service.markFullyReadAt(
+                    event.roomId,
+                    event.eventId,
+                    settings.value.sendReadReceipts
+                )
             }
         }
     }

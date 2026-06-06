@@ -8,16 +8,20 @@ import android.content.Intent
 import android.os.Build
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import io.github.mlmgames.settings.core.SettingsRepository
 import org.mlm.mages.MatrixService
 import org.mlm.mages.push.NotificationAvatarHelper
+import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.shared.R
 
 class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
 
     private val service: MatrixService by inject()
+    private val settingsRepo: SettingsRepository<AppSettings> by inject()
 
     override fun onReceive(context: Context, intent: Intent) {
         AppNotificationChannels.ensureCreated(context)
@@ -66,7 +70,7 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                         if (port != null && service.isLoggedIn()) {
                             when (intent.action) {
                                 ACTION_MARK_READ -> {
-                                    port.markFullyReadAt(roomId, eventId)
+                                    port.markFullyReadAt(roomId, eventId, settingsRepo.flow.first().sendReadReceipts)
                                     if (notifId != 0) {
                                         nm.cancel(notifId)
                                         Notifier.updateSummaryNotification(context)
@@ -81,7 +85,7 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
 
                                     if (text.isNotBlank()) {
                                         port.reply(roomId, eventId, text)
-                                        port.markFullyReadAt(roomId, eventId)
+                                        port.markFullyReadAt(roomId, eventId, settingsRepo.flow.first().sendReadReceipts)
 
                                         val roomName = intent.getStringExtra(EXTRA_ROOM_NAME) ?: ""
                                         val contactName = intent.getStringExtra(EXTRA_SENDER_NAME) ?: ""

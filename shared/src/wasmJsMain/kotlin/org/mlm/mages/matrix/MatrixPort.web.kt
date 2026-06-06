@@ -601,14 +601,14 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun paginateForward(roomId: String, count: Int): Result<Boolean> =
         requireClient().paginateForwards(roomId, count.toDouble()).awaitBoolResult()
 
-    override suspend fun markRead(roomId: String): Result<Unit> =
-        requireClient().markRead(roomId).awaitUnitResult()
+    override suspend fun markRead(roomId: String, sendPublicReceipt: Boolean): Result<Unit> =
+        requireClient().markRead(roomId, sendPublicReceipt).awaitUnitResult()
 
-    override suspend fun markReadAt(roomId: String, eventId: String): Result<Unit> =
-        requireClient().markReadAt(roomId, eventId).awaitUnitResult()
+    override suspend fun markReadAt(roomId: String, eventId: String, sendPublicReceipt: Boolean): Result<Unit> =
+        requireClient().markReadAt(roomId, eventId, sendPublicReceipt).awaitUnitResult()
 
-    override suspend fun markFullyReadAt(roomId: String, eventId: String): Result<Unit> =
-        requireClient().markFullyReadAt(roomId, eventId).awaitUnitResult()
+    override suspend fun markFullyReadAt(roomId: String, eventId: String, sendPublicReceipt: Boolean): Result<Unit> =
+        requireClient().markFullyReadAt(roomId, eventId, sendPublicReceipt).awaitUnitResult()
 
     override suspend fun markRoomSeenLatest(roomId: String, sendPublicReceipt: Boolean): Result<Boolean> =
         requireClient().markRoomSeenLatest(roomId, sendPublicReceipt).awaitBoolResult()

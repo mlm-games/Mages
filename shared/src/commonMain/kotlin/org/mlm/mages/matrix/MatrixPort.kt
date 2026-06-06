@@ -672,17 +672,17 @@ interface MatrixPort {
 
     suspend fun paginateBack(roomId: String, count: Int): Result<Boolean>
     suspend fun paginateForward(roomId: String, count: Int): Result<Boolean>
-    suspend fun markRead(roomId: String): Result<Unit>
-    suspend fun markReadAt(roomId: String, eventId: String): Result<Unit>
+    suspend fun markRead(roomId: String, sendPublicReceipt: Boolean = false): Result<Unit>
+    suspend fun markReadAt(roomId: String, eventId: String, sendPublicReceipt: Boolean = false): Result<Unit>
     suspend fun react(roomId: String, eventId: String, emoji: String): Result<Unit>
     suspend fun reply(roomId: String, inReplyToEventId: String, body: String, formattedBody: String? = null): Result<Unit>
     suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String? = null): Result<Unit>
     suspend fun redact(roomId: String, eventId: String, reason: String? = null): Result<Unit>
     suspend fun getUserPowerLevel(roomId: String, userId: String): Long
-    
+
     suspend fun getPinnedEvents(roomId: String): List<String>
     suspend fun setPinnedEvents(roomId: String, eventIds: List<String>): Result<Unit>
-    
+
     suspend fun observeTyping(roomId: String, onUpdate: (List<String>) -> Unit): ULong
 
     suspend fun startSupervisedSync(observer: SyncObserver)
@@ -746,7 +746,7 @@ interface MatrixPort {
     suspend fun roomUnreadStats(roomId: String): UnreadStats?
     suspend fun ownLastRead(roomId: String): Pair<String?, Long?>
     suspend fun observeOwnReceipt(roomId: String, observer: ReceiptsObserver): ULong
-    suspend fun markFullyReadAt(roomId: String, eventId: String): Result<Unit>
+    suspend fun markFullyReadAt(roomId: String, eventId: String, sendPublicReceipt: Boolean = true): Result<Unit>
     suspend fun markRoomSeenLatest(roomId: String, sendPublicReceipt: Boolean): Result<Boolean>
 
     interface RoomListObserver { fun onReset(items: List<RoomListEntry>); fun onUpdate(item: RoomListEntry) }

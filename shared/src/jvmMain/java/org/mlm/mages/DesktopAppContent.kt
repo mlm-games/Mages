@@ -44,7 +44,7 @@ fun DesktopBackground(
 
         DesktopNotifActions.markRead = { roomId, eventId ->
             scope.launch {
-                runCatching { service.port.markFullyReadAt(roomId, eventId) }
+                runCatching { service.port.markFullyReadAt(roomId, eventId, settings.sendReadReceipts) }
             }
         }
 
@@ -58,7 +58,7 @@ fun DesktopBackground(
 
             scope.launch {
                 runCatching { service.port.reply(roomId, eventId, msg) }
-                runCatching { service.port.markFullyReadAt(roomId, eventId) }
+                runCatching { service.port.markFullyReadAt(roomId, eventId, settings.sendReadReceipts) }
             }
         }
     }

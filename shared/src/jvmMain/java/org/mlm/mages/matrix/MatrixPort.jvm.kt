@@ -343,14 +343,14 @@ class RustMatrixPort : MatrixPort, VerificationService {
             runWithFfiResult { withClient { it.paginateForwards(roomId, count.toUShort()) } }
         }
 
-    override suspend fun markRead(roomId: String): Result<Unit> =
+    override suspend fun markRead(roomId: String, sendPublicReceipt: Boolean): Result<Unit> =
         withContext(matrixDispatcher) {
-            runWithFfiResult { withClient { it.markRead(roomId) } }
+            runWithFfiResult { withClient { it.markRead(roomId, sendPublicReceipt) } }
         }
 
-    override suspend fun markReadAt(roomId: String, eventId: String): Result<Unit> =
+    override suspend fun markReadAt(roomId: String, eventId: String, sendPublicReceipt: Boolean): Result<Unit> =
         withContext(matrixDispatcher) {
-            runWithFfiResult { withClient { it.markReadAt(roomId, eventId) } }
+            runWithFfiResult { withClient { it.markReadAt(roomId, eventId, sendPublicReceipt) } }
         }
 
     override suspend fun react(roomId: String, eventId: String, emoji: String): Result<Unit> =
@@ -739,9 +739,9 @@ class RustMatrixPort : MatrixPort, VerificationService {
             withClient { it.observeOwnReceipt(roomId, cb) }
         }
 
-    override suspend fun markFullyReadAt(roomId: String, eventId: String): Result<Unit> =
+    override suspend fun markFullyReadAt(roomId: String, eventId: String, sendPublicReceipt: Boolean): Result<Unit> =
         withContext(matrixDispatcher) {
-            runWithFfiResult { withClient { it.markFullyReadAt(roomId, eventId) } }
+            runWithFfiResult { withClient { it.markFullyReadAt(roomId, eventId, sendPublicReceipt) } }
         }
 
     override suspend fun markRoomSeenLatest(roomId: String, sendPublicReceipt: Boolean): Result<Boolean> =
