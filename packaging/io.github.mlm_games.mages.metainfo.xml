@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.8.3" date="2026-06-09" type="stable">
+      <description>
+        <ul>
+          <li>do not normalise homserver urls (#105)</li>
+          <li>Wire read receipts directly via the sdk</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.8.2" date="2026-06-06" type="stable">
       <description>
         <ul>

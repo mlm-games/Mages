@@ -1,3 +1,9 @@
+## v4.8.3
+
+- do not normalise homserver urls (#105)
+- Wire read receipts directly via the sdk
+
+
 ## v4.8.2
 
 - Show multiple notifications from a room at once

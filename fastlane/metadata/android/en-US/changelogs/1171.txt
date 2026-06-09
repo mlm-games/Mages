@@ -1,0 +1,2 @@
+- do not normalise homserver urls (#105)
+- Wire read receipts directly via the sdk
