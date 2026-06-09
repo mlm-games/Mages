@@ -109,7 +109,7 @@ class LoginViewModel(
                         supportsPassword = false
                     ),
                     isCheckingServer = false,
-                    showPasswordLogin = true
+                    showPasswordLogin = false
                 )
             }
         }
