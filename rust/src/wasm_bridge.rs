@@ -453,23 +453,17 @@ impl WasmClient {
         account_id: Option<String>,
         _proxy: Option<String>,
     ) -> Result<WasmClient, JsValue> {
-        let normalized = {
-            let raw = homeserver_url.trim();
-            matrix_sdk::reqwest::Url::parse(raw)
-                .or_else(|_| matrix_sdk::reqwest::Url::parse(&format!("https://{raw}")))
-                .map(strip_matrix_path)
-                .map(|u| u.to_string())
-                .unwrap_or_else(|_| raw.to_owned())
+        let raw = homeserver_url.trim();
+        let server_name_or_url = if let Ok(url) = matrix_sdk::reqwest::Url::parse(raw) {
+            strip_matrix_path(url).to_string()
+        } else {
+            raw.to_owned()
         };
         let store_name = account_id
             .as_ref()
             .map(|id| format!("mages_store_{id}"))
             .unwrap_or_else(|| "mages_store".to_owned());
-        let builder = if account_id.is_some() {
-            SdkClient::builder().homeserver_url(normalized)
-        } else {
-            SdkClient::builder().server_name_or_homeserver_url(normalized)
-        };
+        let builder = SdkClient::builder().server_name_or_homeserver_url(server_name_or_url);
 
         let client = builder
             .indexeddb_store(&store_name, None)
@@ -701,7 +695,9 @@ impl WasmClient {
                 }
                 Err(_) => (false, false),
             };
+        let homeserver_url = state.client().homeserver().to_string();
         to_json(&HomeserverLoginDetails {
+            homeserver_url,
             supports_oauth,
             supports_sso,
             supports_password,

@@ -35,7 +35,10 @@ data class LoginUiState(
     val isCheckingServer: Boolean = false,
     val passwordLoginKind: PasswordLoginKind = PasswordLoginKind.Username,
     val phoneCountry: String = ""
-)
+) {
+    val effectiveHomeserver: String
+        get() = loginDetails?.homeserverUrl ?: homeserver
+}
 
 data class RoomsUiState(
     val rooms: List<RoomSummary> = emptyList(),

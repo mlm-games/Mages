@@ -344,13 +344,11 @@ impl Client {
     ) -> Result<Self, FfiError> {
         platform::init_tracing();
 
-        let normalized = {
-            let raw = homeserver_url.trim();
-            Url::parse(raw)
-                .or_else(|_| Url::parse(&format!("https://{raw}")))
-                .map(strip_matrix_path)
-                .map(|u| u.to_string())
-                .unwrap_or_else(|_| raw.to_owned())
+        let raw = homeserver_url.trim();
+        let server_name_or_url = if let Ok(url) = Url::parse(raw) {
+            strip_matrix_path(url).to_string()
+        } else {
+            raw.to_owned()
         };
 
         let store_dir_path = if let Some(ref id) = account_id {
@@ -364,19 +362,12 @@ impl Client {
         #[cfg(not(target_family = "wasm"))]
         let _ = std::fs::create_dir_all(&store_dir_path);
 
-        let use_direct_homeserver_url = account_id.is_some();
-
         let inner = RT
             .block_on(async {
                 #[cfg(target_arch = "wasm32")]
                 let client = {
-                    let builder = if use_direct_homeserver_url {
-                        SdkClient::builder().homeserver_url(normalized.clone())
-                    } else {
-                        SdkClient::builder().server_name_or_homeserver_url(normalized.clone())
-                    };
-
-                    builder
+                    SdkClient::builder()
+                        .server_name_or_homeserver_url(server_name_or_url.clone())
                         .indexeddb_store("mages_store", None)
                         .with_encryption_settings(EncryptionSettings {
                             auto_enable_cross_signing: true,
@@ -393,13 +384,8 @@ impl Client {
                 let client = {
                     let idx = platform::search_index_config(&store_dir_path)
                         .expect("native builds require search index config");
-                    let builder = if use_direct_homeserver_url {
-                        SdkClient::builder().homeserver_url(normalized.clone())
-                    } else {
-                        SdkClient::builder().server_name_or_homeserver_url(normalized.clone())
-                    };
-
-                    let builder = builder
+                    let builder = SdkClient::builder()
+                        .server_name_or_homeserver_url(server_name_or_url.clone())
                         .sqlite_store(&store_dir_path, None)
                         .search_index_store(SearchIndexStoreKind::EncryptedDirectory(
                             idx.dir, idx.key,
@@ -1390,7 +1376,10 @@ impl Client {
                 }
             };
 
+            let homeserver_url = self.core.sdk.homeserver().to_string();
+
             HomeserverLoginDetails {
+                homeserver_url,
                 supports_oauth,
                 supports_sso,
                 supports_password,

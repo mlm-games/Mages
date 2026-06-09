@@ -547,6 +547,7 @@ pub struct RoomUpgradeLinks {
 
 #[derive(Clone, Record, Serialize, Deserialize)]
 pub struct HomeserverLoginDetails {
+    pub homeserver_url: String,
     pub supports_oauth: bool,
     pub supports_sso: bool,
     pub supports_password: bool,

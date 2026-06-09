@@ -549,6 +549,7 @@ interface CallWidgetObserver {
 
 @Serializable
 data class HomeserverLoginDetails(
+    val homeserverUrl: String,
     val supportsOauth: Boolean,
     val supportsSso: Boolean,
     val supportsPassword: Boolean,

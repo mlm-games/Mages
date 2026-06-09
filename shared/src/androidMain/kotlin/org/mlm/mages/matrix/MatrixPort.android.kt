@@ -906,6 +906,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
     override suspend fun homeserverLoginDetails(): HomeserverLoginDetails = withContext(matrixDispatcher) {
         val details = withClient { it.homeserverLoginDetails() }
         HomeserverLoginDetails(
+            homeserverUrl = details.homeserverUrl,
             supportsOauth = details.supportsOauth,
             supportsSso = details.supportsSso,
             supportsPassword = details.supportsPassword,

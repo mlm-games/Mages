@@ -113,7 +113,7 @@ class LoginViewModel(
     private fun normalizeHomeserver(input: String): String {
         val hs = input.trim()
         if (hs.isBlank()) return ""
-        return if (hs.startsWith("https://") || hs.startsWith("http://")) hs else "https://$hs"
+        return hs
     }
 
     @OptIn(ExperimentalTime::class)
@@ -131,7 +131,7 @@ class LoginViewModel(
         cancelSso()
         cancelOauth()
 
-        val hs = normalizeHomeserver(s.homeserver)
+        val hs = s.effectiveHomeserver
         if (hs.isBlank()) {
             updateState { copy(error = "Please enter a server") }
             return
@@ -208,7 +208,7 @@ class LoginViewModel(
                     )
                 }
 
-                updateState { copy(isBusy = false, error = null, homeserver = hs) }
+                updateState { copy(isBusy = false, error = null, homeserver = s.homeserver) }
                 _events.send(Event.LoginSuccess)
             } catch (e: Exception) {
                 runCatching { port.close() }
@@ -224,7 +224,7 @@ class LoginViewModel(
         cancelSso()
         cancelOauth()
 
-        val hs = normalizeHomeserver(s.homeserver)
+        val hs = s.effectiveHomeserver
         if (hs.isBlank()) {
             updateState { copy(error = "Please enter a server") }
             return
@@ -284,7 +284,7 @@ class LoginViewModel(
                     )
                 }
 
-                updateState { copy(isBusy = false, ssoInProgress = false, error = null, homeserver = hs) }
+                updateState { copy(isBusy = false, ssoInProgress = false, error = null, homeserver = s.homeserver) }
                 _events.send(Event.LoginSuccess)
             } catch (e: CancellationException) {
                 runCatching { port.close() }
@@ -309,7 +309,7 @@ class LoginViewModel(
         cancelSso()
         cancelOauth()
 
-        val hs = normalizeHomeserver(s.homeserver)
+        val hs = s.effectiveHomeserver
         if (hs.isBlank()) {
             updateState { copy(error = "Please enter a server") }
             return
@@ -379,7 +379,7 @@ class LoginViewModel(
                     )
                 }
 
-                updateState { copy(isBusy = false, oauthInProgress = false, error = null, homeserver = hs) }
+                updateState { copy(isBusy = false, oauthInProgress = false, error = null, homeserver = s.homeserver) }
                 _events.send(Event.LoginSuccess)
             } catch (e: CancellationException) {
                 runCatching { port.close() }
