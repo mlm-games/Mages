@@ -309,7 +309,7 @@ fun LoginScreen(
                     }
 
                     AnimatedVisibility(
-                        visible = passwordAvailable || !serverKnown,
+                        visible = passwordAvailable || !serverKnown || (!oauthAvailable && !ssoAvailable),
                         enter = fadeIn(tween(300)) + expandVertically(tween(300)),
                         exit = fadeOut(tween(200)) + shrinkVertically(tween(200))
                     ) {

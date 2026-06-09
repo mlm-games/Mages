@@ -109,7 +109,6 @@ class LoginViewModel(
                         supportsPassword = false
                     ),
                     isCheckingServer = false,
-                    // FIXME: If probe fails, show password login as fallback
                     showPasswordLogin = true
                 )
             }
