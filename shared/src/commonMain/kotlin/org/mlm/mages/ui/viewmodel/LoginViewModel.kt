@@ -11,6 +11,7 @@ import org.mlm.mages.accounts.MatrixAccount
 import org.mlm.mages.accounts.MatrixClients
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.PasswordLoginKind
+import org.mlm.mages.matrix.HomeserverLoginDetails
 import org.mlm.mages.matrix.createMatrixPort
 import org.mlm.mages.platform.getDeviceDisplayName
 import org.mlm.mages.settings.AppSettings
@@ -34,7 +35,7 @@ class LoginViewModel(
             if (savedHs.isNotBlank()) {
                 updateState { copy(homeserver = savedHs) }
             }
-            probeServer()
+            debouncedProbeServer()
         }
     }
 
@@ -98,12 +99,17 @@ class LoginViewModel(
             }
         } catch (e: CancellationException) {
             throw e
-        } catch (_: Exception) {
+        } catch (e: Exception) {
             updateState {
                 copy(
-                    loginDetails = null,
+                    loginDetails = HomeserverLoginDetails(
+                        homeserverUrl = hs,
+                        supportsOauth = false,
+                        supportsSso = false,
+                        supportsPassword = false
+                    ),
                     isCheckingServer = false,
-                    // If probe fails, show password login as fallback
+                    // FIXME: If probe fails, show password login as fallback
                     showPasswordLogin = true
                 )
             }
