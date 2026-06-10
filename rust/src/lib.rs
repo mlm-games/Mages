@@ -416,7 +416,6 @@ impl Client {
                     builder.build().await
                 };
 
-
                 client
             })
             .map_err(|e| FfiError::Msg(format!("failed to build client: {e}")))?;
@@ -865,8 +864,7 @@ impl Client {
                 for diff in diffs {
                     match &diff {
                         VectorDiff::Append { values } => {
-                            item_ids
-                                .extend(values.iter().map(|v| v.unique_id().0.to_string()));
+                            item_ids.extend(values.iter().map(|v| v.unique_id().0.to_string()));
                         }
                         VectorDiff::PushBack { value } => {
                             item_ids.push(value.unique_id().0.to_string());
@@ -897,10 +895,7 @@ impl Client {
                             item_ids.clear();
                         }
                         VectorDiff::Reset { values } => {
-                            item_ids = values
-                                .iter()
-                                .map(|v| v.unique_id().0.to_string())
-                                .collect();
+                            item_ids = values.iter().map(|v| v.unique_id().0.to_string()).collect();
                         }
                         VectorDiff::PopBack => {
                             item_ids.pop();
@@ -921,8 +916,7 @@ impl Client {
                             emit_timeline_reset_filled(&obs, &tl, &room_id, &me).await;
                         }
                         other => {
-                            if let Some(mapped) = map_vec_diff(other, &room_id, &tl, &me)
-                            {
+                            if let Some(mapped) = map_vec_diff(other, &room_id, &tl, &me) {
                                 safe_call(|| obs.on_diff(mapped));
                             }
                         }
@@ -2074,7 +2068,7 @@ impl Client {
                 lang,
             };
             let pusher: Pusher = init.into();
-            self.core.sdk.pusher().set(pusher).await.is_ok()
+            self.core.sdk.pusher().set(pusher, true).await.is_ok()
         })
     }
 
@@ -2101,6 +2095,12 @@ impl Client {
             .sdk
             .session_meta()
             .map(|m| m.user_id.server_name().to_string())
+    }
+
+    // Unused rn, but maybe later
+    pub fn tile_server(&self) -> Option<String> {
+        RT.block_on(self.core.sdk.tile_server())
+            .map(|ts| ts.map_style_url)
     }
 
     pub fn cross_signing_status(&self) -> Result<HashMap<String, bool>, FfiError> {
