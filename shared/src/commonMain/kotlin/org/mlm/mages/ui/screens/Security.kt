@@ -168,6 +168,7 @@ fun SecurityScreen(
                     isKeyStorageEnabled = state.isKeyStorageEnabled,
                     isTogglingKeyStorage = state.isTogglingKeyStorage,
                     isCurrentDeviceVerified = isCurrentDeviceVerified,
+                    enableShareHistoryOnInvite = state.enableShareHistoryOnInvite,
                     onRefresh = viewModel::refreshDevices,
                     onVerifyDevice = viewModel::startSelfVerify,
                     onVerifyUser = { showVerifyUserDialog = true },
@@ -175,6 +176,7 @@ fun SecurityScreen(
                     onChangeRecovery = { activeSheet = SecuritySheet.SetupRecovery(isChange = true) },
                     onEnterRecoveryKey = { activeSheet = SecuritySheet.EnterRecoveryKey },
                     onToggleKeyStorage = viewModel::toggleKeyStorage,
+                    onSetEnableShareHistoryOnInvite = viewModel::setEnableShareHistoryOnInvite,
                     onOpenAccountManagement = { url -> uriHandler.openUri(url) }
                 )
 
@@ -276,6 +278,7 @@ private fun DevicesTab(
     isKeyStorageEnabled: Boolean?,
     isTogglingKeyStorage: Boolean,
     isCurrentDeviceVerified: Boolean,
+    enableShareHistoryOnInvite: Boolean,
     onRefresh: () -> Unit,
     onVerifyDevice: (String) -> Unit,
     onVerifyUser: () -> Unit,
@@ -283,6 +286,7 @@ private fun DevicesTab(
     onChangeRecovery: () -> Unit,
     onEnterRecoveryKey: () -> Unit,
     onToggleKeyStorage: () -> Unit,
+    onSetEnableShareHistoryOnInvite: (Boolean) -> Unit,
     onOpenAccountManagement: (String) -> Unit
 ) {
     LazyColumn(
@@ -400,8 +404,36 @@ private fun DevicesTab(
             }
         }
 
+        item {
+            HorizontalDivider()
+            ListItem(
+                headlineContent = { Text("Share history on invite") },
+                supportingContent = {
+                    Text(
+                        "Share encrypted history with invited users. Requires app restart.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                },
+                leadingContent = {
+                    Icon(
+                        Icons.Default.History,
+                        null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                trailingContent = {
+                    Switch(
+                        checked = enableShareHistoryOnInvite,
+                        onCheckedChange = onSetEnableShareHistoryOnInvite
+                    )
+                }
+            )
+        }
+
+
         if (accountManagementUrl != null) {
             item {
+                HorizontalDivider()
                 ListItem(
                     headlineContent = { Text(stringResource(Res.string.manage_account)) },
                     leadingContent = {

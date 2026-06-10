@@ -156,7 +156,7 @@ class MatrixClients(
         val effectiveProxy = proxyUrl ?: account.proxyUrl
 
         return try {
-            port.init(account.homeserver, account.id, effectiveProxy)
+            port.init(account.homeserver, account.id, effectiveProxy, account.enableShareHistoryOnInvite)
 
             val loggedIn = try {
                 port.isLoggedInSuspend()

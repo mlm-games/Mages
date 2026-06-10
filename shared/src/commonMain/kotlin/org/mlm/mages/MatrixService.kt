@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import org.mlm.mages.accounts.AccountStore
 import org.mlm.mages.accounts.MatrixAccount
 import org.mlm.mages.accounts.MatrixClients
 import org.mlm.mages.matrix.*
@@ -11,6 +12,7 @@ import org.mlm.mages.storage.AvatarLoader
 import kotlin.concurrent.Volatile
 
 class MatrixService(
+    val accountStore: AccountStore,
     private val clients: MatrixClients
 ) {
     val port: MatrixPort

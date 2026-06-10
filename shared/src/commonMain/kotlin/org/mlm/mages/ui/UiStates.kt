@@ -296,14 +296,12 @@ data class SecurityUiState(
     val sasOtherDevice: String? = null,
     val sasError: String? = null,
     val sasIncoming: Boolean = false,
-
     val sasContinuePressed: Boolean = false,
 
-    // Privacy
+    // Misc
     val ignoredUsers: List<String> = emptyList(),
-
-    // Presence
     val presence: PresenceUiState = PresenceUiState(),
+    val enableShareHistoryOnInvite: Boolean = true,
 )
 
 data class SpacesUiState(

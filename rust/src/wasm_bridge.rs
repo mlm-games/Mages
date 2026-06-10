@@ -452,6 +452,7 @@ impl WasmClient {
         _base_store_dir: String,
         account_id: Option<String>,
         _proxy: Option<String>,
+        enable_share_history_on_invite: Option<bool>,
     ) -> Result<WasmClient, JsValue> {
         let raw = homeserver_url.trim();
         let server_name_or_url = if let Ok(url) = matrix_sdk::reqwest::Url::parse(raw) {
@@ -463,7 +464,13 @@ impl WasmClient {
             .as_ref()
             .map(|id| format!("mages_store_{id}"))
             .unwrap_or_else(|| "mages_store".to_owned());
-        let builder = SdkClient::builder().server_name_or_homeserver_url(server_name_or_url);
+        let mut builder = SdkClient::builder().server_name_or_homeserver_url(server_name_or_url);
+
+        if enable_share_history_on_invite.unwrap_or(true) {
+            builder = builder.with_enable_share_history_on_invite(true);
+        } else {
+            builder = builder.with_enable_share_history_on_invite(false);
+        }
 
         let client = builder
             .indexeddb_store(&store_name, None)

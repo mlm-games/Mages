@@ -24,7 +24,7 @@ val coreModule = module {
 val accountModule = module {
     single { AccountStore(get(), get()) }
     single { MatrixClients(get()) }
-    single { MatrixService(get()) }
+    single { MatrixService(get(), get()) }
     single { VerificationCoordinator(get()) }
 
 }

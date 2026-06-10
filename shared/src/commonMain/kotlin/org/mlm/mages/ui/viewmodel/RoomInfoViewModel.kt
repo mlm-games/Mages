@@ -609,4 +609,5 @@ class RoomInfoViewModel(
             refreshOnSuccess = true,
         ) { runSafe { service.port.declineKnockRequest(roomId, userId, reason) } }
     }
+
 }

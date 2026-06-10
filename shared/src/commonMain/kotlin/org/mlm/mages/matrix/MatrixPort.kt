@@ -596,7 +596,7 @@ interface MatrixPort {
 
     interface SyncObserver { fun onState(status: SyncStatus) }
 
-    suspend fun init(hs: String, accountId: String? = null, proxyUrl: String? = null)
+    suspend fun init(hs: String, accountId: String? = null, proxyUrl: String? = null, enableShareHistoryOnInvite: Boolean = true)
     suspend fun login(user: String, password: String, deviceDisplayName: String?)
     suspend fun loginEmail(email: String, password: String, deviceDisplayName: String?)
     suspend fun loginPhone(country: String, phone: String, password: String, deviceDisplayName: String?)

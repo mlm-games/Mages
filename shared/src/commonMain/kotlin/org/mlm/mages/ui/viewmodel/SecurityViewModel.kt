@@ -68,6 +68,7 @@ class SecurityViewModel(
         loadPresence()
         loadAccountManagementUrl()
         refreshKeyStorageState(forceFetch = true)
+        updateShareHistoryState()
     }
 
     private var recoveryStateSub: ULong? = null
@@ -404,6 +405,20 @@ class SecurityViewModel(
 
             if (result.isSuccess) _events.send(Event.ShowSuccess("Status updated"))
             else _events.send(Event.ShowError(result.toUserMessage("Failed to update status")))
+        }
+    }
+
+    private fun updateShareHistoryState() {
+        val enabled = service.activeAccount.value?.enableShareHistoryOnInvite ?: true
+        updateState { copy(enableShareHistoryOnInvite = enabled) }
+    }
+
+    fun setEnableShareHistoryOnInvite(enabled: Boolean) {
+        launch {
+            val account = service.activeAccount.value ?: return@launch
+            val updated = account.copy(enableShareHistoryOnInvite = enabled)
+            service.accountStore.updateAccount(updated)
+            updateState { copy(enableShareHistoryOnInvite = enabled) }
         }
     }
 

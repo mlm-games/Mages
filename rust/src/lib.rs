@@ -341,6 +341,7 @@ impl Client {
         base_store_dir: String,
         account_id: Option<String>,
         proxy: Option<String>,
+        enable_share_history_on_invite: Option<bool>,
     ) -> Result<Self, FfiError> {
         platform::init_tracing();
 
@@ -366,7 +367,7 @@ impl Client {
             .block_on(async {
                 #[cfg(target_arch = "wasm32")]
                 let client = {
-                    SdkClient::builder()
+                    let mut builder = SdkClient::builder()
                         .server_name_or_homeserver_url(server_name_or_url.clone())
                         .indexeddb_store("mages_store", None)
                         .with_encryption_settings(EncryptionSettings {
@@ -375,16 +376,20 @@ impl Client {
                             backup_download_strategy: BackupDownloadStrategy::OneShot,
                             ..Default::default()
                         })
-                        .handle_refresh_tokens()
-                        .build()
-                        .await
+                        .handle_refresh_tokens();
+                    if enable_share_history_on_invite.unwrap_or(true) {
+                        builder = builder.with_enable_share_history_on_invite(true);
+                    } else {
+                        builder = builder.with_enable_share_history_on_invite(false);
+                    }
+                    builder.build().await
                 };
 
                 #[cfg(not(target_arch = "wasm32"))]
                 let client = {
                     let idx = platform::search_index_config(&store_dir_path)
                         .expect("native builds require search index config");
-                    let builder = SdkClient::builder()
+                    let mut builder = SdkClient::builder()
                         .server_name_or_homeserver_url(server_name_or_url.clone())
                         .sqlite_store(&store_dir_path, None)
                         .search_index_store(SearchIndexStoreKind::EncryptedDirectory(
@@ -398,14 +403,20 @@ impl Client {
                         })
                         .handle_refresh_tokens();
 
-                    let builder = if let Some(ref proxy_url) = proxy {
-                        builder.proxy(proxy_url)
+                    if let Some(ref proxy_url) = proxy {
+                        builder = builder.proxy(proxy_url);
+                    }
+
+                    if enable_share_history_on_invite.unwrap_or(true) {
+                        builder = builder.with_enable_share_history_on_invite(true);
                     } else {
-                        builder
-                    };
+                        builder = builder.with_enable_share_history_on_invite(false);
+                    }
 
                     builder.build().await
                 };
+
+
                 client
             })
             .map_err(|e| FfiError::Msg(format!("failed to build client: {e}")))?;

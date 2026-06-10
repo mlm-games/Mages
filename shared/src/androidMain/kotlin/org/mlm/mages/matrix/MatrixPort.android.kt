@@ -46,7 +46,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
     private var currentAccountId: String? = null
     private var currentProxyUrl: String? = null
 
-    override suspend fun init(hs: String, accountId: String?, proxyUrl: String?) =
+    override suspend fun init(hs: String, accountId: String?, proxyUrl: String?, enableShareHistoryOnInvite: Boolean) =
         withContext(matrixDispatcher) {
             synchronized(clientLock) {
                 if (currentHs == hs && currentAccountId == accountId && currentProxyUrl == proxyUrl && client != null) return@synchronized
@@ -56,7 +56,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
                     runCatching { c.close() }
                 }
 
-                client = FfiClient(hs, MagesPaths.storeDir(), accountId, proxyUrl)
+                client = FfiClient(hs, MagesPaths.storeDir(), accountId, proxyUrl, enableShareHistoryOnInvite)
                 currentHs = hs
                 currentAccountId = accountId
                 currentProxyUrl = proxyUrl

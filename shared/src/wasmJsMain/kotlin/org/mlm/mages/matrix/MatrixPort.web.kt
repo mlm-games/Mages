@@ -216,7 +216,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     private var nextConnectionObserverToken: ULong = 1uL
     private val connectionObserverStops = mutableMapOf<ULong, () -> Unit>()
 
-    override suspend fun init(hs: String, accountId: String?, proxyUrl: String?) {
+    override suspend fun init(hs: String, accountId: String?, proxyUrl: String?, enableShareHistoryOnInvite: Boolean) {
         if (currentHs == hs && currentAccountId == accountId && currentProxyUrl == proxyUrl && client != null) return
 
         ensureWasmBridgeReady()
@@ -226,6 +226,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             org.mlm.mages.platform.MagesPaths.storeDir(),
             accountId,
             proxyUrl,
+            enableShareHistoryOnInvite,
         )
         currentHs = hs
         currentAccountId = accountId
