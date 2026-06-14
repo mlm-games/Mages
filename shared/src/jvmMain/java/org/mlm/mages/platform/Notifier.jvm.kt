@@ -164,7 +164,7 @@ actual fun BindNotifications(
                 val title = if (n.isDm || n.sender == n.roomName) {
                     n.sender
                 } else {
-                    "${n.sender} • ${n.roomName}"
+                    n.roomName
                 }
 
                 val body = when (n.kind) {

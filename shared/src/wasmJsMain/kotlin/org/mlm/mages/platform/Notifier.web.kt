@@ -157,7 +157,7 @@ actual fun BindNotifications(
                 val title = if (notification.isDm || notification.sender == notification.roomName) {
                     notification.sender
                 } else {
-                    "${notification.sender} • ${notification.roomName.ifBlank { notification.sender }}"
+                    notification.roomName.ifBlank { notification.sender }
                 }
 
                 val body = when (notification.kind) {
