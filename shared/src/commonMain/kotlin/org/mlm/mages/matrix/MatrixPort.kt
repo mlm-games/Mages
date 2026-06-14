@@ -41,7 +41,7 @@ data class SearchHit (
 @Serializable
 data class SearchPage (
     var hits: List<SearchHit>,
-    var nextOffset: UInt?
+    var nextOffset: UInt? = null
 )
 
 sealed class TimelineDiff<out T> {
@@ -141,8 +141,8 @@ data class SendUpdate(
     val txnId: String,
     val attempts: Int,
     val state: SendState,
-    val eventId: String?,
-    val error: String?
+    val eventId: String? = null,
+    val error: String? = null
 )
 
 @Serializable
@@ -285,7 +285,7 @@ data class DirectoryUser(val userId: String, val displayName: String? = null, va
 @Serializable
 data class PublicRoom(val roomId: String, val name: String? = null, val topic: String? = null, val alias: String? = null, val avatarUrl: String? = null, val memberCount: Long = 0, val worldReadable: Boolean = false, val guestCanJoin: Boolean = false)
 @Serializable
-data class PublicRoomsPage(val rooms: List<PublicRoom>, val nextBatch: String?, val prevBatch: String?)
+data class PublicRoomsPage(val rooms: List<PublicRoom>, val nextBatch: String? = null, val prevBatch: String?)
 @Serializable
 data class RoomPreview(
     val roomId: String,
@@ -296,7 +296,7 @@ data class RoomPreview(
     val memberCount: Long,
     val worldReadable: Boolean? = null,
     val joinRule: RoomJoinRule? = null,
-    val membership: RoomPreviewMembership?
+    val membership: RoomPreviewMembership? = null
 )
 @Serializable
 data class RoomProfile(
