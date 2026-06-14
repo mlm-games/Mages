@@ -8,6 +8,7 @@ import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.mlm.mages.nav.DeepLinkAction
@@ -44,7 +45,9 @@ fun DesktopBackground(
 
         DesktopNotifActions.markRead = { roomId, eventId ->
             scope.launch {
-                runCatching { service.port.markFullyReadAt(roomId, eventId, settings.sendReadReceipts) }
+                val port = service.portOrNull ?: return@launch
+                val sendReceipt = settingsRepo.flow.first().sendReadReceipts
+                port.markFullyReadAt(roomId, eventId, sendReceipt)
             }
         }
 
@@ -57,8 +60,10 @@ fun DesktopBackground(
             if (msg.isBlank()) return@replyText
 
             scope.launch {
-                runCatching { service.port.reply(roomId, eventId, msg) }
-                runCatching { service.port.markFullyReadAt(roomId, eventId, settings.sendReadReceipts) }
+                val port = service.portOrNull ?: return@launch
+                port.reply(roomId, eventId, msg)
+                val sendReceipt = settingsRepo.flow.first().sendReadReceipts
+                port.markFullyReadAt(roomId, eventId, sendReceipt)
             }
         }
     }
