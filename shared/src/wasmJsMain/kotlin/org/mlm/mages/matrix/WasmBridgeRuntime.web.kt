@@ -48,7 +48,8 @@ internal suspend fun createWasmClient(
     baseStoreDir: String,
     accountId: String?,
     proxyUrl: String?,
+    enableShareHistoryOnInvite: Boolean?,
 ): WasmClient {
-    val created: JsAny? = WasmClient.createAsync(homeserverUrl, baseStoreDir, accountId, proxyUrl).await<JsAny?>()
+    val created: JsAny? = WasmClient.createAsync(homeserverUrl, baseStoreDir, accountId, proxyUrl, enableShareHistoryOnInvite).await<JsAny?>()
     return created as WasmClient
 }

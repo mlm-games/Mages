@@ -446,18 +446,9 @@ abstract class GenerateWasmExternsTask : DefaultTask() {
         if (staticMethods.isNotEmpty()) {
             sb.appendLine("    companion object {")
             for (m in staticMethods) {
-                if (m.name == "createAsync") {
-                    sb.appendLine("        fun createAsync(")
-                    sb.appendLine("            homeserverUrl: String,")
-                    sb.appendLine("            baseStoreDir: String,")
-                    sb.appendLine("            accountId: String? = definedExternally,")
-                    sb.appendLine("            proxyUrl: String? = definedExternally")
-                    sb.appendLine("        ): Promise<JsAny?>")
-                } else {
-                    val ktParams = convertParams(m.params)
-                    val ktReturn = convertReturnType(m.returnType)
-                    sb.appendLine("        fun ${m.name}($ktParams): $ktReturn")
-                }
+                val ktParams = convertParams(m.params)
+                val ktReturn = convertReturnType(m.returnType)
+                sb.appendLine("        fun ${m.name}($ktParams): $ktReturn")
             }
             sb.appendLine("    }")
         }
