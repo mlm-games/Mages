@@ -114,7 +114,7 @@ class SpaceDetailViewModel(
                 spaceId = currentState.spaceId,
                 from = from,
                 limit = 50,
-                maxDepth = 2,
+                maxDepth = 1,
                 suggestedOnly = false
             )
 
