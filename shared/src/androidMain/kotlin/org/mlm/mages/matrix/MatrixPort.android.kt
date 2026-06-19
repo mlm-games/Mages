@@ -5,7 +5,6 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
@@ -99,15 +98,12 @@ class RustMatrixPort : MatrixPort, VerificationService {
             }
         }
 
-    override fun isLoggedIn(): Boolean = // NOTE: Single use only
-        runBlocking(matrixDispatcher) {
-            synchronized(clientLock) { client?.isLoggedIn() ?: false }
-        }
+    override fun isLoggedIn(): Boolean {
+        val c = client
+        return c != null && c.isLoggedIn()
+    }
 
-    override suspend fun isLoggedInSuspend(): Boolean =
-        withContext(matrixDispatcher) {
-            synchronized(clientLock) { client?.isLoggedIn() ?: false }
-        }
+    override suspend fun isLoggedInSuspend(): Boolean = isLoggedIn()
 
     override suspend fun listRooms(): List<RoomSummary> =
         withContext(matrixDispatcher) {
