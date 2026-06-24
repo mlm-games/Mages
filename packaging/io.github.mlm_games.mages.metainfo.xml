@@ -46,6 +46,16 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.8.4" date="2026-06-24" type="stable">
+      <description>
+        <ul>
+          <li>Do not show grandchildren on the first nav space entry (#109)</li>
+          <li>desktop: remove duplicate sender name for grps</li>
+          <li>bump sdk to 0.18.0</li>
+          <li>Add a toggle to share encrypted history with invited users (true by default)</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.8.3" date="2026-06-09" type="stable">
       <description>
         <ul>

@@ -1,3 +1,11 @@
+## v4.8.4
+
+- Do not show grandchildren on the first nav space entry (#109)
+- desktop: remove duplicate sender name for grps
+- bump sdk to 0.18.0
+- Add a toggle to share encrypted history with invited users (true by default)
+
+
 ## v4.8.3
 
 - do not normalise homserver urls (#105)
