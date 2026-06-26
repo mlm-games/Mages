@@ -70,7 +70,8 @@ jobs:
           arch=('x86_64' 'aarch64')
           url="https://github.com/mlm-games/mages"
           license=('GPL3')
-          depends=('fuse2' 'zlib')
+          depends=()
+          optdepends=('fuse2: or fuse3 — runtime dependency for AppImage FUSE mount')
           provides=('mages')
           conflicts=('mages')
           options=('!strip')
