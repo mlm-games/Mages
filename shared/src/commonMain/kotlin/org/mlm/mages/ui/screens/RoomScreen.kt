@@ -113,7 +113,8 @@ fun RoomScreen(
     var pendingJumpEventId by rememberSaveable(initialScrollToEventId) {
         mutableStateOf(initialScrollToEventId)
     }
-    var jumpAttempts by remember { mutableIntStateOf(0) }
+    var jumpBackAttempts by remember { mutableIntStateOf(0) }
+    var jumpSyncWaitCycles by remember { mutableIntStateOf(0) }
 
     var seekingUnread by rememberSaveable { mutableStateOf(false) }
     var seekUnreadAttempts by remember { mutableIntStateOf(0) }
@@ -442,7 +443,7 @@ fun RoomScreen(
     LaunchedEffect(
         pendingJumpEventId,
         state.hasTimelineSnapshot,
-        state.events.size,
+        state.events,
         state.hitStart,
         state.isPaginatingBack
     ) {
@@ -453,24 +454,31 @@ fun RoomScreen(
         if (idx >= 0) {
             val listIndex = listIndexForEventIndex(idx)
 
-            listState.animateScrollToItem(
-                index = listIndex,
-                scrollOffset = -80   // so message isn't at the very top
-            )
+            listState.scrollToItem(index = listIndex)
 
             pendingJumpEventId = null
-            jumpAttempts = 0
+            jumpBackAttempts = 0
+            jumpSyncWaitCycles = 0
+            didInitialScroll = true
             return@LaunchedEffect
         }
 
+        // Wait for initial sync events to arrive (Append diffs) before paginating back
+        jumpSyncWaitCycles++
+        if (jumpSyncWaitCycles <= 3) return@LaunchedEffect
+
         // Not found yet → back paginate until we find it, but don’t loop forever
-        if (!state.hitStart && !state.isPaginatingBack && jumpAttempts < 30) {
-            jumpAttempts++
+        if (!state.hitStart && !state.isPaginatingBack && jumpBackAttempts < 30) {
+            jumpBackAttempts++
             viewModel.paginateBack()
-        } else if (state.hitStart || jumpAttempts >= 30) {
+        } else if (state.hitStart || jumpBackAttempts >= 30) {
+            // Event not found after exhaustive search - scroll to latest instead of error
             pendingJumpEventId = null
-            jumpAttempts = 0
-            postError(errorMessage)
+            jumpBackAttempts = 0
+            jumpSyncWaitCycles = 0
+            if (state.events.isNotEmpty()) {
+                listState.scrollToItem(lastListIndex())
+            }
         }
     }
 

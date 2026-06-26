@@ -216,7 +216,7 @@ class NotificationEnrichWorker(
                     timestamp = rendered.tsMs,
                     notificationId = notifId,
                     bubbleActivityClass = bubbleActivityClass,
-                    fullOpenIntent = buildFullOpenIntent(applicationContext, roomId),
+                    fullOpenIntent = buildFullOpenIntent(applicationContext, roomId, eventId),
                     senderAvatar = senderAvatar,
                     roomAvatar = roomAvatar,
                     isDm = rendered.isDm,
@@ -285,7 +285,7 @@ class NotificationEnrichWorker(
                     timestamp = rendered.tsMs,
                     notificationId = notifId,
                     bubbleActivityClass = bubbleActivityClass,
-                    fullOpenIntent = buildFullOpenIntent(applicationContext, roomId),
+                    fullOpenIntent = buildFullOpenIntent(applicationContext, roomId, eventId),
                     senderAvatar = senderAvatar,
                     roomAvatar = roomAvatar,
                     isDm = rendered.isDm,
@@ -316,11 +316,12 @@ private fun isInQuietHours(settings: org.mlm.mages.settings.AppSettings): Boolea
     }
 }
 
-private fun buildFullOpenIntent(context: Context, roomId: String): PendingIntent {
+private fun buildFullOpenIntent(context: Context, roomId: String, eventId: String? = null): PendingIntent {
     val uri = Uri.Builder()
         .scheme("mages")
         .authority("room")
         .appendQueryParameter("id", roomId)
+        .apply { eventId?.let { appendQueryParameter("event", it) } }
         .build()
     val intent = Intent(Intent.ACTION_VIEW, uri).apply {
         setPackage(context.packageName)
