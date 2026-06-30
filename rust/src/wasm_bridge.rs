@@ -1179,7 +1179,15 @@ impl WasmClient {
                         Some(cmd) = cmd_rx.recv() => {
                             match cmd {
                                 RoomListCmd::SetUnreadOnly(u) => {
-                                    if u { controller.set_filter(Box::new(filters::new_filter_all(vec![Box::new(filters::new_filter_non_left()), Box::new(filters::new_filter_unread())]))); }
+                                    if u {
+                                        let unread_filter: filters::BoxedFilterFn = Box::new(
+                                            |room: &RoomListItem| -> bool {
+                                                let receipts = room.read_receipts();
+                                                receipts.num_unread > 0 || room.is_marked_unread()
+                                            },
+                                        );
+                                        controller.set_filter(Box::new(filters::new_filter_all(vec![Box::new(filters::new_filter_non_left()), unread_filter])));
+                                    }
                                     else { controller.set_filter(Box::new(filters::new_filter_non_left())); }
                                 }
                                 RoomListCmd::UpdateVisibleRange((range, threshold)) => {

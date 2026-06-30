@@ -196,7 +196,7 @@ class RoomsViewModel(
             avatarUrl = entry.avatarUrl,
             isDm = entry.isDm,
             isEncrypted = entry.isEncrypted,
-            unreadCount = entry.notifications.toInt(),
+            unreadCount = entry.messages.toInt(),
             isFavourite = entry.isFavourite,
             isLowPriority = entry.isLowPriority,
             isInvited = entry.isInvited,
@@ -274,7 +274,7 @@ class RoomsViewModel(
                         updateState {
                             copy(
                                 rooms = domainRooms,
-                                unread = items.associate { e -> e.roomId to e.notifications.toInt() },
+                                unread = items.associate { e -> e.roomId to e.messages.toInt() },
                                 favourites = items.filter { e -> e.isFavourite }.map { e -> e.roomId }.toSet(),
                                 lowPriority = items.filter { e -> e.isLowPriority }.map { e -> e.roomId }.toSet(),
                                 allItems = uiItems,
@@ -296,7 +296,7 @@ class RoomsViewModel(
                             }
 
                             val updatedUnread = unread.toMutableMap().apply {
-                                put(item.roomId, item.notifications.toInt())
+                                put(item.roomId, item.messages.toInt())
                             }
 
                             val updatedFavourites =
@@ -415,7 +415,7 @@ class RoomsViewModel(
                 if (initialized || allItems.isNotEmpty()) this
                 else copy(
                     rooms = domainRooms,
-                    unread = cached.associate { e -> e.roomId to e.notifications.toInt() },
+                    unread = cached.associate { e -> e.roomId to e.messages.toInt() },
                     favourites = cached.filter { it.isFavourite }.map { it.roomId }.toSet(),
                     lowPriority = cached.filter { it.isLowPriority }.map { it.roomId }.toSet(),
                     allItems = uiItems
