@@ -15,6 +15,7 @@ import org.koin.core.component.inject
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.NotificationKind
 import org.mlm.mages.matrix.RenderedNotification
+import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.platform.SettingsProvider
 import org.mlm.mages.shared.R
 
@@ -85,6 +86,16 @@ class NotificationEnrichWorker(
         val rendered = fetch.rendered
         if (rendered == null) {
             // Event filtered out / not found / cannot be rendered: cancel placeholder and stop.
+            nm.cancel(notifId)
+            return Result.success()
+        }
+
+        val notifMode = runCatching { port.roomNotificationMode(roomId) }.getOrNull()
+        if (notifMode == RoomNotificationMode.Mute) {
+            nm.cancel(notifId)
+            return Result.success()
+        }
+        if (notifMode == RoomNotificationMode.MentionsAndKeywordsOnly && !rendered.hasMention) {
             nm.cancel(notifId)
             return Result.success()
         }
