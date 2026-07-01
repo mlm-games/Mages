@@ -346,10 +346,10 @@ impl Client {
         platform::init_tracing();
 
         let raw = homeserver_url.trim();
-        let server_name_or_url = if let Ok(url) = Url::parse(raw) {
-            strip_matrix_path(url).to_string()
+        let (server_name_or_url, is_url) = if let Ok(url) = Url::parse(raw) {
+            (strip_matrix_path(url).to_string(), true)
         } else {
-            raw.to_owned()
+            (raw.to_owned(), false)
         };
 
         let store_dir_path = if let Some(ref id) = account_id {
@@ -367,9 +367,12 @@ impl Client {
             .block_on(async {
                 #[cfg(target_arch = "wasm32")]
                 let client = {
-                    let mut builder = SdkClient::builder()
-                        .server_name_or_homeserver_url(server_name_or_url.clone())
-                        .indexeddb_store("mages_store", None)
+                    let mut builder = if is_url {
+                        SdkClient::builder().homeserver_url(server_name_or_url.clone())
+                    } else {
+                        SdkClient::builder().server_name_or_homeserver_url(server_name_or_url.clone())
+                    }
+                    .indexeddb_store("mages_store", None)
                         .with_encryption_settings(EncryptionSettings {
                             auto_enable_cross_signing: true,
                             auto_enable_backups: true,
@@ -389,9 +392,12 @@ impl Client {
                 let client = {
                     let idx = platform::search_index_config(&store_dir_path)
                         .expect("native builds require search index config");
-                    let mut builder = SdkClient::builder()
-                        .server_name_or_homeserver_url(server_name_or_url.clone())
-                        .sqlite_store(&store_dir_path, None)
+                    let mut builder = if is_url {
+                        SdkClient::builder().homeserver_url(server_name_or_url.clone())
+                    } else {
+                        SdkClient::builder().server_name_or_homeserver_url(server_name_or_url.clone())
+                    }
+                    .sqlite_store(&store_dir_path, None)
                         .search_index_store(SearchIndexStoreKind::EncryptedDirectory(
                             idx.dir, idx.key,
                         ))

@@ -452,16 +452,20 @@ impl WasmClient {
         enable_share_history_on_invite: Option<bool>,
     ) -> Result<WasmClient, JsValue> {
         let raw = homeserver_url.trim();
-        let server_name_or_url = if let Ok(url) = matrix_sdk::reqwest::Url::parse(raw) {
-            strip_matrix_path(url).to_string()
+        let (server_name_or_url, is_url) = if let Ok(url) = matrix_sdk::reqwest::Url::parse(raw) {
+            (strip_matrix_path(url).to_string(), true)
         } else {
-            raw.to_owned()
+            (raw.to_owned(), false)
         };
         let store_name = account_id
             .as_ref()
             .map(|id| format!("mages_store_{id}"))
             .unwrap_or_else(|| "mages_store".to_owned());
-        let mut builder = SdkClient::builder().server_name_or_homeserver_url(server_name_or_url);
+        let mut builder = if is_url {
+            SdkClient::builder().homeserver_url(server_name_or_url)
+        } else {
+            SdkClient::builder().server_name_or_homeserver_url(server_name_or_url)
+        };
 
         if enable_share_history_on_invite.unwrap_or(true) {
             builder = builder.with_enable_share_history_on_invite(true);
