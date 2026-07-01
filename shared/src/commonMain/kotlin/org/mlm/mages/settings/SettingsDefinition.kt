@@ -38,13 +38,6 @@ enum class PresenceMode { Online, Offline, Unavailable }
 enum class HideInRoomsMode { Never, PublicRooms, NonDMs, Always }
 
 @Serializable
-enum class LocalRoomNotifMode {
-    Default,      // follow server rules / Matrix notif mode
-    MentionsOnly,
-    Mute          // local-only filter
-}
-
-@Serializable
 data class AppSettings(
     @Persisted
     val homeserver: String = "https://matrix.org",
@@ -314,16 +307,6 @@ data class AppSettings(
     )
     @ActionHandler(TestNotificationAction::class)
     val testNotification: Unit = Unit,
-
-    @Deprecated("Replaced by server-backed push rule toggles in NotificationSettingsRepository")
-    @Setting(
-        title = "Mentions only (legacy)",
-        description = "Deprecated — use notification toggles instead",
-        category = Notifications::class,
-        type = Toggle::class,
-        dependsOn = "notificationsEnabled"
-    )
-    val mentionsOnly: Boolean = false,
 
     @Setting(
         title = "Show message preview",
