@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import org.mlm.mages.MatrixService
 import org.mlm.mages.NotifierImpl
 import org.mlm.mages.matrix.NotificationKind
+import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.platform.Notifier
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.appLanguageTagOrDefault
@@ -74,6 +75,10 @@ class LinuxPushHandler(
             val me = port.whoami()
             val senderIsMe = me != null && me == n.senderUserId
             if (!Notifier.shouldNotify(n.roomId, senderIsMe)) continue
+
+            val notifMode = runCatching { port.roomNotificationMode(n.roomId) }.getOrNull()
+            if (notifMode == RoomNotificationMode.Mute) continue
+            if (notifMode == RoomNotificationMode.MentionsAndKeywordsOnly && !n.hasMention) continue
 
             if (n.kind == NotificationKind.Invite) {
                 val settings = settingsRepository.flow.first()
