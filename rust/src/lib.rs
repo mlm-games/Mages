@@ -7,6 +7,7 @@ use matrix_sdk::ruma::events::rtc::notification::CallIntent;
 use matrix_sdk::utils::UrlOrQuery;
 
 use matrix_sdk::authentication::oauth::registration::language_tags::LanguageTag;
+use matrix_sdk::config::RequestConfig;
 use matrix_sdk::authentication::oauth::registration::{
     ApplicationType, ClientMetadata, Localized, OAuthGrantType,
 };
@@ -373,6 +374,9 @@ impl Client {
                         SdkClient::builder()
                             .server_name_or_homeserver_url(server_name_or_url.clone())
                     }
+                    .request_config(
+                        RequestConfig::new().timeout(Duration::from_secs(30)),
+                    )
                     .indexeddb_store("mages_store", None)
                     .with_encryption_settings(EncryptionSettings {
                         auto_enable_cross_signing: true,
@@ -399,6 +403,9 @@ impl Client {
                         SdkClient::builder()
                             .server_name_or_homeserver_url(server_name_or_url.clone())
                     }
+                    .request_config(
+                        RequestConfig::new().timeout(Duration::from_secs(30)),
+                    )
                     .sqlite_store(&store_dir_path, None)
                     .search_index_store(SearchIndexStoreKind::EncryptedDirectory(idx.dir, idx.key))
                     .with_encryption_settings(EncryptionSettings {
