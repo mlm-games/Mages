@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.8.6" date="2026-07-01" type="stable">
+      <description>
+        <ul>
+          <li>remove unused parts</li>
+          <li>Rooms: Show unread messages and notified with the unread filter, and add a setting to only show notified</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.8.5" date="2026-06-26" type="stable">
       <description>
         <ul/>

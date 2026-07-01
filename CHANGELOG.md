@@ -1,3 +1,9 @@
+## v4.8.6
+
+- remove unused parts
+- Rooms: Show unread messages and notified with the unread filter, and add a setting to only show notified
+
+
 ## v4.8.5
 
 
