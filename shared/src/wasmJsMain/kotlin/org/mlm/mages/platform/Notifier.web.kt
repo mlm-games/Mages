@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.NotificationKind
+import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.util.nowMs
 import org.w3c.dom.events.Event
@@ -126,6 +127,7 @@ actual fun BindNotifications(
 
             var nextBaseline = baseline
             val now = nowMs()
+            val notifModeCache = HashMap<String, RoomNotificationMode?>()
 
             for (notification in notifications.sortedBy { it.tsMs }) {
                 if (notification.eventId.isBlank()) continue
@@ -141,6 +143,12 @@ actual fun BindNotifications(
 
                 val senderIsMe = ownUserId != null && notification.senderUserId == ownUserId
                 if (!Notifier.shouldNotify(notification.roomId, senderIsMe)) continue
+
+                val notifMode = notifModeCache.getOrPut(notification.roomId) {
+                    runCatching { port.roomNotificationMode(notification.roomId) }.getOrNull()
+                }
+                if (notifMode == RoomNotificationMode.Mute) continue
+                if (notifMode == RoomNotificationMode.MentionsAndKeywordsOnly && !notification.hasMention) continue
 
                 val lastReadTs = lastReadByRoom[notification.roomId] ?: runCatching {
                     port.ownLastRead(notification.roomId).second ?: 0L

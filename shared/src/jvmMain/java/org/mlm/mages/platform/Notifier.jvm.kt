@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.first
 import org.mlm.mages.MatrixService
 import org.mlm.mages.NotifierImpl
 import org.mlm.mages.matrix.NotificationKind
+import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.push.LinuxPushHandler
 import org.mlm.mages.settings.AppSettings
 import kotlin.system.exitProcess
@@ -120,6 +121,7 @@ actual fun BindNotifications(
             }.getOrElse { emptyList() }
 
             var maxSeenTs = baseline
+            val notifModeCache = HashMap<String, RoomNotificationMode?>()
 
             for (n in items) {
                 if (n.eventId.isBlank()) continue
@@ -148,6 +150,12 @@ actual fun BindNotifications(
 
                 val senderIsMe = me != null && me == n.senderUserId
                 if (!Notifier.shouldNotify(n.roomId, senderIsMe)) continue
+
+                val notifMode = notifModeCache.getOrPut(n.roomId) {
+                    runCatching { port.roomNotificationMode(n.roomId) }.getOrNull()
+                }
+                if (notifMode == RoomNotificationMode.Mute) continue
+                if (notifMode == RoomNotificationMode.MentionsAndKeywordsOnly && !n.hasMention) continue
 
                 val lastReadTs = lastReadByRoom[n.roomId] ?: runCatching {
                     port.ownLastRead(n.roomId).second ?: 0L
