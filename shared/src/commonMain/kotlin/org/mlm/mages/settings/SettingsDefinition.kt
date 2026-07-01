@@ -260,6 +260,14 @@ data class AppSettings(
     val autoBackPagination: Boolean = false,
 
     @Setting(
+        title = "Include silent unread in filter",
+        description = "When on, the unread filter shows rooms with any unread messages (notifications first). When off, only rooms with notifications are shown.",
+        category = Timeline::class,
+        type = Toggle::class,
+    )
+    val includeSilentUnreadInFilter: Boolean = true,
+
+    @Setting(
         title = "Chat bubbles",
         description = "Open system settings to enable (or disable) conversation bubbles",
         category = Notifications::class,

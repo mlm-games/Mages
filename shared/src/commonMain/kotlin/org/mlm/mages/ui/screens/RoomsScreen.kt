@@ -54,21 +54,7 @@ fun RoomsScreen(
             state.lowPriorityItems.isNotEmpty() ||
             state.inviteItems.isNotEmpty()
 
-    val unreadChatCount by remember(state.allItems) {
-        derivedStateOf {
-            state.allItems.count { !it.isInvited && it.unreadCount > 0 }
-        }
-    }
-    val unreadGroupsCount by remember(state.allItems) {
-        derivedStateOf {
-            state.allItems.count { !it.isInvited && !it.isDm && it.unreadCount > 0 }
-        }
-    }
-    val unreadDmsCount by remember(state.allItems) {
-        derivedStateOf {
-            state.allItems.count { !it.isInvited && it.isDm && it.unreadCount > 0 }
-        }
-    }
+
 
     val isInvitesFilter = state.typeFilter == RoomTypeFilter.Invites
 
@@ -112,9 +98,9 @@ fun RoomsScreen(
                 onSearchChange = viewModel::setSearchQuery,
                 onToggleUnreadOnly = viewModel::toggleUnreadOnly,
                 onSetTypeFilter = viewModel::setTypeFilter,
-                unreadChatCount = unreadChatCount,
-                unreadGroupsCount = unreadGroupsCount,
-                unreadDmsCount = unreadDmsCount,
+                unreadChatCount = state.unreadChatCount,
+                unreadGroupsCount = state.unreadGroupsCount,
+                unreadDmsCount = state.unreadDmsCount,
                 onOpenSpaces = onOpenSpaces,
                 onOpenSecurity = onOpenSecurity,
                 onOpenDiscover = onOpenDiscover,

@@ -59,7 +59,11 @@ data class RoomsUiState(
     val lowPriorityItems: List<RoomListItemUi> = emptyList(),
     val inviteItems: List<RoomListItemUi> = emptyList(),
 
-    val roomAvatarPath: Map<String, String> = emptyMap()
+    val roomAvatarPath: Map<String, String> = emptyMap(),
+
+    val unreadChatCount: Int = 0,
+    val unreadGroupsCount: Int = 0,
+    val unreadDmsCount: Int = 0,
 )
 
 enum class RoomTypeFilter {

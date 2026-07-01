@@ -275,7 +275,7 @@ class RoomsViewModel(
                         updateState {
                             copy(
                                 rooms = domainRooms,
-                                unread = items.associate { e -> e.roomId to e.notifications.toInt() },
+                                unread = items.associate { e -> e.roomId to e.messages.toInt() },
                                 favourites = items.filter { e -> e.isFavourite }.map { e -> e.roomId }.toSet(),
                                 lowPriority = items.filter { e -> e.isLowPriority }.map { e -> e.roomId }.toSet(),
                                 allItems = uiItems,
@@ -297,7 +297,7 @@ class RoomsViewModel(
                             }
 
                             val updatedUnread = unread.toMutableMap().apply {
-                                put(item.roomId, item.notifications.toInt())
+                                put(item.roomId, item.messages.toInt())
                             }
 
                             val updatedFavourites =
@@ -353,6 +353,7 @@ class RoomsViewModel(
     private fun recomputeGroupedRooms() {
         val s = currentState
         val query = s.roomSearchQuery.trim()
+        val includeSilent = settings.value.includeSilentUnreadInFilter
 
         var list = s.allItems
 
@@ -364,7 +365,11 @@ class RoomsViewModel(
         }
 
         if (s.unreadOnly) {
-            list = list.filter { it.unreadCount > 0 }
+            list = if (includeSilent) {
+                list.filter { it.hasUnreadMessages || it.unreadCount > 0 }
+            } else {
+                list.filter { it.unreadCount > 0 }
+            }
         }
 
         list = when (s.typeFilter) {
@@ -374,9 +379,31 @@ class RoomsViewModel(
             RoomTypeFilter.Invites -> list.filter { it.isInvited }
         }
 
-        val favourites  = list.filter { it.isFavourite }
-        val lowPriority = list.filter { it.isLowPriority }
-        val normal      = list.filter { !it.isFavourite && !it.isLowPriority && !it.isInvited }
+        fun sortUnread(items: List<RoomListItemUi>): List<RoomListItemUi> {
+            if (!s.unreadOnly || !includeSilent) return items
+            return items.sortedByDescending { it.unreadCount > 0 }
+        }
+
+        val allFiltered = s.allItems.filter { !it.isInvited }
+        val unreadChatCount = if (includeSilent) {
+            allFiltered.count { it.hasUnreadMessages || it.unreadCount > 0 }
+        } else {
+            allFiltered.count { it.unreadCount > 0 }
+        }
+        val unreadGroupsCount = if (includeSilent) {
+            allFiltered.count { !it.isDm && (it.hasUnreadMessages || it.unreadCount > 0) }
+        } else {
+            allFiltered.count { !it.isDm && it.unreadCount > 0 }
+        }
+        val unreadDmsCount = if (includeSilent) {
+            allFiltered.count { it.isDm && (it.hasUnreadMessages || it.unreadCount > 0) }
+        } else {
+            allFiltered.count { it.isDm && it.unreadCount > 0 }
+        }
+
+        val favourites  = sortUnread(list.filter { it.isFavourite })
+        val lowPriority = sortUnread(list.filter { it.isLowPriority })
+        val normal      = sortUnread(list.filter { !it.isFavourite && !it.isLowPriority && !it.isInvited })
         val invites     = s.allItems.filter { it.isInvited }
 
         updateState {
@@ -384,7 +411,10 @@ class RoomsViewModel(
                 favouriteItems = favourites,
                 normalItems = normal,
                 lowPriorityItems = lowPriority,
-                inviteItems = invites
+                inviteItems = invites,
+                unreadChatCount = unreadChatCount,
+                unreadGroupsCount = unreadGroupsCount,
+                unreadDmsCount = unreadDmsCount,
             )
         }
     }
@@ -416,7 +446,7 @@ class RoomsViewModel(
                 if (initialized || allItems.isNotEmpty()) this
                 else copy(
                     rooms = domainRooms,
-                    unread = cached.associate { e -> e.roomId to e.notifications.toInt() },
+                    unread = cached.associate { e -> e.roomId to e.messages.toInt() },
                     favourites = cached.filter { it.isFavourite }.map { it.roomId }.toSet(),
                     lowPriority = cached.filter { it.isLowPriority }.map { it.roomId }.toSet(),
                     allItems = uiItems

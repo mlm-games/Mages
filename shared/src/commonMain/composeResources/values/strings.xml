@@ -41,7 +41,7 @@
     <string name="no_rooms_match">No rooms match "%1$s"</string>
     <string name="discover_rooms">Discover Rooms</string>
     <string name="search_rooms">Search rooms...</string>
-    <string name="unread_only">Unread only</string>
+    <string name="unread_only">Unread</string>
     <string name="loading_unread">Finding unread messages…</string>
     <string name="timeline_date_today">Today</string>
     <string name="timeline_date_yesterday">Yesterday</string>
