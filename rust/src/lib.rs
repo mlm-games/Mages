@@ -370,16 +370,17 @@ impl Client {
                     let mut builder = if is_url {
                         SdkClient::builder().homeserver_url(server_name_or_url.clone())
                     } else {
-                        SdkClient::builder().server_name_or_homeserver_url(server_name_or_url.clone())
+                        SdkClient::builder()
+                            .server_name_or_homeserver_url(server_name_or_url.clone())
                     }
                     .indexeddb_store("mages_store", None)
-                        .with_encryption_settings(EncryptionSettings {
-                            auto_enable_cross_signing: true,
-                            auto_enable_backups: true,
-                            backup_download_strategy: BackupDownloadStrategy::OneShot,
-                            ..Default::default()
-                        })
-                        .handle_refresh_tokens();
+                    .with_encryption_settings(EncryptionSettings {
+                        auto_enable_cross_signing: true,
+                        auto_enable_backups: true,
+                        backup_download_strategy: BackupDownloadStrategy::OneShot,
+                        ..Default::default()
+                    })
+                    .handle_refresh_tokens();
                     if enable_share_history_on_invite.unwrap_or(true) {
                         builder = builder.with_enable_share_history_on_invite(true);
                     } else {
@@ -395,19 +396,18 @@ impl Client {
                     let mut builder = if is_url {
                         SdkClient::builder().homeserver_url(server_name_or_url.clone())
                     } else {
-                        SdkClient::builder().server_name_or_homeserver_url(server_name_or_url.clone())
+                        SdkClient::builder()
+                            .server_name_or_homeserver_url(server_name_or_url.clone())
                     }
                     .sqlite_store(&store_dir_path, None)
-                        .search_index_store(SearchIndexStoreKind::EncryptedDirectory(
-                            idx.dir, idx.key,
-                        ))
-                        .with_encryption_settings(EncryptionSettings {
-                            auto_enable_cross_signing: true,
-                            auto_enable_backups: true,
-                            backup_download_strategy: BackupDownloadStrategy::OneShot,
-                            ..Default::default()
-                        })
-                        .handle_refresh_tokens();
+                    .search_index_store(SearchIndexStoreKind::EncryptedDirectory(idx.dir, idx.key))
+                    .with_encryption_settings(EncryptionSettings {
+                        auto_enable_cross_signing: true,
+                        auto_enable_backups: true,
+                        backup_download_strategy: BackupDownloadStrategy::OneShot,
+                        ..Default::default()
+                    })
+                    .handle_refresh_tokens();
 
                     if let Some(ref proxy_url) = proxy {
                         builder = builder.proxy(proxy_url);
