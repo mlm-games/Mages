@@ -28,10 +28,7 @@ use js_sys::Function;
 use matrix_sdk::authentication::oauth::registration::language_tags::LanguageTag;
 use matrix_sdk::utils::UrlOrQuery;
 
-use matrix_sdk::ruma::events::room::{
-    MediaSource,
-    message::MessageType,
-};
+use matrix_sdk::ruma::events::room::{MediaSource, message::MessageType};
 
 use matrix_sdk::ruma::events::{
     key::verification::request::ToDeviceKeyVerificationRequestEvent, receipt::SyncReceiptEvent,
@@ -66,9 +63,9 @@ use matrix_sdk_ui::{
 
 use serde_json;
 
+use crate::safe_call;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
-use crate::safe_call;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -1084,8 +1081,7 @@ impl WasmClient {
                 for diff in diffs {
                     match &diff {
                         VectorDiff::Append { values } => {
-                            item_ids
-                                .extend(values.iter().map(|v| v.unique_id().0.to_string()));
+                            item_ids.extend(values.iter().map(|v| v.unique_id().0.to_string()));
                         }
                         VectorDiff::PushBack { value } => {
                             item_ids.push(value.unique_id().0.to_string());
@@ -1107,9 +1103,7 @@ impl WasmClient {
                                 let removed = item_ids.remove(*index);
                                 let o = obs.clone();
                                 safe_call(move || {
-                                    o.on_diff(TimelineDiffKind::RemoveByItemId {
-                                        item_id: removed,
-                                    })
+                                    o.on_diff(TimelineDiffKind::RemoveByItemId { item_id: removed })
                                 });
                             }
                         }
@@ -1117,10 +1111,7 @@ impl WasmClient {
                             item_ids.clear();
                         }
                         VectorDiff::Reset { values } => {
-                            item_ids = values
-                                .iter()
-                                .map(|v| v.unique_id().0.to_string())
-                                .collect();
+                            item_ids = values.iter().map(|v| v.unique_id().0.to_string()).collect();
                         }
                         VectorDiff::PopBack => {
                             item_ids.pop();
@@ -1179,15 +1170,7 @@ impl WasmClient {
                         Some(cmd) = cmd_rx.recv() => {
                             match cmd {
                                 RoomListCmd::SetUnreadOnly(u) => {
-                                    if u {
-                                        let unread_filter: filters::BoxedFilterFn = Box::new(
-                                            |room: &RoomListItem| -> bool {
-                                                let receipts = room.read_receipts();
-                                                receipts.num_unread > 0 || room.is_marked_unread()
-                                            },
-                                        );
-                                        controller.set_filter(Box::new(filters::new_filter_all(vec![Box::new(filters::new_filter_non_left()), unread_filter])));
-                                    }
+                                    if u { controller.set_filter(Box::new(filters::new_filter_all(vec![Box::new(filters::new_filter_non_left()), Box::new(filters::new_filter_unread())]))); }
                                     else { controller.set_filter(Box::new(filters::new_filter_non_left())); }
                                 }
                                 RoomListCmd::UpdateVisibleRange((range, threshold)) => {
@@ -2018,7 +2001,10 @@ impl WasmClient {
         let Ok(att): Result<AttachmentInfo, _> = serde_json::from_str(&att_json) else {
             return webffi_err("invalid attachment JSON");
         };
-        let result = state.core.send_existing_attachment(room_id, att, body).await;
+        let result = state
+            .core
+            .send_existing_attachment(room_id, att, body)
+            .await;
         webffi_unit(result)
     }
 

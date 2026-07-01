@@ -74,6 +74,18 @@ fun RoomListItem(
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
+                } else if (item.hasUnreadMessages) {
+                    Badge(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 4.dp, y = (-4).dp),
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Text(
+                            "•",
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 }
             }
 
@@ -84,7 +96,7 @@ fun RoomListItem(
                     Text(
                         text = item.name,
                         style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (item.unreadCount > 0)
+                        fontWeight = if (item.hasUnreadMessages)
                             FontWeight.Bold else FontWeight.Medium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -138,11 +150,11 @@ fun RoomListItem(
                     Text(
                         text = preview.text,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (item.unreadCount > 0)
+                        color = if (item.hasUnreadMessages)
                             MaterialTheme.colorScheme.onSurface
                         else
                             MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = if (item.unreadCount > 0)
+                        fontWeight = if (item.hasUnreadMessages)
                             FontWeight.Medium else FontWeight.Normal,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -160,7 +172,7 @@ fun RoomListItem(
                 Text(
                     text = timeLabel,
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (item.unreadCount > 0)
+                    color = if (item.hasUnreadMessages)
                         MaterialTheme.colorScheme.primary
                     else
                         MaterialTheme.colorScheme.onSurfaceVariant

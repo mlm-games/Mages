@@ -408,6 +408,7 @@ data class RoomListItemUi(
     val isEncrypted: Boolean = false,
 
     val unreadCount: Int = 0,
+    val hasUnreadMessages: Boolean = false,
     val isFavourite: Boolean = false,
     val isLowPriority: Boolean = false,
     val isInvited: Boolean = false,
