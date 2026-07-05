@@ -20,8 +20,10 @@ import org.mlm.mages.calls.CallManager
 import org.mlm.mages.di.appModules
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.SettingsProvider
+import org.mlm.mages.platform.LiveLocationSharingCoordinator
 import org.mlm.mages.push.AppNotificationChannels
 import org.mlm.mages.push.CallForegroundService
+import org.mlm.mages.push.LiveLocationSharingForegroundService
 import org.mlm.mages.push.PREF_INSTANCE
 import org.mlm.mages.push.PushManager.getEndpoint
 import org.mlm.mages.push.PusherReconciler
@@ -113,6 +115,13 @@ class MagesApp : Application() {
                     CallForegroundService.start(this, roomName)
                 } else {
                     CallForegroundService.stop(this)
+                }
+            }
+            LiveLocationSharingCoordinator.onChanged = { active, count ->
+                if (active) {
+                    LiveLocationSharingForegroundService.start(this, count)
+                } else {
+                    LiveLocationSharingForegroundService.stop(this)
                 }
             }
         }

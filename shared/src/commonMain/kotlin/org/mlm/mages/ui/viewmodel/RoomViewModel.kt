@@ -18,6 +18,7 @@ import org.mlm.mages.platform.Notifier
 import org.mlm.mages.platform.ShareContent
 import org.mlm.mages.platform.LiveLocationProvider
 import org.mlm.mages.platform.LiveLocationSession
+import org.mlm.mages.platform.LiveLocationSharingCoordinator
 import org.mlm.mages.platform.deleteDirectory
 import org.mlm.mages.platform.platformEmbeddedElementCallParentUrlOrNull
 import org.mlm.mages.platform.platformEmbeddedElementCallUrlOrNull
@@ -198,7 +199,6 @@ class RoomViewModel(
     private val liveLocationSession = LiveLocationSession(
         matrixPort = service.port,
         locationProvider = locationProvider,
-        scope = viewModelScope,
         onLocationSent = { location ->
             val myUserId = currentState.myUserId ?: return@LiveLocationSession
             val share = LiveLocationShare(
@@ -208,6 +208,13 @@ class RoomViewModel(
                 isLive = true,
             )
             updateState { copy(liveLocationShares = liveLocationShares + (myUserId to share)) }
+        },
+        onShareStateChanged = { isSharing, roomId ->
+            if (isSharing) {
+                LiveLocationSharingCoordinator.notifyShareActive(roomId)
+            } else {
+                LiveLocationSharingCoordinator.notifyShareInactive(roomId)
+            }
         }
     )
 
