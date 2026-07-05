@@ -3,16 +3,9 @@ package org.mlm.mages.activities
 import android.app.KeyguardManager
 import android.content.Context
 import android.content.Intent
-import android.media.Ringtone
-import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.VibrationAttributes
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
-import android.provider.Settings
 import android.view.WindowManager
 import co.touchlab.kermit.Logger
 import android.view.accessibility.AccessibilityManager
@@ -97,8 +90,6 @@ private data class IncomingCallUiState(
 
 class IncomingCallActivity : ComponentActivity() {
 
-    private var ringtone: Ringtone? = null
-    private var vibrator: Vibrator? = null
     private var uiState by mutableStateOf<IncomingCallUiState?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -135,14 +126,12 @@ class IncomingCallActivity : ComponentActivity() {
                         callerAvatarPath = state.callerAvatarPath,
                         isVoiceOnly = state.isVoiceOnly,
                         onAccept = {
-                            stopRinging()
                             acceptCall(
                                 roomId = state.roomId,
                                 eventId = state.eventId
                             )
                         },
                         onDecline = {
-                            stopRinging()
                             declineCall(state.roomId)
                         }
                     )
@@ -173,66 +162,7 @@ class IncomingCallActivity : ComponentActivity() {
             isDm = intent.getBooleanExtra(EXTRA_IS_DM, false),
         )
 
-        val shouldRestartRinging =
-            uiState?.roomId != newState.roomId || uiState?.eventId != newState.eventId
-
         uiState = newState
-
-        if (shouldRestartRinging || ringtone == null) {
-            stopRinging()
-            startRinging()
-        }
-    }
-
-    private fun startRinging() {
-        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            vibratorManager.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            getSystemService(VIBRATOR_SERVICE) as Vibrator
-        }
-
-        val pattern = longArrayOf(0, 1000, 500, 1000, 500)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            vibrator?.vibrate(
-                VibrationEffect.createWaveform(pattern, 0),
-                VibrationAttributes.Builder()
-                    .setUsage(VibrationAttributes.USAGE_RINGTONE)
-                    .build()
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator?.vibrate(pattern, 0)
-        }
-
-        try {
-            val ringtoneUri =
-                RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_RINGTONE)
-                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-                    ?: RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_NOTIFICATION)
-                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-                    ?: Settings.System.DEFAULT_RINGTONE_URI
-                    ?: Settings.System.DEFAULT_NOTIFICATION_URI
-
-            ringtone = RingtoneManager.getRingtone(this, ringtoneUri)
-
-            if (ringtone == null) {
-                Logger.w { "No ringtone could be resolved for uri=$ringtoneUri" }
-            } else {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    ringtone?.isLooping = true
-                }
-                ringtone?.play()
-            }
-        } catch (e: Exception) {
-            Logger.w(e) { "Failed to start ringtone" }
-        }
-    }
-
-    private fun stopRinging() {
-        vibrator?.cancel()
-        ringtone?.stop()
     }
 
     private fun acceptCall(roomId: String, eventId: String?) {
@@ -271,7 +201,6 @@ class IncomingCallActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        stopRinging()
     }
 
     companion object {

@@ -41,6 +41,18 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                         if (roomId != null) AndroidNotificationHelper.cancelCallNotification(context, roomId)
                     }
 
+                    ACTION_DISMISS_CALL -> {
+                        if (roomId != null) {
+                            AndroidNotificationHelper.cancelCallNotification(context, roomId)
+                            val callerName = intent.getStringExtra(EXTRA_CALLER_NAME) ?: return@launch
+                            val roomName = intent.getStringExtra(EXTRA_ROOM_NAME) ?: ""
+                            val isVoiceOnly = intent.getBooleanExtra(EXTRA_IS_VOICE_ONLY, false)
+                            AndroidNotificationHelper.showMissedCallNotification(
+                                context, roomId, callerName, roomName, isVoiceOnly
+                            )
+                        }
+                    }
+
                     ACTION_ACCEPT_INVITE -> {
                         if (roomId != null) {
                             runCatching { service.initFromDisk() }
@@ -191,6 +203,7 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
         const val ACTION_MARK_READ = "org.mlm.mages.ACTION_MARK_READ"
         const val ACTION_REPLY = "org.mlm.mages.ACTION_REPLY"
         const val ACTION_DECLINE_CALL = "org.mlm.mages.ACTION_DECLINE_CALL"
+        const val ACTION_DISMISS_CALL = "org.mlm.mages.ACTION_DISMISS_CALL"
         const val ACTION_ACCEPT_INVITE = "org.mlm.mages.ACTION_ACCEPT_INVITE"
         const val ACTION_DECLINE_INVITE = "org.mlm.mages.ACTION_DECLINE_INVITE"
 
@@ -198,6 +211,8 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
         const val EXTRA_EVENT_ID = "eventId"
         const val EXTRA_NOTIF_ID = "notifId"
         const val EXTRA_ROOM_NAME = "roomName"
+        const val EXTRA_CALLER_NAME = "callerName"
+        const val EXTRA_IS_VOICE_ONLY = "isVoiceOnly"
         const val EXTRA_SENDER_NAME = "senderName"
         const val EXTRA_MESSAGE_BODY = "messageBody"
         const val EXTRA_LAST_MESSAGE_FROM_ME = "lastMessageFromMe"

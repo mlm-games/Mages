@@ -13,6 +13,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.graphics.drawable.IconCompat
 import androidx.core.app.Person
 import androidx.core.app.RemoteInput
 import androidx.core.net.toUri
@@ -63,38 +64,39 @@ object AndroidNotificationHelper : KoinComponent {
 
         val joinIntent = createCallJoinIntent(ctx, roomId, eventId, notifId)
         val declineIntent = createCallDeclineIntent(ctx, roomId, notifId)
+        val deleteIntent = createCallDeleteIntent(ctx, roomId, notifId, callerName, roomName, isVoiceOnly)
 
-        val callTypeLabel = if (isVoiceOnly) "voice call" else "call"
-        val text = if (callerName == roomName) {
-            "$callerName is ${callTypeLabel}ing"
-        } else {
-            "$callerName is ${callTypeLabel}ing in $roomName"
+        val callerIcon = callerAvatarPath?.let { path ->
+            runCatching {
+                val file = java.io.File(path)
+                if (file.exists()) BitmapFactory.decodeFile(path) else null
+            }.getOrNull()
         }
+
+        val caller = Person.Builder()
+            .setName(callerName)
+            .setKey(roomId)
+            .apply { callerIcon?.let { setIcon(IconCompat.createWithBitmap(it)) } }
+            .build()
+
+        val style = NotificationCompat.CallStyle.forIncomingCall(
+            caller,
+            declineIntent,
+            joinIntent
+        ).setIsVideo(!isVoiceOnly)
 
         val builder = NotificationCompat.Builder(ctx, AppNotificationChannels.CHANNEL_CALLS)
             .setSmallIcon(R.drawable.ic_notif_status_bar)
-            .setContentTitle(if (isVoiceOnly) "Incoming voice call" else "Incoming call")
-            .setContentText(text)
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setOngoing(true)
             .setAutoCancel(false)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setStyle(style)
             .setContentIntent(incomingScreenIntent ?: joinIntent)
-            .addAction(R.drawable.ic_notif_status_bar, "Decline", declineIntent)
-            .addAction(R.drawable.ic_notif_status_bar, "Answer", joinIntent)
+            .setDeleteIntent(deleteIntent)
             .setTimeoutAfter(60_000)
-
-        callerAvatarPath?.let { path ->
-            runCatching {
-                val file = java.io.File(path)
-                if (file.exists()) {
-                    BitmapFactory.decodeFile(path)?.let { bitmap ->
-                        builder.setLargeIcon(bitmap)
-                    }
-                }
-            }
-        }
+            .apply { callerIcon?.let { setLargeIcon(it) } }
 
         if (
             incomingScreenIntent != null &&
@@ -278,6 +280,66 @@ object AndroidNotificationHelper : KoinComponent {
             ctx, requestCode + 3, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+    }
+
+    private fun createCallDeleteIntent(
+        ctx: Context,
+        roomId: String,
+        requestCode: Int,
+        callerName: String,
+        roomName: String,
+        isVoiceOnly: Boolean = false
+    ): PendingIntent {
+        val intent = Intent(ctx, NotificationActionReceiver::class.java).apply {
+            action = NotificationActionReceiver.ACTION_DISMISS_CALL
+            putExtra(NotificationActionReceiver.EXTRA_ROOM_ID, roomId)
+            putExtra(NotificationActionReceiver.EXTRA_NOTIF_ID, requestCode)
+            putExtra(NotificationActionReceiver.EXTRA_CALLER_NAME, callerName)
+            putExtra(NotificationActionReceiver.EXTRA_ROOM_NAME, roomName)
+            putExtra(NotificationActionReceiver.EXTRA_IS_VOICE_ONLY, isVoiceOnly)
+        }
+        return PendingIntent.getBroadcast(
+            ctx, requestCode + 4, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    fun showMissedCallNotification(
+        ctx: Context,
+        roomId: String,
+        callerName: String,
+        roomName: String,
+        isVoiceOnly: Boolean = false
+    ) {
+        AppNotificationChannels.ensureCreated(ctx)
+        val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val notifId = ("missed_call_$roomId").hashCode()
+
+        val callType = if (isVoiceOnly) "voice call" else "call"
+        val title = "Missed $callType"
+        val body = if (callerName == roomName) {
+            "From $callerName"
+        } else {
+            "From $callerName in $roomName"
+        }
+
+        val notification = NotificationCompat.Builder(ctx, AppNotificationChannels.CHANNEL_CALLS_SILENT)
+            .setSmallIcon(R.drawable.ic_notif_status_bar)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    setCategory(Notification.CATEGORY_MISSED_CALL)
+                } else {
+                    setCategory(NotificationCompat.CATEGORY_EVENT)
+                }
+            }
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .build()
+
+        mgr.notify(notifId, notification)
     }
 
     private fun createAcceptInviteIntent(
