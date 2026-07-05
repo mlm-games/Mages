@@ -124,6 +124,7 @@ class MagesApp : Application() {
                     LiveLocationSharingForegroundService.stop(this)
                 }
             }
+            LiveLocationSharingCoordinator.recover()
         }
 
         Logger.i("App initialized")

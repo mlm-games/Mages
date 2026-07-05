@@ -16,7 +16,6 @@ import org.mlm.mages.calls.CallManager
 import org.mlm.mages.matrix.*
 import org.mlm.mages.platform.Notifier
 import org.mlm.mages.platform.ShareContent
-import org.mlm.mages.platform.LiveLocationProvider
 import org.mlm.mages.platform.LiveLocationSession
 import org.mlm.mages.platform.LiveLocationSharingCoordinator
 import org.mlm.mages.platform.deleteDirectory
@@ -194,29 +193,21 @@ class RoomViewModel(
 
     private val callManager: CallManager by inject()
 
-    private val locationProvider = LiveLocationProvider()
+    private val liveLocationSession = LiveLocationSession()
 
-    private val liveLocationSession = LiveLocationSession(
-        matrixPort = service.port,
-        locationProvider = locationProvider,
-        onLocationSent = { location ->
-            val myUserId = currentState.myUserId ?: return@LiveLocationSession
-            val share = LiveLocationShare(
-                userId = myUserId,
-                geoUri = "geo:${location.latitude},${location.longitude}",
-                tsMs = nowMs(),
-                isLive = true,
-            )
-            updateState { copy(liveLocationShares = liveLocationShares + (myUserId to share)) }
-        },
-        onShareStateChanged = { isSharing, roomId ->
-            if (isSharing) {
-                LiveLocationSharingCoordinator.notifyShareActive(roomId)
-            } else {
-                LiveLocationSharingCoordinator.notifyShareInactive(roomId)
+    init {
+        LiveLocationSharingCoordinator.onLocationDispatched = { lat, lon ->
+            val myUserId = currentState.myUserId ?: return@onLocationDispatched
+            updateState {
+                copy(liveLocationShares = liveLocationShares + (myUserId to LiveLocationShare(
+                    userId = myUserId,
+                    geoUri = "geo:$lat,$lon",
+                    tsMs = nowMs(),
+                    isLive = true,
+                )))
             }
         }
-    )
+    }
 
     private val settings = settingsRepo.flow
         .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
@@ -2256,5 +2247,6 @@ class RoomViewModel(
         receiptsToken?.let { service.port.stopReceiptsObserver(it) }
         ownReceiptToken?.let { service.port.stopReceiptsObserver(it) }
         currentState.liveLocationSubToken?.let { service.port.stopObserveLiveLocation(it) }
+        LiveLocationSharingCoordinator.onLocationDispatched = null
     }
 }

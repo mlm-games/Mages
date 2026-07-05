@@ -1,6 +1,10 @@
 package org.mlm.mages.platform
 
 expect object LiveLocationSharingCoordinator {
-    fun notifyShareActive(roomId: String)
-    fun notifyShareInactive(roomId: String)
+    fun recover()
+    suspend fun startShare(roomId: String, durationMinutes: Int): Result<Unit>
+    suspend fun stopShare(roomId: String): Result<Unit>
+    fun dispatchLocation(lat: Double, lon: Double, accuracy: Float?)
+    val isSharing: Boolean
+    var onLocationDispatched: ((Double, Double) -> Unit)?
 }
