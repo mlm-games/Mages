@@ -47,6 +47,10 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                             val port = service.portOrNull
                             if (port != null && service.isLoggedIn()) {
                                 runCatching { port.acceptInvite(roomId) }
+                                runCatching { port.enterForeground() }
+                            }
+                            if (notifId != 0) {
+                                nm.cancel(notifId)
                             }
                         }
                     }
@@ -57,6 +61,9 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                             val port = service.portOrNull
                             if (port != null && service.isLoggedIn()) {
                                 runCatching { port.leaveRoom(roomId) }
+                            }
+                            if (notifId != 0) {
+                                nm.cancel(notifId)
                             }
                         }
                     }
