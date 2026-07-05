@@ -32,6 +32,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import org.koin.android.ext.android.inject
+import org.mlm.mages.MatrixService
 import org.mlm.mages.push.AndroidNotificationHelper
 import org.mlm.mages.ui.theme.MainTheme
 import org.mlm.mages.ui.components.core.Avatar
@@ -89,6 +91,8 @@ private data class IncomingCallUiState(
 )
 
 class IncomingCallActivity : ComponentActivity() {
+
+    private val service: MatrixService by inject()
 
     private var uiState by mutableStateOf<IncomingCallUiState?>(null)
 
@@ -195,8 +199,18 @@ class IncomingCallActivity : ComponentActivity() {
 
     private fun declineCall(roomId: String) {
         Logger.i("onDecline roomId=$roomId")
-        AndroidNotificationHelper.cancelCallNotification(this, roomId)
-        finish()
+        lifecycleScope.launch {
+            val state = uiState
+            if (state?.eventId != null) {
+                runCatching { service.initFromDisk() }
+                val port = service.portOrNull
+                if (port != null && service.isLoggedIn()) {
+                    runCatching { port.declineCall(roomId, state.eventId) }
+                }
+            }
+            AndroidNotificationHelper.cancelCallNotification(this@IncomingCallActivity, roomId)
+            finish()
+        }
     }
 
     override fun onDestroy() {
