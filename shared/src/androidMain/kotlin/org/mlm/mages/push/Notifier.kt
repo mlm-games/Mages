@@ -64,7 +64,7 @@ object AndroidNotificationHelper : KoinComponent {
         )
 
         val joinIntent = createCallJoinIntent(ctx, roomId, eventId, notifId)
-        val declineIntent = createCallDeclineIntent(ctx, roomId, notifId)
+        val declineIntent = createCallDeclineIntent(ctx, roomId, eventId, notifId)
         val deleteIntent = createCallDeleteIntent(ctx, roomId, notifId, callerName, roomName, isVoiceOnly)
 
         val callerIcon = callerAvatarPath?.let { path ->
@@ -266,11 +266,13 @@ object AndroidNotificationHelper : KoinComponent {
     private fun createCallDeclineIntent(
         ctx: Context,
         roomId: String,
+        eventId: String,
         requestCode: Int
     ): PendingIntent {
         val intent = Intent(ctx, NotificationActionReceiver::class.java).apply {
             action = NotificationActionReceiver.ACTION_DECLINE_CALL
             putExtra(NotificationActionReceiver.EXTRA_ROOM_ID, roomId)
+            putExtra(NotificationActionReceiver.EXTRA_EVENT_ID, eventId)
             putExtra(NotificationActionReceiver.EXTRA_NOTIF_ID, requestCode)
         }
         return PendingIntent.getBroadcast(

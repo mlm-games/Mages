@@ -38,7 +38,14 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
             try {
                 when (intent.action) {
                     ACTION_DECLINE_CALL -> {
-                        if (roomId != null) AndroidNotificationHelper.cancelCallNotification(context, roomId)
+                        if (roomId != null && eventId != null) {
+                            runCatching { service.initFromDisk() }
+                            val port = service.portOrNull
+                            if (port != null && service.isLoggedIn()) {
+                                runCatching { port.declineCall(roomId, eventId) }
+                            }
+                            AndroidNotificationHelper.cancelCallNotification(context, roomId)
+                        }
                     }
 
                     ACTION_DISMISS_CALL -> {

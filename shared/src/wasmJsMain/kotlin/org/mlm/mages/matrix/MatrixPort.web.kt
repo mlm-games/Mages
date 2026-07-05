@@ -972,6 +972,11 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         return unitResult(result.ok, "leave room", result.error)
     }
 
+    override suspend fun declineCall(roomId: String, notificationEventId: String): Result<Unit> {
+        val result = requireClient().declineCall(roomId, notificationEventId).awaitResult()
+        return unitResult(result.ok, "decline call", result.error)
+    }
+
     override suspend fun createRoom(
         name: String?,
         topic: String?,

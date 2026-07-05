@@ -157,6 +157,7 @@ delegate_unit_result! {
     knock(id_or_alias: String);
     space_invite_user(space_id: String, user_id: String);
     leave_room(room_id: String);
+    decline_call(room_id: String, notification_event_id: String);
     set_room_notification_mode(room_id: String, mode: FfiRoomNotificationMode);
     set_push_rule_enabled(kind: FfiPushRuleKind, rule_id: String, enabled: bool);
     set_reaction_notifications_enabled(enabled: bool);

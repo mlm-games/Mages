@@ -1046,6 +1046,10 @@ class RustMatrixPort : MatrixPort, VerificationService {
         runWithFfiResult { withClient { it.leaveRoom(roomId) } }
     }
 
+    override suspend fun declineCall(roomId: String, notificationEventId: String): Result<Unit> = withContext(matrixDispatcher) {
+        runWithFfiResult { withClient { it.declineCall(roomId, notificationEventId) } }
+    }
+
     override suspend fun createRoom(
         name: String?, topic: String?, invitees: List<String>, isPublic: Boolean, roomAlias: String?
     ): String? = withContext(matrixDispatcher) {

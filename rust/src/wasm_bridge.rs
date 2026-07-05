@@ -401,6 +401,7 @@ wasm_delegate_result_bool! {
     "acceptKnockRequest"   => accept_knock_request(room_id: String, user_id: String);
     "declineKnockRequest"  => decline_knock_request(room_id: String, user_id: String, reason: Option<String>);
     "acceptInvite"         => accept_invite(room_id: String);
+    "declineCall"          => decline_call(room_id: String, notification_event_id: String);
 }
 
 wasm_delegate_json! {

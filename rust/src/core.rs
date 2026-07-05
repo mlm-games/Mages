@@ -77,7 +77,7 @@ use crate::{
 const REACTION_NOTIFY_RULE_ID: &str = "org.mlm.mages.reaction.notify";
 use crate::{
     RoomProfile,
-    errors::{IntoFfi, OptionFfi},
+    errors::{IntoFfi, OptionFfi, ffi_err},
     safe_call,
 };
 
@@ -1672,6 +1672,18 @@ impl CoreClient {
 
     pub async fn leave_room(&self, room_id: String) -> Result<(), FfiError> {
         self.require_room(&room_id)?.leave().await.ffi()
+    }
+
+    pub async fn decline_call(
+        &self,
+        room_id: String,
+        notification_event_id: String,
+    ) -> Result<(), FfiError> {
+        let room = self.require_room(&room_id)?;
+        let event_id = OwnedEventId::try_from(notification_event_id.as_str())
+            .map_err(|_| ffi_err!("invalid event id"))?;
+        let content = room.make_decline_call_event(&event_id).await.ffi()?;
+        room.send(content).await.ffi().map(|_| ())
     }
 
     pub async fn accept_knock_request(
