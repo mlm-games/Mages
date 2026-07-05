@@ -32,6 +32,8 @@ class CallManager(
     private var controller: CallWebViewController? = null
     private val pendingToWidget = ArrayDeque<String>()
 
+    var onCallStateChanged: ((isActive: Boolean, roomName: String?) -> Unit)? = null
+
     fun isInCall(): Boolean = _call.value != null
     fun isInCall(roomId: String): Boolean = _call.value?.roomId == roomId
 
@@ -101,6 +103,7 @@ class CallManager(
             parentUrl = session.parentUrl,
             minimized = false
         )
+        onCallStateChanged?.invoke(true, roomName)
         return true
     }
 
@@ -111,5 +114,6 @@ class CallManager(
         pendingToWidget.clear()
         controller = null
         _call.value = null
+        onCallStateChanged?.invoke(false, null)
     }
 }

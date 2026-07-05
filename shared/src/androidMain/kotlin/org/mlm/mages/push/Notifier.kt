@@ -100,12 +100,14 @@ object AndroidNotificationHelper : KoinComponent {
             .setSound(Settings.System.DEFAULT_RINGTONE_URI, AudioManager.STREAM_RING)
             .addPerson(caller)
             .setShowWhen(false)
+            .setGroup(Notifier.groupKey(ctx))
             .apply { callerIcon?.let { setLargeIcon(it) } }
             .setFullScreenIntent(incomingScreenIntent, true) // TODO: precall it when the setting is enabled
 
         mgr.notify(notifId, builder.build().apply {
             flags = flags or Notification.FLAG_INSISTENT
         })
+        Notifier.updateSummaryNotification(ctx)
     }
 
     fun cancelCallNotification(ctx: Context, roomId: String) {
@@ -336,9 +338,11 @@ object AndroidNotificationHelper : KoinComponent {
             }
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
+            .setGroup(Notifier.groupKey(ctx))
             .build()
 
         mgr.notify(notifId, notification)
+        Notifier.updateSummaryNotification(ctx)
     }
 
     private fun createAcceptInviteIntent(
@@ -439,7 +443,7 @@ object AndroidNotificationHelper : KoinComponent {
 
 object Notifier {
 
-    private fun groupKey(context: Context) = "${context.packageName}.NOTIFICATIONS"
+    internal fun groupKey(context: Context) = "${context.packageName}.NOTIFICATIONS"
     private val SUMMARY_NOTIFICATION_ID = "org.mlm.mages.NOTIFICATIONS.summary".hashCode()
 
     private const val REQUEST_BUBBLE = 2000
@@ -580,7 +584,9 @@ object Notifier {
             .filter {
                 it.id != SUMMARY_NOTIFICATION_ID &&
                 (it.notification.channelId == AppNotificationChannels.CHANNEL_MESSAGES ||
-                 it.notification.channelId == AppNotificationChannels.CHANNEL_MESSAGES_SILENT)
+                 it.notification.channelId == AppNotificationChannels.CHANNEL_MESSAGES_SILENT ||
+                 it.notification.channelId == AppNotificationChannels.CHANNEL_CALLS ||
+                 it.notification.channelId == AppNotificationChannels.CHANNEL_CALLS_SILENT)
             }
             .map { it.id }
             .distinct()

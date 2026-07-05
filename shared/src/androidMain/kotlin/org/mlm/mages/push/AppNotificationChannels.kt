@@ -23,6 +23,7 @@ object AppNotificationChannels {
     const val CHANNEL_CALLS = "calls_v3"
     const val CHANNEL_CALLS_SILENT = "calls_silent"
     const val CHANNEL_INVITES = "invites"
+    const val CHANNEL_CALL_ONGOING = "call_ongoing"
 
     private val legacyCallChannels = listOf("calls", "calls_v2")
 
@@ -113,6 +114,20 @@ object AppNotificationChannels {
                 ).apply {
                     description = "Room invitation notifications"
                     enableVibration(true)
+                }
+            )
+        }
+
+        if (mgr.getNotificationChannel(CHANNEL_CALL_ONGOING) == null) {
+            mgr.createNotificationChannel(
+                NotificationChannel(
+                    CHANNEL_CALL_ONGOING,
+                    "Ongoing call",
+                    NotificationManager.IMPORTANCE_LOW
+                ).apply {
+                    description = "Notification for ongoing calls"
+                    setSound(null, null)
+                    enableVibration(false)
                 }
             )
         }

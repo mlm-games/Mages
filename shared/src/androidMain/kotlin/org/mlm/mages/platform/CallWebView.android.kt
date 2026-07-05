@@ -7,6 +7,8 @@ import android.graphics.Outline
 import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.os.Build
 import android.os.PowerManager
 import android.util.Log
@@ -180,6 +182,17 @@ private class AudioDeviceBridge(
 
     private val proximitySensorMutex = Mutex()
 
+    private val audioFocusRequest = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val attrs = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+            .build()
+        AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+            .setAudioAttributes(attrs)
+            .setOnAudioFocusChangeListener { }
+            .build()
+    } else null
+
     fun setWebView(webView: android.webkit.WebView) {
         webViewRef = webView
     }
@@ -212,10 +225,10 @@ private class AudioDeviceBridge(
     fun onTrackReady() {
         Log.d("AudioBridge", "Audio track ready")
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        
+
         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
             if (hasRegisteredCallbacks) return@postDelayed
-            
+
             audioManager.registerAudioDeviceCallback(audioDeviceCallback, null)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -233,7 +246,7 @@ private class AudioDeviceBridge(
 
             val devices = listAudioDevices(audioManager)
             setAvailableAudioDevicesInWebView(devices)
-            
+
             val firstDevice = devices.firstOrNull()
             if (firstDevice != null && currentDeviceId == null) {
                 selectAudioDevice(firstDevice)
@@ -268,11 +281,11 @@ private class AudioDeviceBridge(
             if (validNewDevices.isEmpty()) return
 
             Log.d("AudioBridge", "Audio devices added: ${validNewDevices.size}")
-            
+
             val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             val audioDevices = (listAudioDevices(audioManager) + validNewDevices).distinctBy { it.id }
             setAvailableAudioDevicesInWebView(audioDevices)
-            
+
             val firstDevice = audioDevices.firstOrNull()
             if (firstDevice != null && (currentDeviceId == null || !audioDevices.any { it.id == currentDeviceId })) {
                 selectAudioDeviceById(firstDevice.id.toString())
@@ -281,7 +294,7 @@ private class AudioDeviceBridge(
 
         override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>?) {
             Log.d("AudioBridge", "Audio devices removed")
-            
+
             val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             setAvailableAudioDevicesInWebView(listAudioDevices(audioManager))
 
@@ -306,7 +319,7 @@ private class AudioDeviceBridge(
     private fun selectAudioDevice(device: AudioDeviceInfo?) {
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         currentDeviceId = device?.id
-        
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (device != null) {
                 runCatching {
@@ -359,7 +372,7 @@ private class AudioDeviceBridge(
 
     private fun selectAudioDeviceById(deviceId: String) {
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val audioDevice = audioManager.availableCommunicationDevices.find { it.id.toString() == deviceId }
             selectAudioDevice(audioDevice)
@@ -434,12 +447,36 @@ private class AudioDeviceBridge(
             Log.w("AudioBridge", "Audio: tried to enable webview in-call audio mode while already in it")
             return
         }
-        
+
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         audioManager.mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             AudioManager.MODE_IN_COMMUNICATION
         } else {
             AudioManager.MODE_NORMAL
+        }
+
+        requestAudioFocus(audioManager)
+    }
+
+    private fun requestAudioFocus(audioManager: AudioManager) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioManager.requestAudioFocus(audioFocusRequest!!)
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.requestAudioFocus(
+                null,
+                AudioManager.STREAM_VOICE_CALL,
+                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE
+            )
+        }
+    }
+
+    private fun abandonAudioFocus(audioManager: AudioManager) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioManager.abandonAudioFocusRequest(audioFocusRequest!!)
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.abandonAudioFocus(null)
         }
     }
 
@@ -451,6 +488,7 @@ private class AudioDeviceBridge(
 
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         audioManager.mode = AudioManager.MODE_NORMAL
+        abandonAudioFocus(audioManager)
 
         runCatching {
             val held = proximitySensorMutex.tryLock()
@@ -690,7 +728,7 @@ actual fun CallWebViewHost(
                                 if (window.__MagesBridgeInstalled) return;
                                 window.__MagesBridgeInstalled = true;
                                 window.__MagesEchoBlock = new Set();
-                                
+
                                 function keyFor(data) {
                                     if (!data || typeof data !== 'object') return null;
                                     return JSON.stringify({
@@ -700,13 +738,13 @@ actual fun CallWebViewHost(
                                         hasResponse: Object.prototype.hasOwnProperty.call(data, 'response')
                                     });
                                 }
-                                
+
                                 window.__MagesPostFromHost = function(payload) {
                                     const key = keyFor(payload);
                                     if (key) window.__MagesEchoBlock.add(key);
                                     window.postMessage(payload, '*');
                                 };
-                                
+
                                 window.addEventListener('message', function(ev) {
                                     const data = ev.data;
                                     if (!data || typeof data !== 'object') return;
@@ -723,7 +761,7 @@ actual fun CallWebViewHost(
                             """.trimIndent(),
                             null
                         )
-                        
+
                         view.postDelayed({
                             setupAudioDeviceBridge(view, audioManager, audioDeviceBridge)
                         }, 500)

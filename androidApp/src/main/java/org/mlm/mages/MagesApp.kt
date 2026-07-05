@@ -13,10 +13,15 @@ import kotlinx.coroutines.launch
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 import org.mlm.mages.activities.DistributorPickerActivity
+import org.koin.core.context.GlobalContext
+import org.koin.core.qualifier.named
+import org.koin.java.KoinJavaComponent
+import org.mlm.mages.calls.CallManager
 import org.mlm.mages.di.appModules
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.SettingsProvider
 import org.mlm.mages.push.AppNotificationChannels
+import org.mlm.mages.push.CallForegroundService
 import org.mlm.mages.push.PREF_INSTANCE
 import org.mlm.mages.push.PushManager.getEndpoint
 import org.mlm.mages.push.PusherReconciler
@@ -98,6 +103,19 @@ class MagesApp : Application() {
         }
 
         MagesPaths.init()
+
+        val koin = GlobalContext.getOrNull()
+        if (koin != null) {
+            @Suppress("UNCHECKED_CAST")
+            val callManager = koin.get<CallManager>()
+            callManager.onCallStateChanged = { active, roomName ->
+                if (active && roomName != null) {
+                    CallForegroundService.start(this, roomName)
+                } else {
+                    CallForegroundService.stop(this)
+                }
+            }
+        }
 
         Logger.i("App initialized")
 
