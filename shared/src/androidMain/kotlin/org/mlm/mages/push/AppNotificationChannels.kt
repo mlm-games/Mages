@@ -3,7 +3,10 @@ package org.mlm.mages.push
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.media.AudioAttributes
+import android.media.AudioManager
 import android.os.Build
+import android.provider.Settings
 
 /**
  * SOT for Android notification channels.
@@ -17,14 +20,23 @@ import android.os.Build
 object AppNotificationChannels {
     const val CHANNEL_MESSAGES = "messages"
     const val CHANNEL_MESSAGES_SILENT = "messages_silent"
-    const val CHANNEL_CALLS = "calls"
+    const val CHANNEL_CALLS = "calls_v3"
     const val CHANNEL_CALLS_SILENT = "calls_silent"
     const val CHANNEL_INVITES = "invites"
+
+    private val legacyCallChannels = listOf("calls", "calls_v2")
 
     fun ensureCreated(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
 
         val mgr = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        // One time Migration, TODO: Delete later
+        for (legacyId in legacyCallChannels) {
+            mgr.getNotificationChannel(legacyId)?.let {
+                mgr.deleteNotificationChannel(legacyId)
+            }
+        }
 
         // Messages (normal)
         if (mgr.getNotificationChannel(CHANNEL_MESSAGES) == null) {
@@ -64,6 +76,14 @@ object AppNotificationChannels {
                     NotificationManager.IMPORTANCE_MAX
                 ).apply {
                     description = "Incoming calls"
+                    setSound(
+                        Settings.System.DEFAULT_RINGTONE_URI,
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .setLegacyStreamType(AudioManager.STREAM_RING)
+                            .build()
+                    )
                     enableVibration(true)
                 }
             )

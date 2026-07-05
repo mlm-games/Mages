@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
 import android.content.res.Resources
+import android.media.AudioManager
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
@@ -90,25 +91,21 @@ object AndroidNotificationHelper : KoinComponent {
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setOngoing(true)
-            .setAutoCancel(false)
+            .setAutoCancel(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setStyle(style)
             .setContentIntent(incomingScreenIntent ?: joinIntent)
             .setDeleteIntent(deleteIntent)
             .setTimeoutAfter(60_000)
+            .setSound(Settings.System.DEFAULT_RINGTONE_URI, AudioManager.STREAM_RING)
+            .addPerson(caller)
+            .setShowWhen(false)
             .apply { callerIcon?.let { setLargeIcon(it) } }
+            .setFullScreenIntent(incomingScreenIntent, true) // TODO: precall it when the setting is enabled
 
-        if (
-            incomingScreenIntent != null &&
-            (
-                Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE ||
-                    mgr.canUseFullScreenIntent()
-                )
-        ) {
-            builder.setFullScreenIntent(incomingScreenIntent, true)
-        }
-
-        mgr.notify(notifId, builder.build())
+        mgr.notify(notifId, builder.build().apply {
+            flags = flags or Notification.FLAG_INSISTENT
+        })
     }
 
     fun cancelCallNotification(ctx: Context, roomId: String) {
