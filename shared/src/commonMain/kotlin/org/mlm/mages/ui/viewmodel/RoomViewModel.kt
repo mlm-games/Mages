@@ -1400,7 +1400,7 @@ class RoomViewModel(
 
     fun stopLiveLocation() {
         launch {
-            val result = liveLocationSession.stopSharing()
+            val result = liveLocationSession.stopSharing(currentState.roomId)
             if (result.isSuccess) {
                 currentState.myUserId?.let { myUserId ->
                     updateState { copy(liveLocationShares = liveLocationShares - myUserId) }
