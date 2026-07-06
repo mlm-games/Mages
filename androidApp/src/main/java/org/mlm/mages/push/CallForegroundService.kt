@@ -8,7 +8,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import org.mlm.mages.R
+import org.mlm.mages.shared.R
 import org.mlm.mages.MainActivity
 
 class CallForegroundService : Service() {
