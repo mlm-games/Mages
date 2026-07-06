@@ -60,7 +60,7 @@ actual object LiveLocationSharingCoordinator {
     actual suspend fun startShare(roomId: String, durationMinutes: Int): Result<Unit> {
         val port = matrixPort ?: return Result.failure(IllegalStateException("Matrix not ready"))
         val durationMs = durationMinutes * 60 * 1000L
-        port.startLiveLocationShare(roomId, durationMs).onFailure { return it }
+        port.startLiveLocationShare(roomId, durationMs).onFailure { return Result.failure(it) }
         val expiresAt = currentTimeMillis() + durationMs
         val wasEmpty = activeShares.isEmpty()
         activeShares[roomId] = expiresAt

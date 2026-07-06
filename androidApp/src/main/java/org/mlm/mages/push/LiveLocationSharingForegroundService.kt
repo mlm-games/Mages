@@ -10,7 +10,7 @@ import android.location.LocationManager
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import org.mlm.mages.activities.MainActivity
+import org.mlm.mages.MainActivity
 import org.mlm.mages.platform.LiveLocationSharingCoordinator
 
 class LiveLocationSharingForegroundService : Service() {
@@ -96,7 +96,7 @@ class LiveLocationSharingForegroundService : Service() {
     }
 
     companion object {
-        const val NOTIFICATION_ID = "live_location_foreground_service".hashCode()
+        val NOTIFICATION_ID = "live_location_foreground_service".hashCode()
         private const val ACTION_STOP = "org.mlm.mages.push.LiveLocationSharingForegroundService.STOP"
         private const val EXTRA_ROOM_COUNT = "room_count"
         private const val UPDATE_INTERVAL_MS = 10_000L

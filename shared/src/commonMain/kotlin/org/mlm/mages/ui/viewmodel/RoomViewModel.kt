@@ -197,14 +197,16 @@ class RoomViewModel(
 
     init {
         LiveLocationSharingCoordinator.onLocationDispatched = { lat, lon ->
-            val myUserId = currentState.myUserId ?: return@onLocationDispatched
-            updateState {
-                copy(liveLocationShares = liveLocationShares + (myUserId to LiveLocationShare(
-                    userId = myUserId,
-                    geoUri = "geo:$lat,$lon",
-                    tsMs = nowMs(),
-                    isLive = true,
-                )))
+            run {
+                val myUserId = currentState.myUserId ?: return@run
+                updateState {
+                    copy(liveLocationShares = liveLocationShares + (myUserId to LiveLocationShare(
+                        userId = myUserId,
+                        geoUri = "geo:$lat,$lon",
+                        tsMs = nowMs(),
+                        isLive = true,
+                    )))
+                }
             }
         }
     }

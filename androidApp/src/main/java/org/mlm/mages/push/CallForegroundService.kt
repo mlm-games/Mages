@@ -9,7 +9,7 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import org.mlm.mages.R
-import org.mlm.mages.activities.MainActivity
+import org.mlm.mages.MainActivity
 
 class CallForegroundService : Service() {
 
@@ -64,7 +64,7 @@ class CallForegroundService : Service() {
     }
 
     companion object {
-        const val NOTIFICATION_ID = "call_foreground_service".hashCode()
+        val NOTIFICATION_ID = "call_foreground_service".hashCode()
 
         private const val ACTION_STOP = "org.mlm.mages.push.CallForegroundService.STOP"
         private const val EXTRA_ROOM_NAME = "room_name"
