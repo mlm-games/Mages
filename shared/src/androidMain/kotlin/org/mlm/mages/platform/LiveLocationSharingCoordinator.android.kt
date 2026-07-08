@@ -103,6 +103,7 @@ actual object LiveLocationSharingCoordinator {
         scope.launch {
             for (roomId in rooms) {
                 port.sendLiveLocation(roomId, geoUri)
+                    .onFailure { stopShare(roomId) }
             }
         }
     }
