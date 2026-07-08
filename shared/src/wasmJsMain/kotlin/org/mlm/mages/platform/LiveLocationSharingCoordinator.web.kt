@@ -2,6 +2,7 @@ package org.mlm.mages.platform
 
 actual object LiveLocationSharingCoordinator {
     actual val isSharing: Boolean = false
+    actual fun isSharing(roomId: String): Boolean = false
     actual fun recover() {}
     actual suspend fun startShare(roomId: String, durationMinutes: Int): Result<Unit> =
         Result.failure(IllegalStateException("Live location not supported on WASM"))

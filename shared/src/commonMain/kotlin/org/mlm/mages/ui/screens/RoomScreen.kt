@@ -713,7 +713,12 @@ fun RoomScreen(
                                     val eventIndex = events.lastIndex - dslIndex
                                     val event = events[eventIndex]
                                     if (event.rendersAsSystemMessage()) {
-                                        SystemMessageItem(event = event)
+                                        SystemMessageItem(
+                                            event = event,
+                                            onClick = if (event.eventType == EventType.LiveLocation) {
+                                                viewModel::showLiveLocationMap
+                                            } else null,
+                                        )
                                     } else {
                                         MessageItem(
                                             event = event,

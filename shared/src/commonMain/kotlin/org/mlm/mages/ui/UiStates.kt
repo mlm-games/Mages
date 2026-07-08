@@ -421,6 +421,8 @@ data class RoomListItemUi(
     val lastMessageSender: String? = null,
     val lastMessageType: LastMessageType = LastMessageType.Text,
     val lastMessageTs: Long? = null,
+
+    val isSharingLocation: Boolean = false,
 )
 
 data class SearchUiState(

@@ -20,7 +20,8 @@ import org.mlm.mages.ui.util.formatTime
 @Composable
 fun SystemMessageItem(
     event: MessageEvent,
-    modifier: Modifier = Modifier
+    onClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
 ) {
     val isSystemEvent = event.eventType != EventType.Message &&
             event.eventType != EventType.Poll &&
@@ -38,6 +39,8 @@ fun SystemMessageItem(
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         Surface(
+            onClick = onClick ?: {},
+            enabled = onClick != null,
             color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
             shape = MaterialTheme.shapes.small,
             modifier = Modifier.fillMaxWidth(0.75f)

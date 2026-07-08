@@ -122,6 +122,16 @@ fun RoomListItem(
                             tint = MaterialTheme.colorScheme.tertiary
                         )
                     }
+
+                    if (item.isSharingLocation) {
+                        Spacer(Modifier.width(4.dp))
+                        Icon(
+                            Icons.Default.MyLocation,
+                            contentDescription = "Sharing live location",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
 
                 Spacer(Modifier.height(2.dp))

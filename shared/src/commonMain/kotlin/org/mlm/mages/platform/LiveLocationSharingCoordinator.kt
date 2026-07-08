@@ -6,5 +6,6 @@ expect object LiveLocationSharingCoordinator {
     suspend fun stopShare(roomId: String): Result<Unit>
     fun dispatchLocation(lat: Double, lon: Double, accuracy: Float?)
     val isSharing: Boolean
+    fun isSharing(roomId: String): Boolean
     var onLocationDispatched: ((Double, Double) -> Unit)?
 }

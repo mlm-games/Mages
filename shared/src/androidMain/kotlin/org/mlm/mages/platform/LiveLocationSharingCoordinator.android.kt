@@ -37,6 +37,8 @@ actual object LiveLocationSharingCoordinator {
     actual val isSharing: Boolean
         get() = activeShares.isNotEmpty()
 
+    actual fun isSharing(roomId: String): Boolean = activeShares.containsKey(roomId)
+
     actual fun recover() {
         if (recovered) return
         val now = currentTimeMillis()

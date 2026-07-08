@@ -15,6 +15,7 @@ import org.mlm.mages.RoomSummary
 import org.mlm.mages.matrix.LatestRoomEvent
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.RoomListEntry
+import org.mlm.mages.platform.LiveLocationSharingCoordinator
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.LastMessageType
 import org.mlm.mages.ui.RoomListItemUi
@@ -204,7 +205,8 @@ class RoomsViewModel(
             lastMessageBody = lastBody,
             lastMessageSender = lastEvent?.sender,
             lastMessageType = lastType,
-            lastMessageTs = lastEvent?.timestamp
+            lastMessageTs = lastEvent?.timestamp,
+            isSharingLocation = LiveLocationSharingCoordinator.isSharing(entry.roomId)
         )
     }
 

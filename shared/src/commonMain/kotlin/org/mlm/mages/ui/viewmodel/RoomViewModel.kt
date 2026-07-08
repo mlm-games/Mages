@@ -270,9 +270,34 @@ class RoomViewModel(
 
             val myUserId = service.port.whoami()
             updateState { copy(myUserId = myUserId) }
+            if (LiveLocationSharingCoordinator.isSharing(roomId) && myUserId != null) {
+                updateState {
+                    copy(liveLocationShares = liveLocationShares + (myUserId to LiveLocationShare(
+                        userId = myUserId,
+                        geoUri = "",
+                        tsMs = nowMs(),
+                        isLive = true,
+                    )))
+                }
+            }
             loadPowerLevel(myUserId)
 
             dmPeer = service.port.dmPeerUserId(roomId)
+
+            val subToken = service.port.observeLiveLocation(roomId) { shares ->
+                updateState {
+                    val merged = liveLocationShares.toMutableMap()
+                    for (share in shares) {
+                        if (share.isLive) {
+                            merged[share.userId] = share
+                        } else {
+                            merged.remove(share.userId)
+                        }
+                    }
+                    copy(liveLocationShares = merged)
+                }
+            }
+            updateState { copy(liveLocationSubToken = subToken) }
 
             settingsRepo.update { it.copy(lastOpenedRoomId = roomId) }
 
@@ -1389,6 +1414,9 @@ class RoomViewModel(
 
     fun startLiveLocation(durationMinutes: Int) {
         launch {
+            if (LiveLocationSharingCoordinator.isSharing(currentState.roomId)) {
+                liveLocationSession.stopSharing(currentState.roomId)
+            }
             val result = liveLocationSession.startSharing(currentState.roomId, durationMinutes)
             if (result.isSuccess) {
                 updateState { copy(showLiveLocation = false) }
@@ -1418,6 +1446,7 @@ class RoomViewModel(
 
     val isCurrentlySharingLocation: Boolean
         get() = currentState.liveLocationShares[currentState.myUserId]?.isLive == true
+            || LiveLocationSharingCoordinator.isSharing(currentState.roomId)
 
     //  Polls
 
