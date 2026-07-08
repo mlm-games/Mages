@@ -7,7 +7,7 @@ publish = false
 [workspace]
 
 [dependencies]
-uniffi = { version = "0.31.0", features = ["cli"] }
+uniffi = { version = "0.32.0", features = ["cli"] }
 
 [[bin]]
 name = "uniffi-bindgen"

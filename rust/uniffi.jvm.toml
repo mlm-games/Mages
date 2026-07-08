@@ -1,4 +1,4 @@
-[bindings.kotlin]
+[defaults.bindings.kotlin]
 package_name = "mages"
 cdylib_name = "mages_ffi"
 jni = true
