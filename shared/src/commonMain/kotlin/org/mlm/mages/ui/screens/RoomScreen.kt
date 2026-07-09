@@ -49,7 +49,7 @@ import org.mlm.mages.ui.components.composer.ActionBanner
 import org.mlm.mages.ui.components.composer.MessageComposer
 import org.mlm.mages.ui.components.core.*
 import org.mlm.mages.ui.components.dialogs.ReportContentDialog
-import org.mlm.mages.ui.components.message.LiveLocationTimelineItem
+import org.mlm.mages.ui.components.location.TimelineLocationItem
 import org.mlm.mages.ui.components.message.MessageBubble
 import org.mlm.mages.ui.components.message.MessageStatusLine
 import org.mlm.mages.ui.components.message.SystemMessageItem
@@ -715,9 +715,11 @@ fun RoomScreen(
                                     val event = events[eventIndex]
                                     if (event.rendersAsSystemMessage()) {
                                         if (event.eventType == EventType.LiveLocation) {
-                                            LiveLocationTimelineItem(
+                                            TimelineLocationItem(
                                                 event = event,
+                                                isOwnActiveShare = event.sender == state.myUserId && state.liveLocationShares[event.sender]?.isLive == true,
                                                 onClick = { viewModel.showLiveLocationMap() },
+                                                onStopLiveLocation = if (event.sender == state.myUserId) viewModel::stopLiveLocation else null,
                                             )
                                         } else {
                                             SystemMessageItem(event = event)

@@ -1,18 +1,24 @@
 package org.mlm.mages.ui.components.location
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -32,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +49,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.mlmgames.settings.core.SettingsRepository
+import org.koin.compose.koinInject
+import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.settings.ThemeMode
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.maplibre.compose.camera.CameraPosition
@@ -165,10 +176,22 @@ actual fun LiveLocationMapViewer(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var selectedUserId by remember { mutableStateOf<String?>(null) }
 
+    val settingsRepository: SettingsRepository<AppSettings> = koinInject()
+    val appSettings by settingsRepository.flow.collectAsState(initial = AppSettings())
+    val isDark = when (appSettings.themeMode) {
+        ThemeMode.System -> isSystemInDarkTheme()
+        ThemeMode.Dark -> true
+        ThemeMode.Light -> false
+    }
+    val mapStyleUrl = remember(isDark) {
+        if (isDark) "https://tiles.openfreemap.org/styles/dark"
+        else "https://tiles.openfreemap.org/styles/liberty"
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         MaplibreMap(
             modifier = Modifier.fillMaxSize(),
-            baseStyle = BaseStyle.Uri("https://tiles.openfreemap.org/styles/liberty"),
+            baseStyle = BaseStyle.Uri(mapStyleUrl),
             cameraState = cameraState,
         ) {
             val source = rememberGeoJsonSource(
@@ -195,66 +218,72 @@ actual fun LiveLocationMapViewer(
             )
         }
 
-        FilledIconButton(
-            onClick = onDismiss,
+        Box(
             modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(16.dp),
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.systemBars),
         ) {
-            Icon(Icons.Default.Close, contentDescription = "Close map")
-        }
+            FilledIconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp),
+            ) {
+                Icon(Icons.Default.Close, contentDescription = "Close map")
+            }
 
-        FloatingActionButton(
-            onClick = { showBottomSheet = true },
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 16.dp),
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        ) {
-            Box {
-                Icon(
-                    Icons.AutoMirrored.Filled.List,
-                    contentDescription = "View all locations"
-                )
-                if (activeShares.size > 1) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .size(18.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = activeShares.size.toString(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
+            FloatingActionButton(
+                onClick = { showBottomSheet = true },
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 16.dp),
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ) {
+                Box {
+                    Icon(
+                        Icons.AutoMirrored.Filled.List,
+                        contentDescription = "View all locations"
+                    )
+                    if (activeShares.size > 1) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .size(18.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = activeShares.size.toString(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        if (isCurrentlySharing && onStopSharing != null && !showBottomSheet) {
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(16.dp),
-                shape = MaterialTheme.shapes.large,
-                color = Color.Transparent,
-                tonalElevation = 4.dp,
-            ) {
-                Row(modifier = Modifier.padding(8.dp)) {
-                    Button(
-                        onClick = onStopSharing,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error
-                        )
-                    ) {
-                        Icon(Icons.Default.Stop, contentDescription = null)
-                        Spacer(Modifier.width(Spacing.sm))
-                        Text("Stop sharing")
+            if (isCurrentlySharing && onStopSharing != null && !showBottomSheet) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp),
+                    shape = MaterialTheme.shapes.large,
+                    color = Color.Transparent,
+                    tonalElevation = 4.dp,
+                ) {
+                    Row(modifier = Modifier.padding(8.dp)) {
+                        Button(
+                            onClick = onStopSharing,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Icon(Icons.Default.Stop, contentDescription = null)
+                            Spacer(Modifier.width(Spacing.sm))
+                            Text("Stop sharing")
+                        }
                     }
                 }
             }
