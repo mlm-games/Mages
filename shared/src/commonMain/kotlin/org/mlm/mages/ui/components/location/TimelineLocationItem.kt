@@ -26,7 +26,7 @@ import org.mlm.mages.settings.ThemeMode
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatTime
 
-private fun parseGeoUri(geoUri: String?): Pair<Double, Double>? {
+internal fun parseGeoUri(geoUri: String?): Pair<Double, Double>? {
     if (geoUri.isNullOrBlank()) return null
     val cleaned = geoUri.removePrefix("geo:").substringBefore("?").substringBefore(";")
     val parts = cleaned.split(",")
@@ -58,7 +58,7 @@ fun TimelineLocationItem(
     onStopLiveLocation: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    if (event.eventType != EventType.LiveLocation) return
+    if (event.eventType != EventType.LiveLocation && event.eventType != EventType.Location) return
     val geoUri = event.liveLocation?.geoUri
     val coords = parseGeoUri(geoUri)
     val coordText = coords?.let { formatCoords(it.first, it.second) }

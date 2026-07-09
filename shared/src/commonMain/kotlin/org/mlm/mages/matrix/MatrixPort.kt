@@ -133,6 +133,7 @@ enum class EventType {
     Poll,
     Sticker,
     LiveLocation,
+    Location,
 }
 
 @Serializable
@@ -932,6 +933,7 @@ interface MatrixPort {
     suspend fun startLiveLocationShare(roomId: String, durationMs: Long): Result<String>
     suspend fun stopLiveLocationShare(roomId: String): Result<Unit>
     suspend fun sendLiveLocation(roomId: String, geoUri: String): Result<Unit>
+    suspend fun sendStaticLocation(roomId: String, geoUri: String, body: String? = null): Result<Unit>
     suspend fun observeLiveLocation(roomId: String, onShares: (List<LiveLocationShare>) -> Unit): ULong
     fun stopObserveLiveLocation(token: ULong)
 

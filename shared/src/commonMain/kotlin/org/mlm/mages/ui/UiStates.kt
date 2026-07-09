@@ -158,6 +158,8 @@ data class RoomUiState(
     val showAttachmentPicker: Boolean = false,
     val showPollCreator: Boolean = false,
     val showLiveLocation: Boolean = false,
+    val showShareLocation: Boolean = false,
+    val isSendingShareLocation: Boolean = false,
     val showLiveLocationMap: Boolean = false,
     val isLiveLocationLoading: Boolean = false,
     val showNotificationSettings: Boolean = false,

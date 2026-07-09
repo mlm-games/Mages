@@ -16,4 +16,7 @@ actual object LiveLocationSharingCoordinator {
 
     actual fun dispatchLocation(lat: Double, lon: Double, accuracy: Float?) {}
     actual var onLocationDispatched: ((Double, Double) -> Unit)? = null
+    actual var onChanged: ((Boolean, Int) -> Unit)? = null
+    actual var onFirstStarted: (() -> Unit)? = null
+    actual var onAllStopped: (() -> Unit)? = null
 }

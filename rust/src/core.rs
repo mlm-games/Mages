@@ -34,9 +34,10 @@ use matrix_sdk::{
                 EncryptedFile, ImageInfo, MediaSource,
                 message::{
                     AudioInfo, AudioMessageEventContent, FileMessageEventContent,
-                    ImageMessageEventContent, MessageType, Relation as MsgRelation,
-                    RoomMessageEventContent, RoomMessageEventContentWithoutRelation as MsgNoRel,
-                    SyncRoomMessageEvent, VideoInfo, VideoMessageEventContent,
+                    ImageMessageEventContent, LocationMessageEventContent, MessageType,
+                    Relation as MsgRelation, RoomMessageEventContent,
+                    RoomMessageEventContentWithoutRelation as MsgNoRel, SyncRoomMessageEvent,
+                    VideoInfo, VideoMessageEventContent,
                 },
                 name::RoomNameEventContent,
                 pinned_events::RoomPinnedEventsEventContent,
@@ -2823,6 +2824,21 @@ impl CoreClient {
         .map_err(|_| FfiError::Msg("Timeout sending live location".into()))?
         .map(|_| ())
         .map_err(|e| Self::beacon_err(e))
+    }
+
+    pub async fn send_static_location(
+        &self,
+        room_id: String,
+        geo_uri: String,
+        body: Option<String>,
+    ) -> Result<(), FfiError> {
+        let room = self.require_room(&room_id)?;
+        let msgtype = MessageType::Location(LocationMessageEventContent::new(
+            body.unwrap_or_else(|| "Location".to_owned()),
+            geo_uri,
+        ));
+        let content = RoomMessageEventContent::new(msgtype);
+        room.send(content).await.ffi().map(|_| ())
     }
 
     fn beacon_err(e: matrix_sdk::BeaconError) -> FfiError {

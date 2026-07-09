@@ -17,7 +17,9 @@ import org.mlm.mages.matrix.*
 import org.mlm.mages.platform.Notifier
 import org.mlm.mages.platform.ShareContent
 import org.mlm.mages.platform.LiveLocationSession
+import org.mlm.mages.platform.LiveLocationProvider
 import org.mlm.mages.platform.LiveLocationSharingCoordinator
+import org.mlm.mages.platform.LocationResult
 import org.mlm.mages.platform.deleteDirectory
 import org.mlm.mages.platform.platformEmbeddedElementCallParentUrlOrNull
 import org.mlm.mages.platform.platformEmbeddedElementCallUrlOrNull
@@ -37,6 +39,7 @@ import org.mlm.mages.ui.components.AttachmentData
 import org.mlm.mages.ui.components.OutgoingMediaMode
 import org.mlm.mages.ui.util.mimeToExtension
 import org.mlm.mages.ui.util.nowMs
+import org.mlm.mages.ui.viewmodel.RoomViewModel.Event.*
 import kotlin.collections.map
 
 class RoomViewModel(
@@ -405,6 +408,59 @@ class RoomViewModel(
 
     fun showPollCreator() = updateState { copy(showPollCreator = true, showAttachmentPicker = false) }
     fun hidePollCreator() = updateState { copy(showPollCreator = false) }
+
+    fun showShareLocation() = updateState { copy(showShareLocation = true, showAttachmentPicker = false) }
+    fun hideShareLocation() = updateState { copy(showShareLocation = false, isSendingShareLocation = false) }
+
+    fun sendStaticLocation(lat: Double, lon: Double) {
+        launch {
+            updateState { copy(isSendingShareLocation = true) }
+            val geoUri = "geo:$lat,$lon"
+            val result = service.port.sendStaticLocation(currentState.roomId, geoUri)
+            if (result.isSuccess) {
+                _events.send(Event.ShowSuccess("Location shared"))
+                updateState { copy(showShareLocation = false, isSendingShareLocation = false) }
+            } else {
+                val msg = result.exceptionOrNull()?.message ?: "Failed to share location"
+                _events.send(Event.ShowError(msg))
+                updateState { copy(isSendingShareLocation = false) }
+            }
+        }
+    }
+
+    fun sendStaticLocationCurrent() {
+        launch {
+            updateState { copy(isSendingShareLocation = true) }
+            val location = LiveLocationProvider().getCurrentLocation()
+            when (location) {
+                is LocationResult.Success -> {
+                    val geoUri = "geo:${location.location.latitude},${location.location.longitude}"
+                    val result = service.port.sendStaticLocation(currentState.roomId, geoUri)
+                    if (result.isSuccess) {
+                        _events.send(ShowSuccess("Location shared"))
+                        updateState { copy(showShareLocation = false, isSendingShareLocation = false) }
+                    } else {
+                        val msg = result.exceptionOrNull()?.message ?: "Failed to share location"
+                        _events.send(ShowError(msg))
+                        updateState { copy(isSendingShareLocation = false) }
+                    }
+                }
+                is LocationResult.Error -> {
+                    _events.send(ShowError(location.message ?: "Could not get location"))
+                    updateState { copy(isSendingShareLocation = false) }
+                }
+                is LocationResult.PermissionDenied -> {
+                    _events.send(ShowError("Location permission denied"))
+                    updateState { copy(isSendingShareLocation = false) }
+                }
+
+                LocationResult.NotSupported -> {
+                    _events.send(ShowError("Location not supported on this platform"))
+                    updateState { copy(isSendingShareLocation = false) }
+                }
+            }
+        }
+    }
 
     fun showLiveLocation() = updateState { copy(showLiveLocation = true, showAttachmentPicker = false) }
     fun hideLiveLocation() = updateState { copy(showLiveLocation = false, isLiveLocationLoading = false) }

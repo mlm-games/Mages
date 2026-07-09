@@ -29,6 +29,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -50,6 +52,7 @@ import org.mlm.mages.ui.components.composer.MessageComposer
 import org.mlm.mages.ui.components.core.*
 import org.mlm.mages.ui.components.dialogs.ReportContentDialog
 import org.mlm.mages.ui.components.location.TimelineLocationItem
+import org.mlm.mages.ui.components.location.parseGeoUri
 import org.mlm.mages.ui.components.message.MessageBubble
 import org.mlm.mages.ui.components.message.MessageStatusLine
 import org.mlm.mages.ui.components.message.SystemMessageItem
@@ -741,6 +744,20 @@ fun RoomScreen(
                                                 onClick = { viewModel.showLiveLocationMap() },
                                                 onStopLiveLocation = if (event.sender == state.myUserId) viewModel::stopLiveLocation else null,
                                             )
+                                        } else if (event.eventType == EventType.Location) {
+                                            val coords = event.liveLocation?.geoUri?.let { parseGeoUri(it) }
+                                            val clipboardManager = LocalClipboardManager.current
+                                            TimelineLocationItem(
+                                                event = event,
+                                                onClick = {
+                                                    coords?.let { (lat, lon) ->
+                                                        clipboardManager.setText(AnnotatedString("$lat, $lon"))
+                                                        scope.launch {
+                                                            snackbarManager.show("Coordinates copied")
+                                                        }
+                                                    }
+                                                },
+                                            )
                                         } else {
                                             SystemMessageItem(event = event)
                                         }
@@ -877,6 +894,7 @@ fun RoomScreen(
             onDismiss = viewModel::hideAttachmentPicker,
             onCreatePoll = viewModel::showPollCreator,
             onShareLocation = viewModel::showLiveLocation,
+            onShareStaticLocation = viewModel::showShareLocation,
             onPickSticker = { stickerPicker.launch() }
         )
     }
@@ -899,6 +917,19 @@ fun RoomScreen(
             },
             onStopSharing = viewModel::stopLiveLocation,
             onDismiss = viewModel::hideLiveLocation
+        )
+    }
+
+    if (state.showShareLocation) {
+        ShareLocationSheet(
+            isSending = state.isSendingShareLocation,
+            onSendCurrentLocation = {
+                onRequestLocationPermissions?.invoke {
+                    viewModel.sendStaticLocationCurrent()
+                } ?: viewModel.sendStaticLocationCurrent()
+            },
+            onSendPickedLocation = { lat, lon -> viewModel.sendStaticLocation(lat, lon) },
+            onDismiss = viewModel::hideShareLocation,
         )
     }
 

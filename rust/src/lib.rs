@@ -178,6 +178,7 @@ delegate_unit_result! {
     space_remove_child(space_id: String, child_room_id: String);
     stop_live_location(room_id: String);
     send_live_location(room_id: String, geo_uri: String);
+    send_static_location(room_id: String, geo_uri: String, body: Option<String>);
     set_presence(state: Presence, status_msg: Option<String>);
     accept_knock_request(room_id: String, user_id: String);
     decline_knock_request(room_id: String, user_id: String, reason: Option<String>);
@@ -3177,6 +3178,16 @@ fn map_timeline_event(
                         }
                         MessageType::Emote(c) => {
                             formatted_body = c.formatted.as_ref().map(|f| f.body.clone());
+                        }
+                        MessageType::Location(loc) => {
+                            event_type = EventType::Location;
+                            live_location = Some(LiveLocationEvent {
+                                user_id: ev.sender().to_string(),
+                                geo_uri: loc.geo_uri.clone(),
+                                ts_ms: 0,
+                                is_live: false,
+                                beacon_info_event_id: String::new(),
+                            });
                         }
                         _ => {}
                     }

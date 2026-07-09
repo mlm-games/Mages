@@ -1514,6 +1514,11 @@ class RustMatrixPort : MatrixPort, VerificationService {
             runWithFfiResult { withClient { it.sendLiveLocation(roomId, geoUri) } }
         }
 
+    override suspend fun sendStaticLocation(roomId: String, geoUri: String, body: String?): Result<Unit> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.sendStaticLocation(roomId, geoUri, body) } }
+        }
+
     override suspend fun observeLiveLocation(
         roomId: String,
         onShares: (List<LiveLocationShare>) -> Unit
@@ -1779,6 +1784,7 @@ private fun mages.EventType.toKotlin(): EventType = when (this) {
     mages.EventType.POLL -> EventType.Poll
     mages.EventType.STICKER -> EventType.Sticker
     mages.EventType.LIVE_LOCATION -> EventType.LiveLocation
+    mages.EventType.LOCATION -> EventType.Location
 }
 
 private fun mages.EncFile.toModel() = EncFile(url = url, json = json)

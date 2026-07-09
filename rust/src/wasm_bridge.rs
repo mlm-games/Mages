@@ -398,6 +398,7 @@ wasm_delegate_result_bool! {
     "sendPollEnd"         => send_poll_end(room_id: String, poll_event_id: String);
     "stopLiveLocation"     => stop_live_location(room_id: String);
     "sendLiveLocation"     => send_live_location(room_id: String, geo_uri: String);
+    "sendStaticLocation"   => send_static_location(room_id: String, geo_uri: String, body: Option<String>);
     "acceptKnockRequest"   => accept_knock_request(room_id: String, user_id: String);
     "declineKnockRequest"  => decline_knock_request(room_id: String, user_id: String, reason: Option<String>);
     "acceptInvite"         => accept_invite(room_id: String);

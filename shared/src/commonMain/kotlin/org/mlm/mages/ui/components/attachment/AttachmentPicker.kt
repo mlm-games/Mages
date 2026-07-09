@@ -25,6 +25,7 @@ fun AttachmentPicker(
     onCamera: (() -> Unit)? = null,
     onCreatePoll: (() -> Unit)? = null,
     onShareLocation: (() -> Unit)? = null,
+    onShareStaticLocation: (() -> Unit)? = null,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.xxl)) {
@@ -95,12 +96,21 @@ fun AttachmentPicker(
                     ) { onCreatePoll(); onDismiss() }
                 }
 
-                if (onShareLocation != null && currentPlatform == SettingPlatform.ANDROID) {
-                    AttachmentOption(
-                        Icons.Default.LocationOn,
-                        "Location",
-                        "Share your live location"
-                    ) { onShareLocation(); onDismiss() }
+                if ((onShareLocation != null || onShareStaticLocation != null) && currentPlatform == SettingPlatform.ANDROID) {
+                    if (onShareStaticLocation != null) {
+                        AttachmentOption(
+                            Icons.Default.LocationOn,
+                            "Location",
+                            "Send a one-time location"
+                        ) { onShareStaticLocation(); onDismiss() }
+                    }
+                    if (onShareLocation != null) {
+                        AttachmentOption(
+                            Icons.Default.Timeline,
+                            "Live Location",
+                            "Share your real-time location"
+                        ) { onShareLocation(); onDismiss() }
+                    }
                 }
             }
         }

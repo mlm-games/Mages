@@ -1344,6 +1344,11 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         return unitResult(result.ok, "send live location", result.error)
     }
 
+    override suspend fun sendStaticLocation(roomId: String, geoUri: String, body: String?): Result<Unit> {
+        val result = requireClient().sendStaticLocation(roomId, geoUri, body).awaitResult()
+        return unitResult(result.ok, "send static location", result.error)
+    }
+
     override suspend fun observeLiveLocation(roomId: String, onShares: (List<LiveLocationShare>) -> Unit): ULong =
         requireClient().observeLiveLocation(
             roomId,

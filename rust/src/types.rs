@@ -611,6 +611,7 @@ pub enum EventType {
     Poll,
     Sticker,
     LiveLocation,
+    Location,
 }
 
 #[derive(Clone, Serialize, Deserialize, Enum)]
