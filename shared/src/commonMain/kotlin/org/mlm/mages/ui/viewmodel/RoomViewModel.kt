@@ -287,6 +287,7 @@ class RoomViewModel(
             dmPeer = service.port.dmPeerUserId(roomId)
 
             val subToken = service.port.observeLiveLocation(roomId) { shares ->
+                println("LL observeLiveLocation shares=$shares")
                 updateState {
                     val oldShares = liveLocationShares
                     val myUserId = currentState.myUserId
@@ -315,9 +316,12 @@ class RoomViewModel(
                     syncedActiveBeaconIds.update { current ->
                         if (update.live) current + update.eventId else current - update.eventId
                     }
-                    if (!update.live && LiveLocationSharingCoordinator.isSharing(roomId)) {
-                        viewModelScope.launch {
-                            LiveLocationSharingCoordinator.stopShare(roomId)
+                    if (!update.live) {
+                        val currentEventId = LiveLocationSharingCoordinator.beaconEventId(roomId)
+                        if (currentEventId != null && update.eventId == currentEventId) {
+                            viewModelScope.launch {
+                                LiveLocationSharingCoordinator.stopShare(roomId)
+                            }
                         }
                     }
                 }
@@ -1440,13 +1444,10 @@ class RoomViewModel(
         if (currentState.isLiveLocationLoading) return
         launch {
             updateState { copy(isLiveLocationLoading = true) }
-            if (LiveLocationSharingCoordinator.isSharing(currentState.roomId)) {
-                liveLocationSession.stopSharing(currentState.roomId)
-            }
             val result = liveLocationSession.startSharing(currentState.roomId, durationMinutes)
             if (result.isSuccess) {
                 val eventId = result.getOrThrow()
-                LiveLocationSharingCoordinator.confirmShare(currentState.roomId, durationMinutes)
+                LiveLocationSharingCoordinator.confirmShare(currentState.roomId, eventId, durationMinutes)
                 val myUserId = currentState.myUserId
                 if (myUserId != null) {
                     val tsMs = nowMs()
@@ -2133,6 +2134,7 @@ class RoomViewModel(
     }
 
     private fun recomputeLiveLocationShares() {
+        println("LL recompute from timeline allEvents=${currentState.allEvents.size}")
         updateState {
             val updated = liveLocationShares.toMutableMap()
             val items = allEvents

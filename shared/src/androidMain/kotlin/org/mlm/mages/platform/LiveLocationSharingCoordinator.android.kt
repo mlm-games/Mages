@@ -2,6 +2,7 @@ package org.mlm.mages.platform
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -19,6 +20,7 @@ actual object LiveLocationSharingCoordinator {
 
     private var recovered = false
     private val activeShares: MutableMap<String, Long> = Collections.synchronizedMap(mutableMapOf())
+    private val beaconEventIds = Collections.synchronizedMap(mutableMapOf<String, String>())
     private val timeoutJobs = Collections.synchronizedMap(mutableMapOf<String, Job>())
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -34,9 +36,8 @@ actual object LiveLocationSharingCoordinator {
     private val pendingLocations = Collections.synchronizedMap(mutableMapOf<String, PendingLocation>())
     private val retryJobs = Collections.synchronizedMap(mutableMapOf<String, Job>())
 
-    private val matrixPort: MatrixPort? by lazy {
+    private fun matrixPort(): MatrixPort? =
         runCatching { KoinPlatform.getKoin().get<MatrixService>().portOrNull }.getOrNull()
-    }
 
     private val prefs: SharedPreferences by lazy {
         val ctx: Context = KoinPlatform.getKoin().get()
@@ -48,6 +49,8 @@ actual object LiveLocationSharingCoordinator {
 
     actual fun isSharing(roomId: String): Boolean = activeShares.containsKey(roomId)
 
+    actual fun beaconEventId(roomId: String): String? = beaconEventIds[roomId]
+
     actual fun recover() {
         if (recovered) return
         val now = currentTimeMillis()
@@ -57,7 +60,7 @@ actual object LiveLocationSharingCoordinator {
             val expiresAt = (value as? Long) ?: continue
             if (expiresAt > now) {
                 activeShares[roomId] = expiresAt
-                scheduleTimeout(roomId, expiresAt)
+                checkTimeout(roomId, expiresAt)
             } else {
                 prefs.edit().remove(key).apply()
             }
@@ -69,29 +72,31 @@ actual object LiveLocationSharingCoordinator {
     }
 
     actual suspend fun startShare(roomId: String, durationMinutes: Int): Result<String> {
-        val port = matrixPort ?: return Result.failure(IllegalStateException("Matrix not ready"))
+        val port = matrixPort() ?: return Result.failure(IllegalStateException("Matrix not ready"))
         val durationMs = durationMinutes * 60 * 1000L
         return port.startLiveLocationShare(roomId, durationMs)
     }
 
-    actual fun confirmShare(roomId: String, durationMinutes: Int) {
+    actual fun confirmShare(roomId: String, eventId: String, durationMinutes: Int) {
         val expiresAt = currentTimeMillis() + durationMinutes * 60 * 1000L
         activeShares[roomId] = expiresAt
+        beaconEventIds[roomId] = eventId
         prefs.edit().putLong(PREFIX + roomId, expiresAt).apply()
         val wasEmpty = activeShares.size == 1
-        scheduleTimeout(roomId, expiresAt)
+        checkTimeout(roomId, expiresAt)
         onChanged?.invoke(true, activeShares.size)
         if (wasEmpty) onFirstStarted?.invoke()
     }
 
     actual suspend fun stopShare(roomId: String): Result<Unit> {
-        val port = matrixPort
+        val port = matrixPort()
         val result = if (port != null && activeShares.containsKey(roomId)) {
             port.stopLiveLocationShare(roomId)
         } else {
             Result.success(Unit)
         }
         activeShares.remove(roomId)
+        beaconEventIds.remove(roomId)
         timeoutJobs.remove(roomId)?.cancel()
         pendingLocations.remove(roomId)
         retryJobs.remove(roomId)?.cancel()
@@ -111,7 +116,7 @@ actual object LiveLocationSharingCoordinator {
         val now = currentTimeMillis()
         if (now - lastDispatchMs < THROTTLE_MS) return
         lastDispatchMs = now
-        val port = matrixPort ?: return
+        val port = matrixPort() ?: return
         onLocationDispatched?.invoke(lat, lon)
         val geoUri = "geo:$lat,$lon"
         val rooms = synchronized(activeShares) { activeShares.keys.toList() }
@@ -133,6 +138,7 @@ actual object LiveLocationSharingCoordinator {
 
                     val result = port.sendLiveLocation(roomId, location.geoUri)
                     if (result.isSuccess) {
+                        Log.d("LiveLocation", "sendLiveLocation success for $roomId")
                         synchronized(pendingLocations) {
                             if (pendingLocations[roomId] == location) {
                                 pendingLocations.remove(roomId)
@@ -142,11 +148,7 @@ actual object LiveLocationSharingCoordinator {
                     }
 
                     val e = result.exceptionOrNull()
-                    if (e is FfiException.NotLive) {
-                        stopShare(roomId)
-                        return@launch
-                    }
-
+                    Log.w("LiveLocation", "sendLiveLocation failed for $roomId: ${e?.javaClass?.simpleName}: ${e?.message}, retrying in ${delayMs}ms")
                     delay(delayMs)
                     delayMs = (delayMs * 2).coerceAtMost(10_000L)
                 }
@@ -156,7 +158,7 @@ actual object LiveLocationSharingCoordinator {
         }
     }
 
-    private fun scheduleTimeout(roomId: String, expiresAt: Long) {
+    private fun checkTimeout(roomId: String, expiresAt: Long) {
         timeoutJobs.remove(roomId)?.cancel()
         val delayMs = expiresAt - currentTimeMillis()
         if (delayMs <= 0) return
@@ -168,8 +170,8 @@ actual object LiveLocationSharingCoordinator {
 
     private fun currentTimeMillis(): Long = System.currentTimeMillis()
 
-    var onChanged: ((Boolean, Int) -> Unit)? = null
-    var onFirstStarted: (() -> Unit)? = null
-    var onAllStopped: (() -> Unit)? = null
+    actual var onChanged: ((Boolean, Int) -> Unit)? = null
+    actual var onFirstStarted: (() -> Unit)? = null
+    actual var onAllStopped: (() -> Unit)? = null
     actual var onLocationDispatched: ((Double, Double) -> Unit)? = null
 }

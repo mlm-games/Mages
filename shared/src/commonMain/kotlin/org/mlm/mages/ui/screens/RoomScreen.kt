@@ -78,6 +78,7 @@ import io.github.mlmgames.settings.core.SettingsRepository
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import kotlinx.coroutines.flow.distinctUntilChanged
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.AttachmentUploadStage
 import org.mlm.mages.ui.PinnedMessageUi
@@ -193,14 +194,28 @@ fun RoomScreen(
         }
     }
 
-    LaunchedEffect(listState, state.hitStart, state.isPaginatingBack, settings.autoBackPagination) {
+    LaunchedEffect(
+        listState,
+        state.hasTimelineSnapshot,
+        state.events.size,
+        state.hitStart,
+        state.isPaginatingBack,
+        settings.autoBackPagination,
+    ) {
         snapshotFlow { listState.firstVisibleItemIndex }
+            .distinctUntilChanged()
             .collect { firstIndex ->
-                if (settings.autoBackPagination && !state.hitStart && !state.isPaginatingBack) {
-                    val topIndex = state.events.size
-                    if (firstIndex >= topIndex - 5) {
-                        viewModel.paginateBack()
-                    }
+                val size = state.events.size
+
+                if (
+                    settings.autoBackPagination &&
+                    state.hasTimelineSnapshot &&
+                    size > 0 &&
+                    !state.hitStart &&
+                    !state.isPaginatingBack &&
+                    firstIndex >= size - 5
+                ) {
+                    viewModel.paginateBack()
                 }
             }
     }
