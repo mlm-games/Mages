@@ -36,6 +36,19 @@ private fun parseGeoUri(geoUri: String?): Pair<Double, Double>? {
     return lat to lon
 }
 
+private fun formatCoords(lat: Double, lon: Double): String {
+    val latDir = if (lat >= 0) "N" else "S"
+    val lonDir = if (lon >= 0) "E" else "W"
+    fun Double.fixed(digits: Int): String {
+        val factor = (1..digits).fold(1L) { acc, _ -> acc * 10L }
+        val rounded = kotlin.math.round(kotlin.math.abs(this) * factor).toLong()
+        val whole = rounded / factor
+        val frac = rounded % factor
+        return "$whole.${frac.toString().padStart(digits, '0')}"
+    }
+    return "${lat.fixed(4)}°$latDir, ${lon.fixed(4)}°$lonDir"
+}
+
 @Composable
 fun TimelineLocationItem(
     event: MessageEvent,
@@ -49,7 +62,9 @@ fun TimelineLocationItem(
     val isLive = event.liveLocation?.isLive == true
     val geoUri = event.liveLocation?.geoUri
     val coords = parseGeoUri(geoUri)
+    val coordText = coords?.let { formatCoords(it.first, it.second) }
     val body = event.body
+    val isBodyGeo = body.startsWith("geo:") || body.startsWith("https://maps") || body.startsWith("http://maps")
     val settingsRepository: SettingsRepository<AppSettings> = koinInject()
     val appSettings by settingsRepository.flow.collectAsState(initial = AppSettings())
     val isDark = when (appSettings.themeMode) {
@@ -133,7 +148,7 @@ fun TimelineLocationItem(
 
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = body,
+                                    text = if (isBodyGeo && coordText != null) coordText else body,
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurface,
@@ -176,15 +191,32 @@ fun TimelineLocationItem(
                         .padding(horizontal = Spacing.md, vertical = Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+
+                    Spacer(Modifier.width(Spacing.sm))
+
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = body,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
+                            text = if (isBodyGeo && coordText != null) coordText else body,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        Spacer(Modifier.height(2.dp))
                         Text(
                             text = formatTime(event.timestampMs),
                             style = MaterialTheme.typography.labelSmall,
