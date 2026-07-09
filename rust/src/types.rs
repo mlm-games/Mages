@@ -12,6 +12,10 @@ pub(crate) const INITIAL_BACK_PAGINATION: u16 = 20;
 pub enum FfiError {
     #[error("{0}")]
     Msg(String),
+    #[error("Beacon is not live")]
+    NotLive,
+    #[error("Existing beacon information not found")]
+    BeaconNotFound,
 }
 
 impl From<matrix_sdk::Error> for FfiError {
@@ -859,6 +863,18 @@ pub trait LiveLocationObserver: Send + Sync {
     fn on_update(&self, shares: Vec<LiveLocationShareInfo>);
 }
 
+#[derive(Clone, Record)]
+pub struct BeaconInfoUpdate {
+    pub room_id: String,
+    pub event_id: String,
+    pub live: bool,
+}
+
+#[export(callback_interface)]
+pub trait BeaconInfoListener: Send + Sync {
+    fn on_update(&self, update: BeaconInfoUpdate);
+}
+
 #[export(callback_interface)]
 pub trait CallWidgetObserver: Send + Sync {
     fn on_to_widget(&self, message: String);
@@ -907,13 +923,6 @@ impl From<PredecessorRoom> for PredecessorRoomInfo {
             room_id: v.room_id.to_string(),
         }
     }
-}
-
-#[derive(Clone)]
-pub struct LiveLocationBeaconState {
-    pub event_id: String,
-    pub duration_ms: u64,
-    pub description: Option<String>,
 }
 
 pub(crate) enum RoomListCmd {

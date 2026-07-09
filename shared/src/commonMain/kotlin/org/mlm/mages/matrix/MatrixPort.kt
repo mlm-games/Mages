@@ -207,6 +207,13 @@ data class LiveLocationShare(
 )
 
 @Serializable
+data class BeaconInfoUpdate(
+    val roomId: String,
+    val eventId: String,
+    val live: Boolean
+)
+
+@Serializable
 sealed class VerifEvent {
     @Serializable @SerialName("Requested")
     data class Requested(val flow_id: String) : VerifEvent()
@@ -920,11 +927,14 @@ interface MatrixPort {
     suspend fun roomSuccessor(roomId: String): RoomUpgradeInfo?
     suspend fun roomPredecessor(roomId: String): RoomPredecessorInfo?
 
-    suspend fun startLiveLocationShare(roomId: String, durationMs: Long): Result<Unit>
+    suspend fun startLiveLocationShare(roomId: String, durationMs: Long): Result<String>
     suspend fun stopLiveLocationShare(roomId: String): Result<Unit>
     suspend fun sendLiveLocation(roomId: String, geoUri: String): Result<Unit>
     suspend fun observeLiveLocation(roomId: String, onShares: (List<LiveLocationShare>) -> Unit): ULong
     fun stopObserveLiveLocation(token: ULong)
+
+    fun subscribeToOwnBeaconInfoUpdates(onUpdate: (BeaconInfoUpdate) -> Unit): ULong
+    fun unsubscribeFromOwnBeaconInfoUpdates(token: ULong)
 
     suspend fun sendPoll(roomId: String, question: String, answers: List<String>): Result<Unit>
 

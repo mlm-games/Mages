@@ -1,41 +1,45 @@
 package org.mlm.mages.push
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.os.Build
+import android.os.Handler
+import android.os.HandlerThread
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.location.LocationListenerCompat
+import androidx.core.location.LocationManagerCompat
+import androidx.core.location.LocationRequestCompat
+import androidx.core.os.ExecutorCompat
 import org.mlm.mages.MainActivity
 import org.mlm.mages.platform.LiveLocationSharingCoordinator
 
 class LiveLocationSharingForegroundService : Service() {
 
     private lateinit var locationManager: LocationManager
+    private var handlerThread: HandlerThread? = null
     private var lastLat = 0.0
     private var lastLon = 0.0
     private var hasLastLocation = false
-    private val locationListener = object : android.location.LocationListener {
-        override fun onLocationChanged(location: android.location.Location) {
-            val lat = location.latitude
-            val lon = location.longitude
-            if (hasLastLocation) {
-                val results = FloatArray(1)
-                android.location.Location.distanceBetween(lastLat, lastLon, lat, lon, results)
-                if (results[0] < MIN_DISTANCE_M) return
-            }
-            lastLat = lat
-            lastLon = lon
-            hasLastLocation = true
-            LiveLocationSharingCoordinator.dispatchLocation(lat, lon, location.accuracy)
+    private val locationListener = LocationListenerCompat { location ->
+        val lat = location.latitude
+        val lon = location.longitude
+        if (hasLastLocation) {
+            val results = FloatArray(1)
+            android.location.Location.distanceBetween(lastLat, lastLon, lat, lon, results)
+            if (results[0] < MIN_DISTANCE_M) return@LocationListenerCompat
         }
-        @Deprecated("Deprecated in API 29") override fun onStatusChanged(provider: String?, status: Int, extras: android.os.Bundle?) {}
-        override fun onProviderEnabled(provider: String) {}
-        override fun onProviderDisabled(provider: String) {}
+        lastLat = lat
+        lastLon = lon
+        hasLastLocation = true
+        LiveLocationSharingCoordinator.dispatchLocation(lat, lon, location.accuracy)
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -60,24 +64,36 @@ class LiveLocationSharingForegroundService : Service() {
 
     @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
-        try {
-            locationManager.requestLocationUpdates(
-                LocationManager.GPS_PROVIDER,
-                UPDATE_INTERVAL_MS,
-                0f,
-                locationListener,
-                mainLooper,
-            )
-            locationManager.requestLocationUpdates(
-                LocationManager.NETWORK_PROVIDER,
-                UPDATE_INTERVAL_MS,
-                0f,
-                locationListener,
-                mainLooper,
-            )
-        } catch (_: SecurityException) {
-            // Permission will have been granted before sharing starts
+        if (
+            checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+            checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
+        ) return
+
+        val thread = HandlerThread("LiveLocationUpdates").also {
+            it.start()
+            handlerThread = it
         }
+        val executor = ExecutorCompat.create(Handler(thread.looper))
+
+        val providers = listOf(
+            LocationManager.FUSED_PROVIDER,
+            LocationManager.GPS_PROVIDER,
+            LocationManager.NETWORK_PROVIDER,
+        )
+        val provider = providers.firstOrNull { LocationManagerCompat.hasProvider(locationManager, it) } ?: return
+
+        val request = LocationRequestCompat.Builder(UPDATE_INTERVAL_MS)
+            .setQuality(LocationRequestCompat.QUALITY_HIGH_ACCURACY)
+            .setMinUpdateDistanceMeters(MIN_DISTANCE_M)
+            .build()
+
+        LocationManagerCompat.requestLocationUpdates(
+            locationManager,
+            provider,
+            request,
+            executor,
+            locationListener,
+        )
     }
 
     private fun buildNotification(roomCount: Int): Notification {
@@ -99,7 +115,15 @@ class LiveLocationSharingForegroundService : Service() {
     }
 
     override fun onDestroy() {
-        locationManager.removeUpdates(locationListener)
+        handlerThread?.let {
+            LocationManagerCompat.removeUpdates(locationManager, locationListener)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                it.quitSafely()
+            } else {
+                @Suppress("DEPRECATION")
+                it.quit()
+            }
+        }
         stopForeground(STOP_FOREGROUND_REMOVE)
         super.onDestroy()
     }

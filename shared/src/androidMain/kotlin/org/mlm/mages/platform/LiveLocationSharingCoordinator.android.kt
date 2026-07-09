@@ -59,10 +59,11 @@ actual object LiveLocationSharingCoordinator {
         recovered = true
     }
 
-    actual suspend fun startShare(roomId: String, durationMinutes: Int): Result<Unit> {
+    actual suspend fun startShare(roomId: String, durationMinutes: Int): Result<String> {
         val port = matrixPort ?: return Result.failure(IllegalStateException("Matrix not ready"))
         val durationMs = durationMinutes * 60 * 1000L
-        port.startLiveLocationShare(roomId, durationMs).onFailure { return Result.failure(it) }
+        val eventId = port.startLiveLocationShare(roomId, durationMs)
+            .onFailure { return Result.failure(it) }.getOrNull()!!
         val expiresAt = currentTimeMillis() + durationMs
         val wasEmpty = activeShares.isEmpty()
         activeShares[roomId] = expiresAt
@@ -70,13 +71,15 @@ actual object LiveLocationSharingCoordinator {
         scheduleTimeout(roomId, expiresAt)
         onChanged?.invoke(true, activeShares.size)
         if (wasEmpty) onFirstStarted?.invoke()
-        return Result.success(Unit)
+        return Result.success(eventId)
     }
 
     actual suspend fun stopShare(roomId: String): Result<Unit> {
         val port = matrixPort
-        if (port != null && activeShares.containsKey(roomId)) {
+        val result = if (port != null && activeShares.containsKey(roomId)) {
             port.stopLiveLocationShare(roomId)
+        } else {
+            Result.success(Unit)
         }
         activeShares.remove(roomId)
         timeoutJobs.remove(roomId)?.cancel()
@@ -88,7 +91,7 @@ actual object LiveLocationSharingCoordinator {
         } else {
             onChanged?.invoke(true, count)
         }
-        return Result.success(Unit)
+        return result
     }
 
     actual fun dispatchLocation(lat: Double, lon: Double, accuracy: Float?) {
@@ -103,7 +106,11 @@ actual object LiveLocationSharingCoordinator {
         scope.launch {
             for (roomId in rooms) {
                 port.sendLiveLocation(roomId, geoUri)
-                    .onFailure { stopShare(roomId) }
+                    .onFailure { error ->
+                        if (error.message?.contains("not live", ignoreCase = true) == true) {
+                            stopShare(roomId)
+                        }
+                    }
             }
         }
     }

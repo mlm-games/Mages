@@ -176,12 +176,23 @@ delegate_unit_result! {
     send_poll_end(room_id: String, poll_event_id: String);
     space_add_child(space_id: String, child_room_id: String, order: Option<String>, suggested: Option<bool>);
     space_remove_child(space_id: String, child_room_id: String);
-    start_live_location(room_id: String, duration_ms: u64, description: Option<String>);
     stop_live_location(room_id: String);
     send_live_location(room_id: String, geo_uri: String);
     set_presence(state: Presence, status_msg: Option<String>);
     accept_knock_request(room_id: String, user_id: String);
     decline_knock_request(room_id: String, user_id: String, reason: Option<String>);
+}
+
+#[uniffi::export]
+impl Client {
+    pub fn start_live_location(
+        &self,
+        room_id: String,
+        duration_ms: u64,
+        description: Option<String>,
+    ) -> Result<String, FfiError> {
+        RT.block_on(self.core.start_live_location(room_id, duration_ms, description))
+    }
 }
 
 delegate_result! { bool; is_user_ignored(user_id: String); is_space(room_id: String);
@@ -248,6 +259,7 @@ pub struct Client {
     send_queue_supervised: AtomicBool,
     call_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     live_location_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
+    beacon_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     recovery_state_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     backup_state_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     pub app_in_foreground: Arc<AtomicBool>,
@@ -456,6 +468,7 @@ impl Client {
             send_queue_supervised: AtomicBool::new(false),
             call_subs: Mutex::new(HashMap::new()),
             live_location_subs: Mutex::new(HashMap::new()),
+            beacon_subs: Mutex::new(HashMap::new()),
             recovery_state_subs: Mutex::new(HashMap::new()),
             backup_state_subs: Mutex::new(HashMap::new()),
             widget_handles: Mutex::new(HashMap::new()),
@@ -1119,6 +1132,32 @@ impl Client {
 
     pub fn unobserve_live_location(&self, sub_id: u64) -> bool {
         unsub!(self, live_location_subs, sub_id)
+    }
+
+    pub fn subscribe_to_own_beacon_info_updates(
+        &self,
+        listener: Box<dyn BeaconInfoListener>,
+    ) -> u64 {
+        use futures_util::pin_mut;
+        let Ok(stream) = self.core.sdk.observe_own_beacon_info_updates() else {
+            return 0;
+        };
+        let obs: Arc<dyn BeaconInfoListener> = Arc::from(listener);
+        sub_manager!(self, beacon_subs, async move {
+            pin_mut!(stream);
+            while let Some(update) = stream.next().await {
+                let ffi_update = BeaconInfoUpdate {
+                    room_id: update.room_id.to_string(),
+                    event_id: update.event_id.to_string(),
+                    live: update.content.live,
+                };
+                safe_call(|| obs.on_update(ffi_update));
+            }
+        })
+    }
+
+    pub fn unsubscribe_from_own_beacon_info_updates(&self, sub_id: u64) -> bool {
+        unsub!(self, beacon_subs, sub_id)
     }
 
     pub fn monitor_connection(&self, observer: Box<dyn ConnectionObserver>) -> u64 {
@@ -2955,7 +2994,8 @@ impl Client {
         abort_all_subs!(self;
             timeline_subs, typing_subs, connection_subs, inbox_subs,
             receipts_subs, room_list_subs, call_subs, live_location_subs,
-            recovery_state_subs, backup_state_subs, widget_driver_tasks, widget_recv_tasks
+            beacon_subs, recovery_state_subs, backup_state_subs,
+            widget_driver_tasks, widget_recv_tasks
         );
     }
 

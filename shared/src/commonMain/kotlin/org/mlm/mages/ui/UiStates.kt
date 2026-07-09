@@ -159,6 +159,7 @@ data class RoomUiState(
     val showPollCreator: Boolean = false,
     val showLiveLocation: Boolean = false,
     val showLiveLocationMap: Boolean = false,
+    val isLiveLocationLoading: Boolean = false,
     val showNotificationSettings: Boolean = false,
 
     val showForwardPicker: Boolean = false,

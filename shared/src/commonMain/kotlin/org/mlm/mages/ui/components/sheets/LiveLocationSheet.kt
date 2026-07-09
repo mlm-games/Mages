@@ -15,6 +15,7 @@ import org.mlm.mages.ui.theme.Spacing
 @Composable
 fun LiveLocationSheet(
     isCurrentlySharing: Boolean,
+    isLoading: Boolean = false,
     onStartSharing: (durationMinutes: Int) -> Unit,
     onStopSharing: () -> Unit,
     onDismiss: () -> Unit
@@ -66,13 +67,27 @@ fun LiveLocationSheet(
 
             if (isCurrentlySharing) {
                 Button(
-                    onClick = { onStopSharing(); onDismiss() },
+                    onClick = {
+                        if (!isLoading) {
+                            onStopSharing()
+                            onDismiss()
+                        }
+                    },
+                    enabled = !isLoading,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error
                     ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.Stop, null)
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onError
+                        )
+                    } else {
+                        Icon(Icons.Default.Stop, null)
+                    }
                     Spacer(Modifier.width(Spacing.sm))
                     Text("Stop Sharing")
                 }
@@ -102,12 +117,27 @@ fun LiveLocationSheet(
                 Spacer(Modifier.height(Spacing.xl))
 
                 Button(
-                    onClick = { onStartSharing(selectedDuration); onDismiss() },
+                    onClick = {
+                        if (!isLoading) {
+                            onStartSharing(selectedDuration)
+                        }
+                    },
+                    enabled = !isLoading,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.Share, null)
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text("Start Sharing")
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(Modifier.width(Spacing.sm))
+                        Text("Starting…")
+                    } else {
+                        Icon(Icons.Default.Share, null)
+                        Spacer(Modifier.width(Spacing.sm))
+                        Text("Start Sharing")
+                    }
                 }
 
                 Spacer(Modifier.height(Spacing.md))

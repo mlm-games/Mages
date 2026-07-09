@@ -194,6 +194,8 @@ class RoomViewModel(
     private val callManager: CallManager by inject()
 
     private val liveLocationSession = LiveLocationSession()
+    private val syncedActiveBeaconIds = MutableStateFlow<Set<String>>(emptySet())
+    private var liveLocationBeaconToken: ULong? = null
 
     init {
         LiveLocationSharingCoordinator.onLocationDispatched = { lat, lon ->
@@ -287,9 +289,19 @@ class RoomViewModel(
             val subToken = service.port.observeLiveLocation(roomId) { shares ->
                 updateState {
                     val merged = liveLocationShares.toMutableMap()
+                    val myUserId = currentState.myUserId
                     for (share in shares) {
                         if (share.isLive) {
-                            merged[share.userId] = share
+                            if (share.userId == myUserId) {
+                                val current = merged[myUserId]
+                                if (current != null && current.geoUri.isNotBlank() && share.geoUri.isBlank()) {
+                                    merged[myUserId] = current.copy(tsMs = nowMs())
+                                } else {
+                                    merged[myUserId] = share
+                                }
+                            } else {
+                                merged[share.userId] = share
+                            }
                         } else {
                             merged.remove(share.userId)
                         }
@@ -298,6 +310,14 @@ class RoomViewModel(
                 }
             }
             updateState { copy(liveLocationSubToken = subToken) }
+
+            liveLocationBeaconToken = service.port.subscribeToOwnBeaconInfoUpdates { update ->
+                if (update.roomId == roomId) {
+                    syncedActiveBeaconIds.update { current ->
+                        if (update.live) current + update.eventId else current - update.eventId
+                    }
+                }
+            }
 
             settingsRepo.update { it.copy(lastOpenedRoomId = roomId) }
 
@@ -371,7 +391,7 @@ class RoomViewModel(
     fun hidePollCreator() = updateState { copy(showPollCreator = false) }
 
     fun showLiveLocation() = updateState { copy(showLiveLocation = true, showAttachmentPicker = false) }
-    fun hideLiveLocation() = updateState { copy(showLiveLocation = false) }
+    fun hideLiveLocation() = updateState { copy(showLiveLocation = false, isLiveLocationLoading = false) }
     fun showLiveLocationMap() = updateState { copy(showLiveLocationMap = true) }
     fun hideLiveLocationMap() = updateState { copy(showLiveLocationMap = false) }
 
@@ -1413,16 +1433,27 @@ class RoomViewModel(
     //  Live Location
 
     fun startLiveLocation(durationMinutes: Int) {
+        if (currentState.isLiveLocationLoading) return
         launch {
+            updateState { copy(isLiveLocationLoading = true) }
             if (LiveLocationSharingCoordinator.isSharing(currentState.roomId)) {
                 liveLocationSession.stopSharing(currentState.roomId)
             }
             val result = liveLocationSession.startSharing(currentState.roomId, durationMinutes)
             if (result.isSuccess) {
-                updateState { copy(showLiveLocation = false) }
-                _events.send(Event.ShowSuccess("Location sharing started"))
+                val eventId = result.getOrThrow()
+                withTimeoutOrNull(10_000L) { syncedActiveBeaconIds.first { ids -> eventId in ids } }
+                val myUserId = currentState.myUserId
+                if (myUserId != null) {
+                    val tsMs = nowMs()
+                    val share = LiveLocationShare(myUserId, "", tsMs, true)
+                    updateState { copy(liveLocationShares = liveLocationShares + (myUserId to share), showLiveLocation = false, isLiveLocationLoading = false) }
+                } else {
+                    updateState { copy(showLiveLocation = false, isLiveLocationLoading = false) }
+                }
             } else {
                 val message = result.exceptionOrNull()?.message ?: "Failed to start location sharing"
+                updateState { copy(isLiveLocationLoading = false) }
                 _events.send(Event.ShowError(message))
             }
         }
@@ -1430,12 +1461,14 @@ class RoomViewModel(
 
     fun stopLiveLocation() {
         launch {
+            updateState { copy(isLiveLocationLoading = true) }
+            val myUserId = currentState.myUserId
             val result = liveLocationSession.stopSharing(currentState.roomId)
+            if (myUserId != null) {
+                updateState { copy(liveLocationShares = liveLocationShares - myUserId) }
+            }
+            updateState { copy(showLiveLocation = false, isLiveLocationLoading = false) }
             if (result.isSuccess) {
-                currentState.myUserId?.let { myUserId ->
-                    updateState { copy(liveLocationShares = liveLocationShares - myUserId) }
-                }
-                updateState { copy(showLiveLocation = false) }
                 _events.send(Event.ShowSuccess("Location sharing stopped"))
             } else {
                 val message = result.exceptionOrNull()?.message ?: "Failed to stop location sharing"
@@ -2278,6 +2311,7 @@ class RoomViewModel(
         receiptsToken?.let { service.port.stopReceiptsObserver(it) }
         ownReceiptToken?.let { service.port.stopReceiptsObserver(it) }
         currentState.liveLocationSubToken?.let { service.port.stopObserveLiveLocation(it) }
+        liveLocationBeaconToken?.let { service.port.unsubscribeFromOwnBeaconInfoUpdates(it) }
         LiveLocationSharingCoordinator.onLocationDispatched = null
     }
 }

@@ -27,7 +27,8 @@ private inline fun <T> runWithFfiResult(block: () -> T): Result<T> =
         val mapped = (e as? FfiException)?.let { ex ->
             when (ex) {
                 is FfiException.Msg -> IllegalStateException(ex.v1)
-//                else -> IllegalStateException(e.message ?: "Unknown error")
+                is FfiException.NotLive -> ex
+                is FfiException.BeaconNotFound -> ex
             }
         } ?: e as? Exception ?: IllegalStateException(e.toString())
         throw mapped
@@ -1471,7 +1472,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
     override suspend fun startLiveLocationShare(
         roomId: String,
         durationMs: Long
-    ): Result<Unit> = withContext(matrixDispatcher) {
+    ): Result<String> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.startLiveLocation(roomId, durationMs.toULong(), null) } }
     }
 
@@ -1507,6 +1508,25 @@ class RustMatrixPort : MatrixPort, VerificationService {
 
     override fun stopObserveLiveLocation(token: ULong) {
         withClient { it.unobserveLiveLocation(token) }
+    }
+
+    override fun subscribeToOwnBeaconInfoUpdates(onUpdate: (BeaconInfoUpdate) -> Unit): ULong {
+        val listener = object : mages.BeaconInfoListener {
+            override fun onUpdate(update: mages.BeaconInfoUpdate) {
+                onUpdate(
+                    BeaconInfoUpdate(
+                        roomId = update.roomId,
+                        eventId = update.eventId,
+                        live = update.live
+                    )
+                )
+            }
+        }
+        return withClient { it.subscribeToOwnBeaconInfoUpdates(listener) }
+    }
+
+    override fun unsubscribeFromOwnBeaconInfoUpdates(token: ULong) {
+        withClient { it.unsubscribeFromOwnBeaconInfoUpdates(token) }
     }
 
     override suspend fun sendPoll(

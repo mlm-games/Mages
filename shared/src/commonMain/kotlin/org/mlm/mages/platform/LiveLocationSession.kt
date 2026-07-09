@@ -3,7 +3,7 @@ package org.mlm.mages.platform
 class LiveLocationSession {
     private var currentRoomId: String? = null
 
-    suspend fun startSharing(roomId: String, durationMinutes: Int): Result<Unit> {
+    suspend fun startSharing(roomId: String, durationMinutes: Int): Result<String> {
         val result = LiveLocationSharingCoordinator.startShare(roomId, durationMinutes)
         if (result.isSuccess) {
             currentRoomId = roomId

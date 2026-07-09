@@ -548,6 +548,18 @@ data class AppSettings(
         platforms = [SettingPlatform.ANDROID, SettingPlatform.JVM],
     )
     val proxyUrl: String = "",
+
+    @Setting(
+        title = "Live location update interval",
+        description = "Minimum distance (in meters) traveled before sending a location update",
+        category = Advanced::class,
+        type = Slider::class,
+        min = 0f,
+        max = 100f,
+        step = 5f,
+        platforms = [SettingPlatform.ANDROID],
+    )
+    val liveLocationMinDistanceMeters: Float = 10f,
 )
 
 object OpenSystemNotificationSettingsAction : SettingAction

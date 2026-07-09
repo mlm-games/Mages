@@ -109,6 +109,20 @@ private suspend fun Promise<JsAny?>.awaitStringValue(): String? {
 }
 
 
+/** Envelope → Result<String>. */
+private suspend fun Promise<JsAny?>.awaitStringResult(): Result<String> {
+    val obj = await<JsAny?>()?.toJsonObject()
+        ?: return Result.failure(Exception("null response"))
+    val ok = (obj["ok"] as? JsonPrimitive)?.booleanOrNull == true
+    if (!ok) {
+        val error = (obj["error"] as? JsonPrimitive)?.contentOrNull
+        return Result.failure(Exception(error ?: "Unknown error"))
+    }
+    val value = (obj["value"] as? JsonPrimitive)?.contentOrNull
+        ?: return Result.failure(Exception("Missing value"))
+    return Result.success(value)
+}
+
 /** Plain bool (no envelope). For Rust methods that still return bare true/false. */
 private suspend fun Promise<JsAny?>.awaitPlainBool(): Boolean =
     await<JsAny?>()?.toString() == "true"
@@ -1317,8 +1331,8 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun roomPredecessor(roomId: String): RoomPredecessorInfo? =
         requireClient().roomPredecessor(roomId).awaitValue()
 
-    override suspend fun startLiveLocationShare(roomId: String, durationMs: Long): Result<Unit> =
-        requireClient().startLiveLocation(roomId, durationMs.toDouble()).awaitUnitResult()
+    override suspend fun startLiveLocationShare(roomId: String, durationMs: Long): Result<String> =
+        requireClient().startLiveLocation(roomId, durationMs.toDouble()).awaitStringResult()
 
     override suspend fun stopLiveLocationShare(roomId: String): Result<Unit> {
         val result = requireClient().stopLiveLocation(roomId).awaitResult()
@@ -1343,6 +1357,10 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override fun stopObserveLiveLocation(token: ULong) {
         requireClient().unobserveLiveLocation(token.toDouble())
     }
+
+    override fun subscribeToOwnBeaconInfoUpdates(onUpdate: (BeaconInfoUpdate) -> Unit): ULong = 0u
+
+    override fun unsubscribeFromOwnBeaconInfoUpdates(token: ULong) {}
 
     override suspend fun sendPoll(roomId: String, question: String, answers: List<String>): Result<Unit> {
         val eventId = requireClient().sendPollStart(roomId, question, answers.toJsArray(), "disclosed", 1.0).awaitString()

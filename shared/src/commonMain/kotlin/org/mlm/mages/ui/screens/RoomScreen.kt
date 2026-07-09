@@ -49,6 +49,7 @@ import org.mlm.mages.ui.components.composer.ActionBanner
 import org.mlm.mages.ui.components.composer.MessageComposer
 import org.mlm.mages.ui.components.core.*
 import org.mlm.mages.ui.components.dialogs.ReportContentDialog
+import org.mlm.mages.ui.components.message.LiveLocationTimelineItem
 import org.mlm.mages.ui.components.message.MessageBubble
 import org.mlm.mages.ui.components.message.MessageStatusLine
 import org.mlm.mages.ui.components.message.SystemMessageItem
@@ -713,12 +714,14 @@ fun RoomScreen(
                                     val eventIndex = events.lastIndex - dslIndex
                                     val event = events[eventIndex]
                                     if (event.rendersAsSystemMessage()) {
-                                        SystemMessageItem(
-                                            event = event,
-                                            onClick = if (event.eventType == EventType.LiveLocation) {
-                                                viewModel::showLiveLocationMap
-                                            } else null,
-                                        )
+                                        if (event.eventType == EventType.LiveLocation) {
+                                            LiveLocationTimelineItem(
+                                                event = event,
+                                                onClick = { viewModel.showLiveLocationMap() },
+                                            )
+                                        } else {
+                                            SystemMessageItem(event = event)
+                                        }
                                     } else {
                                         MessageItem(
                                             event = event,
@@ -866,6 +869,7 @@ fun RoomScreen(
     if (state.showLiveLocation) {
         LiveLocationSheet(
             isCurrentlySharing = viewModel.isCurrentlySharingLocation,
+            isLoading = state.isLiveLocationLoading,
             onStartSharing = { durationMinutes ->
                 onRequestLocationPermissions?.invoke {
                     viewModel.startLiveLocation(durationMinutes)

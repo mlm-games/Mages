@@ -62,7 +62,7 @@ use tracing::warn;
 use crate::{
     ActionAvailability, ActionPresentation, AttachmentInfo, AttachmentKind, DirectoryUser,
     FfiError, FfiPushRuleKind, FfiRoomNotificationMode, INITIAL_BACK_PAGINATION,
-    KnockRequestSummary, LiveLocationBeaconState, MemberActionState, MemberSummary,
+    KnockRequestSummary, MemberActionState, MemberSummary,
     MessageActionState, MessageEvent, OwnReceipt, PasswordLoginKind, PollDefinition,
     PredecessorRoomInfo, Presence, PresenceInfo, PublicRoom, PublicRoomsPage, ReactionSummary,
     RoomActionState, RoomDirectoryVisibility, RoomHistoryVisibility, RoomJoinRule, RoomListEntry,
@@ -180,7 +180,6 @@ pub struct CoreClient {
     pub timeline_mgr: TimelineManager,
     pub sync_service: Arc<Mutex<Option<Arc<SyncService>>>>,
     pub send_handles_by_txn: Arc<Mutex<HashMap<String, SdkSendHandle>>>,
-    pub live_location_beacons: Arc<Mutex<HashMap<String, LiveLocationBeaconState>>>,
 }
 
 impl CoreClient {
@@ -191,7 +190,6 @@ impl CoreClient {
             timeline_mgr,
             sync_service: Arc::new(Mutex::new(None)),
             send_handles_by_txn: Arc::new(Mutex::new(HashMap::new())),
-            live_location_beacons: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -2778,52 +2776,36 @@ impl CoreClient {
         room_id: String,
         duration_ms: u64,
         description: Option<String>,
-    ) -> Result<(), FfiError> {
+    ) -> Result<String, FfiError> {
+        use tokio::time::timeout as tokio_timeout;
         let room = self.require_room(&room_id)?;
-        let response = room
-            .start_live_location_share(duration_ms, description.clone())
-            .await
-            .ffi()?;
-        self.live_location_beacons.lock().unwrap().insert(
-            room_id,
-            LiveLocationBeaconState {
-                event_id: response.event_id.to_string(),
-                duration_ms,
-                description,
-            },
-        );
-        Ok(())
+        // Like element-x, always stop any existing share first.
+        let _ = tokio_timeout(
+            web_time::Duration::from_secs(30),
+            room.stop_live_location_share(),
+        )
+        .await;
+        let response = tokio_timeout(
+            web_time::Duration::from_secs(60),
+            room.start_live_location_share(duration_ms, description),
+        )
+        .await
+        .map_err(|_| FfiError::Msg("Timeout starting live location share".into()))?
+        .ffi()?;
+        Ok(response.event_id.to_string())
     }
 
     pub async fn stop_live_location(&self, room_id: String) -> Result<(), FfiError> {
-        use matrix_sdk::ruma::events::beacon_info::BeaconInfoEventContent;
+        use tokio::time::timeout as tokio_timeout;
         let room = self.require_room(&room_id)?;
-        let cached = self
-            .live_location_beacons
-            .lock()
-            .unwrap()
-            .get(&room_id)
-            .cloned();
-        let result = if let Some(cached) = cached {
-            room.send_state_event_for_key(
-                room.own_user_id(),
-                BeaconInfoEventContent::new(
-                    cached.description,
-                    Duration::from_millis(cached.duration_ms),
-                    false,
-                    None,
-                ),
-            )
-            .await
-            .map(|_| ())
-            .ffi()
-        } else {
-            room.stop_live_location_share().await.map(|_| ()).ffi()
-        };
-        if result.is_ok() {
-            self.live_location_beacons.lock().unwrap().remove(&room_id);
-        }
-        result
+        tokio_timeout(
+            web_time::Duration::from_secs(30),
+            room.stop_live_location_share(),
+        )
+        .await
+        .map_err(|_| FfiError::Msg("Timeout stopping live location share".into()))?
+        .map(|_| ())
+        .map_err(|e| Self::beacon_err(e))
     }
 
     pub async fn send_live_location(
@@ -2831,20 +2813,24 @@ impl CoreClient {
         room_id: String,
         geo_uri: String,
     ) -> Result<(), FfiError> {
-        use matrix_sdk::ruma::events::beacon::BeaconEventContent;
+        use tokio::time::timeout as tokio_timeout;
         let room = self.require_room(&room_id)?;
-        let beacon_state = self
-            .live_location_beacons
-            .lock()
-            .unwrap()
-            .get(room.room_id().as_str())
-            .cloned();
-        if let Some(beacon_state) = beacon_state {
-            let beacon_event_id = Self::parse_eid(&beacon_state.event_id)?;
-            let content = BeaconEventContent::new(beacon_event_id, geo_uri, None);
-            room.send(content).await.map(|_| ()).ffi()
-        } else {
-            room.send_location_beacon(geo_uri).await.map(|_| ()).ffi()
+        tokio_timeout(
+            web_time::Duration::from_secs(30),
+            room.send_location_beacon(geo_uri),
+        )
+        .await
+        .map_err(|_| FfiError::Msg("Timeout sending live location".into()))?
+        .map(|_| ())
+        .map_err(|e| Self::beacon_err(e))
+    }
+
+    fn beacon_err(e: matrix_sdk::BeaconError) -> FfiError {
+        use matrix_sdk::BeaconError;
+        match e {
+            BeaconError::NotLive => FfiError::NotLive,
+            BeaconError::NotFound => FfiError::BeaconNotFound,
+            _ => FfiError::Msg(e.to_string()),
         }
     }
 

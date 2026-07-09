@@ -976,7 +976,7 @@ impl WasmClient {
         let Some(s) = self.state() else {
             return webffi_not_init();
         };
-        webffi_unit(
+        webffi_value(
             s.core
                 .start_live_location(room_id, duration_ms as u64, None)
                 .await,
