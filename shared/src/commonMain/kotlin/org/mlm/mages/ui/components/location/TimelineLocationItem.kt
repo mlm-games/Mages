@@ -53,13 +53,12 @@ private fun formatCoords(lat: Double, lon: Double): String {
 fun TimelineLocationItem(
     event: MessageEvent,
     isOwnActiveShare: Boolean = false,
+    isLive: Boolean = event.liveLocation?.isLive == true,
     onClick: () -> Unit,
     onStopLiveLocation: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     if (event.eventType != EventType.LiveLocation) return
-
-    val isLive = event.liveLocation?.isLive == true
     val geoUri = event.liveLocation?.geoUri
     val coords = parseGeoUri(geoUri)
     val coordText = coords?.let { formatCoords(it.first, it.second) }

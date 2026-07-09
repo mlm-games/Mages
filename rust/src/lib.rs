@@ -3110,7 +3110,7 @@ fn map_timeline_event(
         }
     };
 
-    let event_id = direct_event_id
+    let event_id = direct_event_id.clone()
         .or(event_id_from_send_state)
         .unwrap_or_default();
 
@@ -3236,15 +3236,24 @@ fn map_timeline_event(
                 }
                 MsgLikeKind::LiveLocation(ll_state) => {
                     event_type = EventType::LiveLocation;
+                    let beacon_info_event_id = direct_event_id.clone().unwrap_or_default();
                     if let Some(beacon) = ll_state.latest_location() {
                         live_location = Some(LiveLocationEvent {
                             user_id: ev.sender().to_string(),
                             geo_uri: beacon.geo_uri().to_owned(),
                             ts_ms: beacon.ts().0.into(),
                             is_live: ll_state.is_live(),
+                            beacon_info_event_id,
                         });
                         body = format!("{} shared live location", ev.sender());
                     } else {
+                        live_location = Some(LiveLocationEvent {
+                            user_id: ev.sender().to_string(),
+                            geo_uri: String::new(),
+                            ts_ms: 0,
+                            is_live: ll_state.is_live(),
+                            beacon_info_event_id,
+                        });
                         body = format!("{} started sharing live location", ev.sender());
                     }
                 }
@@ -4205,6 +4214,12 @@ pub(crate) fn map_vec_diff(
 }
 
 pub(crate) fn map_live_location_share(s: &LiveLocationShare) -> LiveLocationShareInfo {
+    let end_ms: u64 = s
+        .beacon_info
+        .ts
+        .0
+        .into();
+    let timeout_ms: u64 = s.beacon_info.timeout.as_millis().try_into().unwrap_or(u64::MAX);
     LiveLocationShareInfo {
         user_id: s.user_id.to_string(),
         geo_uri: s
@@ -4214,6 +4229,8 @@ pub(crate) fn map_live_location_share(s: &LiveLocationShare) -> LiveLocationShar
             .unwrap_or_default(),
         ts_ms: s.last_location.as_ref().map(|l| l.ts.0.into()).unwrap_or(0),
         is_live: s.beacon_info.is_live(),
+        beacon_info_event_id: s.beacon_id.to_string(),
+        end_timestamp_ms: end_ms.saturating_add(timeout_ms),
     }
 }
 

@@ -46,6 +46,7 @@ pub struct LiveLocationEvent {
     pub geo_uri: String,
     pub ts_ms: u64,
     pub is_live: bool,
+    pub beacon_info_event_id: String,
 }
 
 #[derive(Clone, Serialize, Deserialize, Record)]
@@ -476,6 +477,8 @@ pub struct LiveLocationShareInfo {
     pub geo_uri: String,
     pub ts_ms: u64,
     pub is_live: bool,
+    pub beacon_info_event_id: String,
+    pub end_timestamp_ms: u64,
 }
 
 #[derive(Clone, Serialize, Deserialize, Record)]

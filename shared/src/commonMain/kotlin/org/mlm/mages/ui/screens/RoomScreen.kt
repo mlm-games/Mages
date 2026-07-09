@@ -730,9 +730,14 @@ fun RoomScreen(
                                     val event = events[eventIndex]
                                     if (event.rendersAsSystemMessage()) {
                                         if (event.eventType == EventType.LiveLocation) {
+                                            val activeShare = state.liveLocationShares[event.sender]
+                                            val belongsToActiveSession = event.liveLocation?.beaconInfoEventId?.let { beaconId ->
+                                                beaconId.isNotEmpty() && beaconId == activeShare?.beaconInfoEventId
+                                            } == true
                                             TimelineLocationItem(
                                                 event = event,
-                                                isOwnActiveShare = event.sender == state.myUserId && state.liveLocationShares[event.sender]?.isLive == true,
+                                                isLive = belongsToActiveSession && activeShare?.isLive == true,
+                                                isOwnActiveShare = event.sender == state.myUserId && belongsToActiveSession && activeShare?.isLive == true,
                                                 onClick = { viewModel.showLiveLocationMap() },
                                                 onStopLiveLocation = if (event.sender == state.myUserId) viewModel::stopLiveLocation else null,
                                             )

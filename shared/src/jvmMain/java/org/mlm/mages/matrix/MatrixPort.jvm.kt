@@ -1497,7 +1497,9 @@ class RustMatrixPort : MatrixPort, VerificationService {
                         userId = it.userId,
                         geoUri = it.geoUri,
                         tsMs = it.tsMs.toLong(),
-                        isLive = it.isLive
+                        isLive = it.isLive,
+                        beaconInfoEventId = it.beaconInfoEventId,
+                        endTimestampMs = it.endTimestampMs.toLong(),
                     )
                 }
                 onShares(mapped)
@@ -1721,6 +1723,7 @@ private fun mages.LiveLocationEvent.toModel() = LiveLocationEvent(
     geoUri = geoUri,
     tsMs = tsMs.toLong(),
     isLive = isLive,
+    beaconInfoEventId = beaconInfoEventId,
 )
 
 private fun mages.SendState.toKotlin(): SendState = when (this) {

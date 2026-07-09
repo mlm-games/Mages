@@ -202,11 +202,14 @@ class RoomViewModel(
             run {
                 val myUserId = currentState.myUserId ?: return@run
                 updateState {
+                    val existing = liveLocationShares[myUserId]
                     copy(liveLocationShares = liveLocationShares + (myUserId to LiveLocationShare(
                         userId = myUserId,
                         geoUri = "geo:$lat,$lon",
                         tsMs = nowMs(),
                         isLive = true,
+                        beaconInfoEventId = existing?.beaconInfoEventId ?: "",
+                        endTimestampMs = existing?.endTimestampMs ?: 0L,
                     )))
                 }
             }
@@ -273,12 +276,14 @@ class RoomViewModel(
             val myUserId = service.port.whoami()
             updateState { copy(myUserId = myUserId) }
             if (LiveLocationSharingCoordinator.isSharing(roomId) && myUserId != null) {
+                val beaconId = LiveLocationSharingCoordinator.beaconEventId(roomId) ?: ""
                 updateState {
                     copy(liveLocationShares = liveLocationShares + (myUserId to LiveLocationShare(
                         userId = myUserId,
                         geoUri = "",
                         tsMs = nowMs(),
                         isLive = true,
+                        beaconInfoEventId = beaconId,
                     )))
                 }
             }
@@ -291,13 +296,16 @@ class RoomViewModel(
                 updateState {
                     val oldShares = liveLocationShares
                     val myUserId = currentState.myUserId
+                    val now = nowMs()
                     val merged = mutableMapOf<String, LiveLocationShare>()
                     for (share in shares) {
-                        if (share.isLive) {
+                        val isExpired = share.endTimestampMs > 0L && share.endTimestampMs <= now
+                        val isActuallyLive = share.isLive && !isExpired
+                        if (isActuallyLive) {
                             if (share.userId == myUserId) {
                                 val current = oldShares[myUserId]
                                 if (current != null && current.geoUri.isNotBlank() && share.geoUri.isBlank()) {
-                                    merged[myUserId] = current.copy(tsMs = nowMs())
+                                    merged[myUserId] = current.copy(tsMs = now, endTimestampMs = share.endTimestampMs)
                                 } else {
                                     merged[myUserId] = share
                                 }
@@ -1451,7 +1459,14 @@ class RoomViewModel(
                 val myUserId = currentState.myUserId
                 if (myUserId != null) {
                     val tsMs = nowMs()
-                    val share = LiveLocationShare(myUserId, "", tsMs, true)
+                    val share = LiveLocationShare(
+                        userId = myUserId,
+                        geoUri = "",
+                        tsMs = tsMs,
+                        isLive = true,
+                        beaconInfoEventId = eventId,
+                        endTimestampMs = tsMs + durationMinutes * 60 * 1000L,
+                    )
                     updateState { copy(liveLocationShares = liveLocationShares + (myUserId to share), showLiveLocation = false, isLiveLocationLoading = false) }
                 } else {
                     updateState { copy(showLiveLocation = false, isLiveLocationLoading = false) }

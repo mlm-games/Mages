@@ -52,6 +52,7 @@ data class LiveLocationEvent(
     val geoUri: String,
     val tsMs: Long,
     val isLive: Boolean,
+    val beaconInfoEventId: String = "",
 )
 
 @Serializable

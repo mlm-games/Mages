@@ -203,7 +203,9 @@ data class LiveLocationShare(
     val userId: String,
     val geoUri: String,
     val tsMs: Long,
-    val isLive: Boolean
+    val isLive: Boolean,
+    val beaconInfoEventId: String = "",
+    val endTimestampMs: Long = 0L,
 )
 
 @Serializable
