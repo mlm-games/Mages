@@ -1,6 +1,7 @@
 package org.mlm.mages.ui.components.location
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -76,6 +77,12 @@ fun TimelineLocationItem(
                     lon = coords?.second,
                     isDark = isDark,
                     modifier = Modifier.matchParentSize(),
+                )
+
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clickable(onClick = onClick),
                 )
 
                 if (isLive) {
