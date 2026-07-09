@@ -69,6 +69,8 @@ class LiveLocationSharingForegroundService : Service() {
             checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
         ) return
 
+        dispatchLastKnownLocationOnce()
+
         val thread = HandlerThread("LiveLocationUpdates").also {
             it.start()
             handlerThread = it
@@ -94,6 +96,27 @@ class LiveLocationSharingForegroundService : Service() {
             executor,
             locationListener,
         )
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun dispatchLastKnownLocationOnce() {
+        val lastKnown = sequenceOf(
+            LocationManager.GPS_PROVIDER,
+            LocationManager.NETWORK_PROVIDER,
+            LocationManager.PASSIVE_PROVIDER,
+        )
+            .mapNotNull { provider ->
+                runCatching { locationManager.getLastKnownLocation(provider) }.getOrNull()
+            }
+            .maxByOrNull { it.time }
+
+        if (lastKnown != null) {
+            LiveLocationSharingCoordinator.dispatchLocation(
+                lastKnown.latitude,
+                lastKnown.longitude,
+                lastKnown.accuracy,
+            )
+        }
     }
 
     private fun buildNotification(roomCount: Int): Notification {

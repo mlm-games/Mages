@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import org.koin.mp.KoinPlatform
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.MatrixPort
+import mages.FfiException
 import java.util.Collections
 
 actual object LiveLocationSharingCoordinator {
@@ -24,6 +25,14 @@ actual object LiveLocationSharingCoordinator {
     private var lastDispatchMs = 0L
     private val THROTTLE_MS = 3000L
     private val PREFIX = "share_"
+
+    private data class PendingLocation(
+        val geoUri: String,
+        val tsMs: Long,
+    )
+
+    private val pendingLocations = Collections.synchronizedMap(mutableMapOf<String, PendingLocation>())
+    private val retryJobs = Collections.synchronizedMap(mutableMapOf<String, Job>())
 
     private val matrixPort: MatrixPort? by lazy {
         runCatching { KoinPlatform.getKoin().get<MatrixService>().portOrNull }.getOrNull()
@@ -84,6 +93,8 @@ actual object LiveLocationSharingCoordinator {
         }
         activeShares.remove(roomId)
         timeoutJobs.remove(roomId)?.cancel()
+        pendingLocations.remove(roomId)
+        retryJobs.remove(roomId)?.cancel()
         prefs.edit().remove(PREFIX + roomId).apply()
         val count = activeShares.size
         if (count == 0) {
@@ -104,10 +115,44 @@ actual object LiveLocationSharingCoordinator {
         onLocationDispatched?.invoke(lat, lon)
         val geoUri = "geo:$lat,$lon"
         val rooms = synchronized(activeShares) { activeShares.keys.toList() }
-        scope.launch {
-            for (roomId in rooms) {
-                port.sendLiveLocation(roomId, geoUri)
+        for (roomId in rooms) {
+            pendingLocations[roomId] = PendingLocation(geoUri, now)
+            ensureRetryLoop(roomId, port)
+        }
+    }
+
+    private fun ensureRetryLoop(roomId: String, port: MatrixPort) {
+        synchronized(retryJobs) {
+            if (retryJobs[roomId]?.isActive == true) return
+
+            val job = scope.launch {
+                var delayMs = 500L
+
+                while (true) {
+                    val location = synchronized(pendingLocations) { pendingLocations[roomId] } ?: return@launch
+
+                    val result = port.sendLiveLocation(roomId, location.geoUri)
+                    if (result.isSuccess) {
+                        synchronized(pendingLocations) {
+                            if (pendingLocations[roomId] == location) {
+                                pendingLocations.remove(roomId)
+                            }
+                        }
+                        return@launch
+                    }
+
+                    val e = result.exceptionOrNull()
+                    if (e is FfiException.NotLive) {
+                        stopShare(roomId)
+                        return@launch
+                    }
+
+                    delay(delayMs)
+                    delayMs = (delayMs * 2).coerceAtMost(10_000L)
+                }
             }
+
+            retryJobs[roomId] = job
         }
     }
 

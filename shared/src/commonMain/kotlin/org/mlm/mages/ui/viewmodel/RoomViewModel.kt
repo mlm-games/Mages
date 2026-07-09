@@ -288,12 +288,13 @@ class RoomViewModel(
 
             val subToken = service.port.observeLiveLocation(roomId) { shares ->
                 updateState {
-                    val merged = liveLocationShares.toMutableMap()
+                    val oldShares = liveLocationShares
                     val myUserId = currentState.myUserId
+                    val merged = mutableMapOf<String, LiveLocationShare>()
                     for (share in shares) {
                         if (share.isLive) {
                             if (share.userId == myUserId) {
-                                val current = merged[myUserId]
+                                val current = oldShares[myUserId]
                                 if (current != null && current.geoUri.isNotBlank() && share.geoUri.isBlank()) {
                                     merged[myUserId] = current.copy(tsMs = nowMs())
                                 } else {
@@ -302,8 +303,6 @@ class RoomViewModel(
                             } else {
                                 merged[share.userId] = share
                             }
-                        } else {
-                            merged.remove(share.userId)
                         }
                     }
                     copy(liveLocationShares = merged)
@@ -315,6 +314,11 @@ class RoomViewModel(
                 if (update.roomId == roomId) {
                     syncedActiveBeaconIds.update { current ->
                         if (update.live) current + update.eventId else current - update.eventId
+                    }
+                    if (!update.live && LiveLocationSharingCoordinator.isSharing(roomId)) {
+                        viewModelScope.launch {
+                            LiveLocationSharingCoordinator.stopShare(roomId)
+                        }
                     }
                 }
             }
@@ -1442,7 +1446,6 @@ class RoomViewModel(
             val result = liveLocationSession.startSharing(currentState.roomId, durationMinutes)
             if (result.isSuccess) {
                 val eventId = result.getOrThrow()
-                withTimeoutOrNull(10_000L) { syncedActiveBeaconIds.first { ids -> eventId in ids } }
                 LiveLocationSharingCoordinator.confirmShare(currentState.roomId, durationMinutes)
                 val myUserId = currentState.myUserId
                 if (myUserId != null) {
@@ -1451,6 +1454,11 @@ class RoomViewModel(
                     updateState { copy(liveLocationShares = liveLocationShares + (myUserId to share), showLiveLocation = false, isLiveLocationLoading = false) }
                 } else {
                     updateState { copy(showLiveLocation = false, isLiveLocationLoading = false) }
+                }
+                launch {
+                    withTimeoutOrNull(10_000L) {
+                        syncedActiveBeaconIds.first { ids -> eventId in ids }
+                    }
                 }
             } else {
                 val message = result.exceptionOrNull()?.message ?: "Failed to start location sharing"
@@ -2126,28 +2134,20 @@ class RoomViewModel(
 
     private fun recomputeLiveLocationShares() {
         updateState {
-            val shares = allEvents
-                .mapNotNull { event ->
-                    event.liveLocation?.let {
-                        LiveLocationShare(
-                            userId = it.userId,
-                            geoUri = it.geoUri,
-                            tsMs = it.tsMs,
-                            isLive = it.isLive,
-                        )
+            val updated = liveLocationShares.toMutableMap()
+            val items = allEvents
+            var idx = 0
+            while (idx < items.size) {
+                val ll = items[idx].liveLocation
+                if (ll != null) {
+                    val existing = updated[ll.userId]
+                    if (existing != null && (existing.geoUri.isBlank() || existing.tsMs < ll.tsMs)) {
+                        updated[ll.userId] = existing.copy(geoUri = ll.geoUri, tsMs = ll.tsMs)
                     }
                 }
-                .associateBy { it.userId }
-
-            val mergedShares = myUserId
-                ?.let { selfId ->
-                    val selfShare = liveLocationShares[selfId]
-                    if (selfShare != null && selfShare.isLive && selfId !in shares) shares + (selfId to selfShare)
-                    else shares
-                }
-                ?: shares
-
-            copy(liveLocationShares = mergedShares)
+                idx++
+            }
+            copy(liveLocationShares = updated)
         }
     }
 
