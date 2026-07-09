@@ -43,7 +43,7 @@ android {
                 reset()
                 if (enableApkSplits) {
                     if (targetAbi != null) include(targetAbi)
-                    else include("arm64-v8a")
+                    else include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
                 }
                 isUniversalApk = includeUniversalApk && enableApkSplits
             }
