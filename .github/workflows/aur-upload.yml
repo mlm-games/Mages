@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version_tag:
-        description: 'Version tag (e.g., 3.4.5)'
+        description: "Version tag (e.g., 3.4.5)"
         required: true
         type: string
 
@@ -21,7 +21,7 @@ jobs:
           set -euo pipefail
           VERSION="${{ inputs.version_tag }}"
           mkdir -p downloads
-          
+
           # Try both with and without 'v' prefix for release tag
           DOWNLOADED=false
           for TAG in "$VERSION" "v$VERSION"; do
@@ -34,7 +34,7 @@ jobs:
               break
             fi
           done
-          
+
           if [[ "$DOWNLOADED" != "true" ]]; then
             echo "Failed to download AppImages"
             exit 1
@@ -58,7 +58,7 @@ jobs:
           VERSION="${{ inputs.version_tag }}"
           X64_HASH="${{ steps.checksums.outputs.x64_hash }}"
           ARM64_HASH="${{ steps.checksums.outputs.arm64_hash }}"
-          
+
           mkdir -p aur-package
           cat > aur-package/PKGBUILD << 'EOF'
           # Maintainer: MLM-stuff <gfxoxinzh@mozmail.com>
@@ -71,7 +71,6 @@ jobs:
           url="https://github.com/mlm-games/mages"
           license=('GPL3')
           depends=()
-          optdepends=('fuse2: or fuse3 — runtime dependency for AppImage FUSE mount')
           provides=('mages')
           conflicts=('mages')
           options=('!strip')
@@ -86,7 +85,7 @@ jobs:
           package() {
             install -Dm755 "${srcdir}/${_pkgname}-${pkgver}-${CARCH}.AppImage" \
               "${pkgdir}/opt/${_pkgname}/${_pkgname}.AppImage"
-            
+
             install -dm755 "${pkgdir}/usr/bin"
             cat > "${pkgdir}/usr/bin/${_pkgname}" << 'WRAPPER'
           #!/bin/sh
@@ -109,11 +108,11 @@ jobs:
               "${pkgdir}/usr/share/icons/hicolor/512x512/apps/${_pkgname}.png"
           }
           EOF
-          
+
           sed -i "s/{{VER}}/${VERSION}/g" aur-package/PKGBUILD
           sed -i "s/{{X64_HASH}}/${X64_HASH}/g" aur-package/PKGBUILD
           sed -i "s/{{ARM64_HASH}}/${ARM64_HASH}/g" aur-package/PKGBUILD
-          
+
           echo "Generated PKGBUILD:"
           cat aur-package/PKGBUILD
 
@@ -122,7 +121,7 @@ jobs:
         with:
           pkgname: mages-bin
           pkgbuild: aur-package/PKGBUILD
-          auto_pkgrel: 'true'
+          auto_pkgrel: "true"
           commit_username: MLM-stuff
           commit_email: gfxoxinzh@mozmail.com
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
