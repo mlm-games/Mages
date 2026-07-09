@@ -1443,6 +1443,7 @@ class RoomViewModel(
             if (result.isSuccess) {
                 val eventId = result.getOrThrow()
                 withTimeoutOrNull(10_000L) { syncedActiveBeaconIds.first { ids -> eventId in ids } }
+                LiveLocationSharingCoordinator.confirmShare(currentState.roomId, durationMinutes)
                 val myUserId = currentState.myUserId
                 if (myUserId != null) {
                     val tsMs = nowMs()

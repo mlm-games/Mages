@@ -43,7 +43,7 @@ android {
                 reset()
                 if (enableApkSplits) {
                     if (targetAbi != null) include(targetAbi)
-                    else include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+                    else include("arm64-v8a")
                 }
                 isUniversalApk = includeUniversalApk && enableApkSplits
             }
@@ -71,7 +71,6 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         getByName("debug") {
-            isShrinkResources = false
             isDebuggable = true
             applicationIdSuffix = ".debug"
         }

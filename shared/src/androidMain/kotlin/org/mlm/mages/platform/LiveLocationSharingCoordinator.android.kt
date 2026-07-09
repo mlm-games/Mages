@@ -62,16 +62,17 @@ actual object LiveLocationSharingCoordinator {
     actual suspend fun startShare(roomId: String, durationMinutes: Int): Result<String> {
         val port = matrixPort ?: return Result.failure(IllegalStateException("Matrix not ready"))
         val durationMs = durationMinutes * 60 * 1000L
-        val eventId = port.startLiveLocationShare(roomId, durationMs)
-            .onFailure { return Result.failure(it) }.getOrNull()!!
-        val expiresAt = currentTimeMillis() + durationMs
-        val wasEmpty = activeShares.isEmpty()
+        return port.startLiveLocationShare(roomId, durationMs)
+    }
+
+    actual fun confirmShare(roomId: String, durationMinutes: Int) {
+        val expiresAt = currentTimeMillis() + durationMinutes * 60 * 1000L
         activeShares[roomId] = expiresAt
         prefs.edit().putLong(PREFIX + roomId, expiresAt).apply()
+        val wasEmpty = activeShares.size == 1
         scheduleTimeout(roomId, expiresAt)
         onChanged?.invoke(true, activeShares.size)
         if (wasEmpty) onFirstStarted?.invoke()
-        return Result.success(eventId)
     }
 
     actual suspend fun stopShare(roomId: String): Result<Unit> {
@@ -106,11 +107,6 @@ actual object LiveLocationSharingCoordinator {
         scope.launch {
             for (roomId in rooms) {
                 port.sendLiveLocation(roomId, geoUri)
-                    .onFailure { error ->
-                        if (error.message?.contains("not live", ignoreCase = true) == true) {
-                            stopShare(roomId)
-                        }
-                    }
             }
         }
     }

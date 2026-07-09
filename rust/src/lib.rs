@@ -1095,6 +1095,8 @@ impl Client {
             };
             let observable = room.live_locations_observer().await;
             let (initial_shares, stream) = observable.subscribe();
+            // Keep observable alive so its event handlers stay registered.
+            let _observable = observable;
             let mut all_shares: Vec<LiveLocationShareInfo> =
                 initial_shares.iter().map(map_live_location_share).collect();
             safe_call(|| obs.on_update(all_shares.clone()));

@@ -7,6 +7,8 @@ actual object LiveLocationSharingCoordinator {
     actual suspend fun startShare(roomId: String, durationMinutes: Int): Result<String> =
         Result.failure(IllegalStateException("Live location not supported on WASM"))
 
+    actual fun confirmShare(roomId: String, durationMinutes: Int) {}
+
     actual suspend fun stopShare(roomId: String): Result<Unit> =
         Result.failure(IllegalStateException("Live location not supported on WASM"))
 

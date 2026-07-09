@@ -128,7 +128,7 @@ dependencies {
     add("kspWasmJs", libs.kmp.settings.ksp)
 }
 
-val cargoAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
+val cargoAbis = listOf("arm64-v8a")
 val rustDirDefault = rootProject.layout.projectDirectory.dir("rust")
 val os = OperatingSystem.current()!!
 val hostLibName = when {
