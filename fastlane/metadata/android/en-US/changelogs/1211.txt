@@ -1,0 +1,3 @@
+- Map timeline view and update interval setting similar to element-x
+- Tapping on the live location message item now navigates to the map viewer
+- call vibrations, and ring

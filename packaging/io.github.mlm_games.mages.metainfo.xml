@@ -46,6 +46,15 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.9.1" date="2026-07-10" type="stable">
+      <description>
+        <ul>
+          <li>Map timeline view and update interval setting similar to element-x</li>
+          <li>Tapping on the live location message item now navigates to the map viewer</li>
+          <li>call vibrations, and ring</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.8.6" date="2026-07-01" type="stable">
       <description>
         <ul>

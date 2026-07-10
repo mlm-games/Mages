@@ -1,3 +1,10 @@
+## v4.9.1
+
+- Map timeline view and update interval setting similar to element-x
+- Tapping on the live location message item now navigates to the map viewer
+- call vibrations, and ring
+
+
 ## v4.8.6
 
 - remove unused parts
