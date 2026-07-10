@@ -638,7 +638,6 @@ fun RoomScreen(
                 }
             }
         },
-        snackbarHost = { snackbarManager.snackbarHost() }
     ) { innerPadding ->
 
         // File Drop Zone
