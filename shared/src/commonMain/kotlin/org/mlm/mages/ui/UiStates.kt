@@ -160,8 +160,13 @@ data class RoomUiState(
     val showLiveLocation: Boolean = false,
     val showShareLocation: Boolean = false,
     val isSendingShareLocation: Boolean = false,
+    val shareLocationInitialLat: Double? = null,
+    val shareLocationInitialLon: Double? = null,
     val showLiveLocationMap: Boolean = false,
     val isLiveLocationLoading: Boolean = false,
+    val showStaticLocationViewer: Boolean = false,
+    val staticLocationViewerLat: Double = 0.0,
+    val staticLocationViewerLon: Double = 0.0,
     val showNotificationSettings: Boolean = false,
 
     val showForwardPicker: Boolean = false,

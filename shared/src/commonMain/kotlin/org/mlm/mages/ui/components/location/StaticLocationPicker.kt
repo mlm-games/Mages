@@ -8,6 +8,7 @@ expect fun StaticLocationPicker(
     isSending: Boolean,
     onSendCurrentLocation: () -> Unit,
     onSendPickedLocation: (lat: Double, lon: Double) -> Unit,
+    onCenterOnMyLocation: (() -> Unit)? = null,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 )

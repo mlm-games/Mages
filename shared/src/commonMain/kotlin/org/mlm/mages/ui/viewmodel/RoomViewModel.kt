@@ -409,8 +409,21 @@ class RoomViewModel(
     fun showPollCreator() = updateState { copy(showPollCreator = true, showAttachmentPicker = false) }
     fun hidePollCreator() = updateState { copy(showPollCreator = false) }
 
-    fun showShareLocation() = updateState { copy(showShareLocation = true, showAttachmentPicker = false) }
-    fun hideShareLocation() = updateState { copy(showShareLocation = false, isSendingShareLocation = false) }
+    fun showShareLocation() {
+        updateState { copy(showShareLocation = true, showAttachmentPicker = false) }
+        launch {
+            val locationResult = LiveLocationProvider().getCurrentLocation()
+            if (locationResult is LocationResult.Success) {
+                updateState {
+                    copy(
+                        shareLocationInitialLat = locationResult.location.latitude,
+                        shareLocationInitialLon = locationResult.location.longitude,
+                    )
+                }
+            }
+        }
+    }
+    fun hideShareLocation() = updateState { copy(showShareLocation = false, isSendingShareLocation = false, shareLocationInitialLat = null, shareLocationInitialLon = null) }
 
     fun sendStaticLocation(lat: Double, lon: Double) {
         launch {
@@ -466,6 +479,11 @@ class RoomViewModel(
     fun hideLiveLocation() = updateState { copy(showLiveLocation = false, isLiveLocationLoading = false) }
     fun showLiveLocationMap() = updateState { copy(showLiveLocationMap = true) }
     fun hideLiveLocationMap() = updateState { copy(showLiveLocationMap = false) }
+
+    fun showStaticLocationViewer(lat: Double, lon: Double) = updateState {
+        copy(showStaticLocationViewer = true, staticLocationViewerLat = lat, staticLocationViewerLon = lon)
+    }
+    fun hideStaticLocationViewer() = updateState { copy(showStaticLocationViewer = false) }
 
     fun showNotificationSettings() = updateState { copy(showNotificationSettings = true) }
     fun hideNotificationSettings() = updateState { copy(showNotificationSettings = false) }

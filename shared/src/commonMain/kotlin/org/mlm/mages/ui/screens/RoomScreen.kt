@@ -29,8 +29,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -746,15 +744,11 @@ fun RoomScreen(
                                             )
                                         } else if (event.eventType == EventType.Location) {
                                             val coords = event.liveLocation?.geoUri?.let { parseGeoUri(it) }
-                                            val clipboardManager = LocalClipboardManager.current
                                             TimelineLocationItem(
                                                 event = event,
                                                 onClick = {
                                                     coords?.let { (lat, lon) ->
-                                                        clipboardManager.setText(AnnotatedString("$lat, $lon"))
-                                                        scope.launch {
-                                                            snackbarManager.show("Coordinates copied")
-                                                        }
+                                                        viewModel.showStaticLocationViewer(lat, lon)
                                                     }
                                                 },
                                             )
@@ -921,15 +915,22 @@ fun RoomScreen(
     }
 
     if (state.showShareLocation) {
-        ShareLocationSheet(
-            isSending = state.isSendingShareLocation,
+        LiveLocationMapViewer(
+            shares = state.liveLocationShares,
+            avatarPathByUserId = state.avatarByUserId,
+            displayNameByUserId = state.allEvents.asReversed()
+                .associate { it.sender to (it.senderDisplayName ?: it.sender) },
+            onDismiss = viewModel::hideShareLocation,
+            mode = LocationViewerMode.PickStatic,
             onSendCurrentLocation = {
                 onRequestLocationPermissions?.invoke {
                     viewModel.sendStaticLocationCurrent()
                 } ?: viewModel.sendStaticLocationCurrent()
             },
             onSendPickedLocation = { lat, lon -> viewModel.sendStaticLocation(lat, lon) },
-            onDismiss = viewModel::hideShareLocation,
+            isSending = state.isSendingShareLocation,
+            initialLat = state.shareLocationInitialLat,
+            initialLon = state.shareLocationInitialLon,
         )
     }
 
@@ -942,6 +943,22 @@ fun RoomScreen(
             onDismiss = viewModel::hideLiveLocationMap,
             isCurrentlySharing = viewModel.isCurrentlySharingLocation,
             onStopSharing = if (viewModel.isCurrentlySharingLocation) viewModel::stopLiveLocation else null,
+        )
+    }
+
+    if (state.showStaticLocationViewer) {
+        LiveLocationMapViewer(
+            shares = state.liveLocationShares,
+            avatarPathByUserId = state.avatarByUserId,
+            displayNameByUserId = state.allEvents.asReversed()
+                .associate { it.sender to (it.senderDisplayName ?: it.sender) },
+            onDismiss = viewModel::hideStaticLocationViewer,
+            isCurrentlySharing = viewModel.isCurrentlySharingLocation,
+            onStopSharing = if (viewModel.isCurrentlySharingLocation) viewModel::stopLiveLocation else null,
+            mode = LocationViewerMode.ViewStatic(
+                lat = state.staticLocationViewerLat,
+                lon = state.staticLocationViewerLon,
+            ),
         )
     }
 

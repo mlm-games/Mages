@@ -61,6 +61,7 @@ actual fun StaticLocationPicker(
     isSending: Boolean,
     onSendCurrentLocation: () -> Unit,
     onSendPickedLocation: (lat: Double, lon: Double) -> Unit,
+    onCenterOnMyLocation: (() -> Unit)?,
     onDismiss: () -> Unit,
     modifier: Modifier,
 ) {
@@ -81,7 +82,7 @@ actual fun StaticLocationPicker(
 
     val cameraState = rememberCameraState(
         firstPosition = CameraPosition(
-            target = Position(longitude = 0.0, latitude = 0.0),
+            target = Position(longitude = 133.209639, latitude = -25.947028),
             zoom = 2.0,
         )
     )
@@ -102,7 +103,7 @@ actual fun StaticLocationPicker(
                 FeatureCollection(
                     features = listOf(
                         Feature(
-                            geometry = Point(Position(longitude = 0.0, latitude = 0.0)),
+                            geometry = Point(Position(longitude = 133.209639, latitude = -25.947028)),
                             properties = JsonObject(emptyMap()),
                         )
                     )
@@ -130,6 +131,13 @@ actual fun StaticLocationPicker(
                     navigationIcon = {
                         FilledIconButton(onClick = onDismiss) {
                             Icon(Icons.Default.Close, contentDescription = "Close")
+                        }
+                    },
+                    actions = {
+                        if (onCenterOnMyLocation != null) {
+                            FilledIconButton(onClick = onCenterOnMyLocation) {
+                                Icon(Icons.Default.MyLocation, contentDescription = "Center on my location")
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(

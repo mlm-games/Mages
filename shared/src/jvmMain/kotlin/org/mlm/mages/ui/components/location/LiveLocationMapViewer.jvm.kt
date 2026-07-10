@@ -23,6 +23,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import org.mlm.mages.matrix.LiveLocationShare
 import org.mlm.mages.ui.theme.Spacing
 
@@ -32,9 +34,35 @@ actual fun LiveLocationMapViewer(
     avatarPathByUserId: Map<String, String>,
     displayNameByUserId: Map<String, String>,
     onDismiss: () -> Unit,
+    mode: LocationViewerMode,
     isCurrentlySharing: Boolean,
     onStopSharing: (() -> Unit)?,
+    isSending: Boolean,
+    onSendCurrentLocation: (() -> Unit)?,
+    onSendPickedLocation: ((lat: Double, lon: Double) -> Unit)?,
+    onCenterOnMyLocation: (() -> Unit)?,
+    initialLat: Double?,
+    initialLon: Double?,
+    modifier: Modifier,
 ) {
+    if (mode is LocationViewerMode.ViewStatic) {
+        val clipboardManager = LocalClipboardManager.current
+        LaunchedEffect(Unit) {
+            clipboardManager.setText(AnnotatedString("${mode.lat}, ${mode.lon}"))
+            onDismiss()
+        }
+        return
+    }
+
+    if (mode is LocationViewerMode.PickStatic) {
+        val clipboardManager = LocalClipboardManager.current
+        LaunchedEffect(Unit) {
+            clipboardManager.setText(AnnotatedString("-25.947028, 133.209639"))
+            onDismiss()
+        }
+        return
+    }
+
     val activeShares = remember(shares) { shares.values.filter { it.isLive }.toList() }
 
     if (activeShares.isEmpty()) {

@@ -28,6 +28,7 @@ actual fun StaticLocationPicker(
     isSending: Boolean,
     onSendCurrentLocation: () -> Unit,
     onSendPickedLocation: (lat: Double, lon: Double) -> Unit,
+    onCenterOnMyLocation: (() -> Unit)?,
     onDismiss: () -> Unit,
     modifier: Modifier,
 ) {
