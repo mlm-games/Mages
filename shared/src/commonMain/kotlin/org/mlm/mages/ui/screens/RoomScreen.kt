@@ -484,7 +484,7 @@ fun RoomScreen(
         jumpSyncWaitCycles++
         if (jumpSyncWaitCycles <= 3) return@LaunchedEffect
 
-        // Not found yet → back paginate until we find it, but don’t loop forever
+        // Not found yet -> back paginate until we find it, but don’t loop forever
         if (!state.hitStart && !state.isPaginatingBack && jumpBackAttempts < 30) {
             jumpBackAttempts++
             viewModel.paginateBack()

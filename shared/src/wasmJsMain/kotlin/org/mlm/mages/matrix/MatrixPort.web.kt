@@ -60,17 +60,17 @@ private suspend fun Promise<JsAny?>.awaitResult(): ResultWithError {
     return ResultWithError(ok, error)
 }
 
-/** Envelope → Boolean (ok field). Use for envelope-returning methods only. */
+/** Envelope -> Boolean (ok field). Use for envelope-returning methods only. */
 private suspend fun Promise<JsAny?>.awaitBool(): Boolean =
     awaitResult().ok
 
-/** Envelope → Result<Unit>. */
+/** Envelope -> Result<Unit>. */
 private suspend fun Promise<JsAny?>.awaitUnitResult(): Result<Unit> {
     val result = awaitResult()
     return if (result.ok) Result.success(Unit) else Result.failure(Exception(result.error ?: "Unknown error"))
 }
 
-/** Envelope → Result<Boolean> (reads inner "value" bool). */
+/** Envelope -> Result<Boolean> (reads inner "value" bool). */
 private suspend fun Promise<JsAny?>.awaitBoolResult(): Result<Boolean> {
     val obj = await<JsAny?>()?.toJsonObject()
         ?: return Result.failure(Exception("null response"))
@@ -87,7 +87,7 @@ private suspend fun Promise<JsAny?>.awaitBoolResult(): Result<Boolean> {
     return Result.success(value)
 }
 
-/** Envelope → typed value extracted from "value" key, or null on failure. */
+/** Envelope -> typed value extracted from "value" key, or null on failure. */
 private suspend inline fun <reified T> Promise<JsAny?>.awaitValue(): T? {
     val obj = await<JsAny?>()?.toJsonObject() ?: return null
     val ok = (obj["ok"] as? JsonPrimitive)?.booleanOrNull == true
@@ -100,7 +100,7 @@ private suspend inline fun <reified T> Promise<JsAny?>.awaitValue(): T? {
     return wasmJson.decodeFromJsonElement(value)
 }
 
-/** Envelope → String extracted from "value" key, or null. */
+/** Envelope -> String extracted from "value" key, or null. */
 private suspend fun Promise<JsAny?>.awaitStringValue(): String? {
     val obj = await<JsAny?>()?.toJsonObject() ?: return null
     val ok = (obj["ok"] as? JsonPrimitive)?.booleanOrNull == true
@@ -109,7 +109,7 @@ private suspend fun Promise<JsAny?>.awaitStringValue(): String? {
 }
 
 
-/** Envelope → Result<String>. */
+/** Envelope -> Result<String>. */
 private suspend fun Promise<JsAny?>.awaitStringResult(): Result<String> {
     val obj = await<JsAny?>()?.toJsonObject()
         ?: return Result.failure(Exception("null response"))

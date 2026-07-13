@@ -164,7 +164,7 @@ class MainActivity : AppCompatActivity() {
     private fun initUnifiedPush() {
         val saved = UnifiedPush.getSavedDistributor(this)
         if (saved != null) {
-            Logger.i("Saved distributor: $saved → registering")
+            Logger.i("Saved distributor: $saved -> registering")
             UnifiedPush.register(this, PREF_INSTANCE)
             lifecycleScope.launch {
                 runCatching { PusherReconciler.ensureServerPusherRegistered(this@MainActivity) }

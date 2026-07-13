@@ -31,7 +31,7 @@ fun extractMatrixPushPayload(raw: String): List<ParsedMatrixPush> {
                 return results
             }
 
-            // Counts update without event_id → clearing push
+            // Counts update without event_id -> clearing push
             val counts = notification["counts"]?.jsonObject
             if (counts != null && eid.isBlank()) {
                 val unread = counts["unread"]?.jsonPrimitive?.content?.toIntOrNull()

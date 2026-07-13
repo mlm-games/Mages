@@ -120,7 +120,7 @@ pub async fn drive_incoming_verification(
         }
         yield VerifEvent::Ready;
 
-        // Wait for other side to start SAS → Transitioned
+        // Wait for other side to start SAS -> Transitioned
         let sas = loop {
             let Some(state) = req_changes.next().await else {
                 yield VerifEvent::Error { message: "Stream ended waiting for SAS".into() };

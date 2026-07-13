@@ -33,7 +33,7 @@ class NotificationReconcileWorker(
 
             val stats = runCatching { port.roomUnreadStats(roomId) }.getOrNull()
             if (stats == null) {
-                // Room no longer available → clean up.
+                // Room no longer available -> clean up.
                 AndroidNotificationHelper.cancelRoomNotification(ctx, roomId)
                 continue
             }

@@ -197,7 +197,7 @@ macro_rules! wasm_delegate_json {
 #[cfg(target_family = "wasm")]
 pub(crate) use wasm_delegate_json;
 
-/// Delegates async methods returning Result<T, _> → JsValue or NULL on error.
+/// Delegates async methods returning Result<T, _> -> JsValue or NULL on error.
 #[cfg(target_family = "wasm")]
 macro_rules! wasm_delegate_result_json {
     ($( $js_name:literal => $method:ident($($arg:ident : $ty:ty),*) );+ $(;)?) => {
@@ -216,7 +216,7 @@ macro_rules! wasm_delegate_result_json {
 #[cfg(target_family = "wasm")]
 pub(crate) use wasm_delegate_result_json;
 
-/// Delegates async methods returning Option<T> → JsValue or NULL.
+/// Delegates async methods returning Option<T> -> JsValue or NULL.
 #[cfg(target_family = "wasm")]
 macro_rules! wasm_delegate_option_json {
     ($( $js_name:literal => $method:ident($($arg:ident : $ty:ty),*) );+ $(;)?) => {

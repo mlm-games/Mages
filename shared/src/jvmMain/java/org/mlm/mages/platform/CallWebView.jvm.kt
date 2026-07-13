@@ -374,7 +374,7 @@ private class JcefCallWebViewController(
                         return;
                     }
                     
-                    // Forward widget→host requests and responses
+                    // Forward widget->host requests and responses
                     const hasResponse = Object.prototype.hasOwnProperty.call(data, 'response');
                     const shouldForward = 
                         (!hasResponse && data.api === 'fromWidget') ||

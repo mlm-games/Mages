@@ -172,7 +172,7 @@ actual fun BindNotifications(
                     val hasUnread = item.notifications != 0UL || item.mentions != 0UL
                     val prevHadUnread = previousUnreadState.put(item.roomId, hasUnread)
 
-                    // Only cancel on a real non-zero → zero transition.
+                    // Only cancel on a real non-zero -> zero transition.
                     if (prevHadUnread == true && !hasUnread) {
                         AndroidNotificationHelper.cancelRoomNotification(context, item.roomId)
                     }
