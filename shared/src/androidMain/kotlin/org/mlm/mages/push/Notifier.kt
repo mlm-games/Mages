@@ -11,6 +11,7 @@ import android.media.AudioManager
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -568,6 +569,13 @@ object Notifier {
         }
 
         if (!playSound) builder.setSilent(true)
+
+        builder.addExtras(
+            Bundle().apply {
+                putString(NotificationReconcileWorker.EXTRA_MATRIX_ROOM_ID, roomId)
+                putString(NotificationReconcileWorker.EXTRA_MATRIX_EVENT_ID, eventId)
+            }
+        )
 
         if (nm.areNotificationsEnabled()) {
             nm.notify(notificationId, builder.build())

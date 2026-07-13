@@ -66,10 +66,13 @@ class LinuxPushHandler(
     }
 
     private suspend fun handlePushMessage(raw: String) {
-        val pairs = extractMatrixPushPayload(raw)
+        val pushes = extractMatrixPushPayload(raw)
         val port = service.portOrNull ?: return
 
-        for ((roomId, eventId) in pairs) {
+        for (push in pushes) {
+            val eventPush = push as? ParsedMatrixPush.Event ?: continue
+            val roomId = eventPush.roomId
+            val eventId = eventPush.eventId
             val n = port.fetchNotification(roomId, eventId) ?: continue
 
             val me = port.whoami()

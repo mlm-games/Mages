@@ -65,16 +65,32 @@ class AppPushService : PushService(), KoinComponent {
             ""
         }
 
-        val pairs = extractMatrixPushPayload(raw)
-        Log.i(TAG, "Extracted ${pairs.size} events: $pairs")
+        val pushes = extractMatrixPushPayload(raw)
+        Log.i(TAG, "Extracted ${pushes.size} pushes: $pushes")
 
-        if (pairs.isEmpty()) {
-            Log.w(TAG, "No events extracted from push")
-            return
+        var hasEvent = false
+        var hasCountsOnly = false
+
+        for (push in pushes.take(5)) {
+            when (push) {
+                is ParsedMatrixPush.Event -> {
+                    hasEvent = true
+                    enqueueEnrich(push.roomId, push.eventId)
+                }
+
+                is ParsedMatrixPush.CountsUpdate -> {
+                    hasCountsOnly = true
+                }
+            }
         }
 
-        for ((roomId, eventId) in pairs.take(3)) {
-            enqueueEnrich(roomId, eventId)
+        // Enqueue one reconciliation pass if any clearing push was detected.
+        if (hasCountsOnly) {
+            enqueueReconciliation()
+        }
+
+        if (!hasEvent && !hasCountsOnly) {
+            Log.w(TAG, "No events or counts extracted from push")
         }
     }
 
@@ -172,6 +188,22 @@ class AppPushService : PushService(), KoinComponent {
 
         WorkManager.getInstance(applicationContext).enqueueUniqueWork(
             "notif:$roomId:$eventId",
+            ExistingWorkPolicy.REPLACE,
+            req
+        )
+    }
+
+    private fun enqueueReconciliation() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val req = OneTimeWorkRequestBuilder<NotificationReconcileWorker>()
+            .setConstraints(constraints)
+            .build()
+
+        WorkManager.getInstance(applicationContext).enqueueUniqueWork(
+            "reconcile-notifications",
             ExistingWorkPolicy.REPLACE,
             req
         )

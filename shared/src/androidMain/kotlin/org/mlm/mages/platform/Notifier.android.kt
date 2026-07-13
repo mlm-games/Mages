@@ -21,6 +21,9 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.koin.core.context.GlobalContext
 import org.mlm.mages.MatrixService
+import org.mlm.mages.matrix.MatrixPort
+import org.mlm.mages.matrix.RoomListEntry
+import org.mlm.mages.push.AndroidNotificationHelper
 import org.mlm.mages.push.PREF_INSTANCE
 import org.mlm.mages.push.PusherReconciler
 import org.mlm.mages.settings.AppSettings
@@ -143,5 +146,44 @@ actual fun rememberQuitApp(): () -> Unit {
 actual fun BindNotifications(
     service: MatrixService,
     settingsRepository: SettingsRepository<AppSettings>
-) { // Only for jvm, android uses push
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    DisposableEffect(service) {
+        val previousUnreadState = mutableMapOf<String, Boolean>()
+        var observerToken: ULong? = null
+
+        scope.launch {
+            runCatching { service.initFromDisk() }
+            val port = service.portOrNull ?: return@launch
+            if (!service.isLoggedIn()) return@launch
+
+            observerToken = port.observeRoomList(object : MatrixPort.RoomListObserver {
+                override fun onReset(items: List<RoomListEntry>) {
+                    previousUnreadState.clear()
+                    for (item in items) {
+                        val hasUnread = item.notifications != 0UL || item.mentions != 0UL
+                        previousUnreadState[item.roomId] = hasUnread
+                    }
+                }
+
+                override fun onUpdate(item: RoomListEntry) {
+                    val hasUnread = item.notifications != 0UL || item.mentions != 0UL
+                    val prevHadUnread = previousUnreadState.put(item.roomId, hasUnread)
+
+                    // Only cancel on a real non-zero → zero transition.
+                    if (prevHadUnread == true && !hasUnread) {
+                        AndroidNotificationHelper.cancelRoomNotification(context, item.roomId)
+                    }
+                }
+            })
+        }
+
+        onDispose {
+            observerToken?.let { token ->
+                runCatching { service.portOrNull?.unobserveRoomList(token) }
+            }
+        }
+    }
 }
