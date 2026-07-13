@@ -119,9 +119,19 @@ fun main() = application {
         }
     }
 
+    // Keep notification state when the window is hidden to the tray.
+    LaunchedEffect(showWindow) {
+        if (!showWindow) {
+            Notifier.setWindowFocused(false)
+        }
+    }
+
     KoinApp(settingsRepo) {
         Window(
-            onCloseRequest = { showWindow = false },
+            onCloseRequest = {
+                Notifier.setWindowFocused(false)
+                showWindow = false
+            },
             state = windowState,
             visible = showWindow,
             title = "Mages"

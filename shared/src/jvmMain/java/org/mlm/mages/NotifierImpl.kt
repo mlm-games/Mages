@@ -7,7 +7,6 @@ import org.freedesktop.dbus.interfaces.DBusInterface
 import org.freedesktop.dbus.messages.DBusSignal
 import org.freedesktop.dbus.types.UInt32
 import org.freedesktop.dbus.types.Variant
-import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 
 object NotifierImpl {
@@ -24,6 +23,21 @@ object NotifierImpl {
 
     private val notifCtx = ConcurrentHashMap<UInt32, Pair<String, String>>()
 
+    private fun invalidateConnection(failed: DBusConnection) {
+        synchronized(lock) {
+            if (conn === failed) {
+                runCatching { failed.disconnect() }
+                conn = null
+                handlersInstalledFor = null
+                capabilities = emptySet()
+                actionsSupported = false
+                inlineReplySupported = false
+                notifCtx.clear()
+                System.err.println("[notification] D-Bus connection invalidated")
+            }
+        }
+    }
+
     private fun ensure(): DBusConnection? = synchronized(lock) {
         if (conn?.isConnected == true) return conn
 
@@ -32,7 +46,6 @@ object NotifierImpl {
                 conn = c
 
                 if (handlersInstalledFor !== c) {
-                    // Reset per-connection state
                     capabilities = emptySet()
                     actionsSupported = false
                     inlineReplySupported = false
@@ -40,8 +53,11 @@ object NotifierImpl {
                     installHandlers(c)
                     handlersInstalledFor = c
                 }
+
+                System.err.println("[notification] D-Bus session established")
             }
-        } catch (_: IOException) {
+        } catch (e: Exception) {
+            System.err.println("[notification] D-Bus connect failed: ${e.stackTraceToString()}")
             conn = null
             null
         }
@@ -90,29 +106,39 @@ object NotifierImpl {
         }
     }
 
+    private fun getNotificationsProxy(c: DBusConnection): Notifications =
+        c.getRemoteObject(
+            "org.freedesktop.Notifications",
+            "/org/freedesktop/Notifications",
+            Notifications::class.java
+        )
+
     fun notify(app: String, title: String, body: String, desktopEntry: String? = "org.mlm.mages") {
-        val c = ensure() ?: return
-        try {
-            val notifications = c.getRemoteObject(
-                "org.freedesktop.Notifications",
-                "/org/freedesktop/Notifications",
-                Notifications::class.java
-            )
+        repeat(2) { attempt ->
+            val c = ensure() ?: return
+            try {
+                val notifications = getNotificationsProxy(c)
 
-            val hints = HashMap<String, Variant<*>>()
-            if (desktopEntry != null) hints["desktop-entry"] = Variant(desktopEntry)
+                val hints = HashMap<String, Variant<*>>()
+                if (desktopEntry != null) hints["desktop-entry"] = Variant(desktopEntry)
 
-            notifications.Notify(
-                app,
-                UInt32(0),
-                "",
-                title,
-                body,
-                emptyArray(),
-                hints,
-                -1
-            )
-        } catch (_: Exception) {
+                notifications.Notify(
+                    app,
+                    UInt32(0),
+                    "",
+                    title,
+                    body,
+                    emptyArray(),
+                    hints,
+                    -1
+                )
+                return
+            } catch (e: Exception) {
+                System.err.println(
+                    "[notification] D-Bus Notify failed (attempt=${attempt + 1}): ${e.stackTraceToString()}"
+                )
+                invalidateConnection(c)
+            }
         }
     }
 
@@ -126,65 +152,70 @@ object NotifierImpl {
         desktopEntry: String? = "mages",
         iconPath: String? = null
     ) {
-        val c = ensure() ?: return
+        repeat(2) { attempt ->
+            val c = ensure() ?: return
+            try {
+                val notifications = getNotificationsProxy(c)
 
-        val notifications = c.getRemoteObject(
-            "org.freedesktop.Notifications",
-            "/org/freedesktop/Notifications",
-            Notifications::class.java
-        )
+                val hints = HashMap<String, Variant<*>>()
 
-        val hints = HashMap<String, Variant<*>>()
+                desktopEntry?.let { hints["desktop-entry"] = Variant(it) }
+                iconPath?.let { hints["image-path"] = Variant(it) }
 
-        desktopEntry?.let { hints["desktop-entry"] = Variant(it) }
-        iconPath?.let { hints["image-path"] = Variant(it) }
+                hints["urgency"] = Variant((if (hasMention) 2 else 1).toByte())
 
-        hints["urgency"] = Variant((if (hasMention) 2 else 1).toByte())
+                val expireTimeout = if (hasMention && capabilities.contains("persistence")) 0 else -1
+                if (hasMention && capabilities.contains("persistence")) {
+                    hints["resident"] = Variant(true)
+                }
 
-        val expireTimeout = if (hasMention && capabilities.contains("persistence")) 0 else -1
-        if (hasMention && capabilities.contains("persistence")) {
-            hints["resident"] = Variant(true)
+                if (playSound && capabilities.contains("sound")) {
+                    hints["sound-name"] = Variant("message-new-instant")
+                }
+
+                val formattedBody = formatBodyForServer(body)
+
+                val actions: Array<String> =
+                    if (actionsSupported && roomId.isNotBlank() && eventId.isNotBlank()) {
+                        buildList {
+                            add("default"); add("Open")
+
+                            if (inlineReplySupported) {
+                                add("inline-reply"); add("Reply…")
+                            } else {
+                                add("reply"); add("Reply…")
+                            }
+
+                            add("mark_read"); add("Mark read")
+                        }.toTypedArray()
+                    } else emptyArray()
+
+                val appIcon = desktopEntry ?: "mages"
+
+                val id = notifications.Notify(
+                    "Mages",
+                    UInt32(0),
+                    appIcon,
+                    title,
+                    formattedBody,
+                    actions,
+                    hints,
+                    expireTimeout
+                )
+
+                notifCtx[id] = roomId to eventId
+
+                System.err.println(
+                    "[notification] D-Bus Notify succeeded: id=$id room=$roomId event=$eventId"
+                )
+                return
+            } catch (e: Exception) {
+                System.err.println(
+                    "[notification] D-Bus Notify failed (attempt=${attempt + 1}): ${e.stackTraceToString()}"
+                )
+                invalidateConnection(c)
+            }
         }
-
-        if (playSound && capabilities.contains("sound")) {
-            hints["sound-name"] = Variant("message-new-instant")
-        }
-
-        val formattedBody = formatBodyForServer(body)
-
-        val actions: Array<String> =
-            if (actionsSupported && roomId.isNotBlank() && eventId.isNotBlank()) {
-                buildList {
-                    add("default"); add("Open")
-
-                    if (inlineReplySupported) {
-                        add("inline-reply"); add("Reply…")
-                    } else {
-                        add("reply"); add("Reply…")
-                    }
-
-                    add("mark_read"); add("Mark read")
-                }.toTypedArray()
-            } else emptyArray()
-
-        val appIcon = desktopEntry ?: "mages"
-
-        val id = try {
-            notifications.Notify(
-                "Mages",
-                UInt32(0),
-                appIcon,
-                title,
-                formattedBody,
-                actions,
-                hints,
-                expireTimeout
-            )
-        } catch (_: Exception) {
-            return
-        }
-
-        notifCtx[id] = roomId to eventId
     }
 
     fun warmUp() {
