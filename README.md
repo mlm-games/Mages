@@ -18,7 +18,7 @@ This is experimental‑stage software. It is still in its early stages, and migh
 - Room list with previews and unread counts
 - Room and thread timelines (text, media, polls, live-location sharing)
 - End‑to‑end encryption (via matrix‑sdk)
-- Spaces support (no sub-spaces support yet)
+- Spaces support ( space settings are basic, does not have member settings yet)
 - Simple presence / privacy settings
 - Android app and Linux desktop builds (Available on/as FDroid, AppImage (updatable via `Gear Lever` or similar tools), AUR (`mages-bin`), snapcraft and flathub)
 - Unsigned Windows and Mac builds
