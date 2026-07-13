@@ -1,3 +1,9 @@
+## v4.9.2
+
+- Dismiss notifications if read on another client
+- fix minimize-to-tray (not notifying previously when autostarted) on desktop
+
+
 ## v4.9.1
 
 - Map timeline view and update interval setting similar to element-x

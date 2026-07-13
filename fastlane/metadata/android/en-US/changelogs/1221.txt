@@ -1,0 +1,2 @@
+- Dismiss notifications if read on another client
+- fix minimize-to-tray (not notifying previously when autostarted) on desktop

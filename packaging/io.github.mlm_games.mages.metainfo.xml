@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.9.2" date="2026-07-13" type="stable">
+      <description>
+        <ul>
+          <li>Dismiss notifications if read on another client</li>
+          <li>fix minimize-to-tray (not notifying previously when autostarted) on desktop</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.9.1" date="2026-07-10" type="stable">
       <description>
         <ul>
