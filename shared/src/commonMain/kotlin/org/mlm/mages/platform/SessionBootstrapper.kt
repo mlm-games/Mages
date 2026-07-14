@@ -6,6 +6,7 @@ object SessionBootstrapper {
     suspend fun ensureReadyAndSyncing(service: MatrixService) {
         runCatching { service.initFromDisk() }
         if (!service.isLoggedInSuspend() || service.portOrNull == null) return
+        runCatching { service.portOrNull?.enterForeground() }
         service.startSupervisedSync()
     }
 

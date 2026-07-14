@@ -480,11 +480,15 @@ fun RoomScreen(
             return@LaunchedEffect
         }
 
-        // Wait for initial sync events to arrive (Append diffs) before paginating back
+        // Wait longer for live Appends (sync guaranteed running via refcount + enterForeground).
+        // Notification events are almost always newer than the cached head.
         jumpSyncWaitCycles++
-        if (jumpSyncWaitCycles <= 3) return@LaunchedEffect
+        if (jumpSyncWaitCycles <= 18) {
+            delay(120)
+            return@LaunchedEffect
+        }
 
-        // Not found yet -> back paginate until we find it, but don’t loop forever
+        // Not found yet -> back paginate until we find it, but don\u2019t loop forever
         if (!state.hitStart && !state.isPaginatingBack && jumpBackAttempts < 30) {
             jumpBackAttempts++
             viewModel.paginateBack()

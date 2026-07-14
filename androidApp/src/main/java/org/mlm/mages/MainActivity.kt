@@ -240,6 +240,11 @@ class MainActivity : AppCompatActivity() {
                             nm.cancel((roomId + eventId).hashCode())
                         }
                     }
+                    lifecycleScope.launch {
+                        if (service.isLoggedIn() && service.portOrNull != null) {
+                            runCatching { service.portOrNull?.enterForeground() }
+                        }
+                    }
                     deepLinkActions.trySend(DeepLinkAction(roomId, eventId, joinCall))
                 }
                 return

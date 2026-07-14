@@ -85,11 +85,23 @@ fun BindDeepLinks(
 
     LaunchedEffect(deepLinks) {
         deepLinks?.collectLatest { action ->
-            backStack.add(Route.Room(
-                roomId = action.roomId,
-                name = action.roomId, // Will be updated by RoomViewModel
-                eventId = action.eventId
-            ))
+            val top = backStack.lastOrNull()
+            val alreadyThere = top is Route.Room && top.roomId == action.roomId
+            if (alreadyThere) {
+                if (action.eventId != null) {
+                    backStack.replaceTop(Route.Room(
+                        roomId = action.roomId,
+                        name = action.roomId,
+                        eventId = action.eventId
+                    ))
+                }
+            } else {
+                backStack.add(Route.Room(
+                    roomId = action.roomId,
+                    name = action.roomId, // Will be updated by RoomViewModel
+                    eventId = action.eventId
+                ))
+            }
 
             val callIntent = if (action.voiceOnly) CallIntent.JoinExistingVoiceDm
             else CallIntent.JoinExisting
