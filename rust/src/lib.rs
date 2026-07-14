@@ -32,7 +32,7 @@ use matrix_sdk_ui::{
 };
 use mime::Mime;
 use once_cell::sync::Lazy;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::{
     collections::HashMap,
     path::PathBuf,
@@ -263,7 +263,7 @@ pub struct Client {
     beacon_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     recovery_state_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     backup_state_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
-    pub app_in_foreground: Arc<AtomicBool>,
+    pub app_in_foreground: Arc<AtomicUsize>,
     widget_handles: Mutex<HashMap<u64, WidgetDriverHandle>>,
     widget_driver_tasks: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     widget_recv_tasks: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
@@ -475,7 +475,7 @@ impl Client {
             widget_handles: Mutex::new(HashMap::new()),
             widget_driver_tasks: Mutex::new(HashMap::new()),
             widget_recv_tasks: Mutex::new(HashMap::new()),
-            app_in_foreground: Arc::new(AtomicBool::new(false)),
+            app_in_foreground: Arc::new(AtomicUsize::new(0)),
         };
 
         // send observer fan-out task
@@ -1296,25 +1296,35 @@ impl Client {
     }
 
     pub fn enter_foreground(&self) {
-        self.app_in_foreground.store(true, Ordering::Release);
-        let _ = RT.block_on(async {
-            self.core.ensure_sync_service().await;
-            if let Err(e) = self.core.sdk.event_cache().subscribe() {
-                warn!("event_cache.subscribe() failed: {e:?}");
-            }
-            if let Some(svc) = self.core.sync_service.lock().unwrap().as_ref().cloned() {
-                let _ = svc.start().await;
-            }
-        });
+        let prev = self.app_in_foreground.fetch_add(1, Ordering::AcqRel);
+        if prev == 0 {
+            let _ = RT.block_on(async {
+                self.core.ensure_sync_service().await;
+                if let Err(e) = self.core.sdk.event_cache().subscribe() {
+                    warn!("event_cache.subscribe() failed: {e:?}");
+                }
+                if let Some(svc) = self.core.sync_service.lock().unwrap().as_ref().cloned() {
+                    let _ = svc.start().await;
+                }
+                self.core.sdk.send_queue().set_enabled(true).await;
+                let _ = self.core.sdk.send_queue().respawn_tasks_for_rooms_with_unsent_requests().await;
+            });
+        }
     }
 
     pub fn enter_background(&self) {
-        self.app_in_foreground.store(false, Ordering::Release);
-        let _ = RT.block_on(async {
-            if let Some(svc) = self.core.sync_service.lock().unwrap().as_ref().cloned() {
-                let _ = svc.stop().await;
-            }
-        });
+        let prev = self.app_in_foreground.fetch_sub(1, Ordering::AcqRel);
+        if prev == 1 {
+            let _ = RT.block_on(async {
+                if let Some(svc) = self.core.sync_service.lock().unwrap().as_ref().cloned() {
+                    let _ = svc.stop().await;
+                }
+                self.core.sdk.send_queue().set_enabled(false).await;
+            });
+        }
+        if prev == 0 {
+            self.app_in_foreground.store(0, Ordering::Release);
+        }
     }
 
     pub fn start_supervised_sync(&self, observer: Box<dyn SyncObserver>) {
@@ -1353,7 +1363,7 @@ impl Client {
                             phase: SyncPhase::Idle,
                             message: Some("Sync stopped".into()),
                         });
-                        if in_foreground.load(Ordering::Acquire) {
+                        if in_foreground.load(Ordering::Acquire) > 0 {
                             sleep(Duration::from_millis(500)).await;
                             svc.start().await;
                         }
@@ -1364,7 +1374,7 @@ impl Client {
                             message: Some(format!("Sync error: {err}")),
                         });
                         sleep(Duration::from_secs(2)).await;
-                        if in_foreground.load(Ordering::Acquire) {
+                        if in_foreground.load(Ordering::Acquire) > 0 {
                             svc.start().await;
                         }
                     }

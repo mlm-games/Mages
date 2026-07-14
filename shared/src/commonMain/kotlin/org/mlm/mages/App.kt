@@ -99,7 +99,7 @@ private fun AppContent(
     val callManager: CallManager = koinInject()
     val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
 
-    if (currentPlatform == SettingPlatform.WEB) {
+    if (currentPlatform == SettingPlatform.WEB || currentPlatform == SettingPlatform.ANDROID) {
         BindNotifications(service = service, settingsRepository = settingsRepository)
     } //NOTE: web notifs , causes duplicate notifs on desktop if used there too (due to it being called on DesktopAppContent already).
 
