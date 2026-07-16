@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version_tag:
-        description: "Version tag (e.g., 3.4.5)"
+        description: "Version tag (e.g., 5.4.5)"
         required: true
         type: string
       mark_prerelease:
@@ -15,13 +15,36 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+
 jobs:
   create-vendored-tarball:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version_tag }}"
+            PRERELEASE="${{ inputs.mark_prerelease }}"
+          else
+            VERSION="${{ github.event.release.tag_name }}"
+            PRERELEASE="${{ github.event.release.prerelease }}"
+          fi
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "prerelease=${PRERELEASE}" >> "$GITHUB_OUTPUT"
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+
+      - name: Checkout repository at tag
         uses: actions/checkout@v6
         with:
+          ref: ${{ steps.version.outputs.version }}
           fetch-depth: 0
           submodules: recursive
 
@@ -37,190 +60,193 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Get version
-        id: get_version
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ inputs.version_tag }}"
-          else
-            VERSION="${{ github.event.release.tag_name }}"
-          fi
-          echo "VERSION=${VERSION}" >> $GITHUB_ENV
-
       - name: Vendor Rust dependencies
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
 
           mkdir -p .cargo vendor
 
-          echo " Vendor main project"
-          cd rust
+          echo "Vendoring main Rust project"
+          pushd rust
           cargo vendor --versioned-dirs ../vendor 2>&1 | tee /tmp/vendor-main.txt
-          cd ..
+          popd
 
-          echo "Main vendor: $(ls vendor | wc -l) packages"
-
-          echo ""
-          echo " Vendor uniffi-bindgen"
+          echo "Vendoring uniffi-bindgen"
           mkdir -p /tmp/vendor-uniffi
-          cd rust/uniffi-bindgen
+          pushd rust/uniffi-bindgen
           cargo vendor --versioned-dirs /tmp/vendor-uniffi 2>&1 | tee /tmp/vendor-uniffi.txt
-          cd ../..
+          popd
 
-          echo ""
-          echo " Merge uniffi deps"
+          echo "Merging uniffi vendor deps"
           cp -r /tmp/vendor-uniffi/* vendor/ 2>/dev/null || true
 
-          echo "Merged vendor: $(ls vendor | wc -l) packages"
-
-          echo ""
-          echo " Create config.toml"
+          echo "Creating project-root .cargo/config.toml"
           sed -n '/^To use vendored sources/,$p' /tmp/vendor-main.txt | tail -n +3 > .cargo/config.toml
+
+          # In the packaged source tree, .cargo/config.toml lives at project root.
+          # Therefore vendor must be relative to project root, not ../vendor.
           sed -i 's|directory = "../vendor"|directory = "vendor"|g' .cargo/config.toml
 
           cat .cargo/config.toml
+          echo "Vendored crates: $(find vendor -maxdepth 1 -mindepth 1 -type d | wc -l)"
 
-      - name: Vendor Gradle Dependencies (ALL platforms)
+      - name: Vendor Gradle dependencies for Flatpak x86_64 and aarch64
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
+
           sudo mkdir -p /run/build/mages
           sudo chown -R "$(id -u):$(id -g)" /run/build/mages
+
           export GRADLE_USER_HOME=/run/build/mages/gradle-deps
+          rm -rf "$GRADLE_USER_HOME" gradle-deps
           mkdir -p "$GRADLE_USER_HOME"
 
-          echo "Building x86_64 distributable"
+          JAVAFX_VERSION="$(awk -F'"' '/^javafx = / { print $2; exit }' gradle/libs.versions.toml)"
+          COMPOSE_VERSION="$(awk -F'"' '/^composeMultiplatform = / { print $2; exit }' gradle/libs.versions.toml)"
+
+          echo "JavaFX version: ${JAVAFX_VERSION}"
+          echo "Compose version: ${COMPOSE_VERSION}"
+          echo "Gradle user home: ${GRADLE_USER_HOME}"
+
+          echo "Build normal x86_64 distributable once to populate real project cache"
           ./gradlew :desktopApp:createDistributable \
             --no-daemon \
-            --no-configuration-cache
+            --no-configuration-cache \
+            --no-build-cache
 
-          echo "Fetching JavaFX and Compose JARs"
+          echo "Fetch explicit Linux x86_64 and Linux aarch64 JavaFX/Compose classifier artifacts"
+          rm -rf /tmp/fetch-project
           mkdir -p /tmp/fetch-project
-
           cp gradlew /tmp/fetch-project/
           cp -r gradle /tmp/fetch-project/
 
-          cat > /tmp/fetch-project/settings.gradle.kts << 'SETTINGS'
-          rootProject.name = "fetch-project"
-          SETTINGS
-
-          cat > /tmp/fetch-project/build.gradle.kts << 'EOF'
-          plugins { id("java") }
-
-          repositories {
-              mavenCentral()
-              google()
-              maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+          cat > /tmp/fetch-project/settings.gradle.kts <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
           }
 
-          val composeArm64 by configurations.creating
-          val composeX64 by configurations.creating
-          val javafxLinux by configurations.creating
-          val javafxLinuxArm64 by configurations.creating
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+                  maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+              }
+          }
+
+          rootProject.name = "fetch-project"
+          EOF
+
+          cat > /tmp/fetch-project/build.gradle.kts <<'EOF'
+          plugins {
+              id("java")
+          }
+
+          val jfxVersion: String by project
+          val composeVersion: String by project
+
+          val flatpakOfflineDeps by configurations.creating {
+              isCanBeResolved = true
+              isCanBeConsumed = false
+          }
 
           dependencies {
-              val jfxVersion = "21.0.1"
+              // Compose Desktop uses linux-x64 / linux-arm64 classifier names.
+              flatpakOfflineDeps("org.jetbrains.compose.desktop:desktop-jvm-linux-x64:$composeVersion")
+              flatpakOfflineDeps("org.jetbrains.compose.desktop:desktop-jvm-linux-arm64:$composeVersion")
 
-              composeArm64("org.jetbrains.compose.desktop:desktop-jvm-linux-arm64:1.11.1")
-              composeX64("org.jetbrains.compose.desktop:desktop-jvm-linux-x64:1.11.1")
-
-              javafxLinux("org.openjfx:javafx-base:$jfxVersion:linux")
-              javafxLinux("org.openjfx:javafx-graphics:$jfxVersion:linux")
-              javafxLinux("org.openjfx:javafx-media:$jfxVersion:linux")
-              javafxLinux("org.openjfx:javafx-swing:$jfxVersion:linux")
-
-              javafxLinuxArm64("org.openjfx:javafx-base:$jfxVersion:linux-aarch64")
-              javafxLinuxArm64("org.openjfx:javafx-graphics:$jfxVersion:linux-aarch64")
-              javafxLinuxArm64("org.openjfx:javafx-media:$jfxVersion:linux-aarch64")
-              javafxLinuxArm64("org.openjfx:javafx-swing:$jfxVersion:linux-aarch64")
+              // OpenJFX uses linux / linux-aarch64 classifier names.
+              for (platform in listOf("linux", "linux-aarch64")) {
+                  for (module in listOf("base", "graphics", "media", "swing")) {
+                      flatpakOfflineDeps("org.openjfx:javafx-$module:$jfxVersion:$platform")
+                  }
+              }
           }
 
-          tasks.register("fetch") {
+          tasks.register("fetchFlatpakOfflineDeps") {
               doLast {
-                  val configs = listOf("composeArm64", "composeX64", "javafxLinux", "javafxLinuxArm64")
-                  configs.forEach { name ->
-                      val config = configurations.getByName(name)
-                      val files = config.resolve()
-                      println("Resolved $name: ${files.size} files cached")
-                  }
+                  val files = flatpakOfflineDeps.resolve()
+                  println("Resolved ${files.size} files")
+                  files.sortedBy { it.name }.forEach { println(it.name) }
               }
           }
           EOF
 
-          (cd /tmp/fetch-project && ./gradlew --no-daemon -g "$GRADLE_USER_HOME" fetch)
+          (
+            cd /tmp/fetch-project
+            ./gradlew \
+              --no-daemon \
+              -g "$GRADLE_USER_HOME" \
+              -PjfxVersion="$JAVAFX_VERSION" \
+              -PcomposeVersion="$COMPOSE_VERSION" \
+              fetchFlatpakOfflineDeps
+          )
 
-          echo "Verifying BOTH Architectures are in cache"
-          x64_jfx_count=$(find "$GRADLE_USER_HOME" -name "javafx-*-linux.jar" | wc -l)
-          arm64_jfx_count=$(find "$GRADLE_USER_HOME" -name "javafx-*-linux-aarch64.jar" | wc -l)
+          echo "Now prove that these classifier artifacts are resolvable in offline mode"
+          (
+            cd /tmp/fetch-project
+            ./gradlew \
+              --offline \
+              --no-daemon \
+              -g "$GRADLE_USER_HOME" \
+              -PjfxVersion="$JAVAFX_VERSION" \
+              -PcomposeVersion="$COMPOSE_VERSION" \
+              fetchFlatpakOfflineDeps
+          )
 
-          echo "Found $x64_jfx_count x64 JavaFX JARs"
-          echo "Found $arm64_jfx_count aarch64 JavaFX JARs"
+          echo "Offline check for actual project on host arch"
+          ./gradlew :desktopApp:compileKotlin \
+            --offline \
+            --no-daemon \
+            --no-configuration-cache \
+            --no-build-cache
 
-          echo "Removing repository metadata and checksums"
-          find "$GRADLE_USER_HOME/caches/modules-2" -name "_remote.repositories" -delete
-          find "$GRADLE_USER_HOME/caches/modules-2" -name "m2-repository-proxy.-*.properties" -delete
-          find "$GRADLE_USER_HOME/caches/modules-2" -name "*.sha1" -delete
-          find "$GRADLE_USER_HOME/caches/modules-2" -name "*.md5" -delete
-          find "$GRADLE_USER_HOME/caches/modules-2" -name "*.lastUpdated" -delete
+          echo "Copy Gradle cache into source tree"
+          cp -a "$GRADLE_USER_HOME" gradle-deps
 
-          cp -r "$GRADLE_USER_HOME" gradle-deps
-
-          echo "Cleaning build artifacts"
-          ./gradlew clean --no-daemon
+          echo "Clean build outputs but keep vendored deps"
+          ./gradlew clean --no-daemon || true
           rm -rf rust/target desktopApp/build shared/build
 
           find gradle-deps -name "*.lock" -delete
           rm -rf gradle-deps/daemon gradle-deps/.tmp gradle-deps/kotlin-profile
 
-          echo "Final cache size"
+          echo "Final Gradle cache size:"
           du -sh gradle-deps
 
-      - name: Verify aarch64 JavaFX JARs are cached
+      - name: Create fat tarball
+        shell: bash
         run: |
-          export GRADLE_USER_HOME=/run/build/mages/gradle-deps
-          cache="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.openjfx"
-          for mod in javafx-base javafx-graphics javafx-media javafx-swing; do
-            jar=$(find "$cache/$mod" -name "*linux-aarch64.jar" 2>/dev/null | head -1)
-            if [ -z "$jar" ]; then
-              echo "MISSING: $mod linux-aarch64 JAR not in cache"
-              exit 1
-            else
-              echo "OK: $jar"
-            fi
-          done
+          set -euo pipefail
 
-      - name: Verify Metadata exists
-        run: |
-          export GRADLE_USER_HOME=/run/build/mages/gradle-deps
-          pom_count=$(find "$GRADLE_USER_HOME/caches/modules-2" -name "javafx-base-*.pom" | wc -l)
-          if [ "$pom_count" -eq 0 ]; then
-            echo "FAILURE: No POM files found in cache. Offline build WILL fail."
-            exit 1
-          fi
-          echo "Found $pom_count JavaFX POM files."
-
-      - name: Create Fat Tarball
-        run: |
           TARBALL_NAME="mages-${VERSION}-vendored-sources.tar.gz"
+
+          rm -rf package
           mkdir -p package/mages
 
           git archive --format=tar HEAD | tar -C package/mages -xf -
-          cp -r vendor package/mages/
-          cp -r .cargo package/mages/
-          cp -r gradle-deps package/mages/
 
-          cd package
-          tar -czf "../${TARBALL_NAME}" mages/
-          cd ..
+          cp -a vendor package/mages/
+          cp -a .cargo package/mages/
+          cp -a gradle-deps package/mages/
+
+          tar -C package -czf "${TARBALL_NAME}" mages
 
           sha256sum "${TARBALL_NAME}" > "${TARBALL_NAME}.sha256"
-          echo "SHA256: $(cat ${TARBALL_NAME}.sha256)"
+          cat "${TARBALL_NAME}.sha256"
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.version_tag }}
-          name: ${{ inputs.version_tag }}
-          prerelease: ${{ inputs.mark_prerelease }}
+          tag_name: ${{ steps.version.outputs.version }}
+          name: ${{ steps.version.outputs.version }}
+          prerelease: ${{ steps.version.outputs.prerelease }}
           files: |
-            mages-${{ inputs.version_tag }}-vendored-sources.tar.gz
-            mages-${{ inputs.version_tag }}-vendored-sources.tar.gz.sha256
+            mages-${{ steps.version.outputs.version }}-vendored-sources.tar.gz
+            mages-${{ steps.version.outputs.version }}-vendored-sources.tar.gz.sha256
