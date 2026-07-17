@@ -700,6 +700,11 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         isInForeground = false
     }
 
+    override fun resumeActiveUi() {
+        // Does not have the same lifecycle concerns as Android bubbles
+        enterForeground()
+    }
+
     override suspend fun logout(): Boolean {
         val f = requireClientOrNull() ?: return false
         return f.logout().awaitUnitResult().isSuccess

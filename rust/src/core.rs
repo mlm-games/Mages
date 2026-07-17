@@ -273,6 +273,15 @@ impl CoreClient {
         }
     }
 
+    pub async fn ensure_sync_active(&self) {
+        self.ensure_sync_service().await;
+        if let Some(svc) = self.sync_service.lock().unwrap().as_ref().cloned() {
+            let _ = svc.start().await;
+        }
+        self.sdk.send_queue().set_enabled(true).await;
+        let _ = self.sdk.send_queue().respawn_tasks_for_rooms_with_unsent_requests().await;
+    }
+
     pub async fn login_password(
         &self,
         kind: PasswordLoginKind,
@@ -362,6 +371,7 @@ impl CoreClient {
         body: String,
         formatted_body: Option<String>,
     ) -> Result<(), FfiError> {
+        self.ensure_sync_active().await;
         let tl = self
             .timeline(&room_id)
             .await
@@ -395,6 +405,7 @@ impl CoreClient {
         body: String,
         formatted_body: Option<String>,
     ) -> Result<(), FfiError> {
+        self.ensure_sync_active().await;
         let tl = self
             .timeline(&room_id)
             .await

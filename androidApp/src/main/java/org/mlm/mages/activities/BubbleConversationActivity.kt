@@ -11,7 +11,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import io.github.mlmgames.settings.core.SettingsRepository
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -37,6 +41,20 @@ class BubbleConversationActivity : ComponentActivity() {
             finish()
             return
         }
+
+        lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onStart(owner: LifecycleOwner) {
+                lifecycleScope.launch {
+                    SessionBootstrapper.ensureReadyAndSyncing(service)
+                    service.portOrNull?.resumeActiveUi()
+                }
+            }
+            override fun onResume(owner: LifecycleOwner) {
+                lifecycleScope.launch {
+                    service.portOrNull?.resumeActiveUi()
+                }
+            }
+        })
 
         setContent {
             BindLifecycle(service, resetSyncState = false)

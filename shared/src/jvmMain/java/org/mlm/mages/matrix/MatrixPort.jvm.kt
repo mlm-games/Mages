@@ -575,6 +575,10 @@ class RustMatrixPort : MatrixPort, VerificationService {
         withClient { it.enterBackground() }
     }
 
+    override fun resumeActiveUi() {
+        withClient { it.resumeActiveUi() }
+    }
+
     override suspend fun sendAttachmentFromPath(
         roomId: String,
         path: String,

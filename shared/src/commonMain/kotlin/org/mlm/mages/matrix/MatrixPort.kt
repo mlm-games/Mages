@@ -702,6 +702,7 @@ interface MatrixPort {
 
     fun enterForeground()
     fun enterBackground()
+    fun resumeActiveUi()
 
     suspend fun logout(): Boolean
 

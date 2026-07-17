@@ -1392,22 +1392,55 @@ impl Client {
         let tx = self.send_tx.clone();
         let h = spawn_task!(async move {
             let mut rx = sdk.send_queue().subscribe();
+            let mut errors_rx = sdk.send_queue().subscribe_errors();
             let mut attempts: HashMap<String, u32> = HashMap::new();
             loop {
-                let upd = match rx.recv().await {
-                    Ok(u) => u,
-                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
-                    Err(_) => break,
-                };
-                let room_id_str = upd.room_id.to_string();
-                if let Some(u) =
-                    crate::core::map_send_queue_update(&room_id_str, upd.update, &mut attempts)
-                {
-                    let _ = tx.send(u);
+                tokio::select! {
+                    upd = rx.recv() => {
+                        let upd = match upd {
+                            Ok(u) => u,
+                            Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
+                            Err(_) => break,
+                        };
+                        let room_id_str = upd.room_id.to_string();
+                        if let Some(u) =
+                            crate::core::map_send_queue_update(&room_id_str, upd.update, &mut attempts)
+                        {
+                            let _ = tx.send(u);
+                        }
+                    }
+                    err = errors_rx.recv() => {
+                        if let Ok(err) = err {
+                            warn!(
+                                "Send queue error for room {} (recoverable={}): {:?}",
+                                err.room_id, err.is_recoverable, err.error
+                            );
+                            let _ = tx.send(crate::types::SendUpdate {
+                                room_id: err.room_id.to_string(),
+                                txn_id: String::new(),
+                                attempts: 0,
+                                state: crate::types::SendState::Failed,
+                                event_id: None,
+                                error: Some(format!("Queue disabled: {:?}", err.error)),
+                            });
+                        }
+                    }
                 }
             }
         });
         self.guards.lock().unwrap().push(h);
+    }
+
+    fn reset_send_queue_supervision(&self) {
+        self.send_queue_supervised.store(false, Ordering::Release);
+    }
+
+    pub fn resume_active_ui(&self) {
+        RT.block_on(async {
+            self.core.ensure_sync_active().await;
+        });
+        self.reset_send_queue_supervision();
+        self.ensure_send_queue_supervision();
     }
 
     pub fn login_password(&self, username: String, password: String) -> Result<String, FfiError> {
