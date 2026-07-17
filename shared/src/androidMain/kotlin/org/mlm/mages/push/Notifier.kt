@@ -119,8 +119,25 @@ object AndroidNotificationHelper : KoinComponent {
 
     fun cancelRoomNotification(ctx: Context, roomId: String) {
         val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        mgr.cancel(roomId.hashCode()) // TODO: shouldnt cancel if it is a bubble?
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val notif = mgr.activeNotifications.find { it.id == roomId.hashCode() }
+            if (notif != null && hasBubbleMetadata(notif.notification)) return
+        }
+        mgr.cancel(roomId.hashCode())
         Notifier.updateSummaryNotification(ctx)
+    }
+
+    private fun hasBubbleMetadata(notification: Notification): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return notification.bubbleMetadata != null
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            return runCatching {
+                val method = Notification::class.java.getMethod("getBubbleMetadata")
+                method.invoke(notification)
+            }.getOrNull() != null
+        }
+        return false
     }
 
     fun showInviteNotification(
