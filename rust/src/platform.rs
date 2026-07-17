@@ -40,8 +40,41 @@ pub(crate) fn init_tracing() {
 pub(crate) fn reset_store_dir(path: &Path) {
     #[cfg(not(target_family = "wasm"))]
     {
+        info!("resetting store dir {:?}", path);
         let _ = std::fs::remove_dir_all(path);
         let _ = std::fs::create_dir_all(path);
+    }
+
+    #[cfg(target_family = "wasm")]
+    {
+        let _ = path;
+    }
+}
+
+pub(crate) fn trash_store_dir(path: &Path) {
+    #[cfg(not(target_family = "wasm"))]
+    {
+        let trash_name = format!(
+            "{}.trash.{}",
+            path.file_name()
+                .map(|n| n.to_string_lossy())
+                .unwrap_or_default(),
+            uuid::Uuid::new_v4()
+        );
+        if let Some(parent) = path.parent() {
+            let trash = parent.join(&trash_name);
+            match std::fs::rename(path, &trash) {
+                Ok(()) => {
+                    info!(
+                        "Moved store dir {:?} -> {:?} for deferred cleanup",
+                        path, trash
+                    );
+                }
+                Err(e) => {
+                    warn!("Failed to rename store dir {:?} to {:?}: {e}", path, trash);
+                }
+            }
+        }
     }
 
     #[cfg(target_family = "wasm")]

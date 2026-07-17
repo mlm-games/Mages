@@ -7,10 +7,10 @@ use matrix_sdk::ruma::events::rtc::notification::CallIntent;
 use matrix_sdk::utils::UrlOrQuery;
 
 use matrix_sdk::authentication::oauth::registration::language_tags::LanguageTag;
-use matrix_sdk::config::RequestConfig;
 use matrix_sdk::authentication::oauth::registration::{
     ApplicationType, ClientMetadata, Localized, OAuthGrantType,
 };
+use matrix_sdk::config::RequestConfig;
 use matrix_sdk::reqwest::Url;
 use matrix_sdk::ruma::events::{AnySyncMessageLikeEvent, AnySyncTimelineEvent};
 use matrix_sdk::ruma::room_version_rules::RoomVersionRules;
@@ -192,7 +192,10 @@ impl Client {
         duration_ms: u64,
         description: Option<String>,
     ) -> Result<String, FfiError> {
-        RT.block_on(self.core.start_live_location(room_id, duration_ms, description))
+        RT.block_on(
+            self.core
+                .start_live_location(room_id, duration_ms, description),
+        )
     }
 }
 
@@ -378,6 +381,25 @@ impl Client {
         #[cfg(not(target_family = "wasm"))]
         let _ = std::fs::create_dir_all(&store_dir_path);
 
+        // NOTE: for previous unsafe wipes
+        #[cfg(not(target_family = "wasm"))]
+        if let Some(parent) = store_dir_path.parent() {
+            let prefix = store_dir_path
+                .file_name()
+                .map(|n| format!("{}.trash.", n.to_string_lossy()))
+                .unwrap_or_default();
+            if let Ok(entries) = std::fs::read_dir(parent) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                        if name.starts_with(&prefix) {
+                            let _ = std::fs::remove_dir_all(&path);
+                        }
+                    }
+                }
+            }
+        }
+
         let inner = RT
             .block_on(async {
                 #[cfg(target_arch = "wasm32")]
@@ -388,9 +410,7 @@ impl Client {
                         SdkClient::builder()
                             .server_name_or_homeserver_url(server_name_or_url.clone())
                     }
-                    .request_config(
-                        RequestConfig::new().timeout(Duration::from_secs(30)),
-                    )
+                    .request_config(RequestConfig::new().timeout(Duration::from_secs(30)))
                     .indexeddb_store("mages_store", None)
                     .with_encryption_settings(EncryptionSettings {
                         auto_enable_cross_signing: true,
@@ -417,9 +437,7 @@ impl Client {
                         SdkClient::builder()
                             .server_name_or_homeserver_url(server_name_or_url.clone())
                     }
-                    .request_config(
-                        RequestConfig::new().timeout(Duration::from_secs(30)),
-                    )
+                    .request_config(RequestConfig::new().timeout(Duration::from_secs(30)))
                     .sqlite_store(&store_dir_path, None)
                     .search_index_store(SearchIndexStoreKind::EncryptedDirectory(idx.dir, idx.key))
                     .with_encryption_settings(EncryptionSettings {
@@ -509,8 +527,12 @@ impl Client {
                         }
                         Ok(matrix_sdk::SessionChange::UnknownToken(info)) => {
                             if !info.soft_logout {
+                                warn!(
+                                    "Hard token invalidation for {} - abandoning store to avoid race with open handles",
+                                    sdk.user_id().map(|u| u.to_string()).unwrap_or_default()
+                                );
                                 platform::remove_session_file(&session_path);
-                                platform::reset_store_dir(&session_path);
+                                platform::trash_store_dir(&session_path);
                             }
                         }
                         Err(_) => break,
@@ -597,7 +619,11 @@ impl Client {
                                 if is_auth_error {
                                     session_info.is_token_valid = false;
                                     let _ = platform::persist_session(&this.store_dir, &session_info).await;
-                                    platform::reset_store_dir(&this.store_dir);
+                                    // Don't reset_store_dir here - the just-built SdkClient has open
+                                    // SQLite handles on this directory. Wiping under a live client
+                                    // races with those connections and can cause data loss.
+                                    // The host (Kotlin) will detect is_token_valid=false and do a
+                                    // clean teardown (close + drop the client, then delete the dir).
                                 } else {
                                     // Network error - keep token valid for offline use
                                     session_info.is_token_valid = true;
@@ -1174,7 +1200,7 @@ impl Client {
                     Ok(change) = session_rx.recv() => {
                         let current = match change {
                             matrix_sdk::SessionChange::TokensRefreshed => ConnectionState::Connected,
-                            matrix_sdk::SessionChange::UnknownToken { .. } => ConnectionState::Reconnecting { attempt: 1, next_retry_secs: 5 },
+                            matrix_sdk::SessionChange::UnknownToken(_) => ConnectionState::Reconnecting { attempt: 1, next_retry_secs: 5 },
                         };
                         if !matches!((&current, &last_state), (ConnectionState::Connected, ConnectionState::Connected) | (ConnectionState::Disconnected, ConnectionState::Disconnected)) {
                             obs.on_connection_change(current.clone());
@@ -1307,7 +1333,12 @@ impl Client {
                     let _ = svc.start().await;
                 }
                 self.core.sdk.send_queue().set_enabled(true).await;
-                let _ = self.core.sdk.send_queue().respawn_tasks_for_rooms_with_unsent_requests().await;
+                let _ = self
+                    .core
+                    .sdk
+                    .send_queue()
+                    .respawn_tasks_for_rooms_with_unsent_requests()
+                    .await;
             });
         }
     }
@@ -3154,7 +3185,8 @@ fn map_timeline_event(
         }
     };
 
-    let event_id = direct_event_id.clone()
+    let event_id = direct_event_id
+        .clone()
         .or(event_id_from_send_state)
         .unwrap_or_default();
 
@@ -4268,12 +4300,13 @@ pub(crate) fn map_vec_diff(
 }
 
 pub(crate) fn map_live_location_share(s: &LiveLocationShare) -> LiveLocationShareInfo {
-    let end_ms: u64 = s
+    let end_ms: u64 = s.beacon_info.ts.0.into();
+    let timeout_ms: u64 = s
         .beacon_info
-        .ts
-        .0
-        .into();
-    let timeout_ms: u64 = s.beacon_info.timeout.as_millis().try_into().unwrap_or(u64::MAX);
+        .timeout
+        .as_millis()
+        .try_into()
+        .unwrap_or(u64::MAX);
     LiveLocationShareInfo {
         user_id: s.user_id.to_string(),
         geo_uri: s
