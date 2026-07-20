@@ -37,6 +37,7 @@ private inline fun <T> runWithFfiResult(block: () -> T): Result<T> =
     }
 
 private val matrixDispatcher = Dispatchers.IO.limitedParallelism(4)
+private val mediaDispatcher = Dispatchers.IO.limitedParallelism(2)
 
 class RustMatrixPort : MatrixPort, VerificationService {
     @Volatile
@@ -141,7 +142,8 @@ class RustMatrixPort : MatrixPort, VerificationService {
             }
 
             override fun onError(message: String) {
-                println("Err: $message")
+                println("Timeline error: $message")
+                trySendBlocking(TimelineDiff.Reset(emptyList()))
             }
         }
 
@@ -249,7 +251,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
     override suspend fun thumbnailToCache(
         info: AttachmentInfo, width: Int, height: Int, crop: Boolean
     ): Result<String> =
-        withContext(matrixDispatcher) {
+        withContext(mediaDispatcher) {
             runWithFfiResult { withClient { it.thumbnailToCache(info.toFfi(), width.toUInt(), height.toUInt(), crop) } }
         }
 
@@ -605,7 +607,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         info: AttachmentInfo,
         filenameHint: String?
     ): Result<String> =
-        withContext(matrixDispatcher) {
+        withContext(mediaDispatcher) {
             runWithFfiResult { withClient { it.downloadAttachmentToCacheFile(info.toFfi(), filenameHint).path } }
         }
 
@@ -629,7 +631,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         info: StickerInfo,
         filenameHint: String?
     ): Result<String> =
-        withContext(matrixDispatcher) {
+        withContext(mediaDispatcher) {
             runWithFfiResult { withClient { it.downloadStickerToCache(info.toFfi(), filenameHint).path } }
         }
 
@@ -1619,7 +1621,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         width: Int,
         height: Int,
         crop: Boolean
-    ): String = withContext(matrixDispatcher) {
+    ): String = withContext(mediaDispatcher) {
         withClient {
             it.mxcThumbnailToCache(mxcUri, width.toUInt(), height.toUInt(), crop)
         }
