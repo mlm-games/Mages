@@ -896,6 +896,7 @@ impl Client {
         let mgr = self.core.timeline_mgr.clone();
         sub_manager!(self, timeline_subs, async move {
             let Some(tl) = mgr.timeline_for(&room_id).await else {
+                safe_call(|| obs.on_error("timeline unavailable".into()));
                 return;
             };
             let (items, mut stream) = tl.subscribe().await;

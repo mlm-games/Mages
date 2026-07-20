@@ -63,16 +63,16 @@ use tracing::warn;
 use crate::{
     ActionAvailability, ActionPresentation, AttachmentInfo, AttachmentKind, DirectoryUser,
     FfiError, FfiPushRuleKind, FfiRoomNotificationMode, INITIAL_BACK_PAGINATION,
-    KnockRequestSummary, MemberActionState, MemberSummary,
-    MessageActionState, MessageEvent, OwnReceipt, PasswordLoginKind, PollDefinition,
-    PredecessorRoomInfo, Presence, PresenceInfo, PublicRoom, PublicRoomsPage, ReactionSummary,
-    RoomActionState, RoomDirectoryVisibility, RoomHistoryVisibility, RoomJoinRule, RoomListEntry,
-    RoomListMembership, RoomPowerLevelChanges, RoomPowerLevels, RoomPreview, RoomPreviewMembership,
-    RoomSummary, RoomTags, RoomUpgradeLinks, SearchHit, SearchPage, SeenByEntry, SendState,
-    SendUpdate, SpaceChildInfo, SpaceHierarchyPage, SpaceInfo, SuccessorRoomInfo, ThreadPage,
-    ThreadSummary, UnreadStats, VerificationInboxObserver, build_unstable_poll_content,
-    latest_room_event_for, map_event_id_via_timeline, map_timeline_event,
-    paginate_backwards_visible, timeline_event_filter,
+    KnockRequestSummary, MemberActionState, MemberSummary, MessageActionState, MessageEvent,
+    OwnReceipt, PasswordLoginKind, PollDefinition, PredecessorRoomInfo, Presence, PresenceInfo,
+    PublicRoom, PublicRoomsPage, ReactionSummary, RoomActionState, RoomDirectoryVisibility,
+    RoomHistoryVisibility, RoomJoinRule, RoomListEntry, RoomListMembership, RoomPowerLevelChanges,
+    RoomPowerLevels, RoomPreview, RoomPreviewMembership, RoomSummary, RoomTags, RoomUpgradeLinks,
+    SearchHit, SearchPage, SeenByEntry, SendState, SendUpdate, SpaceChildInfo, SpaceHierarchyPage,
+    SpaceInfo, SuccessorRoomInfo, ThreadPage, ThreadSummary, UnreadStats,
+    VerificationInboxObserver, build_unstable_poll_content, latest_room_event_for,
+    map_event_id_via_timeline, map_timeline_event, paginate_backwards_visible,
+    timeline_event_filter,
 };
 
 const REACTION_NOTIFY_RULE_ID: &str = "org.mlm.mages.reaction.notify";
@@ -155,7 +155,18 @@ impl TimelineManager {
                 .await
                 .ok()?,
         );
-        let _ = tl.paginate_backwards(INITIAL_BACK_PAGINATION).await;
+
+        self.timelines
+            .lock()
+            .unwrap()
+            .insert(room_id.clone(), tl.clone());
+
+        {
+            let tlc = tl.clone();
+            spawn_detached_core!(async move {
+                let _ = tlc.paginate_backwards(INITIAL_BACK_PAGINATION).await;
+            });
+        }
 
         {
             let mut s = self.members_fetched.lock().unwrap();
@@ -168,10 +179,6 @@ impl TimelineManager {
             }
         }
 
-        self.timelines
-            .lock()
-            .unwrap()
-            .insert(room_id.clone(), tl.clone());
         Some(tl)
     }
 }
@@ -279,7 +286,11 @@ impl CoreClient {
             let _ = svc.start().await;
         }
         self.sdk.send_queue().set_enabled(true).await;
-        let _ = self.sdk.send_queue().respawn_tasks_for_rooms_with_unsent_requests().await;
+        let _ = self
+            .sdk
+            .send_queue()
+            .respawn_tasks_for_rooms_with_unsent_requests()
+            .await;
     }
 
     pub async fn login_password(
@@ -1225,7 +1236,13 @@ impl CoreClient {
     pub async fn list_members(&self, room_id: String) -> Result<Vec<MemberSummary>, FfiError> {
         let room = self.require_room(&room_id)?;
         let me = self.sdk.user_id();
-        let members = room.members(RoomMemberships::ACTIVE).await.ffi()?;
+        let members = tokio::time::timeout(
+            Duration::from_secs(10),
+            room.members(RoomMemberships::ACTIVE),
+        )
+        .await
+        .map_err(|_| FfiError::Msg("list_members timed out".into()))?
+        .ffi()?;
         Ok(members
             .into_iter()
             .map(|m| MemberSummary {

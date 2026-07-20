@@ -367,24 +367,8 @@ class RoomViewModel(
 
             val members = runSafe { service.port.listMembers(roomId) }.orEmpty()
             if (members.isNotEmpty()) {
-                updateState { copy(roomMembers = members) }
-
-                launch {
-                    val resolved = members
-                        .mapNotNull { member ->
-                            val avatarUrl = member.avatarUrl ?: return@mapNotNull null
-                            member.userId to avatarUrl
-                        }
-                        .associate { (userId, avatarUrl) ->
-                            userId to service.avatars.resolve(avatarUrl, px = 64, crop = true)
-                        }
-                        .filterValues { it != null }
-                        .mapValues { it.value!! }
-
-                    if (resolved.isNotEmpty()) {
-                        updateState { copy(avatarByUserId = avatarByUserId + resolved) }
-                    }
-                }
+                val capped = if (members.size <= 200) members else emptyList()
+                updateState { copy(roomMembers = capped) }
             }
 
             refreshRoomActionState()
@@ -1853,16 +1837,25 @@ class RoomViewModel(
             .asReversed()
             .mapNotNull { event ->
                 val avatarUrl = event.senderAvatarUrl ?: return@mapNotNull null
+                if (event.sender in currentState.avatarByUserId) return@mapNotNull null
                 event.sender to avatarUrl
             }
             .distinctBy { it.first }
+            .take(24)
 
         if (byUser.isEmpty()) return
 
         launch {
-            val resolved = byUser.associate { (userId, avatarUrl) ->
-                userId to service.avatars.resolve(avatarUrl, px = 64, crop = true)
-            }.filterValues { it != null }.mapValues { it.value!! }
+            val resolved = coroutineScope {
+                byUser.map { (userId, avatarUrl) ->
+                    async {
+                        val path = withTimeoutOrNull(8_000) {
+                            service.avatars.resolve(avatarUrl, px = 64, crop = true)
+                        }
+                        if (path != null) userId to path else null
+                    }
+                }
+            }.awaitAll().filterNotNull().toMap()
 
             if (resolved.isNotEmpty()) {
                 updateState { copy(avatarByUserId = avatarByUserId + resolved) }
@@ -1875,29 +1868,43 @@ class RoomViewModel(
             .flatMap { event -> event.reactions.flatMap { it.userIds } }
             .distinct()
             .filter { it !in currentState.avatarByUserId }
+            .take(24)
 
         if (userIds.isEmpty()) return
 
         val members = currentState.roomMembers
 
         launch {
-            val memberAvatars = members
-                .filter { it.userId in userIds }
-                .mapNotNull { member ->
-                    val avatarUrl = member.avatarUrl ?: return@mapNotNull null
-                    val path = service.avatars.resolve(avatarUrl, px = 64, crop = true)
-                    if (path != null) member.userId to path else null
-                }
-                .toMap()
+            val memberAvatars = coroutineScope {
+                members
+                    .filter { it.userId in userIds }
+                    .map { member ->
+                        async {
+                            val avatarUrl = member.avatarUrl ?: return@async null
+                            val path = withTimeoutOrNull(8_000) {
+                                service.avatars.resolve(avatarUrl, px = 64, crop = true)
+                            }
+                            if (path != null) member.userId to path else null
+                        }
+                    }
+            }.awaitAll().filterNotNull().toMap()
 
             val missingUserIds = userIds.filter { it !in memberAvatars }
             if (missingUserIds.isNotEmpty()) {
-                val profileAvatars = missingUserIds.mapNotNull { userId ->
-                    val profile = runCatching { service.port.getUserProfile(userId) }.getOrNull()
-                    val avatarUrl = profile?.avatarUrl ?: return@mapNotNull null
-                    val path = service.avatars.resolve(avatarUrl, px = 64, crop = true)
-                    if (path != null) userId to path else null
-                }.toMap()
+                val profileAvatars = coroutineScope {
+                    missingUserIds.map { userId ->
+                        async {
+                            val profile = withTimeoutOrNull(8_000) {
+                                runCatching { service.port.getUserProfile(userId) }.getOrNull()
+                            } ?: return@async null
+                            val avatarUrl = profile?.avatarUrl ?: return@async null
+                            val path = withTimeoutOrNull(8_000) {
+                                service.avatars.resolve(avatarUrl, px = 64, crop = true)
+                            }
+                            if (path != null) userId to path else null
+                        }
+                    }
+                }.awaitAll().filterNotNull().toMap()
 
                 val allResolved = memberAvatars + profileAvatars
                 if (allResolved.isNotEmpty()) {
