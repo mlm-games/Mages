@@ -1,0 +1,1 @@
+- do not block-wait for the pagination of first 20 messages (for mid-load internet issues)

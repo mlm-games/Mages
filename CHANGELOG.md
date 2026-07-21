@@ -1,3 +1,8 @@
+## v4.9.5
+
+- do not block-wait for the pagination of first 20 messages (for mid-load internet issues)
+
+
 ## v4.9.4
 
 
