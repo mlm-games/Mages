@@ -390,4 +390,10 @@
     <string
         name="media_cache_clear_confirm_body"
     >Local cached media will be removed. Your messages stay in your chats and media can download again when needed.</string>
+
+    <string name="local_network_permission_title">Allow local network access</string>
+    <string name="local_network_permission_subtitle">Your homeserver appears to be on your local network. Mages needs permission to connect to devices on your LAN.</string>
+    <string name="local_network_allow_access">Allow access</string>
+    <string name="local_network_open_settings">Open settings</string>
+    <string name="local_network_not_now">Not now</string>
 </resources>

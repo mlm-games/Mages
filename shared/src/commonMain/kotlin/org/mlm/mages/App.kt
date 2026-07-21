@@ -36,6 +36,9 @@ import org.mlm.mages.nav.*
 import org.mlm.mages.platform.BindLifecycle
 import org.mlm.mages.platform.BindNotifications
 import org.mlm.mages.platform.LocalAppLocale
+import org.mlm.mages.platform.shouldRequestLocalNetworkPermission
+import org.mlm.mages.ui.components.LocalNetworkPermissionDialogHost
+import org.mlm.mages.ui.components.rememberLocalNetworkPermissionGate
 import org.mlm.mages.platform.ProvideAppLocale
 import org.mlm.mages.platform.platformEmbeddedElementCallParentUrlOrNull
 import org.mlm.mages.platform.platformEmbeddedElementCallUrlOrNull
@@ -300,6 +303,13 @@ private fun AppContent(
                                 }
                             }
 
+                            val roomsGate = rememberLocalNetworkPermissionGate()
+
+                            LaunchedEffect(activeAccount?.homeserver) {
+                                val hs = activeAccount?.homeserver ?: return@LaunchedEffect
+                                roomsGate.runWithPermission(hs) { }
+                            }
+
                             RoomsScreen(
                                 viewModel = viewModel,
                                 onOpenSecurity = { backStack.add(Route.Security) },
@@ -308,6 +318,8 @@ private fun AppContent(
                                 onOpenSpaces = { backStack.add(Route.Spaces) },
                                 onOpenSearch = { backStack.add(Route.Search) },
                             )
+
+                            LocalNetworkPermissionDialogHost(roomsGate)
 
                             if (showCreateRoom) {
                                 CreateRoomSheet(

@@ -34,7 +34,8 @@ data class LoginUiState(
     val showPasswordLogin: Boolean = false,
     val isCheckingServer: Boolean = false,
     val passwordLoginKind: PasswordLoginKind = PasswordLoginKind.Username,
-    val phoneCountry: String = ""
+    val phoneCountry: String = "",
+    val needsLocalNetworkPermission: Boolean = false,
 ) {
     val effectiveHomeserver: String
         get() = loginDetails?.homeserverUrl ?: homeserver

@@ -34,6 +34,8 @@ import io.github.mlmgames.settings.core.platform.currentPlatform
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.matrix.PasswordLoginKind
+import org.mlm.mages.ui.components.LocalNetworkPermissionDialogHost
+import org.mlm.mages.ui.components.rememberLocalNetworkPermissionGate
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.LoginViewModel
 
@@ -45,6 +47,7 @@ fun LoginScreen(
     isAddingAccount: Boolean = false
 ) {
     val state by viewModel.state.collectAsState()
+    val gate = rememberLocalNetworkPermissionGate()
     val focusManager = LocalFocusManager.current
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -238,7 +241,7 @@ fun LoginScreen(
                             }
                         } else if (primaryAuth == "oauth") {
                             Button(
-                                onClick = onOauth,
+                                onClick = { gate.runWithPermission(state.effectiveHomeserver) { onOauth() } },
                                 enabled = !state.isBusy,
                                 modifier = Modifier.fillMaxWidth().height(52.dp)
                             ) {
@@ -251,7 +254,7 @@ fun LoginScreen(
                             }
                         } else {
                             OutlinedButton(
-                                onClick = onOauth,
+                                onClick = { gate.runWithPermission(state.effectiveHomeserver) { onOauth() } },
                                 enabled = !state.isBusy,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -283,7 +286,7 @@ fun LoginScreen(
                                 }
                             } else if (primaryAuth == "sso") {
                                 Button(
-                                    onClick = onSso,
+                                    onClick = { gate.runWithPermission(state.effectiveHomeserver) { onSso() } },
                                     enabled = !state.isBusy,
                                     modifier = Modifier.fillMaxWidth().height(52.dp)
                                 ) {
@@ -296,7 +299,7 @@ fun LoginScreen(
                                 }
                             } else {
                                 OutlinedButton(
-                                    onClick = onSso,
+                                    onClick = { gate.runWithPermission(state.effectiveHomeserver) { onSso() } },
                                     enabled = !state.isBusy && !state.oauthInProgress,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
@@ -465,7 +468,7 @@ fun LoginScreen(
                                             onDone = {
                                                 focusManager.clearFocus()
                                                 if (canSubmitPassword) {
-                                                    viewModel.submit()
+                                                    gate.runWithPermission(state.effectiveHomeserver) { viewModel.submit() }
                                                 }
                                             }
                                         ),
@@ -476,7 +479,7 @@ fun LoginScreen(
                                     )
 
                                     Button(
-                                        onClick = viewModel::submit,
+                                        onClick = { gate.runWithPermission(state.effectiveHomeserver) { viewModel.submit() } },
                                         enabled = canSubmitPassword,
                                         modifier = Modifier.fillMaxWidth().height(52.dp),
                                         shape = MaterialTheme.shapes.large
@@ -540,4 +543,6 @@ fun LoginScreen(
             Spacer(Modifier.height(24.dp))
         }
     }
+
+    LocalNetworkPermissionDialogHost(gate)
 }

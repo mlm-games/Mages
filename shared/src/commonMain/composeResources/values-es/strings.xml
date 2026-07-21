@@ -406,4 +406,10 @@
     <string name="image">Imagen</string>
     <string name="video">Vídeo</string>
     <string name="file">Archivo</string>
+
+    <string name="local_network_permission_title">Permitir acceso a la red local</string>
+    <string name="local_network_permission_subtitle">Tu servidor de origen parece estar en tu red local. Mages necesita permiso para conectarse a dispositivos en tu LAN.</string>
+    <string name="local_network_allow_access">Permitir acceso</string>
+    <string name="local_network_open_settings">Abrir configuración</string>
+    <string name="local_network_not_now">Ahora no</string>
 </resources>

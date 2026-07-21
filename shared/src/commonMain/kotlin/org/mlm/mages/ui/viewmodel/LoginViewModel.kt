@@ -14,6 +14,7 @@ import org.mlm.mages.matrix.PasswordLoginKind
 import org.mlm.mages.matrix.HomeserverLoginDetails
 import org.mlm.mages.matrix.createMatrixPort
 import org.mlm.mages.platform.getDeviceDisplayName
+import org.mlm.mages.platform.shouldRequestLocalNetworkPermission
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.LoginUiState
 import kotlin.random.Random
@@ -45,7 +46,7 @@ class LoginViewModel(
     val events = _events.receiveAsFlow()
 
     fun setHomeserver(value: String) {
-        updateState { copy(homeserver = value, loginDetails = null) }
+        updateState { copy(homeserver = value, loginDetails = null, needsLocalNetworkPermission = false) }
         debouncedProbeServer()
     }
 
@@ -78,7 +79,18 @@ class LoginViewModel(
             return
         }
 
-        updateState { copy(isCheckingServer = true, error = null) }
+        if (shouldRequestLocalNetworkPermission(hs)) {
+            updateState {
+                copy(
+                    isCheckingServer = false,
+                    loginDetails = null,
+                    needsLocalNetworkPermission = true,
+                )
+            }
+            return
+        }
+
+        updateState { copy(isCheckingServer = true, error = null, needsLocalNetworkPermission = false) }
 
         try {
             val port = createMatrixPort()
