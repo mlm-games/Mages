@@ -200,6 +200,32 @@ jobs:
               fetchFlatpakOfflineDeps
           )
 
+          echo "Resolve aarch64 JavaFX via the real javafxplugin metadata-rule path"
+          cat > /tmp/force-javafx-aarch64.init.gradle <<'EOF'
+          allprojects { p ->
+              p.plugins.withId('org.openjfx.javafxplugin') {
+                  p.extensions.configure(org.openjfx.gradle.JavaFXOptions) { opt ->
+                      opt.setPlatform('linux-aarch64')
+                  }
+              }
+          }
+          EOF
+
+          echo "Download linux-aarch64 jars the same way Flatpak aarch64 will request them"
+          ./gradlew :desktopApp:compileKotlin \
+            --no-daemon \
+            --no-configuration-cache \
+            --no-build-cache \
+            -I /tmp/force-javafx-aarch64.init.gradle
+
+          echo "Prove aarch64 JavaFX resolves offline through the plugin path"
+          ./gradlew :desktopApp:compileKotlin \
+            --offline \
+            --no-daemon \
+            --no-configuration-cache \
+            --no-build-cache \
+            -I /tmp/force-javafx-aarch64.init.gradle
+
           echo "Offline check for actual project on host arch"
           ./gradlew :desktopApp:compileKotlin \
             --offline \
