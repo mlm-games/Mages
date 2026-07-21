@@ -204,7 +204,7 @@ jobs:
           cat > /tmp/force-javafx-aarch64.init.gradle <<'EOF'
           allprojects { p ->
               p.plugins.withId('org.openjfx.javafxplugin') {
-                  p.extensions.configure(org.openjfx.gradle.JavaFXOptions) { opt ->
+                  p.extensions.configure('javafx') { opt ->
                       opt.setPlatform('linux-aarch64')
                   }
               }
