@@ -1,0 +1,1 @@
+- ACCESS_LOCAL_NETWORK permission impl. (for android 17)
