@@ -271,8 +271,6 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.version }}
-          name: ${{ steps.version.outputs.version }}
-          prerelease: ${{ steps.version.outputs.prerelease }}
           files: |
             mages-${{ steps.version.outputs.version }}-vendored-sources.tar.gz
             mages-${{ steps.version.outputs.version }}-vendored-sources.tar.gz.sha256
