@@ -59,8 +59,8 @@ private val wantedDeviceTypes = listOf(
     AudioDeviceInfo.TYPE_USB_ACCESSORY,
     AudioDeviceInfo.TYPE_WIRED_HEADSET,
     AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
-    AudioDeviceInfo.TYPE_BUILTIN_SPEAKER,
     AudioDeviceInfo.TYPE_BUILTIN_EARPIECE,
+    AudioDeviceInfo.TYPE_BUILTIN_SPEAKER,
 )
 
 private val audioDeviceComparator = Comparator<AudioDeviceInfo> { a, b ->
@@ -534,12 +534,8 @@ actual fun CallWebViewHost(
     val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     val audioDeviceBridge = remember { AudioDeviceBridge(context) }
 
-    LaunchedEffect(minimized) {
-        if (minimized) {
-            audioDeviceBridge.onCallStarted()
-        } else {
-            audioDeviceBridge.onCallStopped()
-        }
+    LaunchedEffect(Unit) {
+        audioDeviceBridge.onCallStarted()
     }
 
     DisposableEffect(Unit) {
