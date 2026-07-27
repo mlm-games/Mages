@@ -429,7 +429,7 @@ data class AppSettings(
         dependsOn = "callNotificationsEnabled",
         platforms = [SettingPlatform.ANDROID]
     )
-    val showIncomingCallScreen: Boolean = false,
+    val showIncomingCallScreen: Boolean = true,
 
     @Setting(
         category = Calls::class,
