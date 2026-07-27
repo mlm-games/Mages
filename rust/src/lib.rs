@@ -1885,11 +1885,24 @@ impl Client {
         RT.block_on(async {
             let rid = OwnedRoomId::try_from(room_id).ffi()?;
             let eid = matrix_sdk::ruma::OwnedEventId::try_from(event_id).ffi()?;
-            let nc = NotificationClient::new(
-                self.core.sdk.clone(),
-                NotificationProcessSetup::MultipleProcesses,
-            )
-            .await?;
+
+            self.core.ensure_sync_service().await;
+            let process_setup = {
+                let g = self.core.sync_service.lock().unwrap();
+                if let Some(sync) = g.as_ref().cloned() {
+                    NotificationProcessSetup::SingleProcess { sync_service: sync }
+                } else {
+                    NotificationProcessSetup::MultipleProcesses
+                }
+            };
+
+            let nc = match NotificationClient::new(self.core.sdk.clone(), process_setup).await {
+                Ok(v) => v,
+                Err(e) => {
+                    warn!("NotificationClient::new failed: {e:?}");
+                    return Ok(None);
+                }
+            };
             let item = nc.get_notification(&rid, &eid).await.ffi()?;
             match item {
                 NotificationStatus::Event(notif) => {

@@ -18,7 +18,7 @@ import android.provider.Settings
  * Safe to call repeatedly.
  */
 object AppNotificationChannels {
-    const val CHANNEL_MESSAGES = "messages"
+    const val CHANNEL_MESSAGES = "messages_v2"
     const val CHANNEL_MESSAGES_SILENT = "messages_silent"
     const val CHANNEL_CALLS = "calls_v3"
     const val CHANNEL_CALLS_SILENT = "calls_silent"
@@ -60,7 +60,7 @@ object AppNotificationChannels {
                 NotificationChannel(
                     CHANNEL_MESSAGES_SILENT,
                     "Messages (Silent)",
-                    NotificationManager.IMPORTANCE_DEFAULT
+                    NotificationManager.IMPORTANCE_LOW
                 ).apply {
                     description = "Message notifications (no sound)"
                     setSound(null, null)

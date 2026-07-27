@@ -174,7 +174,8 @@ class NotificationEnrichWorker(
 //                    "${rendered.sender} • ${rendered.roomName}"
 //                }
 
-                val playSound = if (!inQuietHours && settings.notificationSound && rendered.isNoisy) {
+                val wantsAlert = settings.notificationSound || settings.notificationVibrate
+                val playSound = if (!inQuietHours && wantsAlert && rendered.isNoisy) {
                     if (settings.notifySoundOncePerRoom) {
                         val notifiedRooms = parseNotifiedRooms(settings.notifiedRoomsJson)
                         if (!notifiedRooms.contains(roomId)) {
@@ -241,7 +242,8 @@ class NotificationEnrichWorker(
 
                 val title = rendered.sender
 
-                val playSound = if (!inQuietHours && settings.notificationSound && rendered.isNoisy) {
+                val wantsAlert = settings.notificationSound || settings.notificationVibrate
+                val playSound = if (!inQuietHours && wantsAlert && rendered.isNoisy) {
                     if (settings.notifySoundOncePerRoom) {
                         val notifiedRooms = parseNotifiedRooms(settings.notifiedRoomsJson)
                         if (!notifiedRooms.contains(roomId)) {

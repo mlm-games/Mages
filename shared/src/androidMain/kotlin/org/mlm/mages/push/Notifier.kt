@@ -585,8 +585,6 @@ object Notifier {
             builder.setBubbleMetadata(bubbleMetadata)
         }
 
-        if (!playSound) builder.setSilent(true)
-
         builder.addExtras(
             Bundle().apply {
                 putString(NotificationReconcileWorker.EXTRA_MATRIX_ROOM_ID, roomId)
