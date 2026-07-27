@@ -751,8 +751,6 @@ object Notifier {
             builder.setBubbleMetadata(bubbleMetadata)
         }
 
-        builder.setSilent(true)
-
         if (nm.areNotificationsEnabled()) {
             nm.notify(notificationId, builder.build())
         }
