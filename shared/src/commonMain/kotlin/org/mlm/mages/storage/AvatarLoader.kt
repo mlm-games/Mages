@@ -42,7 +42,12 @@ class AvatarLoader(
         val key = "$url|${px}x$px|crop=$crop"
 
         mu.withLock {
-            cache[key]?.let { return it }
+            val cached = cache[key]
+            if (cached != null) {
+                cache.remove(key)
+                cache[key] = cached
+                return cached
+            }
         }
 
         val existing = mu.withLock { inFlight[key] }

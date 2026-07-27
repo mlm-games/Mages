@@ -9,7 +9,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,6 +40,7 @@ fun Avatar(
 ) {
     val initials = rememberSaveable(name) { extractInitials(name) }
     val ctx = LocalPlatformContext.current
+    var showImage by remember(avatarPath) { mutableStateOf(!avatarPath.isNullOrBlank()) }
 
     Surface(
         color = containerColor,
@@ -43,7 +48,7 @@ fun Avatar(
         modifier = modifier.size(size)
     ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            if (!avatarPath.isNullOrBlank()) {
+            if (showImage && !avatarPath.isNullOrBlank()) {
                 AsyncImage(
                     model = ImageRequest.Builder(ctx)
                         .data(avatarPath)
@@ -51,22 +56,23 @@ fun Avatar(
                         .build(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = modifier.fillMaxSize()
+                    modifier = modifier.fillMaxSize(),
+                    onError = { showImage = false },
                 )
             } else {
-            Text(
-                text = initials,
-                style = when {
-                    size >= Sizes.avatarLarge -> MaterialTheme.typography.titleLarge
-                    size >= Sizes.avatarMedium -> MaterialTheme.typography.titleMedium
-                    else -> MaterialTheme.typography.labelLarge
-                },
-                fontWeight = FontWeight.Bold,
-                color = contentColor
-            )
+                Text(
+                    text = initials,
+                    style = when {
+                        size >= Sizes.avatarLarge -> MaterialTheme.typography.titleLarge
+                        size >= Sizes.avatarMedium -> MaterialTheme.typography.titleMedium
+                        else -> MaterialTheme.typography.labelLarge
+                    },
+                    fontWeight = FontWeight.Bold,
+                    color = contentColor
+                )
+            }
         }
     }
-}
 }
 
 /**

@@ -345,6 +345,8 @@ class RoomViewModel(
                 updateState { copy(input = savedDraft) }
             }
 
+            refreshRoomActionState()
+
             val profile = service.port.roomProfile(roomId)
             if (profile != null) {
                 roomClass = profile.roomClass()
@@ -358,9 +360,11 @@ class RoomViewModel(
                 recomputeVisibleEvents()
 
                 profile.avatarUrl?.let { url ->
-                    val path = service.avatars.resolve(url, px = 96, crop = true)
-                    if (path != null) {
-                        updateState { copy(roomAvatarUrl = path) }
+                    launch {
+                        val path = service.avatars.resolve(url, px = 96, crop = true)
+                        if (path != null && currentState.roomId == roomId) {
+                            updateState { copy(roomAvatarUrl = path) }
+                        }
                     }
                 }
             }
@@ -370,8 +374,6 @@ class RoomViewModel(
                 val capped = if (members.size <= 200) members else emptyList()
                 updateState { copy(roomMembers = capped) }
             }
-
-            refreshRoomActionState()
         }
 
         launch {
