@@ -115,6 +115,7 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
 
                                         val roomName = intent.getStringExtra(EXTRA_ROOM_NAME) ?: ""
                                         val contactName = intent.getStringExtra(EXTRA_SENDER_NAME) ?: ""
+                                        val contactUserId = intent.getStringExtra(EXTRA_SENDER_USER_ID)
                                         val lastMessageFromMe = intent.getBooleanExtra(EXTRA_LAST_MESSAGE_FROM_ME, false)
 
                                         val myUserId = port.whoami() ?: ""
@@ -174,6 +175,7 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                                             eventId = eventId,
                                             notificationId = notifId,
                                             contactName = contactName,
+                                            contactUserId = contactUserId,
                                             contactAvatar = contactAvatar,
                                             originalMessage = originalMessage,
                                             replyText = text,
@@ -221,6 +223,7 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
         const val EXTRA_CALLER_NAME = "callerName"
         const val EXTRA_IS_VOICE_ONLY = "isVoiceOnly"
         const val EXTRA_SENDER_NAME = "senderName"
+        const val EXTRA_SENDER_USER_ID = "senderUserId"
         const val EXTRA_MESSAGE_BODY = "messageBody"
         const val EXTRA_LAST_MESSAGE_FROM_ME = "lastMessageFromMe"
 

@@ -45,7 +45,8 @@ object AndroidNotificationHelper : KoinComponent {
         roomName: String,
         callerAvatarPath: String? = null,
         isVoiceOnly: Boolean = false,
-        isDm: Boolean = false
+        isDm: Boolean = false,
+        callerUserId: String? = null,
     ) {
         AppNotificationChannels.ensureCreated(ctx)
         val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
@@ -77,7 +78,7 @@ object AndroidNotificationHelper : KoinComponent {
 
         val caller = Person.Builder()
             .setName(callerName)
-            .setKey(roomId)
+            .setKey(callerUserId ?: roomId)
             .apply { callerIcon?.let { setIcon(IconCompat.createWithBitmap(it)) } }
             .build()
 
@@ -528,6 +529,7 @@ object Notifier {
                 .putExtra(NotificationActionReceiver.EXTRA_NOTIF_ID, notificationId)
                 .putExtra(NotificationActionReceiver.EXTRA_ROOM_NAME, roomName)
                 .putExtra(NotificationActionReceiver.EXTRA_SENDER_NAME, senderName)
+                .putExtra(NotificationActionReceiver.EXTRA_SENDER_USER_ID, senderUserId)
                 .putExtra(NotificationActionReceiver.EXTRA_MESSAGE_BODY, messageBody),
             PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
@@ -639,6 +641,7 @@ object Notifier {
         eventId: String,
         notificationId: Int,
         contactName: String,
+        contactUserId: String? = null,
         contactAvatar: AvatarResult,
         originalMessage: String,
         replyText: String,
@@ -659,7 +662,7 @@ object Notifier {
 
         val contact = Person.Builder()
             .setName(contactName)
-            .setKey(contactName)
+            .setKey(contactUserId ?: contactName)
             .setIcon(contactAvatar.icon)
             .build()
 

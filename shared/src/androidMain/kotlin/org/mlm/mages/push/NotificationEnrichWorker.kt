@@ -160,7 +160,8 @@ class NotificationEnrichWorker(
                     eventId = eventId,
                     callerName = rendered.sender,
                     roomName = rendered.roomName,
-                    callerAvatarPath = callerAvatarPath
+                    callerAvatarPath = callerAvatarPath,
+                    callerUserId = rendered.senderUserId,
                 )
                 return Result.success()
             }
