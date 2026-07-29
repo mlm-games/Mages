@@ -22,6 +22,7 @@ object NotifierImpl {
 
 
     private val notifCtx = ConcurrentHashMap<UInt32, Pair<String, String>>()
+    private val notifIdByRoom = ConcurrentHashMap<String, UInt32>()
 
     private fun invalidateConnection(failed: DBusConnection) {
         synchronized(lock) {
@@ -33,6 +34,7 @@ object NotifierImpl {
                 actionsSupported = false
                 inlineReplySupported = false
                 notifCtx.clear()
+                notifIdByRoom.clear()
                 System.err.println("[notification] D-Bus connection invalidated")
             }
         }
@@ -102,6 +104,7 @@ object NotifierImpl {
         runCatching {
             c.addSigHandler(Notifications.NotificationClosed::class.java) { sig ->
                 notifCtx.remove(sig.id)
+                notifIdByRoom.entries.removeIf { it.value == sig.id }
             }
         }
     }
@@ -192,9 +195,11 @@ object NotifierImpl {
 
                 val appIcon = desktopEntry ?: "mages"
 
+                val replacesId = notifIdByRoom[roomId] ?: UInt32(0)
+
                 val id = notifications.Notify(
                     "Mages",
-                    UInt32(0),
+                    replacesId,
                     appIcon,
                     title,
                     formattedBody,
@@ -204,6 +209,7 @@ object NotifierImpl {
                 )
 
                 notifCtx[id] = roomId to eventId
+                notifIdByRoom[roomId] = id
 
                 System.err.println(
                     "[notification] D-Bus Notify succeeded: id=$id room=$roomId event=$eventId"
