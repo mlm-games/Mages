@@ -87,112 +87,17 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                         }
                     }
 
-                    ACTION_MARK_READ, ACTION_REPLY -> {
+                    ACTION_MARK_READ -> {
                         if (roomId == null || eventId == null) return@launch
 
                         runCatching { service.initFromDisk() }
                         val port = service.portOrNull
 
                         if (port != null && service.isLoggedIn()) {
-                            when (intent.action) {
-                                ACTION_MARK_READ -> {
-                                    port.markFullyReadAt(roomId, eventId, settingsRepo.flow.first().sendReadReceipts)
-                                    if (notifId != 0) {
-                                        nm.cancel(notifId)
-                                        Notifier.updateSummaryNotification(context)
-                                    }
-                                }
-                                ACTION_REPLY -> {
-                                    val text = RemoteInput.getResultsFromIntent(intent)
-                                        ?.getCharSequence(KEY_TEXT_REPLY)
-                                        ?.toString()
-                                        ?.trim()
-                                        .orEmpty()
-
-                                    if (text.isNotBlank()) {
-                                        port.reply(roomId, eventId, text)
-                                        port.markFullyReadAt(roomId, eventId, settingsRepo.flow.first().sendReadReceipts)
-
-                                        val roomName = intent.getStringExtra(EXTRA_ROOM_NAME) ?: ""
-                                        val contactName = intent.getStringExtra(EXTRA_SENDER_NAME) ?: ""
-                                        val contactUserId = intent.getStringExtra(EXTRA_SENDER_USER_ID)
-                                        val lastMessageFromMe = intent.getBooleanExtra(EXTRA_LAST_MESSAGE_FROM_ME, false)
-
-                                        val myUserId = port.whoami() ?: ""
-                                        val myProfile = runCatching { port.getUserProfile(myUserId) }.getOrNull()
-                                        val myUserName = myProfile?.displayName
-                                            ?: myUserId.substringAfter(":").substringBefore(":")
-                                            .ifEmpty { myUserId }
-
-                                        val myAvatar = NotificationAvatarHelper.resolve(
-                                            context = context,
-                                            service = service,
-                                            avatarUrl = runCatching { port.getUserProfile(myUserId)?.avatarUrl }.getOrNull(),
-                                            displayName = myUserName,
-                                            userId = myUserId,
-                                            fallbackRes = R.drawable.ic_notif_status_bar,
-                                        )
-
-                                        val contactAvatar = NotificationAvatarHelper.resolve(
-                                            context = context,
-                                            service = service,
-                                            avatarUrl = null,
-                                            displayName = contactName.ifEmpty { "Unknown" },
-                                            userId = "",
-                                            fallbackRes = R.drawable.ic_notif_status_bar,
-                                        )
-
-                                        val bubbleActivityClass = try {
-                                            Class.forName("org.mlm.mages.activities.BubbleConversationActivity")
-                                        } catch (_: ClassNotFoundException) {
-                                            Class.forName("org.mlm.mages.MainActivity")
-                                        }
-
-                                        val fullOpenIntent = android.app.PendingIntent.getActivity(
-                                            context,
-                                            notifId,
-                                            android.content.Intent(android.content.Intent.ACTION_VIEW,
-                                                android.net.Uri.Builder().scheme("mages").authority("room")
-                                                    .appendQueryParameter("id", roomId)
-                                                    .appendQueryParameter("event", eventId).build()
-                                            ).setPackage(context.packageName)
-                                                .setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP),
-                                            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-                                        )
-
-                                        val isDm = contactName.isNotEmpty()
-
-                                        val existingNotification = if (notifId != 0) {
-                                            nm.activeNotifications?.find { it.id == notifId }?.notification
-                                        } else null
-
-                                        val originalMessage = if (lastMessageFromMe) "" else intent.getStringExtra(EXTRA_MESSAGE_BODY) ?: ""
-
-                                        Notifier.showQuickReplyNotification(
-                                            context = context,
-                                            roomId = roomId,
-                                            roomName = roomName,
-                                            eventId = eventId,
-                                            notificationId = notifId,
-                                            contactName = contactName,
-                                            contactUserId = contactUserId,
-                                            contactAvatar = contactAvatar,
-                                            originalMessage = originalMessage,
-                                            replyText = text,
-                                            myUserId = myUserId,
-                                            myUserName = myUserName,
-                                            myAvatar = myAvatar,
-                                            bubbleActivityClass = bubbleActivityClass,
-                                            fullOpenIntent = fullOpenIntent,
-                                            isDm = isDm,
-                                        )
-                                    } else {
-                                        if (notifId != 0) {
-                                            nm.cancel(notifId)
-                                            Notifier.updateSummaryNotification(context)
-                                        }
-                                    }
-                                }
+                            port.markFullyReadAt(roomId, eventId, settingsRepo.flow.first().sendReadReceipts)
+                            if (notifId != 0) {
+                                nm.cancel(notifId)
+                                Notifier.updateSummaryNotification(context)
                             }
                         } else {
                             if (notifId != 0) {
@@ -200,6 +105,106 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                                 Notifier.updateSummaryNotification(context)
                             }
                         }
+                    }
+
+                    ACTION_REPLY -> {
+                        if (roomId == null || eventId == null) return@launch
+
+                        runCatching { service.initFromDisk() }
+                        val port = service.portOrNull
+                        if (port == null || !service.isLoggedIn()) return@launch
+
+                        val text = RemoteInput.getResultsFromIntent(intent)
+                            ?.getCharSequence(KEY_TEXT_REPLY)
+                            ?.toString()
+                            ?.trim()
+                            .orEmpty()
+
+                        if (text.isBlank()) return@launch
+
+                        runCatching { port.enterForeground() }
+
+                        val ok = port.reply(roomId, eventId, text)
+                            .recoverCatching { port.send(roomId, text).getOrThrow() }
+                            .isSuccess
+
+                        if (!ok) return@launch
+
+                        port.markFullyReadAt(roomId, eventId, settingsRepo.flow.first().sendReadReceipts)
+
+                        val roomName = intent.getStringExtra(EXTRA_ROOM_NAME) ?: ""
+                        val contactName = intent.getStringExtra(EXTRA_SENDER_NAME) ?: ""
+                        val contactUserId = intent.getStringExtra(EXTRA_SENDER_USER_ID)
+                        val lastMessageFromMe = intent.getBooleanExtra(EXTRA_LAST_MESSAGE_FROM_ME, false)
+
+                        val myUserId = port.whoami() ?: ""
+                        val myProfile = runCatching { port.getUserProfile(myUserId) }.getOrNull()
+                        val myUserName = myProfile?.displayName
+                            ?: myUserId.substringAfter(":").substringBefore(":")
+                            .ifEmpty { myUserId }
+
+                        val myAvatar = NotificationAvatarHelper.resolve(
+                            context = context,
+                            service = service,
+                            avatarUrl = runCatching { port.getUserProfile(myUserId)?.avatarUrl }.getOrNull(),
+                            displayName = myUserName,
+                            userId = myUserId,
+                            fallbackRes = R.drawable.ic_notif_status_bar,
+                        )
+
+                        val contactAvatar = NotificationAvatarHelper.resolve(
+                            context = context,
+                            service = service,
+                            avatarUrl = null,
+                            displayName = contactName.ifEmpty { "Unknown" },
+                            userId = "",
+                            fallbackRes = R.drawable.ic_notif_status_bar,
+                        )
+
+                        val bubbleActivityClass = try {
+                            Class.forName("org.mlm.mages.activities.BubbleConversationActivity")
+                        } catch (_: ClassNotFoundException) {
+                            Class.forName("org.mlm.mages.MainActivity")
+                        }
+
+                        val fullOpenIntent = android.app.PendingIntent.getActivity(
+                            context,
+                            notifId,
+                            android.content.Intent(android.content.Intent.ACTION_VIEW,
+                                android.net.Uri.Builder().scheme("mages").authority("room")
+                                    .appendQueryParameter("id", roomId)
+                                    .appendQueryParameter("event", eventId).build()
+                            ).setPackage(context.packageName)
+                                .setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP),
+                            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                        )
+
+                        val isDm = contactName.isNotEmpty()
+
+                        val existingNotification = if (notifId != 0) {
+                            nm.activeNotifications?.find { it.id == notifId }?.notification
+                        } else null
+
+                        val originalMessage = if (lastMessageFromMe) "" else intent.getStringExtra(EXTRA_MESSAGE_BODY) ?: ""
+
+                        Notifier.showQuickReplyNotification(
+                            context = context,
+                            roomId = roomId,
+                            roomName = roomName,
+                            eventId = eventId,
+                            notificationId = notifId,
+                            contactName = contactName,
+                            contactUserId = contactUserId,
+                            contactAvatar = contactAvatar,
+                            originalMessage = originalMessage,
+                            replyText = text,
+                            myUserId = myUserId,
+                            myUserName = myUserName,
+                            myAvatar = myAvatar,
+                            bubbleActivityClass = bubbleActivityClass,
+                            fullOpenIntent = fullOpenIntent,
+                            isDm = isDm,
+                        )
                     }
                 }
             } finally {
