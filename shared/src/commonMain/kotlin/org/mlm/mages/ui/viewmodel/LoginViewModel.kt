@@ -416,6 +416,14 @@ class LoginViewModel(
 
     fun clearError() = updateState { copy(error = null) }
 
+    fun onLocalNetworkPermissionGranted() {
+        updateState { copy(needsLocalNetworkPermission = false) }
+        serverCheckJob?.cancel()
+        launch {
+            probeServer()
+        }
+    }
+
     override fun onCleared() {
         serverCheckJob?.cancel()
         cancelSso()

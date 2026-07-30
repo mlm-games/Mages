@@ -51,6 +51,14 @@ fun LoginScreen(
     val focusManager = LocalFocusManager.current
     var passwordVisible by remember { mutableStateOf(false) }
 
+    LaunchedEffect(state.needsLocalNetworkPermission, state.homeserver) {
+        if (state.needsLocalNetworkPermission && state.homeserver.isNotBlank()) {
+            gate.runWithPermission(state.homeserver) {
+                viewModel.onLocalNetworkPermissionGranted()
+            }
+        }
+    }
+
     val details = state.loginDetails
     val oauthAvailable = details?.supportsOauth == true
     val ssoAvailable = details?.supportsSso == true
