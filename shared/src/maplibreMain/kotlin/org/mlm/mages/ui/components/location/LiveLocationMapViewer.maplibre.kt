@@ -244,6 +244,13 @@ actual fun LiveLocationMapViewer(
                             ?.let { (it as? JsonPrimitive)?.content }
                         if (userId != null) {
                             selectedUserId = userId
+                            val share = activeShares.firstOrNull { it.userId == userId }
+                            val pos = share?.geoUri?.toGeoUriPositionOrNull()
+                            if (pos != null) {
+                                scope.launch {
+                                    cameraState.animateTo(CameraPosition(target = pos, zoom = 15.0))
+                                }
+                            }
                         }
                         ClickResult.Consume
                     },

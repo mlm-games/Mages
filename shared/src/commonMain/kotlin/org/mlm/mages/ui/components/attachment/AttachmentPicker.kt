@@ -96,7 +96,7 @@ fun AttachmentPicker(
                     ) { onCreatePoll(); onDismiss() }
                 }
 
-                if ((onShareLocation != null || onShareStaticLocation != null) && currentPlatform == SettingPlatform.ANDROID) {
+                if ((onShareLocation != null || onShareStaticLocation != null) && currentPlatform == SettingPlatform.ANDROID) { // // Kinda redundant
                     if (onShareStaticLocation != null) {
                         AttachmentOption(
                             Icons.Default.LocationOn,

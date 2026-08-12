@@ -83,34 +83,46 @@ kotlin {
             implementation(libs.gadulka)
         }
 
-        androidMain.dependencies {
-            implementation(project.dependencies.platform(libs.androidx.compose.bom))
-
-            implementation(libs.androidx.activity.compose)
-            //noinspection UseTomlInstead
-            implementation("net.java.dev.jna:jna:${libs.versions.jna.get()}@aar")
-            implementation(libs.okio)
-            implementation(libs.connector)
-            implementation(libs.androidx.core.ktx)
-            implementation(libs.androidx.work.runtime.ktx)
-            implementation(libs.androidx.browser)
-            implementation(libs.koin.android)
-            implementation(libs.androidx.webkit)
-            implementation(libs.embedded.fcm.distributor)
-            implementation(libs.maplibre.compose)
+        val maplibreMain by creating {
+            dependsOn(commonMain.get())
+            dependencies {
+                implementation(libs.maplibre.compose)
+            }
         }
 
-        jvmMain.dependencies {
-            implementation(compose.desktop.currentOs)
-            implementation(libs.net.jna)
-            implementation(libs.okio)
-            implementation(libs.kotlinx.coroutines.swing)
-            implementation(libs.dbus.java.core)
-            implementation(libs.dbus.java.transport.native.unixsocket)
-            implementation(libs.slf4j.simple)
-            implementation(libs.systemtray)
-            implementation(libs.jcefmaven)
-            implementation(libs.json)
+        androidMain {
+            dependsOn(maplibreMain)
+            dependencies {
+                implementation(project.dependencies.platform(libs.androidx.compose.bom))
+
+                implementation(libs.androidx.activity.compose)
+                //noinspection UseTomlInstead
+                implementation("net.java.dev.jna:jna:${libs.versions.jna.get()}@aar")
+                implementation(libs.okio)
+                implementation(libs.connector)
+                implementation(libs.androidx.core.ktx)
+                implementation(libs.androidx.work.runtime.ktx)
+                implementation(libs.androidx.browser)
+                implementation(libs.koin.android)
+                implementation(libs.androidx.webkit)
+                implementation(libs.embedded.fcm.distributor)
+            }
+        }
+
+        jvmMain {
+            dependsOn(maplibreMain)
+            dependencies {
+                implementation(compose.desktop.currentOs)
+                implementation(libs.net.jna)
+                implementation(libs.okio)
+                implementation(libs.kotlinx.coroutines.swing)
+                implementation(libs.dbus.java.core)
+                implementation(libs.dbus.java.transport.native.unixsocket)
+                implementation(libs.slf4j.simple)
+                implementation(libs.systemtray)
+                implementation(libs.jcefmaven)
+                implementation(libs.json)
+            }
         }
 
         wasmJsMain.dependencies {

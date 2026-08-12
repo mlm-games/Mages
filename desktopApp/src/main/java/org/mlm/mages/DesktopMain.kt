@@ -16,6 +16,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import mages.shared.generated.resources.Res
+import org.maplibre.compose.desktop.DesktopRuntimeOptions
+import org.maplibre.compose.desktop.MapLibre
+import org.maplibre.compose.desktop.ProvideMapHost
+import org.maplibre.compose.desktop.desktopCachePath
+import org.maplibre.compose.desktop.rememberAwtComposeGpuHost
 import org.mlm.mages.di.KoinApp
 import org.mlm.mages.nav.DeepLinkAction
 import org.mlm.mages.platform.MagesPaths
@@ -25,8 +30,15 @@ import java.awt.event.WindowEvent
 import java.awt.event.WindowFocusListener
 import javax.swing.SwingUtilities
 
-fun main() = application {
-    MagesPaths.init()
+fun main() {
+    MapLibre.configure(
+        DesktopRuntimeOptions(
+            cachePath = desktopCachePath("org.mlm.mages"),
+        )
+    )
+
+    application {
+        MagesPaths.init()
 
     val settingsRepo = remember { SettingsProvider.get() }
     val initialStartInTray = remember {
@@ -158,9 +170,11 @@ fun main() = application {
                 }
             }
 
-            DesktopAppContent(
-                deepLinks = deepLinks
-            )
+            ProvideMapHost(host = rememberAwtComposeGpuHost(window)) {
+                DesktopAppContent(
+                    deepLinks = deepLinks
+                )
+            }
         }
 
         DesktopBackground(
@@ -168,4 +182,5 @@ fun main() = application {
             scope = scope
         )
     }
+}
 }

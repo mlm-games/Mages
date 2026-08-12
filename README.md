@@ -54,7 +54,8 @@ Most Matrix‑specific logic lives in Rust; Kotlin mostly handles presentation.
 
 ### Prerequisites
 
-- JDK 21
+- JDK 21 (Android)
+- JDK 25 (Desktop)
 - Kotlin/Gradle
 - Rust toolchain (stable) and compile targets (depending on target arch, running would specify them automatically)
 - For Android:

@@ -46,10 +46,14 @@ actual fun StaticLocationPicker(
                 Text("Send my current location")
             }
             Spacer(Modifier.height(12.dp))
-            Button(onClick = { onSendPickedLocation(0.0, 0.0) }, modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = {},
+                enabled = false,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Icon(Icons.Default.LocationOn, null)
                 Spacer(Modifier.width(8.dp))
-                Text("Send this location (0,0)")
+                Text("Map picking unavailable on web")
             }
         }
     }

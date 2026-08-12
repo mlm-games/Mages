@@ -35,22 +35,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import io.github.mlmgames.settings.core.SettingsRepository
-import kotlinx.serialization.json.JsonObject
 import org.koin.compose.koinInject
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.camera.rememberCameraState
-import org.maplibre.compose.expressions.dsl.const
-import org.maplibre.compose.layers.CircleLayer
 import org.maplibre.compose.map.MaplibreMap
-import org.maplibre.compose.sources.GeoJsonData
-import org.maplibre.compose.sources.rememberGeoJsonSource
 import org.maplibre.compose.style.BaseStyle
-import org.maplibre.spatialk.geojson.Feature
-import org.maplibre.spatialk.geojson.FeatureCollection
-import org.maplibre.spatialk.geojson.Point
 import org.maplibre.spatialk.geojson.Position
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.ThemeMode
@@ -98,27 +90,22 @@ actual fun StaticLocationPicker(
             modifier = Modifier.fillMaxSize(),
             baseStyle = BaseStyle.Uri(mapStyleUrl),
             cameraState = cameraState,
-        ) {
-            val centerFeature = remember {
-                FeatureCollection(
-                    features = listOf(
-                        Feature(
-                            geometry = Point(Position(longitude = 133.209639, latitude = -25.947028)),
-                            properties = JsonObject(emptyMap()),
-                        )
+        )
+
+        // Crosshair tracks the viewport center; the picked location is the camera target.
+        Icon(
+            Icons.Default.LocationOn,
+            contentDescription = "Picked location",
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .size(48.dp)
+                .align { size, space, _ ->
+                    IntOffset(
+                        x = (space.width - size.width) / 2,
+                        y = space.height / 2 - size.height,
                     )
-                )
-            }
-            val centerSource = rememberGeoJsonSource(GeoJsonData.Features(centerFeature))
-            CircleLayer(
-                id = "center-pin",
-                source = centerSource,
-                radius = const(8.dp),
-                color = const(MaterialTheme.colorScheme.primary),
-                strokeWidth = const(3.dp),
-                strokeColor = const(Color.White),
-            )
-        }
+                },
+        )
 
         Box(
             modifier = Modifier

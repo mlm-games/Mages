@@ -1,3 +1,4 @@
+import org.gradle.internal.os.OperatingSystem
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
@@ -8,12 +9,27 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25) // for MapLibre Native FFI (FFM)
 }
 
 javafx {
     version = libs.versions.javafx.get()
     modules("javafx.base", "javafx.graphics", "javafx.media", "javafx.swing")
+}
+
+val maplibreRuntime: Provider<MinimalExternalModuleDependency>? = run {
+    val os = OperatingSystem.current() ?: return@run null
+    val arch = System.getProperty("os.arch").lowercase()
+    val isArm = arch.contains("aarch64") || arch.contains("arm64")
+    when {
+        os.isLinux && isArm -> libs.maplibre.runtime.vulkan.linux.arm64
+        os.isLinux -> libs.maplibre.runtime.vulkan.linux.x64
+        os.isMacOsX && isArm -> libs.maplibre.runtime.metal.macos.arm64
+        os.isMacOsX -> null // no upstream macos-x64 runtime
+        os.isWindows && isArm -> libs.maplibre.runtime.vulkan.windows.arm64
+        os.isWindows -> libs.maplibre.runtime.vulkan.windows.x64
+        else -> null
+    }
 }
 
 dependencies {
@@ -24,11 +40,21 @@ dependencies {
     implementation(libs.net.jna)
     implementation(libs.androidx.datastore.preferences.core)
     implementation(libs.kmp.settings.core)
+    implementation(libs.maplibre.compose)
+
+    // Host-only native MapLibre runtime (picked at build machine OS/arch)
+    if (maplibreRuntime != null) {
+        runtimeOnly(maplibreRuntime)
+    } else {
+        logger.warn("No MapLibre desktop runtime for this OS/arch; maps will fail at runtime.")
+    }
 }
 
 compose.desktop {
     application {
         mainClass = "org.mlm.mages.DesktopMainKt"
+
+        jvmArgs("--enable-native-access=ALL-UNNAMED")
 
         nativeDistributions {
             targetFormats(TargetFormat.AppImage, TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.Msi, TargetFormat.Dmg)
@@ -63,6 +89,10 @@ compose.desktop {
             }
         }
     }
+}
+
+tasks.withType<JavaExec>().configureEach {
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
 }
 
 // ================ Element Call Embedded Assets
