@@ -173,6 +173,9 @@ private fun AppContent(
                 focusEventId: String?,
                 forceSync: Boolean,
             ) {
+                // A newer request supersedes any unconsumed older request.
+                externalRoomRequests.clear()
+
                 externalRoomRequests[roomId] = RoomOpenRequest(
                     requestId = ++nextRoomRequestId,
                     roomId = roomId,
@@ -212,7 +215,7 @@ private fun AppContent(
                             backStack.add(Route.Room(roomId, name, focusEventId))
                             queueExternalRoomRequest(
                                 roomId = roomId,
-                                focusEventId = null, // route carries initial event focus
+                                focusEventId = focusEventId,
                                 forceSync = true,
                             )
                         }
@@ -220,22 +223,26 @@ private fun AppContent(
                 }
             }
 
-            BindDeepLinks(
-                deepLinks,
-                service,
-                callManager,
-                widgetTheme,
-                languageTag,
-                elementCallUrl,
-                parentCallUrl,
-                onOpenRoom,
-                onRequestVideoCallPermissions,
-                onRequestVoiceCallPermissions,
-            )
+            if (initDone && activeId != null) {
+                BindDeepLinks(
+                    deepLinks,
+                    service,
+                    callManager,
+                    widgetTheme,
+                    languageTag,
+                    elementCallUrl,
+                    parentCallUrl,
+                    onOpenRoom,
+                    onRequestVideoCallPermissions,
+                    onRequestVoiceCallPermissions,
+                )
+            }
 
             BindLifecycle(service, resetSyncState = true)
 
             LaunchedEffect(activeId) {
+                externalRoomRequests.clear()
+
                 if (activeId == null || !service.isLoggedInSuspend()) {
                     backStack.clear()
                     backStack.add(Route.Login)

@@ -18,6 +18,8 @@ import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.koin.android.ext.android.inject
 import org.mlm.mages.activities.DistributorPickerActivity
 import org.mlm.mages.di.KoinApp
@@ -42,6 +44,8 @@ class MainActivity : AppCompatActivity() {
     private val deepLinkActions = Channel<DeepLinkAction>(capacity = Channel.BUFFERED)
     private val deepLinks = deepLinkActions.receiveAsFlow()
     private val service: MatrixService by inject()
+
+    private val intentHandlingMutex = Mutex()
 
     private val linkHelper = LinkActivityHelper(this)
 
@@ -216,68 +220,78 @@ class MainActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+
+        setIntent(intent)
+
         lifecycleScope.launch { handleIntent(intent) }
     }
 
-    private fun handleIntent(intent: Intent) {
-        val snackbarManager: SnackbarManager by inject()
-        intent.data?.let { uri ->
+    private suspend fun handleIntent(sourceIntent: Intent) {
+        intentHandlingMutex.withLock {
+            val snackbarManager: SnackbarManager by inject()
+            val uri = sourceIntent.data ?: return@withLock
+
+            sourceIntent.data = null
+            if (intent === sourceIntent) {
+                setIntent(sourceIntent)
+            }
+
             if (AndroidBrowserAuthCoordinator.isCallback(uri)) {
                 AndroidBrowserAuthCoordinator.handleCallback(uri)
-                return
+                return@withLock
             }
 
             if (uri.scheme == "mages" && uri.host == "room") {
-                val roomId = uri.getQueryParameter("id")
-                val eventId = uri.getQueryParameter("event")
-                val joinCall = uri.getQueryParameter("join_call") == "1"
-                val voiceOnly = uri.getQueryParameter("voice_only") == "1"
-
-                if (!roomId.isNullOrBlank()) {
-                    if (joinCall) {
-                        AndroidNotificationHelper.cancelCallNotification(this, roomId)
-                        if (!eventId.isNullOrBlank()) {
-                            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-                            nm.cancel((roomId + eventId).hashCode())
-                        }
-                    }
-                    lifecycleScope.launch {
-                        if (service.isLoggedIn() && service.portOrNull != null) {
-                            runCatching { service.portOrNull?.enterForeground() }
-                        }
-                    }
-                    deepLinkActions.trySend(
-                        DeepLinkAction(
-                            roomId = roomId,
-                            eventId = eventId,
-                            joinCall = joinCall,
-                            voiceOnly = voiceOnly,
-                        )
-                    )
-                }
-                return
+                handleRoomIntent(uri)
+                return@withLock
             }
 
             // Handles matrix.to and matrix: links
-            val url = uri.toString()
-            val link = parseMatrixLink(url)
+            val link = parseMatrixLink(uri.toString())
             if (link !is MatrixLink.Unsupported) {
-                lifecycleScope.launch {
-                    if (!service.isLoggedIn() || service.portOrNull == null) {
-                        snackbarManager.showError("Logged out currently.")
-                        return@launch
-                    }
-                    handleMatrixLink(service, link) { roomId, _, eventId ->
-                        deepLinkActions.trySend(
-                            DeepLinkAction(
-                                roomId = roomId,
-                                eventId = eventId,
-                                joinCall = false,
-                            )
-                        )
-                    }
+                if (!service.isLoggedIn() || service.portOrNull == null) {
+                    snackbarManager.showError("Logged out currently.")
+                    return@withLock
                 }
+
+                var resolvedAction: DeepLinkAction? = null
+                handleMatrixLink(service, link) { roomId, _, eventId ->
+                    resolvedAction = DeepLinkAction(
+                        roomId = roomId,
+                        eventId = eventId,
+                        joinCall = false,
+                    )
+                }
+                resolvedAction?.let { deepLinkActions.send(it) }
             }
         }
+    }
+
+    private suspend fun handleRoomIntent(uri: android.net.Uri) {
+        val roomId = uri.getQueryParameter("id")
+        val eventId = uri.getQueryParameter("event")
+        val joinCall = uri.getQueryParameter("join_call") == "1"
+        val voiceOnly = uri.getQueryParameter("voice_only") == "1"
+
+        if (roomId.isNullOrBlank()) return
+
+        if (joinCall) {
+            AndroidNotificationHelper.cancelCallNotification(this, roomId)
+
+            if (!eventId.isNullOrBlank()) {
+                val notificationManager =
+                    getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+                notificationManager.cancel((roomId + eventId).hashCode())
+            }
+        }
+
+        deepLinkActions.send(
+            DeepLinkAction(
+                roomId = roomId,
+                eventId = eventId,
+                joinCall = joinCall,
+                voiceOnly = voiceOnly,
+            )
+        )
     }
 }

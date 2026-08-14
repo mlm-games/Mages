@@ -8,7 +8,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
@@ -16,7 +18,6 @@ import androidx.navigation3.scene.Scene
 import androidx.savedstate.serialization.SavedStateConfiguration
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
@@ -93,10 +94,16 @@ fun BindDeepLinks(
 ) {
     val coroutineScope = rememberCoroutineScope()
 
+    val latestOpenRoom by rememberUpdatedState(onOpenRoom)
+    val latestWidgetTheme by rememberUpdatedState(widgetTheme)
+    val latestLanguageTag by rememberUpdatedState(languageTag)
+    val latestElementCallUrl by rememberUpdatedState(elementCallUrl)
+    val latestParentCallUrl by rememberUpdatedState(parentCallUrl)
+
     LaunchedEffect(deepLinks) {
-        deepLinks?.collectLatest { action ->
+        deepLinks?.collect { action ->
             runCatching { service.port.enterForeground() }
-            onOpenRoom(
+            latestOpenRoom(
                 action.roomId,
                 action.roomId,
                 action.eventId
@@ -114,10 +121,10 @@ fun BindDeepLinks(
                                     roomId = action.roomId,
                                     roomName = action.roomId,
                                     intent = callIntent,
-                                    elementCallUrl = elementCallUrl,
-                                    parentUrl = parentCallUrl,
-                                    languageTag = languageTag,
-                                    theme = widgetTheme
+                                    elementCallUrl = latestElementCallUrl,
+                                    parentUrl = latestParentCallUrl,
+                                    languageTag = latestLanguageTag,
+                                    theme = latestWidgetTheme
                                 )
                             }.getOrDefault(false)
 
