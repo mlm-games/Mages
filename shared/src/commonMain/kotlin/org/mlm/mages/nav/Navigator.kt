@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
+import org.mlm.mages.MatrixService
 import org.mlm.mages.calls.CallManager
 import org.mlm.mages.matrix.CallIntent
 
@@ -69,39 +70,37 @@ data class DeepLinkAction(
     val voiceOnly: Boolean = false
 )
 
+data class RoomOpenRequest(
+    val requestId: Long,
+    val roomId: String,
+    val focusEventId: String? = null,
+    val forceSync: Boolean = false,
+)
+
 // Deep links: push Room keys when links arrive
 @Composable
 fun BindDeepLinks(
-    backStack: NavBackStack<NavKey>,
     deepLinks: Flow<DeepLinkAction>?,
+    service: MatrixService,
     callManager: CallManager,
     widgetTheme: String,
     languageTag: String,
     elementCallUrl: String?,
     parentCallUrl: String?,
-    onRequestCallPermissions: ((() -> Unit) -> Unit)? = null,
+    onOpenRoom: (roomId: String, name: String, focusEventId: String?) -> Unit,
+    onRequestVideoCallPermissions: ((() -> Unit) -> Unit)? = null,
+    onRequestVoiceCallPermissions: ((() -> Unit) -> Unit)? = null,
 ) {
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(deepLinks) {
         deepLinks?.collectLatest { action ->
-            val top = backStack.lastOrNull()
-            val alreadyThere = top is Route.Room && top.roomId == action.roomId
-            if (alreadyThere) {
-                if (action.eventId != null) {
-                    backStack.replaceTop(Route.Room(
-                        roomId = action.roomId,
-                        name = action.roomId,
-                        eventId = action.eventId
-                    ))
-                }
-            } else {
-                backStack.add(Route.Room(
-                    roomId = action.roomId,
-                    name = action.roomId, // Will be updated by RoomViewModel
-                    eventId = action.eventId
-                ))
-            }
+            runCatching { service.port.enterForeground() }
+            onOpenRoom(
+                action.roomId,
+                action.roomId,
+                action.eventId
+            )
 
             val callIntent = if (action.voiceOnly) CallIntent.JoinExistingVoiceDm
             else CallIntent.JoinExisting
@@ -129,8 +128,12 @@ fun BindDeepLinks(
                     }
                 }
 
-                if (onRequestCallPermissions != null) {
-                    onRequestCallPermissions.invoke(joinCallAction)
+                val requestPermissions =
+                    if (action.voiceOnly) onRequestVoiceCallPermissions
+                    else onRequestVideoCallPermissions
+
+                if (requestPermissions != null) {
+                    requestPermissions.invoke(joinCallAction)
                 } else {
                     joinCallAction()
                 }

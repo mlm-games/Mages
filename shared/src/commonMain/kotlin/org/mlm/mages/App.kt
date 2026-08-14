@@ -165,15 +165,72 @@ private fun AppContent(
             val backStack: NavBackStack<NavKey> =
                 rememberNavBackStack(navSavedStateConfiguration, initialRoute)
 
+            val externalRoomRequests = remember { mutableStateMapOf<String, RoomOpenRequest>() }
+            var nextRoomRequestId by remember { mutableLongStateOf(0L) }
+
+            fun queueExternalRoomRequest(
+                roomId: String,
+                focusEventId: String?,
+                forceSync: Boolean,
+            ) {
+                externalRoomRequests[roomId] = RoomOpenRequest(
+                    requestId = ++nextRoomRequestId,
+                    roomId = roomId,
+                    focusEventId = focusEventId,
+                    forceSync = forceSync,
+                )
+            }
+
+            val onOpenRoom: (String, String, String?) -> Unit = remember(backStack) {
+                { roomId, name, focusEventId ->
+                    val top = backStack.lastOrNull()
+                    val existingIndex = backStack.indexOfLast { key ->
+                        key is Route.Room && key.roomId == roomId
+                    }
+
+                    when {
+                        top is Route.Room && top.roomId == roomId -> {
+                            queueExternalRoomRequest(
+                                roomId = roomId,
+                                focusEventId = focusEventId,
+                                forceSync = true,
+                            )
+                        }
+
+                        existingIndex >= 0 -> {
+                            while (backStack.lastIndex > existingIndex) {
+                                backStack.removeAt(backStack.lastIndex)
+                            }
+                            queueExternalRoomRequest(
+                                roomId = roomId,
+                                focusEventId = focusEventId,
+                                forceSync = true,
+                            )
+                        }
+
+                        else -> {
+                            backStack.add(Route.Room(roomId, name, focusEventId))
+                            queueExternalRoomRequest(
+                                roomId = roomId,
+                                focusEventId = null, // route carries initial event focus
+                                forceSync = true,
+                            )
+                        }
+                    }
+                }
+            }
+
             BindDeepLinks(
-                backStack,
                 deepLinks,
+                service,
                 callManager,
                 widgetTheme,
                 languageTag,
                 elementCallUrl,
                 parentCallUrl,
-                onRequestVideoCallPermissions
+                onOpenRoom,
+                onRequestVideoCallPermissions,
+                onRequestVoiceCallPermissions,
             )
 
             BindLifecycle(service, resetSyncState = true)
@@ -350,10 +407,17 @@ private fun AppContent(
                             val viewModel: RoomViewModel = koinViewModel(
                                 parameters = { parametersOf(key.roomId, key.name) }
                             )
-
+                            val externalRoomRequest = externalRoomRequests[key.roomId]
                             RoomScreen(
                                 viewModel = viewModel,
                                 initialScrollToEventId = key.eventId,
+                                externalRoomRequest = externalRoomRequest,
+                                onConsumeExternalRoomRequest = { requestId ->
+                                    val current = externalRoomRequests[key.roomId]
+                                    if (current?.requestId == requestId) {
+                                        externalRoomRequests.remove(key.roomId)
+                                    }
+                                },
                                 onBack = backStack::popBack,
                                 onOpenInfo = { backStack.add(Route.RoomInfo(key.roomId)) },
                                 onNavigateToRoom = { roomId, name ->

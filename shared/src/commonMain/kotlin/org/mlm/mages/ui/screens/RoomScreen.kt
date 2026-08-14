@@ -37,6 +37,7 @@ import kotlinx.coroutines.launch
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.EventType
 import org.mlm.mages.matrix.SendState
+import org.mlm.mages.nav.RoomOpenRequest
 import org.mlm.mages.platform.*
 import org.mlm.mages.ui.components.AttachmentData
 import org.mlm.mages.ui.components.AttachmentSourceKind
@@ -93,6 +94,8 @@ import org.mlm.mages.ui.components.message.toBubbleModel
 fun RoomScreen(
     viewModel: RoomViewModel,
     initialScrollToEventId: String? = null,
+    externalRoomRequest: RoomOpenRequest? = null,
+    onConsumeExternalRoomRequest: (Long) -> Unit = {},
     onBack: () -> Unit,
     onOpenInfo: () -> Unit,
     onNavigateToRoom: (roomId: String, name: String) -> Unit,
@@ -390,6 +393,26 @@ fun RoomScreen(
             }
         }
     }
+    LaunchedEffect(externalRoomRequest?.requestId, state.roomId) {
+        val request = externalRoomRequest ?: return@LaunchedEffect
+        if (request.roomId != state.roomId) return@LaunchedEffect
+
+        if (request.forceSync) {
+            viewModel.refreshLatest()
+        }
+
+        request.focusEventId?.let { focusEventId ->
+            pendingJumpEventId = focusEventId
+            jumpBackAttempts = 0
+            jumpSyncWaitCycles = 0
+            seekingUnread = false
+            seekUnreadAttempts = 0
+            didInitialScroll = true
+        }
+
+        onConsumeExternalRoomRequest(request.requestId)
+    }
+
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
@@ -427,6 +450,11 @@ fun RoomScreen(
 
                 is RoomViewModel.Event.JumpToEvent -> {
                     pendingJumpEventId = event.eventId
+                    jumpBackAttempts = 0
+                    jumpSyncWaitCycles = 0
+                    seekingUnread = false
+                    seekUnreadAttempts = 0
+                    didInitialScroll = true
                 }
 
                 is RoomViewModel.Event.ShareContentEvent -> {
@@ -455,8 +483,6 @@ fun RoomScreen(
         }
     }
 
-    val errorMessage = stringResource(Res.string.couldnt_find_message)
-
     LaunchedEffect(
         pendingJumpEventId,
         state.hasTimelineSnapshot,
@@ -480,20 +506,21 @@ fun RoomScreen(
             return@LaunchedEffect
         }
 
-        // Wait longer for live Appends (sync guaranteed running via refcount + enterForeground).
-        // Notification events are almost always newer than the cached head.
-        jumpSyncWaitCycles++
-        if (jumpSyncWaitCycles <= 18) {
-            delay(120)
+        // First, give foreground sync time to append newer events.
+        if (jumpSyncWaitCycles < 40) {
+            jumpSyncWaitCycles++
+            if (!state.isPaginatingBack && jumpSyncWaitCycles % 8 == 1) {
+                viewModel.refreshLatest()
+            }
+            delay(125)
             return@LaunchedEffect
         }
 
-        // Not found yet -> back paginate until we find it, but don\u2019t loop forever
+        // Only after the forward-sync window is exhausted do we search older history.
         if (!state.hitStart && !state.isPaginatingBack && jumpBackAttempts < 30) {
             jumpBackAttempts++
             viewModel.paginateBack()
         } else if (state.hitStart || jumpBackAttempts >= 30) {
-            // Event not found after exhaustive search - scroll to latest instead of error
             pendingJumpEventId = null
             jumpBackAttempts = 0
             jumpSyncWaitCycles = 0

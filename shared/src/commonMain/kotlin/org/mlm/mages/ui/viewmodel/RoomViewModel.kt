@@ -1006,6 +1006,12 @@ class RoomViewModel(
         }
     }
 
+    fun refreshLatest() {
+        launch {
+            runCatching { service.port.enterForeground() }
+        }
+    }
+
     private fun scheduleThreadCountRecompute() {
         paginationRecomputeJob?.cancel()
         paginationRecomputeJob = launch {

@@ -6,12 +6,12 @@ import org.mlm.mages.MatrixService
 suspend fun handleMatrixLink(
     service: MatrixService,
     link: MatrixLink,
-    openRoom: (roomId: String, title: String) -> Unit
+    openRoom: (roomId: String, title: String, eventId: String?) -> Unit
 ): Boolean {
     return when (link) {
         is MatrixLink.User -> {
             val rid = service.port.ensureDm(link.mxid) ?: return false
-            openRoom(rid, link.mxid)
+            openRoom(rid, link.mxid, null)
             true
         }
         is MatrixLink.Room -> {
@@ -19,7 +19,7 @@ suspend fun handleMatrixLink(
             val result = service.port.joinByIdOrAlias(target)
             if (result.isFailure) return false
             // We joined; use roomId if known = target (when it is !id) or alias text otherwise
-            openRoom(target, target)
+            openRoom(target, target, link.target.eventId)
             true
         }
         MatrixLink.Unsupported -> false

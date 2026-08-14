@@ -231,6 +231,7 @@ class MainActivity : AppCompatActivity() {
                 val roomId = uri.getQueryParameter("id")
                 val eventId = uri.getQueryParameter("event")
                 val joinCall = uri.getQueryParameter("join_call") == "1"
+                val voiceOnly = uri.getQueryParameter("voice_only") == "1"
 
                 if (!roomId.isNullOrBlank()) {
                     if (joinCall) {
@@ -245,7 +246,14 @@ class MainActivity : AppCompatActivity() {
                             runCatching { service.portOrNull?.enterForeground() }
                         }
                     }
-                    deepLinkActions.trySend(DeepLinkAction(roomId, eventId, joinCall))
+                    deepLinkActions.trySend(
+                        DeepLinkAction(
+                            roomId = roomId,
+                            eventId = eventId,
+                            joinCall = joinCall,
+                            voiceOnly = voiceOnly,
+                        )
+                    )
                 }
                 return
             }
@@ -259,8 +267,14 @@ class MainActivity : AppCompatActivity() {
                         snackbarManager.showError("Logged out currently.")
                         return@launch
                     }
-                    handleMatrixLink(service, link) { roomId, eventId ->
-                        deepLinkActions.trySend(DeepLinkAction(roomId, eventId, false))
+                    handleMatrixLink(service, link) { roomId, _, eventId ->
+                        deepLinkActions.trySend(
+                            DeepLinkAction(
+                                roomId = roomId,
+                                eventId = eventId,
+                                joinCall = false,
+                            )
+                        )
                     }
                 }
             }
