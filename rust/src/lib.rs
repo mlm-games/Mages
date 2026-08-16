@@ -900,7 +900,17 @@ impl Client {
                 return;
             };
             let (items, mut stream) = tl.subscribe().await;
-            emit_timeline_reset_filled(&obs, &tl, &room_id, &me).await;
+
+            let mut item_ids: Vec<String> = items
+                .iter()
+                .map(|item| item.unique_id().0.to_string())
+                .collect();
+
+            {
+                let mapped = map_timeline_items_to_events(&items, &room_id, &tl, &me);
+                safe_call(|| obs.on_diff(TimelineDiffKind::Reset { values: mapped }));
+            }
+
             for it in items.iter() {
                 if let Some(ev) = it.as_event() {
                     if let Some(eid) = missing_reply_event_id(ev) {
@@ -911,10 +921,27 @@ impl Client {
                     }
                 }
             }
-            let mut item_ids: Vec<String> = items
-                .iter()
-                .map(|item| item.unique_id().0.to_string())
-                .collect();
+
+            {
+                let before = count_visible_room_view(&tl, &room_id, &me).await;
+                if before < 20 {
+                    let _ = paginate_backwards_visible(
+                        &tl,
+                        &room_id,
+                        &me,
+                        20usize.saturating_sub(before),
+                    )
+                    .await;
+                    let filled = tl.items().await;
+                    item_ids = filled
+                        .iter()
+                        .map(|item| item.unique_id().0.to_string())
+                        .collect();
+                    let mapped = map_timeline_items_to_events(&filled, &room_id, &tl, &me);
+                    safe_call(|| obs.on_diff(TimelineDiffKind::Reset { values: mapped }));
+                }
+            }
+
             while let Some(diffs) = stream.next().await {
                 for diff in diffs {
                     match &diff {
@@ -946,30 +973,60 @@ impl Client {
                                 });
                             }
                         }
+                        VectorDiff::PopBack => {
+                            if let Some(removed) = item_ids.pop() {
+                                safe_call(|| {
+                                    obs.on_diff(TimelineDiffKind::RemoveByItemId {
+                                        item_id: removed,
+                                    })
+                                });
+                            }
+                        }
+                        VectorDiff::PopFront => {
+                            if !item_ids.is_empty() {
+                                let removed = item_ids.remove(0);
+                                safe_call(|| {
+                                    obs.on_diff(TimelineDiffKind::RemoveByItemId {
+                                        item_id: removed,
+                                    })
+                                });
+                            }
+                        }
+                        VectorDiff::Truncate { length } => {
+                            let keep = (*length).min(item_ids.len());
+                            let removed: Vec<String> = item_ids.drain(keep..).collect();
+                            for item_id in removed {
+                                safe_call(|| {
+                                    obs.on_diff(TimelineDiffKind::RemoveByItemId { item_id })
+                                });
+                            }
+                        }
                         VectorDiff::Clear => {
                             item_ids.clear();
                         }
                         VectorDiff::Reset { values } => {
                             item_ids = values.iter().map(|v| v.unique_id().0.to_string()).collect();
                         }
-                        VectorDiff::PopBack => {
-                            item_ids.pop();
-                        }
-                        VectorDiff::PopFront => {
-                            if !item_ids.is_empty() {
-                                item_ids.remove(0);
-                            }
-                        }
-                        VectorDiff::Truncate { length } => {
-                            item_ids.truncate(*length as usize);
-                        }
                     }
 
                     match diff {
-                        VectorDiff::Remove { .. } => {}
+                        // Already emitted as RemoveByItemId above.
+                        VectorDiff::Remove { .. }
+                        | VectorDiff::PopBack
+                        | VectorDiff::PopFront
+                        | VectorDiff::Truncate { .. } => {}
+
                         VectorDiff::Clear => {
-                            emit_timeline_reset_filled(&obs, &tl, &room_id, &me).await;
+                            // Prefer a filled snapshot after clear; never leave Kotlin on a desynced list.
+                            let filled = tl.items().await;
+                            item_ids = filled
+                                .iter()
+                                .map(|item| item.unique_id().0.to_string())
+                                .collect();
+                            let mapped = map_timeline_items_to_events(&filled, &room_id, &tl, &me);
+                            safe_call(|| obs.on_diff(TimelineDiffKind::Reset { values: mapped }));
                         }
+
                         other => {
                             if let Some(mapped) = map_vec_diff(other, &room_id, &tl, &me) {
                                 safe_call(|| obs.on_diff(mapped));
@@ -4284,12 +4341,11 @@ pub(crate) fn map_vec_diff(
             None
         }
 
-        VectorDiff::PopBack => Some(TimelineDiffKind::PopBack),
-        VectorDiff::PopFront => Some(TimelineDiffKind::PopFront),
+        // Do not emit raw Pop/Truncate that ports would drop.
+        VectorDiff::PopBack => None,
+        VectorDiff::PopFront => None,
 
-        VectorDiff::Truncate { length } => Some(TimelineDiffKind::Truncate {
-            length: length as u32,
-        }),
+        VectorDiff::Truncate { length: _ } => None,
 
         VectorDiff::Clear => Some(TimelineDiffKind::Clear),
 
@@ -4460,8 +4516,12 @@ async fn count_visible_room_view(tl: &Arc<Timeline>, rid: &OwnedRoomId, me: &str
         .count()
 }
 
-async fn map_room_view_all(tl: &Arc<Timeline>, rid: &OwnedRoomId, me: &str) -> Vec<MessageEvent> {
-    let items = tl.items().await;
+pub(crate) fn map_timeline_items_to_events(
+    items: &Vector<Arc<TimelineItem>>,
+    rid: &OwnedRoomId,
+    tl: &Arc<Timeline>,
+    me: &str,
+) -> Vec<MessageEvent> {
     items
         .iter()
         .filter_map(|it| {
@@ -4473,13 +4533,16 @@ async fn map_room_view_all(tl: &Arc<Timeline>, rid: &OwnedRoomId, me: &str) -> V
         .collect()
 }
 
+// Kept for potential future callers that need a filled snapshot on demand.
+#[allow(dead_code)]
 pub(crate) async fn emit_timeline_reset_filled(
     obs: &Arc<dyn TimelineObserver>,
     tl: &Arc<Timeline>,
     rid: &OwnedRoomId,
     me: &str,
 ) {
-    let mapped = map_room_view_all(tl, rid, me).await;
+    let items = tl.items().await;
+    let mapped = map_timeline_items_to_events(&items, rid, tl, me);
 
     safe_call(|| obs.on_diff(TimelineDiffKind::Reset { values: mapped }));
 }

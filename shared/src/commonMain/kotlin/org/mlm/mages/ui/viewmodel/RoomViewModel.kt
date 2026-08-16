@@ -1009,6 +1009,13 @@ class RoomViewModel(
     fun refreshLatest() {
         launch {
             runCatching { service.port.enterForeground() }
+            if (!currentState.hitStart &&
+                currentState.hasTimelineSnapshot &&
+                currentState.events.size < 12 &&
+                !currentState.isPaginatingBack
+            ) {
+                paginateBack()
+            }
         }
     }
 
@@ -2137,8 +2144,37 @@ class RoomViewModel(
 
         updateState {
             val resetValues = (diff as? TimelineDiff.Reset)?.items
+
             if (resetValues != null && resetValues.isEmpty() && allEvents.isNotEmpty()) {
                 return@updateState this
+            }
+
+            if (resetValues != null && allEvents.isNotEmpty()) {
+                val currentRemoteIds = allEvents.mapNotNull { ev ->
+                    ev.eventId.takeIf { it.isNotBlank() }
+                }.toSet()
+                val newRemoteIds = resetValues.mapNotNull { ev ->
+                    ev.eventId.takeIf { it.isNotBlank() }
+                }.toSet()
+
+                val droppingRemote =
+                    currentRemoteIds.isNotEmpty() &&
+                        newRemoteIds.isNotEmpty() &&
+                        resetValues.size < allEvents.size &&
+                        !newRemoteIds.containsAll(currentRemoteIds)
+
+                if (droppingRemote) {
+                    val merged = allEvents.toMutableList()
+                    for (item in resetValues) {
+                        upsertMessage(merged, item)
+                    }
+                    val visible = filteredVisibleEvents(merged)
+                    return@updateState copy(
+                        allEvents = merged,
+                        events = visible,
+                        hasTimelineSnapshot = true,
+                    )
+                }
             }
 
             if (diff is TimelineDiff.RemoveByItemId) {
@@ -2170,7 +2206,9 @@ class RoomViewModel(
                 }
                 if (lostPending.isNotEmpty()) {
                     newAll = newAll.toMutableList().also { list ->
-                        lostPending.forEach { list.insertSorted(it, { it.timestampMs }, { it.stableKey() }) }
+                        lostPending.forEach {
+                            list.insertSorted(it, { it.timestampMs }, { it.stableKey() })
+                        }
                     }
                 }
             }
@@ -2193,6 +2231,21 @@ class RoomViewModel(
 
         recomputeLiveLocationShares()
         recomputeDerived()
+    }
+
+    private fun upsertMessage(list: MutableList<MessageEvent>, incoming: MessageEvent) {
+        val byItem = list.indexOfFirst { it.itemId == incoming.itemId }
+        if (byItem >= 0) {
+            list[byItem] = incoming
+            return
+        }
+        val sk = incoming.stableKey()
+        val byStable = list.indexOfFirst { it.stableKey() == sk }
+        if (byStable >= 0) {
+            list[byStable] = incoming
+            return
+        }
+        list.insertSorted(incoming, { it.timestampMs }, { it.stableKey() })
     }
 
     private fun observeTyping() {

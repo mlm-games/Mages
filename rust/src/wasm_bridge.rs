@@ -15,11 +15,14 @@ use crate::wasm_subscribe;
 use crate::wasm_unobserve;
 use crate::webffi_bool;
 use crate::{
-    emit_timeline_reset_filled, latest_room_event_for, mages_client_metadata, map_vec_diff,
+    count_visible_room_view, latest_room_event_for, mages_client_metadata,
+    map_timeline_items_to_events, map_vec_diff, missing_reply_event_id, paginate_backwards_visible,
     strip_matrix_path,
 };
 use crate::{map_live_location_share, map_live_location_vec_diff};
-use crate::{webffi_err, webffi_not_init, webffi_option, webffi_unit, webffi_value};
+use crate::{
+    spawn_detached, webffi_err, webffi_not_init, webffi_option, webffi_unit, webffi_value,
+};
 
 use futures_util::StreamExt;
 use futures_util::future::{AbortHandle, Abortable};
@@ -1078,11 +1081,47 @@ impl WasmClient {
                 return;
             };
             let (items, mut stream) = tl.subscribe().await;
-            emit_timeline_reset_filled(&obs, &tl, &rid, &me).await;
+
             let mut item_ids: Vec<String> = items
                 .iter()
                 .map(|item| item.unique_id().0.to_string())
                 .collect();
+
+            {
+                let mapped = map_timeline_items_to_events(&items, &rid, &tl, &me);
+                let o = obs.clone();
+                safe_call(move || o.on_diff(TimelineDiffKind::Reset { values: mapped }));
+            }
+
+            for it in items.iter() {
+                if let Some(ev) = it.as_event() {
+                    if let Some(eid) = missing_reply_event_id(ev) {
+                        let tlc = tl.clone();
+                        spawn_detached!(async move {
+                            let _ = tlc.fetch_details_for_event(eid.as_ref()).await;
+                        });
+                    }
+                }
+            }
+
+            {
+                let before = count_visible_room_view(&tl, &rid, &me).await;
+                if before < 20 {
+                    let _ =
+                        paginate_backwards_visible(&tl, &rid, &me, 20usize.saturating_sub(before))
+                            .await;
+                    // Re-sync shadow + UI from the live timeline after backfill.
+                    let filled = tl.items().await;
+                    item_ids = filled
+                        .iter()
+                        .map(|item| item.unique_id().0.to_string())
+                        .collect();
+                    let mapped = map_timeline_items_to_events(&filled, &rid, &tl, &me);
+                    let o = obs.clone();
+                    safe_call(move || o.on_diff(TimelineDiffKind::Reset { values: mapped }));
+                }
+            }
+
             while let Some(diffs) = stream.next().await {
                 for diff in diffs {
                     match &diff {
@@ -1113,30 +1152,60 @@ impl WasmClient {
                                 });
                             }
                         }
+                        VectorDiff::PopBack => {
+                            if let Some(removed) = item_ids.pop() {
+                                let o = obs.clone();
+                                safe_call(move || {
+                                    o.on_diff(TimelineDiffKind::RemoveByItemId { item_id: removed })
+                                });
+                            }
+                        }
+                        VectorDiff::PopFront => {
+                            if !item_ids.is_empty() {
+                                let removed = item_ids.remove(0);
+                                let o = obs.clone();
+                                safe_call(move || {
+                                    o.on_diff(TimelineDiffKind::RemoveByItemId { item_id: removed })
+                                });
+                            }
+                        }
+                        VectorDiff::Truncate { length } => {
+                            let keep = (*length).min(item_ids.len());
+                            let removed: Vec<String> = item_ids.drain(keep..).collect();
+                            for item_id in removed {
+                                let o = obs.clone();
+                                safe_call(move || {
+                                    o.on_diff(TimelineDiffKind::RemoveByItemId { item_id })
+                                });
+                            }
+                        }
                         VectorDiff::Clear => {
                             item_ids.clear();
                         }
                         VectorDiff::Reset { values } => {
                             item_ids = values.iter().map(|v| v.unique_id().0.to_string()).collect();
                         }
-                        VectorDiff::PopBack => {
-                            item_ids.pop();
-                        }
-                        VectorDiff::PopFront => {
-                            if !item_ids.is_empty() {
-                                item_ids.remove(0);
-                            }
-                        }
-                        VectorDiff::Truncate { length } => {
-                            item_ids.truncate(*length as usize);
-                        }
                     }
 
                     match diff {
-                        VectorDiff::Remove { .. } => {}
+                        VectorDiff::Remove { .. }
+                        | VectorDiff::PopBack
+                        | VectorDiff::PopFront
+                        | VectorDiff::Truncate { .. } => {}
+
                         VectorDiff::Clear => {
-                            emit_timeline_reset_filled(&obs, &tl, &rid, &me).await;
+                            let filled = tl.items().await;
+                            item_ids = filled
+                                .iter()
+                                .map(|item| item.unique_id().0.to_string())
+                                .collect();
+                            let mapped = map_timeline_items_to_events(&filled, &rid, &tl, &me);
+                            let o = obs.clone();
+                            safe_call(move || {
+                                o.on_diff(TimelineDiffKind::Reset { values: mapped })
+                            });
                         }
+
                         other => {
                             if let Some(mapped) = map_vec_diff(other, &rid, &tl, &me) {
                                 let o = obs.clone();

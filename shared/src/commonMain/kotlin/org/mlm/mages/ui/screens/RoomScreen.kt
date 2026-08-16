@@ -473,7 +473,9 @@ fun RoomScreen(
         }
     }
 
-    LaunchedEffect(events.lastOrNull()?.itemId, isNearBottom, seekingUnread) {
+    LaunchedEffect(events.lastOrNull()?.itemId, isNearBottom, seekingUnread, state.hasTimelineSnapshot, events.size, state.hitStart) {
+        if (!state.hasTimelineSnapshot) return@LaunchedEffect
+        if (events.size < 5 && !state.hitStart) return@LaunchedEffect
         if (isNearBottom && !seekingUnread) viewModel.markRoomSeen()
     }
 
@@ -498,6 +500,13 @@ fun RoomScreen(
             val listIndex = listIndexForEventIndex(idx)
 
             listState.scrollToItem(index = listIndex)
+
+            if (!state.hitStart && state.events.size < 12 && !state.isPaginatingBack && jumpBackAttempts < 10) {
+                jumpBackAttempts++
+                viewModel.paginateBack()
+                delay(50)
+                return@LaunchedEffect
+            }
 
             pendingJumpEventId = null
             jumpBackAttempts = 0
@@ -527,6 +536,15 @@ fun RoomScreen(
             if (state.events.isNotEmpty()) {
                 listState.scrollToItem(lastListIndex())
             }
+        }
+    }
+
+    LaunchedEffect(state.hasTimelineSnapshot, state.events.size, state.hitStart, state.isPaginatingBack, pendingJumpEventId) {
+        if (!state.hasTimelineSnapshot) return@LaunchedEffect
+        if (pendingJumpEventId != null) return@LaunchedEffect
+        if (state.hitStart || state.isPaginatingBack) return@LaunchedEffect
+        if (state.events.size in 1..11) {
+            viewModel.paginateBack()
         }
     }
 

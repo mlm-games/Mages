@@ -136,7 +136,11 @@ class RustMatrixPort : MatrixPort, VerificationService {
                     is TimelineDiffKind.UpsertByItemId -> TimelineDiff.UpsertByItemId(diff.itemId, diff.value.toModel())
                     is TimelineDiffKind.PopBack,
                     is TimelineDiffKind.PopFront,
-                    is TimelineDiffKind.Truncate -> null
+                    is TimelineDiffKind.Truncate -> {
+                        // Should not happen after Rust fix; if it does, force a safe resync rather than desync.
+                        println("Unexpected timeline structural diff: $diff ... requesting filled reset is handled in Rust")
+                        null
+                    }
                 }
                 mapped?.let { trySendBlocking(it) }
             }
