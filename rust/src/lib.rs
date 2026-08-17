@@ -899,6 +899,20 @@ impl Client {
                 safe_call(|| obs.on_error("timeline unavailable".into()));
                 return;
             };
+
+            {
+                let before = count_visible_room_view(&tl, &room_id, &me).await;
+                if before < 20 {
+                    let _ = paginate_backwards_visible(
+                        &tl,
+                        &room_id,
+                        &me,
+                        20usize.saturating_sub(before),
+                    )
+                    .await;
+                }
+            }
+
             let (items, mut stream) = tl.subscribe().await;
 
             let mut item_ids: Vec<String> = items
@@ -919,26 +933,6 @@ impl Client {
                             let _ = tlc.fetch_details_for_event(eid.as_ref()).await;
                         });
                     }
-                }
-            }
-
-            {
-                let before = count_visible_room_view(&tl, &room_id, &me).await;
-                if before < 20 {
-                    let _ = paginate_backwards_visible(
-                        &tl,
-                        &room_id,
-                        &me,
-                        20usize.saturating_sub(before),
-                    )
-                    .await;
-                    let filled = tl.items().await;
-                    item_ids = filled
-                        .iter()
-                        .map(|item| item.unique_id().0.to_string())
-                        .collect();
-                    let mapped = map_timeline_items_to_events(&filled, &room_id, &tl, &me);
-                    safe_call(|| obs.on_diff(TimelineDiffKind::Reset { values: mapped }));
                 }
             }
 
