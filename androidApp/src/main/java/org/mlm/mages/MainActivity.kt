@@ -255,10 +255,10 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 var resolvedAction: DeepLinkAction? = null
-                handleMatrixLink(service, link) { roomId, _, eventId ->
+                handleMatrixLink(service, link) { roomId, title ->
                     resolvedAction = DeepLinkAction(
                         roomId = roomId,
-                        eventId = eventId,
+                        eventId = title,
                         joinCall = false,
                     )
                 }

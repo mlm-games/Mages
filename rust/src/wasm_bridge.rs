@@ -1186,15 +1186,9 @@ impl WasmClient {
                         | VectorDiff::Truncate { .. } => {}
 
                         VectorDiff::Clear => {
-                            let filled = tl.items().await;
-                            item_ids = filled
-                                .iter()
-                                .map(|item| item.unique_id().0.to_string())
-                                .collect();
-                            let mapped = map_timeline_items_to_events(&filled, &rid, &tl, &me);
                             let o = obs.clone();
                             safe_call(move || {
-                                o.on_diff(TimelineDiffKind::Reset { values: mapped })
+                                o.on_diff(TimelineDiffKind::Reset { values: Vec::new() })
                             });
                         }
 

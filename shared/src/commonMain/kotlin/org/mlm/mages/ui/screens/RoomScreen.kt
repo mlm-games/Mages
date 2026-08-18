@@ -37,7 +37,6 @@ import kotlinx.coroutines.launch
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.EventType
 import org.mlm.mages.matrix.SendState
-import org.mlm.mages.nav.RoomOpenRequest
 import org.mlm.mages.platform.*
 import org.mlm.mages.ui.components.AttachmentData
 import org.mlm.mages.ui.components.AttachmentSourceKind
@@ -94,8 +93,6 @@ import org.mlm.mages.ui.components.message.toBubbleModel
 fun RoomScreen(
     viewModel: RoomViewModel,
     initialScrollToEventId: String? = null,
-    externalRoomRequest: RoomOpenRequest? = null,
-    onConsumeExternalRoomRequest: (Long) -> Unit = {},
     onBack: () -> Unit,
     onOpenInfo: () -> Unit,
     onNavigateToRoom: (roomId: String, name: String) -> Unit,
@@ -393,26 +390,6 @@ fun RoomScreen(
             }
         }
     }
-    LaunchedEffect(externalRoomRequest?.requestId, state.roomId) {
-        val request = externalRoomRequest ?: return@LaunchedEffect
-        if (request.roomId != state.roomId) return@LaunchedEffect
-
-        if (request.forceSync) {
-            viewModel.refreshLatest()
-        }
-
-        request.focusEventId?.let { focusEventId ->
-            pendingJumpEventId = focusEventId
-            jumpBackAttempts = 0
-            jumpSyncWaitCycles = 0
-            seekingUnread = false
-            seekUnreadAttempts = 0
-            didInitialScroll = true
-        }
-
-        onConsumeExternalRoomRequest(request.requestId)
-    }
-
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
@@ -450,11 +427,6 @@ fun RoomScreen(
 
                 is RoomViewModel.Event.JumpToEvent -> {
                     pendingJumpEventId = event.eventId
-                    jumpBackAttempts = 0
-                    jumpSyncWaitCycles = 0
-                    seekingUnread = false
-                    seekUnreadAttempts = 0
-                    didInitialScroll = true
                 }
 
                 is RoomViewModel.Event.ShareContentEvent -> {
@@ -473,9 +445,7 @@ fun RoomScreen(
         }
     }
 
-    LaunchedEffect(events.lastOrNull()?.itemId, isNearBottom, seekingUnread, state.hasTimelineSnapshot, events.size, state.hitStart) {
-        if (!state.hasTimelineSnapshot) return@LaunchedEffect
-        if (events.size < 5 && !state.hitStart) return@LaunchedEffect
+    LaunchedEffect(events.lastOrNull()?.itemId, isNearBottom, seekingUnread) {
         if (isNearBottom && !seekingUnread) viewModel.markRoomSeen()
     }
 
@@ -501,13 +471,6 @@ fun RoomScreen(
 
             listState.scrollToItem(index = listIndex)
 
-            if (!state.hitStart && state.events.size < 12 && !state.isPaginatingBack && jumpBackAttempts < 10) {
-                jumpBackAttempts++
-                viewModel.paginateBack()
-                delay(50)
-                return@LaunchedEffect
-            }
-
             pendingJumpEventId = null
             jumpBackAttempts = 0
             jumpSyncWaitCycles = 0
@@ -515,36 +478,26 @@ fun RoomScreen(
             return@LaunchedEffect
         }
 
-        // First, give foreground sync time to append newer events.
-        if (jumpSyncWaitCycles < 40) {
-            jumpSyncWaitCycles++
-            if (!state.isPaginatingBack && jumpSyncWaitCycles % 8 == 1) {
-                viewModel.refreshLatest()
-            }
-            delay(125)
+        // Wait longer for live Appends (sync guaranteed running via refcount + enterForeground).
+        // Notification events are almost always newer than the cached head.
+        jumpSyncWaitCycles++
+        if (jumpSyncWaitCycles <= 18) {
+            delay(120)
             return@LaunchedEffect
         }
 
-        // Only after the forward-sync window is exhausted do we search older history.
+        // Not found yet -> back paginate until we find it, but don't loop forever
         if (!state.hitStart && !state.isPaginatingBack && jumpBackAttempts < 30) {
             jumpBackAttempts++
             viewModel.paginateBack()
         } else if (state.hitStart || jumpBackAttempts >= 30) {
+            // Event not found after exhaustive search - scroll to latest instead of error
             pendingJumpEventId = null
             jumpBackAttempts = 0
             jumpSyncWaitCycles = 0
             if (state.events.isNotEmpty()) {
                 listState.scrollToItem(lastListIndex())
             }
-        }
-    }
-
-    LaunchedEffect(state.hasTimelineSnapshot, state.events.size, state.hitStart, state.isPaginatingBack, pendingJumpEventId) {
-        if (!state.hasTimelineSnapshot) return@LaunchedEffect
-        if (pendingJumpEventId != null) return@LaunchedEffect
-        if (state.hitStart || state.isPaginatingBack) return@LaunchedEffect
-        if (state.events.size in 1..11) {
-            viewModel.paginateBack()
         }
     }
 

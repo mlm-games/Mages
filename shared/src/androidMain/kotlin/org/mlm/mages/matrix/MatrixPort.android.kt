@@ -138,7 +138,6 @@ class RustMatrixPort : MatrixPort, VerificationService {
                     is TimelineDiffKind.PopBack,
                     is TimelineDiffKind.PopFront,
                     is TimelineDiffKind.Truncate -> {
-                        // Should not happen after Rust fix; if it does, force a safe resync rather than desync.
                         Logger.w("Unexpected timeline structural diff: $diff ... requesting filled reset is handled in Rust")
                         null
                     }

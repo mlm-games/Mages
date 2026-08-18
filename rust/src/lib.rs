@@ -968,32 +968,15 @@ impl Client {
                             }
                         }
                         VectorDiff::PopBack => {
-                            if let Some(removed) = item_ids.pop() {
-                                safe_call(|| {
-                                    obs.on_diff(TimelineDiffKind::RemoveByItemId {
-                                        item_id: removed,
-                                    })
-                                });
-                            }
+                            item_ids.pop();
                         }
                         VectorDiff::PopFront => {
                             if !item_ids.is_empty() {
-                                let removed = item_ids.remove(0);
-                                safe_call(|| {
-                                    obs.on_diff(TimelineDiffKind::RemoveByItemId {
-                                        item_id: removed,
-                                    })
-                                });
+                                item_ids.remove(0);
                             }
                         }
                         VectorDiff::Truncate { length } => {
-                            let keep = (*length).min(item_ids.len());
-                            let removed: Vec<String> = item_ids.drain(keep..).collect();
-                            for item_id in removed {
-                                safe_call(|| {
-                                    obs.on_diff(TimelineDiffKind::RemoveByItemId { item_id })
-                                });
-                            }
+                            item_ids.truncate(*length as usize);
                         }
                         VectorDiff::Clear => {
                             item_ids.clear();
@@ -1004,21 +987,15 @@ impl Client {
                     }
 
                     match diff {
-                        // Already emitted as RemoveByItemId above.
                         VectorDiff::Remove { .. }
                         | VectorDiff::PopBack
                         | VectorDiff::PopFront
                         | VectorDiff::Truncate { .. } => {}
 
                         VectorDiff::Clear => {
-                            // Prefer a filled snapshot after clear; never leave Kotlin on a desynced list.
-                            let filled = tl.items().await;
-                            item_ids = filled
-                                .iter()
-                                .map(|item| item.unique_id().0.to_string())
-                                .collect();
-                            let mapped = map_timeline_items_to_events(&filled, &room_id, &tl, &me);
-                            safe_call(|| obs.on_diff(TimelineDiffKind::Reset { values: mapped }));
+                            safe_call(|| {
+                                obs.on_diff(TimelineDiffKind::Reset { values: Vec::new() })
+                            });
                         }
 
                         other => {
@@ -4335,11 +4312,12 @@ pub(crate) fn map_vec_diff(
             None
         }
 
-        // Do not emit raw Pop/Truncate that ports would drop.
-        VectorDiff::PopBack => None,
-        VectorDiff::PopFront => None,
+        VectorDiff::PopBack => Some(TimelineDiffKind::PopBack),
+        VectorDiff::PopFront => Some(TimelineDiffKind::PopFront),
 
-        VectorDiff::Truncate { length: _ } => None,
+        VectorDiff::Truncate { length } => Some(TimelineDiffKind::Truncate {
+            length: length as u32,
+        }),
 
         VectorDiff::Clear => Some(TimelineDiffKind::Clear),
 

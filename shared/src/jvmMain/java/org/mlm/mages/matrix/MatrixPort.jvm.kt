@@ -136,7 +136,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
                     is TimelineDiffKind.PopBack,
                     is TimelineDiffKind.PopFront,
                     is TimelineDiffKind.Truncate -> {
-                        Logger.w("Unexpected timeline structural diff: $diff... requesting filled reset is handled in Rust")
+                        // Raw structural diffs from the Rust shadow; not actionable here.
                         null
                     }
                 }

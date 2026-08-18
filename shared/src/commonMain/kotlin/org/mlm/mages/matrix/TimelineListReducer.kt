@@ -52,21 +52,7 @@ object TimelineListReducer {
                 val list = current.toMutableList()
                 val delta = ArrayList<T>(diff.items.size)
                 for (item in diff.items) {
-                    val incomingItemId = itemIdOf(item)
-                    val incomingStable = stableIdOf(item)
-                    val idxByItem = list.indexOfFirst { itemIdOf(it) == incomingItemId }
-                    val idxByStable = list.indexOfFirst { stableIdOf(it) == incomingStable }
-                    when {
-                        idxByItem >= 0 && idxByStable >= 0 && idxByItem != idxByStable -> {
-                            val keep = minOf(idxByItem, idxByStable)
-                            val drop = maxOf(idxByItem, idxByStable)
-                            list[keep] = item
-                            list.removeAt(drop)
-                        }
-                        idxByItem >= 0 -> list[idxByItem] = item
-                        idxByStable >= 0 -> list[idxByStable] = item
-                        else -> list.add(item) // real append
-                    }
+                    upsert(list, item, itemIdOf, stableIdOf, timeOf, tieOf)
                     delta.add(item)
                 }
                 Result(list = list, delta = delta)
@@ -75,21 +61,7 @@ object TimelineListReducer {
             is TimelineDiff.Prepend -> {
                 val list = current.toMutableList()
                 val item = diff.item
-                val incomingItemId = itemIdOf(item)
-                val incomingStable = stableIdOf(item)
-                val idxByItem = list.indexOfFirst { itemIdOf(it) == incomingItemId }
-                val idxByStable = list.indexOfFirst { stableIdOf(it) == incomingStable }
-                when {
-                    idxByItem >= 0 && idxByStable >= 0 && idxByItem != idxByStable -> {
-                        val keep = minOf(idxByItem, idxByStable)
-                        val drop = maxOf(idxByItem, idxByStable)
-                        list[keep] = item
-                        list.removeAt(drop)
-                    }
-                    idxByItem >= 0 -> list[idxByItem] = item
-                    idxByStable >= 0 -> list[idxByStable] = item
-                    else -> list.add(0, item) // real prepend for back-pagination
-                }
+                upsert(list, item, itemIdOf, stableIdOf, timeOf, tieOf)
                 Result(list = list, delta = listOf(item))
             }
 

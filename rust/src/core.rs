@@ -62,8 +62,7 @@ use tracing::warn;
 
 use crate::{
     ActionAvailability, ActionPresentation, AttachmentInfo, AttachmentKind, DirectoryUser,
-    FfiError, FfiPushRuleKind, FfiRoomNotificationMode, INITIAL_BACK_PAGINATION,
-    KnockRequestSummary, MemberActionState, MemberSummary, MessageActionState, MessageEvent,
+    FfiError, FfiPushRuleKind, FfiRoomNotificationMode, KnockRequestSummary, MemberActionState, MemberSummary, MessageActionState, MessageEvent,
     OwnReceipt, PasswordLoginKind, PollDefinition, PredecessorRoomInfo, Presence, PresenceInfo,
     PublicRoom, PublicRoomsPage, ReactionSummary, RoomActionState, RoomDirectoryVisibility,
     RoomHistoryVisibility, RoomJoinRule, RoomListEntry, RoomListMembership, RoomPowerLevelChanges,
@@ -160,13 +159,6 @@ impl TimelineManager {
             .lock()
             .unwrap()
             .insert(room_id.clone(), tl.clone());
-
-        {
-            let tlc = tl.clone();
-            spawn_detached_core!(async move {
-                let _ = tlc.paginate_backwards(INITIAL_BACK_PAGINATION).await;
-            });
-        }
 
         {
             let mut s = self.members_fetched.lock().unwrap();

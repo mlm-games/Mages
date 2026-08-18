@@ -1,4 +1,5 @@
 package org.mlm.mages.ui.viewmodel
+import co.touchlab.kermit.Logger
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -199,6 +200,7 @@ class RoomViewModel(
     private val liveLocationSession = LiveLocationSession()
     private val syncedActiveBeaconIds = MutableStateFlow<Set<String>>(emptySet())
     private var liveLocationBeaconToken: ULong? = null
+    private val paginateLock = kotlinx.coroutines.sync.Mutex()
 
     init {
         LiveLocationSharingCoordinator.onLocationDispatched = { lat, lon ->
@@ -295,7 +297,7 @@ class RoomViewModel(
             dmPeer = service.port.dmPeerUserId(roomId)
 
             val subToken = service.port.observeLiveLocation(roomId) { shares ->
-                println("LL observeLiveLocation shares=$shares")
+                Logger.w("LL observeLiveLocation shares=$shares")
                 updateState {
                     val oldShares = liveLocationShares
                     val myUserId = currentState.myUserId
@@ -988,35 +990,38 @@ class RoomViewModel(
 
     // Pagination
 
-    fun paginateBack() {
-        val s = currentState
-        if (s.isPaginatingBack || s.hitStart) return
-
-        launch {
+    /**
+     * Single-flight back-pagination. Returns:
+     *  - true  = SDK reported start of timeline
+     *  - false = more may exist
+     *  - null  = skipped (already in flight) or hard failure (do NOT set hitStart)
+     */
+    private suspend fun paginateBackAwait(count: Int = 50): Boolean? {
+        if (currentState.hitStart) return true
+        if (!paginateLock.tryLock()) return null
+        try {
+            // Re-check under lock
+            if (currentState.hitStart) return true
             updateState { copy(isPaginatingBack = true) }
-
-            try {
-                val hitStart = service.paginateBack(s.roomId, 50).getOrDefault(false)
-                updateState { copy(hitStart = hitStart || this.hitStart) }
-
-                scheduleThreadCountRecompute()
+            return try {
+                val result = runCatching { service.paginateBack(currentState.roomId, count) }.getOrNull()
+                val hit = result?.getOrNull() // Result<Boolean> -> Boolean?
+                if (hit == true) {
+                    updateState { copy(hitStart = true) }
+                }
+                // null failure -> do not touch hitStart
+                hit ?: false
             } finally {
                 updateState { copy(isPaginatingBack = false) }
+                scheduleThreadCountRecompute()
             }
+        } finally {
+            paginateLock.unlock()
         }
     }
 
-    fun refreshLatest() {
-        launch {
-            runCatching { service.port.enterForeground() }
-            if (!currentState.hitStart &&
-                currentState.hasTimelineSnapshot &&
-                currentState.events.size < 12 &&
-                !currentState.isPaginatingBack
-            ) {
-                paginateBack()
-            }
-        }
+    fun paginateBack() {
+        launch { paginateBackAwait() }
     }
 
     private fun scheduleThreadCountRecompute() {
@@ -2149,34 +2154,6 @@ class RoomViewModel(
                 return@updateState this
             }
 
-            if (resetValues != null && allEvents.isNotEmpty()) {
-                val currentRemoteIds = allEvents.mapNotNull { ev ->
-                    ev.eventId.takeIf { it.isNotBlank() }
-                }.toSet()
-                val newRemoteIds = resetValues.mapNotNull { ev ->
-                    ev.eventId.takeIf { it.isNotBlank() }
-                }.toSet()
-
-                val droppingRemote =
-                    currentRemoteIds.isNotEmpty() &&
-                        newRemoteIds.isNotEmpty() &&
-                        resetValues.size < allEvents.size &&
-                        !newRemoteIds.containsAll(currentRemoteIds)
-
-                if (droppingRemote) {
-                    val merged = allEvents.toMutableList()
-                    for (item in resetValues) {
-                        upsertMessage(merged, item)
-                    }
-                    val visible = filteredVisibleEvents(merged)
-                    return@updateState copy(
-                        allEvents = merged,
-                        events = visible,
-                        hasTimelineSnapshot = true,
-                    )
-                }
-            }
-
             if (diff is TimelineDiff.RemoveByItemId) {
                 val isLocalEcho = allEvents.any {
                     it.itemId == diff.itemId &&
@@ -2233,21 +2210,6 @@ class RoomViewModel(
         recomputeDerived()
     }
 
-    private fun upsertMessage(list: MutableList<MessageEvent>, incoming: MessageEvent) {
-        val byItem = list.indexOfFirst { it.itemId == incoming.itemId }
-        if (byItem >= 0) {
-            list[byItem] = incoming
-            return
-        }
-        val sk = incoming.stableKey()
-        val byStable = list.indexOfFirst { it.stableKey() == sk }
-        if (byStable >= 0) {
-            list[byStable] = incoming
-            return
-        }
-        list.insertSorted(incoming, { it.timestampMs }, { it.stableKey() })
-    }
-
     private fun observeTyping() {
         launch {
             typingToken?.let { service.stopTypingObserver(it) }
@@ -2291,7 +2253,7 @@ class RoomViewModel(
     }
 
     private fun recomputeLiveLocationShares() {
-        println("LL recompute from timeline allEvents=${currentState.allEvents.size}")
+        Logger.w("LL recompute from timeline allEvents=${currentState.allEvents.size}")
         updateState {
             val updated = liveLocationShares.toMutableMap()
             val items = allEvents

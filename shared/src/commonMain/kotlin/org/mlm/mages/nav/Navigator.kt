@@ -8,9 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
@@ -18,11 +16,11 @@ import androidx.navigation3.scene.Scene
 import androidx.savedstate.serialization.SavedStateConfiguration
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
-import org.mlm.mages.MatrixService
 import org.mlm.mages.calls.CallManager
 import org.mlm.mages.matrix.CallIntent
 
@@ -71,43 +69,39 @@ data class DeepLinkAction(
     val voiceOnly: Boolean = false
 )
 
-data class RoomOpenRequest(
-    val requestId: Long,
-    val roomId: String,
-    val focusEventId: String? = null,
-    val forceSync: Boolean = false,
-)
-
 // Deep links: push Room keys when links arrive
 @Composable
 fun BindDeepLinks(
+    backStack: NavBackStack<NavKey>,
     deepLinks: Flow<DeepLinkAction>?,
-    service: MatrixService,
     callManager: CallManager,
     widgetTheme: String,
     languageTag: String,
     elementCallUrl: String?,
     parentCallUrl: String?,
-    onOpenRoom: (roomId: String, name: String, focusEventId: String?) -> Unit,
-    onRequestVideoCallPermissions: ((() -> Unit) -> Unit)? = null,
-    onRequestVoiceCallPermissions: ((() -> Unit) -> Unit)? = null,
+    onRequestCallPermissions: ((() -> Unit) -> Unit)? = null,
 ) {
     val coroutineScope = rememberCoroutineScope()
 
-    val latestOpenRoom by rememberUpdatedState(onOpenRoom)
-    val latestWidgetTheme by rememberUpdatedState(widgetTheme)
-    val latestLanguageTag by rememberUpdatedState(languageTag)
-    val latestElementCallUrl by rememberUpdatedState(elementCallUrl)
-    val latestParentCallUrl by rememberUpdatedState(parentCallUrl)
-
     LaunchedEffect(deepLinks) {
-        deepLinks?.collect { action ->
-            runCatching { service.port.enterForeground() }
-            latestOpenRoom(
-                action.roomId,
-                action.roomId,
-                action.eventId
-            )
+        deepLinks?.collectLatest { action ->
+            val top = backStack.lastOrNull()
+            val alreadyThere = top is Route.Room && top.roomId == action.roomId
+            if (alreadyThere) {
+                if (action.eventId != null) {
+                    backStack.replaceTop(Route.Room(
+                        roomId = action.roomId,
+                        name = action.roomId,
+                        eventId = action.eventId
+                    ))
+                }
+            } else {
+                backStack.add(Route.Room(
+                    roomId = action.roomId,
+                    name = action.roomId, // Will be updated by RoomViewModel
+                    eventId = action.eventId
+                ))
+            }
 
             val callIntent = if (action.voiceOnly) CallIntent.JoinExistingVoiceDm
             else CallIntent.JoinExisting
@@ -121,10 +115,10 @@ fun BindDeepLinks(
                                     roomId = action.roomId,
                                     roomName = action.roomId,
                                     intent = callIntent,
-                                    elementCallUrl = latestElementCallUrl,
-                                    parentUrl = latestParentCallUrl,
-                                    languageTag = latestLanguageTag,
-                                    theme = latestWidgetTheme
+                                    elementCallUrl = elementCallUrl,
+                                    parentUrl = parentCallUrl,
+                                    languageTag = languageTag,
+                                    theme = widgetTheme
                                 )
                             }.getOrDefault(false)
 
@@ -135,12 +129,8 @@ fun BindDeepLinks(
                     }
                 }
 
-                val requestPermissions =
-                    if (action.voiceOnly) onRequestVoiceCallPermissions
-                    else onRequestVideoCallPermissions
-
-                if (requestPermissions != null) {
-                    requestPermissions.invoke(joinCallAction)
+                if (onRequestCallPermissions != null) {
+                    onRequestCallPermissions.invoke(joinCallAction)
                 } else {
                     joinCallAction()
                 }
