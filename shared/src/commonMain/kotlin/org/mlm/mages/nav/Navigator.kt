@@ -69,13 +69,6 @@ data class DeepLinkAction(
     val voiceOnly: Boolean = false
 )
 
-data class RoomOpenRequest(
-    val requestId: Long,
-    val roomId: String,
-    val focusEventId: String? = null,
-    val forceSync: Boolean = false,
-)
-
 // Deep links: push Room keys when links arrive
 @Composable
 fun BindDeepLinks(

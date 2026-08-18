@@ -1014,9 +1014,7 @@ impl Client {
                             // Keep shadow lockstep: empty UI + empty shadow; later stream
                             // ops rebuild. Never rewrite item_ids from tl.items() here.
                             safe_call(|| {
-                                obs.on_diff(TimelineDiffKind::Reset {
-                                    values: Vec::new(),
-                                })
+                                obs.on_diff(TimelineDiffKind::Reset { values: Vec::new() })
                             });
                         }
 
@@ -4334,7 +4332,7 @@ pub(crate) fn map_vec_diff(
             None
         }
 
-        // Do not emit raw Pop/Truncate that ports would drop.
+        // Ports drop the raw kinds, so do not emit them.
         VectorDiff::PopBack => None,
         VectorDiff::PopFront => None,
 
