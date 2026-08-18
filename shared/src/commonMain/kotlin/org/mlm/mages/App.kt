@@ -173,7 +173,8 @@ private fun AppContent(
                 languageTag,
                 elementCallUrl,
                 parentCallUrl,
-                onRequestVideoCallPermissions
+                onRequestVideoCallPermissions,
+                onRequestVoiceCallPermissions,
             )
 
             BindLifecycle(service, resetSyncState = true)
@@ -350,7 +351,6 @@ private fun AppContent(
                             val viewModel: RoomViewModel = koinViewModel(
                                 parameters = { parametersOf(key.roomId, key.name) }
                             )
-
                             RoomScreen(
                                 viewModel = viewModel,
                                 initialScrollToEventId = key.eventId,

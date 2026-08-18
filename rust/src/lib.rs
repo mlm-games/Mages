@@ -968,15 +968,32 @@ impl Client {
                             }
                         }
                         VectorDiff::PopBack => {
-                            item_ids.pop();
+                            if let Some(removed) = item_ids.pop() {
+                                safe_call(|| {
+                                    obs.on_diff(TimelineDiffKind::RemoveByItemId {
+                                        item_id: removed,
+                                    })
+                                });
+                            }
                         }
                         VectorDiff::PopFront => {
                             if !item_ids.is_empty() {
-                                item_ids.remove(0);
+                                let removed = item_ids.remove(0);
+                                safe_call(|| {
+                                    obs.on_diff(TimelineDiffKind::RemoveByItemId {
+                                        item_id: removed,
+                                    })
+                                });
                             }
                         }
                         VectorDiff::Truncate { length } => {
-                            item_ids.truncate(*length as usize);
+                            let keep = (*length).min(item_ids.len());
+                            let removed: Vec<String> = item_ids.drain(keep..).collect();
+                            for item_id in removed {
+                                safe_call(|| {
+                                    obs.on_diff(TimelineDiffKind::RemoveByItemId { item_id })
+                                });
+                            }
                         }
                         VectorDiff::Clear => {
                             item_ids.clear();
@@ -987,14 +1004,19 @@ impl Client {
                     }
 
                     match diff {
+                        // Already emitted as RemoveByItemId above.
                         VectorDiff::Remove { .. }
                         | VectorDiff::PopBack
                         | VectorDiff::PopFront
                         | VectorDiff::Truncate { .. } => {}
 
                         VectorDiff::Clear => {
+                            // Keep shadow lockstep: empty UI + empty shadow; later stream
+                            // ops rebuild. Never rewrite item_ids from tl.items() here.
                             safe_call(|| {
-                                obs.on_diff(TimelineDiffKind::Reset { values: Vec::new() })
+                                obs.on_diff(TimelineDiffKind::Reset {
+                                    values: Vec::new(),
+                                })
                             });
                         }
 
@@ -4312,12 +4334,11 @@ pub(crate) fn map_vec_diff(
             None
         }
 
-        VectorDiff::PopBack => Some(TimelineDiffKind::PopBack),
-        VectorDiff::PopFront => Some(TimelineDiffKind::PopFront),
+        // Do not emit raw Pop/Truncate that ports would drop.
+        VectorDiff::PopBack => None,
+        VectorDiff::PopFront => None,
 
-        VectorDiff::Truncate { length } => Some(TimelineDiffKind::Truncate {
-            length: length as u32,
-        }),
+        VectorDiff::Truncate { length: _ } => None,
 
         VectorDiff::Clear => Some(TimelineDiffKind::Clear),
 

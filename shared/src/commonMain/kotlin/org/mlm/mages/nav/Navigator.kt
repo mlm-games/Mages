@@ -69,6 +69,13 @@ data class DeepLinkAction(
     val voiceOnly: Boolean = false
 )
 
+data class RoomOpenRequest(
+    val requestId: Long,
+    val roomId: String,
+    val focusEventId: String? = null,
+    val forceSync: Boolean = false,
+)
+
 // Deep links: push Room keys when links arrive
 @Composable
 fun BindDeepLinks(
@@ -79,7 +86,8 @@ fun BindDeepLinks(
     languageTag: String,
     elementCallUrl: String?,
     parentCallUrl: String?,
-    onRequestCallPermissions: ((() -> Unit) -> Unit)? = null,
+    onRequestVideoCallPermissions: ((() -> Unit) -> Unit)? = null,
+    onRequestVoiceCallPermissions: ((() -> Unit) -> Unit)? = null,
 ) {
     val coroutineScope = rememberCoroutineScope()
 
@@ -129,8 +137,12 @@ fun BindDeepLinks(
                     }
                 }
 
-                if (onRequestCallPermissions != null) {
-                    onRequestCallPermissions.invoke(joinCallAction)
+                val requestPermissions =
+                    if (action.voiceOnly) onRequestVoiceCallPermissions
+                    else onRequestVideoCallPermissions
+
+                if (requestPermissions != null) {
+                    requestPermissions.invoke(joinCallAction)
                 } else {
                     joinCallAction()
                 }
