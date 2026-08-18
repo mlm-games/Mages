@@ -1,4 +1,5 @@
 package org.mlm.mages.matrix
+import co.touchlab.kermit.Logger
 
 import kotlinx.browser.document
 import kotlinx.browser.window
@@ -93,7 +94,7 @@ private suspend inline fun <reified T> Promise<JsAny?>.awaitValue(): T? {
     val ok = (obj["ok"] as? JsonPrimitive)?.booleanOrNull == true
     if (!ok) {
         val error = (obj["error"] as? JsonPrimitive)?.contentOrNull
-        println("awaitValue failed: $error")
+        Logger.w("awaitValue failed: $error")
         return null
     }
     val value = obj["value"] ?: return null
@@ -303,10 +304,10 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
 
     private inline fun <reified T> decodeValueOrNull(value: JsAny?, label: String = "decode"): T? =
         runCatching {
-            println("$label raw = ${value.toJsonString()}")
+            Logger.w("$label raw = ${value.toJsonString()}")
             decodeValue<T>(value)
         }.onFailure {
-            println("$label failed: ${it.message}")
+            Logger.w("$label failed: ${it.message}")
         }.getOrNull()
 
     private inline fun <reified T : Enum<T>> decodeEnum(name: JsAny?): T? {
@@ -384,10 +385,10 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun recent(roomId: String, limit: Int): List<MessageEvent> {
         val raw = requireClient().recentEvents(roomId, limit.toDouble()).await<JsAny?>()
         return runCatching {
-            println("recent raw = ${raw.toJsonString()}")
+        //    Logger.w("recent raw = ${raw.toJsonString()}")
             wasmJson.decodeFromJsonElement<List<MessageEvent>>(raw.toJsonArray())
         }.onFailure {
-            println("recent failed: ${it.message}")
+            Logger.w("recent failed: ${it.message}")
         }.getOrElse { emptyList() }
     }
 
@@ -397,17 +398,17 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             roomId,
             jsCallback1 { diffValue: JsAny? ->
                 runCatching {
-                    println("timeline diff raw = ${diffValue.toJsonString()}")
+                    Logger.w("timeline diff raw = ${diffValue.toJsonString()}")
                     decodeTimelineDiff(diffValue)
                 }.onFailure {
-                    println("timeline diff decode failed: ${it.message}")
+                    Logger.w("timeline diff decode failed: ${it.message}")
                 }.getOrNull()?.let { diff ->
                     trySend(diff)
                 }
             },
             jsCallback1 { error: JsAny? ->
                 val message = error?.toString() ?: "Timeline error"
-                println("timeline observer error = $message")
+                Logger.w("timeline observer error = $message")
                 close(IllegalStateException(message))
             }
         )

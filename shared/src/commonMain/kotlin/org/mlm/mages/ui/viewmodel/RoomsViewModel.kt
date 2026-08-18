@@ -1,4 +1,5 @@
 package org.mlm.mages.ui.viewmodel
+import co.touchlab.kermit.Logger
 
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
@@ -319,7 +320,7 @@ class RoomsViewModel(
                     }
                 })
             } catch (e: Exception) {
-                println("Failed to observe room list: ${e.message}")
+                Logger.w("Failed to observe room list: ${e.message}")
             }
         }
     }
@@ -346,7 +347,7 @@ class RoomsViewModel(
                     }
                 })
             } catch (e: Exception) {
-                println("Failed to observe connection: ${e.message}")
+                Logger.w("Failed to observe connection: ${e.message}")
             }
         }
     }

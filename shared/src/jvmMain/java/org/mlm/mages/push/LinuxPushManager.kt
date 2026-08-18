@@ -1,4 +1,5 @@
 package org.mlm.mages.push
+import co.touchlab.kermit.Logger
 
 import org.freedesktop.dbus.Tuple
 import org.freedesktop.dbus.annotations.DBusInterfaceName
@@ -59,7 +60,7 @@ object LinuxPushManager {
             val suffix = UUID.randomUUID().toString()
             val busName = "org.mlm.mages.Instance${suffix.take(8)}"
             c.requestBusName(busName)
-            System.err.println("[UP] bus name acquired: $busName")
+            Logger.w("[UP] bus name acquired: $busName")
 
             val future = CompletableFuture<String>()
             endpointFuture = future
@@ -84,7 +85,7 @@ object LinuxPushManager {
 
             conn = c
             val ep = future.get(30, TimeUnit.SECONDS)
-            System.err.println("[UP] endpoint received: $ep")
+            Logger.w("[UP] endpoint received: $ep")
             return ep
         } catch (e: Exception) {
             conn?.let { try { it.close() } catch (_: Exception) {} }

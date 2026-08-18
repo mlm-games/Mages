@@ -1,4 +1,5 @@
 package org.mlm.mages.matrix
+import co.touchlab.kermit.Logger
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
@@ -138,7 +139,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
                     is TimelineDiffKind.PopFront,
                     is TimelineDiffKind.Truncate -> {
                         // Should not happen after Rust fix; if it does, force a safe resync rather than desync.
-                        println("Unexpected timeline structural diff: $diff ... requesting filled reset is handled in Rust")
+                        Logger.w("Unexpected timeline structural diff: $diff ... requesting filled reset is handled in Rust")
                         null
                     }
                 }
@@ -146,7 +147,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
             }
 
             override fun onError(message: String) {
-                println("Timeline error: $message")
+                Logger.w("Timeline error: $message")
                 trySendBlocking(TimelineDiff.Reset(emptyList()))
             }
         }
@@ -1093,7 +1094,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         name: String?, topic: String?, invitees: List<String>, isPublic: Boolean, roomAlias: String?
     ): String? = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.createRoom(name, topic, invitees, isPublic, roomAlias) } }
-            .onFailure { println("createRoom failed: ${it.message}") }
+            .onFailure { Logger.w("createRoom failed: ${it.message}") }
             .getOrNull()
     }
 

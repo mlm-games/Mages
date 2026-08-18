@@ -29,18 +29,17 @@ object TimelineListReducer {
         return when (diff) {
 
             is TimelineDiff.Reset -> {
-                val byStable = LinkedHashMap<String, T>(diff.items.size)
+                val byItem = LinkedHashMap<String, T>(diff.items.size)
                 val delta = ArrayList<T>(diff.items.size)
 
                 for (it in diff.items) {
-                    val sid = stableIdOf(it)
-                    byStable[sid] = it
+                    byItem[itemIdOf(it)] = it
                     delta.add(it)
                 }
 
                 Result(
-                    list = byStable.values.toList(),
-                    delta = byStable.values.toList(),
+                    list = byItem.values.toList(),
+                    delta = byItem.values.toList(),
                     reset = true
                 )
             }

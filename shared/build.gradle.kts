@@ -81,6 +81,7 @@ kotlin {
             implementation(libs.filekit.core)
             implementation(libs.filekit.dialogs.compose)
             implementation(libs.gadulka)
+            implementation(libs.kermit)
         }
 
         val maplibreMain by creating {

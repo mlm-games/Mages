@@ -1,4 +1,5 @@
 package org.mlm.mages.platform
+import co.touchlab.kermit.Logger
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -80,7 +81,7 @@ actual fun BindNotifications(
             }
             return@LaunchedEffect
         }
-        System.err.println("[UP] falling back to polling")
+        Logger.w("[UP] falling back to polling")
         var firstPoll = true
         val recentlyNotified = LinkedHashSet<String>()
         val lastReadByRoom = HashMap<String, Long>()

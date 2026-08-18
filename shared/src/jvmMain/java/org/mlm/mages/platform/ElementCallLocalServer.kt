@@ -1,4 +1,5 @@
 package org.mlm.mages.platform
+import co.touchlab.kermit.Logger
 
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
@@ -18,12 +19,12 @@ object ElementCallLocalServer {
         if (started.compareAndSet(false, true)) {
             val cl = Thread.currentThread().contextClassLoader ?: javaClass.classLoader
             val indexUrl = cl.getResource("element-call/index.html")
-            println("[ElementCallServer] index.html resource URL: $indexUrl")
+            Logger.w("[ElementCallServer] index.html resource URL: $indexUrl")
 
             if (indexUrl == null) {
-                println("[ElementCallServer] ERROR: element-call/index.html not found on classpath!")
+                Logger.w("[ElementCallServer] ERROR: element-call/index.html not found on classpath!")
                 val rootUrl = cl.getResource("element-call")
-                println("[ElementCallServer] element-call folder URL: $rootUrl")
+                Logger.w("[ElementCallServer] element-call folder URL: $rootUrl")
             }
 
             val addr = InetSocketAddress(InetAddress.getLoopbackAddress(), 0)
@@ -33,7 +34,7 @@ object ElementCallLocalServer {
             s.start()
             server = s
             port = s.address.port
-            println("[ElementCallServer] Started on http://127.0.0.1:$port")
+            Logger.w("[ElementCallServer] Started on http://127.0.0.1:$port")
         }
         val p = port
         check(p > 0) { "ElementCallLocalServer failed to start" }
@@ -48,7 +49,7 @@ object ElementCallLocalServer {
 
     fun stop() {
         if (!started.compareAndSet(true, false)) return
-        println("[ElementCallServer] Stopping...")
+        Logger.w("[ElementCallServer] Stopping...")
         server?.stop(0)
         server = null
         port = -1
@@ -56,7 +57,7 @@ object ElementCallLocalServer {
 
     private fun handle(ex: HttpExchange) {
         val rawPath = ex.requestURI.path ?: "/"
-        println("[ElementCallServer] ${ex.requestMethod} $rawPath")
+        Logger.w("[ElementCallServer] ${ex.requestMethod} $rawPath")
 
         try {
             if (ex.requestMethod == "OPTIONS") {
@@ -84,13 +85,13 @@ object ElementCallLocalServer {
 
             val bytes = readResourceBytes(resourcePath)
             if (bytes == null) {
-                println("[ElementCallServer] 404: $resourcePath")
+                Logger.w("[ElementCallServer] 404: $resourcePath")
                 sendText(ex, 404, "Not found: $resourcePath")
                 return
             }
 
             val contentType = contentTypeFor(resourcePath)
-            println("[ElementCallServer] 200: $resourcePath ($contentType, ${bytes.size} bytes)")
+            Logger.w("[ElementCallServer] 200: $resourcePath ($contentType, ${bytes.size} bytes)")
 
             ex.responseHeaders.add("Content-Type", contentType)
             ex.responseHeaders.add("Cache-Control", "no-cache")
@@ -99,7 +100,7 @@ object ElementCallLocalServer {
             ex.sendResponseHeaders(200, bytes.size.toLong())
             ex.responseBody.use { it.write(bytes) }
         } catch (t: Throwable) {
-            println("[ElementCallServer] Error handling $rawPath: ${t.message}")
+            Logger.w("[ElementCallServer] Error handling $rawPath: ${t.message}")
             t.printStackTrace()
             runCatching { sendText(ex, 500, "Server error: ${t.message}") }
         } finally {

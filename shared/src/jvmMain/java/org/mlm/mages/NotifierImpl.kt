@@ -1,4 +1,5 @@
 package org.mlm.mages
+import co.touchlab.kermit.Logger
 
 import org.freedesktop.dbus.annotations.DBusInterfaceName
 import org.freedesktop.dbus.connections.impl.DBusConnection
@@ -35,7 +36,7 @@ object NotifierImpl {
                 inlineReplySupported = false
                 notifCtx.clear()
                 notifIdByRoom.clear()
-                System.err.println("[notification] D-Bus connection invalidated")
+                Logger.w("[notification] D-Bus connection invalidated")
             }
         }
     }
@@ -56,10 +57,10 @@ object NotifierImpl {
                     handlersInstalledFor = c
                 }
 
-                System.err.println("[notification] D-Bus session established")
+                Logger.w("[notification] D-Bus session established")
             }
         } catch (e: Exception) {
-            System.err.println("[notification] D-Bus connect failed: ${e.stackTraceToString()}")
+            Logger.w("[notification] D-Bus connect failed: ${e.stackTraceToString()}")
             conn = null
             null
         }
@@ -137,7 +138,7 @@ object NotifierImpl {
                 )
                 return
             } catch (e: Exception) {
-                System.err.println(
+                Logger.w(
                     "[notification] D-Bus Notify failed (attempt=${attempt + 1}): ${e.stackTraceToString()}"
                 )
                 invalidateConnection(c)
@@ -211,12 +212,12 @@ object NotifierImpl {
                 notifCtx[id] = roomId to eventId
                 notifIdByRoom[roomId] = id
 
-                System.err.println(
+                Logger.w(
                     "[notification] D-Bus Notify succeeded: id=$id room=$roomId event=$eventId"
                 )
                 return
             } catch (e: Exception) {
-                System.err.println(
+                Logger.w(
                     "[notification] D-Bus Notify failed (attempt=${attempt + 1}): ${e.stackTraceToString()}"
                 )
                 invalidateConnection(c)

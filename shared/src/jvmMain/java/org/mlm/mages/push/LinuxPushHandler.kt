@@ -1,4 +1,5 @@
 package org.mlm.mages.push
+import co.touchlab.kermit.Logger
 
 import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
@@ -25,11 +26,11 @@ class LinuxPushHandler(
 
     suspend fun init(): Boolean {
         val endpoint = LinuxPushManager.tryRegister() ?: run {
-            System.err.println("[UP] push init failed — no endpoint from distributor")
+            Logger.w("[UP] push init failed — no endpoint from distributor")
             return false
         }
         val port = service.portOrNull ?: run {
-            System.err.println("[UP] push init failed — no matrix port")
+            Logger.w("[UP] push init failed — no matrix port")
             return false
         }
 
@@ -51,7 +52,7 @@ class LinuxPushHandler(
         )
         if (!ok) {
             LinuxPushManager.shutdown()
-            System.err.println("[UP] push init failed — registerUnifiedPush returned false")
+            Logger.w("[UP] push init failed — registerUnifiedPush returned false")
             return false
         }
 
@@ -61,7 +62,7 @@ class LinuxPushHandler(
             }
         }
 
-        System.err.println("[UP] push init succeeded")
+        Logger.w("[UP] push init succeeded")
         return true
     }
 
