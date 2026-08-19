@@ -253,6 +253,8 @@ pub struct Client {
     send_tx: tokio::sync::mpsc::UnboundedSender<SendUpdate>,
     subs_counter: AtomicU64,
     timeline_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
+    timeline_sub_rooms: Mutex<HashMap<u64, OwnedRoomId>>,
+    timeline_rooms: Arc<Mutex<HashMap<OwnedRoomId, usize>>>,
     typing_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     connection_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     inbox_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
@@ -477,6 +479,8 @@ impl Client {
             send_tx,
             subs_counter: AtomicU64::new(0),
             timeline_subs: Mutex::new(HashMap::new()),
+            timeline_sub_rooms: Mutex::new(HashMap::new()),
+            timeline_rooms: Arc::new(Mutex::new(HashMap::new())),
             typing_subs: Mutex::new(HashMap::new()),
             connection_subs: Mutex::new(HashMap::new()),
             inbox_subs: Mutex::new(HashMap::new()),
@@ -894,11 +898,27 @@ impl Client {
             .map(|u| u.to_string())
             .unwrap_or_default();
         let mgr = self.core.timeline_mgr.clone();
-        sub_manager!(self, timeline_subs, async move {
+        let core = self.core.clone();
+        let timeline_rooms = self.timeline_rooms.clone();
+        let sub_room_id = room_id.clone();
+        let id = sub_manager!(self, timeline_subs, async move {
             let Some(tl) = mgr.timeline_for(&room_id).await else {
                 safe_call(|| obs.on_error("timeline unavailable".into()));
                 return;
             };
+
+            {
+                let mut rooms = timeline_rooms.lock().unwrap();
+                let count = rooms.entry(room_id.clone()).or_insert(0usize);
+                *count += 1;
+                if *count == 1 {
+                    let core = core.clone();
+                    let rid = room_id.clone();
+                    spawn_detached!(async move {
+                        core.subscribe_room_full_timeline_when_ready(&rid).await;
+                    });
+                }
+            }
 
             {
                 let before = count_visible_room_view(&tl, &room_id, &me).await;
@@ -913,7 +933,9 @@ impl Client {
                 }
             }
 
-            let (items, mut stream) = tl.subscribe().await;
+            let (_sub_items, mut stream) = tl.subscribe().await;
+
+            let items = tl.items().await;
 
             let mut item_ids: Vec<String> = items
                 .iter()
@@ -998,9 +1020,7 @@ impl Client {
                         VectorDiff::Clear => {
                             item_ids.clear();
                         }
-                        VectorDiff::Reset { values } => {
-                            item_ids = values.iter().map(|v| v.unique_id().0.to_string()).collect();
-                        }
+                        VectorDiff::Reset { .. } => {}
                     }
 
                     match diff {
@@ -1018,6 +1038,16 @@ impl Client {
                             });
                         }
 
+                        VectorDiff::Reset { .. } => {
+                            let items = tl.items().await;
+                            item_ids = items
+                                .iter()
+                                .map(|it| it.unique_id().0.to_string())
+                                .collect();
+                            let mapped = map_timeline_items_to_events(&items, &room_id, &tl, &me);
+                            safe_call(|| obs.on_diff(TimelineDiffKind::Reset { values: mapped }));
+                        }
+
                         other => {
                             if let Some(mapped) = map_vec_diff(other, &room_id, &tl, &me) {
                                 safe_call(|| obs.on_diff(mapped));
@@ -1026,10 +1056,24 @@ impl Client {
                     }
                 }
             }
-        })
+        });
+        self.timeline_sub_rooms
+            .lock()
+            .unwrap()
+            .insert(id, sub_room_id);
+        id
     }
 
     pub fn unobserve_timeline(&self, sub_id: u64) -> bool {
+        if let Some(rid) = self.timeline_sub_rooms.lock().unwrap().remove(&sub_id) {
+            let mut rooms = self.timeline_rooms.lock().unwrap();
+            if let Some(count) = rooms.get_mut(&rid) {
+                *count = count.saturating_sub(1);
+                if *count == 0 {
+                    rooms.remove(&rid);
+                }
+            }
+        }
         unsub!(self, timeline_subs, sub_id)
     }
 
@@ -1388,6 +1432,21 @@ impl Client {
                     .send_queue()
                     .respawn_tasks_for_rooms_with_unsent_requests()
                     .await;
+
+                // Re-assert for every observed room
+                let rooms: Vec<OwnedRoomId> = self
+                    .timeline_rooms
+                    .lock()
+                    .unwrap()
+                    .keys()
+                    .cloned()
+                    .collect();
+                for rid in rooms {
+                    let core = self.core.clone();
+                    spawn_detached!(async move {
+                        core.subscribe_room_full_timeline(&rid).await;
+                    });
+                }
             });
         }
     }

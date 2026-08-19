@@ -285,6 +285,31 @@ impl CoreClient {
             .await;
     }
 
+    /// Subscribes the room in the room-list sliding sync so it receives full
+    /// timeline updates instead of the limited 1-event list preview.
+    pub async fn subscribe_room_full_timeline(&self, rid: &OwnedRoomId) {
+        self.ensure_sync_service().await;
+        let Some(svc) = self.sync_service.lock().unwrap().as_ref().cloned() else {
+            return;
+        };
+        let rls = svc.room_list_service();
+        rls.subscribe_to_rooms(&[rid.as_ref()]).await;
+    }
+
+    /// Same as [`Self::subscribe_room_full_timeline`], but waits until the
+    /// sync service exists before subscribing.
+    pub async fn subscribe_room_full_timeline_when_ready(&self, rid: &OwnedRoomId) {
+        self.ensure_sync_service().await;
+        let svc = loop {
+            if let Some(s) = self.sync_service.lock().unwrap().as_ref().cloned() {
+                break s;
+            }
+            matrix_sdk::sleep::sleep(Duration::from_millis(200)).await;
+        };
+        let rls = svc.room_list_service();
+        rls.subscribe_to_rooms(&[rid.as_ref()]).await;
+    }
+
     pub async fn login_password(
         &self,
         kind: PasswordLoginKind,

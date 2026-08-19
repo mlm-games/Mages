@@ -297,7 +297,6 @@ class RoomViewModel(
             dmPeer = service.port.dmPeerUserId(roomId)
 
             val subToken = service.port.observeLiveLocation(roomId) { shares ->
-                Logger.w("LL observeLiveLocation shares=$shares")
                 updateState {
                     val oldShares = liveLocationShares
                     val myUserId = currentState.myUserId
@@ -2253,7 +2252,6 @@ class RoomViewModel(
     }
 
     private fun recomputeLiveLocationShares() {
-        Logger.w("LL recompute from timeline allEvents=${currentState.allEvents.size}")
         updateState {
             val updated = liveLocationShares.toMutableMap()
             val items = allEvents

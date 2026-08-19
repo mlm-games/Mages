@@ -1082,6 +1082,18 @@ impl WasmClient {
             };
 
             {
+                let s = s.clone();
+                let rid = rid.clone();
+                spawn_detached!(async move {
+                    let Some(svc) = s.ensure_sync_service().await else {
+                        return;
+                    };
+                    let rls = svc.room_list_service();
+                    rls.subscribe_to_rooms(&[rid.as_ref()]).await;
+                });
+            }
+
+            {
                 let before = count_visible_room_view(&tl, &rid, &me).await;
                 if before < 20 {
                     let _ =
@@ -1090,7 +1102,11 @@ impl WasmClient {
                 }
             }
 
-            let (items, mut stream) = tl.subscribe().await;
+            let (_sub_items, mut stream) = tl.subscribe().await;
+
+            // Snapshot from the FULL timeline items: `subscribe()` returns a
+            // view truncated by the SDK's `subscriber_skip_count`.
+            let items = tl.items().await;
 
             let mut item_ids: Vec<String> = items
                 .iter()
@@ -1174,9 +1190,9 @@ impl WasmClient {
                         VectorDiff::Clear => {
                             item_ids.clear();
                         }
-                        VectorDiff::Reset { values } => {
-                            item_ids = values.iter().map(|v| v.unique_id().0.to_string()).collect();
-                        }
+                        // Handled in the forwarding match below: shadow is
+                        // rebuilt from the full timeline items().
+                        VectorDiff::Reset { .. } => {}
                     }
 
                     match diff {
@@ -1189,6 +1205,21 @@ impl WasmClient {
                             let o = obs.clone();
                             safe_call(move || {
                                 o.on_diff(TimelineDiffKind::Reset { values: Vec::new() })
+                            });
+                        }
+
+                        // A catch-up Reset comes from `subscriber_skip_count` and is truncated
+                        // to the tail of the timeline. Re-emit the FULL state.
+                        VectorDiff::Reset { .. } => {
+                            let items = tl.items().await;
+                            item_ids = items
+                                .iter()
+                                .map(|it| it.unique_id().0.to_string())
+                                .collect();
+                            let mapped = map_timeline_items_to_events(&items, &rid, &tl, &me);
+                            let o = obs.clone();
+                            safe_call(move || {
+                                o.on_diff(TimelineDiffKind::Reset { values: mapped })
                             });
                         }
 
