@@ -288,8 +288,12 @@ fun RoomScreen(
         }
     }
 
-    fun listIndexForEventIndex(eventIndex: Int): Int = events.lastIndex - eventIndex
-    fun lastListIndex(): Int = 0
+    fun listIndexForEventIndex(eventIndex: Int): Int {
+        val last = events.lastIndex
+        if (last < 0) return 0
+        return (last - eventIndex).coerceIn(0, last)
+    }
+    fun lastListIndex(): Int = events.lastIndex.coerceAtLeast(0)
 
 
     val isNearBottom by remember(listState, events) {
@@ -333,7 +337,9 @@ fun RoomScreen(
                 seekingUnread = true
                 seekUnreadAttempts = 0
             } else {
-                val unreadIdx = firstUnreadIndex
+                val unreadIdx = state.events
+                    .indexOfFirst { it.timestampMs > (state.lastReadTs ?: Long.MAX_VALUE) }
+                    .takeIf { it >= 0 }
                 if (unreadIdx != null) {
                     val targetIndex = listIndexForEventIndex(unreadIdx)
                     listState.scrollToItem(targetIndex)
@@ -376,7 +382,14 @@ fun RoomScreen(
             }
 
             firstUnreadIndex != null -> {
-                listState.scrollToItem(listIndexForEventIndex(firstUnreadIndex!!))
+                val unreadIdx = state.events
+                    .indexOfFirst { it.timestampMs > (state.lastReadTs ?: Long.MAX_VALUE) }
+                    .takeIf { it >= 0 }
+                if (unreadIdx != null) {
+                    listState.scrollToItem(listIndexForEventIndex(unreadIdx))
+                } else {
+                    listState.scrollToItem(lastListIndex())
+                }
                 seekingUnread = false
                 seekUnreadAttempts = 0
                 didInitialScroll = true
