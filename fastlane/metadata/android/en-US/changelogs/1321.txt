@@ -1,0 +1,1 @@
+- fix the "Jump to Bottom" being inverted in behavoir

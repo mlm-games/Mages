@@ -1,3 +1,8 @@
+## v4.9.12
+
+- fix the "Jump to Bottom" being inverted in behavoir
+
+
 ## v4.9.11
 
 

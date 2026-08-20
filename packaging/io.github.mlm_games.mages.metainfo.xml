@@ -46,6 +46,13 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.9.12" date="2026-08-20" type="stable">
+      <description>
+        <ul>
+          <li>fix the "Jump to Bottom" being inverted in behavoir</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.9.11" date="2026-08-19" type="stable">
       <description>
         <ul/>
