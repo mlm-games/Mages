@@ -293,7 +293,7 @@ fun RoomScreen(
         if (last < 0) return 0
         return (last - eventIndex).coerceIn(0, last)
     }
-    fun lastListIndex(): Int = events.lastIndex.coerceAtLeast(0)
+    fun lastListIndex(): Int = 0
 
 
     val isNearBottom by remember(listState, events) {
