@@ -235,14 +235,20 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         if (currentHs == hs && currentAccountId == accountId && currentProxyUrl == proxyUrl && client != null) return
 
         ensureWasmBridgeReady()
-        client?.free()
-        client = createWasmClient(
+        val old = client
+        client = null
+        currentHs = null
+        currentAccountId = null
+        currentProxyUrl = null
+        try { old?.free() } catch (e: Exception) { e.printStackTrace() }
+        val created = createWasmClient(
             hs,
             org.mlm.mages.platform.MagesPaths.storeDir(),
             accountId,
             proxyUrl,
             enableShareHistoryOnInvite,
         )
+        client = created
         currentHs = hs
         currentAccountId = accountId
         currentProxyUrl = proxyUrl
@@ -438,10 +444,12 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun isLoggedInSuspend(): Boolean = isLoggedIn()
 
     override fun close() {
-        try { client?.free() } catch (e: Exception) { e.printStackTrace() }
+        val old = client
         client = null
         currentHs = null
         currentAccountId = null
+        currentProxyUrl = null
+        try { old?.free() } catch (e: Exception) { e.printStackTrace() }
     }
 
     override suspend fun setTyping(roomId: String, typing: Boolean): Result<Unit> =
