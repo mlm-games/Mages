@@ -140,7 +140,7 @@ maplibre-runtime-vulkan-linux-arm64 = { module = "org.maplibre.compose:maplibre-
 maplibre-runtime-metal-macos-arm64 = { module = "org.maplibre.compose:maplibre-compose-runtime-metal-macos-arm64", version.ref = "maplibreCompose" }
 maplibre-runtime-vulkan-windows-x64 = { module = "org.maplibre.compose:maplibre-compose-runtime-vulkan-windows-x64", version.ref = "maplibreCompose" }
 maplibre-runtime-vulkan-windows-arm64 = { module = "org.maplibre.compose:maplibre-compose-runtime-vulkan-windows-arm64", version.ref = "maplibreCompose" }
-maplibre-runtime-opengl-android = { module = "org.maplibre.compose:maplibre-compose-runtime-opengl-android", version.ref = "maplibreCompose" }
+maplibre-runtime-vulkan-android = { module = "org.maplibre.compose:maplibre-compose-runtime-vulkan-android", version.ref = "maplibreCompose" }
 markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
 
 
