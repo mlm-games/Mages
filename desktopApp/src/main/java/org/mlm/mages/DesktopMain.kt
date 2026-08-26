@@ -20,7 +20,7 @@ import org.maplibre.compose.desktop.DesktopRuntimeOptions
 import org.maplibre.compose.desktop.MapLibre
 import org.maplibre.compose.desktop.ProvideMapHost
 import org.maplibre.compose.desktop.desktopCachePath
-import org.maplibre.compose.desktop.rememberAwtComposeGpuHost
+import org.maplibre.compose.desktop.rememberAwtComposeMapHost
 import org.mlm.mages.di.KoinApp
 import org.mlm.mages.nav.DeepLinkAction
 import org.mlm.mages.platform.MagesPaths
@@ -170,7 +170,7 @@ fun main() {
                 }
             }
 
-            ProvideMapHost(host = rememberAwtComposeGpuHost(window)) {
+            ProvideMapHost(host = rememberAwtComposeMapHost(window)) {
                 DesktopAppContent(
                     deepLinks = deepLinks
                 )
