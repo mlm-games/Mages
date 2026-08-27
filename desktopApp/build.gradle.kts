@@ -36,7 +36,7 @@ dependencies {
     implementation(project(":shared"))
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.swing)
-    implementation(libs.systemtray)
+    implementation(libs.composenativetray)
     implementation(libs.net.jna)
     implementation(libs.androidx.datastore.preferences.core)
     implementation(libs.kmp.settings.core)

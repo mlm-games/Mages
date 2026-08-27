@@ -28,15 +28,15 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="px"
-     inkscape:zoom="3.390625"
-     inkscape:cx="35.391705"
-     inkscape:cy="78.599078"
+     inkscape:zoom="4.7950679"
+     inkscape:cx="67.360882"
+     inkscape:cy="92.073775"
      inkscape:window-width="1536"
      inkscape:window-height="902"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer1"
+     inkscape:current-layer="g1"
      showgrid="false" />
   <defs
      id="defs1">
@@ -63,17 +63,10 @@
          id="path2"
          style="font-variation-settings:'opsz' 32;display:inline;opacity:0.953035;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:2.09803;stroke-linecap:round;stroke-linejoin:round;paint-order:fill markers stroke"
          d="m -61.329349,45.007083 c -3.659673,7.261676 -10.113061,21.732099 -5.566406,25.53125 4.611406,3.853256 17.66093,-5.212149 23.878906,-9.970703 -1.350893,-0.315517 -2.69936,-0.747682 -4.029297,-1.296875 -4.71579,3.316029 -11.371278,7.210934 -14.03125,4.988282 -2.571094,-2.148389 -0.136986,-9.153865 2.251953,-14.466797 -1.033058,-1.52319 -1.871871,-3.130636 -2.503906,-4.785157 z" />
-      <rect
-         style="font-variation-settings:'opsz' 32;display:inline;opacity:0.953035;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:3.908;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;paint-order:fill markers stroke"
-         id="rect8"
-         width="40.59251"
-         height="46.639668"
-         x="34.495842"
-         y="-8.6383438"
-         ry="23.319834"
-         transform="rotate(120)"
-         rx="20.296255"
-         inkscape:label="Planet" />
+      <path
+         d="m -42.997912,18.99929 c -7.190487,0.05196 -13.794878,3.364949 -17.308667,9.45101 -5.622063,9.737699 -1.140911,22.777533 10.047434,29.237127 11.188344,6.459594 24.722352,3.820587 30.344415,-5.917111 5.622062,-9.737698 1.140911,-22.777533 -10.047434,-29.237127 -4.195629,-2.422348 -8.721456,-3.565077 -13.035748,-3.533899 z m 1.159367,8.473918 c 2.58268,-0.01866 5.291452,0.665281 7.803097,2.11538 6.69772,3.86693 9.380624,11.672788 6.015069,17.502101 -3.365556,5.829314 -11.467763,7.409509 -18.165483,3.542579 -6.697719,-3.86693 -9.380624,-11.672788 -6.015068,-17.502101 2.103472,-3.643321 6.057917,-5.626852 10.362385,-5.657959 z"
+         style="font-variation-settings:'opsz' 32;display:inline;opacity:0.953035;fill:#ffffff;stroke-width:3.908;stroke-linecap:round;stroke-linejoin:round;paint-order:fill markers stroke"
+         id="path1" />
     </g>
   </g>
   <metadata
