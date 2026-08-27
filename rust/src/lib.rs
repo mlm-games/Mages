@@ -908,15 +908,14 @@ impl Client {
             };
 
             {
-                let mut rooms = timeline_rooms.lock().unwrap();
-                let count = rooms.entry(room_id.clone()).or_insert(0usize);
-                *count += 1;
-                if *count == 1 {
-                    let core = core.clone();
-                    let rid = room_id.clone();
-                    spawn_detached!(async move {
-                        core.subscribe_room_full_timeline_when_ready(&rid).await;
-                    });
+                let is_first = {
+                    let mut rooms = timeline_rooms.lock().unwrap();
+                    let count = rooms.entry(room_id.clone()).or_insert(0usize);
+                    *count += 1;
+                    *count == 1
+                };
+                if is_first {
+                    core.subscribe_room_full_timeline_when_ready(&room_id).await;
                 }
             }
 

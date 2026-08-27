@@ -201,6 +201,7 @@ class RoomViewModel(
     private val syncedActiveBeaconIds = MutableStateFlow<Set<String>>(emptySet())
     private var liveLocationBeaconToken: ULong? = null
     private val paginateLock = kotlinx.coroutines.sync.Mutex()
+    private val thumbnailFetchInFlight = mutableSetOf<String>()
 
     init {
         LiveLocationSharingCoordinator.onLocationDispatched = { lat, lon ->
@@ -2147,12 +2148,6 @@ class RoomViewModel(
         var didClear = false
 
         updateState {
-            val resetValues = (diff as? TimelineDiff.Reset)?.items
-
-            if (resetValues != null && resetValues.isEmpty() && allEvents.isNotEmpty()) {
-                return@updateState this
-            }
-
             if (diff is TimelineDiff.RemoveByItemId) {
                 val isLocalEcho = allEvents.any {
                     it.itemId == diff.itemId &&
@@ -2340,28 +2335,40 @@ class RoomViewModel(
         if (settings.value.blockMediaPreviews) return
 
         events.forEach { ev ->
-            if (currentState.thumbByEvent.containsKey(ev.eventId)) return@forEach
-            if (ev.eventId.isBlank()) return@forEach
+            ensureThumbnail(ev)
+        }
+    }
 
-            val a = ev.attachment
-            val s = ev.sticker
-            when {
-                a != null -> {
-                    if (a.kind != AttachmentKind.Image && a.kind != AttachmentKind.Video && a.thumbnailMxcUri == null) return@forEach
-                    a.thumbnailMxcUri ?: a.mxcUri
-                }
-                s != null -> s.thumbnailMxcUri ?: s.mxcUri
-                else -> return@forEach
-            } ?: return@forEach
+    fun ensureThumbnail(event: MessageEvent) {
+        if (settings.value.blockMediaPreviews) return
+        if (event.eventId.isBlank()) return
+        if (currentState.thumbByEvent.containsKey(event.eventId)) return
+        if (event.eventId in thumbnailFetchInFlight) return
 
-            launch {
+        val a = event.attachment
+        val s = event.sticker
+        val hasValidMedia = when {
+            a != null -> {
+                if (a.kind != AttachmentKind.Image && a.kind != AttachmentKind.Video && a.thumbnailMxcUri == null) false
+                else (a.thumbnailMxcUri ?: a.mxcUri) != null
+            }
+            s != null -> (s.thumbnailMxcUri ?: s.mxcUri) != null
+            else -> false
+        }
+        if (!hasValidMedia) return
+        if (!thumbnailFetchInFlight.add(event.eventId)) return
+
+        launch {
+            try {
                 val thumbRequest = a?.let { service.thumbnailToCache(it, 320, 320, true) }
                     ?: s?.let { service.downloadStickerToCache(it) }
                 thumbRequest?.onSuccess { path ->
                     updateState {
-                        copy(thumbByEvent = thumbByEvent + (ev.eventId to path))
+                        copy(thumbByEvent = thumbByEvent + (event.eventId to path))
                     }
                 }
+            } finally {
+                thumbnailFetchInFlight.remove(event.eventId)
             }
         }
     }

@@ -30,25 +30,13 @@ object TimelineListReducer {
 
             is TimelineDiff.Reset -> {
                 val delta = ArrayList<T>(diff.items.size)
-
                 if (diff.items.isNotEmpty()) {
-                    val resetIds = HashSet<String>(diff.items.size)
+                    val byItem = LinkedHashMap<String, T>(diff.items.size)
                     for (item in diff.items) {
-                        resetIds.add(itemIdOf(item))
+                        byItem[itemIdOf(item)] = item
                         delta.add(item)
                     }
-
-                    val merged = ArrayList<T>(diff.items.size + current.size)
-                    for (item in diff.items) {
-                        upsert(merged, item, itemIdOf, stableIdOf, timeOf, tieOf)
-                    }
-                    for (item in current) {
-                        if (itemIdOf(item) !in resetIds) {
-                            upsert(merged, item, itemIdOf, stableIdOf, timeOf, tieOf)
-                        }
-                    }
-
-                    Result(list = merged, delta = delta, reset = true)
+                    Result(list = byItem.values.toList(), delta = delta, reset = true)
                 } else {
                     Result(list = current, delta = delta, reset = true)
                 }

@@ -1456,6 +1456,15 @@ private fun MessageItem(
 
         val isSelected = state.isSelectionMode && event.eventId in state.selectedEventIds
 
+        LaunchedEffect(event.eventId, state.thumbByEvent[event.eventId]) {
+            val hasThumb = state.thumbByEvent.containsKey(event.eventId)
+            val needsThumb = !hasThumb && (
+                event.attachment?.let { it.kind == org.mlm.mages.AttachmentKind.Image || it.kind == org.mlm.mages.AttachmentKind.Video } == true ||
+                    event.sticker != null
+                )
+            if (needsThumb) viewModel.ensureThumbnail(event)
+        }
+
         // Swipe-to-reply state
         var swipeOffsetPx by remember { mutableFloatStateOf(0f) }
         val animatedSwipeOffsetPx by animateFloatAsState(

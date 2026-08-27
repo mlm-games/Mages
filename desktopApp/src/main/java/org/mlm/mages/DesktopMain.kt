@@ -16,10 +16,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import mages.shared.generated.resources.Res
-import org.maplibre.compose.desktop.DesktopRuntimeOptions
 import org.maplibre.compose.desktop.MapLibre
 import org.maplibre.compose.desktop.ProvideMapHost
-import org.maplibre.compose.desktop.desktopCachePath
 import org.maplibre.compose.desktop.rememberAwtComposeMapHost
 import org.mlm.mages.di.KoinApp
 import org.mlm.mages.nav.DeepLinkAction
@@ -32,9 +30,7 @@ import javax.swing.SwingUtilities
 
 fun main() {
     MapLibre.configure(
-        DesktopRuntimeOptions(
-            cachePath = desktopCachePath("org.mlm.mages"),
-        )
+        applicationId = "org.mlm.mages",
     )
 
     application {

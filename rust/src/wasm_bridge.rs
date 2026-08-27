@@ -1081,16 +1081,9 @@ impl WasmClient {
                 return;
             };
 
-            {
-                let s = s.clone();
-                let rid = rid.clone();
-                spawn_detached!(async move {
-                    let Some(svc) = s.ensure_sync_service().await else {
-                        return;
-                    };
-                    let rls = svc.room_list_service();
-                    rls.subscribe_to_rooms(&[rid.as_ref()]).await;
-                });
+            if let Some(svc) = s.ensure_sync_service().await {
+                let rls = svc.room_list_service();
+                rls.subscribe_to_rooms(&[rid.as_ref()]).await;
             }
 
             {
