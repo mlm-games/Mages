@@ -18,6 +18,19 @@ javafx {
 }
 
 val maplibreRuntime: Provider<MinimalExternalModuleDependency>? = run {
+    // Optional override for offline multi-arch vendoring / Flatpak check.
+    when (providers.gradleProperty("maplibre.desktop.runtime").orNull) {
+        "linux-arm64" -> return@run libs.maplibre.runtime.vulkan.linux.arm64
+        "linux-x64" -> return@run libs.maplibre.runtime.vulkan.linux.x64
+        "macos-arm64" -> return@run libs.maplibre.runtime.metal.macos.arm64
+        "windows-arm64" -> return@run libs.maplibre.runtime.vulkan.windows.arm64
+        "windows-x64" -> return@run libs.maplibre.runtime.vulkan.windows.x64
+        null -> Unit
+        else -> {
+            logger.warn("Unknown maplibre.desktop.runtime value '${providers.gradleProperty("maplibre.desktop.runtime").orNull}'; falling back to host detection")
+        }
+    }
+
     val os = OperatingSystem.current() ?: return@run null
     val arch = System.getProperty("os.arch").lowercase()
     val isArm = arch.contains("aarch64") || arch.contains("arm64")

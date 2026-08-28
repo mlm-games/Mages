@@ -105,9 +105,11 @@ jobs:
 
           JAVAFX_VERSION="$(awk -F'"' '/^javafx = / { print $2; exit }' gradle/libs.versions.toml)"
           COMPOSE_VERSION="$(awk -F'"' '/^composeMultiplatform = / { print $2; exit }' gradle/libs.versions.toml)"
+          MAPLIBRE_VERSION="$(awk -F'"' '/^maplibreCompose = / { print $2; exit }' gradle/libs.versions.toml)"
 
           echo "JavaFX version: ${JAVAFX_VERSION}"
           echo "Compose version: ${COMPOSE_VERSION}"
+          echo "MapLibre version: ${MAPLIBRE_VERSION}"
           echo "Gradle user home: ${GRADLE_USER_HOME}"
 
           echo "Build normal x86_64 distributable once to populate real project cache"
@@ -150,6 +152,7 @@ jobs:
 
           val jfxVersion: String by project
           val composeVersion: String by project
+          val maplibreVersion: String by project
 
           val flatpakOfflineDeps by configurations.creating {
               isCanBeResolved = true
@@ -167,6 +170,10 @@ jobs:
                       flatpakOfflineDeps("org.openjfx:javafx-$module:$jfxVersion:$platform")
                   }
               }
+
+              flatpakOfflineDeps("org.maplibre.compose:maplibre-compose:$maplibreVersion")
+              flatpakOfflineDeps("org.maplibre.compose:maplibre-compose-runtime-vulkan-linux-x64:$maplibreVersion")
+              flatpakOfflineDeps("org.maplibre.compose:maplibre-compose-runtime-vulkan-linux-arm64:$maplibreVersion")
           }
 
           tasks.register("fetchFlatpakOfflineDeps") {
@@ -185,6 +192,7 @@ jobs:
               -g "$GRADLE_USER_HOME" \
               -PjfxVersion="$JAVAFX_VERSION" \
               -PcomposeVersion="$COMPOSE_VERSION" \
+              -PmaplibreVersion="$MAPLIBRE_VERSION" \
               fetchFlatpakOfflineDeps
           )
 
@@ -197,6 +205,7 @@ jobs:
               -g "$GRADLE_USER_HOME" \
               -PjfxVersion="$JAVAFX_VERSION" \
               -PcomposeVersion="$COMPOSE_VERSION" \
+              -PmaplibreVersion="$MAPLIBRE_VERSION" \
               fetchFlatpakOfflineDeps
           )
 
@@ -225,6 +234,23 @@ jobs:
             --no-configuration-cache \
             --no-build-cache \
             -I /tmp/force-javafx-aarch64.init.gradle
+
+          echo "Download MapLibre linux-arm64 runtime the way Flatpak aarch64 will request it"
+          ./gradlew :desktopApp:dependencies \
+            --configuration runtimeClasspath \
+            --no-daemon \
+            --no-configuration-cache \
+            --no-build-cache \
+            -Pmaplibre.desktop.runtime=linux-arm64
+
+          echo "Prove MapLibre linux-arm64 resolves offline"
+          ./gradlew :desktopApp:dependencies \
+            --configuration runtimeClasspath \
+            --offline \
+            --no-daemon \
+            --no-configuration-cache \
+            --no-build-cache \
+            -Pmaplibre.desktop.runtime=linux-arm64
 
           echo "Offline check for actual project on host arch"
           ./gradlew :desktopApp:compileKotlin \
