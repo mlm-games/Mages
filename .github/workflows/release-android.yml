@@ -75,10 +75,11 @@ jobs:
           changelog-path: 'CHANGELOG.md'
           version-file-path: './fastlane/metadata/android/en-US/changelogs/${{ steps.ver.outputs.version_code }}.txt'
           version-code: '${{ steps.ver.outputs.version_code }}'
-          metainfo-path: './packaging/io.github.mlm_games.mages.metainfo.xml'  # TODO: Change here when copying
-          exclude-patterns: 'chore:,ci:,docs:,build:,Bump version,Merge pull request,[skip ci],web:,misc:,s1'
+          metainfo-path: './packaging/io.github.mlm_games.mages.metainfo.xml'
+          exclude-patterns: 'chore:,ci:,docs:,build:,style:,test:,Bump version,bump version,Update release notes,Merge pull request,[skip ci],web:,misc:,dependabot'
           auto-commit: 'true'
-          commit-message: 'Update release notes for v{{version}}'
+          commit-message: 'docs: update release notes for v{{version}} [skip ci]'
+          debug: 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -210,7 +211,7 @@ jobs:
           target_commitish: ${{ needs.prepare-version.outputs.commit_sha }}
           prerelease: ${{ inputs.mark_prerelease }}
           body_path: ./fastlane/metadata/android/en-US/changelogs/${{ needs.prepare-version.outputs.version_code }}.txt
-                    
+          generate_release_notes: true   # fallback only fills if body empty on some softprops versions; keep body_path primary
 
       - name: Dispatch release-desktop.yml
         if: github.event_name == 'workflow_dispatch' && inputs.upload_releases == true
