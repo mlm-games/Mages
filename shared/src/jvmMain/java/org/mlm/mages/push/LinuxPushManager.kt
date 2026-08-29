@@ -1,5 +1,7 @@
 package org.mlm.mages.push
 import co.touchlab.kermit.Logger
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 import org.freedesktop.dbus.Tuple
 import org.freedesktop.dbus.annotations.DBusInterfaceName
@@ -54,7 +56,7 @@ object LinuxPushManager {
         fun Register(args: Map<String, Variant<String>>): Map<String, Variant<String>>
     }
 
-    fun tryRegister(): String? {
+    suspend fun tryRegister(): String? = withContext(Dispatchers.IO) {
         try {
             val c = DBusConnectionBuilder.forSessionBus().build()
             val suffix = UUID.randomUUID().toString()
@@ -80,17 +82,17 @@ object LinuxPushManager {
 
             if (!registered) {
                 c.close()
-                return null
+                return@withContext null
             }
 
             conn = c
             val ep = future.get(30, TimeUnit.SECONDS)
             Logger.w("[UP] endpoint received: $ep")
-            return ep
+            ep
         } catch (e: Exception) {
             conn?.let { try { it.close() } catch (_: Exception) {} }
             conn = null
-            return null
+            null
         }
     }
 

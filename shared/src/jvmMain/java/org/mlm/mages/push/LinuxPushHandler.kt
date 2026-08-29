@@ -8,6 +8,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.mlm.mages.MatrixService
 import org.mlm.mages.NotifierImpl
 import org.mlm.mages.matrix.NotificationKind
@@ -24,14 +25,14 @@ class LinuxPushHandler(
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    suspend fun init(): Boolean {
+    suspend fun init(): Boolean = withContext(Dispatchers.IO) {
         val endpoint = LinuxPushManager.tryRegister() ?: run {
             Logger.w("[UP] push init failed — no endpoint from distributor")
-            return false
+            return@withContext false
         }
         val port = service.portOrNull ?: run {
             Logger.w("[UP] push init failed — no matrix port")
-            return false
+            return@withContext false
         }
 
         val gatewayUrl = GatewayResolver.resolveGateway(endpoint)
@@ -53,7 +54,7 @@ class LinuxPushHandler(
         if (!ok) {
             LinuxPushManager.shutdown()
             Logger.w("[UP] push init failed — registerUnifiedPush returned false")
-            return false
+            return@withContext false
         }
 
         LinuxPushManager.onMessage { raw ->
@@ -63,7 +64,7 @@ class LinuxPushHandler(
         }
 
         Logger.w("[UP] push init succeeded")
-        return true
+        return@withContext true
     }
 
     private suspend fun handlePushMessage(raw: String) {

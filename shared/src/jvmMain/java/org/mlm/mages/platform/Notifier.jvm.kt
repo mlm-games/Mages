@@ -6,9 +6,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import io.github.mlmgames.settings.core.SettingsRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import org.mlm.mages.MatrixService
 import org.mlm.mages.NotifierImpl
 import org.mlm.mages.matrix.NotificationKind
@@ -73,11 +75,12 @@ actual fun BindNotifications(
         if (activeId == null) return@LaunchedEffect
 
         val pushHandler = LinuxPushHandler(service, settingsRepository, activeId)
-        if (pushHandler.init()) {
+        val upOk = withContext(Dispatchers.IO) { pushHandler.init() }
+        if (upOk) {
             try {
                 awaitCancellation()
             } finally {
-                pushHandler.shutdown()
+                withContext(Dispatchers.IO) { pushHandler.shutdown() }
             }
             return@LaunchedEffect
         }
