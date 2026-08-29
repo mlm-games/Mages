@@ -46,6 +46,16 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.10.1" date="2026-08-29" type="stable">
+      <description>
+        <ul>
+          <li>move UnifiedPush initialisation off from the main thread</li>
+          <li>Revert "chore: switch to composenativetray"</li>
+          <li>cchore: flatpak cam flag</li>
+          <li>oled theme missed tokens (for chat bubbles)</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.10.0" date="2026-08-29" type="stable">
       <description>
         <ul>

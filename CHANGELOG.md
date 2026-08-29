@@ -1,3 +1,11 @@
+## v4.10.1
+
+- move UnifiedPush initialisation off from the main thread
+- Revert "chore: switch to composenativetray"
+- cchore: flatpak cam flag
+- oled theme missed tokens (for chat bubbles)
+
+
 ## v4.10.0
 
 - Add Pure Black theme for OLED screens

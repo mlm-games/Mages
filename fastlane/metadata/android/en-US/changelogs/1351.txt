@@ -1,0 +1,4 @@
+- move UnifiedPush initialisation off from the main thread
+- Revert "chore: switch to composenativetray"
+- cchore: flatpak cam flag
+- oled theme missed tokens (for chat bubbles)
