@@ -47,7 +47,7 @@ internal object JcefRuntime {
                 builder.addJcefArgs("--disable-dev-shm-usage")
 
                 if (isFlatpak) {
-                    // disabling jcef sandbox doesn't fix it
+                    builder.addJcefArgs("--enable-features=WebRtcPipeWireCamera")
                 }
 
                 // Test flags
