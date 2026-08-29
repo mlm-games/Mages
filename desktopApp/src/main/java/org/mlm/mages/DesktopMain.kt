@@ -51,37 +51,40 @@ fun main() {
 
     val windowState = rememberWindowState()
 
-    val tray: SystemTray? = remember {
-        SystemTray.DEBUG = false
+    var tray by remember { mutableStateOf<SystemTray?>(null) }
 
-        val osName = System.getProperty("os.name").lowercase()
-        if (osName.contains("mac")) {
-            SystemTray.FORCE_TRAY_TYPE = SystemTray.TrayType.Swing
-        }
+    LaunchedEffect(Unit) {
+        val computedTray = withContext(Dispatchers.IO) {
+            SystemTray.DEBUG = false
 
-        val t = SystemTray.get()
-        if (t == null) {
-            println("SystemTray.get() returned null - no tray available on this platform/configuration.")
+            val osName = System.getProperty("os.name").lowercase()
+            if (osName.contains("mac")) {
+                SystemTray.FORCE_TRAY_TYPE = SystemTray.TrayType.Swing
+            }
+
+            val t = SystemTray.get()
+            if (t == null) {
+                println("SystemTray.get() returned null - no tray available on this platform/configuration.")
+            }
+            t
         }
-        t
+        tray = computedTray
     }
 
     DisposableEffect(tray) {
-        if (tray == null) {
-            return@DisposableEffect onDispose { }
-        }
+        val t = tray ?: return@DisposableEffect onDispose { }
 
         val iconBytes = runBlocking { Res.readBytes("files/tray.png") }
-        tray.setImage(iconBytes.inputStream())
-        tray.setStatus("Mages")
+        t.setImage(iconBytes.inputStream())
+        t.setStatus("Mages")
 
-        tray.menu.add(MenuItem("Show").apply {
+        t.menu.add(MenuItem("Show").apply {
             setCallback {
                 SwingUtilities.invokeLater { showWindow = true }
             }
         })
 
-        tray.menu.add(dorkbox.systemTray.Separator())
+        t.menu.add(dorkbox.systemTray.Separator())
 
         val minimizeItem = MenuItem(
             if (startInTray) "✓ Minimize to tray on launch"
@@ -101,19 +104,19 @@ fun main() {
             }
         }
 
-        tray.menu.add(minimizeItem)
-        tray.menu.add(dorkbox.systemTray.Separator())
+        t.menu.add(minimizeItem)
+        t.menu.add(dorkbox.systemTray.Separator())
 
-        tray.menu.add(MenuItem("Quit").apply {
+        t.menu.add(MenuItem("Quit").apply {
             setCallback {
                 SwingUtilities.invokeLater {
-                    tray.shutdown()
+                    t.shutdown()
                     exitApplication()
                 }
             }
         })
 
-        onDispose { tray.shutdown() }
+        onDispose { t.shutdown() }
     }
 
     LaunchedEffect(Unit) {
