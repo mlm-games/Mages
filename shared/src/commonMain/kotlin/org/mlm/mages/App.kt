@@ -33,10 +33,14 @@ import org.mlm.mages.calls.CallManager
 import org.mlm.mages.matrix.Presence
 import org.mlm.mages.matrix.SasPhase
 import org.mlm.mages.nav.*
+import org.mlm.mages.platform.BindAppLock
 import org.mlm.mages.platform.BindLifecycle
 import org.mlm.mages.platform.BindNotifications
+import org.mlm.mages.platform.BindScreenSecurity
 import org.mlm.mages.platform.LocalAppLocale
+import org.mlm.mages.platform.createAppLockController
 import org.mlm.mages.platform.shouldRequestLocalNetworkPermission
+import org.mlm.mages.ui.components.AppLockScreen
 import org.mlm.mages.ui.components.LocalNetworkPermissionDialogHost
 import org.mlm.mages.ui.components.rememberLocalNetworkPermissionGate
 import org.mlm.mages.platform.ProvideAppLocale
@@ -47,6 +51,7 @@ import org.mlm.mages.platform.rememberQuitApp
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.ThemeMode
 import org.mlm.mages.settings.appLanguageTagOrNull
+import org.mlm.mages.settings.toSeconds
 import org.mlm.mages.ui.GlobalCallOverlay
 import org.mlm.mages.ui.animation.forwardTransition
 import org.mlm.mages.ui.animation.popTransition
@@ -179,6 +184,43 @@ private fun AppContent(
 
             BindLifecycle(service, resetSyncState = true)
 
+            val appLockController = remember { createAppLockController() }
+            val appLockTimeoutSeconds = settings.appLockTimeout.toSeconds()
+            if (currentPlatform == SettingPlatform.ANDROID) {
+                BindAppLock(appLockController, settings.appLockEnabled, appLockTimeoutSeconds)
+                BindScreenSecurity(settings.screenSecurityEnabled)
+            }
+            val isAppLocked by appLockController.isLocked.collectAsState()
+            var previousAppLockEnabled by remember { mutableStateOf(settings.appLockEnabled) }
+            var suppressNextDisablePrompt by remember { mutableStateOf(false) }
+            LaunchedEffect(settings.appLockEnabled) {
+                if (settings.appLockEnabled == previousAppLockEnabled) return@LaunchedEffect
+                val wasEnabled = previousAppLockEnabled
+                val nowEnabled = settings.appLockEnabled
+                previousAppLockEnabled = nowEnabled
+                if (nowEnabled && !wasEnabled) {
+                    if (!appLockController.isAvailable) {
+                        snackbarManager.showError("Set a screen lock in system settings first.")
+                        suppressNextDisablePrompt = true
+                        settingsRepository.update { it.copy(appLockEnabled = false) }
+                    }
+                } else if (!nowEnabled && wasEnabled) {
+                    if (suppressNextDisablePrompt) {
+                        suppressNextDisablePrompt = false
+                        return@LaunchedEffect
+                    }
+                    appLockController.requestUnlock { success ->
+                        if (!success) {
+                            scope.launch {
+                                snackbarManager.showError("Authentication required to disable app lock")
+                                previousAppLockEnabled = true
+                                settingsRepository.update { it.copy(appLockEnabled = true) }
+                            }
+                        }
+                    }
+                }
+            }
+
             LaunchedEffect(activeId) {
                 if (activeId == null || !service.isLoggedInSuspend()) {
                     backStack.clear()
@@ -229,12 +271,14 @@ private fun AppContent(
             }
             val callState by callManager.call.collectAsState()
             val callOverlayActive = callState != null
-            Scaffold(
-                snackbarHost = {
-                    LauncherSnackbarHost(hostState = snackbarHostState, manager = snackbarManager)
-                }
-            ) { _ ->
-                NavDisplay(
+            val appLocked = isAppLocked && settings.appLockEnabled
+            Box(Modifier.fillMaxSize()) {
+                Scaffold(
+                    snackbarHost = {
+                        LauncherSnackbarHost(hostState = snackbarHostState, manager = snackbarManager)
+                    }
+                ) { _ ->
+                    NavDisplay(
                     backStack = backStack,
                     entryDecorators = listOf(
                         rememberSaveableStateHolderNavEntryDecorator(),
@@ -244,6 +288,7 @@ private fun AppContent(
                     popTransitionSpec = popTransition,
                     predictivePopTransitionSpec = { _ -> popTransition.invoke(this) },
                     onBack = {
+                        if (appLocked) return@NavDisplay
                         val top = backStack.lastOrNull()
                         val isInitialLogin = top == Route.Login && backStack.size == 1
                         val isRoomsRoot = top == Route.Rooms
@@ -765,7 +810,13 @@ private fun AppContent(
                             )
                         }
                     }
-                )
+                    )
+                }
+                if (appLocked) {
+                    AppLockScreen(
+                        onUnlock = { appLockController.requestUnlock() }
+                    )
+                }
             }
 
             if (verState.sasFlowId != null && verState.sasPhase != null) {

@@ -29,6 +29,7 @@ import org.mlm.mages.nav.handleMatrixLink
 import org.mlm.mages.nav.parseMatrixLink
 import org.mlm.mages.platform.SettingsProvider
 import org.mlm.mages.platform.AndroidBrowserAuthCoordinator
+import org.mlm.mages.platform.CurrentActivityHolder
 import org.mlm.mages.push.AndroidNotificationHelper
 import org.mlm.mages.push.PREF_INSTANCE
 import org.mlm.mages.push.PusherReconciler
@@ -127,10 +128,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        CurrentActivityHolder.activity = this
+    }
+
+    override fun onPause() {
+        super.onPause()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        CurrentActivityHolder.activity = this
 
         val settingsRepository: SettingsRepository<AppSettings> =
             SettingsProvider.get(applicationContext)

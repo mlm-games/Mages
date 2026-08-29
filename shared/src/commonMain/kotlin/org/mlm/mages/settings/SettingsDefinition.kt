@@ -35,6 +35,25 @@ enum class ThemeMode { System, Light, Dark }
 enum class PresenceMode { Online, Offline, Unavailable }
 
 @Serializable
+enum class AppLockTimeout {
+    Immediate,
+    OneMinute,
+    FiveMinutes, // Well should probable format in kmp-settings
+    ThirtyMinutes,
+    OneHour,
+    Never
+}
+
+fun AppLockTimeout.toSeconds(): Long = when (this) {
+    AppLockTimeout.Immediate -> 0L
+    AppLockTimeout.OneMinute -> 60L
+    AppLockTimeout.FiveMinutes -> 300L
+    AppLockTimeout.ThirtyMinutes -> 1800L
+    AppLockTimeout.OneHour -> 3600L
+    AppLockTimeout.Never -> -1L
+}
+
+@Serializable
 enum class HideInRoomsMode { Never, PublicRooms, NonDMs, Always }
 
 @Serializable
@@ -410,6 +429,34 @@ data class AppSettings(
         type = Dropdown::class,
     )
     val presence: PresenceMode = PresenceMode.Online,
+
+    @Setting(
+        title = "App lock",
+        description = "Require biometrics or device PIN to open",
+        category = Privacy::class,
+        type = Toggle::class,
+        platforms = [SettingPlatform.ANDROID],
+    )
+    val appLockEnabled: Boolean = false,
+
+    @Setting(
+        title = "App lock timeout",
+        description = "Lock after this much time in the background",
+        category = Privacy::class,
+        type = Dropdown::class,
+        dependsOn = "appLockEnabled",
+        platforms = [SettingPlatform.ANDROID],
+    )
+    val appLockTimeout: AppLockTimeout = AppLockTimeout.OneMinute,
+
+    @Setting(
+        title = "Screen security",
+        description = "Block screenshots and hide content in the app switcher",
+        category = Privacy::class,
+        type = Toggle::class,
+        platforms = [SettingPlatform.ANDROID],
+    )
+    val screenSecurityEnabled: Boolean = false,
 
 //    @Setting(
 //        type = TextInput::class,

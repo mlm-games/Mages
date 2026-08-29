@@ -18,6 +18,7 @@ import org.koin.core.qualifier.named
 import org.koin.java.KoinJavaComponent
 import org.mlm.mages.calls.CallManager
 import org.mlm.mages.di.appModules
+import org.mlm.mages.platform.CurrentActivityHolder
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.SettingsProvider
 import org.mlm.mages.platform.LiveLocationSharingCoordinator
@@ -126,6 +127,26 @@ class MagesApp : Application() {
             }
             LiveLocationSharingCoordinator.recover()
         }
+
+        registerActivityLifecycleCallbacks(object : android.app.Application.ActivityLifecycleCallbacks {
+            override fun onActivityCreated(activity: android.app.Activity, savedInstanceState: android.os.Bundle?) {
+                CurrentActivityHolder.activity = activity
+            }
+            override fun onActivityStarted(activity: android.app.Activity) {
+                CurrentActivityHolder.activity = activity
+            }
+            override fun onActivityResumed(activity: android.app.Activity) {
+                CurrentActivityHolder.activity = activity
+            }
+            override fun onActivityPaused(activity: android.app.Activity) {}
+            override fun onActivityStopped(activity: android.app.Activity) {}
+            override fun onActivitySaveInstanceState(activity: android.app.Activity, outState: android.os.Bundle) {}
+            override fun onActivityDestroyed(activity: android.app.Activity) {
+                if (CurrentActivityHolder.activity === activity) {
+                    CurrentActivityHolder.activity = null
+                }
+            }
+        })
 
         Logger.i("App initialized")
 

@@ -107,6 +107,8 @@ kotlin {
                 implementation(libs.koin.android)
                 implementation(libs.androidx.webkit)
                 implementation(libs.embedded.fcm.distributor)
+                implementation(libs.androidx.biometric)
+                implementation(libs.androidx.lifecycle.process)
 
                 runtimeOnly(libs.maplibre.runtime.vulkan.android)
             }
