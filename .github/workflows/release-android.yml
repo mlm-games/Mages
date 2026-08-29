@@ -13,6 +13,16 @@ on:
         required: true
         default: false
         type: boolean
+      bump_type:
+        description: 'Version bump type'
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - none
+          - patch
+          - minor
+          - major
   schedule:
     - cron: '0 0 1 */2 *' # every other month
 
@@ -57,15 +67,36 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          BUMP_TYPE="${{ inputs.bump_type || 'patch' }}"
           OLD_CODE=$(grep -m1 "versionCode" $BUILD_GRADLE_PATH | grep -oE '[0-9]+')
           OLD_NAME=$(grep -m1 "versionName" $BUILD_GRADLE_PATH | grep -oE '"([^"]+)"' | tr -d '"')
-          IFS='.' read -r MAJ MIN PAT <<<"${OLD_NAME:-0.1.0}"
-          NEW_CODE=$(( ${OLD_CODE:-1} + 10 ))
-          NEW_NAME="$MAJ.$MIN.$(( ${PAT:-0} + 1 ))"
-          sed -i "s/versionCode = $OLD_CODE/versionCode = $NEW_CODE/" $BUILD_GRADLE_PATH
-          sed -i "s/versionName = \"$OLD_NAME\"/versionName = \"$NEW_NAME\"/" $BUILD_GRADLE_PATH
+          case "$BUMP_TYPE" in
+            major|minor|patch)
+              NEW_CODE=$(( ${OLD_CODE:-1} + 10 ))
+              IFS='.' read -r MAJ MIN PAT <<<"${OLD_NAME:-0.1.0}"
+              MAJ=${MAJ:-0}; MIN=${MIN:-0}; PAT=${PAT:-0}
+              case "$BUMP_TYPE" in
+                major) MAJ=$((MAJ + 1)); MIN=0; PAT=0 ;;
+                minor) MIN=$((MIN + 1)); PAT=0 ;;
+                patch) PAT=$((PAT + 1)) ;;
+              esac
+              NEW_NAME="$MAJ.$MIN.$PAT"
+              sed -i "s/versionCode = $OLD_CODE/versionCode = $NEW_CODE/" $BUILD_GRADLE_PATH
+              sed -i "s/versionName = \"$OLD_NAME\"/versionName = \"$NEW_NAME\"/" $BUILD_GRADLE_PATH
+              ;;
+            none)
+              NEW_CODE="$OLD_CODE"
+              NEW_NAME="$OLD_NAME"
+              echo "Skipping version bump (bump_type=none)"
+              ;;
+            *)
+              echo "::error::Unknown bump_type: $BUMP_TYPE"
+              exit 1
+              ;;
+          esac
           echo "version_name=$NEW_NAME" >> $GITHUB_OUTPUT
           echo "version_code=$NEW_CODE" >> $GITHUB_OUTPUT
+          echo "Bumped $OLD_NAME ($OLD_CODE) -> $NEW_NAME ($NEW_CODE) via $BUMP_TYPE"
 
       - id: notes
         name: Generate Release Notes
