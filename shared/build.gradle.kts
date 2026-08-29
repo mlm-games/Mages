@@ -124,6 +124,7 @@ kotlin {
                 implementation(libs.dbus.java.core)
                 implementation(libs.dbus.java.transport.native.unixsocket)
                 implementation(libs.slf4j.simple)
+                implementation(libs.systemtray)
                 implementation(libs.jcefmaven)
                 implementation(libs.json)
             }

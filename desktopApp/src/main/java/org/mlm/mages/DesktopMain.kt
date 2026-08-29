@@ -6,12 +6,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import com.kdroid.composetray.tray.api.Tray
+import dorkbox.systemTray.MenuItem
+import dorkbox.systemTray.SystemTray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import mages.shared.generated.resources.Res
 import org.maplibre.compose.desktop.MapLibre
@@ -35,11 +37,12 @@ fun main() {
         MagesPaths.init()
 
     val settingsRepo = remember { SettingsProvider.get() }
+    val initialStartInTray = remember {
+        runBlocking { settingsRepo.flow.first().startInTray }
+    }
 
-    var startInTray by remember { mutableStateOf(false) }
-    var startInTrayLoaded by remember { mutableStateOf(false) }
-    var showWindow by remember { mutableStateOf(false) } // Start hidden, will show if needed
-    var trayReady by remember { mutableStateOf(false) }
+    var startInTray by remember { mutableStateOf(initialStartInTray) }
+    var showWindow by remember { mutableStateOf(!startInTray) }
 
     val deepLinkEmitter = remember { MutableSharedFlow<DeepLinkAction>(extraBufferCapacity = 8) }
     val deepLinks = remember { deepLinkEmitter.asSharedFlow() }
@@ -48,82 +51,69 @@ fun main() {
 
     val windowState = rememberWindowState()
 
-    LaunchedEffect(Unit) {
-        val initial = withContext(Dispatchers.IO) {
-            runCatching { settingsRepo.flow.first().startInTray }.getOrDefault(false)
+    val tray: SystemTray? = remember {
+        SystemTray.DEBUG = false
+
+        val osName = System.getProperty("os.name").lowercase()
+        if (osName.contains("mac")) {
+            SystemTray.FORCE_TRAY_TYPE = SystemTray.TrayType.Swing
         }
-        startInTray = initial
-        startInTrayLoaded = true
-        showWindow = !initial
-        println("[tray] startInTray loaded: $initial, showWindow=$showWindow")
+
+        val t = SystemTray.get()
+        if (t == null) {
+            println("SystemTray.get() returned null - no tray available on this platform/configuration.")
+        }
+        t
     }
 
-    Tray(
-        iconPath = Res.getUri("files/tray.png"),
-        tooltip = "Mages",
-        primaryAction = {
-            println("[tray] primaryAction -> show window")
-            SwingUtilities.invokeLater { showWindow = true }
-        },
-        onMenuOpened = {
-            if (!trayReady) {
-                println("[tray] onMenuOpened -> trayReady=true")
-                trayReady = true
+    DisposableEffect(tray) {
+        if (tray == null) {
+            return@DisposableEffect onDispose { }
+        }
+
+        val iconBytes = runBlocking { Res.readBytes("files/tray.png") }
+        tray.setImage(iconBytes.inputStream())
+        tray.setStatus("Mages")
+
+        tray.menu.add(MenuItem("Show").apply {
+            setCallback {
+                SwingUtilities.invokeLater { showWindow = true }
+            }
+        })
+
+        tray.menu.add(dorkbox.systemTray.Separator())
+
+        val minimizeItem = MenuItem(
+            if (startInTray) "✓ Minimize to tray on launch"
+            else "Minimize to tray on launch"
+        )
+
+        minimizeItem.setCallback {
+            SwingUtilities.invokeLater {
+                startInTray = !startInTray
+                minimizeItem.text =
+                    if (startInTray) "✓ Minimize to tray on launch"
+                    else "Minimize to tray on launch"
+            }
+
+            scope.launch {
+                settingsRepo.update { it.copy(startInTray = startInTray) }
             }
         }
-    ) {
-        Item(label = "Show") {
-            println("[tray] Show clicked -> showWindow=true (was $showWindow)")
-            SwingUtilities.invokeLater { showWindow = true }
-        }
-        Divider()
-        CheckableItem(
-            label = "Minimize to tray on launch",
-            checked = startInTray,
-            onCheckedChange = { checked ->
-                println("[tray] minimize to tray toggled: $checked (was $startInTray)")
-                startInTray = checked
-                scope.launch {
-                    settingsRepo.update { it.copy(startInTray = checked) }
-                    println("[tray] persisted startInTray=$checked")
+
+        tray.menu.add(minimizeItem)
+        tray.menu.add(dorkbox.systemTray.Separator())
+
+        tray.menu.add(MenuItem("Quit").apply {
+            setCallback {
+                SwingUtilities.invokeLater {
+                    tray.shutdown()
+                    exitApplication()
                 }
             }
-        )
-        Divider()
-        Item(label = "Quit") {
-            println("[tray] Quit clicked")
-            SwingUtilities.invokeLater { exitApplication() }
-        }
-    }
+        })
 
-    LaunchedEffect(startInTrayLoaded, startInTray) {
-        if (!startInTrayLoaded) return@LaunchedEffect
-        if (startInTray) {
-            println("[tray] startInTray=true -> waiting briefly for tray registration")
-            kotlinx.coroutines.delay(500) // time to register with StatusNotifierWatcher
-            println("[tray] ensuring window hidden")
-            showWindow = false
-        } else if (!showWindow) {
-            println("[tray] startInTray=false -> showing window")
-            showWindow = true
-        }
-    }
-
-    LaunchedEffect(startInTray) {
-        if (!startInTrayLoaded) return@LaunchedEffect
-        if (startInTray && showWindow) {
-            println("[tray] startInTray changed to true -> hiding window")
-            showWindow = false
-        } else if (!startInTray && !showWindow) {
-            println("[tray] startInTray changed to false -> showing window")
-            showWindow = true
-        }
-    }
-
-    LaunchedEffect(showWindow) {
-        if (!showWindow) {
-            Notifier.setWindowFocused(false)
-        }
+        onDispose { tray.shutdown() }
     }
 
     LaunchedEffect(Unit) {
@@ -134,6 +124,13 @@ fun main() {
             } else {
                 println("Skipping NotifierImpl warmup: D-Bus is not supported on $osName")
             }
+        }
+    }
+
+    // Keep notification state when the window is hidden to the tray.
+    LaunchedEffect(showWindow) {
+        if (!showWindow) {
+            Notifier.setWindowFocused(false)
         }
     }
 
