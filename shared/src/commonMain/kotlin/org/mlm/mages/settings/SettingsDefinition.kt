@@ -85,6 +85,14 @@ data class AppSettings(
     val dynamicColors: Boolean = false,
 
     @Setting(
+        title = "Pure black (OLED)",
+        category = Appearance::class,
+        type = Toggle::class,
+        key = "oled_black"
+    )
+    val oledBlack: Boolean = false,
+
+    @Setting(
         title = "Language",
         description = "System / English / Spanish",
         category = Appearance::class,

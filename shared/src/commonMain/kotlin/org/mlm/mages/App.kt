@@ -157,7 +157,8 @@ private fun AppContent(
     ProvideAppLocale(settings.appLanguageTagOrNull()) {
         MainTheme(
             darkTheme = isDark,
-            dynamicColors = settings.dynamicColors
+            dynamicColors = settings.dynamicColors,
+            oledBlack = settings.oledBlack
         ) {
             val languageTag = LocalAppLocale.current
             val scope = rememberCoroutineScope()

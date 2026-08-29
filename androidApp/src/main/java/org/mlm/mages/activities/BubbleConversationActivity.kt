@@ -80,7 +80,7 @@ class BubbleConversationActivity : ComponentActivity() {
                 ThemeMode.Light -> false
             }
 
-            MainTheme(isDark, settings.dynamicColors) {
+            MainTheme(isDark, settings.dynamicColors, settings.oledBlack) {
                 if (!ready) {
                     LoadingIndicator()
                 } else {
