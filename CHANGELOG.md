@@ -1,3 +1,9 @@
+## v4.10.0
+
+- Add Pure Black theme for OLED screens
+- Add settings to configure App lock
+
+
 ## v4.9.13
 
 

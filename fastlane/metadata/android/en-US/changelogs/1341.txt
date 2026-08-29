@@ -1,0 +1,2 @@
+- Add Pure Black theme for OLED screens
+- Add settings to configure App lock

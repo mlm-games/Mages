@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.10.0" date="2026-08-29" type="stable">
+      <description>
+        <ul>
+          <li>Add Pure Black theme for OLED screens</li>
+          <li>Add settings to configure App lock</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.9.13" date="2026-08-27" type="stable">
       <description>
         <ul/>
