@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -78,6 +79,8 @@ import org.maplibre.spatialk.geojson.FeatureCollection
 import org.maplibre.spatialk.geojson.Point
 import org.maplibre.spatialk.geojson.Position
 import org.mlm.mages.matrix.LiveLocationShare
+import org.mlm.mages.platform.LiveLocationProvider
+import org.mlm.mages.platform.LocationResult
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.ThemeMode
 import org.mlm.mages.ui.components.core.Avatar
@@ -216,6 +219,7 @@ actual fun LiveLocationMapViewer(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    var isCentering by remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var selectedUserId by remember { mutableStateOf<String?>(null) }
@@ -295,13 +299,34 @@ actual fun LiveLocationMapViewer(
                     Icon(Icons.Default.Close, contentDescription = "Close")
                 }
 
-                if (onCenterOnMyLocation != null) {
-                    FilledIconButton(
-                        onClick = onCenterOnMyLocation,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(end = 72.dp, top = 16.dp),
-                    ) {
+                FilledIconButton(
+                    onClick = {
+                        if (onCenterOnMyLocation != null) {
+                            onCenterOnMyLocation()
+                        } else {
+                            scope.launch {
+                                isCentering = true
+                                val result = LiveLocationProvider().getCurrentLocation()
+                                if (result is LocationResult.Success) {
+                                    cameraState.animateTo(
+                                        CameraPosition(
+                                            target = Position(result.location.longitude, result.location.latitude),
+                                            zoom = 15.0
+                                        )
+                                    )
+                                }
+                                isCentering = false
+                            }
+                        }
+                    },
+                    enabled = !isCentering,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(end = 72.dp, top = 16.dp),
+                ) {
+                    if (isCentering) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    } else {
                         Icon(Icons.Default.MyLocation, contentDescription = "Center on my location")
                     }
                 }
@@ -320,39 +345,19 @@ actual fun LiveLocationMapViewer(
                         },
                 )
 
-                Column(
+                Button(
+                    onClick = {
+                        val target = cameraState.position.target
+                        onSendPickedLocation?.invoke(target.latitude, target.longitude)
+                    },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(24.dp)
                         .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Button(
-                        onClick = { onSendCurrentLocation?.invoke() },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        ),
-                    ) {
-                        Icon(Icons.Default.MyLocation, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Send my current location")
-                    }
-                    Button(
-                        onClick = {
-                            val target = cameraState.position.target
-                            onSendPickedLocation?.invoke(target.latitude, target.longitude)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        ),
-                    ) {
-                        Icon(Icons.Default.LocationOn, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Send this location")
-                    }
+                    Icon(Icons.Default.LocationOn, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Send this location")
                 }
             }
         } else {

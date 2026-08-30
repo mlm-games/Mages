@@ -33,17 +33,22 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import io.github.mlmgames.settings.core.SettingsRepository
 import org.koin.compose.koinInject
+import kotlinx.coroutines.launch
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.camera.rememberCameraState
 import org.maplibre.compose.map.MaplibreMap
 import org.maplibre.compose.style.BaseStyle
 import org.maplibre.spatialk.geojson.Position
+import org.mlm.mages.platform.LiveLocationProvider
+import org.mlm.mages.platform.LocationResult
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.ThemeMode
 
@@ -78,6 +83,8 @@ actual fun StaticLocationPicker(
             zoom = 2.0,
         )
     )
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var isCentering by remember { mutableStateOf(false) }
 
     val cameraPos by remember { derivedStateOf<Position> { cameraState.position.target } }
     LaunchedEffect(cameraPos) {
@@ -121,8 +128,31 @@ actual fun StaticLocationPicker(
                         }
                     },
                     actions = {
-                        if (onCenterOnMyLocation != null) {
-                            FilledIconButton(onClick = onCenterOnMyLocation) {
+                        FilledIconButton(
+                            onClick = {
+                                if (onCenterOnMyLocation != null) {
+                                    onCenterOnMyLocation()
+                                } else {
+                                    scope.launch {
+                                        isCentering = true
+                                        val result = LiveLocationProvider().getCurrentLocation()
+                                        if (result is LocationResult.Success) {
+                                            cameraState.animateTo(
+                                                CameraPosition(
+                                                    target = Position(result.location.longitude, result.location.latitude),
+                                                    zoom = 15.0
+                                                )
+                                            )
+                                        }
+                                        isCentering = false
+                                    }
+                                }
+                            },
+                            enabled = !isCentering
+                        ) {
+                            if (isCentering) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            } else {
                                 Icon(Icons.Default.MyLocation, contentDescription = "Center on my location")
                             }
                         }
@@ -144,30 +174,15 @@ actual fun StaticLocationPicker(
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                     }
                 } else {
-                    Column(
+                    Button(
+                        onClick = { onSendPickedLocation(pickedLatState.value, pickedLonState.value) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
                     ) {
-                        Button(
-                            onClick = onSendCurrentLocation,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Icon(Icons.Default.MyLocation, null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Send my current location")
-                        }
-
-                        Spacer(Modifier.height(12.dp))
-
-                        Button(
-                            onClick = { onSendPickedLocation(pickedLatState.value, pickedLonState.value) },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Icon(Icons.Default.LocationOn, null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Send this location")
-                        }
+                        Icon(Icons.Default.LocationOn, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Send this location")
                     }
                 }
             }
