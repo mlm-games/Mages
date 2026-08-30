@@ -20,6 +20,7 @@ import androidx.core.app.Person
 import androidx.core.app.RemoteInput
 import androidx.core.net.toUri
 import io.github.mlmgames.settings.core.SettingsRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.koin.core.component.KoinComponent
@@ -184,7 +185,7 @@ object AndroidNotificationHelper : KoinComponent {
     ): PendingIntent? {
         val settingsRepo: SettingsRepository<AppSettings> by inject()
 
-        val showCallScreen = runBlocking { settingsRepo.flow.first().showIncomingCallScreen }
+        val showCallScreen = runBlocking(Dispatchers.IO) { settingsRepo.flow.first().showIncomingCallScreen }
         if (!showCallScreen) return null
 
         // Do not kick the user into system settings during an incoming call.

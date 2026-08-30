@@ -15,9 +15,10 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.github.mlmgames.settings.core.SettingsRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.koin.core.context.GlobalContext
 import org.mlm.mages.MatrixService
@@ -73,7 +74,7 @@ actual object Notifier {
         currentRoomId = roomId
         if (roomId != null) {
             val ctx = appContextOrNull() ?: return
-            runBlocking {
+            CoroutineScope(Dispatchers.IO).launch {
                 val settingsRepo = SettingsProvider.get(ctx)
                 val settings = settingsRepo.flow.first()
                 val notifiedRooms = parseNotifiedRooms(settings.notifiedRoomsJson)

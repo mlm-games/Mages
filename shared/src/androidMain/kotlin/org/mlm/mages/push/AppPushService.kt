@@ -99,7 +99,7 @@ class AppPushService : PushService(), KoinComponent {
         removeEndpoint(applicationContext, instance)
 
         val settingsRepo = SettingsProvider.get(applicationContext)
-        val autoRegister = runBlocking { settingsRepo.flow.first().autoRegisterPushDistributor }
+        val autoRegister = runBlocking(Dispatchers.IO) { settingsRepo.flow.first().autoRegisterPushDistributor }
         if (autoRegister) {
             PushManager.registerSilently(applicationContext, instance)
         } else {

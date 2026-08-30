@@ -8,6 +8,7 @@ import io.github.mlmgames.settings.core.managers.MigrationManager
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.AppSettingsSchema
@@ -25,7 +26,7 @@ object SettingsProvider {
             val migrationManager = MigrationManager(dataStore, currentVersion = 2)
                 .addMigration(EnumIntToStringMigration())
 
-            runBlocking {
+            runBlocking(Dispatchers.IO) {
                 migrationManager.migrate()
             }
 
