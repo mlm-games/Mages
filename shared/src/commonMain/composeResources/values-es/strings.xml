@@ -451,4 +451,6 @@
     <string name="picker_live_location_sub">Compartir tu ubicacion en tiempo real</string>
     <string name="banner_is_sharing">%1$s esta compartiendo ubicacion</string>
     <string name="banner_people_sharing">%1$d personas compartiendo ubicacion</string>
+    <string name="timeline_shared_live_location">compartio ubicacion en vivo</string>
+    <string name="timeline_shared_location">compartio una ubicacion</string>
 </resources>

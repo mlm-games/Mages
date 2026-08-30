@@ -23,8 +23,13 @@ import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.EventType
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.ThemeMode
+import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatTime
+import org.jetbrains.compose.resources.stringResource
+import mages.shared.generated.resources.Res
+import mages.shared.generated.resources.timeline_shared_live_location
+import mages.shared.generated.resources.timeline_shared_location
 
 internal fun parseGeoUri(geoUri: String?): Pair<Double, Double>? {
     if (geoUri.isNullOrBlank()) return null
@@ -56,6 +61,8 @@ fun TimelineLocationItem(
     isLive: Boolean = event.liveLocation?.isLive == true,
     onClick: () -> Unit,
     onStopLiveLocation: (() -> Unit)? = null,
+    senderDisplayName: String? = null,
+    senderAvatarPath: String? = null,
     modifier: Modifier = Modifier,
 ) {
     if (event.eventType != EventType.LiveLocation && event.eventType != EventType.Location) return
@@ -81,6 +88,54 @@ fun TimelineLocationItem(
             .fillMaxWidth(),
     ) {
         Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+                    .padding(top = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val displayName = senderDisplayName ?: event.senderDisplayName ?: event.sender.substringAfter("@").substringBefore(":")
+                val avatarPath = senderAvatarPath ?: event.senderAvatarUrl
+                Avatar(name = displayName, avatarPath = avatarPath, size = 24.dp)
+                Spacer(Modifier.width(Spacing.sm))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = displayName,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = stringResource(if (isLive) Res.string.timeline_shared_live_location else Res.string.timeline_shared_location),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+                Text(
+                    text = formatTime(event.timestampMs),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+                if (isOwnActiveShare && onStopLiveLocation != null) {
+                    Spacer(Modifier.width(Spacing.sm))
+                    IconButton(
+                        onClick = onStopLiveLocation,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        ),
+                        modifier = Modifier.size(32.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Stop sharing",
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+            }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -113,113 +168,6 @@ fun TimelineLocationItem(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onError,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        )
-                    }
-
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.92f),
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    Icons.Default.LocationOn,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            }
-
-                            Spacer(Modifier.width(Spacing.sm))
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = if (isBodyGeo && coordText != null) coordText else body,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                    text = formatTime(event.timestampMs),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.outline,
-                                )
-                            }
-
-                            if (isOwnActiveShare && onStopLiveLocation != null) {
-                                Spacer(Modifier.width(Spacing.sm))
-                                IconButton(
-                                    onClick = onStopLiveLocation,
-                                    colors = IconButtonDefaults.iconButtonColors(
-                                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                    ),
-                                    modifier = Modifier.size(32.dp),
-                                ) {
-                                    Icon(
-                                        Icons.Default.Close,
-                                        contentDescription = "Stop sharing",
-                                        modifier = Modifier.size(18.dp),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (!isLive) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            Icons.Default.LocationOn,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
-
-                    Spacer(Modifier.width(Spacing.sm))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = if (isBodyGeo && coordText != null) coordText else body,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = formatTime(event.timestampMs),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline,
                         )
                     }
                 }

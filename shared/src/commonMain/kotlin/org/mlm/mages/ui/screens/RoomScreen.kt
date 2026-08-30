@@ -755,6 +755,8 @@ fun RoomScreen(
                                                 isOwnActiveShare = event.sender == state.myUserId && belongsToActiveSession && activeShare?.isLive == true,
                                                 onClick = { viewModel.showLiveLocationMap() },
                                                 onStopLiveLocation = if (event.sender == state.myUserId) viewModel::stopLiveLocation else null,
+                                                senderDisplayName = event.senderDisplayName,
+                                                senderAvatarPath = state.avatarByUserId[event.sender] ?: event.senderAvatarUrl,
                                             )
                                         } else if (event.eventType == EventType.Location) {
                                             val coords = event.liveLocation?.geoUri?.let { parseGeoUri(it) }
@@ -765,6 +767,8 @@ fun RoomScreen(
                                                         viewModel.showStaticLocationViewer(lat, lon)
                                                     }
                                                 },
+                                                senderDisplayName = event.senderDisplayName,
+                                                senderAvatarPath = state.avatarByUserId[event.sender] ?: event.senderAvatarUrl,
                                             )
                                         } else {
                                             SystemMessageItem(event = event)

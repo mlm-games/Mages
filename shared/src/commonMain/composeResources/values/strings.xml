@@ -443,4 +443,6 @@
     <string name="picker_live_location_sub">Share your real-time location</string>
     <string name="banner_is_sharing">%1$s is sharing location</string>
     <string name="banner_people_sharing">%1$d people sharing location</string>
+    <string name="timeline_shared_live_location">shared live location</string>
+    <string name="timeline_shared_location">shared a location</string>
 </resources>
