@@ -19,6 +19,7 @@ import androidx.core.location.LocationManagerCompat
 import androidx.core.location.LocationRequestCompat
 import androidx.core.os.ExecutorCompat
 import org.mlm.mages.MainActivity
+import org.mlm.mages.R
 import org.mlm.mages.platform.LiveLocationSharingCoordinator
 
 class LiveLocationSharingForegroundService : Service() {
@@ -128,10 +129,13 @@ class LiveLocationSharingForegroundService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
+        val title = getString(R.string.notif_live_location_title)
+        val text = if (roomCount == 1) getString(R.string.notif_live_location_single)
+        else getString(R.string.notif_live_location_plural, roomCount)
         return NotificationCompat.Builder(this, AppNotificationChannels.CHANNEL_LIVE_LOCATION)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-            .setContentTitle("Sharing live location")
-            .setContentText(if (roomCount == 1) "1 room" else "$roomCount rooms")
+            .setContentTitle(title)
+            .setContentText(text)
             .setOngoing(true)
             .setContentIntent(openPendingIntent)
             .build()

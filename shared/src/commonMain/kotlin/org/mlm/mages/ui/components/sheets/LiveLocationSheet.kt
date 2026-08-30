@@ -11,6 +11,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.ui.theme.Spacing
+import org.jetbrains.compose.resources.stringResource
+import mages.shared.generated.resources.Res
+import mages.shared.generated.resources.live_location_active_desc
+import mages.shared.generated.resources.live_location_inactive_desc
+import mages.shared.generated.resources.live_location_duration_15m
+import mages.shared.generated.resources.live_location_duration_1h
+import mages.shared.generated.resources.live_location_duration_8h
+import mages.shared.generated.resources.live_location_shared_with_members
+import mages.shared.generated.resources.live_location_share_for
+import mages.shared.generated.resources.live_location_start_sharing
+import mages.shared.generated.resources.live_location_starting
+import mages.shared.generated.resources.live_location_stop_sharing
+import mages.shared.generated.resources.live_location_title_share
+import mages.shared.generated.resources.live_location_title_sharing
 
 @Composable
 fun LiveLocationSheet(
@@ -22,9 +36,9 @@ fun LiveLocationSheet(
 ) {
     var selectedDuration by remember { mutableIntStateOf(15) }
     val durations = listOf(
-        15 to "15 minutes",
-        60 to "1 hour",
-        480 to "8 hours"
+        15 to stringResource(Res.string.live_location_duration_15m),
+        60 to stringResource(Res.string.live_location_duration_1h),
+        480 to stringResource(Res.string.live_location_duration_8h)
     )
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -46,7 +60,7 @@ fun LiveLocationSheet(
             Spacer(Modifier.height(Spacing.lg))
 
             Text(
-                if (isCurrentlySharing) "Sharing Your Location" else "Share Live Location",
+                stringResource(if (isCurrentlySharing) Res.string.live_location_title_sharing else Res.string.live_location_title_share),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -54,10 +68,10 @@ fun LiveLocationSheet(
             Spacer(Modifier.height(Spacing.sm))
 
             Text(
-                if (isCurrentlySharing)
-                    "Others in this room can see your real-time location"
-                else
-                    "Let others see your location in real-time",
+                stringResource(
+                    if (isCurrentlySharing) Res.string.live_location_active_desc
+                    else Res.string.live_location_inactive_desc
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -89,11 +103,11 @@ fun LiveLocationSheet(
                         Icon(Icons.Default.Stop, null)
                     }
                     Spacer(Modifier.width(Spacing.sm))
-                    Text("Stop Sharing")
+                    Text(stringResource(Res.string.live_location_stop_sharing))
                 }
             } else {
                 Text(
-                    "Share for",
+                    stringResource(Res.string.live_location_share_for),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Medium
                 )
@@ -132,18 +146,18 @@ fun LiveLocationSheet(
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                         Spacer(Modifier.width(Spacing.sm))
-                        Text("Starting…")
+                        Text(stringResource(Res.string.live_location_starting))
                     } else {
                         Icon(Icons.Default.Share, null)
                         Spacer(Modifier.width(Spacing.sm))
-                        Text("Start Sharing")
+                        Text(stringResource(Res.string.live_location_start_sharing))
                     }
                 }
 
                 Spacer(Modifier.height(Spacing.md))
 
                 Text(
-                    "Your location will be shared with all room members",
+                    stringResource(Res.string.live_location_shared_with_members),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center

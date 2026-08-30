@@ -1,0 +1,11 @@
+<resources>
+    <string name="location_disclosure_title">Se necesita acceso a la ubicacion</string>
+    <string name="location_disclosure_message">Mages comparte tu ubicacion solo cuando tu eliges.\n\nUbicacion en vivo: tu ubicacion precisa se envia a esta sala y es visible para sus miembros. Continua en segundo plano con una notificacion hasta que termine el temporizador o toques Detener.\n\nUbicacion puntual: tu ubicacion actual se envia una vez como mensaje.\n\nTu ubicacion se envia a tu servidor de Matrix y no se usa en otro lugar. Puedes dejar de compartir o desactivar el permiso en Ajustes en cualquier momento.</string>
+    <string name="location_disclosure_continue">Continuar</string>
+    <string name="location_disclosure_not_now">Ahora no</string>
+    <string name="location_permission_required">Se necesita permiso de ubicacion para compartir ubicacion en vivo</string>
+    <string name="location_permission_denied">Permiso de ubicacion denegado</string>
+    <string name="notif_live_location_title">Compartiendo ubicacion en vivo</string>
+    <string name="notif_live_location_single">1 sala</string>
+    <string name="notif_live_location_plural">%1$d salas</string>
+</resources>

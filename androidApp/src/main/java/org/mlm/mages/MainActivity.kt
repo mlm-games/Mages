@@ -76,7 +76,7 @@ class MainActivity : AppCompatActivity() {
             pendingLocationAction?.invoke()
         } else {
             val snackbarManager: SnackbarManager by inject()
-            snackbarManager.showError("Location permission is required for live location sharing")
+            snackbarManager.showError(getString(R.string.location_permission_required))
         }
         pendingLocationAction = null
     }
@@ -102,11 +102,38 @@ class MainActivity : AppCompatActivity() {
             needed.add(Manifest.permission.ACCESS_COARSE_LOCATION)
         }
 
-        if (needed.isEmpty()) onGranted()
-        else {
-            pendingLocationAction = onGranted
-            locationPermissionLauncher.launch(needed.toTypedArray())
+        if (needed.isEmpty()) {
+            onGranted()
+            return
         }
+        pendingLocationAction = onGranted
+        showLocationProminentDisclosure(
+            onAccept = { locationPermissionLauncher.launch(needed.toTypedArray()) },
+            onDecline = {
+                val snackbarManager: SnackbarManager by inject()
+                snackbarManager.showError(getString(R.string.location_permission_denied))
+                pendingLocationAction = null
+            }
+        )
+    }
+
+    private fun showLocationProminentDisclosure(
+        onAccept: () -> Unit,
+        onDecline: () -> Unit
+    ) {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(getString(R.string.location_disclosure_title))
+            .setMessage(getString(R.string.location_disclosure_message))
+            .setPositiveButton(getString(R.string.location_disclosure_continue)) { dialog, _ ->
+                dialog.dismiss()
+                onAccept()
+            }
+            .setNegativeButton(getString(R.string.location_disclosure_not_now)) { dialog, _ ->
+                dialog.dismiss()
+                onDecline()
+            }
+            .setCancelable(false)
+            .show()
     }
 
     private fun requestCallPermissions(needsCamera: Boolean, onGranted: () -> Unit) {

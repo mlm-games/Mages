@@ -13,6 +13,28 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import io.github.mlmgames.settings.core.annotations.SettingPlatform
 import io.github.mlmgames.settings.core.platform.currentPlatform
 import org.mlm.mages.ui.theme.Spacing
+import org.jetbrains.compose.resources.stringResource
+import mages.shared.generated.resources.Res
+import mages.shared.generated.resources.picker_camera
+import mages.shared.generated.resources.picker_camera_sub
+import mages.shared.generated.resources.picker_document
+import mages.shared.generated.resources.picker_document_sub
+import mages.shared.generated.resources.picker_interactive
+import mages.shared.generated.resources.picker_live_location
+import mages.shared.generated.resources.picker_live_location_sub
+import mages.shared.generated.resources.picker_location
+import mages.shared.generated.resources.picker_location_sub
+import mages.shared.generated.resources.picker_paste
+import mages.shared.generated.resources.picker_paste_sub
+import mages.shared.generated.resources.picker_photo
+import mages.shared.generated.resources.picker_photo_sub
+import mages.shared.generated.resources.picker_poll
+import mages.shared.generated.resources.picker_poll_sub
+import mages.shared.generated.resources.picker_share
+import mages.shared.generated.resources.picker_sticker
+import mages.shared.generated.resources.picker_sticker_sub
+import mages.shared.generated.resources.picker_video
+import mages.shared.generated.resources.picker_video_sub
 
 @Composable
 fun AttachmentPicker(
@@ -30,7 +52,7 @@ fun AttachmentPicker(
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.xxl)) {
             Text(
-                "Share",
+                stringResource(Res.string.picker_share),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)
             )
@@ -38,8 +60,8 @@ fun AttachmentPicker(
             if (onPasteFromClipboard != null) {
                 AttachmentOption(
                     Icons.Default.ContentPaste,
-                    "Paste from clipboard",
-                    "Send copied image or file"
+                    stringResource(Res.string.picker_paste),
+                    stringResource(Res.string.picker_paste_sub)
                 ) { onPasteFromClipboard(); onDismiss() }
                 HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.sm))
             }
@@ -47,34 +69,34 @@ fun AttachmentPicker(
             // Media section
             AttachmentOption(
                 Icons.Default.Image,
-                "Photo",
-                "Send an image from gallery"
+                stringResource(Res.string.picker_photo),
+                stringResource(Res.string.picker_photo_sub)
             ) { onPickImage(); onDismiss() }
 
             AttachmentOption(
                 Icons.Default.EmojiEmotions,
-                "Sticker",
-                "Send an image as a sticker"
+                stringResource(Res.string.picker_sticker),
+                stringResource(Res.string.picker_sticker_sub)
             ) { onPickSticker(); onDismiss() }
 
             AttachmentOption(
                 Icons.Default.VideoLibrary,
-                "Video",
-                "Share a video"
+                stringResource(Res.string.picker_video),
+                stringResource(Res.string.picker_video_sub)
             ) { onPickVideo(); onDismiss() }
 
             if (onCamera != null && currentPlatform == SettingPlatform.ANDROID) {
                 AttachmentOption(
                     Icons.Default.PhotoCamera,
-                    "Camera",
-                    "Take a photo"
+                    stringResource(Res.string.picker_camera),
+                    stringResource(Res.string.picker_camera_sub)
                 ) { onCamera(); onDismiss() }
             }
 
             AttachmentOption(
                 Icons.AutoMirrored.Filled.InsertDriveFile,
-                "Document",
-                "Send a file"
+                stringResource(Res.string.picker_document),
+                stringResource(Res.string.picker_document_sub)
             ) { onPickDocument(); onDismiss() }
 
             // Interactive content
@@ -82,7 +104,7 @@ fun AttachmentPicker(
                 HorizontalDivider(Modifier.padding(vertical = Spacing.sm))
 
                 Text(
-                    "Interactive",
+                    stringResource(Res.string.picker_interactive),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)
@@ -91,24 +113,24 @@ fun AttachmentPicker(
                 if (onCreatePoll != null) {
                     AttachmentOption(
                         Icons.Default.Poll,
-                        "Poll",
-                        "Create a poll for the room"
+                        stringResource(Res.string.picker_poll),
+                        stringResource(Res.string.picker_poll_sub)
                     ) { onCreatePoll(); onDismiss() }
                 }
 
-                if ((onShareLocation != null || onShareStaticLocation != null) && currentPlatform == SettingPlatform.ANDROID) { // // Kinda redundant
+                if ((onShareLocation != null || onShareStaticLocation != null) && currentPlatform == SettingPlatform.ANDROID) {
                     if (onShareStaticLocation != null) {
                         AttachmentOption(
                             Icons.Default.LocationOn,
-                            "Location",
-                            "Send a one-time location"
+                            stringResource(Res.string.picker_location),
+                            stringResource(Res.string.picker_location_sub)
                         ) { onShareStaticLocation(); onDismiss() }
                     }
                     if (onShareLocation != null) {
                         AttachmentOption(
                             Icons.Default.Timeline,
-                            "Live Location",
-                            "Share your real-time location"
+                            stringResource(Res.string.picker_live_location),
+                            stringResource(Res.string.picker_live_location_sub)
                         ) { onShareLocation(); onDismiss() }
                     }
                 }

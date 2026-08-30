@@ -13,6 +13,10 @@ import io.github.mlmgames.settings.core.annotations.SettingPlatform
 import io.github.mlmgames.settings.core.platform.currentPlatform
 import org.mlm.mages.matrix.LiveLocationShare
 import org.mlm.mages.ui.theme.Spacing
+import org.jetbrains.compose.resources.stringResource
+import mages.shared.generated.resources.Res
+import mages.shared.generated.resources.banner_is_sharing
+import mages.shared.generated.resources.banner_people_sharing
 
 @Composable
 fun LiveLocationBanner(
@@ -65,14 +69,12 @@ fun LiveLocationBanner(
             
             Text(
                 when (activeShares.size) {
-                    1 -> "${displayNameByUserId[activeShares[0].userId] ?: formatDisplayName(activeShares[0].userId)} is sharing location"
-                    else -> "${activeShares.size} people sharing location"
+                    1 -> stringResource(Res.string.banner_is_sharing, displayNameByUserId[activeShares[0].userId] ?: formatDisplayName(activeShares[0].userId))
+                    else -> stringResource(Res.string.banner_people_sharing, activeShares.size)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                 modifier = Modifier.weight(1f),
-//                maxLines = 2,
-//                TextOverflow = TextOverflow.Ellipsis
             )
             
             if (isMeSharing && onStopSharing != null) {

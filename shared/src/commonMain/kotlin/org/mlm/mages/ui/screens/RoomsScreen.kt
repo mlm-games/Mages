@@ -333,7 +333,7 @@ private fun RoomsTopBar(
                     Icon(Icons.Default.Explore, stringResource(Res.string.discover))
                 }
                 IconButton(onClick = onOpenCreateRoom) {
-                    Icon(Icons.Default.Add, stringResource(Res.string.new_room))
+                    Icon(Icons.Default.Add, stringResource(Res.string.start_chat))
                 }
                 IconButton(onClick = onOpenSearch) {
                     Icon(Icons.Default.Search, stringResource(Res.string.search_messages))
