@@ -58,6 +58,7 @@ import org.mlm.mages.ui.animation.popTransition
 import org.mlm.mages.ui.components.dialogs.SasDialog
 import org.mlm.mages.ui.components.sheets.AccountSwitcherSheet
 import org.mlm.mages.ui.components.sheets.CreateRoomSheet
+import org.mlm.mages.ui.components.sheets.StartChatSheet
 import org.mlm.mages.ui.components.snackbar.LauncherSnackbarHost
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
@@ -163,6 +164,7 @@ private fun AppContent(
             val languageTag = LocalAppLocale.current
             val scope = rememberCoroutineScope()
             var sessionEpoch by remember { mutableIntStateOf(0) }
+            var showStartChat by remember { mutableStateOf(false) }
             var showCreateRoom by remember { mutableStateOf(false) }
             var showAccountSwitcher by remember { mutableStateOf(false) }
             val accounts by accountStore.accounts.collectAsState()
@@ -361,12 +363,46 @@ private fun AppContent(
                                 viewModel = viewModel,
                                 onOpenSecurity = { backStack.add(Route.Security) },
                                 onOpenDiscover = { backStack.add(Route.Discover) },
-                                onOpenCreateRoom = { showCreateRoom = true },
+                                onOpenCreateRoom = { showStartChat = true },
                                 onOpenSpaces = { backStack.add(Route.Spaces) },
                                 onOpenSearch = { backStack.add(Route.Search) },
                             )
 
                             LocalNetworkPermissionDialogHost(roomsGate)
+
+                            if (showStartChat) {
+                                StartChatSheet(
+                                    matrixPort = service.port,
+                                    onDismiss = { showStartChat = false },
+                                    onCreateRoom = { showCreateRoom = true },
+                                    onOpenDirectory = { backStack.add(Route.Discover) },
+                                    onDmCreated = { roomId, name ->
+                                        showStartChat = false
+                                        backStack.add(Route.Room(roomId, name ?: roomId))
+                                    },
+                                    onJoinByAddress = { idOrAlias ->
+                                        scope.launch {
+                                            val trimmed = idOrAlias.trim()
+                                            val resolved = runCatching { service.port.resolveRoomId(trimmed) }.getOrNull()
+                                            val targetId = resolved ?: trimmed
+                                            val rooms = runCatching { service.port.listRooms() }.getOrNull() ?: emptyList()
+                                            val alreadyJoined = rooms.any { it.id == targetId } || rooms.any { it.id == trimmed }
+                                            val roomId = if (alreadyJoined) {
+                                                targetId
+                                            } else {
+                                                val joinResult = service.port.joinByIdOrAlias(trimmed)
+                                                if (joinResult.isSuccess) {
+                                                    runCatching { service.port.resolveRoomId(trimmed) }.getOrNull() ?: targetId
+                                                } else {
+                                                    snackbarManager.showError(joinResult.exceptionOrNull()?.message ?: "Failed to join $trimmed")
+                                                    return@launch
+                                                }
+                                            }
+                                            backStack.add(Route.Room(roomId, trimmed))
+                                        }
+                                    }
+                                )
+                            }
 
                             if (showCreateRoom) {
                                 CreateRoomSheet(
@@ -382,6 +418,7 @@ private fun AppContent(
                                             )
                                             if (roomId != null) {
                                                 showCreateRoom = false
+                                                showStartChat = false
                                                 backStack.add(Route.Room(roomId, name ?: roomId))
                                             } else {
                                                 throw IllegalStateException("Failed to create room")
