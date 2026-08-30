@@ -470,17 +470,20 @@ private fun ImageAttachmentBubble(
 
     val previewPath = attachment.previewPath
     val hasCaption = !attachment.caption.isNullOrBlank()
+    val isShortCaption = hasCaption && (attachment.caption!!.length < 30)
 
     if (previewPath != null) {
         val aspectRatio = if ((attachment.width ?: 0) > 0 && (attachment.height ?: 0) > 0) {
             attachment.width!!.toFloat() / attachment.height!!.toFloat()
         } else null
+        val maxMediaWidth = if (isShortCaption) 240.dp else 320.dp
 
         Column(horizontalAlignment = horizontalAlignment) {
             Box(
                 modifier = Modifier
-                    .heightIn(min = 120.dp, max = 300.dp)
-                    .sizeIn(maxHeight = 300.dp)
+                    .widthIn(max = maxMediaWidth)
+                    .heightIn(min = 120.dp, max = 268.dp)
+                    .sizeIn(maxHeight = 268.dp)
                     .then(
                         if (aspectRatio != null) Modifier.aspectRatio(aspectRatio) else Modifier
                     )
@@ -496,7 +499,7 @@ private fun ImageAttachmentBubble(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 120.dp, max = 300.dp)
+                        .heightIn(min = 120.dp, max = 268.dp)
                 )
                 if (!hasCaption) {
                     Box(
@@ -546,17 +549,20 @@ private fun VideoAttachmentBubble(
 
     val previewPath = attachment.previewPath
     val hasCaption = !attachment.caption.isNullOrBlank()
+    val isShortCaption = hasCaption && (attachment.caption!!.length < 30)
 
     if (previewPath != null) {
         val aspectRatio = if ((attachment.width ?: 0) > 0 && (attachment.height ?: 0) > 0) {
             attachment.width!!.toFloat() / attachment.height!!.toFloat()
         } else null
+        val maxMediaWidth = if (isShortCaption) 240.dp else 320.dp
 
         Column(horizontalAlignment = horizontalAlignment) {
             Box(
                 modifier = Modifier
-                    .heightIn(min = 120.dp, max = 300.dp)
-                    .sizeIn(maxHeight = 300.dp)
+                    .widthIn(max = maxMediaWidth)
+                    .heightIn(min = 120.dp, max = 268.dp)
+                    .sizeIn(maxHeight = 268.dp)
                     .then(
                         if (aspectRatio != null) Modifier.aspectRatio(aspectRatio) else Modifier
                     )
@@ -572,7 +578,7 @@ private fun VideoAttachmentBubble(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 120.dp, max = 300.dp)
+                        .heightIn(min = 120.dp, max = 268.dp)
                 )
 
                 attachment.durationMs?.let { duration ->
