@@ -1,3 +1,8 @@
+## v4.10.2
+
+- fix #71
+
+
 ## v4.10.1
 
 - move UnifiedPush initialisation off from the main thread
