@@ -2,6 +2,7 @@ package org.mlm.mages.ui.components.message
 
 import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MessageEvent
+import org.mlm.mages.ui.components.timeline.TimelineContent
 import org.mlm.mages.ui.util.formatBytes
 
 private fun MessageEvent.toMediaCaption(): String? {
@@ -61,10 +62,11 @@ private fun MessageEvent.toAttachmentUi(
     }
 }
 
-fun MessageEvent.toBubbleModel(
+internal fun TimelineContent.Bubble.toBubbleModel(
     ctx: MessageBubbleRenderContext
 ): MessageBubbleModel {
-    val stickerData = sticker?.let {
+    val event = event
+    val stickerData = event.sticker?.let {
         MessageStickerUi(
             thumbPath = ctx.resolvedPreviewPath ?: it.thumbnailMxcUri ?: it.mxcUri,
             width = it.width,
@@ -73,16 +75,16 @@ fun MessageEvent.toBubbleModel(
         )
     }
     return MessageBubbleModel(
-        eventId = eventId,
+        eventId = event.eventId,
         isMine = ctx.isMine,
-        body = if (stickerData != null) "" else body,
-        formattedBody = formattedBody,
+        body = if (stickerData != null) "" else event.body,
+        formattedBody = event.formattedBody,
         sender = if (ctx.senderVisible) MessageSenderUi(
-            id = sender,
-            displayName = senderDisplayName,
+            id = event.sender,
+            displayName = event.senderDisplayName,
             avatarPath = ctx.avatarPath,
         ) else null,
-        timestamp = timestampMs,
+        timestamp = event.timestampMs,
         isDm = ctx.isDm,
         showMessageAvatars = ctx.showMessageAvatars,
         showUsernameInDms = ctx.showUsernameInDms,
@@ -94,19 +96,19 @@ fun MessageEvent.toBubbleModel(
         reactionAvatarsByUserId = ctx.reactionAvatarsByUserId,
         showReactionAvatars = ctx.showReactionAvatars,
         reply = MessageReplyUi(
-            sender = replyToSenderDisplayName,
-            body = replyToBody,
+            sender = event.replyToSenderDisplayName,
+            body = event.replyToBody,
         ),
-        sendState = sendState,
-        attachment = toAttachmentUi(
+        sendState = event.sendState,
+        attachment = event.toAttachmentUi(
             resolvedPreviewPath = ctx.resolvedPreviewPath,
             resolvedAudioPath = ctx.resolvedAudioPath,
             resolvedAudioWaveform = ctx.resolvedAudioWaveform,
         ),
         sticker = stickerData,
         isSticker = stickerData != null,
-        isEdited = isEdited,
-        poll = pollData,
+        isEdited = event.isEdited,
+        poll = event.pollData,
         thread = ctx.threadCount?.let { count -> MessageThreadUi(count) },
         variant = ctx.variant,
     )

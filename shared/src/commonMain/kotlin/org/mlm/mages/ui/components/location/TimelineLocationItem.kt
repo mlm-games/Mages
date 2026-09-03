@@ -19,8 +19,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.mlmgames.settings.core.SettingsRepository
 import org.koin.compose.koinInject
-import org.mlm.mages.MessageEvent
-import org.mlm.mages.matrix.EventType
+import org.mlm.mages.ui.components.timeline.TimelineContent
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.ThemeMode
 import org.mlm.mages.ui.components.core.Avatar
@@ -55,17 +54,17 @@ private fun formatCoords(lat: Double, lon: Double): String {
 }
 
 @Composable
-fun TimelineLocationItem(
-    event: MessageEvent,
+internal fun TimelineLocationItem(
+    item: TimelineContent.Location,
     isOwnActiveShare: Boolean = false,
-    isLive: Boolean = event.liveLocation?.isLive == true,
+    isLive: Boolean = item.event.liveLocation?.isLive == true,
     onClick: () -> Unit,
     onStopLiveLocation: (() -> Unit)? = null,
     senderDisplayName: String? = null,
     senderAvatarPath: String? = null,
     modifier: Modifier = Modifier,
 ) {
-    if (event.eventType != EventType.LiveLocation && event.eventType != EventType.Location) return
+    val event = item.event
     val geoUri = event.liveLocation?.geoUri
     val coords = parseGeoUri(geoUri)
     val coordText = coords?.let { formatCoords(it.first, it.second) }

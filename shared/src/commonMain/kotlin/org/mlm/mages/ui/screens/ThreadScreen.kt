@@ -33,12 +33,16 @@ import org.mlm.mages.ui.components.core.LoadMoreButton
 import org.mlm.mages.ui.components.core.StatusBanner
 import org.mlm.mages.ui.components.core.BannerType
 import org.mlm.mages.ui.components.core.formatDisplayName
+import org.mlm.mages.ui.components.location.TimelineLocationItem
 import org.mlm.mages.ui.components.message.MessageBubble
 import org.mlm.mages.ui.components.message.MessageBubbleRenderContext
 import org.mlm.mages.ui.components.message.MessageBubbleVariant
 import org.mlm.mages.ui.components.message.ReactionChipsRow
 import org.mlm.mages.ui.components.message.toBubbleModel
 import org.mlm.mages.ui.components.message.ReactionChipStyle
+import org.mlm.mages.ui.components.timeline.TimelineContent
+import org.mlm.mages.ui.components.timeline.TimelineEventItem
+import org.mlm.mages.ui.components.timeline.toTimelineContent
 import org.mlm.mages.ui.components.sheets.MessageActionSheet
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
@@ -240,15 +244,37 @@ fun ThreadScreen(
                                     nextEvent.sender == event.sender &&
                                     (nextEvent.timestampMs - event.timestampMs) < 300_000
 
-                            ThreadReplyMessage(
-                                event = event,
-                                isMine = event.sender == myUserId,
-                                reactionSummaries = event.reactions,
-                                avatarByUserId = state.avatarByUserId,
-                                onReact = { emoji -> onReact(event, emoji) },
-                                onLongPress = { sheetEvent = event },
-                                grouped = shouldGroup,
-                                groupedWithNext = groupedWithNext
+                            TimelineEventItem(
+                                item = event.toTimelineContent(),
+                                bubble = { bubbleItem ->
+                                    ThreadReplyMessage(
+                                        event = bubbleItem.event,
+                                        isMine = bubbleItem.event.sender == myUserId,
+                                        reactionSummaries = bubbleItem.event.reactions,
+                                        avatarByUserId = state.avatarByUserId,
+                                        onReact = { emoji -> onReact(bubbleItem.event, emoji) },
+                                        onLongPress = { sheetEvent = bubbleItem.event },
+                                        grouped = shouldGroup,
+                                        groupedWithNext = groupedWithNext
+                                    )
+                                },
+                                staticLocation = { locItem ->
+                                    TimelineLocationItem(
+                                        item = locItem,
+                                        onClick = {},
+                                        senderDisplayName = locItem.event.senderDisplayName,
+                                        senderAvatarPath = state.avatarByUserId[locItem.event.sender],
+                                    )
+                                },
+                                liveLocation = { locItem ->
+                                    TimelineLocationItem(
+                                        item = locItem,
+                                        isLive = locItem.event.liveLocation?.isLive == true,
+                                        onClick = {},
+                                        senderDisplayName = locItem.event.senderDisplayName,
+                                        senderAvatarPath = state.avatarByUserId[locItem.event.sender],
+                                    )
+                                },
                             )
                         }
 
@@ -260,15 +286,37 @@ fun ThreadScreen(
 
                         state.rootMessage?.let { root ->
                             item(key = "root_${root.itemId}") {
-                                ThreadRootMessage(
-                                    state = state,
-                                    event = root,
-                                    isMine = root.sender == myUserId,
-                                    reactionSummaries = root.reactions,
-showReactionAvatars = showReactionAvatars,
-                                    onReact = { emoji -> onReact(root, emoji) },
-                                    onReply = { onStartReply(root) },
-                                    onLongPress = { sheetEvent = root }
+                                TimelineEventItem(
+                                    item = root.toTimelineContent(),
+                                    bubble = { bubbleItem ->
+                                        ThreadRootMessage(
+                                            state = state,
+                                            event = bubbleItem.event,
+                                            isMine = bubbleItem.event.sender == myUserId,
+                                            reactionSummaries = bubbleItem.event.reactions,
+                                            showReactionAvatars = showReactionAvatars,
+                                            onReact = { emoji -> onReact(bubbleItem.event, emoji) },
+                                            onReply = { onStartReply(bubbleItem.event) },
+                                            onLongPress = { sheetEvent = bubbleItem.event }
+                                        )
+                                    },
+                                    staticLocation = { locItem ->
+                                        TimelineLocationItem(
+                                            item = locItem,
+                                            onClick = {},
+                                            senderDisplayName = locItem.event.senderDisplayName,
+                                            senderAvatarPath = state.avatarByUserId[locItem.event.sender],
+                                        )
+                                    },
+                                    liveLocation = { locItem ->
+                                        TimelineLocationItem(
+                                            item = locItem,
+                                            isLive = locItem.event.liveLocation?.isLive == true,
+                                            onClick = {},
+                                            senderDisplayName = locItem.event.senderDisplayName,
+                                            senderAvatarPath = state.avatarByUserId[locItem.event.sender],
+                                        )
+                                    },
                                 )
                             }
                         }
@@ -577,7 +625,7 @@ private fun ThreadReplyMessage(
         }
 
         Column(modifier = Modifier.weight(1f)) {
-            val bubbleModel = event.toBubbleModel(
+            val bubbleModel = TimelineContent.Bubble(event).toBubbleModel(
                 ctx = MessageBubbleRenderContext(
                     isMine = isMine,
                     isDm = false,

@@ -12,24 +12,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import org.mlm.mages.MessageEvent
-import org.mlm.mages.matrix.EventType
+import org.mlm.mages.ui.components.timeline.TimelineContent
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatTime
 
 @Composable
-fun SystemMessageItem(
-    event: MessageEvent,
+internal fun SystemMessageItem(
+    item: TimelineContent.System,
     onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    val isSystemEvent = event.eventType != EventType.Message &&
-            event.eventType != EventType.Poll &&
-            event.eventType != EventType.Sticker
-
-    if (!isSystemEvent || event.body.isBlank()) {
-        return
-    }
+    val event = item.event
 
     Column(
         modifier = modifier

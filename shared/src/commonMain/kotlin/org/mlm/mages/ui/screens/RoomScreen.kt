@@ -35,7 +35,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.mlm.mages.MessageEvent
-import org.mlm.mages.matrix.EventType
 import org.mlm.mages.matrix.SendState
 import org.mlm.mages.platform.*
 import org.mlm.mages.ui.components.AttachmentData
@@ -87,6 +86,9 @@ import org.mlm.mages.ui.RoomUiState
 import org.mlm.mages.ui.components.message.MessageBubbleRenderContext
 import org.mlm.mages.ui.components.message.MessageBubbleVariant
 import org.mlm.mages.ui.components.message.toBubbleModel
+import org.mlm.mages.ui.components.timeline.TimelineContent
+import org.mlm.mages.ui.components.timeline.TimelineEventItem
+import org.mlm.mages.ui.components.timeline.toTimelineContent
 
 @Suppress("NewApi")
 @Composable
@@ -305,7 +307,7 @@ fun RoomScreen(
 
     val lastOutgoingIndex = remember(events, state.myUserId) {
         if (state.myUserId == null) -1
-        else events.indexOfLast { it.sender == state.myUserId && !it.rendersAsSystemMessage() }
+        else events.indexOfLast { it.sender == state.myUserId && it.toTimelineContent() is TimelineContent.Bubble }
     }
 
     // Find index of first unread message (where timestamp > lastReadTs)
@@ -743,71 +745,72 @@ fun RoomScreen(
                                 ) { dslIndex ->
                                     val eventIndex = events.lastIndex - dslIndex
                                     val event = events[eventIndex]
-                                    if (event.rendersAsSystemMessage()) {
-                                        if (event.eventType == EventType.LiveLocation) {
-                                            val activeShare = state.liveLocationShares[event.sender]
-                                            val belongsToActiveSession = event.liveLocation?.beaconInfoEventId?.let { beaconId ->
-                                                beaconId.isNotEmpty() && beaconId == activeShare?.beaconInfoEventId
-                                            } == true
-                                            TimelineLocationItem(
-                                                event = event,
-                                                isLive = belongsToActiveSession && activeShare?.isLive == true,
-                                                isOwnActiveShare = event.sender == state.myUserId && belongsToActiveSession && activeShare?.isLive == true,
-                                                onClick = { viewModel.showLiveLocationMap() },
-                                                onStopLiveLocation = if (event.sender == state.myUserId) viewModel::stopLiveLocation else null,
-                                                senderDisplayName = event.senderDisplayName,
-                                                senderAvatarPath = state.avatarByUserId[event.sender] ?: event.senderAvatarUrl,
+                                    TimelineEventItem(
+                                        item = event.toTimelineContent(),
+                                        bubble = { bubbleItem ->
+                                            MessageItem(
+                                                event = bubbleItem.event,
+                                                index = eventIndex,
+                                                events = events,
+                                                state = state,
+                                                isLastOutgoing = eventIndex == lastOutgoingIndex,
+                                                onLongPress = {
+                                                    sheetEvent = bubbleItem.event
+                                                    viewModel.showMessageActions(bubbleItem.event)
+                                                },
+                                                onReply = { viewModel.startReply(bubbleItem.event) },
+                                                onReact = { emoji ->
+                                                    if (state.sendReactionAction.isEnabled) {
+                                                        viewModel.react(bubbleItem.event, emoji)
+                                                    }
+                                                },
+                                                onOpenAttachment = {
+                                                    viewModel.openAttachment(bubbleItem.event) { path, mime ->
+                                                        openExternal(path, mime)
+                                                    }
+                                                },
+                                                onOpenThread = { viewModel.openThread(bubbleItem.event) },
+                                                onSaveReturnPosition = { eventId ->
+                                                    val currentIndex = listState.firstVisibleItemIndex
+                                                    returnPosition = eventId to currentIndex
+                                                },
+                                                highlightedEventId = state.highlightedEventId,
+                                                viewModel = viewModel,
+                                                showMessageAvatars = settings.showMessageAvatars,
+                                                showUsernameInDms = settings.showUsernameInDms,
+                                                enableBubbleAnimations = settings.bubbleAnimations,
+                                                showReactionAvatars = settings.showReactionAvatars
                                             )
-                                        } else if (event.eventType == EventType.Location) {
-                                            val coords = event.liveLocation?.geoUri?.let { parseGeoUri(it) }
+                                        },
+                                        staticLocation = { locItem ->
+                                            val coords = locItem.event.liveLocation?.geoUri?.let { parseGeoUri(it) }
                                             TimelineLocationItem(
-                                                event = event,
+                                                item = locItem,
                                                 onClick = {
                                                     coords?.let { (lat, lon) ->
                                                         viewModel.showStaticLocationViewer(lat, lon)
                                                     }
                                                 },
-                                                senderDisplayName = event.senderDisplayName,
-                                                senderAvatarPath = state.avatarByUserId[event.sender] ?: event.senderAvatarUrl,
+                                                senderDisplayName = locItem.event.senderDisplayName,
+                                                senderAvatarPath = state.avatarByUserId[locItem.event.sender] ?: locItem.event.senderAvatarUrl,
                                             )
-                                        } else {
-                                            SystemMessageItem(event = event)
-                                        }
-                                    } else {
-                                        MessageItem(
-                                            event = event,
-                                            index = eventIndex,
-                                            events = events,
-                                            state = state,
-                                            isLastOutgoing = eventIndex == lastOutgoingIndex,
-                                            onLongPress = {
-                                                sheetEvent = event
-                                                viewModel.showMessageActions(event)
-                                            },
-                                            onReply = { viewModel.startReply(event) },
-                                            onReact = { emoji ->
-                                                if (state.sendReactionAction.isEnabled) {
-                                                    viewModel.react(event, emoji)
-                                                }
-                                            },
-                                            onOpenAttachment = {
-                                                viewModel.openAttachment(event) { path, mime ->
-                                                    openExternal(path, mime)
-                                                }
-                                            },
-                                            onOpenThread = { viewModel.openThread(event) },
-                                            onSaveReturnPosition = { eventId ->
-                                                val currentIndex = listState.firstVisibleItemIndex
-                                                returnPosition = eventId to currentIndex
-                                            },
-                                            highlightedEventId = state.highlightedEventId,
-                                            viewModel = viewModel,
-                                            showMessageAvatars = settings.showMessageAvatars,
-                                            showUsernameInDms = settings.showUsernameInDms,
-                                            enableBubbleAnimations = settings.bubbleAnimations,
-                                            showReactionAvatars = settings.showReactionAvatars
-                                        )
-                                    }
+                                        },
+                                        liveLocation = { locItem ->
+                                            val activeShare = state.liveLocationShares[locItem.event.sender]
+                                            val belongsToActiveSession = locItem.event.liveLocation?.beaconInfoEventId?.let { beaconId ->
+                                                beaconId.isNotEmpty() && beaconId == activeShare?.beaconInfoEventId
+                                            } == true
+                                            TimelineLocationItem(
+                                                item = locItem,
+                                                isLive = belongsToActiveSession && activeShare?.isLive == true,
+                                                isOwnActiveShare = locItem.event.sender == state.myUserId && belongsToActiveSession && activeShare?.isLive == true,
+                                                onClick = { viewModel.showLiveLocationMap() },
+                                                onStopLiveLocation = if (locItem.event.sender == state.myUserId) viewModel::stopLiveLocation else null,
+                                                senderDisplayName = locItem.event.senderDisplayName,
+                                                senderAvatarPath = state.avatarByUserId[locItem.event.sender] ?: locItem.event.senderAvatarUrl,
+                                            )
+                                        },
+                                    )
                                 }
                             }
 
@@ -1389,12 +1392,6 @@ private fun StartOfConversationChip() {
     }
 }
 
-private fun MessageEvent.rendersAsSystemMessage(): Boolean =
-    eventType != EventType.Message &&
-            eventType != EventType.Poll &&
-            eventType != EventType.Sticker &&
-            body.isNotBlank()
-
 @Composable
 private fun MessageItem(
     event: MessageEvent,
@@ -1577,7 +1574,7 @@ private fun MessageItem(
                         )
                         .then(if (enableBubbleAnimations) Modifier.animateContentSize() else Modifier)
                 ) {
-                    val bubbleModel = event.toBubbleModel(
+                    val bubbleModel = TimelineContent.Bubble(event).toBubbleModel(
                         ctx = MessageBubbleRenderContext(
                             isMine = isMine,
                             isDm = state.isDm,
