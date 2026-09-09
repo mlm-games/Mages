@@ -323,7 +323,7 @@ fn now_ms() -> u64 {
         .as_millis() as u64
 }
 
-fn strip_matrix_path(mut u: Url) -> Url {
+pub(crate) fn strip_matrix_path(mut u: Url) -> Url {
     if let Some(idx) = u.path().find("/_matrix/") {
         let new_path = u.path()[..idx].to_string();
         u.set_path(&new_path);
@@ -366,10 +366,10 @@ impl Client {
         platform::init_tracing();
 
         let raw = homeserver_url.trim();
-        let (server_name_or_url, is_url) = if let Ok(url) = Url::parse(raw) {
-            (strip_matrix_path(url).to_string(), true)
+        let server_name_or_url = if let Ok(url) = Url::parse(raw) {
+            strip_matrix_path(url).to_string()
         } else {
-            (raw.to_owned(), false)
+            raw.to_owned()
         };
 
         let store_dir_path = if let Some(ref id) = account_id {
@@ -379,6 +379,8 @@ impl Client {
         } else {
             std::path::PathBuf::from(&base_store_dir)
         };
+
+        let use_direct_homeserver_url = platform::has_session_file(&store_dir_path);
 
         #[cfg(not(target_family = "wasm"))]
         let _ = std::fs::create_dir_all(&store_dir_path);
@@ -406,7 +408,7 @@ impl Client {
             .block_on(async {
                 #[cfg(target_arch = "wasm32")]
                 let client = {
-                    let mut builder = if is_url {
+                    let mut builder = if use_direct_homeserver_url {
                         SdkClient::builder().homeserver_url(server_name_or_url.clone())
                     } else {
                         SdkClient::builder()
@@ -433,7 +435,7 @@ impl Client {
                 let client = {
                     let idx = platform::search_index_config(&store_dir_path)
                         .expect("native builds require search index config");
-                    let mut builder = if is_url {
+                    let mut builder = if use_direct_homeserver_url {
                         SdkClient::builder().homeserver_url(server_name_or_url.clone())
                     } else {
                         SdkClient::builder()

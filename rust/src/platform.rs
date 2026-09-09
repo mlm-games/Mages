@@ -254,6 +254,25 @@ fn session_file(store_dir: &Path) -> PathBuf {
         .join(name)
 }
 
+/// Restores (session file already should be available /
+/// present, holding the resolved base URL) return `true` ->
+/// `homeserver_url` with zero network at build (matrix-rust-sdk#3699).
+pub(crate) fn has_session_file(store_dir: &Path) -> bool {
+    #[cfg(not(target_family = "wasm"))]
+    {
+        if std::fs::metadata(session_file(store_dir)).is_ok() {
+            return true;
+        }
+        std::fs::metadata(store_dir.join("session.json")).is_ok()
+    }
+
+    #[cfg(target_family = "wasm")]
+    {
+        let _ = store_dir;
+        false
+    }
+}
+
 fn room_list_cache_file(store_dir: &Path) -> PathBuf {
     store_dir.join("room_list_cache.json")
 }

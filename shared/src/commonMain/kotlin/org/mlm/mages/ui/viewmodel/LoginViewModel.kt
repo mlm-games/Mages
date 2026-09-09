@@ -133,6 +133,11 @@ class LoginViewModel(
         return hs
     }
 
+    private suspend fun resolvedHomeserver(port: MatrixPort, fallback: String): String {
+        return runCatching { port.homeserverLoginDetails().homeserverUrl }
+            .getOrNull()?.takeIf { it.isNotBlank() } ?: fallback
+    }
+
     @OptIn(ExperimentalTime::class)
     private fun newAccountId(): String {
         val t = Clock.System.now().toEpochMilliseconds()
@@ -206,10 +211,12 @@ class LoginViewModel(
                     return@launch
                 }
 
+                val resolvedHs = resolvedHomeserver(port, hs)
+
                 val account = MatrixAccount(
                     id = accountId,
                     userId = userId,
-                    homeserver = hs,
+                    homeserver = resolvedHs,
                     deviceId = "",
                     accessToken = "",
                     addedAtMs = Clock.System.now().toEpochMilliseconds(),
@@ -220,7 +227,7 @@ class LoginViewModel(
 
                 settingsRepository.update {
                     it.copy(
-                        homeserver = hs,
+                        homeserver = resolvedHs,
                         androidNotifBaselineMs = Clock.System.now().toEpochMilliseconds()
                     )
                 }
@@ -282,10 +289,12 @@ class LoginViewModel(
                     return@launch
                 }
 
+                val resolvedHs = resolvedHomeserver(port, hs)
+
                 val account = MatrixAccount(
                     id = accountId,
                     userId = userId,
-                    homeserver = hs,
+                    homeserver = resolvedHs,
                     deviceId = "",
                     accessToken = "",
                     addedAtMs = Clock.System.now().toEpochMilliseconds(),
@@ -296,7 +305,7 @@ class LoginViewModel(
 
                 settingsRepository.update {
                     it.copy(
-                        homeserver = hs,
+                        homeserver = resolvedHs,
                         androidNotifBaselineMs = Clock.System.now().toEpochMilliseconds()
                     )
                 }
@@ -377,10 +386,12 @@ class LoginViewModel(
                     return@launch
                 }
 
+                val resolvedHs = resolvedHomeserver(port, hs)
+
                 val account = MatrixAccount(
                     id = accountId,
                     userId = userId,
-                    homeserver = hs,
+                    homeserver = resolvedHs,
                     deviceId = "",
                     accessToken = "",
                     addedAtMs = Clock.System.now().toEpochMilliseconds(),
@@ -391,7 +402,7 @@ class LoginViewModel(
 
                 settingsRepository.update {
                     it.copy(
-                        homeserver = hs,
+                        homeserver = resolvedHs,
                         androidNotifBaselineMs = Clock.System.now().toEpochMilliseconds()
                     )
                 }
