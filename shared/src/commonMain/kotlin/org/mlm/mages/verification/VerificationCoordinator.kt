@@ -266,18 +266,20 @@ class VerificationCoordinator(
 
     fun confirm() {
         val flowId = _state.value.sasFlowId ?: return
+        val otherUser = _state.value.sasOtherUser
 
         scope.launch {
-            val ok = verificationService?.confirmSas(flowId) ?: false
+            val ok = verificationService?.confirmSas(flowId, otherUser) ?: false
             if (!ok) _state.value = _state.value.copy(sasError = "Confirm failed")
         }
     }
 
     fun cancel() {
         val flowId = _state.value.sasFlowId ?: return
+        val otherUser = _state.value.sasOtherUser
 
         scope.launch {
-            val ok = verificationService?.cancelVerification(flowId) ?: false
+            val ok = verificationService?.cancelVerification(flowId, otherUser) ?: false
             if (!ok) {
                 _state.value = _state.value.copy(sasError = "Cancel failed")
             } else {

@@ -244,8 +244,8 @@ interface VerificationService {
     fun startUserVerification(userId: String): Flow<VerifEvent>
     fun acceptAndObserveVerification(flowId: String, otherUserId: String): Flow<VerifEvent>
     suspend fun acceptSas(flowId: String, otherUserId: String): Boolean
-    suspend fun confirmSas(flowId: String): Boolean
-    suspend fun cancelVerification(flowId: String): Boolean
+    suspend fun confirmSas(flowId: String, otherUserId: String? = null): Boolean
+    suspend fun cancelVerification(flowId: String, otherUserId: String? = null): Boolean
 }
 
 interface ReceiptsObserver { fun onChanged() }

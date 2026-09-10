@@ -1520,11 +1520,13 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun acceptSas(flowId: String, otherUserId: String): Boolean =
         requireClient().acceptSas(flowId, otherUserId).awaitPlainBool()
 
-    override suspend fun confirmSas(flowId: String): Boolean =
-        requireClient().confirmSas(flowId).awaitPlainBool()
+    override suspend fun confirmSas(flowId: String, otherUserId: String?): Boolean =
+        if (otherUserId.isNullOrEmpty()) requireClient().confirmSas(flowId).awaitPlainBool()
+        else requireClient().confirmSasWithUser(flowId, otherUserId).awaitPlainBool()
 
-    override suspend fun cancelVerification(flowId: String): Boolean =
-        requireClient().cancelVerification(flowId).awaitPlainBool()
+    override suspend fun cancelVerification(flowId: String, otherUserId: String?): Boolean =
+        if (otherUserId.isNullOrEmpty()) requireClient().cancelVerification(flowId).awaitPlainBool()
+        else requireClient().cancelVerificationWithUser(flowId, otherUserId).awaitPlainBool()
 }
 
 actual fun createMatrixPort(): MatrixPort = WebStubMatrixPort()

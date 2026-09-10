@@ -85,6 +85,8 @@ web-sys = { version = "0.3.104", features = [
     "Window",
     "Document",
     "Storage",
+    "IdbFactory",
+    "IdbOpenDbRequest",
 ] }
 gloo-timers = "0.4"
 getrandom = { version = "0.4", features = ["wasm_js"] }

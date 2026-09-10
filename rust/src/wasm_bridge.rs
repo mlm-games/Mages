@@ -214,6 +214,26 @@ fn clear_wasm_session(store_name: &str) {
     let _ = storage.remove_item(&wasm_session_key(store_name));
 }
 
+/// Best-effort deletion of this account's IndexedDB databases.
+async fn delete_wasm_databases(store_name: &str) {
+    let Some(window) = web_sys::window() else {
+        return;
+    };
+    let Ok(Some(factory)) = window.indexed_db() else {
+        return;
+    };
+    for name in [
+        store_name.to_owned(),
+        format!("{store_name}::matrix-sdk-state"),
+        format!("{store_name}::matrix-sdk-crypto"),
+        format!("{store_name}::matrix-sdk-crypto-meta"),
+        format!("{store_name}::event_cache"),
+        format!("{store_name}::media"),
+    ] {
+        let _ = factory.delete_database(&name);
+    }
+}
+
 struct WasmAsyncState {
     core: Rc<CoreClient>,
     store_name: String,
@@ -518,23 +538,15 @@ impl WasmClient {
                         if let Err(e) = result {
                             // Mirror native classification: hard auth failures drop
                             // the session instead of retrying a dead token forever.
-                            let error_str = format!("{e:?}");
-                            let is_auth_error = error_str.contains("AuthenticationRequired")
-                                || error_str.contains("Invalid access token")
-                                || error_str.contains("UnknownToken");
-                            if is_auth_error {
+                            if crate::is_hard_auth_error(&e) {
                                 clear_wasm_session(&store_name);
                             }
                         }
                     }
                 } else {
                     let result = client.restore_session(MatrixSession { meta, tokens }).await;
-                    if result.is_err() {
-                        let error_str = format!("{:?}", result);
-                        let is_auth_error = error_str.contains("AuthenticationRequired")
-                            || error_str.contains("Invalid access token")
-                            || error_str.contains("UnknownToken");
-                        if is_auth_error {
+                    if let Err(e) = result {
+                        if crate::is_hard_auth_error(&e) {
                             info.is_token_valid = false;
                             save_wasm_session(&store_name, &info);
                         }
@@ -700,6 +712,7 @@ impl WasmClient {
         };
         let result = state.client().matrix_auth().logout().await;
         clear_wasm_session(&state.store_name);
+        delete_wasm_databases(&state.store_name).await;
         webffi_unit(result.map(|_| ()))
     }
 
@@ -2757,6 +2770,29 @@ impl WasmClient {
             .client()
             .encryption()
             .get_verification(me, &flow_id)
+            .await
+        {
+            sas.confirm().await.is_ok()
+        } else {
+            false
+        }
+    }
+
+    #[wasm_bindgen(js_name = confirmSasWithUser)]
+    pub async fn confirm_sas_with_user(&self, flow_id: String, other_user_id: String) -> bool {
+        let Some(state) = self.state() else {
+            return false;
+        };
+
+        let user = match other_user_id.parse::<OwnedUserId>() {
+            Ok(u) => u,
+            Err(_) => return false,
+        };
+
+        if let Some(Verification::SasV1(sas)) = state
+            .client()
+            .encryption()
+            .get_verification(&user, &flow_id)
             .await
         {
             sas.confirm().await.is_ok()

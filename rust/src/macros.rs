@@ -20,6 +20,7 @@ macro_rules! delegate_unit_result {
         impl Client {
             $(
                 pub fn $name(&self, $($arg: $ty),*) -> Result<(), FfiError> {
+                    crate::check_not_on_runtime(stringify!($name))?;
                     RT.block_on(self.core.$name($($arg),*))
                 }
             )+
@@ -34,6 +35,7 @@ macro_rules! delegate_result {
         impl Client {
             $(
                 pub fn $name(&self, $($arg: $ty),*) -> Result<$ret, FfiError> {
+                    crate::check_not_on_runtime(stringify!($name))?;
                     RT.block_on(self.core.$name($($arg),*))
                 }
             )+
@@ -48,6 +50,7 @@ macro_rules! delegate_option {
         impl Client {
             $(
                 pub fn $name(&self, $($arg: $ty),*) -> Result<Option<$ret>, FfiError> {
+                    crate::check_not_on_runtime(stringify!($name))?;
                     RT.block_on(self.core.$name($($arg),*))
                 }
             )+
@@ -62,6 +65,10 @@ macro_rules! delegate_plain {
         impl Client {
             $(
                 pub fn $name(&self, $($arg: $ty),*) -> $ret {
+                    debug_assert!(
+                        tokio::runtime::Handle::try_current().is_err(),
+                        concat!(stringify!($name), ": must not be called from inside a client callback"),
+                    );
                     RT.block_on(self.core.$name($($arg),*))
                 }
             )+

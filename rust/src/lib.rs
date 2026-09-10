@@ -333,6 +333,14 @@ pub(crate) fn strip_matrix_path(mut u: Url) -> Url {
     u
 }
 
+/// True for hard authentication failures (revoked/unknown token), false for
+/// transport problems.
+pub(crate) fn is_hard_auth_error(e: &matrix_sdk::Error) -> bool {
+    use matrix_sdk::ruma::api::error::ErrorKind;
+    matches!(e, matrix_sdk::Error::AuthenticationRequired)
+        || matches!(e.client_api_error_kind(), Some(ErrorKind::UnknownToken(_)))
+}
+
 fn cache_dir(dir: &PathBuf) -> PathBuf {
     dir.join("media_cache")
 }
@@ -351,6 +359,18 @@ pub(crate) fn sanitize_filename(name: &str) -> String {
 
 pub(crate) fn safe_call<F: FnOnce()>(f: F) {
     let _ = catch_unwind(AssertUnwindSafe(f));
+}
+
+/// Refuses calls made from a tokio runtime worker thread (e.g. from inside
+/// observer/listener callbacks, which run on the shared runtime).
+#[track_caller]
+pub(crate) fn check_not_on_runtime(caller: &'static str) -> Result<(), FfiError> {
+    if tokio::runtime::Handle::try_current().is_ok() {
+        return Err(FfiError::Msg(format!(
+            "{caller}: must not be called from inside a client callback"
+        )));
+    }
+    Ok(())
 }
 
 #[export]
@@ -384,6 +404,8 @@ impl Client {
 
         #[cfg(not(target_family = "wasm"))]
         let _ = std::fs::create_dir_all(&store_dir_path);
+
+        platform::sweep_probe_dirs(&store_dir_path);
 
         // NOTE: for previous unsafe wipes
         #[cfg(not(target_family = "wasm"))]
@@ -626,10 +648,7 @@ impl Client {
                         }
                         Some(Err(e)) => {
                             warn!("restore_session failed: {e:?}");
-                            let error_str = format!("{e:?}");
-                            let is_auth_error = error_str.contains("AuthenticationRequired")
-                                || error_str.contains("Invalid access token")
-                                || error_str.contains("UnknownToken");
+                            let is_auth_error = crate::is_hard_auth_error(&e);
                             if let Some(mut session_info) = platform::load_session(&this.store_dir).await {
                                 if is_auth_error {
                                     session_info.is_token_valid = false;
@@ -3143,10 +3162,16 @@ impl Client {
         flow_id
     }
 
-    pub fn cancel_verification(&self, flow_id: String) -> bool {
-        let me = match self.core.sdk.user_id() {
-            Some(u) => u,
-            None => return false,
+    pub fn cancel_verification(&self, flow_id: String, other_user_id: Option<String>) -> bool {
+        let uid = match other_user_id {
+            Some(u) => match u.parse::<OwnedUserId>() {
+                Ok(uid) => uid,
+                Err(_) => return false,
+            },
+            None => match self.core.sdk.user_id() {
+                Some(u) => u.to_owned(),
+                None => return false,
+            },
         };
 
         RT.block_on(async {
@@ -3154,7 +3179,7 @@ impl Client {
                 .core
                 .sdk
                 .encryption()
-                .get_verification(me, &flow_id)
+                .get_verification(&uid, &flow_id)
                 .await
             {
                 match v {
@@ -3165,7 +3190,7 @@ impl Client {
                 .core
                 .sdk
                 .encryption()
-                .get_verification_request(me, &flow_id)
+                .get_verification_request(&uid, &flow_id)
                 .await
             {
                 req.cancel().await.is_ok()
@@ -3175,10 +3200,16 @@ impl Client {
         })
     }
 
-    pub fn confirm_sas(&self, flow_id: String) -> bool {
-        let me = match self.core.sdk.user_id() {
-            Some(u) => u,
-            None => return false,
+    pub fn confirm_sas(&self, flow_id: String, other_user_id: Option<String>) -> bool {
+        let uid = match other_user_id {
+            Some(u) => match u.parse::<OwnedUserId>() {
+                Ok(uid) => uid,
+                Err(_) => return false,
+            },
+            None => match self.core.sdk.user_id() {
+                Some(u) => u.to_owned(),
+                None => return false,
+            },
         };
 
         RT.block_on(async {
@@ -3186,7 +3217,7 @@ impl Client {
                 .core
                 .sdk
                 .encryption()
-                .get_verification(me, &flow_id)
+                .get_verification(&uid, &flow_id)
                 .await
             {
                 sas.confirm().await.is_ok()
