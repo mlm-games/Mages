@@ -37,7 +37,10 @@ jobs:
           rustflags: ""
 
       - name: Install wasm-bindgen CLI
-        run: cargo install wasm-bindgen-cli --locked
+        run: |
+          VERSION=$(awk '/^name = "wasm-bindgen"$/{found=1} found && /^version = /{gsub(/"/, "", $3); print $3; exit}' rust/Cargo.lock)
+          echo "Installing wasm-bindgen-cli $VERSION to match rust/Cargo.lock"
+          cargo install wasm-bindgen-cli --version "$VERSION" --locked
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
