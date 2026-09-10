@@ -122,14 +122,14 @@ impl TimelineManager {
     }
 
     pub fn clear(&self) {
-        self.timelines.lock().unwrap().clear();
-        self.members_fetched.lock().unwrap().clear();
+        self.timelines.lock().unwrap_or_else(|e| e.into_inner()).clear();
+        self.members_fetched.lock().unwrap_or_else(|e| e.into_inner()).clear();
     }
 
     pub async fn timeline_for(&self, room_id: &OwnedRoomId) -> Option<Arc<Timeline>> {
-        if let Some(tl) = self.timelines.lock().unwrap().get(room_id).cloned() {
+        if let Some(tl) = self.timelines.lock().unwrap_or_else(|e| e.into_inner()).get(room_id).cloned() {
             let should_fetch = {
-                let mut s = self.members_fetched.lock().unwrap();
+                let mut s = self.members_fetched.lock().unwrap_or_else(|e| e.into_inner());
                 if s.contains(room_id) {
                     false
                 } else {
@@ -161,7 +161,7 @@ impl TimelineManager {
             .insert(room_id.clone(), tl.clone());
 
         {
-            let mut s = self.members_fetched.lock().unwrap();
+            let mut s = self.members_fetched.lock().unwrap_or_else(|e| e.into_inner());
             if !s.contains(room_id) {
                 s.insert(room_id.clone());
                 let tlc = tl.clone();
@@ -254,7 +254,7 @@ impl CoreClient {
     }
 
     pub async fn ensure_sync_service(&self) {
-        if self.sync_service.lock().unwrap().is_some() {
+        if self.sync_service.lock().unwrap_or_else(|e| e.into_inner()).is_some() {
             return;
         }
         if self.sdk.session_meta().is_none() {
@@ -263,7 +263,7 @@ impl CoreClient {
         let builder = SyncService::builder(self.sdk.clone()).with_offline_mode();
         match builder.build().await {
             Ok(svc) => {
-                let mut g = self.sync_service.lock().unwrap();
+                let mut g = self.sync_service.lock().unwrap_or_else(|e| e.into_inner());
                 if g.is_none() {
                     g.replace(svc.into());
                 }
@@ -274,7 +274,7 @@ impl CoreClient {
 
     pub async fn ensure_sync_active(&self) {
         self.ensure_sync_service().await;
-        if let Some(svc) = self.sync_service.lock().unwrap().as_ref().cloned() {
+        if let Some(svc) = self.sync_service.lock().unwrap_or_else(|e| e.into_inner()).as_ref().cloned() {
             let _ = svc.start().await;
         }
         self.sdk.send_queue().set_enabled(true).await;
@@ -289,7 +289,7 @@ impl CoreClient {
     /// timeline updates instead of the limited 1-event list preview.
     pub async fn subscribe_room_full_timeline(&self, rid: &OwnedRoomId) {
         self.ensure_sync_service().await;
-        let Some(svc) = self.sync_service.lock().unwrap().as_ref().cloned() else {
+        let Some(svc) = self.sync_service.lock().unwrap_or_else(|e| e.into_inner()).as_ref().cloned() else {
             return;
         };
         let rls = svc.room_list_service();
@@ -301,7 +301,7 @@ impl CoreClient {
     pub async fn subscribe_room_full_timeline_when_ready(&self, rid: &OwnedRoomId) {
         self.ensure_sync_service().await;
         let svc = loop {
-            if let Some(s) = self.sync_service.lock().unwrap().as_ref().cloned() {
+            if let Some(s) = self.sync_service.lock().unwrap_or_else(|e| e.into_inner()).as_ref().cloned() {
                 break s;
             }
             matrix_sdk::sleep::sleep(Duration::from_millis(200)).await;

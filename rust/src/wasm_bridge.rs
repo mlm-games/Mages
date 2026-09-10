@@ -509,21 +509,34 @@ impl WasmClient {
                         )));
                         clear_wasm_session(&store_name);
                     } else if let Some(cid) = info.client_id.clone() {
-                        let _ = client
+                        let result = client
                             .restore_session(OAuthSession {
                                 client_id: ClientId::new(cid),
                                 user: UserSession { meta, tokens },
                             })
                             .await;
+                        if let Err(e) = result {
+                            // Mirror native classification: hard auth failures drop
+                            // the session instead of retrying a dead token forever.
+                            let error_str = format!("{e:?}");
+                            let is_auth_error = error_str.contains("AuthenticationRequired")
+                                || error_str.contains("Invalid access token")
+                                || error_str.contains("UnknownToken");
+                            if is_auth_error {
+                                clear_wasm_session(&store_name);
+                            }
+                        }
                     }
                 } else {
                     let result = client.restore_session(MatrixSession { meta, tokens }).await;
                     if result.is_err() {
                         let error_str = format!("{:?}", result);
                         let is_auth_error = error_str.contains("AuthenticationRequired")
+                            || error_str.contains("Invalid access token")
                             || error_str.contains("UnknownToken");
-                        if !is_auth_error {
+                        if is_auth_error {
                             info.is_token_valid = false;
+                            save_wasm_session(&store_name, &info);
                         }
                     }
                 }

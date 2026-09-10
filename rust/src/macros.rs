@@ -6,7 +6,7 @@ use wasm_bindgen::JsValue;
 macro_rules! abort_all_subs {
     ($self:expr; $($field:ident),+ $(,)?) => {
         $(
-            for (_, h) in $self.$field.lock().unwrap().drain() {
+            for (_, h) in $self.$field.lock().unwrap_or_else(|e| e.into_inner()).drain() {
                 h.abort();
             }
         )+
@@ -74,7 +74,7 @@ macro_rules! sub_manager {
     ($self:expr, $subs:ident, $spawn:expr) => {{
         let id = $self.next_sub_id();
         let h = spawn_task!($spawn);
-        $self.$subs.lock().unwrap().insert(id, h);
+        $self.$subs.lock().unwrap_or_else(|e| e.into_inner()).insert(id, h);
         id
     }};
 }
@@ -82,7 +82,7 @@ pub(crate) use sub_manager;
 
 macro_rules! unsub {
     ($self:expr, $subs:ident, $id:expr) => {{
-        if let Some(h) = $self.$subs.lock().unwrap().remove(&$id) {
+        if let Some(h) = $self.$subs.lock().unwrap_or_else(|e| e.into_inner()).remove(&$id) {
             h.abort();
             true
         } else {

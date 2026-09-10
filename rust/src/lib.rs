@@ -404,6 +404,10 @@ impl Client {
             }
         }
 
+        #[cfg(not(target_arch = "wasm32"))]
+        let search_idx = platform::search_index_config(&store_dir_path)
+            .ok_or_else(|| FfiError::Msg("failed to configure search index store".into()))?;
+
         let inner = RT
             .block_on(async {
                 #[cfg(target_arch = "wasm32")]
@@ -433,8 +437,7 @@ impl Client {
 
                 #[cfg(not(target_arch = "wasm32"))]
                 let client = {
-                    let idx = platform::search_index_config(&store_dir_path)
-                        .expect("native builds require search index config");
+                    let idx = search_idx;
                     let mut builder = if use_direct_homeserver_url {
                         SdkClient::builder().homeserver_url(server_name_or_url.clone())
                     } else {
@@ -508,7 +511,7 @@ impl Client {
             let h = spawn_task!(async move {
                 while let Some(upd) = send_rx.recv().await {
                     let list: Vec<Arc<dyn SendObserver>> = {
-                        let guard = observers.lock().expect("send_observers");
+                        let guard = observers.lock().unwrap_or_else(|e| e.into_inner());
                         guard.values().cloned().collect()
                     };
                     for obs in list {
@@ -517,7 +520,10 @@ impl Client {
                     }
                 }
             });
-            this.guards.lock().unwrap().push(h);
+            this.guards
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .push(h);
         }
 
         // Session persistence - listen for token refreshes via subscribe_to_session_changes
@@ -545,7 +551,10 @@ impl Client {
                     }
                 }
             });
-            this.guards.lock().unwrap().push(h);
+            this.guards
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .push(h);
         }
 
         // Restore session
@@ -668,7 +677,10 @@ impl Client {
                     }
                 }
             });
-            this.guards.lock().unwrap().push(h);
+            this.guards
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .push(h);
         }
 
         Ok(this)
@@ -911,7 +923,7 @@ impl Client {
 
             {
                 let is_first = {
-                    let mut rooms = timeline_rooms.lock().unwrap();
+                    let mut rooms = timeline_rooms.lock().unwrap_or_else(|e| e.into_inner());
                     let count = rooms.entry(room_id.clone()).or_insert(0usize);
                     *count += 1;
                     *count == 1
@@ -934,9 +946,7 @@ impl Client {
                 }
             }
 
-            let (_sub_items, mut stream) = tl.subscribe().await;
-
-            let items = tl.items().await;
+            let (items, mut stream) = tl.subscribe().await;
 
             let mut item_ids: Vec<String> = items
                 .iter()
@@ -1066,8 +1076,16 @@ impl Client {
     }
 
     pub fn unobserve_timeline(&self, sub_id: u64) -> bool {
-        if let Some(rid) = self.timeline_sub_rooms.lock().unwrap().remove(&sub_id) {
-            let mut rooms = self.timeline_rooms.lock().unwrap();
+        if let Some(rid) = self
+            .timeline_sub_rooms
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&sub_id)
+        {
+            let mut rooms = self
+                .timeline_rooms
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
             if let Some(count) = rooms.get_mut(&rid) {
                 *count = count.saturating_sub(1);
                 if *count == 0 {
@@ -1084,12 +1102,21 @@ impl Client {
         let store_dir = self.store_dir.clone();
         let id = self.next_sub_id();
         let (cmd_tx, mut cmd_rx) = tokio::sync::mpsc::unbounded_channel::<RoomListCmd>();
-        self.room_list_cmds.lock().unwrap().insert(id, cmd_tx);
+        self.room_list_cmds
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(id, cmd_tx);
 
         let h = spawn_task!(async move {
             core.ensure_sync_service().await;
             let svc = loop {
-                if let Some(s) = core.sync_service.lock().unwrap().as_ref().cloned() {
+                if let Some(s) = core
+                    .sync_service
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .as_ref()
+                    .cloned()
+                {
                     break s;
                 }
                 sleep(Duration::from_millis(200)).await;
@@ -1146,17 +1173,29 @@ impl Client {
                 }
             }
         });
-        self.room_list_subs.lock().unwrap().insert(id, h);
+        self.room_list_subs
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(id, h);
         id
     }
 
     pub fn unobserve_room_list(&self, token: u64) -> bool {
-        self.room_list_cmds.lock().unwrap().remove(&token);
+        self.room_list_cmds
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&token);
         unsub!(self, room_list_subs, token)
     }
 
     pub fn room_list_set_unread_only(&self, token: u64, unread_only: bool) -> bool {
-        if let Some(tx) = self.room_list_cmds.lock().unwrap().get(&token).cloned() {
+        if let Some(tx) = self
+            .room_list_cmds
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(&token)
+            .cloned()
+        {
             tx.send(RoomListCmd::SetUnreadOnly(unread_only)).is_ok()
         } else {
             false
@@ -1169,7 +1208,13 @@ impl Client {
         range: Vec<u64>,
         threshold: u32,
     ) -> bool {
-        if let Some(tx) = self.room_list_cmds.lock().unwrap().get(&token).cloned() {
+        if let Some(tx) = self
+            .room_list_cmds
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(&token)
+            .cloned()
+        {
             tx.send(RoomListCmd::UpdateVisibleRange((range, threshold as usize)))
                 .is_ok()
         } else {
@@ -1226,10 +1271,26 @@ impl Client {
                 for diff in diffs {
                     if let Some(mapped) = map_live_location_vec_diff(diff) {
                         match mapped {
-                            VectorDiff::Insert { index, value } => all_shares.insert(index, value),
-                            VectorDiff::Set { index, value } => all_shares[index] = value,
+                            VectorDiff::Insert { index, value } => {
+                                let idx = index.min(all_shares.len());
+                                if idx != index {
+                                    warn!("live-location Insert OOB: {index}");
+                                }
+                                all_shares.insert(idx, value);
+                            }
+                            VectorDiff::Set { index, value } => {
+                                if let Some(slot) = all_shares.get_mut(index) {
+                                    *slot = value;
+                                } else {
+                                    warn!("live-location Set OOB: {index}");
+                                }
+                            }
                             VectorDiff::Remove { index } => {
-                                all_shares.remove(index);
+                                if index < all_shares.len() {
+                                    all_shares.remove(index);
+                                } else {
+                                    warn!("live-location Remove OOB: {index}");
+                                }
                             }
                             VectorDiff::PushBack { value } => all_shares.push(value),
                             VectorDiff::PopBack => {
@@ -1237,7 +1298,11 @@ impl Client {
                             }
                             VectorDiff::PushFront { value } => all_shares.insert(0, value),
                             VectorDiff::PopFront => {
-                                all_shares.remove(0);
+                                if !all_shares.is_empty() {
+                                    all_shares.remove(0);
+                                } else {
+                                    warn!("live-location PopFront on empty");
+                                }
                             }
                             VectorDiff::Clear => all_shares.clear(),
                             VectorDiff::Truncate { length } => all_shares.truncate(length),
@@ -1330,7 +1395,11 @@ impl Client {
     }
 
     pub fn unobserve_sends(&self, id: u64) -> bool {
-        self.send_observers.lock().unwrap().remove(&id).is_some()
+        self.send_observers
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&id)
+            .is_some()
     }
 
     pub fn observe_recovery_state(&self, observer: Box<dyn RecoveryStateObserver>) -> u64 {
@@ -1423,7 +1492,14 @@ impl Client {
                 if let Err(e) = self.core.sdk.event_cache().subscribe() {
                     warn!("event_cache.subscribe() failed: {e:?}");
                 }
-                if let Some(svc) = self.core.sync_service.lock().unwrap().as_ref().cloned() {
+                if let Some(svc) = self
+                    .core
+                    .sync_service
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .as_ref()
+                    .cloned()
+                {
                     let _ = svc.start().await;
                 }
                 self.core.sdk.send_queue().set_enabled(true).await;
@@ -1456,7 +1532,14 @@ impl Client {
         let prev = self.app_in_foreground.fetch_sub(1, Ordering::AcqRel);
         if prev == 1 {
             let _ = RT.block_on(async {
-                if let Some(svc) = self.core.sync_service.lock().unwrap().as_ref().cloned() {
+                if let Some(svc) = self
+                    .core
+                    .sync_service
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .as_ref()
+                    .cloned()
+                {
                     let _ = svc.stop().await;
                 }
                 self.core.sdk.send_queue().set_enabled(false).await;
@@ -1477,7 +1560,12 @@ impl Client {
                 message: None,
             });
             let svc = loop {
-                if let Some(s) = svc_slot.lock().unwrap().as_ref().cloned() {
+                if let Some(s) = svc_slot
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .as_ref()
+                    .cloned()
+                {
                     break s;
                 }
                 sleep(Duration::from_millis(200)).await;
@@ -1521,7 +1609,10 @@ impl Client {
                 }
             }
         });
-        self.guards.lock().unwrap().push(h);
+        self.guards
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .push(h);
     }
 
     fn ensure_send_queue_supervision(&self) {
@@ -1568,7 +1659,10 @@ impl Client {
                 }
             }
         });
-        self.guards.lock().unwrap().push(h);
+        self.guards
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .push(h);
     }
 
     fn reset_send_queue_supervision(&self) {
@@ -1996,7 +2090,11 @@ impl Client {
 
             self.core.ensure_sync_service().await;
             let process_setup = {
-                let g = self.core.sync_service.lock().unwrap();
+                let g = self
+                    .core
+                    .sync_service
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner());
                 if let Some(sync) = g.as_ref().cloned() {
                     NotificationProcessSetup::SingleProcess { sync_service: sync }
                 } else {
@@ -2035,7 +2133,10 @@ impl Client {
                 Err(e) => obs.on_error(format!("Recovery setup failed: {e}")),
             }
         });
-        self.guards.lock().unwrap().push(h);
+        self.guards
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .push(h);
         true
     }
 
@@ -2273,15 +2374,28 @@ impl Client {
 
     pub fn stop_element_call(&self, session_id: u64) -> bool {
         let mut any = false;
-        if let Some(h) = self.widget_driver_tasks.lock().unwrap().remove(&session_id) {
+        if let Some(h) = self
+            .widget_driver_tasks
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&session_id)
+        {
             h.abort();
             any = true;
         }
-        if let Some(h) = self.widget_recv_tasks.lock().unwrap().remove(&session_id) {
+        if let Some(h) = self
+            .widget_recv_tasks
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&session_id)
+        {
             h.abort();
             any = true;
         }
-        self.widget_handles.lock().unwrap().remove(&session_id);
+        self.widget_handles
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&session_id);
         any
     }
 
@@ -2641,7 +2755,11 @@ impl Client {
         RT.block_on(async {
             self.core.ensure_sync_service().await;
             let process_setup = {
-                let g = self.core.sync_service.lock().unwrap();
+                let g = self
+                    .core
+                    .sync_service
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner());
                 if let Some(sync) = g.as_ref().cloned() {
                     NotificationProcessSetup::SingleProcess { sync_service: sync }
                 } else {
@@ -2955,7 +3073,10 @@ impl Client {
                 }
             }
         });
-        self.guards.lock().unwrap().push(h);
+        self.guards
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .push(h);
         flow_id
     }
 
@@ -3015,7 +3136,10 @@ impl Client {
                 }
             }
         });
-        self.guards.lock().unwrap().push(h);
+        self.guards
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .push(h);
         flow_id
     }
 
@@ -3176,7 +3300,10 @@ impl Client {
                 }
             }
         });
-        self.guards.lock().unwrap().push(h);
+        self.guards
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .push(h);
         true
     }
 
@@ -3187,7 +3314,12 @@ impl Client {
 
 impl Client {
     fn shutdown_inner(&self) {
-        for h in self.guards.lock().unwrap().drain(..) {
+        for h in self
+            .guards
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .drain(..)
+        {
             h.abort();
         }
         abort_all_subs!(self;

@@ -80,6 +80,7 @@ class MatrixClients(
         if (existing != null && existing.id != account.id) {
             accountStore.removeAccount(existing.id)
             runCatching { deleteDirectory(accountStoreDir(existing.id)) }
+            deleteSessionFiles(existing.id)
         }
 
         accountStore.addAccount(account)
@@ -102,6 +103,7 @@ class MatrixClients(
 
         accountStore.removeAccount(current.id)
         runCatching { deleteDirectory(accountStoreDir(current.id)) }
+        deleteSessionFiles(current.id)
 
         val next = accountStore.accounts.value.firstOrNull()
         if (next != null) {
@@ -129,6 +131,7 @@ class MatrixClients(
         runCatching {
             deleteDirectory(storeDir)
         }
+        deleteSessionFiles(accountId)
 
         if (wasActive) {
             val nextAccount = accountStore.accounts.value.firstOrNull()
@@ -188,5 +191,11 @@ class MatrixClients(
     private fun accountStoreDir(accountId: String): String {
         val base = MagesPaths.storeDir()
         return "$base/accounts/$accountId"
+    }
+
+    private fun deleteSessionFiles(accountId: String) {
+        val base = MagesPaths.storeDir()
+        runCatching { deleteDirectory("$base/accounts/$accountId.session.json") }
+        runCatching { deleteDirectory("$base/accounts/$accountId.session.tmp") }
     }
 }
