@@ -2231,6 +2231,7 @@ impl Client {
 
     pub fn backup_state(&self) -> BackupState {
         RT.block_on(async {
+            #[allow(unreachable_patterns)]
             match self.core.sdk.encryption().backups().state() {
                 matrix_sdk::encryption::backups::BackupState::Unknown => BackupState::Unknown,
                 matrix_sdk::encryption::backups::BackupState::Creating => BackupState::Creating,
@@ -2648,6 +2649,7 @@ impl Client {
         filename: Option<String>,
         progress: Option<Box<dyn ProgressObserver>>,
     ) -> bool {
+        let _ = &filename;
         RT.block_on(async {
             let Ok(rid) = OwnedRoomId::try_from(room_id) else {
                 return false;
@@ -3927,6 +3929,7 @@ async fn map_event_id_via_timeline(
 }
 
 fn render_timeline_text(ev: &EventTimelineItem) -> String {
+    #[allow(unreachable_patterns)]
     match ev.content() {
         TimelineItemContent::MsgLike(msg_like) => render_msg_like(ev, msg_like),
         TimelineItemContent::MembershipChange(change) => render_membership_change(ev, change),

@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import mages.shared.generated.resources.Res
+import org.koin.compose.koinInject
 import org.maplibre.compose.desktop.MapLibre
 import org.maplibre.compose.desktop.ProvideMapHost
 import org.maplibre.compose.desktop.rememberAwtComposeMapHost
@@ -148,8 +149,9 @@ fun main() {
             title = "Mages"
         ) {
             val window = this.window
+            val matrixService: MatrixService = koinInject()
 
-            DisposableEffect(window) {
+            DisposableEffect(window, matrixService) {
                 val listener = object : WindowFocusListener {
                     var lastNudgeMs = 0L
                     override fun windowGainedFocus(e: WindowEvent?) {
@@ -158,10 +160,8 @@ fun main() {
                         if (now - lastNudgeMs > 5000L) {
                             lastNudgeMs = now
                             scope.launch(Dispatchers.IO) {
-                                runCatching {
-                                    val service =
-                                        org.koin.core.context.GlobalContext.get().get<org.mlm.mages.MatrixService>()
-                                    service.portOrNull?.enterForeground()
+                                runCatching<Unit> {
+                                    matrixService.portOrNull?.enterForeground()
                                 }
                             }
                         }

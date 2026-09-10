@@ -54,6 +54,8 @@ dependencies {
     implementation(libs.androidx.datastore.preferences.core)
     implementation(libs.kmp.settings.core)
     implementation(libs.maplibre.compose)
+    implementation(libs.koin.core)
+    implementation(libs.koin.compose)
 
     // Host-only native MapLibre runtime (picked at build machine OS/arch)
     if (maplibreRuntime != null) {

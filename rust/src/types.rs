@@ -6,8 +6,6 @@ use uniffi::{Enum, Record, export};
 
 use crate::RT;
 
-pub(crate) const INITIAL_BACK_PAGINATION: u16 = 20;
-
 #[derive(Debug, thiserror::Error, Serialize, uniffi::Error)]
 pub enum FfiError {
     #[error("{0}")]

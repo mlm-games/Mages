@@ -210,6 +210,7 @@ impl CoreClient {
         self.sdk.get_room(&rid).or_ffi("room not found")
     }
 
+    #[allow(dead_code)]
     pub(crate) async fn require_timeline(&self, room_id: &str) -> Result<Arc<Timeline>, FfiError> {
         self.timeline(room_id)
             .await
