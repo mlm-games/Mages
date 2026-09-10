@@ -1111,6 +1111,7 @@ impl WasmClient {
             if let Some(svc) = s.ensure_sync_service().await {
                 let rls = svc.room_list_service();
                 rls.subscribe_to_rooms(&[rid.as_ref()]).await;
+                let _ = svc.start().await;
             }
 
             {
@@ -2018,6 +2019,30 @@ impl WasmClient {
         } else {
             false
         }
+    }
+
+    #[wasm_bindgen(js_name = subscribeRooms)]
+    pub fn subscribe_rooms(&self, room_ids: JsValue) {
+        let Some(state) = self.state() else {
+            return;
+        };
+        let ids: Vec<String> = serde_wasm_bindgen::from_value(room_ids).unwrap_or_default();
+        let rids: Vec<OwnedRoomId> = ids
+            .iter()
+            .filter_map(|s| OwnedRoomId::try_from(s.as_str()).ok())
+            .collect();
+        if rids.is_empty() {
+            return;
+        }
+        let s = state.clone();
+        wasm_bindgen_futures::spawn_local(async move {
+            if let Some(svc) = s.ensure_sync_service().await {
+                let _ = svc.start().await;
+                let refs: Vec<&matrix_sdk::ruma::RoomId> =
+                    rids.iter().map(|r| r.as_ref()).collect();
+                svc.room_list_service().subscribe_to_rooms(&refs).await;
+            }
+        });
     }
 
     #[wasm_bindgen(js_name = observeOwnReceipt)]

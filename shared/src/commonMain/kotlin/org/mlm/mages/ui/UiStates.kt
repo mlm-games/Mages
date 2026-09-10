@@ -127,6 +127,11 @@ data class RoomUiState(
     val hasTimelineSnapshot: Boolean = false,
     val hitStart: Boolean = false,
     val isOffline: Boolean = false,
+    /**
+     * True between the initial cached timeline Reset and the first live
+     * Append/Update (or timeout).
+     */
+    val isCatchingUp: Boolean = false,
     val attachments: List<AttachmentData> = emptyList(),
     val isUploadingAttachment: Boolean = false,
     val uploadingFileName: String? = null,

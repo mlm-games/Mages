@@ -777,6 +777,8 @@ interface MatrixPort {
     suspend fun roomListSetUnreadOnly(token: ULong, unreadOnly: Boolean): Boolean
     suspend fun roomListUpdateVisibleRange(token: ULong, range: List<Int>, threshold: Int): Boolean
 
+    suspend fun subscribeToVisibleRooms(roomIds: List<String>)
+
     suspend fun loginSsoLoopback(openUrl: (String) -> Boolean, deviceName: String? = null): Result<Unit>
 
     suspend fun loginOauthLoopback(openUrl: (String) -> Boolean, deviceName: String? = null): Result<Unit>

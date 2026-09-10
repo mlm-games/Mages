@@ -3,6 +3,7 @@
 
     <string name="waiting_for_sso">Waiting for SSO...</string>
     <string name="connecting">Connecting...</string>
+    <string name="syncing">Syncing…</string>
     <string name="add_account">Add Account</string>
     <string name="welcome_to_mages">Welcome to Mages</string>
     <string

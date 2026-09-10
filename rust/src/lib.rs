@@ -941,6 +941,10 @@ impl Client {
             };
 
             {
+                let c = core.clone();
+                let _ = spawn_task!(async move {
+                    c.ensure_sync_active().await;
+                });
                 let is_first = {
                     let mut rooms = timeline_rooms.lock().unwrap_or_else(|e| e.into_inner());
                     let count = rooms.entry(room_id.clone()).or_insert(0usize);
@@ -974,6 +978,12 @@ impl Client {
 
             {
                 let mapped = map_timeline_items_to_events(&items, &room_id, &tl, &me);
+                info!(
+                    "observe_timeline Reset room={} cached_items={} mapped={}",
+                    room_id,
+                    items.len(),
+                    mapped.len()
+                );
                 safe_call(|| obs.on_diff(TimelineDiffKind::Reset { values: mapped }));
             }
 
@@ -1239,6 +1249,25 @@ impl Client {
         } else {
             false
         }
+    }
+
+    /// Prefetch full-timeline subscriptions for viewport rooms (and re-assert
+    /// on room open). Non-blocking: invalid IDs are skipped, the subscribe is
+    /// spawned so Kotlin's dispatcher is never blocked waiting for sync.
+    pub fn subscribe_rooms(&self, room_ids: Vec<String>) {
+        use matrix_sdk::ruma::OwnedRoomId;
+        let rids: Vec<OwnedRoomId> = room_ids
+            .iter()
+            .filter_map(|s| OwnedRoomId::try_from(s.as_str()).ok())
+            .collect();
+        if rids.is_empty() {
+            return;
+        }
+        let core = self.core.clone();
+        let _ = spawn_task!(async move {
+            core.ensure_sync_active().await;
+            core.subscribe_rooms_full_timeline(&rids).await;
+        });
     }
 
     pub fn start_call_inbox(&self, observer: Box<dyn CallObserver>) -> u64 {

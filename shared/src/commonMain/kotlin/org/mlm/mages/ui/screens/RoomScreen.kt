@@ -696,6 +696,30 @@ fun RoomScreen(
                     onNavigateToRoom = { roomId -> onNavigateToRoom(roomId, "Room") }
                 )
 
+                AnimatedVisibility(
+                    visible = state.isCatchingUp && state.hasTimelineSnapshot,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            CircularWavyProgressIndicator()
+                            Text(
+                                text = stringResource(Res.string.syncing),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
                 if (state.liveLocationShares.values.any { it.isLive }) {
                     LiveLocationBanner(
                         shares = state.liveLocationShares,

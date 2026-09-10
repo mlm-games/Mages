@@ -44,6 +44,7 @@ class RoomsViewModel(
     private var roomListToken: ULong? = null
     private var initialized = false
     private var observerJob: Job? = null
+    private var subscribePrefetchJob: Job? = null
 
     init {
         observerJob = launch {
@@ -174,6 +175,20 @@ class RoomsViewModel(
             launch {
                 service.port.roomListUpdateVisibleRange(token, range.toList(), threshold)
             }
+        }
+        subscribePrefetchJob?.cancel()
+        subscribePrefetchJob = launch {
+            delay(300)
+            if (range.isEmpty()) return@launch
+            val items = currentState.allItems
+            if (items.isEmpty()) return@launch
+            val extendedEnd = (range.last + 20).coerceAtMost(items.lastIndex)
+            val clamped = range.first.coerceIn(0, items.lastIndex)..extendedEnd
+            if (clamped.isEmpty()) return@launch
+            val roomIds = clamped.mapNotNull { items.getOrNull(it)?.roomId }
+                .take(40)
+            if (roomIds.isEmpty()) return@launch
+            runCatching { service.port.subscribeToVisibleRooms(roomIds) }
         }
     }
 

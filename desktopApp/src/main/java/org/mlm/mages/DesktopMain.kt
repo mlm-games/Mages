@@ -151,8 +151,20 @@ fun main() {
 
             DisposableEffect(window) {
                 val listener = object : WindowFocusListener {
+                    var lastNudgeMs = 0L
                     override fun windowGainedFocus(e: WindowEvent?) {
                         Notifier.setWindowFocused(true)
+                        val now = System.currentTimeMillis()
+                        if (now - lastNudgeMs > 5000L) {
+                            lastNudgeMs = now
+                            scope.launch(Dispatchers.IO) {
+                                runCatching {
+                                    val service =
+                                        org.koin.core.context.GlobalContext.get().get<org.mlm.mages.MatrixService>()
+                                    service.portOrNull?.enterForeground()
+                                }
+                            }
+                        }
                     }
 
                     override fun windowLostFocus(e: WindowEvent?) {

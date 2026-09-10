@@ -274,7 +274,14 @@ impl CoreClient {
 
     pub async fn ensure_sync_active(&self) {
         self.ensure_sync_service().await;
-        if let Some(svc) = self.sync_service.lock().unwrap_or_else(|e| e.into_inner()).as_ref().cloned() {
+        let svc = {
+            self.sync_service
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .as_ref()
+                .cloned()
+        };
+        if let Some(svc) = svc {
             let _ = svc.start().await;
         }
         self.sdk.send_queue().set_enabled(true).await;
@@ -289,7 +296,14 @@ impl CoreClient {
     /// timeline updates instead of the limited 1-event list preview.
     pub async fn subscribe_room_full_timeline(&self, rid: &OwnedRoomId) {
         self.ensure_sync_service().await;
-        let Some(svc) = self.sync_service.lock().unwrap_or_else(|e| e.into_inner()).as_ref().cloned() else {
+        let svc = {
+            self.sync_service
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .as_ref()
+                .cloned()
+        };
+        let Some(svc) = svc else {
             return;
         };
         let rls = svc.room_list_service();
@@ -301,13 +315,43 @@ impl CoreClient {
     pub async fn subscribe_room_full_timeline_when_ready(&self, rid: &OwnedRoomId) {
         self.ensure_sync_service().await;
         let svc = loop {
-            if let Some(s) = self.sync_service.lock().unwrap_or_else(|e| e.into_inner()).as_ref().cloned() {
+            let s = {
+                self.sync_service
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .as_ref()
+                    .cloned()
+            };
+            if let Some(s) = s {
                 break s;
             }
             matrix_sdk::sleep::sleep(Duration::from_millis(200)).await;
         };
         let rls = svc.room_list_service();
         rls.subscribe_to_rooms(&[rid.as_ref()]).await;
+    }
+
+    /// Batch version of [`Self::subscribe_room_full_timeline`]: subscribes
+    /// all given rooms in a single sliding-sync update so viewport prefetch
+    /// (room list) and room-open re-assert don't each cost a sync round-trip.
+    pub async fn subscribe_rooms_full_timeline(&self, rids: &[OwnedRoomId]) {
+        if rids.is_empty() {
+            return;
+        }
+        self.ensure_sync_service().await;
+        let svc = {
+            self.sync_service
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .as_ref()
+                .cloned()
+        };
+        let Some(svc) = svc else {
+            return;
+        };
+        let refs: Vec<&matrix_sdk::ruma::RoomId> =
+            rids.iter().map(|r| r.as_ref()).collect();
+        svc.room_list_service().subscribe_to_rooms(&refs).await;
     }
 
     pub async fn login_password(

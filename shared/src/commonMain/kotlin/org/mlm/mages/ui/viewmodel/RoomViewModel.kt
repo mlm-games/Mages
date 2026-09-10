@@ -184,6 +184,7 @@ class RoomViewModel(
     private var hasTimelineSnapshot = false
     private var searchJob: Job? = null
     private var paginationRecomputeJob: Job? = null
+    private var catchUpTimeoutJob: Job? = null
 
     private var roomClass: RoomClass = RoomClass.PrivateGroup
 
@@ -259,6 +260,17 @@ class RoomViewModel(
     private fun initialize() {
         launch {
             observeTimeline()
+        }
+        launch {
+            runCatching { service.portOrNull?.enterForeground() }
+            runCatching { service.portOrNull?.subscribeToVisibleRooms(listOf(currentState.roomId)) }
+            runCatching { service.startSupervisedSync() }
+        }
+        launch {
+            service.syncStatus.collect { status ->
+                if (status == null) return@collect
+                Logger.d("Room ${currentState.roomId} sync=${status.phase} catchingUp=${currentState.isCatchingUp}")
+            }
         }
         observeTyping()
         observeOwnReceipt()
@@ -2135,6 +2147,8 @@ class RoomViewModel(
 
     private fun observeTimeline() {
         Notifier.setCurrentRoom(currentState.roomId)
+        updateState { copy(isCatchingUp = true) }
+        scheduleCatchUpTimeout()
 
         viewModelScope.launch(Dispatchers.Default) {
             service.timelineDiffs(currentState.roomId)
@@ -2143,9 +2157,29 @@ class RoomViewModel(
         }
     }
 
+    private fun scheduleCatchUpTimeout(timeoutMs: Long = 8000L) {
+        catchUpTimeoutJob?.cancel()
+        catchUpTimeoutJob = viewModelScope.launch {
+            delay(timeoutMs)
+            if (currentState.isCatchingUp) {
+                Logger.d("Room ${currentState.roomId} catch-up timeout, clearing banner")
+                updateState { copy(isCatchingUp = false) }
+            }
+        }
+    }
+
     private fun processDiff(diff: TimelineDiff<MessageEvent>) {
         var delta: List<MessageEvent> = emptyList()
         var didClear = false
+        val isLiveAppend = when (diff) {
+            is TimelineDiff.Append -> diff.items.isNotEmpty()
+            is TimelineDiff.Prepend -> true
+            is TimelineDiff.UpdateByItemId, is TimelineDiff.UpsertByItemId -> true
+            else -> false
+        }
+        if (diff is TimelineDiff.Reset) {
+            Logger.d("Room ${currentState.roomId} Reset items=${diff.items.size}")
+        }
 
         updateState {
             if (diff is TimelineDiff.RemoveByItemId) {
@@ -2191,11 +2225,22 @@ class RoomViewModel(
                     r.reset -> true
                     r.cleared -> false
                     else -> hasTimelineSnapshot
+                },
+                isCatchingUp = when {
+                    r.reset -> true
+                    r.cleared -> false
+                    isLiveAppend -> false
+                    else -> isCatchingUp
                 }
             )
         }
 
         val visibleDelta = filteredDeltaEvents(delta)
+        if (diff is TimelineDiff.Reset) {
+            scheduleCatchUpTimeout()
+        } else if (isLiveAppend && visibleDelta.isNotEmpty()) {
+            catchUpTimeoutJob?.cancel()
+        }
         if (!didClear && visibleDelta.isNotEmpty()) {
             postProcessNewEvents(visibleDelta)
         }

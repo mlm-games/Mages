@@ -865,6 +865,12 @@ class RustMatrixPort : MatrixPort, VerificationService {
             }
         }
 
+    override suspend fun subscribeToVisibleRooms(roomIds: List<String>) =
+        withContext(matrixDispatcher) {
+            runCatching { withClient { it.subscribeRooms(roomIds) } }
+            Unit
+        }
+
     override suspend fun loginSsoLoopback(
         openUrl: (String) -> Boolean,
         deviceName: String?
