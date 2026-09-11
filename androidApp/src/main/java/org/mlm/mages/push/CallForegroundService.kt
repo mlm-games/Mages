@@ -8,15 +8,35 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import org.mlm.mages.shared.R
 import org.mlm.mages.MainActivity
+import org.koin.core.context.GlobalContext
+import org.mlm.mages.calls.CallManager
 
 class CallForegroundService : Service() {
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val action = intent?.action
+        if (action == ACTION_END_CALL) {
+            scope.launch {
+                runCatching {
+                    GlobalContext.getOrNull()
+                        ?.get<CallManager>()
+                        ?.endCall()
+                }
+                stopSelf()
+            }
+            return START_NOT_STICKY
+        }
         if (action == ACTION_STOP) {
             stopSelf()
             return START_NOT_STICKY
@@ -28,6 +48,18 @@ class CallForegroundService : Service() {
         return START_NOT_STICKY
     }
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        scope.launch {
+            runCatching {
+                GlobalContext.getOrNull()
+                    ?.get<CallManager>()
+                    ?.endCall()
+            }
+            stopSelf()
+        }
+        super.onTaskRemoved(rootIntent)
+    }
+
     private fun buildNotification(roomName: String): Notification {
         val openIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -37,11 +69,11 @@ class CallForegroundService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val stopIntent = Intent(this, CallForegroundService::class.java).apply {
-            action = ACTION_STOP
+        val endIntent = Intent(this, CallForegroundService::class.java).apply {
+            action = ACTION_END_CALL
         }
-        val stopPendingIntent = PendingIntent.getService(
-            this, 1, stopIntent,
+        val endPendingIntent = PendingIntent.getService(
+            this, 1, endIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
@@ -53,12 +85,13 @@ class CallForegroundService : Service() {
             .setContentIntent(openPendingIntent)
             .addAction(
                 R.drawable.ic_notif_status_bar, "End",
-                stopPendingIntent
+                endPendingIntent
             )
             .build()
     }
 
     override fun onDestroy() {
+        scope.cancel()
         super.onDestroy()
         stopForeground(STOP_FOREGROUND_REMOVE)
     }
@@ -67,6 +100,7 @@ class CallForegroundService : Service() {
         val NOTIFICATION_ID = "call_foreground_service".hashCode()
 
         private const val ACTION_STOP = "org.mlm.mages.push.CallForegroundService.STOP"
+        private const val ACTION_END_CALL = "org.mlm.mages.push.CallForegroundService.END_CALL"
         private const val EXTRA_ROOM_NAME = "room_name"
 
         fun start(context: Context, roomName: String) {

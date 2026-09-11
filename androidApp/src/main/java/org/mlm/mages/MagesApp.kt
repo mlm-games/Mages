@@ -23,6 +23,7 @@ import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.SettingsProvider
 import org.mlm.mages.platform.LiveLocationSharingCoordinator
 import org.mlm.mages.push.AppNotificationChannels
+import org.mlm.mages.push.AndroidNotificationHelper
 import org.mlm.mages.push.CallForegroundService
 import org.mlm.mages.push.LiveLocationSharingForegroundService
 import org.mlm.mages.push.PREF_INSTANCE
@@ -114,6 +115,11 @@ class MagesApp : Application() {
             callManager.onCallStateChanged = { active, roomName ->
                 if (active && roomName != null) {
                     CallForegroundService.start(this, roomName)
+                    runCatching {
+                        callManager.call.value?.roomId?.let { roomId ->
+                            AndroidNotificationHelper.cancelCallNotification(this, roomId)
+                        }
+                    }
                 } else {
                     CallForegroundService.stop(this)
                 }

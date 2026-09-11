@@ -106,6 +106,12 @@ object AndroidNotificationHelper : KoinComponent {
             .setGroup(Notifier.groupKey(ctx))
             .apply { callerIcon?.let { setLargeIcon(it) } }
             .setFullScreenIntent(incomingScreenIntent, true) // TODO: precall it when the setting is enabled
+            .addExtras(
+                Bundle().apply {
+                    putString(NotificationReconcileWorker.EXTRA_MATRIX_ROOM_ID, roomId)
+                    putString(NotificationReconcileWorker.EXTRA_MATRIX_EVENT_ID, eventId)
+                }
+            )
 
         mgr.notify(notifId, builder.build().apply {
             flags = flags or Notification.FLAG_INSISTENT

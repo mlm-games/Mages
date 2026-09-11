@@ -198,6 +198,7 @@
         <service
             android:name=".push.CallForegroundService"
             android:exported="false"
+            android:stopWithTask="true"
             android:foregroundServiceType="microphone" />
         <service
             android:name=".push.LiveLocationSharingForegroundService"

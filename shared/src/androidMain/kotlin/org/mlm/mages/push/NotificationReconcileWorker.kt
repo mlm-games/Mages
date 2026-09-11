@@ -8,6 +8,7 @@ import kotlinx.coroutines.delay
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.mlm.mages.MatrixService
+import org.mlm.mages.matrix.NotificationKind
 
 class NotificationReconcileWorker(
     appContext: Context,
@@ -66,6 +67,31 @@ class NotificationReconcileWorker(
             }
 
             if (targetRoomId != null) break
+        }
+
+        runCatching {
+            val callNotifs = (mgr.activeNotifications ?: emptyArray())
+                .filter { it.notification.channelId == AppNotificationChannels.CHANNEL_CALLS }
+            for (entry in callNotifs) {
+                val roomId = entry.notification.extras.getString(EXTRA_MATRIX_ROOM_ID)
+                    ?: continue
+                if (targetRoomId != null && roomId != targetRoomId) continue
+                val eventId = entry.notification.extras.getString(EXTRA_MATRIX_EVENT_ID)
+                    ?: continue
+                val rendered = runCatching { port.fetchNotification(roomId, eventId) }.getOrNull()
+                val stale = when {
+                    rendered == null -> true
+                    rendered.kind != NotificationKind.CallRing &&
+                        rendered.kind != NotificationKind.CallInvite &&
+                        rendered.kind != NotificationKind.CallNotify -> true
+                    rendered.expiresAtMs != null && System.currentTimeMillis() > rendered.expiresAtMs -> true
+                    else -> false
+                }
+                if (stale) {
+                    AndroidNotificationHelper.cancelCallNotification(ctx, roomId)
+                }
+                if (targetRoomId != null) break
+            }
         }
 
         return Result.success()
