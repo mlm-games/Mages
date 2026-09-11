@@ -529,7 +529,8 @@ fun RoomScreen(
             } else if (isBubbleMode) {
                 BubbleTopBar(
                     roomName = state.roomName,
-                    avatarUrl = state.roomAvatarUrl
+                    avatarUrl = state.roomAvatarUrl,
+                    isSyncing = state.isCatchingUp && state.hasTimelineSnapshot
                 )
             } else {
                 RoomTopBar(
@@ -538,6 +539,7 @@ fun RoomScreen(
                     avatarUrl = state.roomAvatarUrl,
                     typingNames = state.typingNames,
                     isOffline = state.isOffline,
+                    isSyncing = state.isCatchingUp && state.hasTimelineSnapshot,
                     hasActiveCall = state.hasActiveCallForRoom,
                     voiceCallAction = state.voiceCallAction,
                     videoCallAction = state.videoCallAction,
@@ -697,30 +699,6 @@ fun RoomScreen(
                     predecessor = state.predecessor,
                     onNavigateToRoom = { roomId -> onNavigateToRoom(roomId, "Room") }
                 )
-
-                AnimatedVisibility(
-                    visible = state.isCatchingUp && state.hasTimelineSnapshot,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
-                ) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            CircularWavyProgressIndicator()
-                            Text(
-                                text = stringResource(Res.string.syncing),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
 
                 if (state.liveLocationShares.values.any { it.isLive }) {
                     LiveLocationBanner(
@@ -1151,6 +1129,7 @@ private fun RoomTopBar(
     avatarUrl: String?,
     typingNames: List<String>,
     isOffline: Boolean,
+    isSyncing: Boolean,
     hasActiveCall: Boolean,
     voiceCallAction: ActionAvailabilityUi,
     videoCallAction: ActionAvailabilityUi,
@@ -1167,17 +1146,37 @@ private fun RoomTopBar(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = CircleShape,
-                            modifier = Modifier.size(40.dp)
+                        Box(
+                            modifier = Modifier.size(40.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Avatar(
-                                    name = roomName,
-                                    avatarPath = avatarUrl,
-                                    size = 40.dp
-                                )
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = CircleShape,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Avatar(
+                                        name = roomName,
+                                        avatarPath = avatarUrl,
+                                        size = 40.dp
+                                    )
+                                }
+                            }
+                            if (isSyncing) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
+                                            CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularWavyProgressIndicator(
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
                         }
                         Spacer(Modifier.width(12.dp))
@@ -1288,22 +1287,43 @@ private fun RoomTopBar(
 private fun BubbleTopBar(
     roomName: String,
     avatarUrl: String?,
+    isSyncing: Boolean = false,
 ) {
     Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shadowElevation = 2.dp) {
         TopAppBar(
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = CircleShape,
-                        modifier = Modifier.size(32.dp)
+                    Box(
+                        modifier = Modifier.size(32.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Avatar(
-                                name = roomName,
-                                avatarPath = avatarUrl,
-                                size = 32.dp
-                            )
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = CircleShape,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Avatar(
+                                    name = roomName,
+                                    avatarPath = avatarUrl,
+                                    size = 32.dp
+                                )
+                            }
+                        }
+                        if (isSyncing) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularWavyProgressIndicator(
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         }
                     }
                     Spacer(Modifier.width(8.dp))
