@@ -1,3 +1,10 @@
+## v4.10.4
+
+- call notif improvements
+- fix the typing indicator not appearing
+- move the sync indicator to ( surrond, or just appear) around the avatar
+
+
 ## v4.10.3
 
 - fix dual padding being applied on android, and add thread screen ime padding

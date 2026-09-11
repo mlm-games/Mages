@@ -46,6 +46,15 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.10.4" date="2026-09-11" type="stable">
+      <description>
+        <ul>
+          <li>call notif improvements</li>
+          <li>fix the typing indicator not appearing</li>
+          <li>move the sync indicator to ( surrond, or just appear) around the avatar</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.10.3" date="2026-09-11" type="stable">
       <description>
         <ul>

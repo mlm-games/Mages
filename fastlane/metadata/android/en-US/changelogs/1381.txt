@@ -1,0 +1,3 @@
+- call notif improvements
+- fix the typing indicator not appearing
+- move the sync indicator to ( surrond, or just appear) around the avatar
