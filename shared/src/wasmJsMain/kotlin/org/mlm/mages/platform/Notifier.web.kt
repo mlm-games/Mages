@@ -9,6 +9,7 @@ import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.browser.window
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import org.koin.compose.koinInject
 import org.mlm.mages.MatrixService
@@ -16,6 +17,7 @@ import org.mlm.mages.calls.IncomingCall
 import org.mlm.mages.calls.IncomingCallTracker
 import org.mlm.mages.calls.isExpired
 import org.mlm.mages.calls.isRingingCall
+import org.mlm.mages.calls.ringing
 import org.mlm.mages.matrix.NotificationKind
 import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.settings.AppSettings

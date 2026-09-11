@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
@@ -65,7 +66,7 @@ class CallForegroundService : Service() {
         val openIntent = if (roomId.isNotBlank()) {
             Intent(
                 Intent.ACTION_VIEW,
-                android.net.Uri.Builder()
+                Uri.Builder()
                     .scheme("mages")
                     .authority("room")
                     .appendQueryParameter("id", roomId)

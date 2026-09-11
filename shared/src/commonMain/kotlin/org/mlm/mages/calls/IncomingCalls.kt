@@ -37,7 +37,8 @@ fun RenderedNotification.isExpired(nowMs: Long = Clock.System.now().toEpochMilli
 
 fun formatCallElapsed(elapsedMs: Long): String {
     val totalSec = (elapsedMs.coerceAtLeast(0L) / 1000L)
-    return "%d:%02d".format(totalSec / 60, totalSec % 60)
+    val secs = (totalSec % 60).toString().padStart(2, '0')
+    return "${totalSec / 60}:$secs"
 }
 
 class IncomingCallTracker {

@@ -902,9 +902,10 @@ private fun AppContent(
             }
             GlobalCallOverlay(callManager, Modifier.fillMaxSize())
 
-            val invites by incomingCalls.invites.collectAsState()
-            val canShowIncomingOverlay =
-                currentPlatform == SettingPlatform.WEB || currentPlatform == SettingPlatform.JVM
+            Box(Modifier.fillMaxSize()) {
+                val invites by incomingCalls.invites.collectAsState()
+                val canShowIncomingOverlay =
+                    currentPlatform == SettingPlatform.WEB || currentPlatform == SettingPlatform.JVM
             LaunchedEffect(callState?.roomId) {
                 callState?.roomId?.let { incomingCalls.clearForRoom(it) }
             }
@@ -944,7 +945,8 @@ private fun AppContent(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .padding(horizontal = 12.dp, vertical = 8.dp)
-                )
+                    )
+                }
             }
         }
     }
