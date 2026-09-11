@@ -69,7 +69,7 @@ class AppPushService : PushService(), KoinComponent {
         Log.i(TAG, "Extracted ${pushes.size} pushes: $pushes")
 
         var hasEvent = false
-        var hasCountsOnly = false
+        var firstCounts: ParsedMatrixPush.CountsUpdate? = null
 
         for (push in pushes.take(5)) {
             when (push) {
@@ -79,17 +79,16 @@ class AppPushService : PushService(), KoinComponent {
                 }
 
                 is ParsedMatrixPush.CountsUpdate -> {
-                    hasCountsOnly = true
+                    if (firstCounts == null) firstCounts = push
                 }
             }
         }
 
-        // Enqueue one reconciliation pass if any clearing push was detected.
-        if (hasCountsOnly) {
-            enqueueReconciliation()
+        if (firstCounts != null) {
+            enqueueReconciliation(firstCounts)
         }
 
-        if (!hasEvent && !hasCountsOnly) {
+        if (!hasEvent && firstCounts == null) {
             Log.w(TAG, "No events or counts extracted from push")
         }
     }
@@ -193,13 +192,22 @@ class AppPushService : PushService(), KoinComponent {
         )
     }
 
-    private fun enqueueReconciliation() {
+    private fun enqueueReconciliation(counts: ParsedMatrixPush.CountsUpdate) {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
 
+        val inputBuilder = androidx.work.Data.Builder()
+            .putInt(NotificationReconcileWorker.KEY_UNREAD, counts.unread ?: -1)
+            .putInt(NotificationReconcileWorker.KEY_MENTIONS, counts.mentions ?: -1)
+            .putBoolean(NotificationReconcileWorker.KEY_HAS_COUNTS, counts.hasCounts)
+        if (counts.roomId != null) {
+            inputBuilder.putString(NotificationReconcileWorker.KEY_ROOM_ID, counts.roomId)
+        }
+
         val req = OneTimeWorkRequestBuilder<NotificationReconcileWorker>()
             .setConstraints(constraints)
+            .setInputData(inputBuilder.build())
             .build()
 
         WorkManager.getInstance(applicationContext).enqueueUniqueWork(
@@ -211,6 +219,21 @@ class AppPushService : PushService(), KoinComponent {
 }
 
 // Helpers
+
+fun enqueueNotificationReconciliation(context: Context) {
+    val constraints = Constraints.Builder()
+        .setRequiredNetworkType(NetworkType.CONNECTED)
+        .build()
+    val req = OneTimeWorkRequestBuilder<NotificationReconcileWorker>()
+        .setConstraints(constraints)
+        .build()
+    WorkManager.getInstance(context).enqueueUniqueWork(
+        "reconcile-notifications",
+        ExistingWorkPolicy.REPLACE,
+        req
+    )
+}
+
 fun saveEndpoint(context: Context, endpoint: String, instance: String) {
     context.getSharedPreferences(PUSH_PREFS, Context.MODE_PRIVATE).edit {
         putString(PREF_ENDPOINT + "_$instance", endpoint)
@@ -226,5 +249,3 @@ fun removeEndpoint(context: Context, instance: String) {
         remove(PREF_ENDPOINT + "_$instance")
     }
 }
-
-

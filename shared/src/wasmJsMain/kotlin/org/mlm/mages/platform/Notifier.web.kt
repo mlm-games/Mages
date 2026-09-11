@@ -35,6 +35,9 @@ actual object Notifier {
 
     actual fun setCurrentRoom(roomId: String?) {
         currentRoomId = roomId
+        if (roomId != null) {
+            runCatching { closeBrowserNotificationByTag(roomId) }
+        }
     }
 
     actual fun setWindowFocused(focused: Boolean) {
@@ -84,6 +87,7 @@ actual fun BindNotifications(
         var firstPoll = true
         val recentlyNotified = LinkedHashSet<String>()
         val lastReadByRoom = HashMap<String, Long>()
+        val lastNotifiedTsByRoom = HashMap<String, Long>()
 
         while (isActive) {
             val settings = settingsRepository.flow.first()
@@ -98,6 +102,7 @@ actual fun BindNotifications(
                 firstPoll = true
                 recentlyNotified.clear()
                 lastReadByRoom.clear()
+                lastNotifiedTsByRoom.clear()
                 delay(5_000)
                 continue
             }
@@ -186,7 +191,26 @@ actual fun BindNotifications(
                     }.getOrNull()
                 }
 
-                Notifier.notifyRoom(title, body, resolvedIcon)
+                if (createBrowserNotification(title, body, resolvedIcon, notification.roomId)) {
+                    lastNotifiedTsByRoom[notification.roomId] =
+                        maxOf(lastNotifiedTsByRoom[notification.roomId] ?: 0L, notification.tsMs)
+                }
+            }
+
+            for (roomId in lastNotifiedTsByRoom.keys.toList()) {
+                val notifiedTs = lastNotifiedTsByRoom[roomId] ?: continue
+                val readTs = runCatching { port.ownLastRead(roomId).second }.getOrNull()
+                if (readTs != null && readTs >= notifiedTs) {
+                    runCatching { closeBrowserNotificationByTag(roomId) }
+                    lastNotifiedTsByRoom.remove(roomId)
+                    lastReadByRoom[roomId] = readTs
+                    continue
+                }
+                val stats = runCatching { port.roomUnreadStats(roomId) }.getOrNull()
+                if (stats != null && stats.notifications == 0L && stats.mentions == 0L) {
+                    runCatching { closeBrowserNotificationByTag(roomId) }
+                    lastNotifiedTsByRoom.remove(roomId)
+                }
             }
 
             if (nextBaseline != baseline) {

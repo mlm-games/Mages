@@ -69,17 +69,34 @@ fun requestNotificationPermissionFromUserGesture(
 }
 
 @JsFun(
-    """(title, body, icon) => {
+    """(title, body, icon, tag) => {
         if (typeof window === 'undefined' || typeof Notification === 'undefined') return false;
         if (Notification.permission !== 'granted') return false;
 
         try {
-            const n = new Notification(title, {
+            const opts = {
                 body: body === null ? undefined : body,
                 icon: icon === null ? undefined : icon,
                 silent: true,
-            });
+            };
+            if (tag !== null && tag !== undefined) opts.tag = tag;
+            const n = new Notification(title, opts);
             n.onerror = (event) => console.error("Notification error", event);
+            try {
+                if (tag !== null && tag !== undefined) {
+                    window.__magesNotifs = window.__magesNotifs || {};
+                    const prev = window.__magesNotifs[tag];
+                    try { if (prev && prev !== n) prev.close(); } catch (e) {}
+                    window.__magesNotifs[tag] = n;
+                    n.onclose = () => {
+                        try {
+                            if (window.__magesNotifs && window.__magesNotifs[tag] === n) {
+                                delete window.__magesNotifs[tag];
+                            }
+                        } catch (e) {}
+                    };
+                }
+            } catch (e) {}
             return true;
         } catch (e) {
             console.error("Notification constructor failed", e);
@@ -90,14 +107,36 @@ fun requestNotificationPermissionFromUserGesture(
 private external fun createBrowserNotificationJs(
     title: String,
     body: String?,
-    icon: String?
+    icon: String?,
+    tag: String?
 ): Boolean
 
 internal fun createBrowserNotification(
     title: String,
     body: String?,
-    icon: String?
-): Boolean = createBrowserNotificationJs(title, body, icon)
+    icon: String?,
+    tag: String? = null
+): Boolean = createBrowserNotificationJs(title, body, icon, tag)
+
+@JsFun(
+    """(tag) => {
+        try {
+            const m = window.__magesNotifs;
+            if (!m || tag === null || tag === undefined) return false;
+            const n = m[tag];
+            if (n) {
+                try { n.close(); } catch (e) {}
+                delete m[tag];
+                return true;
+            }
+        } catch (e) {}
+        return false;
+    }"""
+)
+private external fun closeBrowserNotificationByTagJs(tag: String): Boolean
+
+internal fun closeBrowserNotificationByTag(tag: String): Boolean =
+    closeBrowserNotificationByTagJs(tag)
 
 internal fun clipboardDataOf(event: Event): JsAny? =
     js("event.clipboardData ? event.clipboardData : null")

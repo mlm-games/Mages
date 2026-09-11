@@ -12,6 +12,7 @@ sealed interface ParsedMatrixPush {
         val roomId: String?,
         val unread: Int?,
         val mentions: Int?,
+        val hasCounts: Boolean,
     ) : ParsedMatrixPush
 }
 
@@ -31,15 +32,13 @@ fun extractMatrixPushPayload(raw: String): List<ParsedMatrixPush> {
                 return results
             }
 
-            // Counts update without event_id -> clearing push
-            val counts = notification["counts"]?.jsonObject
-            if (counts != null && eid.isBlank()) {
-                val unread = counts["unread"]?.jsonPrimitive?.content?.toIntOrNull()
-                val mentions = counts["mentions"]?.jsonPrimitive?.content?.toIntOrNull()
+            if (eid.isBlank()) {
+                val counts = notification["counts"]?.jsonObject
                 results += ParsedMatrixPush.CountsUpdate(
                     roomId = rid.ifBlank { null },
-                    unread = unread,
-                    mentions = mentions,
+                    unread = counts?.get("unread")?.jsonPrimitive?.content?.toIntOrNull(),
+                    mentions = counts?.get("mentions")?.jsonPrimitive?.content?.toIntOrNull(),
+                    hasCounts = counts != null,
                 )
                 return results
             }

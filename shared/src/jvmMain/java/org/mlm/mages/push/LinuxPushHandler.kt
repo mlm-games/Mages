@@ -72,10 +72,28 @@ class LinuxPushHandler(
         val port = service.portOrNull ?: return
 
         for (push in pushes) {
+            when (push) {
+                is ParsedMatrixPush.CountsUpdate -> {
+                    if (push.hasCounts && (push.unread ?: 0) == 0 && (push.mentions ?: 0) == 0) {
+                        val roomId = push.roomId
+                        if (roomId != null) {
+                            NotifierImpl.closeRoomNotification(roomId)
+                        } else {
+                            reconcileTrackedRooms()
+                        }
+                    }
+                    continue
+                }
+
+                is ParsedMatrixPush.Event -> Unit
+            }
             val eventPush = push as? ParsedMatrixPush.Event ?: continue
             val roomId = eventPush.roomId
             val eventId = eventPush.eventId
             val n = port.fetchNotification(roomId, eventId) ?: continue
+
+            val lastReadTs = runCatching { port.ownLastRead(n.roomId).second }.getOrNull()
+            if (lastReadTs != null && n.tsMs <= lastReadTs) continue
 
             val me = port.whoami()
             val senderIsMe = me != null && me == n.senderUserId
@@ -128,6 +146,20 @@ class LinuxPushHandler(
                 playSound = settings.notificationSound && n.isNoisy,
                 iconPath = avatarPath
             )
+        }
+    }
+
+    /**
+     * Re-check tracked rooms against local unread stats and dismiss the ones
+     * that are fully read (e.g. after a global counts push or reconnect).
+     */
+    private suspend fun reconcileTrackedRooms() {
+        val port = service.portOrNull ?: return
+        for (roomId in NotifierImpl.trackedRoomIds()) {
+            val stats = runCatching { port.roomUnreadStats(roomId) }.getOrNull() ?: continue
+            if (stats.notifications == 0L && stats.mentions == 0L) {
+                NotifierImpl.closeRoomNotification(roomId)
+            }
         }
     }
 

@@ -229,6 +229,19 @@ object NotifierImpl {
         ensure()
     }
 
+    fun closeRoomNotification(roomId: String) {
+        val id = notifIdByRoom.remove(roomId) ?: return
+        notifCtx.remove(id)
+        val c = ensure() ?: return
+        try {
+            getNotificationsProxy(c).CloseNotification(id)
+        } catch (e: Exception) {
+            Logger.w("[notification] D-Bus CloseNotification failed: ${e.message}")
+        }
+    }
+
+    fun trackedRoomIds(): Set<String> = notifIdByRoom.keys.toSet()
+
     private fun formatBodyForServer(body: String): String {
         val b = body.trim()
 
@@ -273,6 +286,8 @@ object NotifierImpl {
         ): UInt32
 
         fun GetCapabilities(): List<String>
+
+        fun CloseNotification(id: UInt32)
 
         class ActionInvoked(
             path: String,

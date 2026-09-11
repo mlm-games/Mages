@@ -74,6 +74,7 @@ actual object Notifier {
         currentRoomId = roomId
         if (roomId != null) {
             val ctx = appContextOrNull() ?: return
+            AndroidNotificationHelper.cancelRoomNotification(ctx, roomId)
             CoroutineScope(Dispatchers.IO).launch {
                 val settingsRepo = SettingsProvider.get(ctx)
                 val settings = settingsRepo.flow.first()
@@ -119,6 +120,9 @@ actual fun BindLifecycle(service: MatrixService, resetSyncState: Boolean) {
                         val ctx = runCatching { GlobalContext.get().get<Context>() }.getOrNull()
                         if (ctx != null) {
                             runCatching { PusherReconciler.ensureServerPusherRegistered(ctx, PREF_INSTANCE) }
+                            runCatching {
+                                org.mlm.mages.push.enqueueNotificationReconciliation(ctx)
+                            }
                         }
                     }
                 }

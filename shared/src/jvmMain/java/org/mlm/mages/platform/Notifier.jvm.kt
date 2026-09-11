@@ -34,6 +34,8 @@ actual object Notifier {
         currentRoomId = roomId
         if (roomId != null) {
             roomsNotifiedWithSound.remove(roomId)
+            // Opening the room marks it read here.
+            runCatching { NotifierImpl.closeRoomNotification(roomId) }
         }
     }
 
@@ -88,6 +90,7 @@ actual fun BindNotifications(
         var firstPoll = true
         val recentlyNotified = LinkedHashSet<String>()
         val lastReadByRoom = HashMap<String, Long>()
+        val lastNotifiedTsByRoom = HashMap<String, Long>()
 
         while (true) {
             val settings = settingsRepository.flow.first()
@@ -100,6 +103,7 @@ actual fun BindNotifications(
                 firstPoll = true
                 recentlyNotified.clear()
                 lastReadByRoom.clear()
+                lastNotifiedTsByRoom.clear()
                 Notifier.clearNotifiedRooms()
                 delay(15_000L)
                 continue
@@ -199,6 +203,23 @@ actual fun BindNotifications(
                     playSound = playSound,
                     iconPath = avatarPath
                 )
+                lastNotifiedTsByRoom[n.roomId] = maxOf(lastNotifiedTsByRoom[n.roomId] ?: 0L, n.tsMs)
+            }
+
+            for (roomId in NotifierImpl.trackedRoomIds()) {
+                val notifiedTs = lastNotifiedTsByRoom[roomId]
+                val readTs = runCatching { port.ownLastRead(roomId).second }.getOrNull()
+                if (readTs != null && notifiedTs != null && readTs >= notifiedTs) {
+                    NotifierImpl.closeRoomNotification(roomId)
+                    lastNotifiedTsByRoom.remove(roomId)
+                    lastReadByRoom[roomId] = readTs
+                    continue
+                }
+                val stats = runCatching { port.roomUnreadStats(roomId) }.getOrNull()
+                if (stats != null && stats.notifications == 0L && stats.mentions == 0L) {
+                    NotifierImpl.closeRoomNotification(roomId)
+                    lastNotifiedTsByRoom.remove(roomId)
+                }
             }
 
             if (maxSeenTs > baseline) {
