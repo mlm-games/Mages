@@ -62,16 +62,16 @@ use tracing::warn;
 
 use crate::{
     ActionAvailability, ActionPresentation, AttachmentInfo, AttachmentKind, DirectoryUser,
-    FfiError, FfiPushRuleKind, FfiRoomNotificationMode, KnockRequestSummary, MemberActionState, MemberSummary, MessageActionState, MessageEvent,
-    OwnReceipt, PasswordLoginKind, PollDefinition, PredecessorRoomInfo, Presence, PresenceInfo,
-    PublicRoom, PublicRoomsPage, ReactionSummary, RoomActionState, RoomDirectoryVisibility,
-    RoomHistoryVisibility, RoomJoinRule, RoomListEntry, RoomListMembership, RoomPowerLevelChanges,
-    RoomPowerLevels, RoomPreview, RoomPreviewMembership, RoomSummary, RoomTags, RoomUpgradeLinks,
-    SearchHit, SearchPage, SeenByEntry, SendState, SendUpdate, SpaceChildInfo, SpaceHierarchyPage,
-    SpaceInfo, SuccessorRoomInfo, ThreadPage, ThreadSummary, UnreadStats,
-    VerificationInboxObserver, build_unstable_poll_content, latest_room_event_for,
-    map_event_id_via_timeline, map_timeline_event, paginate_backwards_visible,
-    timeline_event_filter,
+    FfiError, FfiPushRuleKind, FfiRoomNotificationMode, KnockRequestSummary, MemberActionState,
+    MemberSummary, MessageActionState, MessageEvent, OwnReceipt, PasswordLoginKind, PollDefinition,
+    PredecessorRoomInfo, Presence, PresenceInfo, PublicRoom, PublicRoomsPage, ReactionSummary,
+    RoomActionState, RoomDirectoryVisibility, RoomHistoryVisibility, RoomJoinRule, RoomListEntry,
+    RoomListMembership, RoomPowerLevelChanges, RoomPowerLevels, RoomPreview, RoomPreviewMembership,
+    RoomSummary, RoomTags, RoomUpgradeLinks, SearchHit, SearchPage, SeenByEntry, SendState,
+    SendUpdate, SpaceChildInfo, SpaceHierarchyPage, SpaceInfo, SuccessorRoomInfo, ThreadPage,
+    ThreadSummary, UnreadStats, VerificationInboxObserver, build_unstable_poll_content,
+    latest_room_event_for, map_event_id_via_timeline, map_timeline_event,
+    paginate_backwards_visible, timeline_event_filter,
 };
 
 const REACTION_NOTIFY_RULE_ID: &str = "org.mlm.mages.reaction.notify";
@@ -122,14 +122,29 @@ impl TimelineManager {
     }
 
     pub fn clear(&self) {
-        self.timelines.lock().unwrap_or_else(|e| e.into_inner()).clear();
-        self.members_fetched.lock().unwrap_or_else(|e| e.into_inner()).clear();
+        self.timelines
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clear();
+        self.members_fetched
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clear();
     }
 
     pub async fn timeline_for(&self, room_id: &OwnedRoomId) -> Option<Arc<Timeline>> {
-        if let Some(tl) = self.timelines.lock().unwrap_or_else(|e| e.into_inner()).get(room_id).cloned() {
+        if let Some(tl) = self
+            .timelines
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(room_id)
+            .cloned()
+        {
             let should_fetch = {
-                let mut s = self.members_fetched.lock().unwrap_or_else(|e| e.into_inner());
+                let mut s = self
+                    .members_fetched
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner());
                 if s.contains(room_id) {
                     false
                 } else {
@@ -161,7 +176,10 @@ impl TimelineManager {
             .insert(room_id.clone(), tl.clone());
 
         {
-            let mut s = self.members_fetched.lock().unwrap_or_else(|e| e.into_inner());
+            let mut s = self
+                .members_fetched
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
             if !s.contains(room_id) {
                 s.insert(room_id.clone());
                 let tlc = tl.clone();
@@ -255,7 +273,12 @@ impl CoreClient {
     }
 
     pub async fn ensure_sync_service(&self) {
-        if self.sync_service.lock().unwrap_or_else(|e| e.into_inner()).is_some() {
+        if self
+            .sync_service
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .is_some()
+        {
             return;
         }
         if self.sdk.session_meta().is_none() {
@@ -350,8 +373,7 @@ impl CoreClient {
         let Some(svc) = svc else {
             return;
         };
-        let refs: Vec<&matrix_sdk::ruma::RoomId> =
-            rids.iter().map(|r| r.as_ref()).collect();
+        let refs: Vec<&matrix_sdk::ruma::RoomId> = rids.iter().map(|r| r.as_ref()).collect();
         svc.room_list_service().subscribe_to_rooms(&refs).await;
     }
 
@@ -3228,9 +3250,14 @@ impl CoreClient {
     pub async fn typing_stream(
         &self,
         room_id: &OwnedRoomId,
-    ) -> Option<impl futures_util::Stream<Item = Vec<String>> + '_> {
+    ) -> Option<(
+        matrix_sdk::event_handler::EventHandlerDropGuard,
+        impl futures_util::Stream<Item = Vec<String>>,
+    )> {
         let room = self.sdk.get_room(room_id)?;
-        let (_guard, rx) = room.subscribe_to_typing_notifications();
+        // NOTE: the drop guard must stay alive for as long as the stream is
+        // polled.
+        let (guard, rx) = room.subscribe_to_typing_notifications();
         let stream = async_stream::stream! {
             let mut rx = rx;
             let mut cache: HashMap<OwnedUserId, String> = HashMap::new();
@@ -3249,7 +3276,7 @@ impl CoreClient {
                 yield names;
             }
         };
-        Some(stream)
+        Some((guard, stream))
     }
 
     pub async fn receipts_changed_stream(

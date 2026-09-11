@@ -1187,23 +1187,22 @@ private fun RoomTopBar(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                            AnimatedContent(
-                                targetState = typingNames.isNotEmpty(),
-                                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                            AnimatedVisibility(
+                                visible = typingNames.isNotEmpty(),
+                                enter = fadeIn(),
+                                exit = fadeOut(),
                                 label = "typing"
-                            ) { hasTyping ->
-                                if (hasTyping) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        TypingDots()
-                                        Spacer(Modifier.width(4.dp))
-                                        Text(
-                                            formatTypingText(typingNames),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            overflow = TextOverflow.Ellipsis,
-                                            maxLines = 1,
-                                        )
-                                    }
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    TypingDots()
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        formatTypingText(typingNames),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        overflow = TextOverflow.Ellipsis,
+                                        maxLines = 1,
+                                    )
                                 }
                             }
                         }

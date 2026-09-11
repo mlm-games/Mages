@@ -866,9 +866,10 @@ impl Client {
         let obs: Arc<dyn TypingObserver> = Arc::from(observer);
         let core = self.core.clone();
         sub_manager!(self, typing_subs, async move {
-            let Some(stream) = core.typing_stream(&rid).await else {
+            let Some((_guard, stream)) = core.typing_stream(&rid).await else {
                 return;
             };
+            let _guard = _guard;
             tokio::pin!(stream);
             let mut last: Vec<String> = Vec::new();
             while let Some(names) = stream.next().await {
