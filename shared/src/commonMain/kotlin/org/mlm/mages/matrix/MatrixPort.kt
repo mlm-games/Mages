@@ -260,6 +260,12 @@ data class CallInvite(
 )
 
 @Serializable
+data class RoomCallState(
+    val hasActiveCall: Boolean = false,
+    val activeParticipants: List<String> = emptyList()
+)
+
+@Serializable
 enum class NotificationKind {
     Message,
     Reaction,
@@ -752,6 +758,14 @@ interface MatrixPort {
     interface CallObserver { fun onInvite(invite: CallInvite) }
     suspend fun startCallInbox(observer: CallObserver): ULong
     fun stopCallInbox(token: ULong)
+
+    interface RoomCallStateObserver { fun onUpdate(state: RoomCallState) }
+    suspend fun observeRoomCallState(roomId: String, observer: RoomCallStateObserver): ULong
+    fun unobserveRoomCallState(token: ULong)
+
+    interface CallDeclineObserver { fun onDecline(declinerUserId: String) }
+    suspend fun observeCallDecline(roomId: String, notificationEventId: String, observer: CallDeclineObserver): ULong
+    fun unobserveCallDecline(token: ULong)
     suspend fun registerUnifiedPush(appId: String, pushKey: String, gatewayUrl: String, deviceName: String, lang: String, profileTag: String? = null): Boolean
     suspend fun unregisterUnifiedPush(appId: String, pushKey: String): Boolean
 

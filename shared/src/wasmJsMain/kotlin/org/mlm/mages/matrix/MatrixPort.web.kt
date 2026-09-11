@@ -809,6 +809,34 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         requireClient().stopCallInbox(token.toDouble())
     }
 
+    override suspend fun observeRoomCallState(roomId: String, observer: MatrixPort.RoomCallStateObserver): ULong =
+        requireClient().observeRoomCallState(
+            roomId,
+            jsCallback1 { payload: JsAny? ->
+                val state = decodeValueOrNull<RoomCallState>(payload, "observeRoomCallState")
+                    ?: return@jsCallback1
+                observer.onUpdate(state)
+            }
+        ).toULong()
+
+    override fun unobserveRoomCallState(token: ULong) {
+        requireClient().unobserveRoomCallState(token.toDouble())
+    }
+
+    override suspend fun observeCallDecline(roomId: String, notificationEventId: String, observer: MatrixPort.CallDeclineObserver): ULong =
+        requireClient().observeCallDecline(
+            roomId,
+            notificationEventId,
+            jsCallback1 { payload: JsAny? ->
+                val decliner = payload?.toString() ?: return@jsCallback1
+                observer.onDecline(decliner)
+            }
+        ).toULong()
+
+    override fun unobserveCallDecline(token: ULong) {
+        requireClient().unobserveCallDecline(token.toDouble())
+    }
+
     override suspend fun registerUnifiedPush(
         appId: String,
         pushKey: String,

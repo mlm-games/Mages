@@ -114,6 +114,16 @@ js_observer_json!(JsSendObserver: SendObserver::on_update, update: SendUpdate);
 js_observer_noargs!(JsReceiptsObserver: ReceiptsObserver::on_changed);
 js_observer_json!(JsTypingObserver: TypingObserver::on_update, names: Vec<String>);
 js_observer_json!(JsCallObserver: CallObserver::on_invite, invite: CallInvite);
+js_observer_json!(JsRoomCallStateObserver: RoomCallStateObserver::on_update, state: RoomCallState);
+
+struct JsCallDeclineObserver(Function);
+impl CallDeclineObserver for JsCallDeclineObserver {
+    fn on_decline(&self, decliner_user_id: String) {
+        call_js(&self.0, JsValue::from_str(&decliner_user_id));
+    }
+}
+unsafe impl Send for JsCallDeclineObserver {}
+unsafe impl Sync for JsCallDeclineObserver {}
 js_observer_json!(JsLiveLocationObserver: LiveLocationObserver::on_update, shares: Vec<LiveLocationShareInfo>);
 js_observer_json!(JsCallWidgetObserver: CallWidgetObserver::on_to_widget, message: String);
 js_observer_json!(JsRecoveryStateObserver: RecoveryStateObserver::on_update, state: RecoveryState);
@@ -450,6 +460,7 @@ wasm_delegate_result_json! {
 
 wasm_delegate_option_json! {
     "roomUnreadStats"  => room_unread_stats(room_id: String);
+    "roomCallState"    => room_call_state(room_id: String);
     "roomSuccessor"    => room_successor(room_id: String);
     "roomPredecessor"  => room_predecessor(room_id: String);
 }
@@ -457,6 +468,8 @@ wasm_delegate_option_json! {
 wasm_unobserve! {
     "unobserveTimeline"          => unobserve_timeline(timeline_subs);
     "unobserveTyping"            => unobserve_typing(typing_subs);
+    "unobserveRoomCallState"     => unobserve_room_call_state(call_subs);
+    "unobserveCallDecline"       => unobserve_call_decline(call_subs);
     "unobserveReceipts"          => unobserve_receipts(receipts_subs);
     "unobserveLiveLocation"      => unobserve_live_location(live_location_subs);
     "stopCallInbox"              => stop_call_inbox(call_subs);
@@ -1476,6 +1489,70 @@ impl WasmClient {
                     ts_ms: ev.origin_server_ts.0.into(),
                 };
                 safe_call(|| obs.on_invite(invite));
+            }
+        })
+    }
+
+    #[wasm_bindgen(js_name = observeRoomCallState)]
+    pub fn observe_room_call_state(&self, room_id: String, on_update: Function) -> f64 {
+        let Some(state) = self.state() else {
+            return 0.0;
+        };
+        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+            return 0.0;
+        };
+        let obs: Arc<dyn RoomCallStateObserver> = Arc::new(JsRoomCallStateObserver(on_update));
+        let s = state.clone();
+        wasm_subscribe!(state, call_subs, async move {
+            let Some(room) = s.client().get_room(&rid) else {
+                return;
+            };
+            let mut rx = room.subscribe_to_updates();
+            let mut last = CoreClient::snapshot_room_call_state(&room);
+            safe_call(|| obs.on_update(last.clone()));
+            loop {
+                match rx.recv().await {
+                    Ok(_) => {}
+                    Err(_) => break,
+                }
+                let next = CoreClient::snapshot_room_call_state(&room);
+                if next != last {
+                    last = next.clone();
+                    safe_call(|| obs.on_update(next));
+                }
+            }
+        })
+    }
+
+    #[wasm_bindgen(js_name = observeCallDecline)]
+    pub fn observe_call_decline(
+        &self,
+        room_id: String,
+        notification_event_id: String,
+        on_decline: Function,
+    ) -> f64 {
+        let Some(state) = self.state() else {
+            return 0.0;
+        };
+        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+            return 0.0;
+        };
+        let Ok(eid) = matrix_sdk::ruma::OwnedEventId::try_from(notification_event_id) else {
+            return 0.0;
+        };
+        let obs: Arc<dyn CallDeclineObserver> = Arc::new(JsCallDeclineObserver(on_decline));
+        let s = state.clone();
+        wasm_subscribe!(state, call_subs, async move {
+            let Some(room) = s.client().get_room(&rid) else {
+                return;
+            };
+            let (_guard, mut rx) = room.subscribe_to_call_decline_events(&eid);
+            let _guard = _guard;
+            loop {
+                match rx.recv().await {
+                    Ok(decliner) => safe_call(|| obs.on_decline(decliner.to_string())),
+                    Err(_) => break,
+                }
             }
         })
     }

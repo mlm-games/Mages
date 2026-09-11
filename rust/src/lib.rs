@@ -75,8 +75,8 @@ use matrix_sdk::{
 use matrix_sdk::{
     encryption::BackupDownloadStrategy,
     ruma::{
-        OwnedDeviceId, OwnedRoomId, OwnedUserId, events::call::invite::OriginalSyncCallInviteEvent,
-        events::receipt::SyncReceiptEvent,
+        OwnedDeviceId, OwnedEventId, OwnedRoomId, OwnedUserId,
+        events::call::invite::OriginalSyncCallInviteEvent, events::receipt::SyncReceiptEvent,
     },
 };
 use matrix_sdk::{
@@ -228,6 +228,7 @@ delegate_result! { bool; is_push_rule_enabled(kind: FfiPushRuleKind, rule_id: St
 delegate_result! { bool; is_reaction_notifications_enabled(); }
 delegate_result! { FfiRoomNotificationMode; get_default_room_notification_mode(is_encrypted: bool, is_one_to_one: bool); }
 delegate_option! { UnreadStats; room_unread_stats(room_id: String); }
+delegate_option! { RoomCallState; room_call_state(room_id: String); }
 delegate_option! { RoomTags; room_tags(room_id: String); }
 delegate_option! { String; dm_peer_user_id(room_id: String); resolve_room_id(id_or_alias: String); account_management_url(); }
 delegate_option! { SuccessorRoomInfo; room_successor(room_id: String); }
@@ -1292,6 +1293,75 @@ impl Client {
 
     pub fn stop_call_inbox(&self, token: u64) -> bool {
         unsub!(self, call_subs, token)
+    }
+
+    pub fn observe_room_call_state(
+        &self,
+        room_id: String,
+        observer: Box<dyn RoomCallStateObserver>,
+    ) -> u64 {
+        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+            return 0;
+        };
+        let obs: Arc<dyn RoomCallStateObserver> = Arc::from(observer);
+        let sdk = self.core.sdk.clone();
+        sub_manager!(self, call_subs, async move {
+            let Some(room) = sdk.get_room(&rid) else {
+                return;
+            };
+            let mut rx = room.subscribe_to_updates();
+            let mut last = CoreClient::snapshot_room_call_state(&room);
+            safe_call(|| obs.on_update(last.clone()));
+            loop {
+                match rx.recv().await {
+                    Ok(_) => {}
+                    Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
+                }
+                let next = CoreClient::snapshot_room_call_state(&room);
+                if next != last {
+                    last = next.clone();
+                    safe_call(|| obs.on_update(next));
+                }
+            }
+        })
+    }
+
+    pub fn unobserve_room_call_state(&self, sub_id: u64) -> bool {
+        unsub!(self, call_subs, sub_id)
+    }
+
+    pub fn observe_call_decline(
+        &self,
+        room_id: String,
+        notification_event_id: String,
+        observer: Box<dyn CallDeclineObserver>,
+    ) -> u64 {
+        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+            return 0;
+        };
+        let Ok(eid) = OwnedEventId::try_from(notification_event_id) else {
+            return 0;
+        };
+        let obs: Arc<dyn CallDeclineObserver> = Arc::from(observer);
+        let sdk = self.core.sdk.clone();
+        sub_manager!(self, call_subs, async move {
+            let Some(room) = sdk.get_room(&rid) else {
+                return;
+            };
+            let (_guard, mut rx) = room.subscribe_to_call_decline_events(&eid);
+            let _guard = _guard;
+            loop {
+                match rx.recv().await {
+                    Ok(decliner) => safe_call(|| obs.on_decline(decliner.to_string())),
+                    Err(_) => break,
+                }
+            }
+        })
+    }
+
+    pub fn unobserve_call_decline(&self, sub_id: u64) -> bool {
+        unsub!(self, call_subs, sub_id)
     }
 
     pub fn observe_live_location(

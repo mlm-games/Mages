@@ -810,6 +810,22 @@ pub trait CallObserver: Send + Sync {
     fn on_invite(&self, invite: CallInvite);
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Record)]
+pub struct RoomCallState {
+    pub has_active_call: bool,
+    pub active_participants: Vec<String>,
+}
+
+#[export(callback_interface)]
+pub trait RoomCallStateObserver: Send + Sync {
+    fn on_update(&self, state: RoomCallState);
+}
+
+#[export(callback_interface)]
+pub trait CallDeclineObserver: Send + Sync {
+    fn on_decline(&self, decliner_user_id: String);
+}
+
 #[export(callback_interface)]
 pub trait RecoveryObserver: Send + Sync {
     fn on_progress(&self, step: String);

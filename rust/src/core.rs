@@ -65,13 +65,13 @@ use crate::{
     FfiError, FfiPushRuleKind, FfiRoomNotificationMode, KnockRequestSummary, MemberActionState,
     MemberSummary, MessageActionState, MessageEvent, OwnReceipt, PasswordLoginKind, PollDefinition,
     PredecessorRoomInfo, Presence, PresenceInfo, PublicRoom, PublicRoomsPage, ReactionSummary,
-    RoomActionState, RoomDirectoryVisibility, RoomHistoryVisibility, RoomJoinRule, RoomListEntry,
-    RoomListMembership, RoomPowerLevelChanges, RoomPowerLevels, RoomPreview, RoomPreviewMembership,
-    RoomSummary, RoomTags, RoomUpgradeLinks, SearchHit, SearchPage, SeenByEntry, SendState,
-    SendUpdate, SpaceChildInfo, SpaceHierarchyPage, SpaceInfo, SuccessorRoomInfo, ThreadPage,
-    ThreadSummary, UnreadStats, VerificationInboxObserver, build_unstable_poll_content,
-    latest_room_event_for, map_event_id_via_timeline, map_timeline_event,
-    paginate_backwards_visible, timeline_event_filter,
+    RoomActionState, RoomCallState, RoomDirectoryVisibility, RoomHistoryVisibility, RoomJoinRule,
+    RoomListEntry, RoomListMembership, RoomPowerLevelChanges, RoomPowerLevels, RoomPreview,
+    RoomPreviewMembership, RoomSummary, RoomTags, RoomUpgradeLinks, SearchHit, SearchPage,
+    SeenByEntry, SendState, SendUpdate, SpaceChildInfo, SpaceHierarchyPage, SpaceInfo,
+    SuccessorRoomInfo, ThreadPage, ThreadSummary, UnreadStats, VerificationInboxObserver,
+    build_unstable_poll_content, latest_room_event_for, map_event_id_via_timeline,
+    map_timeline_event, paginate_backwards_visible, timeline_event_filter,
 };
 
 const REACTION_NOTIFY_RULE_ID: &str = "org.mlm.mages.reaction.notify";
@@ -1386,6 +1386,30 @@ impl CoreClient {
             notifications: room.num_unread_notifications(),
             mentions: room.num_unread_mentions(),
         }))
+    }
+
+    pub(crate) fn snapshot_room_call_state(room: &matrix_sdk::Room) -> RoomCallState {
+        RoomCallState {
+            has_active_call: room.has_active_room_call(),
+            active_participants: room
+                .active_room_call_participants()
+                .iter()
+                .map(ToString::to_string)
+                .collect(),
+        }
+    }
+
+    pub async fn room_call_state(
+        &self,
+        room_id: String,
+    ) -> Result<Option<RoomCallState>, FfiError> {
+        let rid = OwnedRoomId::try_from(room_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid room id".into()))?;
+        let room = self
+            .sdk
+            .get_room(&rid)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        Ok(Some(Self::snapshot_room_call_state(&room)))
     }
 
     pub async fn room_tags(&self, room_id: String) -> Result<Option<RoomTags>, FfiError> {

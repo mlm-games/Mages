@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -40,6 +41,9 @@ import org.mlm.mages.calls.answerIncomingCall
 import org.mlm.mages.calls.declineIncomingCall
 import org.mlm.mages.matrix.Presence
 import org.mlm.mages.matrix.SasPhase
+import org.mlm.mages.matrix.CallDeclineObserver
+import org.mlm.mages.matrix.RoomCallState
+import org.mlm.mages.matrix.RoomCallStateObserver
 import org.mlm.mages.nav.*
 import org.mlm.mages.platform.BindAppLock
 import org.mlm.mages.platform.BindLifecycle
@@ -908,6 +912,56 @@ private fun AppContent(
                     currentPlatform == SettingPlatform.WEB || currentPlatform == SettingPlatform.JVM
             LaunchedEffect(callState?.roomId) {
                 callState?.roomId?.let { incomingCalls.clearForRoom(it) }
+            }
+            LaunchedEffect(invites.map { it.roomId to it.eventId }) {
+                val me = runCatching { service.portOrNull?.whoami() }.getOrNull()
+                val seenActive = mutableSetOf<String>()
+                invites.groupBy { it.roomId }.forEach { (roomId, roomInvites) ->
+                    launch {
+                        runCatching {
+                            val token = service.portOrNull?.observeRoomCallState(
+                                roomId,
+                                object : RoomCallStateObserver {
+                                    override fun onUpdate(state: RoomCallState) {
+                                        if (me != null && state.activeParticipants.contains(me)) {
+                                            incomingCalls.clearForRoom(roomId)
+                                        } else if (state.hasActiveCall) {
+                                            seenActive += roomId
+                                        } else if (roomId in seenActive) {
+                                            seenActive -= roomId
+                                            incomingCalls.clearForRoom(roomId)
+                                        }
+                                    }
+                                }
+                            )
+                            try {
+                                awaitCancellation()
+                            } finally {
+                                token?.let { service.portOrNull?.unobserveRoomCallState(it) }
+                            }
+                        }
+                    }
+                    roomInvites.forEach { invite ->
+                        launch {
+                            runCatching {
+                                val token = service.portOrNull?.observeCallDecline(
+                                    roomId,
+                                    invite.eventId,
+                                    object : CallDeclineObserver {
+                                        override fun onDecline(declinerUserId: String) {
+                                            incomingCalls.dismiss(roomId, invite.eventId)
+                                        }
+                                    }
+                                )
+                                try {
+                                    awaitCancellation()
+                                } finally {
+                                    token?.let { service.portOrNull?.unobserveCallDecline(it) }
+                                }
+                            }
+                        }
+                    }
+                }
             }
             val ringing = invites.firstOrNull()
             if (ringing != null && canShowIncomingOverlay && !appLocked) {

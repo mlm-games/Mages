@@ -177,6 +177,9 @@ class RoomViewModel(
     private var typingToken: ULong? = null
     private var receiptsToken: ULong? = null
     private var ownReceiptToken: ULong? = null
+    private var roomCallStateToken: ULong? = null
+    private var localCallActiveForRoom = false
+    private var remoteCallActiveForRoom = false
     private var dmPeer: String? = null
     private var uploadJob: Job? = null
     private var typingJob: Job? = null
@@ -275,6 +278,7 @@ class RoomViewModel(
         observeTyping()
         observeOwnReceipt()
         observeReceipts()
+        observeRoomCallState()
         loadNotificationMode()
         loadUpgradeInfo()
         loadPinnedEvents()
@@ -392,12 +396,15 @@ class RoomViewModel(
 
         launch {
             callManager.call.collect { callState ->
-                updateState {
-                    copy(
-                        hasActiveCallForRoom = callState?.roomId == currentState.roomId
-                    )
-                }
+                localCallActiveForRoom = callState?.roomId == currentState.roomId
+                recomputeActiveCall()
             }
+        }
+    }
+
+    private fun recomputeActiveCall() {
+        updateState {
+            copy(hasActiveCallForRoom = localCallActiveForRoom || remoteCallActiveForRoom)
         }
     }
 
@@ -2258,6 +2265,21 @@ class RoomViewModel(
         }
     }
 
+    private fun observeRoomCallState() {
+        launch {
+            roomCallStateToken?.let { service.port.unobserveRoomCallState(it) }
+            roomCallStateToken = service.port.observeRoomCallState(
+                currentState.roomId,
+                object : RoomCallStateObserver {
+                    override fun onUpdate(state: RoomCallState) {
+                        remoteCallActiveForRoom = state.hasActiveCall
+                        recomputeActiveCall()
+                    }
+                }
+            )
+        }
+    }
+
     private fun observeReceipts() {
         launch {
             receiptsToken?.let { service.port.stopReceiptsObserver(it) }
@@ -2482,6 +2504,7 @@ class RoomViewModel(
         typingToken?.let { service.stopTypingObserver(it) }
         receiptsToken?.let { service.port.stopReceiptsObserver(it) }
         ownReceiptToken?.let { service.port.stopReceiptsObserver(it) }
+        roomCallStateToken?.let { service.port.unobserveRoomCallState(it) }
         currentState.liveLocationSubToken?.let { service.port.stopObserveLiveLocation(it) }
         liveLocationBeaconToken?.let { service.port.unsubscribeFromOwnBeaconInfoUpdates(it) }
         LiveLocationSharingCoordinator.onLocationDispatched = null

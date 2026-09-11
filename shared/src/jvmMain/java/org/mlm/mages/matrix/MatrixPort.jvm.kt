@@ -456,6 +456,39 @@ class RustMatrixPort : MatrixPort, VerificationService {
         withClient { it.stopCallInbox(token) }
     }
 
+    override suspend fun observeRoomCallState(roomId: String, observer: MatrixPort.RoomCallStateObserver): ULong =
+        withContext(matrixDispatcher) {
+            val cb = object : mages.RoomCallStateObserver {
+                override fun onUpdate(state: mages.RoomCallState) {
+                    observer.onUpdate(
+                        RoomCallState(
+                            hasActiveCall = state.hasActiveCall,
+                            activeParticipants = state.activeParticipants
+                        )
+                    )
+                }
+            }
+            withClient { it.observeRoomCallState(roomId, cb) }
+        }
+
+    override fun unobserveRoomCallState(token: ULong) {
+        withClient { it.unobserveRoomCallState(token) }
+    }
+
+    override suspend fun observeCallDecline(roomId: String, notificationEventId: String, observer: MatrixPort.CallDeclineObserver): ULong =
+        withContext(matrixDispatcher) {
+            val cb = object : mages.CallDeclineObserver {
+                override fun onDecline(declinerUserId: String) {
+                    observer.onDecline(declinerUserId)
+                }
+            }
+            withClient { it.observeCallDecline(roomId, notificationEventId, cb) }
+        }
+
+    override fun unobserveCallDecline(token: ULong) {
+        withClient { it.unobserveCallDecline(token) }
+    }
+
     override suspend fun startSupervisedSync(observer: MatrixPort.SyncObserver) =
         withContext(matrixDispatcher) {
             val cb = object : mages.SyncObserver {
