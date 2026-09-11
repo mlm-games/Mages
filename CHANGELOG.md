@@ -1,3 +1,9 @@
+## v4.10.3
+
+- fix dual padding being applied on android, and add thread screen ime padding
+- fix #71
+
+
 ## v4.10.2
 
 - fix #71
