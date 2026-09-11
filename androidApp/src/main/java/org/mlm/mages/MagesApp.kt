@@ -114,7 +114,8 @@ class MagesApp : Application() {
             val callManager = koin.get<CallManager>()
             callManager.onCallStateChanged = { active, roomName ->
                 if (active && roomName != null) {
-                    CallForegroundService.start(this, roomName)
+                    val roomId = callManager.call.value?.roomId.orEmpty()
+                    CallForegroundService.start(this, roomName, roomId)
                     runCatching {
                         callManager.call.value?.roomId?.let { roomId ->
                             AndroidNotificationHelper.cancelCallNotification(this, roomId)

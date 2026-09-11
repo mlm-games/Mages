@@ -82,6 +82,12 @@ fun requestNotificationPermissionFromUserGesture(
             if (tag !== null && tag !== undefined) opts.tag = tag;
             const n = new Notification(title, opts);
             n.onerror = (event) => console.error("Notification error", event);
+            n.onclick = (event) => {
+                try {
+                    event.preventDefault();
+                    if (window.focus) window.focus();
+                } catch (e) {}
+            };
             try {
                 if (tag !== null && tag !== undefined) {
                     window.__magesNotifs = window.__magesNotifs || {};

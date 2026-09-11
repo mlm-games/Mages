@@ -27,6 +27,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.shared.R
+import org.mlm.mages.calls.INCOMING_CALL_TIMEOUT_MS
 
 object AndroidNotificationHelper : KoinComponent {
 
@@ -99,7 +100,7 @@ object AndroidNotificationHelper : KoinComponent {
             .setStyle(style)
             .setContentIntent(incomingScreenIntent ?: joinIntent)
             .setDeleteIntent(deleteIntent)
-            .setTimeoutAfter(60_000)
+            .setTimeoutAfter(INCOMING_CALL_TIMEOUT_MS)
             .setSound(Settings.System.DEFAULT_RINGTONE_URI, AudioManager.STREAM_RING)
             .addPerson(caller)
             .setShowWhen(false)

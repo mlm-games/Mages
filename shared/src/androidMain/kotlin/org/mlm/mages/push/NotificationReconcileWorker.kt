@@ -8,7 +8,8 @@ import kotlinx.coroutines.delay
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.mlm.mages.MatrixService
-import org.mlm.mages.matrix.NotificationKind
+import org.mlm.mages.calls.isExpired
+import org.mlm.mages.calls.isRingingCall
 
 class NotificationReconcileWorker(
     appContext: Context,
@@ -81,10 +82,8 @@ class NotificationReconcileWorker(
                 val rendered = runCatching { port.fetchNotification(roomId, eventId) }.getOrNull()
                 val stale = when {
                     rendered == null -> true
-                    rendered.kind != NotificationKind.CallRing &&
-                        rendered.kind != NotificationKind.CallInvite &&
-                        rendered.kind != NotificationKind.CallNotify -> true
-                    rendered.expiresAtMs != null && System.currentTimeMillis() > rendered.expiresAtMs -> true
+                    !rendered.kind.isRingingCall() -> true
+                    rendered.isExpired() -> true
                     else -> false
                 }
                 if (stale) {

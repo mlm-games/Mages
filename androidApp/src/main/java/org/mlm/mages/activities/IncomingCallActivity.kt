@@ -34,6 +34,7 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.mlm.mages.MatrixService
+import org.mlm.mages.calls.formatCallElapsed
 import org.mlm.mages.push.AndroidNotificationHelper
 import org.mlm.mages.ui.theme.MainTheme
 import org.mlm.mages.ui.components.core.Avatar
@@ -358,9 +359,7 @@ private fun TopBanner(isVoiceOnly: Boolean = false) {
         }
     }
     val timerText = remember(elapsedSeconds) {
-        val m = elapsedSeconds / 60
-        val s = elapsedSeconds % 60
-        "%d:%02d".format(m, s)
+        formatCallElapsed(elapsedSeconds * 1000L)
     }
 
     Column(

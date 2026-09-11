@@ -24,6 +24,7 @@ object NotifierImpl {
 
     private val notifCtx = ConcurrentHashMap<UInt32, Pair<String, String>>()
     private val notifIdByRoom = ConcurrentHashMap<String, UInt32>()
+    private val callNotifIdByRoom = ConcurrentHashMap<String, UInt32>()
 
     private fun invalidateConnection(failed: DBusConnection) {
         synchronized(lock) {
@@ -36,6 +37,7 @@ object NotifierImpl {
                 inlineReplySupported = false
                 notifCtx.clear()
                 notifIdByRoom.clear()
+                callNotifIdByRoom.clear()
                 Logger.w("[notification] D-Bus connection invalidated")
             }
         }
@@ -89,6 +91,8 @@ object NotifierImpl {
                     "mark_read" -> DesktopNotifActions.markRead(roomId, eventId)
                     "reply" -> DesktopNotifActions.reply(roomId, eventId)
                     "inline-reply" -> DesktopNotifActions.reply(roomId, eventId)
+                    "answer" -> DesktopNotifActions.answerCall(roomId, eventId)
+                    "decline" -> DesktopNotifActions.declineCall(roomId, eventId)
                 }
             }
         }
@@ -106,6 +110,7 @@ object NotifierImpl {
             c.addSigHandler(Notifications.NotificationClosed::class.java) { sig ->
                 notifCtx.remove(sig.id)
                 notifIdByRoom.entries.removeIf { it.value == sig.id }
+                callNotifIdByRoom.entries.removeIf { it.value == sig.id }
             }
         }
     }
@@ -156,73 +161,38 @@ object NotifierImpl {
         desktopEntry: String? = "mages",
         iconPath: String? = null
     ) {
-        repeat(2) { attempt ->
-            val c = ensure() ?: return
-            try {
-                val notifications = getNotificationsProxy(c)
+        val persistent = hasMention && capabilities.contains("persistence")
+        val actions: Array<String> =
+            if (actionsSupported && roomId.isNotBlank() && eventId.isNotBlank()) {
+                buildList {
+                    add("default"); add("Open")
 
-                val hints = HashMap<String, Variant<*>>()
+                    if (inlineReplySupported) {
+                        add("inline-reply"); add("Reply…")
+                    } else {
+                        add("reply"); add("Reply…")
+                    }
 
-                desktopEntry?.let { hints["desktop-entry"] = Variant(it) }
-                iconPath?.let { hints["image-path"] = Variant(it) }
+                    add("mark_read"); add("Mark read")
+                }.toTypedArray()
+            } else emptyArray()
 
-                hints["urgency"] = Variant((if (hasMention) 2 else 1).toByte())
-
-                val expireTimeout = if (hasMention && capabilities.contains("persistence")) 0 else -1
-                if (hasMention && capabilities.contains("persistence")) {
-                    hints["resident"] = Variant(true)
-                }
-
-                if (playSound && capabilities.contains("sound")) {
-                    hints["sound-name"] = Variant("message-new-instant")
-                }
-
-                val formattedBody = formatBodyForServer(body)
-
-                val actions: Array<String> =
-                    if (actionsSupported && roomId.isNotBlank() && eventId.isNotBlank()) {
-                        buildList {
-                            add("default"); add("Open")
-
-                            if (inlineReplySupported) {
-                                add("inline-reply"); add("Reply…")
-                            } else {
-                                add("reply"); add("Reply…")
-                            }
-
-                            add("mark_read"); add("Mark read")
-                        }.toTypedArray()
-                    } else emptyArray()
-
-                val appIcon = desktopEntry ?: "mages"
-
-                val replacesId = notifIdByRoom[roomId] ?: UInt32(0)
-
-                val id = notifications.Notify(
-                    "Mages",
-                    replacesId,
-                    appIcon,
-                    title,
-                    formattedBody,
-                    actions,
-                    hints,
-                    expireTimeout
-                )
-
-                notifCtx[id] = roomId to eventId
-                notifIdByRoom[roomId] = id
-
-                Logger.w(
-                    "[notification] D-Bus Notify succeeded: id=$id room=$roomId event=$eventId"
-                )
-                return
-            } catch (e: Exception) {
-                Logger.w(
-                    "[notification] D-Bus Notify failed (attempt=${attempt + 1}): ${e.stackTraceToString()}"
-                )
-                invalidateConnection(c)
-            }
-        }
+        val id = postNotify(
+            summary = title,
+            body = body,
+            roomId = roomId,
+            eventId = eventId,
+            desktopEntry = desktopEntry,
+            iconPath = iconPath,
+            urgency = (if (hasMention) 2 else 1).toByte(),
+            soundName = if (playSound) "message-new-instant" else null,
+            resident = persistent,
+            actions = actions,
+            expireTimeout = if (persistent) 0 else -1,
+            replacesId = notifIdByRoom[roomId] ?: UInt32(0),
+            logTag = "message"
+        ) ?: return
+        notifIdByRoom[roomId] = id
     }
 
     fun warmUp() {
@@ -240,7 +210,111 @@ object NotifierImpl {
         }
     }
 
+    fun notifyIncomingCall(
+        callerName: String,
+        roomName: String,
+        roomId: String,
+        eventId: String,
+        desktopEntry: String? = "mages",
+        iconPath: String? = null
+    ) {
+        val body = if (roomName.isNotBlank() && roomName != callerName) {
+            "$callerName in $roomName"
+        } else {
+            "From $callerName"
+        }
+
+        val actions: Array<String> =
+            if (actionsSupported && roomId.isNotBlank() && eventId.isNotBlank()) {
+                arrayOf("answer", "Answer", "decline", "Decline")
+            } else emptyArray()
+
+        val id = postNotify(
+            summary = "Incoming call",
+            body = body,
+            roomId = roomId,
+            eventId = eventId,
+            desktopEntry = desktopEntry,
+            iconPath = iconPath,
+            urgency = 2.toByte(),
+            soundName = "phone-incoming-call",
+            resident = capabilities.contains("persistence"),
+            actions = actions,
+            expireTimeout = 0,
+            replacesId = callNotifIdByRoom[roomId] ?: UInt32(0),
+            logTag = "incoming-call"
+        ) ?: return
+        callNotifIdByRoom[roomId] = id
+    }
+
+    fun closeCallNotification(roomId: String) {
+        val id = callNotifIdByRoom.remove(roomId) ?: return
+        notifCtx.remove(id)
+        val c = ensure() ?: return
+        try {
+            getNotificationsProxy(c).CloseNotification(id)
+        } catch (e: Exception) {
+            Logger.w("[notification] D-Bus CloseNotification failed: ${e.message}")
+        }
+    }
+
     fun trackedRoomIds(): Set<String> = notifIdByRoom.keys.toSet()
+
+    private fun postNotify(
+        summary: String,
+        body: String,
+        roomId: String,
+        eventId: String,
+        desktopEntry: String?,
+        iconPath: String?,
+        urgency: Byte,
+        soundName: String?,
+        resident: Boolean,
+        actions: Array<String>,
+        expireTimeout: Int,
+        replacesId: UInt32,
+        logTag: String,
+    ): UInt32? {
+        repeat(2) { attempt ->
+            val c = ensure() ?: return null
+            try {
+                val notifications = getNotificationsProxy(c)
+
+                val hints = HashMap<String, Variant<*>>()
+                desktopEntry?.let { hints["desktop-entry"] = Variant(it) }
+                iconPath?.let { hints["image-path"] = Variant(it) }
+                hints["urgency"] = Variant(urgency)
+                if (resident) hints["resident"] = Variant(true)
+                if (soundName != null && capabilities.contains("sound")) {
+                    hints["sound-name"] = Variant(soundName)
+                }
+
+                val id = notifications.Notify(
+                    "Mages",
+                    replacesId,
+                    desktopEntry ?: "mages",
+                    summary,
+                    formatBodyForServer(body),
+                    actions,
+                    hints,
+                    expireTimeout
+                )
+
+                notifCtx[id] = roomId to eventId
+
+                Logger.w(
+                    "[notification] D-Bus $logTag Notify succeeded: id=$id room=$roomId event=$eventId"
+                )
+                return id
+            } catch (e: Exception) {
+                Logger.w(
+                    "[notification] D-Bus $logTag Notify failed (attempt=${attempt + 1}): ${e.stackTraceToString()}"
+                )
+                invalidateConnection(c)
+            }
+        }
+        return null
+    }
 
     private fun formatBodyForServer(body: String): String {
         val b = body.trim()
@@ -314,4 +388,6 @@ object DesktopNotifActions {
     @Volatile var markRead: (String, String) -> Unit = { _, _ -> }
     @Volatile var reply: (String, String) -> Unit = { _, _ -> }
     @Volatile var replyText: (String, String, String) -> Unit = { _, _, _ -> }
+    @Volatile var answerCall: (String, String) -> Unit = { roomId, _ -> openRoom(roomId) }
+    @Volatile var declineCall: (String, String) -> Unit = { _, _ -> }
 }

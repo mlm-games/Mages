@@ -11,8 +11,13 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import org.koin.compose.koinInject
 import org.mlm.mages.MatrixService
 import org.mlm.mages.NotifierImpl
+import org.mlm.mages.calls.IncomingCall
+import org.mlm.mages.calls.IncomingCallTracker
+import org.mlm.mages.calls.isExpired
+import org.mlm.mages.calls.isRingingCall
 import org.mlm.mages.matrix.NotificationKind
 import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.push.LinuxPushHandler
@@ -72,6 +77,12 @@ actual fun BindNotifications(
 ) {
     val activeAccount by service.activeAccount.collectAsState()
     val activeId = activeAccount?.id
+    val incomingCalls: IncomingCallTracker = koinInject()
+
+    LaunchedEffect(activeId) {
+        if (activeId == null) return@LaunchedEffect
+        incomingCalls.dismissed.collect { NotifierImpl.closeCallNotification(it.roomId) }
+    }
 
     LaunchedEffect(activeId) {
         if (activeId == null) return@LaunchedEffect
@@ -172,6 +183,26 @@ actual fun BindNotifications(
 
                 if (n.kind == NotificationKind.StateEvent) continue
 
+                if (n.kind.isRingingCall()) {
+                    if (!settings.callNotificationsEnabled) continue
+                    if (n.isExpired()) continue
+                    incomingCalls.report(IncomingCall.ringing(n))
+                    if (!Notifier.shouldNotify(n.roomId, senderIsMe)) continue
+                    val callAvatarPath = runCatching {
+                        val profile = port.roomProfile(n.roomId)
+                        service.avatars.resolve(profile?.avatarUrl, px = 96, crop = true)
+                    }.getOrNull()
+                    NotifierImpl.notifyIncomingCall(
+                        callerName = n.sender,
+                        roomName = n.roomName,
+                        roomId = n.roomId,
+                        eventId = n.eventId,
+                        iconPath = callAvatarPath
+                    )
+                    lastNotifiedTsByRoom[n.roomId] = maxOf(lastNotifiedTsByRoom[n.roomId] ?: 0L, n.tsMs)
+                    continue
+                }
+
                 val avatarPath = runCatching {
                     val profile = port.roomProfile(n.roomId)
                     service.avatars.resolve(profile?.avatarUrl, px = 96, crop = true)
@@ -221,6 +252,8 @@ actual fun BindNotifications(
                     lastNotifiedTsByRoom.remove(roomId)
                 }
             }
+
+            incomingCalls.prune().forEach { NotifierImpl.closeCallNotification(it.roomId) }
 
             if (maxSeenTs > baseline) {
                 settingsRepository.update { it.copy(desktopNotifBaselineMs = maxSeenTs) }

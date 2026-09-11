@@ -9,6 +9,7 @@ import org.mlm.mages.MatrixService
 import org.mlm.mages.accounts.AccountStore
 import org.mlm.mages.accounts.MatrixClients
 import org.mlm.mages.calls.CallManager
+import org.mlm.mages.calls.IncomingCallTracker
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.viewmodel.*
@@ -19,6 +20,7 @@ val coreModule = module {
     single { SnackbarHostState() }
     single { SnackbarManager() }
     single { CallManager(get()) }
+    single { IncomingCallTracker() }
 }
 
 val accountModule = module {

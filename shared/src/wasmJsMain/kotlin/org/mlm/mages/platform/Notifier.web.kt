@@ -10,7 +10,12 @@ import kotlinx.browser.window
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
+import org.koin.compose.koinInject
 import org.mlm.mages.MatrixService
+import org.mlm.mages.calls.IncomingCall
+import org.mlm.mages.calls.IncomingCallTracker
+import org.mlm.mages.calls.isExpired
+import org.mlm.mages.calls.isRingingCall
 import org.mlm.mages.matrix.NotificationKind
 import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.settings.AppSettings
@@ -81,6 +86,12 @@ actual fun BindNotifications(
 ) {
     val activeAccount by service.activeAccount.collectAsState()
     val activeId = activeAccount?.id
+    val incomingCalls: IncomingCallTracker = koinInject()
+
+    LaunchedEffect(activeId) {
+        if (activeId == null) return@LaunchedEffect
+        incomingCalls.dismissed.collect { closeBrowserNotificationByTag(it.roomId) }
+    }
 
     LaunchedEffect(activeId) {
         if (activeId == null) return@LaunchedEffect
@@ -144,7 +155,7 @@ actual fun BindNotifications(
                 }
                 if (!recentlyNotified.add(notification.eventId)) continue
 
-                if (notification.expiresAtMs != null && notification.expiresAtMs <= now) continue
+                if (notification.isExpired(now)) continue
 
                 val senderIsMe = ownUserId != null && notification.senderUserId == ownUserId
                 if (!Notifier.shouldNotify(notification.roomId, senderIsMe)) continue
@@ -166,6 +177,30 @@ actual fun BindNotifications(
                 }
 
                 if (notification.kind == NotificationKind.StateEvent) continue
+
+                if (notification.kind.isRingingCall()) {
+                    if (!settings.callNotificationsEnabled) continue
+                    incomingCalls.report(IncomingCall.ringing(notification))
+                    if (!Notifier.shouldNotify(notification.roomId, senderIsMe)) continue
+                    val callBody = if (notification.roomName.isNotBlank() &&
+                        notification.roomName != notification.sender
+                    ) {
+                        "Incoming call for ${notification.roomName}"
+                    } else {
+                        "Incoming call"
+                    }
+                    if (createBrowserNotification(
+                            notification.sender,
+                            callBody,
+                            null,
+                            notification.roomId
+                        )
+                    ) {
+                        lastNotifiedTsByRoom[notification.roomId] =
+                            maxOf(lastNotifiedTsByRoom[notification.roomId] ?: 0L, notification.tsMs)
+                    }
+                    continue
+                }
 
                 val title = if (notification.isDm || notification.sender == notification.roomName) {
                     notification.sender
@@ -211,6 +246,10 @@ actual fun BindNotifications(
                     runCatching { closeBrowserNotificationByTag(roomId) }
                     lastNotifiedTsByRoom.remove(roomId)
                 }
+            }
+
+            incomingCalls.prune().forEach {
+                runCatching { closeBrowserNotificationByTag(it.roomId) }
             }
 
             if (nextBaseline != baseline) {

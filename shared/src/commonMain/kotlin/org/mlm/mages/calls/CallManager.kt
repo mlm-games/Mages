@@ -7,15 +7,17 @@ import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.CallIntent
 import org.mlm.mages.matrix.CallWidgetObserver
 import org.mlm.mages.platform.CallWebViewController
+import kotlin.time.Clock
 
 data class GlobalCallState(
     val roomId: String,
     val roomName: String,
     val sessionId: ULong,
     val widgetUrl: String,
-    val parentUrl: String?,
     val widgetBaseUrl: String?,
+    val parentUrl: String?,
     val minimized: Boolean = false,
+    val startedAtMs: Long = 0L,
     val pipX: Float = 24f,
     val pipY: Float = 120f,
     val pipW: Float = 220f,
@@ -101,7 +103,8 @@ class CallManager(
             widgetUrl = session.widgetUrl,
             widgetBaseUrl = session.widgetBaseUrl,
             parentUrl = session.parentUrl,
-            minimized = false
+            minimized = false,
+            startedAtMs = Clock.System.now().toEpochMilliseconds()
         )
         onCallStateChanged?.invoke(true, roomName)
         return true

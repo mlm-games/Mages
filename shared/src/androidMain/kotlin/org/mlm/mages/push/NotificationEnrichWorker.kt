@@ -13,7 +13,9 @@ import kotlinx.serialization.json.Json
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.mlm.mages.MatrixService
+import org.mlm.mages.calls.isExpired
 import org.mlm.mages.matrix.NotificationKind
+import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.matrix.RenderedNotification
 import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.platform.SettingsProvider
@@ -135,10 +137,8 @@ class NotificationEnrichWorker(
                     nm.cancel(notifId)
                     return Result.success()
                 }
-
                 // Expired? cancel placeholder (and don't show).
-                val expiresAt = rendered.expiresAtMs
-                if (expiresAt != null && System.currentTimeMillis() > expiresAt) {
+                if (rendered.isExpired()) {
                     nm.cancel(notifId)
                     return Result.success()
                 }
@@ -316,7 +316,7 @@ class NotificationEnrichWorker(
     }
 }
 
-private fun isInQuietHours(settings: org.mlm.mages.settings.AppSettings): Boolean {
+private fun isInQuietHours(settings: AppSettings): Boolean {
     if (!settings.quietHoursEnabled) return false
     val now = java.util.Calendar.getInstance()
     val minuteOfDay = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 +

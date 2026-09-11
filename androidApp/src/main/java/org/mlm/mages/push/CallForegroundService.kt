@@ -43,7 +43,8 @@ class CallForegroundService : Service() {
         }
 
         val roomName = intent?.getStringExtra(EXTRA_ROOM_NAME) ?: "Ongoing call"
-        startForeground(NOTIFICATION_ID, buildNotification(roomName))
+        val roomId = intent?.getStringExtra(EXTRA_ROOM_ID).orEmpty()
+        startForeground(NOTIFICATION_ID, buildNotification(roomName, roomId))
 
         return START_NOT_STICKY
     }
@@ -60,9 +61,23 @@ class CallForegroundService : Service() {
         super.onTaskRemoved(rootIntent)
     }
 
-    private fun buildNotification(roomName: String): Notification {
-        val openIntent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+    private fun buildNotification(roomName: String, roomId: String): Notification {
+        val openIntent = if (roomId.isNotBlank()) {
+            Intent(
+                Intent.ACTION_VIEW,
+                android.net.Uri.Builder()
+                    .scheme("mages")
+                    .authority("room")
+                    .appendQueryParameter("id", roomId)
+                    .build()
+            ).apply {
+                setPackage(packageName)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+        } else {
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
         }
         val openPendingIntent = PendingIntent.getActivity(
             this, 0, openIntent,
@@ -102,10 +117,12 @@ class CallForegroundService : Service() {
         private const val ACTION_STOP = "org.mlm.mages.push.CallForegroundService.STOP"
         private const val ACTION_END_CALL = "org.mlm.mages.push.CallForegroundService.END_CALL"
         private const val EXTRA_ROOM_NAME = "room_name"
+        private const val EXTRA_ROOM_ID = "room_id"
 
-        fun start(context: Context, roomName: String) {
+        fun start(context: Context, roomName: String, roomId: String = "") {
             val intent = Intent(context, CallForegroundService::class.java).apply {
                 putExtra(EXTRA_ROOM_NAME, roomName)
+                putExtra(EXTRA_ROOM_ID, roomId)
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)

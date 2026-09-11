@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import org.mlm.mages.calls.IncomingCallTracker
+import org.mlm.mages.calls.answerIncomingCall
+import org.mlm.mages.calls.declineIncomingCall
 import org.mlm.mages.nav.DeepLinkAction
 import org.mlm.mages.platform.BindNotifications
 import org.mlm.mages.settings.AppSettings
@@ -23,6 +26,7 @@ fun DesktopBackground(
 ) {
     val service: MatrixService = koinInject()
     val settingsRepo: SettingsRepository<AppSettings> = koinInject()
+    val incomingCalls: IncomingCallTracker = koinInject()
     val settings by settingsRepo.flow.collectAsState(AppSettings())
 
     LaunchedEffect(Unit) {
@@ -64,6 +68,20 @@ fun DesktopBackground(
                 port.reply(roomId, eventId, msg)
                 val sendReceipt = settingsRepo.flow.first().sendReadReceipts
                 port.markFullyReadAt(roomId, eventId, sendReceipt)
+            }
+        }
+
+        DesktopNotifActions.answerCall = { roomId, eventId ->
+            NotifierImpl.closeCallNotification(roomId)
+            answerIncomingCall(incomingCalls, roomId, eventId) { action ->
+                deepLinkEmitter.tryEmit(action)
+            }
+        }
+
+        DesktopNotifActions.declineCall = { roomId, eventId ->
+            scope.launch {
+                declineIncomingCall(service.portOrNull, incomingCalls, roomId, eventId)
+                NotifierImpl.closeCallNotification(roomId)
             }
         }
     }

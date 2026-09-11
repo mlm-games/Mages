@@ -3,6 +3,7 @@ package org.mlm.mages
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -12,6 +13,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
@@ -24,12 +26,18 @@ import io.github.mlmgames.settings.core.SettingsRepository
 import io.github.mlmgames.settings.core.annotations.SettingPlatform
 import io.github.mlmgames.settings.core.platform.currentPlatform
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import org.mlm.mages.accounts.AccountStore
 import org.mlm.mages.calls.CallManager
+import org.mlm.mages.calls.IncomingCallTracker
+import org.mlm.mages.calls.answerIncomingCall
+import org.mlm.mages.calls.declineIncomingCall
 import org.mlm.mages.matrix.Presence
 import org.mlm.mages.matrix.SasPhase
 import org.mlm.mages.nav.*
@@ -53,6 +61,8 @@ import org.mlm.mages.settings.ThemeMode
 import org.mlm.mages.settings.appLanguageTagOrNull
 import org.mlm.mages.settings.toSeconds
 import org.mlm.mages.ui.GlobalCallOverlay
+import org.mlm.mages.ui.IncomingCallOverlay
+import org.mlm.mages.ui.OngoingCallBanner
 import org.mlm.mages.ui.animation.forwardTransition
 import org.mlm.mages.ui.animation.popTransition
 import org.mlm.mages.ui.components.dialogs.SasDialog
@@ -106,6 +116,7 @@ private fun AppContent(
     val snackbarHostState: SnackbarHostState = koinInject()
     val postError = rememberErrorPoster(snackbarManager)
     val callManager: CallManager = koinInject()
+    val incomingCalls: IncomingCallTracker = koinInject()
     val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
 
     if (currentPlatform == SettingPlatform.WEB || currentPlatform == SettingPlatform.ANDROID) {
@@ -173,9 +184,18 @@ private fun AppContent(
             val backStack: NavBackStack<NavKey> =
                 rememberNavBackStack(navSavedStateConfiguration, initialRoute)
 
+            val localDeepLinks = remember {
+                MutableSharedFlow<DeepLinkAction>(
+                    extraBufferCapacity = 8
+                )
+            }
+            val allDeepLinks = remember(deepLinks) {
+                merge(deepLinks ?: emptyFlow(), localDeepLinks)
+            }
+
             BindDeepLinks(
                 backStack,
-                deepLinks,
+                allDeepLinks,
                 callManager,
                 widgetTheme,
                 languageTag,
@@ -881,6 +901,51 @@ private fun AppContent(
                 )
             }
             GlobalCallOverlay(callManager, Modifier.fillMaxSize())
+
+            val invites by incomingCalls.invites.collectAsState()
+            val canShowIncomingOverlay =
+                currentPlatform == SettingPlatform.WEB || currentPlatform == SettingPlatform.JVM
+            LaunchedEffect(callState?.roomId) {
+                callState?.roomId?.let { incomingCalls.clearForRoom(it) }
+            }
+            val ringing = invites.firstOrNull()
+            if (ringing != null && canShowIncomingOverlay && !appLocked) {
+                IncomingCallOverlay(
+                    call = ringing,
+                    moreCount = (invites.size - 1).coerceAtLeast(0),
+                    onAnswer = {
+                        answerIncomingCall(incomingCalls, ringing) { action ->
+                            localDeepLinks.tryEmit(action)
+                        }
+                    },
+                    onDecline = {
+                        scope.launch {
+                            declineIncomingCall(service.portOrNull, incomingCalls, ringing)
+                        }
+                    },
+                    onTimeout = {
+                        incomingCalls.dismiss(ringing.roomId, ringing.eventId)
+                    }
+                )
+            }
+
+            val ongoing = callState
+            if (ongoing != null && ongoing.minimized && !appLocked) {
+                OngoingCallBanner(
+                    roomName = ongoing.roomName,
+                    startedAtMs = ongoing.startedAtMs,
+                    onTap = {
+                        callManager.setMinimized(false)
+                        val top = backStack.lastOrNull()
+                        if (top !is Route.Room || top.roomId != ongoing.roomId) {
+                            backStack.add(Route.Room(ongoing.roomId, ongoing.roomName))
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                )
+            }
         }
     }
 }

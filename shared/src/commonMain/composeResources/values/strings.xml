@@ -205,6 +205,11 @@
     <string name="delivered">Delivered</string>
     <string name="start_call">Start call</string>
     <string name="join_call">Join call</string>
+    <string name="answer">Answer</string>
+    <string name="incoming_call">Incoming call</string>
+    <string name="incoming_voice_call">Incoming voice call</string>
+    <string name="ongoing_call">Ongoing call</string>
+    <string name="tap_to_return">Tap to return</string>
     <string name="notifications_room">Notifications</string>
     <string name="members_room">Members</string>
     <string name="room_info_short">Room info</string>
