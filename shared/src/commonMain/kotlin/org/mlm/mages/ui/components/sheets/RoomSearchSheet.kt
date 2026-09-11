@@ -47,9 +47,9 @@ fun RoomSearchSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .imePadding()
                 .padding(bottom = Spacing.xxl)
         ) {
-            // Search field
             OutlinedTextField(
                 value = query,
                 onValueChange = onQueryChange,

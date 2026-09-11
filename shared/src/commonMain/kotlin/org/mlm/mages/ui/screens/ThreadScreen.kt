@@ -136,6 +136,7 @@ fun ThreadScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top),
         topBar = {
             ThreadTopBar(
                 messageCount = state.messageCount,
@@ -144,22 +145,24 @@ fun ThreadScreen(
             )
         },
         bottomBar = {
-            MessageComposer(
-                value = state.input,
-                enabled = true,
-                isOffline = false,
-                replyingTo = state.replyingTo,
-                editing = state.editingEvent,
-                attachments = emptyList(),
-                isUploadingAttachment = false,
-                onValueChange = onInputChange,
-                onSend = onSend,
-                onCancelReply = onCancelReply,
-                onCancelEdit = onCancelEdit,
-                enterSendsMessage = enterSendsMessage,
-                roomMembers = state.roomMembers,
-                avatarPathByUserId = state.avatarByUserId,
-            )
+            Column(modifier = Modifier.navigationBarsPadding().imePadding()) {
+                MessageComposer(
+                    value = state.input,
+                    enabled = true,
+                    isOffline = false,
+                    replyingTo = state.replyingTo,
+                    editing = state.editingEvent,
+                    attachments = emptyList(),
+                    isUploadingAttachment = false,
+                    onValueChange = onInputChange,
+                    onSend = onSend,
+                    onCancelReply = onCancelReply,
+                    onCancelEdit = onCancelEdit,
+                    enterSendsMessage = enterSendsMessage,
+                    roomMembers = state.roomMembers,
+                    avatarPathByUserId = state.avatarByUserId,
+                )
+            }
         },
         floatingActionButton = {
             AnimatedVisibility(
@@ -189,6 +192,7 @@ fun ThreadScreen(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .consumeWindowInsets(padding)
         ) {
             AnimatedVisibility(visible = state.isLoading && !state.hasInitialLoad) {
                 LinearWavyProgressIndicator(
