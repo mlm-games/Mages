@@ -917,7 +917,7 @@ private fun AppContent(
                 callState?.roomId?.let { incomingCalls.clearForRoom(it) }
             }
             LaunchedEffect(invites.map { it.roomId to it.eventId }) {
-                val reconcilerScope = this@LaunchedEffect
+                val reconcilerScope = this
                 val me = runCatching { service.portOrNull?.whoami() }.getOrNull()
                 if (me == null) {
                     Logger.w { "Call reconciler: whoami() failed, own-decline dismissal disabled" }
