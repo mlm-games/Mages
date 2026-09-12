@@ -13,6 +13,12 @@ on:
         required: true
         default: false
         type: boolean
+      play_track:
+        description: 'Google Play track'
+        required: true
+        default: 'production'
+        type: choice
+        options: [none, internal, alpha, beta, production]
       bump_type:
         description: 'Version bump type'
         required: true
@@ -225,6 +231,17 @@ jobs:
             fi
           done
           
+      - name: Upload AAB to Google Play
+        if: github.event_name == 'workflow_dispatch' && inputs.upload_releases == true && inputs.play_track != 'none'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ env.APPLICATION_ID }}
+          releaseFiles: artifacts/${{ env.APP_SLUG }}-${{ needs.prepare-version.outputs.version_name }}.aab
+          track: ${{ inputs.play_track }}
+          status: completed
+          whatsNewDirectory: fastlane/metadata/android
+
       - name: Upload artifacts (CI only)
         if: github.event_name != 'workflow_dispatch' || inputs.upload_releases == false
         uses: actions/upload-artifact@v4
