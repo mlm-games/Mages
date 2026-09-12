@@ -190,7 +190,7 @@ class MatrixService(
     }
 
     suspend fun downloadStickerToCache(
-        info: org.mlm.mages.StickerInfo,
+        info: StickerInfo,
         filenameHint: String? = null,
     ): Result<String> = port.downloadStickerToCache(info, filenameHint)
 

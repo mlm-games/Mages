@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Location
 import android.location.LocationManager
 import android.os.Build
 import android.os.Handler
@@ -34,7 +35,7 @@ class LiveLocationSharingForegroundService : Service() {
         val lon = location.longitude
         if (hasLastLocation) {
             val results = FloatArray(1)
-            android.location.Location.distanceBetween(lastLat, lastLon, lat, lon, results)
+            Location.distanceBetween(lastLat, lastLon, lat, lon, results)
             if (results[0] < MIN_DISTANCE_M) return@LocationListenerCompat
         }
         lastLat = lat

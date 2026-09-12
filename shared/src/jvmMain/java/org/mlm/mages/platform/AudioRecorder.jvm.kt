@@ -8,6 +8,7 @@ import co.touchlab.kermit.Logger
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.RandomAccessFile
+import java.lang.Short as JShort
 import java.util.Collections
 import java.util.concurrent.atomic.AtomicReference
 import javax.sound.sampled.*
@@ -157,12 +158,12 @@ class JvmAudioRecorder : AudioRecorder {
             f.writeBytes("WAVE")
             f.writeBytes("fmt ")
             f.writeInt(Integer.reverseBytes(16))
-            f.writeShort(java.lang.Short.reverseBytes(1.toShort()).toInt())
-            f.writeShort(java.lang.Short.reverseBytes(CHANNELS.toShort()).toInt())
+            f.writeShort(JShort.reverseBytes(1.toShort()).toInt())
+            f.writeShort(JShort.reverseBytes(CHANNELS.toShort()).toInt())
             f.writeInt(Integer.reverseBytes(SAMPLE_RATE.toInt()))
             f.writeInt(Integer.reverseBytes(byteRate))
-            f.writeShort(java.lang.Short.reverseBytes((CHANNELS * BITS / 8).toShort()).toInt())
-            f.writeShort(java.lang.Short.reverseBytes(BITS.toShort()).toInt())
+            f.writeShort(JShort.reverseBytes((CHANNELS * BITS / 8).toShort()).toInt())
+            f.writeShort(JShort.reverseBytes(BITS.toShort()).toInt())
             f.writeBytes("data")
             f.writeInt(Integer.reverseBytes(audio.size))
             f.write(audio)

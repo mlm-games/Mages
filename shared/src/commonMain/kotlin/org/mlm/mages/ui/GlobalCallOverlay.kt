@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import org.mlm.mages.calls.CallManager
 import org.mlm.mages.platform.CallWebViewHost
 import org.mlm.mages.platform.SystemBarsEffect
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -84,7 +85,7 @@ fun GlobalCallOverlay(
                 }
         }
 
-        val widgetMsgs = remember(s.sessionId) { kotlinx.coroutines.channels.Channel<String>(capacity = kotlinx.coroutines.channels.Channel.UNLIMITED) }
+        val widgetMsgs = remember(s.sessionId) { Channel<String>(capacity = Channel.UNLIMITED) }
 
         LaunchedEffect(s.sessionId) {
             for (msg in widgetMsgs) {

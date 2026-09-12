@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
+import org.mlm.mages.ui.ForwardableRoom
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
@@ -206,7 +207,7 @@ private fun SelectedRoomsRow(
 
 @Composable
 private fun RoomForwardItem(
-    room: org.mlm.mages.ui.ForwardableRoom,
+    room: ForwardableRoom,
     isSelected: Boolean,
     status: RoomForwardStatus?,
     enabled: Boolean,

@@ -29,6 +29,7 @@ import org.maplibre.compose.map.MaplibreMap
 import org.maplibre.compose.sources.GeoJsonData
 import org.maplibre.compose.sources.rememberGeoJsonSource
 import org.maplibre.compose.style.BaseStyle
+import org.maplibre.spatialk.geojson.Feature
 import org.maplibre.spatialk.geojson.FeatureCollection
 import org.maplibre.spatialk.geojson.Point
 import org.maplibre.spatialk.geojson.Position
@@ -67,7 +68,7 @@ actual fun TimelineLocationMapView(
             val feature = remember(lat, lon) {
                 FeatureCollection(
                     features = listOf(
-                        org.maplibre.spatialk.geojson.Feature(
+                        Feature(
                             geometry = Point(position),
                             properties = JsonObject(emptyMap()),
                         )

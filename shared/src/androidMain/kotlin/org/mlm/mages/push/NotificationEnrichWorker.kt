@@ -20,6 +20,7 @@ import org.mlm.mages.matrix.RenderedNotification
 import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.platform.SettingsProvider
 import org.mlm.mages.shared.R
+import java.util.Calendar
 
 private fun parseNotifiedRooms(json: String): Set<String> {
     if (json.isBlank()) return emptySet()
@@ -317,9 +318,9 @@ class NotificationEnrichWorker(
 
 private fun isInQuietHours(settings: AppSettings): Boolean {
     if (!settings.quietHoursEnabled) return false
-    val now = java.util.Calendar.getInstance()
-    val minuteOfDay = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 +
-        now.get(java.util.Calendar.MINUTE)
+    val now = Calendar.getInstance()
+    val minuteOfDay = now.get(Calendar.HOUR_OF_DAY) * 60 +
+        now.get(Calendar.MINUTE)
     val start = settings.quietHoursStartMinutes
     val end = settings.quietHoursEndMinutes
     return if (start <= end) {

@@ -1,6 +1,7 @@
 package org.mlm.mages.platform
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.media.MediaRecorder
 import android.os.Build
@@ -27,7 +28,7 @@ class AndroidAudioRecorder : AudioRecorder {
     private var amplitudeJob: Job? = null
 
     private val context
-        get() = runCatching { GlobalContext.get().get<android.content.Context>() }.getOrNull()
+        get() = runCatching { GlobalContext.get().get<Context>() }.getOrNull()
 
     override suspend fun startRecording(): Boolean = withContext(Dispatchers.IO) {
         try {

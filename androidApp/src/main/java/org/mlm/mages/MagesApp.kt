@@ -1,8 +1,13 @@
 package org.mlm.mages
 
+import android.app.Activity
 import android.app.Application
+import android.app.Application.ActivityLifecycleCallbacks
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.os.Build
+import android.os.Bundle
 import android.provider.Settings
 import co.touchlab.kermit.Logger
 import io.github.mlmgames.settings.core.actions.ActionRegistry
@@ -72,8 +77,8 @@ class MagesApp : Application() {
 
         ActionRegistry.register(CopyUnifiedPushEndpointAction::class) {
             val ep = getEndpoint(this, PREF_INSTANCE) ?: "<none>"
-            val cm = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            cm.setPrimaryClip(android.content.ClipData.newPlainText("UnifiedPush endpoint", ep))
+            val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+            cm.setPrimaryClip(ClipData.newPlainText("UnifiedPush endpoint", ep))
         }
 
         ActionRegistry.register(OpenBubbleSettingsAction::class) {
@@ -135,20 +140,20 @@ class MagesApp : Application() {
             LiveLocationSharingCoordinator.recover()
         }
 
-        registerActivityLifecycleCallbacks(object : android.app.Application.ActivityLifecycleCallbacks {
-            override fun onActivityCreated(activity: android.app.Activity, savedInstanceState: android.os.Bundle?) {
+        registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
                 CurrentActivityHolder.activity = activity
             }
-            override fun onActivityStarted(activity: android.app.Activity) {
+            override fun onActivityStarted(activity: Activity) {
                 CurrentActivityHolder.activity = activity
             }
-            override fun onActivityResumed(activity: android.app.Activity) {
+            override fun onActivityResumed(activity: Activity) {
                 CurrentActivityHolder.activity = activity
             }
-            override fun onActivityPaused(activity: android.app.Activity) {}
-            override fun onActivityStopped(activity: android.app.Activity) {}
-            override fun onActivitySaveInstanceState(activity: android.app.Activity, outState: android.os.Bundle) {}
-            override fun onActivityDestroyed(activity: android.app.Activity) {
+            override fun onActivityPaused(activity: Activity) {}
+            override fun onActivityStopped(activity: Activity) {}
+            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
+            override fun onActivityDestroyed(activity: Activity) {
                 if (CurrentActivityHolder.activity === activity) {
                     CurrentActivityHolder.activity = null
                 }

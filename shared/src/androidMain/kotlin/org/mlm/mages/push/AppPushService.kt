@@ -1,10 +1,12 @@
 package org.mlm.mages.push
 
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import androidx.core.content.edit
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
+import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
@@ -23,6 +25,7 @@ import org.mlm.mages.MatrixService
 import org.mlm.mages.platform.SettingsProvider
 import org.mlm.mages.push.extractMatrixPushPayload
 import org.mlm.mages.settings.appLanguageTagOrDefault
+import org.unifiedpush.android.connector.FailedReason
 import org.unifiedpush.android.connector.PushService
 import org.unifiedpush.android.connector.data.PushEndpoint
 import org.unifiedpush.android.connector.data.PushMessage
@@ -110,7 +113,7 @@ class AppPushService : PushService(), KoinComponent {
     }
 
     override fun onRegistrationFailed(
-        reason: org.unifiedpush.android.connector.FailedReason,
+        reason: FailedReason,
         instance: String
     ) {
         Log.w(TAG, "Registration failed for $instance: $reason")
@@ -159,7 +162,7 @@ class AppPushService : PushService(), KoinComponent {
                 appId = context.packageName,
                 pushKey = pushKey,
                 gatewayUrl = gatewayUrl,
-                deviceName = android.os.Build.MODEL ?: "Android",
+                deviceName = Build.MODEL ?: "Android",
                 lang = languageTag,
                 profileTag = accountId
             )
@@ -197,7 +200,7 @@ class AppPushService : PushService(), KoinComponent {
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
 
-        val inputBuilder = androidx.work.Data.Builder()
+        val inputBuilder = Data.Builder()
             .putInt(NotificationReconcileWorker.KEY_UNREAD, counts.unread ?: -1)
             .putInt(NotificationReconcileWorker.KEY_MENTIONS, counts.mentions ?: -1)
             .putBoolean(NotificationReconcileWorker.KEY_HAS_COUNTS, counts.hasCounts)

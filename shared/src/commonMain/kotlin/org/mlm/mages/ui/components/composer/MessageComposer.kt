@@ -17,6 +17,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.MemberSummary
@@ -148,7 +149,7 @@ private fun ComposerInputRow(
     enterSendsMessage: Boolean,
     clipboardHandler: ClipboardAttachmentHandler?,
     onAttachmentPasted: ((AttachmentData) -> Unit)?,
-    scope: kotlinx.coroutines.CoroutineScope,
+    scope: CoroutineScope,
     isOffline: Boolean,
     editing: MessageEvent?,
     replyingTo: MessageEvent?,

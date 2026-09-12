@@ -19,6 +19,7 @@ import org.mlm.mages.AttachmentInfo
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.RoomSummary
 import org.mlm.mages.StickerInfo
+import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.clearWebBlob
 import org.mlm.mages.platform.retrieveWebBlob
 import org.mlm.mages.platform.navigatorOnLine
@@ -243,7 +244,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         try { old?.free() } catch (e: Exception) { e.printStackTrace() }
         val created = createWasmClient(
             hs,
-            org.mlm.mages.platform.MagesPaths.storeDir(),
+            MagesPaths.storeDir(),
             accountId,
             proxyUrl,
             enableShareHistoryOnInvite,

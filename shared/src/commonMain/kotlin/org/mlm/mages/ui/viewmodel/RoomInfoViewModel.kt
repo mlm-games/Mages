@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.ActionAvailability
+import org.mlm.mages.matrix.ActionPresentation
 import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.KnockRequestSummary
 import org.mlm.mages.matrix.RoomDirectoryVisibility
@@ -75,9 +76,9 @@ class RoomInfoViewModel(
     private fun ActionAvailability.toUi(): ActionAvailabilityUi =
         ActionAvailabilityUi(
             presentation = when (presentation) {
-                org.mlm.mages.matrix.ActionPresentation.Hidden -> ActionPresentationUi.Hidden
-                org.mlm.mages.matrix.ActionPresentation.Disabled -> ActionPresentationUi.Disabled
-                org.mlm.mages.matrix.ActionPresentation.Enabled -> ActionPresentationUi.Enabled
+                ActionPresentation.Hidden -> ActionPresentationUi.Hidden
+                ActionPresentation.Disabled -> ActionPresentationUi.Disabled
+                ActionPresentation.Enabled -> ActionPresentationUi.Enabled
             },
             reason = reason,
         )

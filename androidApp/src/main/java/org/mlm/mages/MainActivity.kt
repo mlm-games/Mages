@@ -8,7 +8,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -120,7 +122,7 @@ class MainActivity : AppCompatActivity() {
         onAccept: () -> Unit,
         onDecline: () -> Unit
     ) {
-        androidx.appcompat.app.AlertDialog.Builder(this)
+        AlertDialog.Builder(this)
             .setTitle(getString(R.string.location_disclosure_title))
             .setMessage(getString(R.string.location_disclosure_message))
             .setPositiveButton(getString(R.string.location_disclosure_continue)) { dialog, _ ->
@@ -303,7 +305,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun handleRoomIntent(uri: android.net.Uri) {
+    private suspend fun handleRoomIntent(uri: Uri) {
         val roomId = uri.getQueryParameter("id")
         val eventId = uri.getQueryParameter("event")
         val joinCall = uri.getQueryParameter("join_call") == "1"

@@ -1,10 +1,12 @@
 package org.mlm.mages.push
 
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.RemoteInput
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -167,16 +169,16 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                             Class.forName("org.mlm.mages.MainActivity")
                         }
 
-                        val fullOpenIntent = android.app.PendingIntent.getActivity(
+                        val fullOpenIntent = PendingIntent.getActivity(
                             context,
                             notifId,
-                            android.content.Intent(android.content.Intent.ACTION_VIEW,
-                                android.net.Uri.Builder().scheme("mages").authority("room")
+                            Intent(Intent.ACTION_VIEW,
+                                Uri.Builder().scheme("mages").authority("room")
                                     .appendQueryParameter("id", roomId)
                                     .appendQueryParameter("event", eventId).build()
                             ).setPackage(context.packageName)
-                                .setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP),
-                            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                         )
 
                         val isDm = contactName.isNotEmpty()

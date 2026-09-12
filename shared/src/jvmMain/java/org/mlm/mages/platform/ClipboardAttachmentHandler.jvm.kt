@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.mlm.mages.content.TransferItem
 import org.mlm.mages.ui.util.guessMimeType
+import java.awt.Image
 import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
 import java.awt.image.BufferedImage
@@ -43,7 +44,7 @@ private class JvmClipboardAttachmentHandler : ClipboardAttachmentHandler {
                 }
 
                 if (contents.isDataFlavorSupported(DataFlavor.imageFlavor)) {
-                    val img = contents.getTransferData(DataFlavor.imageFlavor) as? java.awt.Image
+                    val img = contents.getTransferData(DataFlavor.imageFlavor) as? Image
                     return@withContext listOfNotNull(img?.saveToTemp())
                 }
 
@@ -58,7 +59,7 @@ private class JvmClipboardAttachmentHandler : ClipboardAttachmentHandler {
         sizeBytes = length(),
     )
 
-    private fun java.awt.Image.saveToTemp(): TransferItem? {
+    private fun Image.saveToTemp(): TransferItem? {
         val bi = when (this) {
             is BufferedImage -> this
             else -> {

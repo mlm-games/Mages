@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import android.location.LocationListener
 import android.location.LocationManager
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.channels.awaitClose
@@ -68,7 +69,7 @@ actual class LiveLocationProvider actual constructor() {
             return@callbackFlow
         }
 
-        val listener = android.location.LocationListener { location ->
+        val listener = LocationListener { location ->
             trySend(location.toLocationData())
         }
 

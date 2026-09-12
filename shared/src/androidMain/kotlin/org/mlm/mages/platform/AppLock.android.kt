@@ -2,6 +2,7 @@ package org.mlm.mages.platform
 
 import android.app.KeyguardManager
 import android.content.Context
+import android.content.ContextWrapper
 import android.os.Build
 import android.view.WindowManager
 import androidx.biometric.BiometricManager
@@ -13,6 +14,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import co.touchlab.kermit.Logger
@@ -25,7 +27,7 @@ private fun Context.findActivity(): FragmentActivity? {
     var ctx: Context? = this
     while (ctx != null) {
         if (ctx is FragmentActivity) return ctx
-        ctx = (ctx as? android.content.ContextWrapper)?.baseContext
+        ctx = (ctx as? ContextWrapper)?.baseContext
     }
     // Fallback to holder
     return CurrentActivityHolder.activity as? FragmentActivity
@@ -203,7 +205,7 @@ actual fun BindAppLock(
         }
         val lifecycle = ProcessLifecycleOwner.get().lifecycle
         lifecycle.addObserver(observer)
-        if (lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) {
+        if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
             androidController.onAppForegrounded()
         }
         onDispose {
@@ -223,7 +225,7 @@ actual fun BindScreenSecurity(enabled: Boolean) {
                 found = ctx
                 break
             }
-            ctx = (ctx as? android.content.ContextWrapper)?.baseContext
+            ctx = (ctx as? ContextWrapper)?.baseContext
         }
         found ?: CurrentActivityHolder.activity as? FragmentActivity
     }

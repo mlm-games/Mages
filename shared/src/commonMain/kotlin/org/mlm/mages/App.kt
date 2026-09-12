@@ -64,6 +64,7 @@ import org.mlm.mages.platform.platformEmbeddedElementCallUrlOrNull
 import org.mlm.mages.platform.rememberFileOpener
 import org.mlm.mages.platform.rememberQuitApp
 import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.settings.PresenceMode
 import org.mlm.mages.settings.ThemeMode
 import org.mlm.mages.settings.appLanguageTagOrNull
 import org.mlm.mages.settings.toSeconds
@@ -267,9 +268,9 @@ private fun AppContent(
                 if (activeId == null || !service.isLoggedInSuspend()) return@LaunchedEffect
                 settingsRepository.flow.collect { s ->
                     val presence = when (s.presence) {
-                        org.mlm.mages.settings.PresenceMode.Online -> Presence.Online
-                        org.mlm.mages.settings.PresenceMode.Offline -> Presence.Offline
-                        org.mlm.mages.settings.PresenceMode.Unavailable -> Presence.Unavailable
+                        PresenceMode.Online -> Presence.Online
+                        PresenceMode.Offline -> Presence.Offline
+                        PresenceMode.Unavailable -> Presence.Unavailable
                     }
                     runCatching { service.port.setPresence(presence, null) }
                 }

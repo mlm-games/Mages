@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.ui.ForwardableRoom
 import org.mlm.mages.ui.theme.Spacing
@@ -170,7 +171,7 @@ fun SelectableRoomItem(
 fun RoomAvatar(
     room: ForwardableRoom,
     modifier: Modifier = Modifier,
-    size: androidx.compose.ui.unit.Dp = 48.dp
+    size: Dp = 48.dp
 ) {
     Surface(
         color = MaterialTheme.colorScheme.primaryContainer,

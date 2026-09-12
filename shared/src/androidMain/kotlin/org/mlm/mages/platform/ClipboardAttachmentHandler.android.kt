@@ -1,6 +1,7 @@
 package org.mlm.mages.platform
 
 import android.content.ClipDescription
+import android.content.ClipboardManager
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
@@ -25,7 +26,7 @@ private class AndroidClipboardAttachmentHandler(
 ) : ClipboardAttachmentHandler {
 
     private val cm = context.getSystemService(Context.CLIPBOARD_SERVICE)
-            as? android.content.ClipboardManager
+            as? ClipboardManager
 
     override fun hasAttachment(): Boolean {
         val desc = cm?.primaryClipDescription ?: return false

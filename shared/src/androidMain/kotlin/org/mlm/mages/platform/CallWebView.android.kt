@@ -2,6 +2,7 @@ package org.mlm.mages.platform
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Outline
 import android.media.AudioDeviceCallback
@@ -10,6 +11,8 @@ import android.media.AudioManager
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
 import android.view.View
@@ -27,6 +30,7 @@ import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
+import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -102,7 +106,7 @@ private fun listAudioDevices(audioManager: AudioManager): List<AudioDeviceInfo> 
 
 private fun buildAudioDevicesJson(audioManager: AudioManager): String {
     val devices = listAudioDevices(audioManager)
-    return org.json.JSONArray().apply {
+    return JSONArray().apply {
         devices.forEach { device ->
             val isSpeaker = device.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER
             val isEarpiece = device.type == AudioDeviceInfo.TYPE_BUILTIN_EARPIECE
@@ -193,7 +197,7 @@ private class AudioDeviceBridge(
             .build()
     } else null
 
-    fun setWebView(webView: android.webkit.WebView) {
+    fun setWebView(webView: WebView) {
         webViewRef = webView
     }
 
@@ -226,7 +230,7 @@ private class AudioDeviceBridge(
         Log.d("AudioBridge", "Audio track ready")
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+        Handler(Looper.getMainLooper()).postDelayed({
             if (hasRegisteredCallbacks) return@postDelayed
 
             audioManager.registerAudioDeviceCallback(audioDeviceCallback, null)
@@ -354,7 +358,7 @@ private class AudioDeviceBridge(
 
         expectedNewCommunicationDeviceId = null
 
-        android.os.Handler(android.os.Looper.getMainLooper()).post {
+        Handler(Looper.getMainLooper()).post {
             runCatching {
                 val held = proximitySensorMutex.tryLock()
                 try {
@@ -402,7 +406,7 @@ private class AudioDeviceBridge(
 
     private fun setAvailableAudioDevicesInWebView(devices: List<AudioDeviceInfo>) {
         val webView = webViewRef ?: return
-        val devicesJson = org.json.JSONArray().apply {
+        val devicesJson = JSONArray().apply {
             devices.forEach { device ->
                 val isSpeaker = device.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER
                 val isEarpiece = device.type == AudioDeviceInfo.TYPE_BUILTIN_EARPIECE
@@ -414,7 +418,7 @@ private class AudioDeviceBridge(
                         device.type == AudioDeviceInfo.TYPE_USB_DEVICE ||
                         device.type == AudioDeviceInfo.TYPE_USB_ACCESSORY
 
-                put(org.json.JSONObject().apply {
+                put(JSONObject().apply {
                     put("id", device.id.toString())
                     put("name", deviceName(device.type, device.productName?.toString() ?: ""))
                     put("isSpeaker", isSpeaker)
@@ -715,7 +719,7 @@ actual fun CallWebViewHost(
                         return assetLoader.shouldInterceptRequest(url.toUri())
                     }
 
-                    override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) {
+                    override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
                         super.onPageStarted(view, url, favicon)
 
                         view.evaluateJavascript(

@@ -1,6 +1,7 @@
 package org.mlm.mages.platform
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -30,7 +31,7 @@ actual fun isLocalNetworkPermissionEnforced(): Boolean =
 
 actual fun hasLocalNetworkPermission(): Boolean {
     if (!isLocalNetworkPermissionEnforced()) return true
-    val context = runCatching { KoinPlatform.getKoin().get<android.content.Context>() }.getOrNull()
+    val context = runCatching { KoinPlatform.getKoin().get<Context>() }.getOrNull()
         ?: return false
     return ContextCompat.checkSelfPermission(context, localNetworkPermission) ==
         PackageManager.PERMISSION_GRANTED
@@ -47,7 +48,7 @@ actual suspend fun shouldRequestLocalNetworkPermission(homeserverUrl: String): B
 }
 
 actual fun openAppPermissionSettings() {
-    val context = runCatching { KoinPlatform.getKoin().get<android.content.Context>() }.getOrNull()
+    val context = runCatching { KoinPlatform.getKoin().get<Context>() }.getOrNull()
         ?: return
     val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
         data = Uri.fromParts("package", context.packageName, null)

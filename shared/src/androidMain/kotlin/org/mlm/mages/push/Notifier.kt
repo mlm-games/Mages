@@ -28,6 +28,7 @@ import org.koin.core.component.inject
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.shared.R
 import org.mlm.mages.calls.INCOMING_CALL_TIMEOUT_MS
+import java.io.File
 
 object AndroidNotificationHelper : KoinComponent {
 
@@ -73,7 +74,7 @@ object AndroidNotificationHelper : KoinComponent {
 
         val callerIcon = callerAvatarPath?.let { path ->
             runCatching {
-                val file = java.io.File(path)
+                val file = File(path)
                 if (file.exists()) BitmapFactory.decodeFile(path) else null
             }.getOrNull()
         }

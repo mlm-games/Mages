@@ -7,6 +7,7 @@ import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.serialization.json.Json
 import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
 import org.intellij.markdown.html.HtmlGenerator
@@ -205,7 +206,7 @@ class RoomViewModel(
     private val liveLocationSession = LiveLocationSession()
     private val syncedActiveBeaconIds = MutableStateFlow<Set<String>>(emptySet())
     private var liveLocationBeaconToken: ULong? = null
-    private val paginateLock = kotlinx.coroutines.sync.Mutex()
+    private val paginateLock = Mutex()
     private val thumbnailFetchInFlight = mutableSetOf<String>()
 
     init {

@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 import org.mlm.mages.AttachmentInfo
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.RoomSummary
+import org.mlm.mages.StickerInfo
 
 @Serializable
 data class DownloadResult (
@@ -733,7 +734,7 @@ interface MatrixPort {
     ): Boolean
 
     suspend fun downloadStickerToCache(
-        info: org.mlm.mages.StickerInfo,
+        info: StickerInfo,
         filenameHint: String? = null,
     ): Result<String>
 

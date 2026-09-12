@@ -1,6 +1,7 @@
 package org.mlm.mages.push
 
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -45,7 +46,7 @@ object PusherReconciler : KoinComponent {
                 appId = context.packageName,
                 pushKey = endpoint,
                 gatewayUrl = gatewayUrl,
-                deviceName = android.os.Build.MODEL ?: "Android",
+                deviceName = Build.MODEL ?: "Android",
                 lang = languageTag,
                 profileTag = accountId
             )

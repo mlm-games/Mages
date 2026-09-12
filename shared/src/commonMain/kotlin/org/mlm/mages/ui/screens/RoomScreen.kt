@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.SendState
 import org.mlm.mages.platform.*
@@ -1491,7 +1492,7 @@ private fun MessageItem(
         LaunchedEffect(event.eventId, state.thumbByEvent[event.eventId]) {
             val hasThumb = state.thumbByEvent.containsKey(event.eventId)
             val needsThumb = !hasThumb && (
-                event.attachment?.let { it.kind == org.mlm.mages.AttachmentKind.Image || it.kind == org.mlm.mages.AttachmentKind.Video } == true ||
+                event.attachment?.let { it.kind == AttachmentKind.Image || it.kind == AttachmentKind.Video } == true ||
                     event.sticker != null
                 )
             if (needsThumb) viewModel.ensureThumbnail(event)
