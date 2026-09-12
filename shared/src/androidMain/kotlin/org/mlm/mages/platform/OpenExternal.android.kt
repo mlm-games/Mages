@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.FileProvider
+import co.touchlab.kermit.Logger
 import java.io.File
 
 @Composable
@@ -18,7 +19,8 @@ actual fun rememberFileOpener(): (String, String?) -> Boolean {
                 context.packageName + ".provider",
                 file
             )
-        } catch (_: Throwable) {
+        } catch (e: Throwable) {
+            Logger.d { "OpenExternal: FileProvider failed, file:// fallback: ${e.message}" }
             Uri.fromFile(file) // many won’t accept file://
         }
         val intent = Intent(Intent.ACTION_VIEW).apply {

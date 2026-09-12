@@ -1,5 +1,6 @@
 package org.mlm.mages.push
 
+import co.touchlab.kermit.Logger
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -19,7 +20,8 @@ object GatewayResolver {
             val unifiedpush = json["unifiedpush"]?.jsonObject ?: return DEFAULT_GATEWAY
             val gateway = unifiedpush["gateway"]?.jsonPrimitive?.content
             if (gateway == "matrix") customUrl else DEFAULT_GATEWAY
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Logger.w { "GatewayResolver: bad gateway JSON from $customUrl: ${e.message}" }
             DEFAULT_GATEWAY
         }
     }

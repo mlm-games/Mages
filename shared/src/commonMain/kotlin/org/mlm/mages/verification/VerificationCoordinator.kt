@@ -1,5 +1,6 @@
 package org.mlm.mages.verification
 
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -247,7 +248,10 @@ class VerificationCoordinator(
                 SasPhase.Ready, SasPhase.Started -> {
                     val ok = try {
                         verificationService?.acceptSas(flowId, otherUser ?: "") ?: false
-                    } catch (_: Throwable) { false }
+                    } catch (e: Throwable) {
+                        Logger.w(e) { "Verification: acceptSas failed for $flowId" }
+                        false
+                    }
 
                     val cur = _state.value
                     if (cur.sasFlowId == flowId) {

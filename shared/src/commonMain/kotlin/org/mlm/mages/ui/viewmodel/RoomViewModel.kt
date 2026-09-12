@@ -2492,7 +2492,8 @@ class RoomViewModel(
         if (raw.isBlank()) return null
         return try {
             json.decodeFromString<Map<String, String>>(raw)[roomId]
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Logger.w { "RoomVM: corrupt roomDraftsJson, ignoring: ${e.message}" }
             null
         }
     }
@@ -2500,7 +2501,10 @@ class RoomViewModel(
     private suspend fun saveDraft(roomId: String, text: String) {
         settingsRepo.update { settings ->
             val current: Map<String, String> = if (settings.roomDraftsJson.isBlank()) emptyMap() else {
-                try { json.decodeFromString(settings.roomDraftsJson) } catch (_: Exception) { emptyMap() }
+                try { json.decodeFromString(settings.roomDraftsJson) } catch (e: Exception) {
+                    Logger.w { "RoomVM: corrupt roomDraftsJson on save, resetting: ${e.message}" }
+                    emptyMap()
+                }
             }
             val updated = if (text.isBlank()) current - roomId else current + (roomId to text)
             settings.copy(roomDraftsJson = json.encodeToString(updated))

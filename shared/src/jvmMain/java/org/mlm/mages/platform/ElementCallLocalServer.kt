@@ -25,7 +25,7 @@ object ElementCallLocalServer {
             if (!started.compareAndSet(false, true)) {
                 var waits = 0
                 while (port <= 0 && waits < 100) {
-                    try { Thread.sleep(50) } catch (_: InterruptedException) { break }
+                    try { Thread.sleep(50) } catch (ie: InterruptedException) { Thread.currentThread().interrupt(); break }
                     waits++
                 }
                 val p = port

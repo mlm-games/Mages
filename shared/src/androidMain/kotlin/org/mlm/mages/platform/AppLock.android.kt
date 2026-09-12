@@ -15,6 +15,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -54,8 +55,9 @@ class AndroidAppLockController(
                     BiometricManager.Authenticators.DEVICE_CREDENTIAL
                 val res = bm.canAuthenticate(auth)
                 res == BiometricManager.BIOMETRIC_SUCCESS
-            } catch (_: Exception) {
+            } catch (e: Exception) {
                 // Fallback: if device is secure we consider available
+                Logger.d { "AppLock: canAuthenticate failed, fallback to secure=$isDeviceSecure: ${e.message}" }
                 true
             }
         }
@@ -155,7 +157,8 @@ class AndroidAppLockController(
             .build()
         try {
             prompt.authenticate(promptInfo)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Logger.w(e) { "AppLock: authenticate failed" }
             onResult(false)
         }
     }
@@ -164,7 +167,8 @@ class AndroidAppLockController(
 actual fun createAppLockController(): AppLockController {
     val ctx = try {
         KoinPlatform.getKoin().get<Context>()
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        Logger.d { "AppLock: Koin Context miss, falling back to activity: ${e.message}" }
         CurrentActivityHolder.activity?.applicationContext
             ?: throw IllegalStateException("AppLockController requires Context")
     }

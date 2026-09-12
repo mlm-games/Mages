@@ -95,15 +95,23 @@ object LinuxPushManager {
             val ep = try {
                 future.get(30, TimeUnit.SECONDS)
             } catch (e: Exception) {
-                try { c.unexportObject(CONNECTOR_PATH) } catch (_: Exception) {}
-                try { c.close() } catch (_: Exception) {}
+                Logger.w("[UP] endpoint wait failed: ${e.message}", e)
+                try { c.unexportObject(CONNECTOR_PATH) } catch (ce: Exception) {
+                    Logger.d("[UP] unexport failed: ${ce.message}")
+                }
+                try { c.close() } catch (ce: Exception) {
+                    Logger.d("[UP] close after timeout failed: ${ce.message}")
+                }
                 conn = null
                 return@withContext null
             }
             Logger.w("[UP] endpoint received: $ep")
             ep
         } catch (e: Exception) {
-            conn?.let { try { it.close() } catch (_: Exception) {} }
+            Logger.w("[UP] register failed: ${e.message}", e)
+            conn?.let { try { it.close() } catch (ce: Exception) {
+                Logger.d("[UP] close on error failed: ${ce.message}")
+            } }
             conn = null
             null
         }
@@ -115,7 +123,8 @@ object LinuxPushManager {
                 val d = c.getRemoteObject(bus, DISTRIBUTOR_PATH, Distributor1::class.java, false)
                 val result = d.Register(busName, tok, "Mages Matrix Client")
                 if (result.registrationResult == REGISTRATION_SUCCEEDED) return true
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Logger.d("[UP] V1 $bus unavailable: ${e.message}")
             }
         }
         return false
@@ -132,7 +141,8 @@ object LinuxPushManager {
                 )
                 val result = d.Register(args)
                 if (result["success"]?.getValue() == REGISTRATION_SUCCEEDED) return true
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Logger.d("[UP] V2 $bus unavailable: ${e.message}")
             }
         }
         return false
@@ -147,7 +157,9 @@ object LinuxPushManager {
     val currentEndpoint: String? get() = endpointFuture?.getNow(null)
 
     fun shutdown() {
-        try { conn?.close() } catch (_: Exception) {}
+        try { conn?.close() } catch (e: Exception) {
+            Logger.d("[UP] shutdown close failed: ${e.message}")
+        }
         conn = null
         endpointFuture = null
         token = null

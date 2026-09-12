@@ -1,5 +1,6 @@
 package org.mlm.mages.accounts
 
+import co.touchlab.kermit.Logger
 import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,7 +31,8 @@ class AccountStore(
         if (raw.isNullOrBlank()) return emptyList()
         return try {
             json.decodeFromString<List<MatrixAccount>>(raw)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Logger.w { "AccountStore: corrupt accountsJson (${raw.length} chars), resetting: ${e.message}" }
             emptyList()
         }
     }

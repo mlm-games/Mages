@@ -2,6 +2,7 @@ package org.mlm.mages.platform
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.mlm.mages.content.TransferItem
@@ -25,7 +26,7 @@ private class JvmClipboardAttachmentHandler : ClipboardAttachmentHandler {
         val c = clipboard.getContents(null) ?: return false
         c.isDataFlavorSupported(DataFlavor.javaFileListFlavor) ||
         c.isDataFlavorSupported(DataFlavor.imageFlavor)
-    } catch (_: Exception) { false }
+    } catch (e: Exception) { Logger.d { "Clipboard.jvm: hasAttachment failed: ${e.message}" }; false }
 
     override suspend fun getAttachments(): List<TransferItem> =
         withContext(Dispatchers.IO) {
@@ -47,7 +48,7 @@ private class JvmClipboardAttachmentHandler : ClipboardAttachmentHandler {
                 }
 
                 emptyList()
-            } catch (_: Exception) { emptyList() }
+            } catch (e: Exception) { Logger.d { "Clipboard.jvm: getAttachments failed: ${e.message}" }; emptyList() }
         }
 
     private fun File.toTransferItem() = TransferItem(

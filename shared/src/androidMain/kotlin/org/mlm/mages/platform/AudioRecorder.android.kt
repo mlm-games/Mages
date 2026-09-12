@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.media.MediaRecorder
 import android.os.Build
 import androidx.core.content.ContextCompat
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -79,7 +80,10 @@ class AndroidAudioRecorder : AudioRecorder {
             while (isRecording) {
                 val amp = try {
                     (recorder?.maxAmplitude ?: 0) / 32767f.coerceAtLeast(1f)
-                } catch (_: Exception) { 0f }
+                } catch (e: Exception) {
+                    Logger.d { "AudioRecorder: maxAmplitude failed: ${e.message}" }
+                    0f
+                }
                 amplitudes.add(amp.coerceIn(0f, 1f))
                 _state.value = RecordingState.Recording(
                     System.currentTimeMillis() - startTime,
@@ -93,8 +97,10 @@ class AndroidAudioRecorder : AudioRecorder {
     override suspend fun stopRecording(): RecordingState = withContext(Dispatchers.IO) {
         isRecording = false
         amplitudeJob?.cancel()
-        recorder?.apply { 
-            try { stop(); release() } catch (_: Exception) {} 
+        recorder?.apply {
+            try { stop(); release() } catch (e: Exception) {
+                Logger.d { "AudioRecorder: stop/release failed: ${e.message}" }
+            }
         }
         recorder = null
         val file = outputFile
@@ -111,7 +117,9 @@ class AndroidAudioRecorder : AudioRecorder {
     override suspend fun cancelRecording() = withContext(Dispatchers.IO) {
         isRecording = false
         amplitudeJob?.cancel()
-        recorder?.apply { try { stop(); release() } catch (_: Exception) {} }
+        recorder?.apply { try { stop(); release() } catch (e: Exception) {
+            Logger.d { "AudioRecorder: cancel release failed: ${e.message}" }
+        } }
         recorder = null
         outputFile?.delete()
         outputFile = null
@@ -122,7 +130,9 @@ class AndroidAudioRecorder : AudioRecorder {
         isRecording = false
         scope.cancel()
         amplitudeJob?.cancel()
-        recorder?.apply { try { stop(); release() } catch (_: Exception) {} }
+        recorder?.apply { try { stop(); release() } catch (e: Exception) {
+            Logger.d { "AudioRecorder: release failed: ${e.message}" }
+        } }
         recorder = null
     }
 

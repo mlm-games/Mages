@@ -1,5 +1,6 @@
 package org.mlm.mages.push
 
+import co.touchlab.kermit.Logger
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -61,7 +62,8 @@ fun extractMatrixPushPayload(raw: String): List<ParsedMatrixPush> {
         }
 
         results.distinct()
-    } catch (_: Throwable) {
+    } catch (e: Throwable) {
+        Logger.w { "PushPayloadParser: unparseable payload (${raw.take(200)}): ${e.message}" }
         emptyList()
     }
 }

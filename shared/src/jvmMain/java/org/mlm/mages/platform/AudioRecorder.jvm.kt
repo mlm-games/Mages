@@ -4,6 +4,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import co.touchlab.kermit.Logger
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.RandomAccessFile
@@ -78,7 +79,9 @@ class JvmAudioRecorder : AudioRecorder {
                 if (System.currentTimeMillis() - startTime >= maxDurationMs) break
             }
             outputFile?.let { writeWav(it, out.toByteArray()) }
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Logger.w { "JvmAudioRecorder: capture failed: ${e.message}" }
+        }
     }
 
     private suspend fun amplitudeLoop() {

@@ -2,6 +2,7 @@ package org.mlm.mages.platform
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.cef.CefApp
@@ -215,7 +216,8 @@ private class JcefCallWebViewController(
             response.put("response", JSONObject())
 
             postMessageToWidget(response.toString())
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Logger.d { "CallWebView: widget reply failed: ${e.message}" }
         }
     }
 

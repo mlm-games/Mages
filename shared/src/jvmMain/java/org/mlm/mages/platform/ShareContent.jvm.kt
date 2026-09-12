@@ -2,6 +2,7 @@ package org.mlm.mages.platform
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import co.touchlab.kermit.Logger
 import java.awt.Desktop
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
@@ -36,8 +37,8 @@ actual fun rememberShareHandler(): (ShareContent) -> Unit {
                         clipboard.setContents(selection, selection)
                     }
                 }
-            } catch (_: Throwable) {
-                // Ignore
+            } catch (e: Throwable) {
+                Logger.w { "ShareContent.jvm: share failed: ${e.message}" }
             }
         }
     }

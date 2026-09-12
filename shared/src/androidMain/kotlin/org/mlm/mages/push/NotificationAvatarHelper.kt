@@ -10,6 +10,7 @@ import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
 import android.graphics.Typeface
 import androidx.core.graphics.drawable.IconCompat
+import co.touchlab.kermit.Logger
 import org.mlm.mages.MatrixService
 import kotlin.math.abs
 import androidx.core.graphics.createBitmap
@@ -61,7 +62,9 @@ object NotificationAvatarHelper {
                         }
                     }
                 }
-            } catch (_: Exception) { }
+            } catch (e: Exception) {
+                Logger.d { "NotifAvatar: mxc fetch failed for $userId: ${e.message}" }
+            }
         }
 
         return try {
@@ -71,7 +74,8 @@ object NotificationAvatarHelper {
                 icon = IconCompat.createWithAdaptiveBitmap(bmp),
                 bitmap = bmp,
             )
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Logger.w { "NotifAvatar: initials fallback for $displayName: ${e.message}" }
             val fallbackBmp = createBitmap(AVATAR_SIZE_PX, AVATAR_SIZE_PX)
             AvatarResult(
                 icon = IconCompat.createWithResource(context, fallbackRes),

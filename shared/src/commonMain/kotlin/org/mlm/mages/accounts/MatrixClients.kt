@@ -1,5 +1,6 @@
 package org.mlm.mages.accounts
 
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -181,7 +182,8 @@ class MatrixClients(
                 _isReady.value = true
                 false
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Logger.w(e) { "MatrixClients: session resume failed for ${account.userId}" }
             runCatching { port.close() }
             _isReady.value = true
             false
