@@ -107,7 +107,7 @@ jobs:
           version-file-path: './fastlane/metadata/android/en-US/changelogs/${{ steps.ver.outputs.version_code }}.txt'
           version-code: '${{ steps.ver.outputs.version_code }}'
           metainfo-path: './packaging/io.github.mlm_games.mages.metainfo.xml'
-          exclude-patterns: 'chore:,ci:,docs:,build:,style:,test:,Bump version,bump version,Update release notes,Merge pull request,[skip ci],web:,misc:,dependabot'
+          exclude-patterns: 'chore:,chroe:,ci:,docs:,build:,style:,test:,Bump version,bump version,Update release notes,Merge pull request,[skip ci],web:,misc:,dependabot'
           auto-commit: 'true'
           commit-message: 'docs: update release notes for v{{version}} [skip ci]'
           debug: 'true'
