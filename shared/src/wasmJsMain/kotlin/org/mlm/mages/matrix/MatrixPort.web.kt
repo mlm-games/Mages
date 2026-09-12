@@ -824,6 +824,26 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         requireClient().unobserveRoomCallState(token.toDouble())
     }
 
+    override suspend fun roomInfoSnapshot(roomId: String): RoomInfoSnapshot? =
+        decodeValueOrNull(
+            requireClient().roomInfoSnapshot(roomId).awaitAny(),
+            "roomInfoSnapshot"
+        )
+
+    override suspend fun observeRoomInfo(roomId: String, observer: MatrixPort.RoomInfoObserver): ULong =
+        requireClient().observeRoomInfo(
+            roomId,
+            jsCallback1 { payload: JsAny? ->
+                val snapshot = decodeValueOrNull<RoomInfoSnapshot>(payload, "observeRoomInfo")
+                    ?: return@jsCallback1
+                observer.onUpdate(snapshot)
+            }
+        ).toULong()
+
+    override fun unobserveRoomInfo(token: ULong) {
+        requireClient().unobserveRoomInfo(token.toDouble())
+    }
+
     override suspend fun observeCallDecline(roomId: String, notificationEventId: String, observer: MatrixPort.CallDeclineObserver): ULong =
         requireClient().observeCallDecline(
             roomId,

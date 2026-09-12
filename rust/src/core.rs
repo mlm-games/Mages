@@ -65,13 +65,14 @@ use crate::{
     FfiError, FfiPushRuleKind, FfiRoomNotificationMode, KnockRequestSummary, MemberActionState,
     MemberSummary, MessageActionState, MessageEvent, OwnReceipt, PasswordLoginKind, PollDefinition,
     PredecessorRoomInfo, Presence, PresenceInfo, PublicRoom, PublicRoomsPage, ReactionSummary,
-    RoomActionState, RoomCallState, RoomDirectoryVisibility, RoomHistoryVisibility, RoomJoinRule,
-    RoomListEntry, RoomListMembership, RoomPowerLevelChanges, RoomPowerLevels, RoomPreview,
-    RoomPreviewMembership, RoomSummary, RoomTags, RoomUpgradeLinks, SearchHit, SearchPage,
-    SeenByEntry, SendState, SendUpdate, SpaceChildInfo, SpaceHierarchyPage, SpaceInfo,
-    SuccessorRoomInfo, ThreadPage, ThreadSummary, UnreadStats, VerificationInboxObserver,
-    build_unstable_poll_content, latest_room_event_for, map_event_id_via_timeline,
-    map_timeline_event, paginate_backwards_visible, timeline_event_filter,
+    RoomActionState, RoomCallState, RoomDirectoryVisibility, RoomHistoryVisibility,
+    RoomInfoSnapshot, RoomJoinRule, RoomListEntry, RoomListMembership, RoomPowerLevelChanges,
+    RoomPowerLevels, RoomPreview, RoomPreviewMembership, RoomSummary, RoomTags, RoomUpgradeLinks,
+    SearchHit, SearchPage, SeenByEntry, SendState, SendUpdate, SpaceChildInfo, SpaceHierarchyPage,
+    SpaceInfo, SuccessorRoomInfo, ThreadPage, ThreadSummary, UnreadStats,
+    VerificationInboxObserver, build_unstable_poll_content, latest_room_event_for,
+    map_event_id_via_timeline, map_timeline_event, paginate_backwards_visible,
+    timeline_event_filter,
 };
 
 const REACTION_NOTIFY_RULE_ID: &str = "org.mlm.mages.reaction.notify";
@@ -102,6 +103,69 @@ pub fn room_list_membership(room: &matrix_sdk::Room) -> RoomListMembership {
         RoomState::Left => RoomListMembership::Left,
         RoomState::Knocked => RoomListMembership::Knocked,
         RoomState::Banned => RoomListMembership::Banned,
+    }
+}
+
+pub(crate) fn call_member_min_level(
+    levels: &matrix_sdk::ruma::events::room::power_levels::RoomPowerLevels,
+) -> i64 {
+    use matrix_sdk::ruma::events::TimelineEventType;
+    let state_default: i64 = levels.state_default.into();
+    levels
+        .events
+        .get(&TimelineEventType::from("org.matrix.msc3401.call.member"))
+        .map(|&l| l.into())
+        .unwrap_or(state_default)
+}
+
+pub(crate) fn map_power_levels(
+    levels: &matrix_sdk::ruma::events::room::power_levels::RoomPowerLevels,
+) -> RoomPowerLevels {
+    let users: HashMap<String, i64> = levels
+        .users
+        .iter()
+        .map(|(uid, l)| (uid.to_string(), (*l).into()))
+        .collect();
+    let events: HashMap<String, i64> = levels
+        .events
+        .iter()
+        .map(|(t, l)| (t.to_string(), (*l).into()))
+        .collect();
+    let state_default: i64 = levels.state_default.into();
+
+    fn el(
+        levels: &matrix_sdk::ruma::events::room::power_levels::RoomPowerLevels,
+        t: &str,
+        default: i64,
+    ) -> i64 {
+        use matrix_sdk::ruma::events::TimelineEventType;
+        levels
+            .events
+            .get(&TimelineEventType::from(t))
+            .map(|&l| l.into())
+            .unwrap_or(default)
+    }
+
+    RoomPowerLevels {
+        users,
+        users_default: levels.users_default.into(),
+        events,
+        events_default: levels.events_default.into(),
+        state_default,
+        ban: levels.ban.into(),
+        kick: levels.kick.into(),
+        redact: levels.redact.into(),
+        invite: levels.invite.into(),
+        room_name: el(levels, "m.room.name", state_default),
+        room_avatar: el(levels, "m.room.avatar", state_default),
+        room_topic: el(levels, "m.room.topic", state_default),
+        room_canonical_alias: el(levels, "m.room.canonical_alias", state_default),
+        room_history_visibility: el(levels, "m.room.history_visibility", state_default),
+        room_join_rules: el(levels, "m.room.join_rules", state_default),
+        room_power_levels: el(levels, "m.room.power_levels", state_default),
+        space_child: el(levels, "m.space.child", state_default),
+        beacon: el(levels, "m.room.beacon", state_default),
+        beacon_info: el(levels, "m.room.beacon_info", state_default),
     }
 }
 
@@ -895,7 +959,6 @@ impl CoreClient {
         &self,
         room: &Room,
     ) -> Result<RoomActionState, FfiError> {
-        let is_dm = room.is_direct().await.unwrap_or(false);
         let me = self.sdk.user_id();
 
         let power_levels = room.power_levels().await.ffi()?;
@@ -1009,16 +1072,22 @@ impl CoreClient {
             }
         };
 
-        let voice_call = if is_dm {
-            ActionAvailability::enabled()
-        } else {
-            ActionAvailability::hidden()
+        let voice_call = {
+            let min_level = call_member_min_level(&power_levels);
+            if my_level >= min_level {
+                ActionAvailability::enabled()
+            } else {
+                ActionAvailability::disabled("You don't have permission to start calls")
+            }
         };
 
-        let video_call = if is_dm {
-            ActionAvailability::enabled()
-        } else {
-            ActionAvailability::hidden()
+        let video_call = {
+            let min_level = call_member_min_level(&power_levels);
+            if my_level >= min_level {
+                ActionAvailability::enabled()
+            } else {
+                ActionAvailability::disabled("You don't have permission to start calls")
+            }
         };
 
         Ok(RoomActionState {
@@ -1410,6 +1479,59 @@ impl CoreClient {
             .get_room(&rid)
             .ok_or_else(|| FfiError::Msg("room not found".into()))?;
         Ok(Some(Self::snapshot_room_call_state(&room)))
+    }
+
+    pub(crate) fn snapshot_join_rule(room: &matrix_sdk::Room) -> Option<RoomJoinRule> {
+        use matrix_sdk::ruma::events::room::join_rules::JoinRule;
+        match room.join_rule() {
+            Some(JoinRule::Public) => Some(RoomJoinRule::Public),
+            Some(JoinRule::Invite) => Some(RoomJoinRule::Invite),
+            Some(JoinRule::Knock) => Some(RoomJoinRule::Knock),
+            Some(JoinRule::Restricted(_)) => Some(RoomJoinRule::Restricted),
+            Some(JoinRule::KnockRestricted(_)) => Some(RoomJoinRule::KnockRestricted),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn snapshot_history_visibility(
+        room: &matrix_sdk::Room,
+    ) -> Option<RoomHistoryVisibility> {
+        use matrix_sdk::ruma::events::room::history_visibility::HistoryVisibility;
+        Some(match room.history_visibility_or_default() {
+            HistoryVisibility::Invited => RoomHistoryVisibility::Invited,
+            HistoryVisibility::Joined => RoomHistoryVisibility::Joined,
+            HistoryVisibility::Shared => RoomHistoryVisibility::Shared,
+            HistoryVisibility::WorldReadable => RoomHistoryVisibility::WorldReadable,
+            _ => return None,
+        })
+    }
+
+    pub async fn build_room_info_snapshot(
+        &self,
+        room: &Room,
+    ) -> Result<RoomInfoSnapshot, FfiError> {
+        let profile = self.build_room_profile(room).await?;
+        let levels = room.power_levels().await.ffi()?;
+        let power_levels = map_power_levels(&levels);
+        let action_state = self.resolve_room_action_state_impl(room).await?;
+        Ok(RoomInfoSnapshot {
+            room_id: room.room_id().to_string(),
+            profile,
+            power_levels,
+            action_state,
+            call_state: Self::snapshot_room_call_state(room),
+            membership: room_list_membership(room),
+            join_rule: Self::snapshot_join_rule(room),
+            history_visibility: Self::snapshot_history_visibility(room),
+        })
+    }
+
+    pub async fn room_info_snapshot(
+        &self,
+        room_id: String,
+    ) -> Result<Option<RoomInfoSnapshot>, FfiError> {
+        let room = self.require_room(&room_id)?;
+        Ok(Some(self.build_room_info_snapshot(&room).await?))
     }
 
     pub async fn room_tags(&self, room_id: String) -> Result<Option<RoomTags>, FfiError> {
@@ -1869,53 +1991,7 @@ impl CoreClient {
     pub async fn room_power_levels(&self, room_id: String) -> Result<RoomPowerLevels, FfiError> {
         let room = self.require_room(&room_id)?;
         let levels = room.power_levels().await.ffi()?;
-
-        let users: HashMap<String, i64> = levels
-            .users
-            .iter()
-            .map(|(uid, l)| (uid.to_string(), (*l).into()))
-            .collect();
-        let events: HashMap<String, i64> = levels
-            .events
-            .iter()
-            .map(|(t, l)| (t.to_string(), (*l).into()))
-            .collect();
-        let state_default: i64 = levels.state_default.into();
-
-        fn el(
-            levels: &matrix_sdk::ruma::events::room::power_levels::RoomPowerLevels,
-            t: &str,
-            default: i64,
-        ) -> i64 {
-            use matrix_sdk::ruma::events::TimelineEventType;
-            levels
-                .events
-                .get(&TimelineEventType::from(t))
-                .map(|&l| l.into())
-                .unwrap_or(default)
-        }
-
-        Ok(RoomPowerLevels {
-            users,
-            users_default: levels.users_default.into(),
-            events,
-            events_default: levels.events_default.into(),
-            state_default,
-            ban: levels.ban.into(),
-            kick: levels.kick.into(),
-            redact: levels.redact.into(),
-            invite: levels.invite.into(),
-            room_name: el(&levels, "m.room.name", state_default),
-            room_avatar: el(&levels, "m.room.avatar", state_default),
-            room_topic: el(&levels, "m.room.topic", state_default),
-            room_canonical_alias: el(&levels, "m.room.canonical_alias", state_default),
-            room_history_visibility: el(&levels, "m.room.history_visibility", state_default),
-            room_join_rules: el(&levels, "m.room.join_rules", state_default),
-            room_power_levels: el(&levels, "m.room.power_levels", state_default),
-            space_child: el(&levels, "m.space.child", state_default),
-            beacon: el(&levels, "m.room.beacon", state_default),
-            beacon_info: el(&levels, "m.room.beacon_info", state_default),
-        })
+        Ok(map_power_levels(&levels))
     }
 
     pub async fn update_power_level_for_user(

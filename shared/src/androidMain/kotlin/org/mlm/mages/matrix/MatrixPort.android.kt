@@ -478,6 +478,75 @@ class RustMatrixPort : MatrixPort, VerificationService {
         withClient { it.unobserveRoomCallState(token) }
     }
 
+    override suspend fun roomInfoSnapshot(roomId: String): RoomInfoSnapshot? =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.roomInfoSnapshot(roomId) } }.getOrNull()?.toModel()
+        }
+
+    override suspend fun observeRoomInfo(roomId: String, observer: MatrixPort.RoomInfoObserver): ULong =
+        withContext(matrixDispatcher) {
+            val cb = object : mages.RoomInfoObserver {
+                override fun onUpdate(snapshot: mages.RoomInfoSnapshot) {
+                    observer.onUpdate(snapshot.toModel())
+                }
+            }
+            withClient { it.observeRoomInfo(roomId, cb) }
+        }
+
+    override fun unobserveRoomInfo(token: ULong) {
+        withClient { it.unobserveRoomInfo(token) }
+    }
+
+    private fun mages.RoomInfoSnapshot.toModel() = RoomInfoSnapshot(
+        roomId = roomId,
+        profile = profile.toModel(),
+        powerLevels = powerLevels.toModel(),
+        actionState = actionState.toModel(),
+        callState = RoomCallState(
+            hasActiveCall = callState.hasActiveCall,
+            activeParticipants = callState.activeParticipants
+        ),
+        membership = membership.toKotlin(),
+        joinRule = joinRule?.toKotlin(),
+        historyVisibility = historyVisibility?.toKotlin(),
+    )
+
+    private fun mages.RoomProfile.toModel() = RoomProfile(
+        roomId = roomId,
+        name = name,
+        topic = topic,
+        memberCount = memberCount.toLong(),
+        isEncrypted = isEncrypted,
+        isDm = isDm,
+        isPublic = isPublic,
+        avatarUrl = avatarUrl,
+        canonicalAlias = canonicalAlias,
+        altAliases = altAliases,
+        roomVersion = roomVersion,
+    )
+
+    private fun mages.RoomPowerLevels.toModel() = RoomPowerLevels(
+        users = users,
+        usersDefault = usersDefault,
+        events = events,
+        eventsDefault = eventsDefault,
+        stateDefault = stateDefault,
+        ban = ban,
+        kick = kick,
+        redact = redact,
+        invite = invite,
+        roomName = roomName,
+        roomAvatar = roomAvatar,
+        roomTopic = roomTopic,
+        roomCanonicalAlias = roomCanonicalAlias,
+        roomHistoryVisibility = roomHistoryVisibility,
+        roomJoinRules = roomJoinRules,
+        roomPowerLevels = roomPowerLevels,
+        spaceChild = spaceChild,
+        beacon = beacon,
+        beaconInfo = beaconInfo,
+    )
+
     override suspend fun observeCallDecline(roomId: String, notificationEventId: String, observer: MatrixPort.CallDeclineObserver): ULong =
         withContext(matrixDispatcher) {
             val cb = object : mages.CallDeclineObserver {

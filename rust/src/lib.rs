@@ -229,6 +229,7 @@ delegate_result! { bool; is_reaction_notifications_enabled(); }
 delegate_result! { FfiRoomNotificationMode; get_default_room_notification_mode(is_encrypted: bool, is_one_to_one: bool); }
 delegate_option! { UnreadStats; room_unread_stats(room_id: String); }
 delegate_option! { RoomCallState; room_call_state(room_id: String); }
+delegate_option! { RoomInfoSnapshot; room_info_snapshot(room_id: String); }
 delegate_option! { RoomTags; room_tags(room_id: String); }
 delegate_option! { String; dm_peer_user_id(room_id: String); resolve_room_id(id_or_alias: String); account_management_url(); }
 delegate_option! { SuccessorRoomInfo; room_successor(room_id: String); }
@@ -571,7 +572,10 @@ impl Client {
                             }
                         }
                         Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
-                            warn!(skipped, "session-change updates lagged; a token refresh may have been missed");
+                            warn!(
+                                skipped,
+                                "session-change updates lagged; a token refresh may have been missed"
+                            );
                         }
                         Err(e) => {
                             warn!("session-change subscription ended: {e:?}");
@@ -1340,6 +1344,50 @@ impl Client {
         unsub!(self, call_subs, sub_id)
     }
 
+    pub fn observe_room_info(&self, room_id: String, observer: Box<dyn RoomInfoObserver>) -> u64 {
+        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+            warn!("observe_room_info: invalid room id");
+            return 0;
+        };
+        let obs: Arc<dyn RoomInfoObserver> = Arc::from(observer);
+        let core = self.core.clone();
+        sub_manager!(self, call_subs, async move {
+            let Some(room) = core.sdk.get_room(&rid) else {
+                return;
+            };
+            let mut rx = room.subscribe_to_updates();
+            match core.build_room_info_snapshot(&room).await {
+                Ok(first) => {
+                    let mut last = first.clone();
+                    safe_call(|| obs.on_update(first));
+                    loop {
+                        match rx.recv().await {
+                            Ok(_) => {}
+                            Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+                            Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
+                                warn!(room_id = %rid, skipped, "room info updates lagged; re-reading snapshot");
+                            }
+                        }
+                        let Ok(next) = core.build_room_info_snapshot(&room).await else {
+                            continue;
+                        };
+                        if next != last {
+                            last = next.clone();
+                            safe_call(|| obs.on_update(next));
+                        }
+                    }
+                }
+                Err(e) => {
+                    warn!(room_id = %rid, "observe_room_info: initial snapshot failed: {e}");
+                }
+            }
+        })
+    }
+
+    pub fn unobserve_room_info(&self, sub_id: u64) -> bool {
+        unsub!(self, call_subs, sub_id)
+    }
+
     pub fn observe_call_decline(
         &self,
         room_id: String,
@@ -1597,7 +1645,7 @@ impl Client {
                     Err(e) => {
                         warn!("backup state query failed: {e:?}");
                         BackupState::Unknown
-                    },
+                    }
                 };
                 safe_call(|| obs.on_update(mapped));
             }
@@ -3452,7 +3500,9 @@ impl Client {
         let uid = match other_user_id.parse::<OwnedUserId>() {
             Ok(u) => u,
             Err(e) => {
-                warn!("accept_and_observe_verification with invalid user id {other_user_id}: {e:?}");
+                warn!(
+                    "accept_and_observe_verification with invalid user id {other_user_id}: {e:?}"
+                );
                 return false;
             }
         };

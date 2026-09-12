@@ -18,6 +18,8 @@ import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.matrix.RoomPowerLevelChanges
 import org.mlm.mages.matrix.RoomPowerLevels
+import org.mlm.mages.matrix.RoomInfoSnapshot
+import org.mlm.mages.matrix.MatrixPort.RoomInfoObserver
 import org.mlm.mages.matrix.RoomPredecessorInfo
 import org.mlm.mages.matrix.RoomProfile
 import org.mlm.mages.ui.ActionAvailabilityUi
@@ -93,8 +95,71 @@ class RoomInfoViewModel(
     private val _events = Channel<Event>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
 
+    private var roomInfoToken: ULong? = null
+    private var lastAvatarMxc: String? = null
+
     init {
         refresh()
+        observeRoomInfo()
+    }
+
+    override fun onCleared() {
+        roomInfoToken?.let { runCatching { service.port.unobserveRoomInfo(it) } }
+        roomInfoToken = null
+        super.onCleared()
+    }
+
+    /** Live post-commit snapshot: avatar/profile, power levels, permissions. */
+    private fun observeRoomInfo() {
+        launch {
+            roomInfoToken?.let { runCatching { service.port.unobserveRoomInfo(it) } }
+            roomInfoToken = null
+            roomInfoToken = runSafe {
+                service.port.observeRoomInfo(roomId, object : RoomInfoObserver {
+                    override fun onUpdate(snapshot: RoomInfoSnapshot) {
+                        applyRoomInfoSnapshot(snapshot)
+                    }
+                })
+            }
+        }
+    }
+
+    private fun applyRoomInfoSnapshot(snapshot: RoomInfoSnapshot) {
+        val s = currentState
+        val powerLevels = snapshot.powerLevels
+        val actionState = snapshot.actionState
+        val myPowerLevel = s.myPowerLevel
+        updateState {
+            copy(
+                profile = snapshot.profile,
+                powerLevels = powerLevels,
+                joinRule = snapshot.joinRule ?: joinRule,
+                historyVisibility = snapshot.historyVisibility ?: historyVisibility,
+                canEditName = actionState.editName.isEnabled,
+                canEditTopic = actionState.editTopic.isEnabled,
+                canManageSettings = actionState.manageSettings.isEnabled,
+                canBan = myPowerLevel >= powerLevels.ban,
+                canInvite = actionState.invite.isEnabled,
+                canRedact = actionState.redactOthers.isEnabled,
+                canKick = myPowerLevel >= powerLevels.kick,
+            )
+        }
+        if (lastAvatarMxc != snapshot.profile.avatarUrl) {
+            lastAvatarMxc = snapshot.profile.avatarUrl
+            snapshot.profile.avatarUrl?.let { url ->
+                launch {
+                    val path = service.avatars.resolve(url, px = 160, crop = true) ?: return@launch
+                    updateState { copy(profile = this.profile?.copy(avatarUrl = path)) }
+                }
+            }
+        }
+        if (actionState.invite.isEnabled) {
+            launch {
+                val knockRequests = runSafe { service.port.listKnockRequests(roomId) }.orEmpty()
+                updateState { copy(knockRequests = knockRequests) }
+                resolveKnockRequestAvatars(knockRequests)
+            }
+        }
     }
 
     fun showNotificationSettings() = updateState { copy(showNotificationSettings = true) }
@@ -153,7 +218,7 @@ class RoomInfoViewModel(
             }
             val powerLevels = runSafe { service.port.roomPowerLevels(roomId) }
             val actionState = runSafe { service.port.roomActionState(roomId) }
-            
+
             val canInvite = actionState?.invite?.isEnabled == true
             val knockRequests = if (canInvite) {
                 runSafe { service.port.listKnockRequests(roomId) }.orEmpty()
@@ -193,6 +258,7 @@ class RoomInfoViewModel(
             }
 
             profile?.avatarUrl?.let { url ->
+                lastAvatarMxc = url
                 launch {
                     val path = service.avatars.resolve(url, px = 160, crop = true) ?: return@launch
                     updateState { copy(profile = this.profile?.copy(avatarUrl = path)) }
@@ -524,14 +590,14 @@ class RoomInfoViewModel(
         }
     }
 
-    fun clearSelectedMember() = updateState { 
+    fun clearSelectedMember() = updateState {
         copy(
             selectedMemberForAction = null,
             selectedMemberDmAction = ActionAvailabilityUi(),
             selectedMemberKickAction = ActionAvailabilityUi(),
             selectedMemberBanAction = ActionAvailabilityUi(),
             selectedMemberUnbanAction = ActionAvailabilityUi(),
-        ) 
+        )
     }
 
     fun showInviteDialog() = updateState { copy(showInviteDialog = true) }

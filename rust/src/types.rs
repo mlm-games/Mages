@@ -173,7 +173,7 @@ pub struct UnreadStats {
     pub mentions: u64,
 }
 
-#[derive(Clone, Serialize, Deserialize, Record)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Record)]
 pub struct RoomProfile {
     pub room_id: String,
     pub name: String,
@@ -197,14 +197,14 @@ pub struct MemberSummary {
     pub membership: String,
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, Enum)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Enum)]
 pub enum ActionPresentation {
     Hidden,
     Disabled,
     Enabled,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, Record)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Record)]
 pub struct ActionAvailability {
     pub presentation: ActionPresentation,
     pub reason: Option<String>,
@@ -233,7 +233,7 @@ impl ActionAvailability {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, Record)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Record)]
 pub struct RoomActionState {
     pub room_id: String,
     pub voice_call: ActionAvailability,
@@ -492,7 +492,7 @@ pub struct RoomPreview {
     pub membership: Option<RoomPreviewMembership>,
 }
 
-#[derive(Clone, Serialize, Deserialize, Record)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Record)]
 pub struct RoomPowerLevels {
     pub users: HashMap<String, i64>,
     pub users_default: i64,
@@ -726,7 +726,7 @@ pub enum RoomDirectoryVisibility {
     Private,
 }
 
-#[derive(Clone, Serialize, Deserialize, Enum)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Enum)]
 pub enum RoomJoinRule {
     Public,
     Invite,
@@ -751,7 +751,7 @@ pub enum RoomPreviewMembership {
     Banned,
 }
 
-#[derive(Clone, Serialize, Deserialize, Enum)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Enum)]
 pub enum RoomHistoryVisibility {
     Invited,
     Joined,
@@ -759,7 +759,7 @@ pub enum RoomHistoryVisibility {
     WorldReadable,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, Enum)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Enum)]
 pub enum RoomListMembership {
     Joined,
     Invited,
@@ -819,6 +819,23 @@ pub struct RoomCallState {
 #[export(callback_interface)]
 pub trait RoomCallStateObserver: Send + Sync {
     fn on_update(&self, state: RoomCallState);
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Record)]
+pub struct RoomInfoSnapshot {
+    pub room_id: String,
+    pub profile: RoomProfile,
+    pub power_levels: RoomPowerLevels,
+    pub action_state: RoomActionState,
+    pub call_state: RoomCallState,
+    pub membership: RoomListMembership,
+    pub join_rule: Option<RoomJoinRule>,
+    pub history_visibility: Option<RoomHistoryVisibility>,
+}
+
+#[export(callback_interface)]
+pub trait RoomInfoObserver: Send + Sync {
+    fn on_update(&self, snapshot: RoomInfoSnapshot);
 }
 
 #[export(callback_interface)]

@@ -115,6 +115,7 @@ js_observer_noargs!(JsReceiptsObserver: ReceiptsObserver::on_changed);
 js_observer_json!(JsTypingObserver: TypingObserver::on_update, names: Vec<String>);
 js_observer_json!(JsCallObserver: CallObserver::on_invite, invite: CallInvite);
 js_observer_json!(JsRoomCallStateObserver: RoomCallStateObserver::on_update, state: RoomCallState);
+js_observer_json!(JsRoomInfoObserver: RoomInfoObserver::on_update, snapshot: RoomInfoSnapshot);
 
 struct JsCallDeclineObserver(Function);
 impl CallDeclineObserver for JsCallDeclineObserver {
@@ -467,6 +468,7 @@ wasm_delegate_result_json! {
 wasm_delegate_option_json! {
     "roomUnreadStats"  => room_unread_stats(room_id: String);
     "roomCallState"    => room_call_state(room_id: String);
+    "roomInfoSnapshot" => room_info_snapshot(room_id: String);
     "roomSuccessor"    => room_successor(room_id: String);
     "roomPredecessor"  => room_predecessor(room_id: String);
 }
@@ -475,6 +477,7 @@ wasm_unobserve! {
     "unobserveTimeline"          => unobserve_timeline(timeline_subs);
     "unobserveTyping"            => unobserve_typing(typing_subs);
     "unobserveRoomCallState"     => unobserve_room_call_state(call_subs);
+    "unobserveRoomInfo"          => unobserve_room_info(call_subs);
     "unobserveCallDecline"       => unobserve_call_decline(call_subs);
     "unobserveReceipts"          => unobserve_receipts(receipts_subs);
     "unobserveLiveLocation"      => unobserve_live_location(live_location_subs);
@@ -1533,6 +1536,46 @@ impl WasmClient {
                     }
                 }
                 let next = CoreClient::snapshot_room_call_state(&room);
+                if next != last {
+                    last = next.clone();
+                    safe_call(|| obs.on_update(next));
+                }
+            }
+        })
+    }
+
+    #[wasm_bindgen(js_name = observeRoomInfo)]
+    pub fn observe_room_info(&self, room_id: String, on_update: Function) -> f64 {
+        let Some(state) = self.state() else {
+            return 0.0;
+        };
+        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+            tracing::warn!("observe_room_info: invalid room id");
+            return 0.0;
+        };
+        let obs: Arc<dyn RoomInfoObserver> = Arc::new(JsRoomInfoObserver(on_update));
+        let s = state.clone();
+        wasm_subscribe!(state, call_subs, async move {
+            let Some(room) = s.client().get_room(&rid) else {
+                return;
+            };
+            let mut rx = room.subscribe_to_updates();
+            let Ok(first) = s.core.build_room_info_snapshot(&room).await else {
+                return;
+            };
+            let mut last = first.clone();
+            safe_call(|| obs.on_update(first));
+            loop {
+                match rx.recv().await {
+                    Ok(_) => {}
+                    Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
+                        tracing::warn!(room_id = %rid, skipped, "room info updates lagged; re-reading snapshot");
+                    }
+                }
+                let Ok(next) = s.core.build_room_info_snapshot(&room).await else {
+                    continue;
+                };
                 if next != last {
                     last = next.clone();
                     safe_call(|| obs.on_update(next));

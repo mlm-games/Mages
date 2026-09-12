@@ -180,6 +180,8 @@ class RoomViewModel(
     private var receiptsToken: ULong? = null
     private var ownReceiptToken: ULong? = null
     private var roomCallStateToken: ULong? = null
+    private var roomInfoToken: ULong? = null
+    private var lastRoomAvatarMxc: String? = null
     private var localCallActiveForRoom = false
     private var remoteCallActiveForRoom = false
     private var dmPeer: String? = null
@@ -281,6 +283,7 @@ class RoomViewModel(
         observeOwnReceipt()
         observeReceipts()
         observeRoomCallState()
+        observeRoomInfo()
         loadNotificationMode()
         loadUpgradeInfo()
         loadPinnedEvents()
@@ -370,6 +373,7 @@ class RoomViewModel(
             val profile = service.port.roomProfile(roomId)
             if (profile != null) {
                 roomClass = profile.roomClass()
+                lastRoomAvatarMxc = profile.avatarUrl
                 updateState {
                     copy(
                         isDm = profile.isDm,
@@ -2275,7 +2279,9 @@ class RoomViewModel(
 
     private fun observeRoomCallState() {
         launch {
-            roomCallStateToken?.let { service.port.unobserveRoomCallState(it) }
+        roomCallStateToken?.let { service.port.unobserveRoomCallState(it) }
+        roomInfoToken?.let { runCatching { service.port.unobserveRoomInfo(it) } }
+        roomInfoToken = null
             roomCallStateToken = null
             remoteCallActiveForRoom = false
             recomputeActiveCall()
@@ -2288,6 +2294,53 @@ class RoomViewModel(
                     }
                 }
             )
+        }
+    }
+
+    private fun observeRoomInfo() {
+        launch {
+            roomInfoToken?.let { runCatching { service.port.unobserveRoomInfo(it) } }
+            roomInfoToken = null
+            roomInfoToken = runSafe {
+                service.port.observeRoomInfo(
+                    currentState.roomId,
+                    object : MatrixPort.RoomInfoObserver {
+                        override fun onUpdate(snapshot: RoomInfoSnapshot) {
+                            val actionState = snapshot.actionState
+                            val avatarMxc = snapshot.profile.avatarUrl
+                            if (lastRoomAvatarMxc != avatarMxc) {
+                                lastRoomAvatarMxc = avatarMxc
+                                if (avatarMxc != null) {
+                                    launch {
+                                        val path = service.avatars.resolve(avatarMxc, px = 96, crop = true)
+                                        if (path != null && currentState.roomId == snapshot.roomId) {
+                                            updateState { copy(roomAvatarUrl = path) }
+                                        }
+                                    }
+                                }
+                            }
+                            updateState {
+                                copy(
+                                    roomName = snapshot.profile.name,
+                                    isDm = snapshot.profile.isDm,
+                                    voiceCallAction = actionState.voiceCall.toUi(),
+                                    videoCallAction = actionState.videoCall.toUi(),
+                                    sendMessageAction = actionState.sendMessage.toUi(),
+                                    sendReactionAction = actionState.sendReaction.toUi(),
+                                    editNameAction = actionState.editName.toUi(),
+                                    editTopicAction = actionState.editTopic.toUi(),
+                                    inviteAction = actionState.invite.toUi(),
+                                    manageSettingsAction = actionState.manageSettings.toUi(),
+                                    redactOthersAction = actionState.redactOthers.toUi(),
+                                    pinAction = actionState.pin.toUi(),
+                                )
+                            }
+                            remoteCallActiveForRoom = snapshot.callState.hasActiveCall
+                            recomputeActiveCall()
+                        }
+                    }
+                )
+            }
         }
     }
 

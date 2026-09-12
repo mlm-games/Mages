@@ -267,6 +267,18 @@ data class RoomCallState(
 )
 
 @Serializable
+data class RoomInfoSnapshot(
+    val roomId: String,
+    val profile: RoomProfile,
+    val powerLevels: RoomPowerLevels,
+    val actionState: RoomActionState,
+    val callState: RoomCallState,
+    val membership: RoomListMembership,
+    val joinRule: RoomJoinRule? = null,
+    val historyVisibility: RoomHistoryVisibility? = null
+)
+
+@Serializable
 enum class NotificationKind {
     Message,
     Reaction,
@@ -763,6 +775,11 @@ interface MatrixPort {
     interface RoomCallStateObserver { fun onUpdate(state: RoomCallState) }
     suspend fun observeRoomCallState(roomId: String, observer: RoomCallStateObserver): ULong
     fun unobserveRoomCallState(token: ULong)
+
+    interface RoomInfoObserver { fun onUpdate(snapshot: RoomInfoSnapshot) }
+    suspend fun roomInfoSnapshot(roomId: String): RoomInfoSnapshot?
+    suspend fun observeRoomInfo(roomId: String, observer: RoomInfoObserver): ULong
+    fun unobserveRoomInfo(token: ULong)
 
     interface CallDeclineObserver { fun onDecline(declinerUserId: String) }
     suspend fun observeCallDecline(roomId: String, notificationEventId: String, observer: CallDeclineObserver): ULong
