@@ -4,12 +4,21 @@ import android.app.NotificationManager
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.mlm.mages.MatrixService
+import org.mlm.mages.calls.CALL_END_GRACE_MS
 import org.mlm.mages.calls.isExpired
 import org.mlm.mages.calls.isRingingCall
+import org.mlm.mages.matrix.MatrixPort
+import org.mlm.mages.matrix.RoomCallState
+import org.mlm.mages.matrix.MatrixPort.RoomCallStateObserver
+import kotlin.time.Clock
+
+private const val LIVE_STATE_TIMEOUT_MS = 4_000L
 
 class NotificationReconcileWorker(
     appContext: Context,
@@ -84,6 +93,7 @@ class NotificationReconcileWorker(
                     rendered == null -> true
                     !rendered.kind.isRingingCall() -> true
                     rendered.isExpired() -> true
+                    liveCallEnded(port, roomId, rendered.tsMs) -> true
                     else -> false
                 }
                 if (stale) {
@@ -108,4 +118,31 @@ class NotificationReconcileWorker(
 
         private const val SYNC_SETTLE_MS = 2_500L
     }
+}
+
+private suspend fun liveCallEnded(
+    port: MatrixPort,
+    roomId: String,
+    inviteTsMs: Long,
+): Boolean {
+    val snapshot: RoomCallState? = try {
+        withTimeoutOrNull(LIVE_STATE_TIMEOUT_MS) {
+            val first = CompletableDeferred<RoomCallState>()
+            val token = port.observeRoomCallState(roomId, object : RoomCallStateObserver {
+                override fun onUpdate(state: RoomCallState) {
+                    first.complete(state)
+                }
+            })
+            try {
+                first.await()
+            } finally {
+                runCatching { port.unobserveRoomCallState(token) }
+            }
+        }
+    } catch (e: Exception) {
+        null
+    }
+    if (snapshot == null) return false
+    return !snapshot.hasActiveCall &&
+        Clock.System.now().toEpochMilliseconds() - inviteTsMs > CALL_END_GRACE_MS
 }

@@ -15,6 +15,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
@@ -24,6 +25,7 @@ import org.koin.core.context.GlobalContext
 import org.koin.core.qualifier.named
 import org.koin.java.KoinJavaComponent
 import org.mlm.mages.calls.CallManager
+import org.mlm.mages.calls.IncomingCallTracker
 import org.mlm.mages.di.appModules
 import org.mlm.mages.platform.CurrentActivityHolder
 import org.mlm.mages.platform.MagesPaths
@@ -173,6 +175,11 @@ class MagesApp : Application() {
                         lastTelecomRoomId = ""
                         chainTelecom { MagesTelecomCalls.removeCallSync(gone) }
                     }
+                }
+            }
+            appScope.launch {
+                koin.get<IncomingCallTracker>().dismissed.collect { gone ->
+                    AndroidNotificationHelper.cancelCallNotification(this@MagesApp, gone.roomId)
                 }
             }
             LiveLocationSharingCoordinator.onChanged = { active, count ->

@@ -13,7 +13,10 @@ import kotlinx.serialization.json.Json
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.mlm.mages.MatrixService
+import org.mlm.mages.calls.IncomingCall
+import org.mlm.mages.calls.IncomingCallTracker
 import org.mlm.mages.calls.isExpired
+import org.mlm.mages.calls.ringing
 import org.mlm.mages.matrix.NotificationKind
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.matrix.RenderedNotification
@@ -33,6 +36,7 @@ class NotificationEnrichWorker(
 ) : CoroutineWorker(appContext, params), KoinComponent {
 
     private val service: MatrixService by inject()
+    private val incomingCalls: IncomingCallTracker by inject()
 
     override suspend fun doWork(): Result {
         AppNotificationChannels.ensureCreated(applicationContext)
@@ -163,6 +167,7 @@ class NotificationEnrichWorker(
                     callerAvatarPath = callerAvatarPath,
                     callerUserId = rendered.senderUserId,
                 )
+                runCatching { incomingCalls.report(IncomingCall.ringing(rendered)) }
                 return Result.success()
             }
 
