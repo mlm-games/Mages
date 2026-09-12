@@ -124,6 +124,7 @@ object AndroidNotificationHelper : KoinComponent {
     fun cancelCallNotification(ctx: Context, roomId: String) {
         val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         mgr.cancel(callNotificationId(roomId))
+        runCatching { CallTelecomBridge.onIncomingGone?.invoke(roomId) }
         Notifier.updateSummaryNotification(ctx)
     }
 

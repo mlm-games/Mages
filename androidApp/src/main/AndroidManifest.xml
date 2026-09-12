@@ -25,6 +25,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"
         tools:ignore="ForegroundServicesPolicy" />
 
+    <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"
         tools:ignore="FullScreenIntentPolicy" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -165,6 +166,15 @@
             android:theme="@style/Theme.AppCompat.DayNight.NoActionBar" />
 
         <activity
+            android:name=".activities.CallActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:supportsPictureInPicture="true"
+            android:resizeableActivity="true"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboardHidden"
+            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar" />
+
+        <activity
             android:name=".activities.DistributorPickerActivity"
             android:exported="false"
             android:excludeFromRecents="true"
@@ -198,7 +208,6 @@
         <service
             android:name=".push.CallForegroundService"
             android:exported="false"
-            android:stopWithTask="true"
             android:foregroundServiceType="microphone" />
         <service
             android:name=".push.LiveLocationSharingForegroundService"

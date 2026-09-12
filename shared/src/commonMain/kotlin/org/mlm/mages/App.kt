@@ -908,7 +908,10 @@ private fun AppContent(
                     onCancel = verification::cancel
                 )
             }
-            GlobalCallOverlay(callManager, Modifier.fillMaxSize())
+            val externalCallHost by callManager.externalHost.collectAsState()
+            if (!externalCallHost) {
+                GlobalCallOverlay(callManager, Modifier.fillMaxSize())
+            }
 
             Box(Modifier.fillMaxSize()) {
                 val invites by incomingCalls.invites.collectAsState()

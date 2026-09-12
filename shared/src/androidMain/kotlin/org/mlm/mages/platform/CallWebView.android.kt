@@ -749,13 +749,16 @@ actual fun CallWebViewHost(
                                     const data = ev.data;
                                     if (!data || typeof data !== 'object') return;
                                     const key = keyFor(data);
-                                    if (key && window.__MagesEchoBlock.delete(key)) return;
                                     const hasResponse = Object.prototype.hasOwnProperty.call(data, 'response');
                                     const shouldForward = (!hasResponse && data.api === 'fromWidget') || (hasResponse && data.api === 'toWidget');
-                                    if (!shouldForward) return;
-                                    if (typeof elementX !== 'undefined' && elementX.postMessage) {
-                                        elementX.postMessage(JSON.stringify(data));
+                                    if (shouldForward) {
+                                        if (key) window.__MagesEchoBlock.delete(key);
+                                        if (typeof elementX !== 'undefined' && elementX.postMessage) {
+                                            elementX.postMessage(JSON.stringify(data));
+                                        }
+                                        return;
                                     }
+                                    if (key && window.__MagesEchoBlock.delete(key)) return;
                                 });
                             })();
                             """.trimIndent(),

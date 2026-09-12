@@ -2,7 +2,9 @@ package org.mlm.mages
 
 import android.Manifest
 import android.app.NotificationManager
+import android.app.PictureInPictureParams
 import android.os.Bundle
+import android.util.Rational
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,6 +25,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.koin.android.ext.android.inject
 import org.mlm.mages.activities.DistributorPickerActivity
+import org.mlm.mages.calls.CallManager
 import org.mlm.mages.di.KoinApp
 import org.mlm.mages.nav.DeepLinkAction
 import org.mlm.mages.nav.MatrixLink
@@ -46,6 +49,7 @@ class MainActivity : AppCompatActivity() {
     private val deepLinkActions = Channel<DeepLinkAction>(capacity = Channel.BUFFERED)
     private val deepLinks = deepLinkActions.receiveAsFlow()
     private val service: MatrixService by inject()
+    private val callManager: CallManager by inject()
 
     private val intentHandlingMutex = Mutex()
 
@@ -159,6 +163,23 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         CurrentActivityHolder.activity = this
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val hostingHere = runCatching {
+            callManager.isInCall() && !callManager.externalHost.value
+        }.getOrDefault(false)
+        if (hostingHere) {
+            runCatching {
+                enterPictureInPictureMode(
+                    PictureInPictureParams.Builder()
+                        .setAspectRatio(Rational(220, 140))
+                        .build()
+                )
+            }
+        }
     }
 
     override fun onPause() {

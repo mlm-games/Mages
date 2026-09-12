@@ -101,6 +101,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.telecom)
     implementation(libs.androidx.lifecycle.runtimeCompose)
 
     implementation(libs.filekit.core)

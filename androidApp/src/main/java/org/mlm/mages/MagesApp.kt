@@ -13,11 +13,13 @@ import co.touchlab.kermit.Logger
 import io.github.mlmgames.settings.core.actions.ActionRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 import org.mlm.mages.activities.DistributorPickerActivity
+import org.mlm.mages.activities.CallActivity
 import org.koin.core.context.GlobalContext
 import org.koin.core.qualifier.named
 import org.koin.java.KoinJavaComponent
@@ -30,6 +32,8 @@ import org.mlm.mages.platform.LiveLocationSharingCoordinator
 import org.mlm.mages.push.AppNotificationChannels
 import org.mlm.mages.push.AndroidNotificationHelper
 import org.mlm.mages.push.CallForegroundService
+import org.mlm.mages.push.CallTelecomBridge
+import org.mlm.mages.telecom.MagesTelecomCalls
 import org.mlm.mages.push.LiveLocationSharingForegroundService
 import org.mlm.mages.push.PREF_INSTANCE
 import org.mlm.mages.push.PushManager.getEndpoint
@@ -45,6 +49,16 @@ import androidx.core.net.toUri
 class MagesApp : Application() {
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    private var telecomChain: Job = Job().apply { complete() }
+
+    private fun chainTelecom(block: suspend () -> Unit) {
+        val prev = telecomChain
+        telecomChain = appScope.launch {
+            runCatching { prev.join() }
+            runCatching { block() }
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -113,14 +127,40 @@ class MagesApp : Application() {
 
         MagesPaths.init()
 
+        MagesTelecomCalls.register(this)
+
+        CallTelecomBridge.onIncomingGone = { roomId ->
+            chainTelecom { MagesTelecomCalls.removeCallSync("in:$roomId") }
+        }
+
         val koin = GlobalContext.getOrNull()
         if (koin != null) {
             @Suppress("UNCHECKED_CAST")
             val callManager = koin.get<CallManager>()
+            var lastTelecomRoomId = ""
             callManager.onCallStateChanged = { active, roomName ->
                 if (active && roomName != null) {
                     val roomId = callManager.call.value?.roomId.orEmpty()
                     CallForegroundService.start(this, roomName, roomId)
+                    runCatching {
+                        startActivity(
+                            Intent(this, CallActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+                            }
+                        )
+                    }
+                    if (roomId.isNotBlank()) {
+                        lastTelecomRoomId = roomId
+                        chainTelecom {
+                            MagesTelecomCalls.addOngoingCallSync(
+                                this, roomId, roomName,
+                                onRemoteDisconnect = {
+                                    runCatching { callManager.endCall() }
+                                }
+                            )
+                        }
+                    }
                     runCatching {
                         callManager.call.value?.roomId?.let { roomId ->
                             AndroidNotificationHelper.cancelCallNotification(this, roomId)
@@ -128,6 +168,11 @@ class MagesApp : Application() {
                     }
                 } else {
                     CallForegroundService.stop(this)
+                    if (lastTelecomRoomId.isNotBlank()) {
+                        val gone = lastTelecomRoomId
+                        lastTelecomRoomId = ""
+                        chainTelecom { MagesTelecomCalls.removeCallSync(gone) }
+                    }
                 }
             }
             LiveLocationSharingCoordinator.onChanged = { active, count ->

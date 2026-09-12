@@ -33,6 +33,7 @@ androidx-espresso = "3.7.0"
 androidx-lifecycle = "2.11.0"
 androidx-biometric = "1.4.0-alpha02"
 androidx-testExt = "1.3.0"
+core-telecom = "1.0.1"
 datastorePreferencesCore = "1.3.0-alpha09"
 jna = "5.18.1"
 junit = "4.13.2"
@@ -115,6 +116,7 @@ kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-c
 lifecycle-viewmodel-navigation3 = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "androidx-lifecycle" }
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "androidx-biometric" }
+androidx-core-telecom = { module = "androidx.core:core-telecom", version.ref = "core-telecom" }
 multiplatform-markdown-renderer = { module = "com.mikepenz:multiplatform-markdown-renderer", version.ref = "multiplatformMarkdownRenderer" }
 multiplatform-markdown-renderer-m3 = { module = "com.mikepenz:multiplatform-markdown-renderer-m3", version.ref = "multiplatformMarkdownRendererM3" }
 navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "navigation3Ui" }

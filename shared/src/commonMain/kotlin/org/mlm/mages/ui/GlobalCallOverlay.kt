@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import org.mlm.mages.calls.CallManager
 import org.mlm.mages.platform.CallWebViewHost
 import org.mlm.mages.platform.SystemBarsEffect
+import io.github.mlmgames.settings.core.annotations.SettingPlatform
+import io.github.mlmgames.settings.core.platform.currentPlatform
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -28,7 +30,8 @@ import kotlin.math.roundToInt
 @Composable
 fun GlobalCallOverlay(
     callManager: CallManager,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onMinimize: () -> Unit = { callManager.setMinimized(true) },
 ) {
     val call by callManager.call.collectAsState()
     val scope = rememberCoroutineScope()
@@ -41,7 +44,7 @@ fun GlobalCallOverlay(
         val maxWidth = constraints.maxWidth.toFloat()
         val maxHeight = constraints.maxHeight.toFloat()
 
-        val isMin = s.minimized
+        val isMin = s.minimized && currentPlatform == SettingPlatform.WEB
 
         val density = LocalDensity.current
 
@@ -107,7 +110,7 @@ fun GlobalCallOverlay(
                 widgetMsgs.trySend(msg)
             },
             onClosed = { callManager.endCall() },
-            onMinimizeRequested = { callManager.setMinimized(true) },
+            onMinimizeRequested = { onMinimize() },
             onAttachController = { callManager.attachController(it) }
         )
 

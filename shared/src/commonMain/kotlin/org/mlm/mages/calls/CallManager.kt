@@ -31,6 +31,13 @@ class CallManager(
     private val _call = MutableStateFlow<GlobalCallState?>(null)
     val call: StateFlow<GlobalCallState?> = _call.asStateFlow()
 
+    private val _externalHost = MutableStateFlow(false)
+    val externalHost: StateFlow<Boolean> = _externalHost.asStateFlow()
+
+    fun setExternalHost(hosted: Boolean) {
+        _externalHost.value = hosted
+    }
+
     private var controller: CallWebViewController? = null
     private val pendingToWidget = ArrayDeque<String>()
 
@@ -80,6 +87,12 @@ class CallManager(
         languageTag: String?,
         theme: String?,
     ): Boolean {
+        val current = _call.value
+        if (current != null) {
+            if (current.roomId == roomId) return true
+            endCall()
+        }
+
         val port = service.portOrNull ?: return false
 
         val session = port.startElementCall(

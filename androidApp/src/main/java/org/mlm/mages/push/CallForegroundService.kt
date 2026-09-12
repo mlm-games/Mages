@@ -5,17 +5,18 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.mlm.mages.shared.R
-import org.mlm.mages.MainActivity
+import org.mlm.mages.activities.CallActivity
 import org.koin.core.context.GlobalContext
 import org.mlm.mages.calls.CallManager
 
@@ -45,40 +46,26 @@ class CallForegroundService : Service() {
 
         val roomName = intent?.getStringExtra(EXTRA_ROOM_NAME) ?: "Ongoing call"
         val roomId = intent?.getStringExtra(EXTRA_ROOM_ID).orEmpty()
-        startForeground(NOTIFICATION_ID, buildNotification(roomName, roomId))
+        val notification = buildNotification(roomName, roomId)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            ServiceCompat.startForeground(
+                this, NOTIFICATION_ID, notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+            )
+        } else {
+            ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, 0)
+        }
 
         return START_NOT_STICKY
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        scope.launch {
-            runCatching {
-                GlobalContext.getOrNull()
-                    ?.get<CallManager>()
-                    ?.endCall()
-            }
-            stopSelf()
-        }
         super.onTaskRemoved(rootIntent)
     }
 
     private fun buildNotification(roomName: String, roomId: String): Notification {
-        val openIntent = if (roomId.isNotBlank()) {
-            Intent(
-                Intent.ACTION_VIEW,
-                Uri.Builder()
-                    .scheme("mages")
-                    .authority("room")
-                    .appendQueryParameter("id", roomId)
-                    .build()
-            ).apply {
-                setPackage(packageName)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            }
-        } else {
-            Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            }
+        val openIntent = Intent(this, CallActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         val openPendingIntent = PendingIntent.getActivity(
             this, 0, openIntent,
@@ -116,7 +103,7 @@ class CallForegroundService : Service() {
         val NOTIFICATION_ID = "call_foreground_service".hashCode()
 
         private const val ACTION_STOP = "org.mlm.mages.push.CallForegroundService.STOP"
-        private const val ACTION_END_CALL = "org.mlm.mages.push.CallForegroundService.END_CALL"
+        const val ACTION_END_CALL = "org.mlm.mages.push.CallForegroundService.END_CALL"
         private const val EXTRA_ROOM_NAME = "room_name"
         private const val EXTRA_ROOM_ID = "room_id"
 
