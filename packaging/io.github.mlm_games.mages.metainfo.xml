@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.11.0" date="2026-09-12" type="stable">
+      <description>
+        <ul>
+          <li>cache room states</li>
+          <li>Cancel the call notification when the call has been declined</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.10.5" date="2026-09-12" type="stable">
       <description>
         <ul>

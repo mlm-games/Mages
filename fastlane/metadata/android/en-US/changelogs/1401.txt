@@ -1,0 +1,2 @@
+- cache room states
+- Cancel the call notification when the call has been declined

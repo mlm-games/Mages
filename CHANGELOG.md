@@ -1,3 +1,9 @@
+## v4.11.0
+
+- cache room states
+- Cancel the call notification when the call has been declined
+
+
 ## v4.10.5
 
 - Cancel the call notification when the call has been declined
