@@ -96,9 +96,6 @@ object LinuxPushManager {
                 future.get(30, TimeUnit.SECONDS)
             } catch (e: Exception) {
                 Logger.w("[UP] endpoint wait failed: ${e.message}", e)
-                try { c.unexportObject(CONNECTOR_PATH) } catch (ce: Exception) {
-                    Logger.d("[UP] unexport failed: ${ce.message}")
-                }
                 try { c.close() } catch (ce: Exception) {
                     Logger.d("[UP] close after timeout failed: ${ce.message}")
                 }
