@@ -3449,7 +3449,7 @@ impl Client {
                 {
                     return req.accept().await.is_ok();
                 }
-                tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+                sleep(Duration::from_millis(200)).await;
             }
             false
         })
@@ -3483,7 +3483,7 @@ impl Client {
                         return sas.accept().await.is_ok();
                     }
                 }
-                tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+                sleep(Duration::from_millis(200)).await;
             }
             false
         })

@@ -1389,13 +1389,7 @@ impl CoreClient {
     pub async fn list_members(&self, room_id: String) -> Result<Vec<MemberSummary>, FfiError> {
         let room = self.require_room(&room_id)?;
         let me = self.sdk.user_id();
-        let members = tokio::time::timeout(
-            Duration::from_secs(10),
-            room.members(RoomMemberships::ACTIVE),
-        )
-        .await
-        .map_err(|_| FfiError::Msg("list_members timed out".into()))?
-        .ffi()?;
+        let members = room.members(RoomMemberships::ACTIVE).await.ffi()?;
         Ok(members
             .into_iter()
             .map(|m| MemberSummary {
@@ -2990,35 +2984,22 @@ impl CoreClient {
         duration_ms: u64,
         description: Option<String>,
     ) -> Result<String, FfiError> {
-        use tokio::time::timeout as tokio_timeout;
         let room = self.require_room(&room_id)?;
         // Like element-x, always stop any existing share first.
-        let _ = tokio_timeout(
-            web_time::Duration::from_secs(30),
-            room.stop_live_location_share(),
-        )
-        .await;
-        let response = tokio_timeout(
-            web_time::Duration::from_secs(60),
-            room.start_live_location_share(duration_ms, description),
-        )
-        .await
-        .map_err(|_| FfiError::Msg("Timeout starting live location share".into()))?
-        .ffi()?;
+        let _ = room.stop_live_location_share().await;
+        let response = room
+            .start_live_location_share(duration_ms, description)
+            .await
+            .ffi()?;
         Ok(response.event_id.to_string())
     }
 
     pub async fn stop_live_location(&self, room_id: String) -> Result<(), FfiError> {
-        use tokio::time::timeout as tokio_timeout;
         let room = self.require_room(&room_id)?;
-        tokio_timeout(
-            web_time::Duration::from_secs(30),
-            room.stop_live_location_share(),
-        )
-        .await
-        .map_err(|_| FfiError::Msg("Timeout stopping live location share".into()))?
-        .map(|_| ())
-        .map_err(|e| Self::beacon_err(e))
+        room.stop_live_location_share()
+            .await
+            .map(|_| ())
+            .map_err(|e| Self::beacon_err(e))
     }
 
     pub async fn send_live_location(
@@ -3026,16 +3007,11 @@ impl CoreClient {
         room_id: String,
         geo_uri: String,
     ) -> Result<(), FfiError> {
-        use tokio::time::timeout as tokio_timeout;
         let room = self.require_room(&room_id)?;
-        tokio_timeout(
-            web_time::Duration::from_secs(30),
-            room.send_location_beacon(geo_uri),
-        )
-        .await
-        .map_err(|_| FfiError::Msg("Timeout sending live location".into()))?
-        .map(|_| ())
-        .map_err(|e| Self::beacon_err(e))
+        room.send_location_beacon(geo_uri)
+            .await
+            .map(|_| ())
+            .map_err(|e| Self::beacon_err(e))
     }
 
     pub async fn send_static_location(
