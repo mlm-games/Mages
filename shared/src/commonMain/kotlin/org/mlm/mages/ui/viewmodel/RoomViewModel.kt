@@ -15,6 +15,7 @@ import org.koin.core.component.inject
 import org.mlm.mages.*
 import org.mlm.mages.calls.CallManager
 import org.mlm.mages.matrix.*
+import org.mlm.mages.matrix.MatrixPort.RoomCallStateObserver
 import org.mlm.mages.platform.Notifier
 import org.mlm.mages.platform.ShareContent
 import org.mlm.mages.platform.LiveLocationSession

@@ -44,9 +44,9 @@ import org.mlm.mages.calls.answerIncomingCall
 import org.mlm.mages.calls.declineIncomingCall
 import org.mlm.mages.matrix.Presence
 import org.mlm.mages.matrix.SasPhase
-import org.mlm.mages.matrix.CallDeclineObserver
+import org.mlm.mages.matrix.MatrixPort.CallDeclineObserver
 import org.mlm.mages.matrix.RoomCallState
-import org.mlm.mages.matrix.RoomCallStateObserver
+import org.mlm.mages.matrix.MatrixPort.RoomCallStateObserver
 import org.mlm.mages.nav.*
 import org.mlm.mages.platform.BindAppLock
 import org.mlm.mages.platform.BindLifecycle
