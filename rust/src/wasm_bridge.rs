@@ -355,8 +355,14 @@ impl WasmAsyncState {
             loop {
                 let upd = match rx.recv().await {
                     Ok(u) => u,
-                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
-                    Err(_) => break,
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
+                        tracing::warn!(skipped, "send-queue updates lagged; retry state may be stale");
+                        continue;
+                    }
+                    Err(e) => {
+                        tracing::warn!("send-queue subscription ended: {e:?}");
+                        break;
+                    }
                 };
                 let rid = upd.room_id.to_string();
                 if let Some(u) = map_send_queue_update(&rid, upd.update, &mut attempts) {
@@ -746,7 +752,10 @@ impl WasmClient {
                         r.flows.iter().any(|f| matches!(f, LoginType::Password(_))),
                     )
                 }
-                Err(_) => (false, false),
+                Err(e) => {
+                    tracing::warn!("get_login_types failed, assuming no SSO/password flows: {e:?}");
+                    (false, false)
+                },
             };
         let homeserver_url = state.client().homeserver().to_string();
         to_json(&HomeserverLoginDetails {
@@ -795,7 +804,10 @@ impl WasmClient {
         };
         let url_or_query = match matrix_sdk::reqwest::Url::parse(&callback_url_or_query) {
             Ok(url) => UrlOrQuery::Url(url),
-            Err(_) => UrlOrQuery::Query(callback_url_or_query),
+            Err(e) => {
+                tracing::warn!("oauth callback is not a URL, treating as raw query: {e:?}");
+                UrlOrQuery::Query(callback_url_or_query)
+            }
         };
         match state.client().oauth().finish_login(url_or_query).await {
             Ok(_) => {
@@ -1703,7 +1715,10 @@ impl WasmClient {
         };
         match s.core.search_users(search_term, limit as u64).await {
             Ok(v) => to_json(&v),
-            Err(_) => to_json(&Vec::<DirectoryUser>::new()),
+            Err(e) => {
+                tracing::warn!("search_users failed: {e:?}");
+                to_json(&Vec::<DirectoryUser>::new())
+            }
         }
     }
 
@@ -1714,7 +1729,10 @@ impl WasmClient {
         };
         match s.core.get_user_profile(user_id).await {
             Ok(v) => to_json(&v),
-            Err(_) => JsValue::NULL,
+            Err(e) => {
+                tracing::warn!("get_user_profile failed: {e:?}");
+                JsValue::NULL
+            }
         }
     }
 
@@ -1731,7 +1749,10 @@ impl WasmClient {
         };
         match s.core.public_rooms(server, search, limit, since).await {
             Ok(v) => to_json(&v),
-            Err(_) => JsValue::NULL,
+            Err(e) => {
+                tracing::warn!("public_rooms failed: {e:?}");
+                JsValue::NULL
+            }
         }
     }
 
@@ -1753,7 +1774,10 @@ impl WasmClient {
             .await
         {
             Ok(v) => JsValue::from_str(&v),
-            Err(_) => JsValue::NULL,
+            Err(e) => {
+                tracing::warn!("create_room failed: {e:?}");
+                JsValue::NULL
+            }
         }
     }
 
@@ -1770,7 +1794,10 @@ impl WasmClient {
         };
         match s.core.create_space(name, topic, is_public, invitees).await {
             Ok(v) => JsValue::from_str(&v),
-            Err(_) => JsValue::NULL,
+            Err(e) => {
+                tracing::warn!("create_space failed: {e:?}");
+                JsValue::NULL
+            }
         }
     }
 
@@ -1816,7 +1843,10 @@ impl WasmClient {
         };
         match s.core.room_directory_visibility(room_id).await {
             Ok(v) => to_json(&v),
-            Err(_) => JsValue::NULL,
+            Err(e) => {
+                tracing::warn!("room_directory_visibility failed: {e:?}");
+                JsValue::NULL
+            }
         }
     }
 
@@ -1888,7 +1918,10 @@ impl WasmClient {
         };
         match s.core.room_join_rule(room_id).await {
             Ok(v) => to_json(&v),
-            Err(_) => JsValue::NULL,
+            Err(e) => {
+                tracing::warn!("room_join_rule failed: {e:?}");
+                JsValue::NULL
+            }
         }
     }
 
@@ -1915,7 +1948,10 @@ impl WasmClient {
         };
         match s.core.room_history_visibility(room_id).await {
             Ok(v) => to_json(&v),
-            Err(_) => JsValue::NULL,
+            Err(e) => {
+                tracing::warn!("room_history_visibility failed: {e:?}");
+                JsValue::NULL
+            }
         }
     }
 
@@ -2005,7 +2041,10 @@ impl WasmClient {
         };
         match s.core.send_poll_start(room_id, def).await {
             Ok(v) => JsValue::from_str(&v),
-            Err(_) => JsValue::NULL,
+            Err(e) => {
+                tracing::warn!("send_poll_start failed: {e:?}");
+                JsValue::NULL
+            }
         }
     }
 
@@ -2037,7 +2076,10 @@ impl WasmClient {
         };
         match s.core.seen_by_for_event(room_id, event_id, limit).await {
             Ok(v) => to_json(&v),
-            Err(_) => to_json(&Vec::<SeenByEntry>::new()),
+            Err(e) => {
+                tracing::warn!("seen_by_for_event failed: {e:?}");
+                to_json(&Vec::<SeenByEntry>::new())
+            }
         }
     }
 
@@ -2048,7 +2090,10 @@ impl WasmClient {
         };
         match s.core.upgrade_room(room_id, new_version).await {
             Ok(v) => JsValue::from_str(&v),
-            Err(_) => JsValue::NULL,
+            Err(e) => {
+                tracing::warn!("upgrade_room failed: {e:?}");
+                JsValue::NULL
+            }
         }
     }
 
@@ -2070,7 +2115,10 @@ impl WasmClient {
         };
         match s.core.list_knock_requests(room_id).await {
             Ok(v) => to_json(&v),
-            Err(_) => to_json(&Vec::<KnockRequestSummary>::new()),
+            Err(e) => {
+                tracing::warn!("list_knock_requests failed: {e:?}");
+                to_json(&Vec::<KnockRequestSummary>::new())
+            }
         }
     }
 
@@ -2202,7 +2250,10 @@ impl WasmClient {
                 };
                 let status = match nc.get_notification(&rid, eid_ref).await {
                     Ok(s) => s,
-                    Err(_) => continue,
+                    Err(e) => {
+                        tracing::warn!(room_id = %rid, event_id = %eid_ref, "notification lookup failed, skipping: {e:?}");
+                        continue;
+                    }
                 };
                 let NotificationStatus::Event(item) = status else {
                     continue;
@@ -2463,7 +2514,10 @@ impl WasmClient {
         };
         match state.client().encryption().recovery().enable().await {
             Ok(key) => JsValue::from_str(&key),
-            Err(_) => JsValue::NULL,
+            Err(e) => {
+                tracing::warn!("setup_recovery failed: {e:?}");
+                JsValue::NULL
+            }
         }
     }
 
@@ -2898,7 +2952,10 @@ impl WasmClient {
 
         let user = match other_user_id.parse::<OwnedUserId>() {
             Ok(u) => u,
-            Err(_) => return false,
+            Err(e) => {
+                tracing::warn!("verification with invalid user id {other_user_id}: {e:?}");
+                return false;
+            }
         };
 
         if let Some(Verification::SasV1(sas)) = state
@@ -2958,7 +3015,10 @@ impl WasmClient {
 
         let user = match other_user_id.parse::<OwnedUserId>() {
             Ok(u) => u,
-            Err(_) => return false,
+            Err(e) => {
+                tracing::warn!("verification with invalid user id {other_user_id}: {e:?}");
+                return false;
+            }
         };
 
         if let Some(v) = state
@@ -2995,7 +3055,10 @@ impl WasmClient {
 
         let uid = match other_user_id.parse::<OwnedUserId>() {
             Ok(u) => u,
-            Err(_) => return false,
+            Err(e) => {
+                tracing::warn!("verification with invalid user id {other_user_id}: {e:?}");
+                return false;
+            }
         };
 
         for _ in 0..30 {
@@ -3020,7 +3083,10 @@ impl WasmClient {
 
         let uid = match other_user_id.parse::<OwnedUserId>() {
             Ok(u) => u,
-            Err(_) => return false,
+            Err(e) => {
+                tracing::warn!("verification with invalid user id {other_user_id}: {e:?}");
+                return false;
+            }
         };
 
         for _ in 0..30 {

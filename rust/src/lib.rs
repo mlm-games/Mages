@@ -570,7 +570,13 @@ impl Client {
                                 platform::trash_store_dir(&session_path);
                             }
                         }
-                        Err(_) => break,
+                        Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
+                            warn!(skipped, "session-change updates lagged; a token refresh may have been missed");
+                        }
+                        Err(e) => {
+                            warn!("session-change subscription ended: {e:?}");
+                            break;
+                        }
                     }
                 }
             });
@@ -870,7 +876,6 @@ impl Client {
             let Some((_guard, stream)) = core.typing_stream(&rid).await else {
                 return;
             };
-            let _guard = _guard;
             tokio::pin!(stream);
             let mut last: Vec<String> = Vec::new();
             while let Some(names) = stream.next().await {
@@ -1589,7 +1594,10 @@ impl Client {
                     Ok(matrix_sdk::encryption::backups::BackupState::Disabling) => {
                         BackupState::Disabling
                     }
-                    Err(_) => BackupState::Unknown,
+                    Err(e) => {
+                        warn!("backup state query failed: {e:?}");
+                        BackupState::Unknown
+                    },
                 };
                 safe_call(|| obs.on_update(mapped));
             }
@@ -1762,8 +1770,14 @@ impl Client {
                     upd = rx.recv() => {
                         let upd = match upd {
                             Ok(u) => u,
-                            Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
-                            Err(_) => break,
+                            Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
+                                warn!(skipped, "send-queue updates lagged; retry state may be stale");
+                                continue;
+                            }
+                            Err(e) => {
+                                warn!("send-queue subscription ended: {e:?}");
+                                break;
+                            }
                         };
                         let room_id_str = upd.room_id.to_string();
                         if let Some(u) =
@@ -2686,7 +2700,10 @@ impl Client {
             };
             let data = match std::fs::read(&path) {
                 Ok(d) => d,
-                Err(_) => return false,
+                Err(e) => {
+                    warn!("cannot read file {path}: {e:?}");
+                    return false;
+                }
             };
             let mime_type: Mime = mime.parse().unwrap_or(mime::APPLICATION_OCTET_STREAM);
             let fname = filename.unwrap_or_else(|| {
@@ -2743,7 +2760,10 @@ impl Client {
             };
             let data = match std::fs::read(&path) {
                 Ok(d) => d,
-                Err(_) => return false,
+                Err(e) => {
+                    warn!("cannot read file {path}: {e:?}");
+                    return false;
+                }
             };
             let mime_type: Mime = mime.parse().unwrap_or(mime::IMAGE_PNG);
             if !mime.starts_with("image/") {
@@ -2931,7 +2951,10 @@ impl Client {
                     };
                     let status = match nc.get_notification(&rid, eid_ref).await {
                         Ok(s) => s,
-                        Err(_) => continue,
+                        Err(e) => {
+                            warn!(room_id = %rid, event_id = %eid_ref, "notification lookup failed, skipping: {e:?}");
+                            continue;
+                        }
                     };
                     let NotificationStatus::Event(item) = status else {
                         continue;
@@ -3281,7 +3304,10 @@ impl Client {
         let uid = match other_user_id {
             Some(u) => match u.parse::<OwnedUserId>() {
                 Ok(uid) => uid,
-                Err(_) => return false,
+                Err(e) => {
+                    warn!("verification with invalid user id {u}: {e:?}");
+                    return false;
+                }
             },
             None => match self.core.sdk.user_id() {
                 Some(u) => u.to_owned(),
@@ -3319,7 +3345,10 @@ impl Client {
         let uid = match other_user_id {
             Some(u) => match u.parse::<OwnedUserId>() {
                 Ok(uid) => uid,
-                Err(_) => return false,
+                Err(e) => {
+                    warn!("verification with invalid user id {u}: {e:?}");
+                    return false;
+                }
             },
             None => match self.core.sdk.user_id() {
                 Some(u) => u.to_owned(),
@@ -3350,7 +3379,10 @@ impl Client {
         let uid = match other_user_id {
             Some(u) => match u.parse::<OwnedUserId>() {
                 Ok(uid) => uid,
-                Err(_) => return false,
+                Err(e) => {
+                    warn!("verification with invalid user id {u}: {e:?}");
+                    return false;
+                }
             },
             None => match self.core.sdk.user_id() {
                 Some(u) => u.to_owned(),
@@ -3379,7 +3411,10 @@ impl Client {
         let uid = match other_user_id {
             Some(u) => match u.parse::<OwnedUserId>() {
                 Ok(uid) => uid,
-                Err(_) => return false,
+                Err(e) => {
+                    warn!("verification with invalid user id {u}: {e:?}");
+                    return false;
+                }
             },
             None => match self.core.sdk.user_id() {
                 Some(u) => u.to_owned(),
@@ -3416,7 +3451,10 @@ impl Client {
 
         let uid = match other_user_id.parse::<OwnedUserId>() {
             Ok(u) => u,
-            Err(_) => return false,
+            Err(e) => {
+                warn!("accept_and_observe_verification with invalid user id {other_user_id}: {e:?}");
+                return false;
+            }
         };
 
         let request = match RT.block_on(
