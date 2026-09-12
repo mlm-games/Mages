@@ -114,7 +114,11 @@ fun RoomScreen(
     val postError = rememberErrorPoster(snackbarManager)
     val listState = rememberLazyListState()
     val settingsRepository: SettingsRepository<AppSettings> = koinInject()
-    val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
+    var persistedSettings by remember { mutableStateOf<AppSettings?>(null) }
+    LaunchedEffect(settingsRepository) {
+        settingsRepository.flow.collect { persistedSettings = it }
+    }
+    val settings = persistedSettings ?: AppSettings()
 
     var pendingJumpEventId by rememberSaveable(initialScrollToEventId) {
         mutableStateOf(initialScrollToEventId)
@@ -712,9 +716,12 @@ fun RoomScreen(
                     )
                 }
 
-                // Message list
+                // Message list. Gated on identity + persisted settings as well
+                // as the timeline snapshot so sender names/avatars never paint
+                // with default isDm/visibility flags while those load.
                 Box(modifier = Modifier.weight(1f)) {
-                    if (!state.hasTimelineSnapshot) {
+                    val listSettings = persistedSettings
+                    if (!state.hasTimelineSnapshot || !state.identityKnown || listSettings == null) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -781,10 +788,10 @@ fun RoomScreen(
                                                 },
                                                 highlightedEventId = state.highlightedEventId,
                                                 viewModel = viewModel,
-                                                showMessageAvatars = settings.showMessageAvatars,
-                                                showUsernameInDms = settings.showUsernameInDms,
-                                                enableBubbleAnimations = settings.bubbleAnimations,
-                                                showReactionAvatars = settings.showReactionAvatars
+                                                showMessageAvatars = listSettings.showMessageAvatars,
+                                                showUsernameInDms = listSettings.showUsernameInDms,
+                                                enableBubbleAnimations = listSettings.bubbleAnimations,
+                                                showReactionAvatars = listSettings.showReactionAvatars
                                             )
                                         },
                                         staticLocation = { locItem ->

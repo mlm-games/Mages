@@ -142,6 +142,7 @@ data class RoomUiState(
     val lastReadTs: Long? = null,
     val hasLoadedLastRead: Boolean = false,
     val isDm: Boolean = false,
+    val identityKnown: Boolean = false,
     val lastIncomingFromOthersTs: Long? = null,
     val lastOutgoingRead: Boolean = false,
 

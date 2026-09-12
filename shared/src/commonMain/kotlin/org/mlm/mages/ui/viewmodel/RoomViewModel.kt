@@ -83,8 +83,35 @@ class RoomViewModel(
             react = react.toUi(),
         )
 
-    private suspend fun refreshRoomActionState() {
-        val actionState = runSafe { service.port.roomActionState(currentState.roomId) } ?: return
+    private suspend fun loadRoomIdentity() {
+        val roomId = currentState.roomId
+        try {
+            val profile = service.port.roomProfile(roomId) ?: return
+            roomClass = profile.roomClass()
+            lastRoomAvatarMxc = profile.avatarUrl
+            updateState {
+                copy(
+                    isDm = profile.isDm,
+                    roomAvatarUrl = profile.avatarUrl,
+                    roomName = profile.name
+                )
+            }
+            recomputeVisibleEvents()
+
+            profile.avatarUrl?.let { url ->
+                launch {
+                    val path = service.avatars.resolve(url, px = 96, crop = true)
+                    if (path != null && currentState.roomId == roomId) {
+                        updateState { copy(roomAvatarUrl = path) }
+                    }
+                }
+            }
+        } finally {
+            updateState { copy(identityKnown = true) }
+        }
+    }
+
+    private suspend fun refreshRoomActionState() {        val actionState = runSafe { service.port.roomActionState(currentState.roomId) } ?: return
         updateState {
             copy(
                 voiceCallAction = actionState.voiceCall.toUi(),
@@ -370,28 +397,7 @@ class RoomViewModel(
 
             refreshRoomActionState()
 
-            val profile = service.port.roomProfile(roomId)
-            if (profile != null) {
-                roomClass = profile.roomClass()
-                lastRoomAvatarMxc = profile.avatarUrl
-                updateState {
-                    copy(
-                        isDm = profile.isDm,
-                        roomAvatarUrl = profile.avatarUrl,
-                        roomName = profile.name
-                    )
-                }
-                recomputeVisibleEvents()
-
-                profile.avatarUrl?.let { url ->
-                    launch {
-                        val path = service.avatars.resolve(url, px = 96, crop = true)
-                        if (path != null && currentState.roomId == roomId) {
-                            updateState { copy(roomAvatarUrl = path) }
-                        }
-                    }
-                }
-            }
+            loadRoomIdentity()
 
             val members = runSafe { service.port.listMembers(roomId) }.orEmpty()
             if (members.isNotEmpty()) {
@@ -2279,9 +2285,7 @@ class RoomViewModel(
 
     private fun observeRoomCallState() {
         launch {
-        roomCallStateToken?.let { service.port.unobserveRoomCallState(it) }
-        roomInfoToken?.let { runCatching { service.port.unobserveRoomInfo(it) } }
-        roomInfoToken = null
+            roomCallStateToken?.let { service.port.unobserveRoomCallState(it) }
             roomCallStateToken = null
             remoteCallActiveForRoom = false
             recomputeActiveCall()
@@ -2321,8 +2325,9 @@ class RoomViewModel(
                             }
                             updateState {
                                 copy(
-                                    roomName = snapshot.profile.name,
+                                    roomName = snapshot.profile.name.takeIf { it.isNotBlank() } ?: roomName,
                                     isDm = snapshot.profile.isDm,
+                                    identityKnown = true,
                                     voiceCallAction = actionState.voiceCall.toUi(),
                                     videoCallAction = actionState.videoCall.toUi(),
                                     sendMessageAction = actionState.sendMessage.toUi(),
