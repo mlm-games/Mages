@@ -46,11 +46,14 @@ actual fun CallWebViewHost(
     onAttachController: (CallWebViewController?) -> Unit
 ): CallWebViewController {
 
+    val latestOnMessage by rememberUpdatedState(onMessageFromWidget)
+    val latestOnClosed by rememberUpdatedState(onClosed)
+    val latestOnMinimize by rememberUpdatedState(onMinimizeRequested)
     val controller = remember {
         JcefCallWebViewController(
-            onMessageFromWidget = onMessageFromWidget,
-            onClosed = onClosed,
-            onMinimizeRequested = onMinimizeRequested
+            onMessageFromWidget = { latestOnMessage(it) },
+            onClosed = { latestOnClosed() },
+            onMinimizeRequested = { latestOnMinimize() }
         )
     }
 

@@ -87,8 +87,7 @@ class NotificationEnrichWorker(
 
         val rendered = fetch.rendered
         if (rendered == null) {
-            // Event filtered out / not found / cannot be rendered: cancel placeholder and stop.
-            AndroidNotificationHelper.cancelRoomNotification(applicationContext, roomId)
+            AndroidNotificationHelper.cancelRoomNotification(applicationContext, roomId, force = true)
             return Result.success()
         }
 

@@ -126,9 +126,9 @@ object AndroidNotificationHelper : KoinComponent {
         Notifier.updateSummaryNotification(ctx)
     }
 
-    fun cancelRoomNotification(ctx: Context, roomId: String) {
+    fun cancelRoomNotification(ctx: Context, roomId: String, force: Boolean = false) {
         val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (!force && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val notif = mgr.activeNotifications.find { it.id == roomId.hashCode() }
             if (notif != null && hasBubbleMetadata(notif.notification)) return
         }

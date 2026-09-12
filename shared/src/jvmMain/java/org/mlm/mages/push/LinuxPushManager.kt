@@ -16,7 +16,13 @@ import java.util.concurrent.TimeUnit
 object LinuxPushManager {
     private const val CONNECTOR_PATH = "/org/unifiedpush/Connector"
     private const val DISTRIBUTOR_PATH = "/org/unifiedpush/Distributor"
-    private const val DISTRIBUTOR_BUS = "org.unifiedpush.Distributor.kde"
+    private val DISTRIBUTOR_BUSES = listOf(
+        "org.unifiedpush.Distributor.ntfy",
+        "org.unifiedpush.Distributor.sunup",
+        "org.unifiedpush.Distributor.gcompat",
+        "org.unifiedpush.Distributor.kde",
+        "eu.uniformpush.distributor"
+    )
     private const val REGISTRATION_SUCCEEDED = "REGISTRATION_SUCCEEDED"
 
     private var conn: DBusConnection? = null
@@ -86,7 +92,14 @@ object LinuxPushManager {
             }
 
             conn = c
-            val ep = future.get(30, TimeUnit.SECONDS)
+            val ep = try {
+                future.get(30, TimeUnit.SECONDS)
+            } catch (e: Exception) {
+                try { c.unexportObject(CONNECTOR_PATH) } catch (_: Exception) {}
+                try { c.close() } catch (_: Exception) {}
+                conn = null
+                return@withContext null
+            }
             Logger.w("[UP] endpoint received: $ep")
             ep
         } catch (e: Exception) {
@@ -97,28 +110,32 @@ object LinuxPushManager {
     }
 
     private fun tryRegisterV1(c: DBusConnection, busName: String, tok: String): Boolean {
-        return try {
-            val d = c.getRemoteObject(DISTRIBUTOR_BUS, DISTRIBUTOR_PATH, Distributor1::class.java, false)
-            val result = d.Register(busName, tok, "Mages Matrix Client")
-            result.registrationResult == REGISTRATION_SUCCEEDED
-        } catch (e: Exception) {
-            false
+        for (bus in DISTRIBUTOR_BUSES) {
+            try {
+                val d = c.getRemoteObject(bus, DISTRIBUTOR_PATH, Distributor1::class.java, false)
+                val result = d.Register(busName, tok, "Mages Matrix Client")
+                if (result.registrationResult == REGISTRATION_SUCCEEDED) return true
+            } catch (_: Exception) {
+            }
         }
+        return false
     }
 
     private fun tryRegisterV2(c: DBusConnection, busName: String, tok: String): Boolean {
-        return try {
-            val d = c.getRemoteObject(DISTRIBUTOR_BUS, DISTRIBUTOR_PATH, Distributor2::class.java, false)
-            val args = mapOf(
-                "service" to Variant(busName),
-                "token" to Variant(tok),
-                "description" to Variant("Mages Matrix Client")
-            )
-            val result = d.Register(args)
-            result["success"]?.getValue() == REGISTRATION_SUCCEEDED
-        } catch (e: Exception) {
-            false
+        for (bus in DISTRIBUTOR_BUSES) {
+            try {
+                val d = c.getRemoteObject(bus, DISTRIBUTOR_PATH, Distributor2::class.java, false)
+                val args = mapOf(
+                    "service" to Variant(busName),
+                    "token" to Variant(tok),
+                    "description" to Variant("Mages Matrix Client")
+                )
+                val result = d.Register(args)
+                if (result["success"]?.getValue() == REGISTRATION_SUCCEEDED) return true
+            } catch (_: Exception) {
+            }
         }
+        return false
     }
 
     fun onMessage(callback: (String) -> Unit) {

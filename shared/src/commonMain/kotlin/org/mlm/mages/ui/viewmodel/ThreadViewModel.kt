@@ -512,6 +512,7 @@ class ThreadViewModel(
         val formattedBody = body.toFormattedBodyOrNull()
 
         val replyToId = currentState.replyingTo?.eventId
+        val replyingTo = currentState.replyingTo
         val latestEventId = if (replyToId == null && currentState.replies.isNotEmpty()) {
             currentState.replies.lastOrNull()?.eventId
         } else {
@@ -532,6 +533,7 @@ class ThreadViewModel(
         }
 
         if (result?.isSuccess != true) {
+            updateState { copy(input = text, replyingTo = replyingTo) }
             _events.send(Event.ShowError(result.toUserMessage("Failed to send message")))
         }
 

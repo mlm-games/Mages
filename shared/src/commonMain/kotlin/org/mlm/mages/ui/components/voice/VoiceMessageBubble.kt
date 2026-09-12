@@ -38,12 +38,12 @@ fun VoiceMessageBubble(
     isMine: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val player = remember { createAudioPlayer() }
+    val player = remember(filePath) { createAudioPlayer() }
     val playbackState by player.state.collectAsState()
 
     val scope = rememberCoroutineScope()
 
-    DisposableEffect(Unit) { onDispose { player.release() } }
+    DisposableEffect(filePath) { onDispose { player.release() } }
 
     val isPlaying = playbackState.let { it is PlaybackState.Playing && !it.isPaused }
     val playingState = playbackState as? PlaybackState.Playing
@@ -63,7 +63,7 @@ fun VoiceMessageBubble(
     val onBubble = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
     else MaterialTheme.colorScheme.onSurfaceVariant
 
-    var speedIndex by remember { mutableIntStateOf(0) }
+    var speedIndex by remember(filePath) { mutableIntStateOf(0) }
     val currentSpeed = SPEED_OPTIONS[speedIndex]
 
     Surface(

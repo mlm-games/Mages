@@ -61,11 +61,6 @@ fun RoomsScreen(
     val firstFavouriteId = state.favouriteItems.firstOrNull()?.roomId
     val firstNormalId = state.normalItems.firstOrNull()?.roomId
 
-    LaunchedEffect(firstFavouriteId, firstNormalId) {
-        if ((firstFavouriteId != null || firstNormalId != null) && listState.firstVisibleItemIndex > 0) {
-            listState.animateScrollToItem(0)
-        }
-    }
 
     LaunchedEffect(listState) {
         snapshotFlow { listState.layoutInfo }
@@ -261,7 +256,14 @@ fun RoomsScreen(
                         }
                     }
 
-                    if (isInvitesFilter && state.inviteItems.isNotEmpty()) {
+                    if (state.inviteItems.isNotEmpty()) {
+                        item(key = "header_invites") {
+                            SectionHeader(
+                                title = stringResource(Res.string.invites),
+                                count = state.inviteItems.size,
+                                icon = Icons.Default.Mail
+                            )
+                        }
                         itemsIndexed(
                             state.inviteItems,
                             key = { _, item -> "invite_${item.roomId}" }

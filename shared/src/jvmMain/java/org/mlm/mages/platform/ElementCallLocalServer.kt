@@ -16,7 +16,22 @@ object ElementCallLocalServer {
     @Volatile private var port: Int = -1
 
     fun ensureStarted(): String {
-        if (started.compareAndSet(false, true)) {
+        synchronized(this) {
+            val existingPort = port
+            val existingServer = server
+            if (started.get() && existingServer != null && existingPort > 0) {
+                return "http://127.0.0.1:$existingPort"
+            }
+            if (!started.compareAndSet(false, true)) {
+                var waits = 0
+                while (port <= 0 && waits < 100) {
+                    try { Thread.sleep(50) } catch (_: InterruptedException) { break }
+                    waits++
+                }
+                val p = port
+                check(p > 0) { "ElementCallLocalServer failed to start" }
+                return "http://127.0.0.1:$p"
+            }
             val cl = Thread.currentThread().contextClassLoader ?: javaClass.classLoader
             val indexUrl = cl.getResource("element-call/index.html")
             Logger.w("[ElementCallServer] index.html resource URL: $indexUrl")
@@ -28,13 +43,20 @@ object ElementCallLocalServer {
             }
 
             val addr = InetSocketAddress(InetAddress.getLoopbackAddress(), 0)
-            val s = HttpServer.create(addr, 0)
-            s.createContext("/") { ex -> handle(ex) }
-            s.executor = Executors.newFixedThreadPool(4)
-            s.start()
-            server = s
-            port = s.address.port
-            Logger.w("[ElementCallServer] Started on http://127.0.0.1:$port")
+            try {
+                val s = HttpServer.create(addr, 0)
+                s.createContext("/") { ex -> handle(ex) }
+                s.executor = Executors.newFixedThreadPool(4)
+                s.start()
+                server = s
+                port = s.address.port
+                Logger.w("[ElementCallServer] Started on http://127.0.0.1:$port")
+            } catch (e: Exception) {
+                started.set(false)
+                server = null
+                port = -1
+                throw e
+            }
         }
         val p = port
         check(p > 0) { "ElementCallLocalServer failed to start" }
@@ -48,11 +70,13 @@ object ElementCallLocalServer {
     fun baseUrl(): String = ensureStarted()
 
     fun stop() {
-        if (!started.compareAndSet(true, false)) return
-        Logger.w("[ElementCallServer] Stopping...")
-        server?.stop(0)
-        server = null
-        port = -1
+        synchronized(this) {
+            if (!started.compareAndSet(true, false)) return
+            Logger.w("[ElementCallServer] Stopping...")
+            server?.stop(0)
+            server = null
+            port = -1
+        }
     }
 
     private fun handle(ex: HttpExchange) {

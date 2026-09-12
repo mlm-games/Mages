@@ -549,6 +549,7 @@ class RoomViewModel(
             } else {
                 sendAttachmentsInternal(pending)
                 if (hasText) {
+                    val originalInput = s.input
                     launch {
                         val replyTo = s.replyingTo
                         val result = if (replyTo != null) {
@@ -557,6 +558,8 @@ class RoomViewModel(
                             service.sendMessage(s.roomId, plainText, formattedBody)
                         }
                         if (result?.isSuccess != true) {
+                            updateState { copy(input = originalInput) }
+                            launch { saveDraft(s.roomId, originalInput) }
                             _events.send(Event.ShowError(result.toUserMessage(if (replyTo != null) "Reply failed" else "Send failed")))
                         }
                         updateState { copy(replyingTo = null, seenByEntries = emptyList(), lastOutgoingRead = false) }
@@ -567,6 +570,7 @@ class RoomViewModel(
         }
 
         if (hasText) {
+            val originalInput = s.input
             val text = s.input.trim()
             val plainText = text.toPlainComposerText()
             val formattedBody = text.toFormattedBodyOrNull()
@@ -581,6 +585,8 @@ class RoomViewModel(
                     service.sendMessage(s.roomId, plainText, formattedBody)
                 }
                 if (result?.isSuccess != true) {
+                    updateState { copy(input = originalInput) }
+                    launch { saveDraft(s.roomId, originalInput) }
                     _events.send(Event.ShowError(result.toUserMessage(if (replyTo != null) "Reply failed" else "Send failed")))
                 }
                 updateState { copy(replyingTo = null, seenByEntries = emptyList(), lastOutgoingRead = false) }
