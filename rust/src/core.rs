@@ -95,6 +95,20 @@ macro_rules! spawn_detached_core {
     }};
 }
 
+async fn timeout_compat<F, T>(dur: Duration, fut: F) -> Result<T, ()>
+where
+    F: std::future::Future<Output = T>,
+{
+    use futures_util::future::{Either, select};
+    futures_util::pin_mut!(fut);
+    let sleeper = matrix_sdk::sleep::sleep(dur);
+    futures_util::pin_mut!(sleeper);
+    match select(fut, sleeper).await {
+        Either::Left((v, _)) => Ok(v),
+        Either::Right((_, _)) => Err(()),
+    }
+}
+
 pub fn room_list_membership(room: &matrix_sdk::Room) -> RoomListMembership {
     use matrix_sdk::RoomState;
     match room.state() {
@@ -927,7 +941,13 @@ impl CoreClient {
 
         if avatar_url.is_none() && is_dm {
             if let Some(me) = self.sdk.user_id() {
-                let members = room.members(RoomMemberships::ACTIVE).await.ffi()?;
+                let members = timeout_compat(
+                    Duration::from_secs(10),
+                    room.members(RoomMemberships::ACTIVE),
+                )
+                .await
+                .map_err(|_| FfiError::Msg("list_members timed out".into()))?
+                .ffi()?;
                 if let Some(peer) = members.into_iter().find(|m| m.user_id() != me) {
                     avatar_url = peer.avatar_url().map(|mxc| mxc.to_string());
                 }
@@ -2986,18 +3006,22 @@ impl CoreClient {
     ) -> Result<String, FfiError> {
         let room = self.require_room(&room_id)?;
         // Like element-x, always stop any existing share first.
-        let _ = room.stop_live_location_share().await;
-        let response = room
-            .start_live_location_share(duration_ms, description)
-            .await
-            .ffi()?;
+        let _ = timeout_compat(Duration::from_secs(30), room.stop_live_location_share()).await;
+        let response = timeout_compat(
+            Duration::from_secs(60),
+            room.start_live_location_share(duration_ms, description),
+        )
+        .await
+        .map_err(|_| FfiError::Msg("Timeout starting live location share".into()))?
+        .ffi()?;
         Ok(response.event_id.to_string())
     }
 
     pub async fn stop_live_location(&self, room_id: String) -> Result<(), FfiError> {
         let room = self.require_room(&room_id)?;
-        room.stop_live_location_share()
+        timeout_compat(Duration::from_secs(30), room.stop_live_location_share())
             .await
+            .map_err(|_| FfiError::Msg("Timeout stopping live location share".into()))?
             .map(|_| ())
             .map_err(|e| Self::beacon_err(e))
     }
@@ -3008,10 +3032,14 @@ impl CoreClient {
         geo_uri: String,
     ) -> Result<(), FfiError> {
         let room = self.require_room(&room_id)?;
-        room.send_location_beacon(geo_uri)
-            .await
-            .map(|_| ())
-            .map_err(|e| Self::beacon_err(e))
+        timeout_compat(
+            Duration::from_secs(30),
+            room.send_location_beacon(geo_uri),
+        )
+        .await
+        .map_err(|_| FfiError::Msg("Timeout sending live location".into()))?
+        .map(|_| ())
+        .map_err(|e| Self::beacon_err(e))
     }
 
     pub async fn send_static_location(
