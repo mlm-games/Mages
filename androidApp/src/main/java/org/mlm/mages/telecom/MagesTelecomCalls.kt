@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.coroutines.coroutineContext
 import androidx.core.telecom.CallAttributesCompat
 import androidx.core.telecom.CallControlScope
 import androidx.core.telecom.CallsManager
@@ -83,6 +84,7 @@ object MagesTelecomCalls {
     }
 
     suspend fun removeCallSync(sessionKey: String) {
+        val self = coroutineContext[Job]
         val child: Job? = setupMutex.withLock {
             runCatching {
                 sessions.remove(sessionKey)?.disconnect(
@@ -92,9 +94,11 @@ object MagesTelecomCalls {
                 )
             }
             appCtx?.let { cancelSessionNotif(it, sessionKey) }
-            jobs.remove(sessionKey)
+            jobs.remove(sessionKey)?.also { it.cancel() }
         }
-        runCatching { withTimeoutOrNull(8_000) { child?.join() } }
+        if (child != null && child !== self) {
+            runCatching { withTimeoutOrNull(8_000) { child.join() } }
+        }
     }
 
     private suspend fun runOngoingCall(
@@ -130,8 +134,10 @@ object MagesTelecomCalls {
                 { /* onActive */ },
                 { /* onInactive (hold) */ },
             ) {
-                sessions[roomId] = this
+                val control = this
+                sessions[roomId] = control
                 postOngoingCallStyle(appContext.applicationContext, roomId, roomName, isVideo)
+                scope.launch { runCatching { control.setActive() } }
             }
         } catch (e: Exception) {
             Logger.w(e) { "Telecom: addCall(ongoing) failed, FGS fallback covers bg" }

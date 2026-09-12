@@ -24,6 +24,8 @@
         tools:ignore="ForegroundServicesPolicy" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"
         tools:ignore="ForegroundServicesPolicy" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA"
+        tools:ignore="ForegroundServicesPolicy" />
 
     <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"
@@ -208,7 +210,8 @@
         <service
             android:name=".push.CallForegroundService"
             android:exported="false"
-            android:foregroundServiceType="microphone" />
+            android:stopWithTask="false"
+            android:foregroundServiceType="microphone|camera" />
         <service
             android:name=".push.LiveLocationSharingForegroundService"
             android:exported="false"

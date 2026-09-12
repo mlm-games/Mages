@@ -87,13 +87,15 @@ class CallManager(
         languageTag: String?,
         theme: String?,
     ): Boolean {
+        val port = service.portOrNull ?: return false
+
         val current = _call.value
         if (current != null) {
             if (current.roomId == roomId) return true
-            endCall()
+            runCatching { port.stopElementCall(current.sessionId) }
+            pendingToWidget.clear()
+            controller = null
         }
-
-        val port = service.portOrNull ?: return false
 
         val session = port.startElementCall(
             roomId = roomId,
