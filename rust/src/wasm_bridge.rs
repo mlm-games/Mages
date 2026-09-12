@@ -1499,6 +1499,7 @@ impl WasmClient {
             return 0.0;
         };
         let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+            tracing::warn!("observe_room_call_state: invalid room id");
             return 0.0;
         };
         let obs: Arc<dyn RoomCallStateObserver> = Arc::new(JsRoomCallStateObserver(on_update));
@@ -1513,7 +1514,11 @@ impl WasmClient {
             loop {
                 match rx.recv().await {
                     Ok(_) => {}
-                    Err(_) => break,
+                    Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
+                        // Fall through to the re-read below: the snapshot heals the gap.
+                        tracing::warn!(room_id = %rid, skipped, "room call-state updates lagged; re-reading snapshot");
+                    }
                 }
                 let next = CoreClient::snapshot_room_call_state(&room);
                 if next != last {
@@ -1535,9 +1540,11 @@ impl WasmClient {
             return 0.0;
         };
         let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+            tracing::warn!("observe_call_decline: invalid room id");
             return 0.0;
         };
         let Ok(eid) = matrix_sdk::ruma::OwnedEventId::try_from(notification_event_id) else {
+            tracing::warn!("observe_call_decline: invalid notification event id");
             return 0.0;
         };
         let obs: Arc<dyn CallDeclineObserver> = Arc::new(JsCallDeclineObserver(on_decline));
@@ -1547,11 +1554,14 @@ impl WasmClient {
                 return;
             };
             let (_guard, mut rx) = room.subscribe_to_call_decline_events(&eid);
-            let _guard = _guard;
             loop {
                 match rx.recv().await {
                     Ok(decliner) => safe_call(|| obs.on_decline(decliner.to_string())),
-                    Err(_) => break,
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
+                        tracing::warn!(room_id = %rid, notification_event_id = %eid, skipped, "call-decline updates lagged; a decline may have been missed");
+                        continue;
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
                 }
             }
         })

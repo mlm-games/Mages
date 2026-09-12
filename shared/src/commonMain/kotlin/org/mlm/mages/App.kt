@@ -30,12 +30,15 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import co.touchlab.kermit.Logger
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import org.mlm.mages.accounts.AccountStore
 import org.mlm.mages.calls.CallManager
+import org.mlm.mages.calls.CALL_END_GRACE_MS
 import org.mlm.mages.calls.IncomingCallTracker
 import org.mlm.mages.calls.answerIncomingCall
 import org.mlm.mages.calls.declineIncomingCall
@@ -914,12 +917,17 @@ private fun AppContent(
                 callState?.roomId?.let { incomingCalls.clearForRoom(it) }
             }
             LaunchedEffect(invites.map { it.roomId to it.eventId }) {
+                val reconcilerScope = this@LaunchedEffect
                 val me = runCatching { service.portOrNull?.whoami() }.getOrNull()
+                if (me == null) {
+                    Logger.w { "Call reconciler: whoami() failed, own-decline dismissal disabled" }
+                }
                 val seenActive = mutableSetOf<String>()
+                val lastActive = mutableMapOf<String, Boolean>()
                 invites.groupBy { it.roomId }.forEach { (roomId, roomInvites) ->
                     launch {
-                        runCatching {
-                            val token = service.portOrNull?.observeRoomCallState(
+                        val token = runCatching {
+                            service.portOrNull?.observeRoomCallState(
                                 roomId,
                                 object : RoomCallStateObserver {
                                     override fun onUpdate(state: RoomCallState) {
@@ -927,37 +935,50 @@ private fun AppContent(
                                             incomingCalls.clearForRoom(roomId)
                                         } else if (state.hasActiveCall) {
                                             seenActive += roomId
+                                            lastActive[roomId] = true
                                         } else if (roomId in seenActive) {
-                                            seenActive -= roomId
-                                            incomingCalls.clearForRoom(roomId)
+                                            lastActive[roomId] = false
+                                            reconcilerScope.launch {
+                                                delay(CALL_END_GRACE_MS)
+                                                if (lastActive[roomId] == false && roomId in seenActive) {
+                                                    seenActive -= roomId
+                                                    incomingCalls.clearForRoom(roomId)
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             )
-                            try {
-                                awaitCancellation()
-                            } finally {
-                                token?.let { service.portOrNull?.unobserveRoomCallState(it) }
-                            }
+                        }.onFailure { e ->
+                            Logger.w { "Call reconciler: observeRoomCallState($roomId) failed: ${e.message}" }
+                        }.getOrNull()
+                        try {
+                            awaitCancellation()
+                        } finally {
+                            token?.let { service.portOrNull?.unobserveRoomCallState(it) }
                         }
                     }
                     roomInvites.forEach { invite ->
                         launch {
-                            runCatching {
-                                val token = service.portOrNull?.observeCallDecline(
+                            val token = runCatching {
+                                service.portOrNull?.observeCallDecline(
                                     roomId,
                                     invite.eventId,
                                     object : CallDeclineObserver {
                                         override fun onDecline(declinerUserId: String) {
-                                            incomingCalls.dismiss(roomId, invite.eventId)
+                                            if (me != null && declinerUserId == me) {
+                                                incomingCalls.dismiss(roomId, invite.eventId)
+                                            }
                                         }
                                     }
                                 )
-                                try {
-                                    awaitCancellation()
-                                } finally {
-                                    token?.let { service.portOrNull?.unobserveCallDecline(it) }
-                                }
+                            }.onFailure { e ->
+                                Logger.w { "Call reconciler: observeCallDecline($roomId) failed: ${e.message}" }
+                            }.getOrNull()
+                            try {
+                                awaitCancellation()
+                            } finally {
+                                token?.let { service.portOrNull?.unobserveCallDecline(it) }
                             }
                         }
                     }

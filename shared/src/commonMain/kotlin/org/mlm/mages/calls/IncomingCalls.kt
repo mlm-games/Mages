@@ -25,6 +25,14 @@ data class IncomingCall(
 
 const val INCOMING_CALL_TIMEOUT_MS = 60_000L
 
+/**
+ * Grace delay before dismissing a ringing invite whose room stops looking
+ * active. RTC membership state can flap on inconsistent sync responses, so an
+ * active → inactive transition only dismisses if the room is still inactive
+ * after this delay.
+ */
+const val CALL_END_GRACE_MS = 5_000L
+
 fun NotificationKind.isRingingCall(): Boolean = when (this) {
     NotificationKind.CallRing,
     NotificationKind.CallInvite,

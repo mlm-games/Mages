@@ -2268,6 +2268,9 @@ class RoomViewModel(
     private fun observeRoomCallState() {
         launch {
             roomCallStateToken?.let { service.port.unobserveRoomCallState(it) }
+            roomCallStateToken = null
+            remoteCallActiveForRoom = false
+            recomputeActiveCall()
             roomCallStateToken = service.port.observeRoomCallState(
                 currentState.roomId,
                 object : RoomCallStateObserver {
