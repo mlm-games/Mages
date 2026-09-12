@@ -1,14 +1,11 @@
 package org.mlm.mages.telecom
 
 import android.annotation.SuppressLint
-import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import androidx.core.app.NotificationCompat
-import androidx.core.app.Person
 import co.touchlab.kermit.Logger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -21,10 +18,6 @@ import kotlin.coroutines.coroutineContext
 import androidx.core.telecom.CallAttributesCompat
 import androidx.core.telecom.CallControlScope
 import androidx.core.telecom.CallsManager
-import org.mlm.mages.activities.CallActivity
-import org.mlm.mages.push.AppNotificationChannels
-import org.mlm.mages.push.CallForegroundService
-import org.mlm.mages.shared.R
 
 object MagesTelecomCalls {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -32,12 +25,10 @@ object MagesTelecomCalls {
     private val sessions = mutableMapOf<String, CallControlScope?>()
     private val jobs = mutableMapOf<String, kotlinx.coroutines.Job>()
     @Volatile private var registered = false
-    @Volatile private var appCtx: Context? = null
 
     @SuppressLint("MissingPermission")
     fun register(appContext: Context) {
         if (registered) return
-        appCtx = appContext.applicationContext
         if (!appContext.packageManager.hasSystemFeature(PackageManager.FEATURE_TELECOM)) {
             Logger.w { "Telecom: FEATURE_TELECOM missing, skipping register" }
             return
@@ -65,15 +56,15 @@ object MagesTelecomCalls {
         setupMutex.withLock {
             for (key in (sessions.keys + jobs.keys).toSet()) {
                 if (!key.startsWith("in:") && key != roomId) {
-                    runCatching {
+                    val swept = runCatching {
                         sessions.remove(key)?.disconnect(
                             android.telecom.DisconnectCause(
                                 android.telecom.DisconnectCause.LOCAL
                             )
                         )
                     }
+                    Logger.i { "Telecom: sweep-disconnect $key -> $swept" }
                     jobs.remove(key)?.cancel()
-                    appCtx?.let { cancelSessionNotif(it, key) }
                 }
             }
             if (jobs.containsKey(roomId)) return
@@ -86,14 +77,14 @@ object MagesTelecomCalls {
     suspend fun removeCallSync(sessionKey: String) {
         val self = coroutineContext[Job]
         val child: Job? = setupMutex.withLock {
-            runCatching {
+            val told = runCatching {
                 sessions.remove(sessionKey)?.disconnect(
                     android.telecom.DisconnectCause(
                         android.telecom.DisconnectCause.LOCAL
                     )
                 )
             }
-            appCtx?.let { cancelSessionNotif(it, sessionKey) }
+            Logger.i { "Telecom: remove-disconnect $sessionKey -> $told" }
             jobs.remove(sessionKey)?.also { it.cancel() }
         }
         if (child != null && child !== self) {
@@ -136,9 +127,13 @@ object MagesTelecomCalls {
             ) {
                 val control = this
                 sessions[roomId] = control
-                postOngoingCallStyle(appContext.applicationContext, roomId, roomName, isVideo)
-                scope.launch { runCatching { control.setActive() } }
+                scope.launch {
+                    val setActiveResult = runCatching { control.setActive() }
+                    Logger.i { "Telecom: setActive $roomId -> $setActiveResult" }
+                }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Logger.w(e) { "Telecom: addCall(ongoing) failed, FGS fallback covers bg" }
         } finally {
@@ -146,45 +141,6 @@ object MagesTelecomCalls {
                 sessions.remove(roomId)
                 jobs.remove(roomId)
             }
-            appCtx?.let { cancelSessionNotif(it, roomId) }
-        }
-    }
-
-    private fun postOngoingCallStyle(ctx: Context, roomId: String, roomName: String, isVideo: Boolean) {        AppNotificationChannels.ensureCreated(ctx)
-        val openIntent = PendingIntent.getActivity(
-            ctx, ("telecom_open_$roomId").hashCode(),
-            Intent(ctx, CallActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val endIntent = PendingIntent.getService(
-            ctx, ("telecom_end_$roomId").hashCode(),
-            Intent(ctx, CallForegroundService::class.java).apply {
-                action = CallForegroundService.ACTION_END_CALL
-            },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val caller = Person.Builder().setName(roomName).setKey(roomId).build()
-        val style = NotificationCompat.CallStyle.forOngoingCall(caller, endIntent)
-        if (isVideo) style.setIsVideo(true)
-        val notif = NotificationCompat.Builder(ctx, AppNotificationChannels.CHANNEL_CALL_ONGOING)
-            .setSmallIcon(R.drawable.ic_notif_status_bar)
-            .setContentTitle("Ongoing call")
-            .setContentText(roomName)
-            .setOngoing(true)
-            .setContentIntent(openIntent)
-            .setStyle(style)
-            .addPerson(caller)
-            .build()
-        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-        nm.notify(("telecom_ongoing_$roomId").hashCode(), notif)
-    }
-
-    private fun cancelSessionNotif(ctx: Context, roomId: String) {
-        runCatching {
-            val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-            nm.cancel(("telecom_ongoing_$roomId").hashCode())
         }
     }
 }
