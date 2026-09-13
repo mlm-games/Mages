@@ -59,7 +59,12 @@ class LiveLocationSharingForegroundService : Service() {
         }
 
         val roomCount = intent?.getIntExtra(EXTRA_ROOM_COUNT, 1) ?: 1
-        startForeground(NOTIFICATION_ID, buildNotification(roomCount))
+        try {
+            startForeground(NOTIFICATION_ID, buildNotification(roomCount))
+        } catch (e: SecurityException) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
         startLocationUpdates()
         return START_STICKY
     }
@@ -91,13 +96,15 @@ class LiveLocationSharingForegroundService : Service() {
             .setMinUpdateDistanceMeters(MIN_DISTANCE_M)
             .build()
 
-        LocationManagerCompat.requestLocationUpdates(
-            locationManager,
-            provider,
-            request,
-            executor,
-            locationListener,
-        )
+        runCatching {
+            LocationManagerCompat.requestLocationUpdates(
+                locationManager,
+                provider,
+                request,
+                executor,
+                locationListener,
+            )
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -167,10 +174,12 @@ class LiveLocationSharingForegroundService : Service() {
             val intent = Intent(context, LiveLocationSharingForegroundService::class.java).apply {
                 putExtra(EXTRA_ROOM_COUNT, roomCount)
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+            runCatching {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
             }
         }
 
