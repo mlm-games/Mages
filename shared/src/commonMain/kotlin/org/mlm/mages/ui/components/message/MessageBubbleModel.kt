@@ -33,6 +33,7 @@ sealed interface MessageAttachmentUi {
         val sizeBytes: Long?,
         val title: String,
         val subtitle: String?,
+        val caption: String? = null,
     ) : MessageAttachmentUi
 
     data class Image(
@@ -54,6 +55,7 @@ sealed interface MessageAttachmentUi {
         val filePath: String?,
         val durationMs: Long?,
         val waveform: List<Float>,
+        val caption: String? = null,
     ) : MessageAttachmentUi
 }
 

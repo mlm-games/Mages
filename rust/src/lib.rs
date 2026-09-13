@@ -3742,6 +3742,22 @@ fn map_timeline_event(
                         MessageType::Emote(c) => {
                             formatted_body = c.formatted.as_ref().map(|f| f.body.clone());
                         }
+                        MessageType::Image(c) => {
+                            formatted_body =
+                                c.formatted_caption().map(|f| f.body.clone());
+                        }
+                        MessageType::Video(c) => {
+                            formatted_body =
+                                c.formatted_caption().map(|f| f.body.clone());
+                        }
+                        MessageType::File(c) => {
+                            formatted_body =
+                                c.formatted_caption().map(|f| f.body.clone());
+                        }
+                        MessageType::Audio(c) => {
+                            formatted_body =
+                                c.formatted_caption().map(|f| f.body.clone());
+                        }
                         MessageType::Location(loc) => {
                             event_type = EventType::Location;
                             live_location = Some(LiveLocationEvent {

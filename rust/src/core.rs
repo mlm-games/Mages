@@ -2135,13 +2135,20 @@ impl CoreClient {
         let Some(room) = self.sdk.get_room(&rid) else {
             return Err(FfiError::Msg("room not found".into()));
         };
+        let typed_caption = body.filter(|b| !b.trim().is_empty());
         let default_caption = match att.kind {
             AttachmentKind::Image => "Image",
             AttachmentKind::Video => "Video",
             AttachmentKind::Audio => "Audio",
             AttachmentKind::File => "File",
         };
-        let caption = body.unwrap_or_else(|| default_caption.to_string());
+        // MSC 2530 body-as-caption: typed caption -> body=caption, filename=Some(original);
+        // no caption -> body=original filename (or default), filename=None.
+        let no_caption_body = att
+            .file_name
+            .clone()
+            .filter(|n| !n.trim().is_empty())
+            .unwrap_or_else(|| default_caption.to_string());
         let media_source = if let Some(enc) = att.encrypted.as_ref() {
             let ef: EncryptedFile = match serde_json::from_str(&enc.json) {
                 Ok(f) => f,
@@ -2158,7 +2165,14 @@ impl CoreClient {
                 info.size = att.size_bytes.and_then(UInt::new);
                 info.width = att.width.map(UInt::from);
                 info.height = att.height.map(UInt::from);
-                let mut img = ImageMessageEventContent::new(caption, media_source);
+                let mut img = match typed_caption.clone() {
+                    Some(c) => {
+                        let mut content = ImageMessageEventContent::new(c, media_source);
+                        content.filename = att.file_name.clone();
+                        content
+                    }
+                    None => ImageMessageEventContent::new(no_caption_body.clone(), media_source),
+                };
                 img.info = Some(Box::new(info));
                 MessageType::Image(img)
             }
@@ -2169,7 +2183,14 @@ impl CoreClient {
                 info.width = att.width.map(UInt::from);
                 info.height = att.height.map(UInt::from);
                 info.duration = att.duration_ms.map(Duration::from_millis);
-                let mut vid = VideoMessageEventContent::new(caption, media_source);
+                let mut vid = match typed_caption.clone() {
+                    Some(c) => {
+                        let mut content = VideoMessageEventContent::new(c, media_source);
+                        content.filename = att.file_name.clone();
+                        content
+                    }
+                    None => VideoMessageEventContent::new(no_caption_body.clone(), media_source),
+                };
                 vid.info = Some(Box::new(info));
                 MessageType::Video(vid)
             }
@@ -2177,7 +2198,14 @@ impl CoreClient {
                 let mut info = matrix_sdk::ruma::events::room::message::FileInfo::new();
                 info.mimetype = att.mime.clone();
                 info.size = att.size_bytes.and_then(UInt::new);
-                let mut file = FileMessageEventContent::new(caption, media_source);
+                let mut file = match typed_caption.clone() {
+                    Some(c) => {
+                        let mut content = FileMessageEventContent::new(c, media_source);
+                        content.filename = att.file_name.clone();
+                        content
+                    }
+                    None => FileMessageEventContent::new(no_caption_body.clone(), media_source),
+                };
                 file.info = Some(Box::new(info));
                 MessageType::File(file)
             }
@@ -2186,7 +2214,14 @@ impl CoreClient {
                 info.mimetype = att.mime.clone();
                 info.size = att.size_bytes.and_then(UInt::new);
                 info.duration = att.duration_ms.map(Duration::from_millis);
-                let mut audio = AudioMessageEventContent::new(caption, media_source);
+                let mut audio = match typed_caption.clone() {
+                    Some(c) => {
+                        let mut content = AudioMessageEventContent::new(c, media_source);
+                        content.filename = att.file_name.clone();
+                        content
+                    }
+                    None => AudioMessageEventContent::new(no_caption_body.clone(), media_source),
+                };
                 audio.info = Some(Box::new(info));
                 MessageType::Audio(audio)
             }

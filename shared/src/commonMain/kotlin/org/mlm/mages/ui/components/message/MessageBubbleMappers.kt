@@ -40,6 +40,7 @@ private fun MessageEvent.toAttachmentUi(
             title = info.fileName?.takeIf { it.isNotBlank() }
                 ?: body.trim().ifBlank { "File" },
             subtitle = buildAttachmentSubtitle(info.mime, info.sizeBytes),
+            caption = toMediaCaption(),
         )
         AttachmentKind.Image -> MessageAttachmentUi.Image(
             previewPath = resolvedPreviewPath ?: info.thumbnailMxcUri,
@@ -58,6 +59,7 @@ private fun MessageEvent.toAttachmentUi(
             filePath = resolvedAudioPath,
             durationMs = info.durationMs,
             waveform = resolvedAudioWaveform.ifEmpty { info.waveform.orEmpty() },
+            caption = toMediaCaption(),
         )
     }
 }

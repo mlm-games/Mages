@@ -733,7 +733,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         val bytes = retrieveWebBlob(path) ?: throw Exception("Blob not found for path: $path")
         clearWebBlob(path)
         // Hack: need to switch to a single fn for all platforms later
-        val result = requireClient().sendAttachmentBytes(roomId, filename ?: path, mime, bytes.toJsUint8Array()).awaitUnitResult()
+        val result = requireClient().sendAttachmentBytes(roomId, filename ?: path, mime, bytes.toJsUint8Array(), caption, formattedCaption, replyToEventId).awaitUnitResult()
         return result.isSuccess
     }
 

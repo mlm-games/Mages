@@ -2341,6 +2341,9 @@ impl WasmClient {
         filename: String,
         mime: String,
         data: Vec<u8>,
+        caption: Option<String>,
+        formatted_caption: Option<String>,
+        reply_to_event_id: Option<String>,
     ) -> JsValue {
         let Some(state) = self.state() else {
             return webffi_not_init();
@@ -2352,7 +2355,24 @@ impl WasmClient {
             return webffi_err("room not found");
         };
         let mime_type: Mime = mime.parse().unwrap_or(mime::APPLICATION_OCTET_STREAM);
-        let config = AttachmentConfig::new();
+        let mut config = AttachmentConfig::new();
+        if let Some(c) = caption {
+            let text_content = if let Some(fc) = formatted_caption {
+                matrix_sdk::ruma::events::room::message::TextMessageEventContent::html(c, fc)
+            } else {
+                matrix_sdk::ruma::events::room::message::TextMessageEventContent::plain(c)
+            };
+            config = config.caption(Some(text_content));
+        }
+        if let Some(reply_id) = reply_to_event_id {
+            if let Ok(eid) = matrix_sdk::ruma::EventId::parse(&reply_id) {
+                config = config.reply(Some(matrix_sdk::room::reply::Reply {
+                    event_id: eid.to_owned(),
+                    enforce_thread: matrix_sdk::room::reply::EnforceThread::Unthreaded,
+                    add_mentions: matrix_sdk::ruma::events::room::message::AddMentions::Yes,
+                }));
+            }
+        }
         let result = room
             .send_attachment(&filename, &mime_type, data, config)
             .await

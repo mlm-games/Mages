@@ -176,13 +176,26 @@ fun MessageBubble(
                             when (val attachment = model.attachment) {
                                 is MessageAttachmentUi.File -> {
                                     FileAttachmentBubble(attachment, isMine, onOpenAttachment)
-                                    Spacer(Modifier.height(Spacing.xs))
-                                    MessageTimeAndStatus(
-                                        timestamp = model.timestamp,
-                                        isEdited = model.isEdited,
-                                        textColor = bubbleTextColor,
-                                        modifier = Modifier.align(horizontalAlignment)
-                                    )
+                                    if (!attachment.caption.isNullOrBlank()) {
+                                        Spacer(Modifier.height(Spacing.xs))
+                                        TimestampLayout(
+                                            position = TimestampPosition.Aligned,
+                                            timestamp = timestampContent,
+                                        ) {
+                                            MarkdownText(
+                                                text = attachment.caption,
+                                                color = bubbleTextColor
+                                            )
+                                        }
+                                    } else {
+                                        Spacer(Modifier.height(Spacing.xs))
+                                        MessageTimeAndStatus(
+                                            timestamp = model.timestamp,
+                                            isEdited = model.isEdited,
+                                            textColor = bubbleTextColor,
+                                            modifier = Modifier.align(horizontalAlignment)
+                                        )
+                                    }
                                 }
                                 is MessageAttachmentUi.Image -> {
                                     ImageAttachmentBubble(
@@ -208,13 +221,26 @@ fun MessageBubble(
                                         waveformData = attachment.waveform,
                                         isMine = isMine,
                                     )
-                                    Spacer(Modifier.height(Spacing.xs))
-                                    MessageTimeAndStatus(
-                                        timestamp = model.timestamp,
-                                        isEdited = model.isEdited,
-                                        textColor = bubbleTextColor,
-                                        modifier = Modifier.align(horizontalAlignment)
-                                    )
+                                    if (!attachment.caption.isNullOrBlank()) {
+                                        Spacer(Modifier.height(Spacing.xs))
+                                        TimestampLayout(
+                                            position = TimestampPosition.Aligned,
+                                            timestamp = timestampContent,
+                                        ) {
+                                            MarkdownText(
+                                                text = attachment.caption,
+                                                color = bubbleTextColor
+                                            )
+                                        }
+                                    } else {
+                                        Spacer(Modifier.height(Spacing.xs))
+                                        MessageTimeAndStatus(
+                                            timestamp = model.timestamp,
+                                            isEdited = model.isEdited,
+                                            textColor = bubbleTextColor,
+                                            modifier = Modifier.align(horizontalAlignment)
+                                        )
+                                    }
                                 }
                             }
 
