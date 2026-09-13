@@ -1224,11 +1224,14 @@ class RoomViewModel(
 
             when {
                 attachment != null -> {
-                    val nameHint = attachment.fileName?.takeIf { it.isNotBlank() } ?: run {
-                        val ext = mimeToExtension(attachment.mime)
-                        val base = event.eventId.ifBlank { "file" }
-                        "$base.$ext"
-                    }
+                    val nameHint = attachment.fileName?.takeIf { it.isNotBlank() }
+                        ?: event.body.trim().takeIf {
+                            it.isNotBlank() && !it.contains('\n') && it.length < 256
+                        } ?: run {
+                            val ext = mimeToExtension(attachment.mime)
+                            val base = event.eventId.ifBlank { "file" }
+                            "$base.$ext"
+                        }
 
                     service.port.downloadAttachmentToCache(attachment, nameHint)
                         .onSuccess { path ->
@@ -1294,12 +1297,17 @@ class RoomViewModel(
                     )
                 )
             } else if (attachment != null) {
-                val caption = event.body.trim().takeIf { it.isNotBlank() && it != attachment.fileName?.trim() }
-                val nameHint = attachment.fileName?.takeIf { it.isNotBlank() } ?: run {
-                    val ext = mimeToExtension(attachment.mime)
-                    val base = event.eventId.ifBlank { "file" }
-                    "$base.$ext"
+                val caption = event.body.trim().takeIf {
+                    it.isNotBlank() && attachment.fileName != null && it != attachment.fileName?.trim()
                 }
+                val nameHint = attachment.fileName?.takeIf { it.isNotBlank() }
+                    ?: event.body.trim().takeIf {
+                        it.isNotBlank() && !it.contains('\n') && it.length < 256
+                    } ?: run {
+                        val ext = mimeToExtension(attachment.mime)
+                        val base = event.eventId.ifBlank { "file" }
+                        "$base.$ext"
+                    }
 
                 service.port.downloadAttachmentToCache(attachment, nameHint)
                     .onSuccess { path ->
@@ -1492,15 +1500,18 @@ class RoomViewModel(
                 val sticker = ev.sticker
                 if (att != null) {
                     val hint = att.fileName?.takeIf { it.isNotBlank() }
+                        ?: ev.body.trim().takeIf {
+                            it.isNotBlank() && !it.contains('\n') && it.length < 256
+                        }
                     val path = service.port.downloadAttachmentToCache(att, hint).getOrNull()
                     if (path != null) {
                         files += path
                         mimes += att.mime
                     }
-                    // HACK: Include caption (body) only if it differs from filename
+                    // HACK: Include caption (body) only if it differs from filename (MSC2530)
                     val body = ev.body.trim()
                     val fileName = att.fileName?.trim()
-                    if (body.isNotBlank() && body != fileName) {
+                    if (body.isNotBlank() && fileName != null && body != fileName) {
                         texts += body
                     }
                 } else if (sticker != null) {
@@ -2094,10 +2105,9 @@ class RoomViewModel(
                     service.port.sendExistingAttachment(
                         roomId = targetRoomId,
                         attachment = attachment,
-                        body = event.body.takeIf {
-                            it.isNotBlank() &&
-                                attachment.fileName != null &&
-                                it != attachment.fileName
+                        body = event.body.takeIf { it.isNotBlank() }?.let { b ->
+                            if (attachment.fileName == null) b
+                            else b.takeIf { it != attachment.fileName }
                         }
                     )
                 }
