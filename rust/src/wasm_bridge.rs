@@ -2367,7 +2367,7 @@ impl WasmClient {
         {
             let base = matrix_sdk::attachment::BaseAudioInfo {
                 duration: voice_duration_ms.map(web_time::Duration::from_millis),
-                size: None,
+                size: matrix_sdk::ruma::UInt::new(data.len() as u64),
                 waveform: voice_waveform
                     .map(|w| w.into_iter().map(|v| v.clamp(0.0, 1.0)).collect()),
             };
