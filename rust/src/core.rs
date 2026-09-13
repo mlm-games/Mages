@@ -2128,6 +2128,7 @@ impl CoreClient {
         room_id: String,
         att: AttachmentInfo,
         body: Option<String>,
+        formatted_body: Option<String>,
     ) -> Result<(), FfiError> {
         let Ok(rid) = OwnedRoomId::try_from(room_id) else {
             return Err(FfiError::Msg("invalid room id".into()));
@@ -2136,6 +2137,11 @@ impl CoreClient {
             return Err(FfiError::Msg("room not found".into()));
         };
         let typed_caption = body.filter(|b| !b.trim().is_empty());
+        let formatted = typed_caption.as_ref().and_then(|_| {
+            formatted_body
+                .filter(|f| !f.trim().is_empty())
+                .map(matrix_sdk::ruma::events::room::message::FormattedBody::html)
+        });
         let default_caption = match att.kind {
             AttachmentKind::Image => "Image",
             AttachmentKind::Video => "Video",
@@ -2169,6 +2175,7 @@ impl CoreClient {
                     Some(c) => {
                         let mut content = ImageMessageEventContent::new(c, media_source);
                         content.filename = att.file_name.clone();
+                        content.formatted = formatted.clone();
                         content
                     }
                     None => ImageMessageEventContent::new(no_caption_body.clone(), media_source),
@@ -2187,6 +2194,7 @@ impl CoreClient {
                     Some(c) => {
                         let mut content = VideoMessageEventContent::new(c, media_source);
                         content.filename = att.file_name.clone();
+                        content.formatted = formatted.clone();
                         content
                     }
                     None => VideoMessageEventContent::new(no_caption_body.clone(), media_source),
@@ -2202,6 +2210,7 @@ impl CoreClient {
                     Some(c) => {
                         let mut content = FileMessageEventContent::new(c, media_source);
                         content.filename = att.file_name.clone();
+                        content.formatted = formatted.clone();
                         content
                     }
                     None => FileMessageEventContent::new(no_caption_body.clone(), media_source),
@@ -2218,10 +2227,33 @@ impl CoreClient {
                     Some(c) => {
                         let mut content = AudioMessageEventContent::new(c, media_source);
                         content.filename = att.file_name.clone();
+                        content.formatted = formatted.clone();
                         content
                     }
                     None => AudioMessageEventContent::new(no_caption_body.clone(), media_source),
                 };
+                if let (Some(dur_ms), Some(wave)) = (att.duration_ms, att.waveform.clone()) {
+                    if !wave.is_empty() {
+                        use matrix_sdk::ruma::events::room::message::{
+                            UnstableAmplitude, UnstableAudioDetailsContentBlock,
+                            UnstableVoiceContentBlock,
+                        };
+                        let waveform: Vec<UnstableAmplitude> = wave
+                            .iter()
+                            .map(|v| {
+                                ((v.clamp(0.0, 1.0) * UnstableAmplitude::MAX as f32) as u16).into()
+                            })
+                            .collect();
+                        audio.audio = Some(UnstableAudioDetailsContentBlock::new(
+                            Duration::from_millis(dur_ms),
+                            waveform,
+                        ));
+                    }
+                }
+                if att.is_voice == Some(true) {
+                    use matrix_sdk::ruma::events::room::message::UnstableVoiceContentBlock;
+                    audio.voice = Some(UnstableVoiceContentBlock::new());
+                }
                 audio.info = Some(Box::new(info));
                 MessageType::Audio(audio)
             }
@@ -3067,14 +3099,11 @@ impl CoreClient {
         geo_uri: String,
     ) -> Result<(), FfiError> {
         let room = self.require_room(&room_id)?;
-        timeout_compat(
-            Duration::from_secs(30),
-            room.send_location_beacon(geo_uri),
-        )
-        .await
-        .map_err(|_| FfiError::Msg("Timeout sending live location".into()))?
-        .map(|_| ())
-        .map_err(|e| Self::beacon_err(e))
+        timeout_compat(Duration::from_secs(30), room.send_location_beacon(geo_uri))
+            .await
+            .map_err(|_| FfiError::Msg("Timeout sending live location".into()))?
+            .map(|_| ())
+            .map_err(|e| Self::beacon_err(e))
     }
 
     pub async fn send_static_location(

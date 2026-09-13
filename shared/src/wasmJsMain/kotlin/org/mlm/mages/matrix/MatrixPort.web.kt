@@ -435,9 +435,10 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         roomId: String,
         attachment: AttachmentInfo,
         body: String?,
+        formattedBody: String?,
         onProgress: ((Long, Long?) -> Unit)?
     ): Result<Unit> {
-        return requireClient().sendExistingAttachment(roomId, wasmJson.encodeToString(attachment), body).awaitUnitResult()
+        return requireClient().sendExistingAttachment(roomId, wasmJson.encodeToString(attachment), body, formattedBody).awaitUnitResult()
     }
 
     override fun isLoggedIn(): Boolean = client?.isLoggedIn() == true

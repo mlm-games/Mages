@@ -104,6 +104,8 @@ pub struct AttachmentInfo {
     pub thumbnail_mxc_uri: Option<String>,
     pub encrypted: Option<EncFile>,
     pub thumbnail_encrypted: Option<EncFile>,
+    pub waveform: Option<Vec<f32>>,
+    pub is_voice: Option<bool>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Record)]

@@ -2189,12 +2189,17 @@ impl Client {
         room_id: String,
         att: AttachmentInfo,
         body: Option<String>,
+        formatted_body: Option<String>,
         progress: Option<Box<dyn ProgressObserver>>,
     ) -> Result<(), FfiError> {
         if let Some(p) = progress.as_ref() {
             p.on_progress(0, None);
         }
-        let result = RT.block_on(self.core.send_existing_attachment(room_id, att, body));
+        let result =
+            RT.block_on(
+                self.core
+                    .send_existing_attachment(room_id, att, body, formatted_body),
+            );
         if let Some(p) = progress {
             p.on_progress(1, Some(1));
         }
@@ -3743,20 +3748,16 @@ fn map_timeline_event(
                             formatted_body = c.formatted.as_ref().map(|f| f.body.clone());
                         }
                         MessageType::Image(c) => {
-                            formatted_body =
-                                c.formatted_caption().map(|f| f.body.clone());
+                            formatted_body = c.formatted_caption().map(|f| f.body.clone());
                         }
                         MessageType::Video(c) => {
-                            formatted_body =
-                                c.formatted_caption().map(|f| f.body.clone());
+                            formatted_body = c.formatted_caption().map(|f| f.body.clone());
                         }
                         MessageType::File(c) => {
-                            formatted_body =
-                                c.formatted_caption().map(|f| f.body.clone());
+                            formatted_body = c.formatted_caption().map(|f| f.body.clone());
                         }
                         MessageType::Audio(c) => {
-                            formatted_body =
-                                c.formatted_caption().map(|f| f.body.clone());
+                            formatted_body = c.formatted_caption().map(|f| f.body.clone());
                         }
                         MessageType::Location(loc) => {
                             event_type = EventType::Location;
@@ -3984,6 +3985,8 @@ fn extract_attachment(msg: &matrix_sdk_ui::timeline::Message) -> Option<Attachme
                 thumbnail_mxc_uri: thumb_mxc,
                 encrypted,
                 thumbnail_encrypted: thumb_enc,
+                waveform: None,
+                is_voice: None,
             })
         }
 
@@ -4020,6 +4023,8 @@ fn extract_attachment(msg: &matrix_sdk_ui::timeline::Message) -> Option<Attachme
                 thumbnail_mxc_uri: thumb_mxc.or_else(|| Some(mxc_uri.clone())),
                 encrypted,
                 thumbnail_encrypted: thumb_enc,
+                waveform: None,
+                is_voice: None,
             })
         }
 
@@ -4053,6 +4058,8 @@ fn extract_attachment(msg: &matrix_sdk_ui::timeline::Message) -> Option<Attachme
                 thumbnail_mxc_uri: thumb_mxc,
                 encrypted,
                 thumbnail_encrypted: thumb_enc,
+                waveform: None,
+                is_voice: None,
             })
         }
 
@@ -4072,6 +4079,26 @@ fn extract_attachment(msg: &matrix_sdk_ui::timeline::Message) -> Option<Attachme
                 })
                 .unwrap_or((None, None, None));
 
+            let (waveform, is_voice) = match c.audio.as_ref() {
+                Some(details) => (
+                    {
+                        let w: Vec<f32> = details
+                            .waveform
+                            .iter()
+                            .map(|a| u32::try_from(a.get()).unwrap_or(0).min(1024) as f32 / 1024.0)
+                            .collect();
+                        if w.is_empty() { None } else { Some(w) }
+                    },
+                    Some(c.voice.is_some()),
+                ),
+                None => (None, if c.voice.is_some() { Some(true) } else { None }),
+            };
+            let dur = dur.or_else(|| {
+                c.audio
+                    .as_ref()
+                    .map(|details| details.duration.as_millis() as u64)
+            });
+
             Some(AttachmentInfo {
                 kind: AttachmentKind::Audio,
                 mxc_uri,
@@ -4084,6 +4111,8 @@ fn extract_attachment(msg: &matrix_sdk_ui::timeline::Message) -> Option<Attachme
                 thumbnail_mxc_uri: None,
                 encrypted,
                 thumbnail_encrypted: None,
+                waveform,
+                is_voice,
             })
         }
 

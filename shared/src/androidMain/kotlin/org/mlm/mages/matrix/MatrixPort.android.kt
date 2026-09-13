@@ -213,6 +213,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
         roomId: String,
         attachment: AttachmentInfo,
         body: String?,
+        formattedBody: String?,
         onProgress: ((Long, Long?) -> Unit)?
     ): Result<Unit> = withContext(matrixDispatcher) {
         val cb = if (onProgress != null) object : mages.ProgressObserver {
@@ -221,7 +222,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
             }
         } else null
 
-        runWithFfiResult { withClient { it.sendExistingAttachment(roomId, attachment.toFfi(), body, cb) } }
+        runWithFfiResult { withClient { it.sendExistingAttachment(roomId, attachment.toFfi(), body, formattedBody, cb) } }
     }
 
     override fun observeSends(): Flow<SendUpdate> = callbackFlow {
@@ -1925,6 +1926,8 @@ private fun mages.AttachmentInfo.toModel() = AttachmentInfo(
     thumbnailMxcUri = thumbnailMxcUri,
     encrypted = encrypted?.toModel(),
     thumbnailEncrypted = thumbnailEncrypted?.toModel(),
+    waveform = waveform,
+    isVoice = isVoice,
 )
 
 private fun EncFile.toFfi() = mages.EncFile(url = url, json = json)
@@ -1952,6 +1955,8 @@ private fun AttachmentInfo.toFfi() = mages.AttachmentInfo(
     thumbnailMxcUri = thumbnailMxcUri,
     encrypted = encrypted?.toFfi(),
     thumbnailEncrypted = thumbnailEncrypted?.toFfi(),
+    waveform = waveform,
+    isVoice = isVoice,
 )
 
 private fun StickerInfo.toFfi() = mages.StickerInfo(

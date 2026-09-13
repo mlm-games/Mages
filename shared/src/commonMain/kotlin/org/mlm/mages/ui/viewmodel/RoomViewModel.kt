@@ -558,7 +558,7 @@ class RoomViewModel(
             if (canUseCaption) {
                 sendAttachmentsInternal(pending, plainText, formattedBody, s.replyingTo?.eventId)
             } else {
-                sendAttachmentsInternal(pending)
+                sendAttachmentsInternal(pending, replyToEventId = s.replyingTo?.eventId)
                 if (hasText) {
                     val originalInput = s.input
                     launch {
@@ -2102,13 +2102,16 @@ class RoomViewModel(
 
             val result = when {
                 attachment != null -> {
+                    val captionBody = event.body.takeIf { it.isNotBlank() }?.let { b ->
+                        if (attachment.fileName == null) b
+                        else b.takeIf { it != attachment.fileName }
+                    }
+                    val isRealCaption = captionBody != null && attachment.fileName != null
                     service.port.sendExistingAttachment(
                         roomId = targetRoomId,
                         attachment = attachment,
-                        body = event.body.takeIf { it.isNotBlank() }?.let { b ->
-                            if (attachment.fileName == null) b
-                            else b.takeIf { it != attachment.fileName }
-                        }
+                        body = captionBody,
+                        formattedBody = event.formattedBody?.takeIf { it.isNotBlank() && isRealCaption },
                     )
                 }
                 sticker != null -> {

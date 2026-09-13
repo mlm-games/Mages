@@ -78,6 +78,7 @@ data class AttachmentInfo(
     val encrypted: EncFile? = null,
     val thumbnailEncrypted: EncFile? = null,
     val waveform: List<Float>? = null,
+    val isVoice: Boolean? = null,
 )
 
 @Serializable

@@ -640,6 +640,7 @@ interface MatrixPort {
         roomId: String,
         attachment: AttachmentInfo,
         body: String? = null,
+        formattedBody: String? = null,
         onProgress: ((Long, Long?) -> Unit)? = null
     ): Result<Unit>
 

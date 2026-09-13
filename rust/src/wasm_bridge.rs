@@ -2320,6 +2320,7 @@ impl WasmClient {
         room_id: String,
         att_json: String,
         body: Option<String>,
+        formatted_body: Option<String>,
     ) -> JsValue {
         let Some(state) = self.state() else {
             return webffi_not_init();
@@ -2329,7 +2330,7 @@ impl WasmClient {
         };
         let result = state
             .core
-            .send_existing_attachment(room_id, att, body)
+            .send_existing_attachment(room_id, att, body, formatted_body)
             .await;
         webffi_unit(result)
     }
