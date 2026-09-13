@@ -159,7 +159,8 @@ val webAppWasmDir = rootProject.layout.projectDirectory.dir("webApp/src/wasm")
 val generatedWebWasmResources = layout.buildDirectory.dir("generated/web/wasm")
 
 val useCargoFallback = providers.provider { true }
-val cargoBinDefault = providers.provider { if (os.isWindows) "cargo.exe" else "cargo" }
+val cargoBinDefault = providers.environmentVariable("MAGES_CARGO")
+    .orElse(providers.provider { if (os.isWindows) "cargo.exe" else "cargo" })
 val vendoredManifestVar = rustDirDefault.file("uniffi-bindgen/Cargo.toml")
 val targetAbiList = providers.gradleProperty("targetAbi").orNull?.let { listOf(it) } ?: cargoAbis
 
