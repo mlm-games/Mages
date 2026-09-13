@@ -151,6 +151,9 @@ private external fun base64ToUint8Array(base64: String): JsAny
 @JsFun("(msg) => console.log(msg)")
 private external fun consoleLog(msg: String)
 
+@JsFun("(ms) => ms == null ? undefined : BigInt(Math.trunc(ms))")
+private external fun voiceDurationMsToJs(ms: Double?): JsAny?
+
 @OptIn(ExperimentalEncodingApi::class)
 fun ByteArray.toJsUint8Array(): JsAny {
     val b64 = Base64.encode(this)
@@ -737,7 +740,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         val bytes = retrieveWebBlob(path) ?: throw Exception("Blob not found for path: $path")
         clearWebBlob(path)
         // Hack: need to switch to a single fn for all platforms later
-        val result = requireClient().sendAttachmentBytes(roomId, filename ?: path, mime, bytes.toJsUint8Array(), caption, formattedCaption, replyToEventId, voiceDurationMs?.toDouble(), voiceWaveform?.map { it.toDouble() }?.toJsArray(), isVoice).awaitUnitResult()
+        val result = requireClient().sendAttachmentBytes(roomId, filename ?: path, mime, bytes.toJsUint8Array(), caption, formattedCaption, replyToEventId, voiceDurationMsToJs(voiceDurationMs?.toDouble()), voiceWaveform?.map { it.toDouble() }?.toJsArray(), isVoice).awaitUnitResult()
         return result.isSuccess
     }
 
