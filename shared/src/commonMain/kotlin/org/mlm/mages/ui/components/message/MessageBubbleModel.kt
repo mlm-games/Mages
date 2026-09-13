@@ -56,6 +56,12 @@ sealed interface MessageAttachmentUi {
         val durationMs: Long?,
         val waveform: List<Float>,
         val caption: String? = null,
+        val fileName: String? = null,
+        val mime: String? = null,
+        val sizeBytes: Long? = null,
+        val title: String = "Audio",
+        val subtitle: String? = null,
+        val isVoice: Boolean = false,
     ) : MessageAttachmentUi
 }
 

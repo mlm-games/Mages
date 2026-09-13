@@ -60,6 +60,14 @@ private fun MessageEvent.toAttachmentUi(
             durationMs = info.durationMs,
             waveform = resolvedAudioWaveform.ifEmpty { info.waveform.orEmpty() },
             caption = toMediaCaption(),
+            fileName = info.fileName,
+            mime = info.mime,
+            sizeBytes = info.sizeBytes,
+            title = info.fileName?.takeIf { it.isNotBlank() }
+                ?: body.trim().ifBlank { "Audio" },
+            subtitle = buildAttachmentSubtitle(info.mime, info.sizeBytes),
+            // MSC3245 voice marker
+            isVoice = info.isVoice == true,
         )
     }
 }
