@@ -34,3 +34,5 @@ repo/
 gradle-deps/
 vendor-uniffi/
 webApp/src/wasm/
+
+/.direnv
