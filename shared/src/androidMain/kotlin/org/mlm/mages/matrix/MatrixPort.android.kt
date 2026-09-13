@@ -699,6 +699,9 @@ class RustMatrixPort : MatrixPort, VerificationService {
         caption: String?,
         formattedCaption: String?,
         replyToEventId: String?,
+        voiceDurationMs: Long?,
+        voiceWaveform: List<Float>?,
+        isVoice: Boolean?,
         onProgress: ((Long, Long?) -> Unit)?
     ): Boolean {
         val cb = if (onProgress != null) object : mages.ProgressObserver {
@@ -707,7 +710,7 @@ class RustMatrixPort : MatrixPort, VerificationService {
             }
         } else null
         return withContext(Dispatchers.IO) {
-            runWithFfiResult { withClient { it.sendAttachmentFromPath(roomId, path, mime, filename, caption, formattedCaption, replyToEventId, cb) } }.isSuccess
+            runWithFfiResult { withClient { it.sendAttachmentFromPath(roomId, path, mime, filename, caption, formattedCaption, replyToEventId, voiceDurationMs?.toULong(), voiceWaveform, isVoice, cb) } }.isSuccess
         }
     }
 

@@ -1369,6 +1369,8 @@ class RoomViewModel(
 
     fun sendVoiceRecording() {
         val path = currentState.voiceRecordingPath ?: return
+        val durationMs = currentState.voiceRecordingDurationMs.takeIf { it > 0 }
+        val waveform = currentState.voiceRecordingWaveform.takeIf { it.isNotEmpty() }
 
         updateState {
             copy(
@@ -1385,7 +1387,10 @@ class RoomViewModel(
                 roomId = currentState.roomId,
                 path = path,
                 mime = mime,
-                filename = "voice_message.${voiceMessageExtension}"
+                filename = "voice_message.${voiceMessageExtension}",
+                voiceDurationMs = durationMs,
+                voiceWaveform = waveform,
+                isVoice = true,
             ) { _, _ -> }
 
             if (result.isFailure) {

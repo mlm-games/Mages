@@ -2345,6 +2345,9 @@ impl WasmClient {
         caption: Option<String>,
         formatted_caption: Option<String>,
         reply_to_event_id: Option<String>,
+        voice_duration_ms: Option<u64>,
+        voice_waveform: Option<Vec<f32>>,
+        is_voice: Option<bool>,
     ) -> JsValue {
         let Some(state) = self.state() else {
             return webffi_not_init();
@@ -2357,6 +2360,25 @@ impl WasmClient {
         };
         let mime_type: Mime = mime.parse().unwrap_or(mime::APPLICATION_OCTET_STREAM);
         let mut config = AttachmentConfig::new();
+        if mime_type.type_() == mime::AUDIO
+            && (is_voice == Some(true)
+                || voice_duration_ms.is_some()
+                || voice_waveform.as_ref().is_some_and(|w| !w.is_empty()))
+        {
+            let base = matrix_sdk::attachment::BaseAudioInfo {
+                duration: voice_duration_ms.map(web_time::Duration::from_millis),
+                size: None,
+                waveform: voice_waveform
+                    .map(|w| w.into_iter().map(|v| v.clamp(0.0, 1.0)).collect()),
+            };
+            if is_voice == Some(true) {
+                config =
+                    config.info(matrix_sdk::attachment::AttachmentInfo::Voice(base));
+            } else {
+                config =
+                    config.info(matrix_sdk::attachment::AttachmentInfo::Audio(base));
+            }
+        }
         if let Some(c) = caption {
             let text_content = if let Some(fc) = formatted_caption {
                 matrix_sdk::ruma::events::room::message::TextMessageEventContent::html(c, fc)

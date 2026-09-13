@@ -2742,6 +2742,9 @@ impl Client {
         caption: Option<String>,
         formatted_caption: Option<String>,
         reply_to_event_id: Option<String>,
+        voice_duration_ms: Option<u64>,
+        voice_waveform: Option<Vec<f32>>,
+        is_voice: Option<bool>,
         progress: Option<Box<dyn ProgressObserver>>,
     ) -> bool {
         RT.block_on(async {
@@ -2766,6 +2769,23 @@ impl Client {
                     .unwrap_or("file".into())
             });
             let mut config = matrix_sdk::attachment::AttachmentConfig::new();
+            if mime_type.type_() == mime::AUDIO
+                && (is_voice == Some(true)
+                    || voice_duration_ms.is_some()
+                    || voice_waveform.as_ref().is_some_and(|w| !w.is_empty()))
+            {
+                let base = matrix_sdk::attachment::BaseAudioInfo {
+                    duration: voice_duration_ms.map(Duration::from_millis),
+                    size: UInt::new(data.len() as u64),
+                    waveform: voice_waveform
+                        .map(|w| w.into_iter().map(|v| v.clamp(0.0, 1.0)).collect()),
+                };
+                if is_voice == Some(true) {
+                    config = config.info(matrix_sdk::attachment::AttachmentInfo::Voice(base));
+                } else {
+                    config = config.info(matrix_sdk::attachment::AttachmentInfo::Audio(base));
+                }
+            }
             if let Some(c) = caption {
                 let text_content = if let Some(fc) = formatted_caption {
                     matrix_sdk::ruma::events::room::message::TextMessageEventContent::html(c, fc)
