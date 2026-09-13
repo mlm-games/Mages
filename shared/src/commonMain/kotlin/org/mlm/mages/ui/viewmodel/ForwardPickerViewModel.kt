@@ -370,10 +370,9 @@ class ForwardPickerViewModel(
                     service.port.sendExistingAttachment(
                         roomId = targetRoomId,
                         attachment = attachment,
-                        body = event.body.takeIf {
-                            it.isNotBlank() &&
-                                attachment.fileName != null &&
-                                it != attachment.fileName
+                        body = event.body.takeIf { it.isNotBlank() }?.let { b ->
+                            if (attachment.fileName == null) b
+                            else b.takeIf { it != attachment.fileName }
                         }
                     )
                 }
