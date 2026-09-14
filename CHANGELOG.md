@@ -1,3 +1,12 @@
+## v4.11.1
+
+- build(flake): use android version from release file
+- fix filemname being discarded on forward
+- cache room states
+- Cancel the call notification when the call has been declined
+- build(flake): init for devshell
+
+
 ## v4.11.0
 
 - cache room states

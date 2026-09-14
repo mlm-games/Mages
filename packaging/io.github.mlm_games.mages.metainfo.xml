@@ -46,6 +46,17 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.11.1" date="2026-09-14" type="stable">
+      <description>
+        <ul>
+          <li>build(flake): use android version from release file</li>
+          <li>fix filemname being discarded on forward</li>
+          <li>cache room states</li>
+          <li>Cancel the call notification when the call has been declined</li>
+          <li>build(flake): init for devshell</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.11.0" date="2026-09-12" type="stable">
       <description>
         <ul>
