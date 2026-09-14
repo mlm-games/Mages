@@ -46,13 +46,17 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                             if (port != null && service.isLoggedIn()) {
                                 runCatching { port.declineCall(roomId, eventId) }
                             }
-                            AndroidNotificationHelper.cancelCallNotification(context, roomId)
+                            AndroidNotificationHelper.dismissCallUi(
+                                context, roomId, eventId, silent = true
+                            )
                         }
                     }
 
                     ACTION_DISMISS_CALL -> {
                         if (roomId != null) {
-                            AndroidNotificationHelper.cancelCallNotification(context, roomId)
+                            AndroidNotificationHelper.dismissCallUi(
+                                context, roomId, silent = true
+                            )
                             val callerName = intent.getStringExtra(EXTRA_CALLER_NAME) ?: return@launch
                             val roomName = intent.getStringExtra(EXTRA_ROOM_NAME) ?: ""
                             val isVoiceOnly = intent.getBooleanExtra(EXTRA_IS_VOICE_ONLY, false)

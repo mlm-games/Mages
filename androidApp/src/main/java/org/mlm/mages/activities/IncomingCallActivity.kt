@@ -1,11 +1,15 @@
 package org.mlm.mages.activities
 
 import android.app.KeyguardManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.WindowManager
 import co.touchlab.kermit.Logger
 import android.view.accessibility.AccessibilityManager
@@ -34,8 +38,15 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.mlm.mages.MatrixService
+import org.mlm.mages.calls.CallManager
+import org.mlm.mages.calls.IncomingCallTracker
 import org.mlm.mages.calls.formatCallElapsed
+import org.mlm.mages.calls.isExpired
+import org.mlm.mages.calls.isRingingCall
+import org.mlm.mages.matrix.MatrixPort
+import org.mlm.mages.matrix.RoomCallState
 import org.mlm.mages.push.AndroidNotificationHelper
+import org.mlm.mages.push.CallTelecomBridge
 import org.mlm.mages.ui.theme.MainTheme
 import org.mlm.mages.ui.components.core.Avatar
 import androidx.activity.compose.BackHandler
@@ -89,13 +100,24 @@ private data class IncomingCallUiState(
     val eventId: String?,
     val isVoiceOnly: Boolean,
     val isDm: Boolean,
+    val expiresAtMs: Long = 0L,
 )
 
 class IncomingCallActivity : ComponentActivity() {
 
     private val service: MatrixService by inject()
+    private val incomingCalls: IncomingCallTracker by inject()
+    private val callManager: CallManager by inject()
 
     private var uiState by mutableStateOf<IncomingCallUiState?>(null)
+
+    private var expiryHandler: Handler? = null
+    private var expiryRunnable: Runnable? = null
+    private var dismissedReceiver: BroadcastReceiver? = null
+    private var callStateToken: ULong? = null
+    private var declineToken: ULong? = null
+    private var watchdogJobs = mutableListOf<kotlinx.coroutines.Job>()
+    @Volatile private var remoteFinished = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -118,6 +140,7 @@ class IncomingCallActivity : ComponentActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         applyIntent(intent)
+        startRemoteHangupWatchdogs()
 
         setContent {
             MainTheme {
@@ -148,7 +171,14 @@ class IncomingCallActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        remoteFinished = false
         applyIntent(intent)
+        startRemoteHangupWatchdogs()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        recheckStillRinging()
     }
 
     private fun applyIntent(intent: Intent?) {
@@ -165,6 +195,7 @@ class IncomingCallActivity : ComponentActivity() {
             eventId = intent.getStringExtra(EXTRA_EVENT_ID),
             isVoiceOnly = intent.getBooleanExtra(EXTRA_IS_VOICE_ONLY, false),
             isDm = intent.getBooleanExtra(EXTRA_IS_DM, false),
+            expiresAtMs = intent.getLongExtra(EXTRA_EXPIRES_AT_MS, 0L),
         )
 
         uiState = newState
@@ -172,7 +203,9 @@ class IncomingCallActivity : ComponentActivity() {
 
     private fun acceptCall(roomId: String, eventId: String?) {
         lifecycleScope.launch {
-            AndroidNotificationHelper.cancelCallNotification(this@IncomingCallActivity, roomId)
+            AndroidNotificationHelper.dismissCallUi(
+                this@IncomingCallActivity, roomId, eventId, silent = true
+            )
 
             val uri = Uri.Builder()
                 .scheme("mages")
@@ -209,12 +242,221 @@ class IncomingCallActivity : ComponentActivity() {
                     runCatching { port.declineCall(roomId, state.eventId) }
                 }
             }
-            AndroidNotificationHelper.cancelCallNotification(this@IncomingCallActivity, roomId)
+            AndroidNotificationHelper.dismissCallUi(
+                this@IncomingCallActivity, roomId, state?.eventId, silent = true
+            )
             finish()
         }
     }
 
+    private fun startRemoteHangupWatchdogs() {
+        val state = uiState ?: return
+        stopRemoteHangupWatchdogs()
+
+        dismissedReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action != CallTelecomBridge.ACTION_CALL_DISMISSED) return
+                val goneRoom = intent.getStringExtra(CallTelecomBridge.EXTRA_ROOM_ID)
+                if (goneRoom != state.roomId) return
+                val goneEvent = intent.getStringExtra(CallTelecomBridge.EXTRA_EVENT_ID)
+                if (goneEvent != null && state.eventId != null && goneEvent != state.eventId) return
+                val silent = intent.getBooleanExtra(CallTelecomBridge.EXTRA_SILENT, false)
+                finishAfterRemoteCancel(silent = silent)
+            }
+        }.also {
+            runCatching {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    registerReceiver(it, IntentFilter(CallTelecomBridge.ACTION_CALL_DISMISSED), RECEIVER_NOT_EXPORTED)
+                } else {
+                    @Suppress("UnspecifiedRegisterReceiverFlag")
+                    registerReceiver(it, IntentFilter(CallTelecomBridge.ACTION_CALL_DISMISSED))
+                }
+            }
+        }
+
+        val expiryMs = state.expiresAtMs
+        if (expiryMs > 0L) {
+            val handler = Handler(Looper.getMainLooper())
+            val waitMs = (expiryMs - System.currentTimeMillis()).coerceAtLeast(0L)
+            val runnable = Runnable { finishAfterRemoteCancel(silent = false) }
+            expiryHandler = handler
+            expiryRunnable = runnable
+            handler.postDelayed(runnable, waitMs)
+        }
+
+        watchdogJobs += lifecycleScope.launch {
+            incomingCalls.dismissed.collect { gone ->
+                val s = uiState ?: return@collect
+                if (gone.roomId == s.roomId &&
+                    (s.eventId == null || gone.eventId == s.eventId)
+                ) {
+                    finishAfterRemoteCancel(silent = true)
+                }
+            }
+        }
+
+        watchdogJobs += lifecycleScope.launch {
+            runCatching { service.initFromDisk() }
+            val port = service.portOrNull
+            if (port == null || !service.isLoggedIn()) {
+                recheckStillRinging()
+                return@launch
+            }
+            runCatching { service.startSupervisedSync() }
+
+            val roomId = state.roomId
+            val eventId = state.eventId
+            val me = runCatching { port.whoami() }.getOrNull()
+
+            val snapshot = runCatching {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    var first: RoomCallState? = null
+                    val latch = java.util.concurrent.CountDownLatch(1)
+                    val token = port.observeRoomCallState(
+                        roomId,
+                        object : MatrixPort.RoomCallStateObserver {
+                            override fun onUpdate(state: RoomCallState) {
+                                first = state
+                                latch.countDown()
+                            }
+                        }
+                    )
+                    try {
+                        latch.await(4, java.util.concurrent.TimeUnit.SECONDS)
+                    } finally {
+                        runCatching { port.unobserveRoomCallState(token) }
+                    }
+                    first
+                }
+            }.getOrNull()
+            if (snapshot != null) {
+                if (me != null && snapshot.activeParticipants.contains(me)) {
+                    finishAfterRemoteCancel(silent = true)
+                    return@launch
+                }
+                if (!snapshot.hasActiveCall) {
+                    kotlinx.coroutines.delay(org.mlm.mages.calls.CALL_END_GRACE_MS)
+                    val cur = uiState
+                    if (cur == null || cur.roomId != roomId || callManager.isInCall(roomId)) {
+                        return@launch
+                    }
+                    recheckStillRinging()
+                }
+            }
+
+            callStateToken = runCatching {
+                port.observeRoomCallState(
+                    roomId,
+                    object : MatrixPort.RoomCallStateObserver {
+                        override fun onUpdate(callState: RoomCallState) {
+                            lifecycleScope.launch {
+                                val s = uiState ?: return@launch
+                                if (s.roomId != roomId) return@launch
+                                if (callManager.isInCall(roomId)) {
+                                    finishAfterRemoteCancel(silent = true)
+                                } else if (!callState.hasActiveCall) {
+                                    kotlinx.coroutines.delay(org.mlm.mages.calls.CALL_END_GRACE_MS)
+                                    val cur = uiState ?: return@launch
+                                    if (cur.roomId == roomId && !callManager.isInCall(roomId)) {
+                                        finishAfterRemoteCancel(silent = false)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                )
+            }.getOrNull()
+
+            if (eventId != null) {
+                declineToken = runCatching {
+                    port.observeCallDecline(
+                        roomId,
+                        eventId,
+                        object : MatrixPort.CallDeclineObserver {
+                            override fun onDecline(declinerUserId: String) {
+                                lifecycleScope.launch {
+                                    val silent = me != null && declinerUserId == me
+                                    finishAfterRemoteCancel(silent = silent)
+                                }
+                            }
+                        }
+                    )
+                }.getOrNull()
+            }
+
+            recheckStillRinging()
+        }
+    }
+
+    private fun recheckStillRinging() {
+        val state = uiState ?: return
+        if (callManager.isInCall(state.roomId)) {
+            finishAfterRemoteCancel(silent = true)
+            return
+        }
+        val eventId = state.eventId ?: return
+        lifecycleScope.launch {
+            runCatching { service.initFromDisk() }
+            val port = service.portOrNull ?: return@launch
+            val rendered = runCatching {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    port.fetchNotification(state.roomId, eventId)
+                }
+            }.getOrNull()
+            val stale = rendered != null &&
+                (!rendered.kind.isRingingCall() || rendered.isExpired())
+            if (stale) finishAfterRemoteCancel(silent = false)
+        }
+    }
+
+    private fun stopRemoteHangupWatchdogs() {
+        watchdogJobs.forEach { runCatching { it.cancel() } }
+        watchdogJobs.clear()
+        expiryRunnable?.let { r -> expiryHandler?.removeCallbacks(r) }
+        expiryHandler = null
+        expiryRunnable = null
+        dismissedReceiver?.let { runCatching { unregisterReceiver(it) } }
+        dismissedReceiver = null
+        val port = service.portOrNull
+        callStateToken?.let { token -> runCatching { port?.unobserveRoomCallState(token) } }
+        callStateToken = null
+        val eventId = uiState?.eventId
+        if (eventId != null) {
+            declineToken?.let { token -> runCatching { port?.unobserveCallDecline(token) } }
+        }
+        declineToken = null
+    }
+
+    private fun finishAfterRemoteCancel(silent: Boolean) {
+        if (remoteFinished || isFinishing || isDestroyed) return
+        remoteFinished = true
+        val state = uiState
+        lifecycleScope.launch {
+            if (state != null) {
+                AndroidNotificationHelper.cancelCallNotification(this@IncomingCallActivity, state.roomId)
+                if (!silent) {
+                    val joined = callManager.isInCall(state.roomId)
+                    if (!joined) {
+                        AndroidNotificationHelper.showMissedCallNotification(
+                            this@IncomingCallActivity,
+                            state.roomId,
+                            state.callerName,
+                            state.roomName,
+                            state.isVoiceOnly,
+                        )
+                    }
+                }
+                runCatching {
+                    incomingCalls.dismiss(state.roomId, state.eventId)
+                }
+            }
+            stopRemoteHangupWatchdogs()
+            finishAndRemoveTask()
+        }
+    }
+
     override fun onDestroy() {
+        stopRemoteHangupWatchdogs()
         super.onDestroy()
     }
 
@@ -226,6 +468,7 @@ class IncomingCallActivity : ComponentActivity() {
         const val EXTRA_EVENT_ID = "event_id"
         const val EXTRA_IS_VOICE_ONLY = "is_voice_only"
         const val EXTRA_IS_DM = "is_dm"
+        const val EXTRA_EXPIRES_AT_MS = "expires_at_ms"
 
         fun createIntent(
             context: Context,
@@ -235,7 +478,8 @@ class IncomingCallActivity : ComponentActivity() {
             callerAvatarUrl: String?,
             eventId: String?,
             isVoiceOnly: Boolean = false,
-            isDm: Boolean = false
+            isDm: Boolean = false,
+            expiresAtMs: Long = 0L,
         ): Intent {
             return Intent(context, IncomingCallActivity::class.java).apply {
                 putExtra(EXTRA_ROOM_ID, roomId)
@@ -245,6 +489,7 @@ class IncomingCallActivity : ComponentActivity() {
                 putExtra(EXTRA_EVENT_ID, eventId)
                 putExtra(EXTRA_IS_VOICE_ONLY, isVoiceOnly)
                 putExtra(EXTRA_IS_DM, isDm)
+                putExtra(EXTRA_EXPIRES_AT_MS, expiresAtMs)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                         Intent.FLAG_ACTIVITY_SINGLE_TOP or
                         Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or

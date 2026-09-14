@@ -165,7 +165,7 @@ class MagesApp : Application() {
                     }
                     runCatching {
                         callManager.call.value?.roomId?.let { roomId ->
-                            AndroidNotificationHelper.cancelCallNotification(this, roomId)
+                            AndroidNotificationHelper.dismissCallUi(this, roomId, silent = true)
                         }
                     }
                 } else {
@@ -179,7 +179,12 @@ class MagesApp : Application() {
             }
             appScope.launch {
                 koin.get<IncomingCallTracker>().dismissed.collect { gone ->
-                    AndroidNotificationHelper.cancelCallNotification(this@MagesApp, gone.roomId)
+                    AndroidNotificationHelper.dismissCallUi(
+                        this@MagesApp,
+                        roomId = gone.roomId,
+                        eventId = gone.eventId,
+                        silent = true,
+                    )
                 }
             }
             LiveLocationSharingCoordinator.onChanged = { active, count ->

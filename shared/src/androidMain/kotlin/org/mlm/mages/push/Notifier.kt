@@ -50,6 +50,7 @@ object AndroidNotificationHelper : KoinComponent {
         isVoiceOnly: Boolean = false,
         isDm: Boolean = false,
         callerUserId: String? = null,
+        expiresAtMs: Long? = null,
     ) {
         AppNotificationChannels.ensureCreated(ctx)
         val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
@@ -65,7 +66,8 @@ object AndroidNotificationHelper : KoinComponent {
             callerAvatarPath = callerAvatarPath,
             requestCode = screenRequestCode,
             isVoiceOnly = isVoiceOnly,
-            isDm = isDm
+            isDm = isDm,
+            expiresAtMs = expiresAtMs,
         )
 
         val joinIntent = createCallJoinIntent(ctx, roomId, eventId, notifId)
@@ -126,6 +128,16 @@ object AndroidNotificationHelper : KoinComponent {
         mgr.cancel(callNotificationId(roomId))
         runCatching { CallTelecomBridge.onIncomingGone?.invoke(roomId) }
         Notifier.updateSummaryNotification(ctx)
+    }
+
+    fun dismissCallUi(
+        ctx: Context,
+        roomId: String,
+        eventId: String? = null,
+        silent: Boolean = false,
+    ) {
+        cancelCallNotification(ctx, roomId)
+        CallTelecomBridge.sendCallDismissed(ctx, roomId, eventId, silent)
     }
 
     fun cancelRoomNotification(ctx: Context, roomId: String, force: Boolean = false) {
@@ -190,7 +202,8 @@ object AndroidNotificationHelper : KoinComponent {
         callerAvatarPath: String? = null,
         requestCode: Int,
         isVoiceOnly: Boolean = false,
-        isDm: Boolean = false
+        isDm: Boolean = false,
+        expiresAtMs: Long? = null,
     ): PendingIntent? {
         val settingsRepo: SettingsRepository<AppSettings> by inject()
 
@@ -212,6 +225,7 @@ object AndroidNotificationHelper : KoinComponent {
                 putExtra("caller_avatar_path", callerAvatarPath)
                 putExtra("is_voice_only", isVoiceOnly)
                 putExtra("is_dm", isDm)
+                expiresAtMs?.let { putExtra("expires_at_ms", it) }
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                         Intent.FLAG_ACTIVITY_SINGLE_TOP or
                         Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or

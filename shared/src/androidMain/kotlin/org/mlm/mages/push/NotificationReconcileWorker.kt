@@ -97,7 +97,7 @@ class NotificationReconcileWorker(
                     else -> false
                 }
                 if (stale) {
-                    AndroidNotificationHelper.cancelCallNotification(ctx, roomId)
+                    AndroidNotificationHelper.dismissCallUi(ctx, roomId, eventId, silent = false)
                 }
                 if (targetRoomId != null) break
             }

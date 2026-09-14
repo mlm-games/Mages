@@ -940,7 +940,8 @@ private fun AppContent(
                                         } else if (state.hasActiveCall) {
                                             seenActive += roomId
                                             lastActive[roomId] = true
-                                        } else if (roomId in seenActive) {
+                                        } else {
+                                            seenActive += roomId
                                             lastActive[roomId] = false
                                             reconcilerScope.launch {
                                                 delay(CALL_END_GRACE_MS)
@@ -970,9 +971,7 @@ private fun AppContent(
                                     invite.eventId,
                                     object : CallDeclineObserver {
                                         override fun onDecline(declinerUserId: String) {
-                                            if (me != null && declinerUserId == me) {
-                                                incomingCalls.dismiss(roomId, invite.eventId)
-                                            }
+                                            incomingCalls.dismiss(roomId, invite.eventId)
                                         }
                                     }
                                 )

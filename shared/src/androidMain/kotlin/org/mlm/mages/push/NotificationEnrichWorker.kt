@@ -166,6 +166,8 @@ class NotificationEnrichWorker(
                     roomName = rendered.roomName,
                     callerAvatarPath = callerAvatarPath,
                     callerUserId = rendered.senderUserId,
+                    isDm = rendered.isDm,
+                    expiresAtMs = rendered.expiresAtMs,
                 )
                 runCatching { incomingCalls.report(IncomingCall.ringing(rendered)) }
                 return Result.success()
