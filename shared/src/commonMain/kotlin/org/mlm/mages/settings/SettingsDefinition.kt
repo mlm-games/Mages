@@ -38,7 +38,7 @@ enum class PresenceMode { Online, Offline, Unavailable }
 enum class AppLockTimeout {
     Immediate,
     OneMinute,
-    FiveMinutes, // Well should probable format in kmp-settings
+    FiveMinutes,
     ThirtyMinutes,
     OneHour,
     Never

@@ -20,12 +20,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.json.JsonObject
 import org.maplibre.compose.camera.CameraPosition
-import org.maplibre.compose.camera.rememberCameraState
 import org.maplibre.compose.expressions.dsl.const
+import org.maplibre.compose.interaction.MapInteractions
 import org.maplibre.compose.layers.CircleLayer
-import org.maplibre.compose.map.GestureOptions
-import org.maplibre.compose.map.MapOptions
 import org.maplibre.compose.map.MaplibreMap
+import org.maplibre.compose.map.rememberMapState
 import org.maplibre.compose.sources.GeoJsonData
 import org.maplibre.compose.sources.rememberGeoJsonSource
 import org.maplibre.compose.style.BaseStyle
@@ -54,38 +53,39 @@ actual fun TimelineLocationMapView(
     val pinColor = MaterialTheme.colorScheme.primary
     val strokeColor = Color.White
 
-    val cameraState = rememberCameraState(
-        firstPosition = CameraPosition(target = position, zoom = 15.0)
-    )
+    val feature = remember(lat, lon) {
+        FeatureCollection(
+            features = listOf(
+                Feature(
+                    geometry = Point(position),
+                    properties = JsonObject(emptyMap()),
+                )
+            )
+        )
+    }
+
+    val mapState = rememberMapState(
+        baseStyle = BaseStyle.Uri(mapStyleUrl),
+        initialCameraPosition = CameraPosition(target = position, zoom = 15.0),
+    ) {
+        val source = rememberGeoJsonSource(GeoJsonData.Features(feature))
+
+        CircleLayer(
+            id = "location-pin",
+            source = source,
+            radius = const(8.dp),
+            color = const(pinColor),
+            strokeWidth = const(3.dp),
+            strokeColor = const(strokeColor),
+        )
+    }
 
     Box(modifier = modifier.clip(RoundedCornerShape(12.dp))) {
         MaplibreMap(
             modifier = Modifier.fillMaxSize(),
-            baseStyle = BaseStyle.Uri(mapStyleUrl),
-            cameraState = cameraState,
-            options = MapOptions(gestureOptions = GestureOptions.AllDisabled),
-        ) {
-            val feature = remember(lat, lon) {
-                FeatureCollection(
-                    features = listOf(
-                        Feature(
-                            geometry = Point(position),
-                            properties = JsonObject(emptyMap()),
-                        )
-                    )
-                )
-            }
-            val source = rememberGeoJsonSource(GeoJsonData.Features(feature))
-
-            CircleLayer(
-                id = "location-pin",
-                source = source,
-                radius = const(8.dp),
-                color = const(pinColor),
-                strokeWidth = const(3.dp),
-                strokeColor = const(strokeColor),
-            )
-        }
+            state = mapState,
+            interactions = MapInteractions.None,
+        )
     }
 }
 

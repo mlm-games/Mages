@@ -63,18 +63,18 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.koin.compose.koinInject
 import org.maplibre.compose.camera.CameraPosition
-import org.maplibre.compose.camera.rememberCameraState
 import org.maplibre.compose.expressions.dsl.Feature
 import org.maplibre.compose.expressions.dsl.asNumber
 import org.maplibre.compose.expressions.dsl.case
 import org.maplibre.compose.expressions.dsl.const
 import org.maplibre.compose.expressions.dsl.switch
+import org.maplibre.compose.interaction.ClickResult
 import org.maplibre.compose.layers.CircleLayer
 import org.maplibre.compose.map.MaplibreMap
+import org.maplibre.compose.map.rememberMapState
 import org.maplibre.compose.sources.GeoJsonData
 import org.maplibre.compose.sources.rememberGeoJsonSource
 import org.maplibre.compose.style.BaseStyle
-import org.maplibre.compose.util.ClickResult
 import org.maplibre.spatialk.geojson.FeatureCollection
 import org.maplibre.spatialk.geojson.Point
 import org.maplibre.spatialk.geojson.Position
@@ -197,13 +197,6 @@ actual fun LiveLocationMapViewer(
         }
     }
 
-    val cameraState = rememberCameraState(
-        firstPosition = CameraPosition(
-            target = cameraTarget,
-            zoom = if (staticPosition != null) 15.0 else 14.0,
-        )
-    )
-
     val colorExpression = remember(userIdList, primaryColor) {
         if (userIdList.isEmpty()) const(primaryColor)
         else switch(
@@ -211,7 +204,7 @@ actual fun LiveLocationMapViewer(
             fallback = const(primaryColor),
             cases = userColors.mapIndexed { index, color ->
                 case(index, const(color))
-            }.toTypedArray()
+            },
         )
     }
 
@@ -224,65 +217,72 @@ actual fun LiveLocationMapViewer(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var selectedUserId by remember { mutableStateOf<String?>(null) }
 
+    val mapState = rememberMapState(
+        baseStyle = BaseStyle.Uri(mapStyleUrl),
+        initialCameraPosition = CameraPosition(
+            target = cameraTarget,
+            zoom = if (staticPosition != null) 15.0 else 14.0,
+        ),
+    ) {
+        if (liveFeatures.isNotEmpty()) {
+            val liveSource = rememberGeoJsonSource(
+                GeoJsonData.Features(FeatureCollection(liveFeatures))
+            )
+            CircleLayer(
+                id = "live-location-points",
+                source = liveSource,
+                radius = const(12.dp),
+                color = colorExpression,
+                strokeWidth = const(3.dp),
+                strokeColor = const(Color.White),
+                onClick = { clickedFeatures ->
+                    val userId = clickedFeatures.firstOrNull()
+                        ?.properties
+                        ?.get("userId")
+                        ?.let { (it as? JsonPrimitive)?.content }
+                    if (userId != null) {
+                        selectedUserId = userId
+                        val share = activeShares.firstOrNull { it.userId == userId }
+                        val pos = share?.geoUri?.toGeoUriPositionOrNull()
+                        if (pos != null) {
+                            scope.launch {
+                                mapState.animateCameraPosition(CameraPosition(target = pos, zoom = 15.0))
+                            }
+                        }
+                    }
+                    ClickResult.Consume
+                },
+            )
+        }
+
+        if (staticPosition != null) {
+            val staticFeature = remember(staticPosition) {
+                FeatureCollection(
+                    features = listOf(
+                        org.maplibre.spatialk.geojson.Feature(
+                            geometry = Point(staticPosition),
+                            properties = JsonObject(emptyMap()),
+                        )
+                    )
+                )
+            }
+            val staticSource = rememberGeoJsonSource(GeoJsonData.Features(staticFeature))
+            CircleLayer(
+                id = "static-location-pin",
+                source = staticSource,
+                radius = const(10.dp),
+                color = const(primaryColor),
+                strokeWidth = const(4.dp),
+                strokeColor = const(Color.White),
+            )
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         MaplibreMap(
             modifier = Modifier.fillMaxSize(),
-            baseStyle = BaseStyle.Uri(mapStyleUrl),
-            cameraState = cameraState,
-        ) {
-            if (liveFeatures.isNotEmpty()) {
-                val liveSource = rememberGeoJsonSource(
-                    GeoJsonData.Features(FeatureCollection(liveFeatures))
-                )
-                CircleLayer(
-                    id = "live-location-points",
-                    source = liveSource,
-                    radius = const(12.dp),
-                    color = colorExpression,
-                    strokeWidth = const(3.dp),
-                    strokeColor = const(Color.White),
-                    onClick = { clickedFeatures ->
-                        val userId = clickedFeatures.firstOrNull()
-                            ?.properties
-                            ?.get("userId")
-                            ?.let { (it as? JsonPrimitive)?.content }
-                        if (userId != null) {
-                            selectedUserId = userId
-                            val share = activeShares.firstOrNull { it.userId == userId }
-                            val pos = share?.geoUri?.toGeoUriPositionOrNull()
-                            if (pos != null) {
-                                scope.launch {
-                                    cameraState.animateTo(CameraPosition(target = pos, zoom = 15.0))
-                                }
-                            }
-                        }
-                        ClickResult.Consume
-                    },
-                )
-            }
-
-            if (staticPosition != null) {
-                val staticFeature = remember(staticPosition) {
-                    FeatureCollection(
-                        features = listOf(
-                            org.maplibre.spatialk.geojson.Feature(
-                                geometry = Point(staticPosition),
-                                properties = JsonObject(emptyMap()),
-                            )
-                        )
-                    )
-                }
-                val staticSource = rememberGeoJsonSource(GeoJsonData.Features(staticFeature))
-                CircleLayer(
-                    id = "static-location-pin",
-                    source = staticSource,
-                    radius = const(10.dp),
-                    color = const(primaryColor),
-                    strokeWidth = const(4.dp),
-                    strokeColor = const(Color.White),
-                )
-            }
-        }
+            state = mapState,
+        )
 
         if (isPicking) {
             Box(
@@ -308,7 +308,7 @@ actual fun LiveLocationMapViewer(
                                 isCentering = true
                                 val result = LiveLocationProvider().getCurrentLocation()
                                 if (result is LocationResult.Success) {
-                                    cameraState.animateTo(
+                                    mapState.animateCameraPosition(
                                         CameraPosition(
                                             target = Position(result.location.longitude, result.location.latitude),
                                             zoom = 15.0
@@ -347,7 +347,7 @@ actual fun LiveLocationMapViewer(
 
                 Button(
                     onClick = {
-                        val target = cameraState.position.target
+                        val target = mapState.cameraPosition.target
                         onSendPickedLocation?.invoke(target.latitude, target.longitude)
                     },
                     modifier = Modifier

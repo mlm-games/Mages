@@ -17,9 +17,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import mages.shared.generated.resources.Res
 import org.koin.compose.koinInject
-import org.maplibre.compose.desktop.MapLibre
-import org.maplibre.compose.desktop.ProvideMapHost
-import org.maplibre.compose.desktop.rememberAwtComposeMapHost
+import org.maplibre.compose.desktop.ProvideMapPresentationHost
+import org.maplibre.compose.desktop.rememberAwtComposeMapPresentationHost
 import org.mlm.mages.di.KoinApp
 import org.mlm.mages.nav.DeepLinkAction
 import org.mlm.mages.platform.MagesPaths
@@ -30,10 +29,6 @@ import java.awt.event.WindowFocusListener
 import javax.swing.SwingUtilities
 
 fun main() {
-    MapLibre.configure(
-        applicationId = "org.mlm.mages",
-    )
-
     application {
         MagesPaths.init()
 
@@ -181,7 +176,7 @@ fun main() {
                 }
             }
 
-            ProvideMapHost(host = rememberAwtComposeMapHost(window)) {
+            ProvideMapPresentationHost(host = rememberAwtComposeMapPresentationHost(window)) {
                 DesktopAppContent(
                     deepLinks = deepLinks
                 )

@@ -14,13 +14,13 @@ elementCallEmbedded = "0.23.0"
 javafx = "21.0.1"
 javafxPlugin = "0.1.0"
 jcefmaven = "146.0.10"
-json = "20260522"
+json = "20260814"
 koinComposeNavigation3 = "4.2.2"
 material3 = "1.12.0-alpha03"
 markdown = "0.7.9"
 multiplatformMarkdownRenderer = "0.45.0"
 multiplatformMarkdownRendererM3 = "0.45.0"
-navigation3Ui = "1.2.0-beta01"
+navigation3Ui = "1.1.1"
 pagingCompose = "3.5.1"
 slf4jSimple = "2.0.19"
 systemtray = "4.4"
@@ -33,8 +33,8 @@ androidx-espresso = "3.7.0"
 androidx-lifecycle = "2.11.0"
 androidx-biometric = "1.4.0-alpha07"
 androidx-testExt = "1.3.0"
-core-telecom = "1.1.0-beta01"
-datastorePreferencesCore = "1.3.0-alpha11"
+core-telecom = "1.0.1"
+datastorePreferencesCore = "1.3.0-alpha10"
 jna = "5.19.1"
 junit = "4.13.2"
 kotlin = "2.4.20"
@@ -136,7 +136,7 @@ kmp-settings-ui-compose = { module = "io.github.mlm-games:kmp-settings-ui-compos
 filekit-core = { module = "io.github.vinceglb:filekit-core", version.ref = "filekit" }
 filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
 
-gadulka = { module = "eu.iamkonstantin.kotlin:gadulka", version = "1.13.0" }
+gadulka = { module = "eu.iamkonstantin.kotlin:gadulka", version = "1.14.0" }
 
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 maplibre-compose = { module = "org.maplibre.compose:maplibre-compose", version.ref = "maplibreCompose" }

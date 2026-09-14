@@ -43,8 +43,8 @@ import io.github.mlmgames.settings.core.SettingsRepository
 import org.koin.compose.koinInject
 import kotlinx.coroutines.launch
 import org.maplibre.compose.camera.CameraPosition
-import org.maplibre.compose.camera.rememberCameraState
 import org.maplibre.compose.map.MaplibreMap
+import org.maplibre.compose.map.rememberMapState
 import org.maplibre.compose.style.BaseStyle
 import org.maplibre.spatialk.geojson.Position
 import org.mlm.mages.platform.LiveLocationProvider
@@ -77,16 +77,17 @@ actual fun StaticLocationPicker(
         else "https://tiles.openfreemap.org/styles/liberty"
     }
 
-    val cameraState = rememberCameraState(
-        firstPosition = CameraPosition(
+    val mapState = rememberMapState(
+        baseStyle = BaseStyle.Uri(mapStyleUrl),
+        initialCameraPosition = CameraPosition(
             target = Position(longitude = 133.209639, latitude = -25.947028),
             zoom = 2.0,
-        )
+        ),
     )
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var isCentering by remember { mutableStateOf(false) }
 
-    val cameraPos by remember { derivedStateOf<Position> { cameraState.position.target } }
+    val cameraPos by remember { derivedStateOf<Position> { mapState.cameraPosition.target } }
     LaunchedEffect(cameraPos) {
         pickedLatState.value = cameraPos.latitude
         pickedLonState.value = cameraPos.longitude
@@ -95,8 +96,7 @@ actual fun StaticLocationPicker(
     Box(modifier = modifier.fillMaxSize()) {
         MaplibreMap(
             modifier = Modifier.fillMaxSize(),
-            baseStyle = BaseStyle.Uri(mapStyleUrl),
-            cameraState = cameraState,
+            state = mapState,
         )
 
         // Crosshair tracks the viewport center; the picked location is the camera target.
@@ -137,7 +137,7 @@ actual fun StaticLocationPicker(
                                         isCentering = true
                                         val result = LiveLocationProvider().getCurrentLocation()
                                         if (result is LocationResult.Success) {
-                                            cameraState.animateTo(
+                                            mapState.animateCameraPosition(
                                                 CameraPosition(
                                                     target = Position(result.location.longitude, result.location.latitude),
                                                     zoom = 15.0

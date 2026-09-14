@@ -33,10 +33,10 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
 import org.koin.compose.koinInject
 import org.maplibre.compose.camera.CameraPosition
-import org.maplibre.compose.camera.rememberCameraState
 import org.maplibre.compose.expressions.dsl.const
 import org.maplibre.compose.layers.CircleLayer
 import org.maplibre.compose.map.MaplibreMap
+import org.maplibre.compose.map.rememberMapState
 import org.maplibre.compose.sources.GeoJsonData
 import org.maplibre.compose.sources.rememberGeoJsonSource
 import org.maplibre.compose.style.BaseStyle
@@ -67,12 +67,33 @@ actual fun StaticLocationViewer(
     }
 
     val position = remember(lat, lon) { Position(longitude = lon, latitude = lat) }
-    val cameraState = rememberCameraState(
-        firstPosition = CameraPosition(target = position, zoom = 15.0),
-    )
     val pinColor = MaterialTheme.colorScheme.primary
     val strokeColor = MaterialTheme.colorScheme.surface
+    val feature = remember(lat, lon) {
+        FeatureCollection(
+            features = listOf(
+                Feature(
+                    geometry = Point(position),
+                    properties = JsonObject(emptyMap()),
+                )
+            )
+        )
+    }
+    val mapState = rememberMapState(
+        baseStyle = BaseStyle.Uri(mapStyleUrl),
+        initialCameraPosition = CameraPosition(target = position, zoom = 15.0),
+    ) {
+        val source = rememberGeoJsonSource(GeoJsonData.Features(feature))
 
+        CircleLayer(
+            id = "static-location-pin",
+            source = source,
+            radius = const(10.dp),
+            color = const(pinColor),
+            strokeWidth = const(4.dp),
+            strokeColor = const(strokeColor),
+        )
+    }
     val clipboardManager = LocalClipboardManager.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -80,30 +101,8 @@ actual fun StaticLocationViewer(
     Box(modifier = modifier.fillMaxSize()) {
         MaplibreMap(
             modifier = Modifier.fillMaxSize(),
-            baseStyle = BaseStyle.Uri(mapStyleUrl),
-            cameraState = cameraState,
-        ) {
-            val feature = remember(lat, lon) {
-                FeatureCollection(
-                    features = listOf(
-                        Feature(
-                            geometry = Point(position),
-                            properties = JsonObject(emptyMap()),
-                        )
-                    )
-                )
-            }
-            val source = rememberGeoJsonSource(GeoJsonData.Features(feature))
-
-            CircleLayer(
-                id = "static-location-pin",
-                source = source,
-                radius = const(10.dp),
-                color = const(pinColor),
-                strokeWidth = const(4.dp),
-                strokeColor = const(strokeColor),
-            )
-        }
+            state = mapState,
+        )
 
         Box(
             modifier = Modifier
