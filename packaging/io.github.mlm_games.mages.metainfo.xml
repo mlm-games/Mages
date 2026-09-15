@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.11.2" date="2026-09-15" type="stable">
+      <description>
+        <ul>
+          <li>make the caller ui dismiss on its own (when the call is picked elsewhere or cut on the other side)</li>
+          <li>setting enums now display formatted</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.11.1" date="2026-09-14" type="stable">
       <description>
         <ul>
