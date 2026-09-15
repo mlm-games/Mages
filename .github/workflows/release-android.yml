@@ -234,6 +234,7 @@ jobs:
           done
           
       - name: Upload AAB to Google Play
+        id: play-upload
         if: github.event_name == 'workflow_dispatch' && inputs.upload_releases == true && inputs.play_track != 'none'
         uses: r0adkll/upload-google-play@v1
         with:
@@ -244,18 +245,20 @@ jobs:
           status: completed
           whatsNewDirectory: fastlane/metadata/android
 
-      - name: Upload artifacts (CI only)
-        if: github.event_name != 'workflow_dispatch' || inputs.upload_releases == false
+      - name: "Upload artifacts (fallback: CI runs, or release runs where Play upload failed)"
+        if: ${{ always() && (github.event_name != 'workflow_dispatch' || inputs.upload_releases == false || steps.play-upload.outcome == 'failure') }}
         uses: actions/upload-artifact@v4
         with:
           name: android-${{ needs.prepare-version.outputs.version_name }}
           path: artifacts/*
+          if-no-files-found: error
 
       - name: Create GitHub Release
-        if: github.event_name == 'workflow_dispatch' && inputs.upload_releases == true
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.upload_releases == true }}
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/*
+          fail_on_unmatched_files: true
           name: ${{ env.APP_NAME }} ${{ needs.prepare-version.outputs.version_name }}
           tag_name: ${{ needs.prepare-version.outputs.version_name }}
           target_commitish: ${{ needs.prepare-version.outputs.commit_sha }}
