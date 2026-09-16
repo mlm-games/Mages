@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import io.github.mlmgames.settings.core.SettingsRepository
 import org.koin.compose.koinInject
 import kotlinx.coroutines.launch
+import org.maplibre.compose.camera.CameraAnimation
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.map.MaplibreMap
 import org.maplibre.compose.map.rememberMapState
@@ -141,7 +142,8 @@ actual fun StaticLocationPicker(
                                                 CameraPosition(
                                                     target = Position(result.location.longitude, result.location.latitude),
                                                     zoom = 15.0
-                                                )
+                                                ),
+                                                animation = CameraAnimation.Ease(),
                                             )
                                         }
                                         isCentering = false

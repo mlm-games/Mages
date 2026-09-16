@@ -69,6 +69,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 import org.koin.compose.koinInject
+import org.maplibre.compose.camera.CameraAnimation
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.expressions.dsl.Feature
 import org.maplibre.compose.expressions.dsl.asNumber
@@ -292,6 +293,8 @@ actual fun LiveLocationMapViewer(
     var focusRequest by remember { mutableStateOf<CameraFocus?>(null) }
     var focusRequestCounter by remember { mutableStateOf(0L) }
 
+    val mapCameraPadding = if (isPicking) PaddingValues(0.dp) else PaddingValues(bottom = 160.dp)
+
     val mapState = rememberMapState(
         baseStyle = BaseStyle.Uri(mapStyleUrl),
         initialCameraPosition = CameraPosition(
@@ -353,18 +356,22 @@ actual fun LiveLocationMapViewer(
     Box(modifier = modifier.fillMaxSize()) {
         LaunchedEffect(focusRequest) {
             val request = focusRequest ?: return@LaunchedEffect
-            mapState.animateCameraPosition(CameraPosition(target = request.position, zoom = FOCUS_ZOOM))
+            mapState.animateCameraPosition(
+                CameraPosition(target = request.position, zoom = FOCUS_ZOOM),
+                animation = CameraAnimation.Ease(),
+            )
         }
 
         LaunchedEffect(mapState, liveBounds) {
             if (isLive && liveBounds != null) {
-                mapState.animateCameraToBounds(boundingBox = liveBounds, padding = PaddingValues(64.dp))
+                mapState.animateCameraToBounds(boundingBox = liveBounds)
             }
         }
 
         MaplibreMap(
             modifier = Modifier.fillMaxSize(),
             state = mapState,
+            cameraPadding = mapCameraPadding,
         )
 
         if (isPicking) {
@@ -400,7 +407,8 @@ actual fun LiveLocationMapViewer(
                                                             latitude = result.location.latitude,
                                                         ),
                                                         zoom = FOCUS_ZOOM
-                                                    )
+                                                    ),
+                                                    animation = CameraAnimation.Ease(),
                                                 )
                                             }.fold(
                                                 onSuccess = { null },

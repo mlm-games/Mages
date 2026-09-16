@@ -57,7 +57,7 @@ apkDist = "0.5.2"
 dbusJavaCore = "5.1.1" # Do not bump these vers as FileKit depends on an older ver.
 dbusJavaTransportNativeUnixsocket = "5.1.1"
 filekit = "0.16.0"
-maplibreCompose = "0.16.0"
+maplibreCompose = "0.17.0"
 kermit = "2.2.0"
 
 
