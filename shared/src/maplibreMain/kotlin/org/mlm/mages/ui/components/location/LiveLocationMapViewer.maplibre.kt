@@ -216,6 +216,7 @@ actual fun LiveLocationMapViewer(
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var selectedUserId by remember { mutableStateOf<String?>(null) }
+    var pendingFocusPosition by remember { mutableStateOf<Position?>(null) }
 
     val mapState = rememberMapState(
         baseStyle = BaseStyle.Uri(mapStyleUrl),
@@ -245,9 +246,7 @@ actual fun LiveLocationMapViewer(
                         val share = activeShares.firstOrNull { it.userId == userId }
                         val pos = share?.geoUri?.toGeoUriPositionOrNull()
                         if (pos != null) {
-                            scope.launch {
-                                mapState.animateCameraPosition(CameraPosition(target = pos, zoom = 15.0))
-                            }
+                            pendingFocusPosition = pos
                         }
                     }
                     ClickResult.Consume
@@ -279,6 +278,12 @@ actual fun LiveLocationMapViewer(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        LaunchedEffect(pendingFocusPosition) {
+            val pos = pendingFocusPosition ?: return@LaunchedEffect
+            mapState.animateCameraPosition(CameraPosition(target = pos, zoom = 15.0))
+            pendingFocusPosition = null
+        }
+
         MaplibreMap(
             modifier = Modifier.fillMaxSize(),
             state = mapState,
