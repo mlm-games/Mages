@@ -1,6 +1,7 @@
 package org.mlm.mages.ui.components.location
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,6 +40,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,6 +63,11 @@ import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlin.math.PI
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 import org.koin.compose.koinInject
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.expressions.dsl.Feature
@@ -75,6 +82,7 @@ import org.maplibre.compose.map.rememberMapState
 import org.maplibre.compose.sources.GeoJsonData
 import org.maplibre.compose.sources.rememberGeoJsonSource
 import org.maplibre.compose.style.BaseStyle
+import org.maplibre.spatialk.geojson.BoundingBox
 import org.maplibre.spatialk.geojson.FeatureCollection
 import org.maplibre.spatialk.geojson.Point
 import org.maplibre.spatialk.geojson.Position
@@ -85,6 +93,12 @@ import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.ThemeMode
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.theme.Spacing
+
+private const val LIVE_POINTS_LAYER_ID = "live-location-points"
+private const val STATIC_PIN_LAYER_ID = "static-location-pin"
+private const val DEFAULT_ZOOM = 14.0
+private const val FOCUS_ZOOM = 15.0
+private val FALLBACK_POSITION = Position(longitude = 133.209639, latitude = -25.947028)
 
 private val userColors = listOf(
     Color(0xFF6750A4),
@@ -101,6 +115,38 @@ private val userColors = listOf(
 
 private fun getColorForIndex(index: Int): Color {
     return userColors[index % userColors.size]
+}
+
+private data class CameraFocus(val position: Position, val requestId: Long)
+
+private fun List<Position>.sphericalCenterOrNull(): Position? {
+    if (isEmpty()) return null
+    var x = 0.0
+    var y = 0.0
+    var z = 0.0
+    forEach { position ->
+        val lat = position.latitude * PI / 180.0
+        val lon = position.longitude * PI / 180.0
+        x += cos(lat) * cos(lon)
+        y += cos(lat) * sin(lon)
+        z += sin(lat)
+    }
+    val size = size.toDouble()
+    x /= size
+    y /= size
+    z /= size
+    if (x * x + y * y + z * z < 1e-12) return null
+    return Position(
+        longitude = atan2(y, x) * 180.0 / PI,
+        latitude = atan2(z, sqrt(x * x + y * y)) * 180.0 / PI,
+    )
+}
+
+private fun locationErrorMessage(result: LocationResult): String = when (result) {
+    is LocationResult.PermissionDenied -> "Location permission denied"
+    LocationResult.NotSupported -> "Location is not supported on this device"
+    is LocationResult.Error -> result.message.ifBlank { "Could not get location" }
+    is LocationResult.Success -> ""
 }
 
 private fun String.toGeoUriPositionOrNull(): Position? {
@@ -154,15 +200,21 @@ actual fun LiveLocationMapViewer(
     val isLive = mode is LocationViewerMode.ViewLive
     val activeShares = remember(shares) { shares.values.filter { it.isLive }.toList() }
 
+    val sharePositions = remember(activeShares) {
+        activeShares.mapNotNull { share ->
+            share.geoUri.toGeoUriPositionOrNull()?.let { share.userId to it }
+        }.toMap()
+    }
+
     val liveFeatures = remember(activeShares) {
         activeShares.mapIndexedNotNull { index, share ->
-            val pos = share.geoUri.toGeoUriPositionOrNull() ?: return@mapIndexedNotNull null
+            val pos = sharePositions[share.userId] ?: return@mapIndexedNotNull null
             org.maplibre.spatialk.geojson.Feature(
                 geometry = Point(pos),
                 properties = JsonObject(
                     mapOf(
                         "userId" to JsonPrimitive(share.userId),
-                        "colorIndex" to JsonPrimitive(index)
+                        "colorIndex" to JsonPrimitive(index % userColors.size)
                     )
                 )
             )
@@ -181,19 +233,40 @@ actual fun LiveLocationMapViewer(
     }
 
     val userIdList = remember(activeShares) { activeShares.map { it.userId } }
-
-    val cameraTarget = remember(staticPosition, liveFeatures, isPicking, initialLat, initialLon) {
-        if (staticPosition != null) staticPosition
-        else if (liveFeatures.isNotEmpty()) {
-            val positions = liveFeatures.map { (it.geometry).coordinates }
-            val sumLat = positions.sumOf { it.latitude }
-            val sumLon = positions.sumOf { it.longitude }
-            val count = positions.size
-            Position(longitude = sumLon / count, latitude = sumLat / count)
-        } else if (initialLat != null && initialLon != null) {
+    val initialPosition = remember(initialLat, initialLon) {
+        if (initialLat != null && initialLon != null &&
+            initialLat in -90.0..90.0 && initialLon in -180.0..180.0
+        ) {
             Position(longitude = initialLon, latitude = initialLat)
+        } else null
+    }
+
+    val cameraTarget = remember(staticPosition, liveFeatures, isPicking, initialPosition) {
+        if (isPicking) {
+            initialPosition
+                ?: sharePositions.values.toList().sphericalCenterOrNull()
+                ?: FALLBACK_POSITION
+        } else if (staticPosition != null) staticPosition
+        else if (liveFeatures.isNotEmpty()) {
+            sharePositions.values.toList().sphericalCenterOrNull() ?: FALLBACK_POSITION
         } else {
-            Position(longitude = 133.209639, latitude = -25.947028)
+            initialPosition ?: FALLBACK_POSITION
+        }
+    }
+
+    val liveBounds = remember(sharePositions) {
+        val positions = sharePositions.values.toList()
+        if (positions.size < 2) null
+        else {
+            val lats = positions.map { it.latitude }
+            val lons = positions.map { it.longitude }
+            val spanLon = lons.max() - lons.min()
+            if (spanLon in 0.0..180.0) {
+                BoundingBox(
+                    west = lons.min(), south = lats.min(),
+                    east = lons.max(), north = lats.max(),
+                )
+            } else null
         }
     }
 
@@ -216,13 +289,14 @@ actual fun LiveLocationMapViewer(
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var selectedUserId by remember { mutableStateOf<String?>(null) }
-    var pendingFocusPosition by remember { mutableStateOf<Position?>(null) }
+    var focusRequest by remember { mutableStateOf<CameraFocus?>(null) }
+    var focusRequestCounter by remember { mutableStateOf(0L) }
 
     val mapState = rememberMapState(
         baseStyle = BaseStyle.Uri(mapStyleUrl),
         initialCameraPosition = CameraPosition(
             target = cameraTarget,
-            zoom = if (staticPosition != null) 15.0 else 14.0,
+            zoom = if (staticPosition != null) FOCUS_ZOOM else DEFAULT_ZOOM,
         ),
     ) {
         if (liveFeatures.isNotEmpty()) {
@@ -230,7 +304,7 @@ actual fun LiveLocationMapViewer(
                 GeoJsonData.Features(FeatureCollection(liveFeatures))
             )
             CircleLayer(
-                id = "live-location-points",
+                id = LIVE_POINTS_LAYER_ID,
                 source = liveSource,
                 radius = const(12.dp),
                 color = colorExpression,
@@ -243,10 +317,9 @@ actual fun LiveLocationMapViewer(
                         ?.let { (it as? JsonPrimitive)?.content }
                     if (userId != null) {
                         selectedUserId = userId
-                        val share = activeShares.firstOrNull { it.userId == userId }
-                        val pos = share?.geoUri?.toGeoUriPositionOrNull()
-                        if (pos != null) {
-                            pendingFocusPosition = pos
+                        sharePositions[userId]?.let { position ->
+                            focusRequestCounter += 1
+                            focusRequest = CameraFocus(position, focusRequestCounter)
                         }
                     }
                     ClickResult.Consume
@@ -267,7 +340,7 @@ actual fun LiveLocationMapViewer(
             }
             val staticSource = rememberGeoJsonSource(GeoJsonData.Features(staticFeature))
             CircleLayer(
-                id = "static-location-pin",
+                id = STATIC_PIN_LAYER_ID,
                 source = staticSource,
                 radius = const(10.dp),
                 color = const(primaryColor),
@@ -277,11 +350,16 @@ actual fun LiveLocationMapViewer(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        LaunchedEffect(pendingFocusPosition) {
-            val pos = pendingFocusPosition ?: return@LaunchedEffect
-            mapState.animateCameraPosition(CameraPosition(target = pos, zoom = 15.0))
-            pendingFocusPosition = null
+    Box(modifier = modifier.fillMaxSize()) {
+        LaunchedEffect(focusRequest) {
+            val request = focusRequest ?: return@LaunchedEffect
+            mapState.animateCameraPosition(CameraPosition(target = request.position, zoom = FOCUS_ZOOM))
+        }
+
+        LaunchedEffect(mapState, liveBounds) {
+            if (isLive && liveBounds != null) {
+                mapState.animateCameraToBounds(boundingBox = liveBounds, padding = PaddingValues(64.dp))
+            }
         }
 
         MaplibreMap(
@@ -311,16 +389,29 @@ actual fun LiveLocationMapViewer(
                         } else {
                             scope.launch {
                                 isCentering = true
-                                val result = LiveLocationProvider().getCurrentLocation()
-                                if (result is LocationResult.Success) {
-                                    mapState.animateCameraPosition(
-                                        CameraPosition(
-                                            target = Position(result.location.longitude, result.location.latitude),
-                                            zoom = 15.0
-                                        )
-                                    )
-                                }
+                                val message = runCatching { LiveLocationProvider().getCurrentLocation() }.fold(
+                                    onSuccess = { result ->
+                                        if (result is LocationResult.Success) {
+                                            runCatching {
+                                                mapState.animateCameraPosition(
+                                                    CameraPosition(
+                                                        target = Position(
+                                                            longitude = result.location.longitude,
+                                                            latitude = result.location.latitude,
+                                                        ),
+                                                        zoom = FOCUS_ZOOM
+                                                    )
+                                                )
+                                            }.fold(
+                                                onSuccess = { null },
+                                                onFailure = { "Could not move map" },
+                                            )
+                                        } else locationErrorMessage(result)
+                                    },
+                                    onFailure = { it.message?.ifBlank { "Could not get location" } ?: "Could not get location" },
+                                )
                                 isCentering = false
+                                if (message != null) snackbarHostState.showSnackbar(message)
                             }
                         }
                     },
@@ -364,6 +455,13 @@ actual fun LiveLocationMapViewer(
                     Spacer(Modifier.width(8.dp))
                     Text("Send this location")
                 }
+
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 96.dp),
+                )
             }
         } else {
             Box(
@@ -381,8 +479,9 @@ actual fun LiveLocationMapViewer(
                 }
 
                 if (isStatic) {
-                    val staticLat = (mode as LocationViewerMode.ViewStatic).lat
-                    val staticLon = (mode as LocationViewerMode.ViewStatic).lon
+                    val staticMode = mode as LocationViewerMode.ViewStatic
+                    val staticLat = staticMode.lat
+                    val staticLon = staticMode.lon
                     FloatingActionButton(
                         onClick = {
                             clipboardManager.setText(AnnotatedString("$staticLat, $staticLon"))
@@ -461,14 +560,12 @@ actual fun LiveLocationMapViewer(
                 }
             }
 
-            if (isStatic) {
-                SnackbarHost(
-                    hostState = snackbarHostState,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 80.dp),
-                )
-            }
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 80.dp),
+            )
 
             if (showBottomSheet && isLive) {
                 ModalBottomSheet(
@@ -478,9 +575,18 @@ actual fun LiveLocationMapViewer(
                     LiveLocationBottomSheetContent(
                         activeShares = activeShares,
                         userIdList = userIdList,
+                        selectedUserId = selectedUserId,
                         displayNameByUserId = displayNameByUserId,
                         avatarPathByUserId = avatarPathByUserId,
                         onStopSharing = onStopSharing,
+                        onSelectShare = { share ->
+                            selectedUserId = share.userId
+                            sharePositions[share.userId]?.let { position ->
+                                focusRequestCounter += 1
+                                focusRequest = CameraFocus(position, focusRequestCounter)
+                            }
+                            showBottomSheet = false
+                        },
                     )
                 }
             }
@@ -492,9 +598,11 @@ actual fun LiveLocationMapViewer(
 private fun LiveLocationBottomSheetContent(
     activeShares: List<LiveLocationShare>,
     userIdList: List<String>,
+    selectedUserId: String?,
     displayNameByUserId: Map<String, String>,
     avatarPathByUserId: Map<String, String>,
     onStopSharing: (() -> Unit)?,
+    onSelectShare: (LiveLocationShare) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -514,19 +622,22 @@ private fun LiveLocationBottomSheetContent(
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             contentPadding = PaddingValues(bottom = Spacing.md),
         ) {
-            items(activeShares) { share ->
+            items(activeShares, key = { it.userId }) { share ->
                 val color = getColorForIndex(userIdList.indexOf(share.userId))
                 val displayName = displayNameByUserId[share.userId]
                     ?: share.userId.substringAfter("@").substringBefore(":")
                 val avatarPath = avatarPathByUserId[share.userId]
+                val isSelected = share.userId == selectedUserId
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(MaterialTheme.shapes.medium)
                         .background(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                         )
+                        .clickable { onSelectShare(share) }
                         .padding(Spacing.md),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -553,6 +664,15 @@ private fun LiveLocationBottomSheetContent(
                         modifier = Modifier.weight(1f),
                     )
                 }
+            }
+        }
+
+        if (onStopSharing != null) {
+            Spacer(Modifier.height(Spacing.md))
+            TextButton(onClick = onStopSharing) {
+                Icon(Icons.Default.Stop, contentDescription = null)
+                Spacer(Modifier.width(Spacing.sm))
+                Text("Stop sharing")
             }
         }
     }
