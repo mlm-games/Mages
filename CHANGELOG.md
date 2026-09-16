@@ -1,3 +1,9 @@
+## v4.11.3
+
+- make the caller ui dismiss on its own (when the call is picked elsewhere or cut on the other side)
+- setting enums now display formatted
+
+
 ## v4.11.2
 
 - make the caller ui dismiss on its own (when the call is picked elsewhere or cut on the other side)
