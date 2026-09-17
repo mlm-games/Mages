@@ -1,3 +1,12 @@
+## v4.11.6
+
+- fix the rustls-platform-verifier issue (adapt from retorrent)
+- bump element call to 0.26
+- bump sdk to 0.19
+- liveloc: add a button to center on current location
+- Fix fdroid build
+
+
 ## v4.11.5
 
 - bump element call to 0.26
