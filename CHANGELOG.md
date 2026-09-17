@@ -1,3 +1,11 @@
+## v4.11.5
+
+- bump element call to 0.26
+- bump sdk to 0.19
+- liveloc: add a button to center on current location
+- Fix fdroid build
+
+
 ## v4.11.4
 
 - make the caller ui dismiss on its own (when the call is picked elsewhere or cut on the other side)
