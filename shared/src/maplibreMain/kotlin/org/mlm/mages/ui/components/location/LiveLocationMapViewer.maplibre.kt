@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Stop
@@ -70,6 +71,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 import org.koin.compose.koinInject
 import org.maplibre.compose.camera.CameraAnimation
+import org.maplibre.compose.camera.CameraMoveReason
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.expressions.dsl.Feature
 import org.maplibre.compose.expressions.dsl.asNumber
@@ -116,6 +118,11 @@ private val userColors = listOf(
 
 private fun getColorForIndex(index: Int): Color {
     return userColors[index % userColors.size]
+}
+
+private enum class LiveCameraMode {
+    FollowBounds,
+    Free,
 }
 
 private data class CameraFocus(val position: Position, val requestId: Long)
@@ -176,7 +183,6 @@ actual fun LiveLocationMapViewer(
     isCurrentlySharing: Boolean,
     onStopSharing: (() -> Unit)?,
     isSending: Boolean,
-    onSendCurrentLocation: (() -> Unit)?,
     onSendPickedLocation: ((lat: Double, lon: Double) -> Unit)?,
     onCenterOnMyLocation: (() -> Unit)?,
     initialLat: Double?,
@@ -242,13 +248,13 @@ actual fun LiveLocationMapViewer(
         } else null
     }
 
-    val cameraTarget = remember(staticPosition, liveFeatures, isPicking, initialPosition) {
+    val cameraTarget = remember(sharePositions, staticPosition, isPicking, initialPosition) {
         if (isPicking) {
             initialPosition
                 ?: sharePositions.values.toList().sphericalCenterOrNull()
                 ?: FALLBACK_POSITION
         } else if (staticPosition != null) staticPosition
-        else if (liveFeatures.isNotEmpty()) {
+        else if (sharePositions.isNotEmpty()) {
             sharePositions.values.toList().sphericalCenterOrNull() ?: FALLBACK_POSITION
         } else {
             initialPosition ?: FALLBACK_POSITION
@@ -293,7 +299,19 @@ actual fun LiveLocationMapViewer(
     var focusRequest by remember { mutableStateOf<CameraFocus?>(null) }
     var focusRequestCounter by remember { mutableStateOf(0L) }
 
-    val mapCameraPadding = if (isPicking) PaddingValues(0.dp) else PaddingValues(bottom = 160.dp)
+    val mapCameraPadding = if (isPicking) {
+        PaddingValues(0.dp)
+    } else {
+        PaddingValues(top = 72.dp, bottom = 160.dp)
+    }
+
+    var liveCameraMode by remember(isLive) {
+        mutableStateOf(
+            if (isLive && liveBounds != null) LiveCameraMode.FollowBounds
+            else LiveCameraMode.Free
+        )
+    }
+    var boundsFittedOnOpen by remember(isLive) { mutableStateOf(false) }
 
     val mapState = rememberMapState(
         baseStyle = BaseStyle.Uri(mapStyleUrl),
@@ -388,17 +406,58 @@ actual fun LiveLocationMapViewer(
             }
         }
 
-        LaunchedEffect(focusRequest) {
-            val request = focusRequest ?: return@LaunchedEffect
-            mapState.animateCameraPosition(
-                CameraPosition(target = request.position, zoom = FOCUS_ZOOM),
-                animation = CameraAnimation.Ease(),
-            )
+        val focusOn: (Position) -> Unit = { position ->
+            focusRequestCounter += 1
+            focusRequest = CameraFocus(position, focusRequestCounter)
         }
 
-        LaunchedEffect(mapState, liveBounds) {
-            if (isLive && liveBounds != null) {
-                mapState.animateCameraToBounds(boundingBox = liveBounds)
+        val endFollow: () -> Unit = {
+            if (isLive) liveCameraMode = LiveCameraMode.Free
+        }
+
+        val fitAll: () -> Unit = {
+            val bounds = liveBounds
+            if (bounds != null) {
+                liveCameraMode = LiveCameraMode.FollowBounds
+                boundsFittedOnOpen = true
+                scope.launch {
+                    runCatching {
+                        mapState.animateCameraToBounds(boundingBox = bounds)
+                    }
+                }
+            }
+        }
+
+        LaunchedEffect(mapState.cameraMoveReason, mapState.isCameraMoving) {
+            if (mapState.cameraMoveReason == CameraMoveReason.GESTURE &&
+                mapState.isCameraMoving &&
+                liveCameraMode == LiveCameraMode.FollowBounds
+            ) {
+                liveCameraMode = LiveCameraMode.Free
+            }
+        }
+
+        LaunchedEffect(focusRequest) {
+            val request = focusRequest ?: return@LaunchedEffect
+            endFollow()
+            runCatching {
+                mapState.animateCameraPosition(
+                    CameraPosition(target = request.position, zoom = FOCUS_ZOOM),
+                    animation = CameraAnimation.Ease(),
+                )
+            }
+        }
+
+        LaunchedEffect(mapState, liveBounds, liveCameraMode) {
+            if (isLive &&
+                liveCameraMode == LiveCameraMode.FollowBounds &&
+                !boundsFittedOnOpen &&
+                liveBounds != null
+            ) {
+                boundsFittedOnOpen = true
+                runCatching {
+                    mapState.animateCameraToBounds(boundingBox = liveBounds)
+                }
             }
         }
 
@@ -456,14 +515,21 @@ actual fun LiveLocationMapViewer(
                         val target = mapState.cameraPosition.target
                         onSendPickedLocation?.invoke(target.latitude, target.longitude)
                     },
+                    enabled = !isSending,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(24.dp)
                         .fillMaxWidth(),
                 ) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Send this location")
+                    if (isSending) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Sending…")
+                    } else {
+                        Icon(Icons.Default.LocationOn, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Send this location")
+                    }
                 }
 
                 SnackbarHost(
@@ -499,6 +565,23 @@ actual fun LiveLocationMapViewer(
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                     } else {
                         Icon(Icons.Default.MyLocation, contentDescription = "Center on my location")
+                    }
+                }
+
+                if (isLive && liveBounds != null && liveCameraMode == LiveCameraMode.Free) {
+                    FloatingActionButton(
+                        onClick = { fitAll() },
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 16.dp, bottom = 96.dp),
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    ) {
+                        Icon(
+                            Icons.Default.Fullscreen,
+                            contentDescription = "Fit all locations",
+                            modifier = Modifier.size(24.dp),
+                        )
                     }
                 }
 
@@ -606,8 +689,7 @@ actual fun LiveLocationMapViewer(
                         onSelectShare = { share ->
                             selectedUserId = share.userId
                             sharePositions[share.userId]?.let { position ->
-                                focusRequestCounter += 1
-                                focusRequest = CameraFocus(position, focusRequestCounter)
+                                focusOn(position)
                             }
                             showBottomSheet = false
                         },

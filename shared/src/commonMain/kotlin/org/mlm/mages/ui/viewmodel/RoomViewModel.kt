@@ -460,40 +460,6 @@ class RoomViewModel(
         }
     }
 
-    fun sendStaticLocationCurrent() {
-        launch {
-            updateState { copy(isSendingShareLocation = true) }
-            val location = LiveLocationProvider().getCurrentLocation()
-            when (location) {
-                is LocationResult.Success -> {
-                    val geoUri = "geo:${location.location.latitude},${location.location.longitude}"
-                    val result = service.port.sendStaticLocation(currentState.roomId, geoUri)
-                    if (result.isSuccess) {
-                        _events.send(ShowSuccess("Location shared"))
-                        updateState { copy(showShareLocation = false, isSendingShareLocation = false) }
-                    } else {
-                        val msg = result.exceptionOrNull()?.message ?: "Failed to share location"
-                        _events.send(ShowError(msg))
-                        updateState { copy(isSendingShareLocation = false) }
-                    }
-                }
-                is LocationResult.Error -> {
-                    _events.send(ShowError(location.message ?: "Could not get location"))
-                    updateState { copy(isSendingShareLocation = false) }
-                }
-                is LocationResult.PermissionDenied -> {
-                    _events.send(ShowError("Location permission denied"))
-                    updateState { copy(isSendingShareLocation = false) }
-                }
-
-                LocationResult.NotSupported -> {
-                    _events.send(ShowError("Location not supported on this platform"))
-                    updateState { copy(isSendingShareLocation = false) }
-                }
-            }
-        }
-    }
-
     fun showLiveLocation() = updateState { copy(showLiveLocation = true, showAttachmentPicker = false) }
     fun hideLiveLocation() = updateState { copy(showLiveLocation = false, isLiveLocationLoading = false) }
     fun showLiveLocationMap() = updateState { copy(showLiveLocationMap = true) }

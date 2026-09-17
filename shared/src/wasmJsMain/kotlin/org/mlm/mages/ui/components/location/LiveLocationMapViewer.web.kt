@@ -38,7 +38,6 @@ actual fun LiveLocationMapViewer(
     isCurrentlySharing: Boolean,
     onStopSharing: (() -> Unit)?,
     isSending: Boolean,
-    onSendCurrentLocation: (() -> Unit)?,
     onSendPickedLocation: ((lat: Double, lon: Double) -> Unit)?,
     onCenterOnMyLocation: (() -> Unit)?,
     initialLat: Double?,

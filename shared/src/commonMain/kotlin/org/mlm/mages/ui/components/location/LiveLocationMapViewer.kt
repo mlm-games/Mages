@@ -20,7 +20,6 @@ expect fun LiveLocationMapViewer(
     isCurrentlySharing: Boolean = false,
     onStopSharing: (() -> Unit)? = null,
     isSending: Boolean = false,
-    onSendCurrentLocation: (() -> Unit)? = null,
     onSendPickedLocation: ((lat: Double, lon: Double) -> Unit)? = null,
     onCenterOnMyLocation: (() -> Unit)? = null,
     initialLat: Double? = null,

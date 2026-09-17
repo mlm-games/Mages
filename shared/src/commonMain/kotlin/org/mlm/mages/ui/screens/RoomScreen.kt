@@ -955,11 +955,6 @@ fun RoomScreen(
                 .associate { it.sender to (it.senderDisplayName ?: it.sender) },
             onDismiss = viewModel::hideShareLocation,
             mode = LocationViewerMode.PickStatic,
-            onSendCurrentLocation = {
-                onRequestLocationPermissions?.invoke {
-                    viewModel.sendStaticLocationCurrent()
-                } ?: viewModel.sendStaticLocationCurrent()
-            },
             onSendPickedLocation = { lat, lon -> viewModel.sendStaticLocation(lat, lon) },
             isSending = state.isSendingShareLocation,
             initialLat = state.shareLocationInitialLat,
