@@ -9,3 +9,5 @@
 -dontwarn com.sun.jna.**
 
 -keep class mages.** { *; } # Needed for jna start error!
+
+-keep, includedescriptorclasses class org.rustls.platformverifier.** { *; }

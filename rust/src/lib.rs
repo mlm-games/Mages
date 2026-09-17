@@ -52,6 +52,8 @@ mod macros;
 mod platform;
 mod types;
 mod verification_flow;
+#[cfg(target_os = "android")]
+mod android_tls;
 #[cfg(target_family = "wasm")]
 mod wasm_bridge;
 
@@ -386,6 +388,8 @@ impl Client {
         enable_share_history_on_invite: Option<bool>,
     ) -> Result<Self, FfiError> {
         platform::init_tracing();
+        #[cfg(target_os = "android")]
+        android_tls::init();
 
         let raw = homeserver_url.trim();
         let server_name_or_url = if let Ok(url) = Url::parse(raw) {
