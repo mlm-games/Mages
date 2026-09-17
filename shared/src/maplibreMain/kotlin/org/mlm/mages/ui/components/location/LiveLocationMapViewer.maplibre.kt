@@ -306,12 +306,9 @@ actual fun LiveLocationMapViewer(
     }
 
     var liveCameraMode by remember(isLive) {
-        mutableStateOf(
-            if (isLive && liveBounds != null) LiveCameraMode.FollowBounds
-            else LiveCameraMode.Free
-        )
+        mutableStateOf(if (isLive) LiveCameraMode.FollowBounds else LiveCameraMode.Free)
     }
-    var boundsFittedOnOpen by remember(isLive) { mutableStateOf(false) }
+    var boundsFitted by remember(isLive) { mutableStateOf(false) }
 
     val mapState = rememberMapState(
         baseStyle = BaseStyle.Uri(mapStyleUrl),
@@ -372,7 +369,12 @@ actual fun LiveLocationMapViewer(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
+        val endFollow: () -> Unit = {
+            if (isLive) liveCameraMode = LiveCameraMode.Free
+        }
+
         val centerOnMyLocation: () -> Unit = {
+            endFollow()
             if (onCenterOnMyLocation != null) {
                 onCenterOnMyLocation()
             } else {
@@ -411,15 +413,11 @@ actual fun LiveLocationMapViewer(
             focusRequest = CameraFocus(position, focusRequestCounter)
         }
 
-        val endFollow: () -> Unit = {
-            if (isLive) liveCameraMode = LiveCameraMode.Free
-        }
-
         val fitAll: () -> Unit = {
             val bounds = liveBounds
             if (bounds != null) {
                 liveCameraMode = LiveCameraMode.FollowBounds
-                boundsFittedOnOpen = true
+                boundsFitted = true
                 scope.launch {
                     runCatching {
                         mapState.animateCameraToBounds(boundingBox = bounds)
@@ -451,10 +449,10 @@ actual fun LiveLocationMapViewer(
         LaunchedEffect(mapState, liveBounds, liveCameraMode) {
             if (isLive &&
                 liveCameraMode == LiveCameraMode.FollowBounds &&
-                !boundsFittedOnOpen &&
+                !boundsFitted &&
                 liveBounds != null
             ) {
-                boundsFittedOnOpen = true
+                boundsFitted = true
                 runCatching {
                     mapState.animateCameraToBounds(boundingBox = liveBounds)
                 }
