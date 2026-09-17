@@ -409,7 +409,7 @@ impl CoreClient {
             return;
         };
         let rls = svc.room_list_service();
-        rls.subscribe_to_rooms(&[rid.as_ref()]).await;
+        rls.set_room_subscriptions(&[rid.as_ref()]).await;
     }
 
     /// Same as [`Self::subscribe_room_full_timeline`], but waits until the
@@ -430,7 +430,7 @@ impl CoreClient {
             matrix_sdk::sleep::sleep(Duration::from_millis(200)).await;
         };
         let rls = svc.room_list_service();
-        rls.subscribe_to_rooms(&[rid.as_ref()]).await;
+        rls.set_room_subscriptions(&[rid.as_ref()]).await;
     }
 
     /// Batch version of [`Self::subscribe_room_full_timeline`]: subscribes
@@ -452,7 +452,7 @@ impl CoreClient {
             return;
         };
         let refs: Vec<&matrix_sdk::ruma::RoomId> = rids.iter().map(|r| r.as_ref()).collect();
-        svc.room_list_service().subscribe_to_rooms(&refs).await;
+        svc.room_list_service().set_room_subscriptions(&refs).await;
     }
 
     pub async fn login_password(
@@ -590,7 +590,10 @@ impl CoreClient {
         } else {
             MsgNoRel::text_plain(body)
         };
-        tl.send_reply(content, reply_to.to_owned()).await.ffi()
+        tl.send_reply(content, reply_to.to_owned())
+            .await
+            .ffi()
+            .map(|_| ())
     }
 
     pub async fn edit(
@@ -2236,7 +2239,6 @@ impl CoreClient {
                     if !wave.is_empty() {
                         use matrix_sdk::ruma::events::room::message::{
                             UnstableAmplitude, UnstableAudioDetailsContentBlock,
-                            UnstableVoiceContentBlock,
                         };
                         let waveform: Vec<UnstableAmplitude> = wave
                             .iter()
@@ -3386,7 +3388,7 @@ impl CoreClient {
             .await
             .ffi()?;
         let mut hits = Vec::new();
-        for eid in event_ids.iter() {
+        for (_score, eid) in event_ids.iter() {
             if let Some(mev) =
                 map_event_id_via_timeline(&self.timeline_mgr, &self.sdk, &rid, eid).await
             {

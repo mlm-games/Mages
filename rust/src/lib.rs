@@ -271,7 +271,7 @@ pub struct Client {
     recovery_state_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     backup_state_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     pub app_in_foreground: Arc<AtomicUsize>,
-    widget_handles: Mutex<HashMap<u64, WidgetDriverHandle>>,
+    widget_handles: Mutex<HashMap<u64, Arc<WidgetDriverHandle>>>,
     widget_driver_tasks: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     widget_recv_tasks: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
 }
@@ -2518,6 +2518,7 @@ impl Client {
         })?;
         let (driver, handle) = WidgetDriver::new(widget_settings);
         let cap_provider = ElementCallCapabilitiesProvider {};
+        let handle = Arc::new(handle);
         self.widget_handles
             .lock()
             .unwrap()
@@ -2563,10 +2564,7 @@ impl Client {
             .get(&session_id)
             .cloned()
         {
-            let _ = RT.block_on(async {
-                let _ = handle.send(message).await;
-            });
-            true
+            handle.send(message)
         } else {
             false
         }

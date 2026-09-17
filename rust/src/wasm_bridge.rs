@@ -265,7 +265,7 @@ struct WasmAsyncState {
     app_in_foreground: Cell<bool>,
     call_subs: RefCell<HashMap<u64, AbortHandle>>,
     live_location_subs: RefCell<HashMap<u64, AbortHandle>>,
-    widget_handles: RefCell<HashMap<u64, WidgetDriverHandle>>,
+    widget_handles: RefCell<HashMap<u64, std::rc::Rc<WidgetDriverHandle>>>,
     widget_driver_subs: RefCell<HashMap<u64, AbortHandle>>,
     widget_recv_subs: RefCell<HashMap<u64, AbortHandle>>,
     verification_subs: RefCell<HashMap<u64, AbortHandle>>,
@@ -1138,7 +1138,7 @@ impl WasmClient {
 
             if let Some(svc) = s.ensure_sync_service().await {
                 let rls = svc.room_list_service();
-                rls.subscribe_to_rooms(&[rid.as_ref()]).await;
+                rls.set_room_subscriptions(&[rid.as_ref()]).await;
                 let _ = svc.start().await;
             }
 
@@ -2218,7 +2218,7 @@ impl WasmClient {
                 let _ = svc.start().await;
                 let refs: Vec<&matrix_sdk::ruma::RoomId> =
                     rids.iter().map(|r| r.as_ref()).collect();
-                svc.room_list_service().subscribe_to_rooms(&refs).await;
+                svc.room_list_service().set_room_subscriptions(&refs).await;
             }
         });
     }
@@ -2682,6 +2682,7 @@ impl WasmClient {
         };
         let widget_base_url = settings.base_url().map(|u| u.to_string());
         let (driver, handle) = WidgetDriver::new(settings);
+        let handle = std::rc::Rc::new(handle);
         let handle_for_recv = handle.clone();
         state.widget_handles.borrow_mut().insert(session_id, handle);
 
@@ -2738,11 +2739,9 @@ impl WasmClient {
             return false;
         };
         let sid = session_id as u64;
-        if let Some(handle) = state.widget_handles.borrow().get(&sid).cloned() {
-            wasm_bindgen_futures::spawn_local(async move {
-                let _ = handle.send(message).await;
-            });
-            true
+        let handle = state.widget_handles.borrow().get(&sid).cloned();
+        if let Some(handle) = handle {
+            handle.send(message)
         } else {
             false
         }
