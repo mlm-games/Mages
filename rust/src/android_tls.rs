@@ -1,28 +1,47 @@
 use std::{error::Error, mem::MaybeUninit};
 
 use jni::errors::{Error as JniError, JniError as RawJniError};
-use tracing::debug;
+use tracing::{debug, error};
+
+use crate::FfiError;
 
 static ANDROID_JVM: once_cell::sync::OnceCell<jni::JavaVM> = once_cell::sync::OnceCell::new();
+
+static TLS_INIT_ERROR: once_cell::sync::OnceCell<String> = once_cell::sync::OnceCell::new();
 
 pub(crate) fn init() {
     debug!("Initializing Android platform support");
 
     ANDROID_JVM.get_or_init(|| match get_java_vm() {
         Ok(jvm) => {
-            jvm.attach_current_thread(|env| {
-                init_rustls_platform_verifier(env)?;
+            if let Err(e) = jvm.attach_current_thread(init_rustls_platform_verifier) {
+                let msg = format!("Failed to initialize rustls platform verifier: {e}");
+                error!("{msg}");
+                TLS_INIT_ERROR.get_or_init(|| msg);
+            } else {
                 debug!("Android platform support initialized successfully");
-                Ok::<_, JniError>(())
-            })
-            .expect("Failed to initialize rustls platform verifier");
+            }
 
             jvm
         }
         Err(e) => {
-            panic!("Failed to initialize Android platform support: {e}");
+            let msg = format!("Failed to initialize Android platform support: {e}");
+            error!("{msg}");
+            TLS_INIT_ERROR.get_or_init(|| msg.clone());
+            panic!("{msg}");
         }
     });
+}
+
+pub(crate) fn check_tls() -> Result<(), FfiError> {
+    if let Some(err) = TLS_INIT_ERROR.get() {
+        return Err(FfiError::TlsUnavailable(err.clone()));
+    }
+    if ANDROID_JVM.get().is_some() {
+        return Ok(());
+    }
+    init();
+    check_tls()
 }
 
 fn get_java_vm() -> Result<jni::JavaVM, Box<dyn Error>> {

@@ -389,7 +389,10 @@ impl Client {
     ) -> Result<Self, FfiError> {
         platform::init_tracing();
         #[cfg(target_os = "android")]
-        android_tls::init();
+        {
+            android_tls::init();
+            android_tls::check_tls()?;
+        }
 
         let raw = homeserver_url.trim();
         let server_name_or_url = if let Ok(url) = Url::parse(raw) {
@@ -3651,12 +3654,31 @@ fn map_sender_profile(
 }
 
 fn extract_reactions(content: &TimelineItemContent, me: &str) -> Vec<ReactionSummary> {
+    use matrix_sdk_ui::timeline::EventSendState;
     let mut reactions = Vec::new();
     if let Some(reactions_map) = content.reactions() {
         for (key, senders) in reactions_map.iter() {
-            let count = senders.len() as u32;
-            let me_reacted = senders.keys().any(|sender| sender.as_str() == me);
-            let user_ids: Vec<String> = senders.keys().take(3).map(|u| u.to_string()).collect();
+            let live_senders: Vec<_> = senders
+                .iter()
+                .filter(|(_, info)| {
+                    !matches!(
+                        info.send_state,
+                        Some(EventSendState::SendingFailed { .. })
+                    )
+                })
+                .collect();
+            if live_senders.is_empty() {
+                continue;
+            }
+            let count = live_senders.len() as u32;
+            let me_reacted = live_senders
+                .iter()
+                .any(|(sender, _)| sender.as_str() == me);
+            let user_ids: Vec<String> = live_senders
+                .iter()
+                .take(3)
+                .map(|(u, _)| u.to_string())
+                .collect();
             reactions.push(ReactionSummary {
                 key: key.clone(),
                 count,

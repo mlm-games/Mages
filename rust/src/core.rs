@@ -2285,10 +2285,26 @@ impl CoreClient {
         let mut out = Vec::new();
         if let Some(reactions) = item.content().reactions() {
             for (key, by_sender) in reactions.iter() {
-                let count = by_sender.len() as u32;
-                let mine = me.map(|u| by_sender.contains_key(u)).unwrap_or(false);
+                let live: Vec<_> = by_sender
+                    .iter()
+                    .filter(|(_, info)| {
+                        !matches!(
+                            info.send_state,
+                            Some(
+                                matrix_sdk_ui::timeline::EventSendState::SendingFailed { .. }
+                            )
+                        )
+                    })
+                    .collect();
+                if live.is_empty() {
+                    continue;
+                }
+                let count = live.len() as u32;
+                let mine = me
+                    .map(|u| live.iter().any(|(sender, _)| *sender == u))
+                    .unwrap_or(false);
                 let user_ids: Vec<String> =
-                    by_sender.keys().take(3).map(|u| u.to_string()).collect();
+                    live.iter().take(3).map(|(u, _)| u.to_string()).collect();
                 out.push(ReactionSummary {
                     key: key.to_string(),
                     count,
@@ -2324,10 +2340,26 @@ impl CoreClient {
             let mut summaries = Vec::new();
             if let Some(reactions) = item.content().reactions() {
                 for (key, senders) in reactions.iter() {
-                    let count = senders.len() as u32;
-                    let mine = me.map(|u| senders.keys().any(|s| s == u)).unwrap_or(false);
+                    let live: Vec<_> = senders
+                        .iter()
+                        .filter(|(_, info)| {
+                            !matches!(
+                                info.send_state,
+                                Some(
+                                    matrix_sdk_ui::timeline::EventSendState::SendingFailed { .. }
+                                )
+                            )
+                        })
+                        .collect();
+                    if live.is_empty() {
+                        continue;
+                    }
+                    let count = live.len() as u32;
+                    let mine = me
+                        .map(|u| live.iter().any(|(s, _)| *s == u))
+                        .unwrap_or(false);
                     let user_ids: Vec<String> =
-                        senders.keys().take(3).map(|u| u.to_string()).collect();
+                        live.iter().take(3).map(|(u, _)| u.to_string()).collect();
                     summaries.push(ReactionSummary {
                         key: key.clone(),
                         count,

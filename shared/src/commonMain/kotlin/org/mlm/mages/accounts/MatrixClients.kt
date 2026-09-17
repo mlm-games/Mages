@@ -12,6 +12,15 @@ import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.deleteDirectory
 import kotlin.concurrent.Volatile
 
+internal fun Throwable.isTlsUnavailable(): Boolean {
+    var current: Throwable? = this
+    while (current != null) {
+        if (current::class.simpleName == "TlsUnavailableException") return true
+        current = current.cause
+    }
+    return false
+}
+
 class MatrixClients(
     private val accountStore: AccountStore
 ) {
@@ -183,7 +192,11 @@ class MatrixClients(
                 false
             }
         } catch (e: Exception) {
-            Logger.w(e) { "MatrixClients: session resume failed for ${account.userId}" }
+            if (e.isTlsUnavailable()) {
+                Logger.e(e) { "MatrixClients: TLS unavailable, session resume failed for ${account.userId}" }
+            } else {
+                Logger.w(e) { "MatrixClients: session resume failed for ${account.userId}" }
+            }
             runCatching { port.close() }
             _isReady.value = true
             false

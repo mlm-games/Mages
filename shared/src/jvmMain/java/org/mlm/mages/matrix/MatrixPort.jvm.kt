@@ -30,10 +30,13 @@ private inline fun <T> runWithFfiResult(block: () -> T): Result<T> =
                 is FfiException.Msg -> IllegalStateException(ex.v1)
                 is FfiException.NotLive -> ex
                 is FfiException.BeaconNotFound -> ex
+                is FfiException.TlsUnavailable -> TlsUnavailableException(ex.v1)
             }
         } ?: e as? Exception ?: IllegalStateException(e.toString())
         throw mapped
     }
+
+class TlsUnavailableException(message: String) : IllegalStateException(message)
 
 private val matrixDispatcher = Dispatchers.IO.limitedParallelism(4)
 private val mediaDispatcher = Dispatchers.IO.limitedParallelism(2)

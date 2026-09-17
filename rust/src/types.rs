@@ -14,6 +14,8 @@ pub enum FfiError {
     NotLive,
     #[error("Existing beacon information not found")]
     BeaconNotFound,
+    #[error("TLS is unavailable on this device: {0}")]
+    TlsUnavailable(String),
 }
 
 impl From<matrix_sdk::Error> for FfiError {

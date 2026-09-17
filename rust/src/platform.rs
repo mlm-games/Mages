@@ -3,8 +3,10 @@ use once_cell::sync::Lazy;
 use std::path::{Path, PathBuf};
 use tracing::{info, warn};
 
-#[cfg(not(target_family = "wasm"))]
+#[cfg(all(not(target_family = "wasm"), not(target_os = "android")))]
 use tracing_subscriber::{EnvFilter, fmt};
+#[cfg(all(not(target_family = "wasm"), target_os = "android"))]
+use tracing_subscriber::EnvFilter;
 
 pub(crate) fn ensure_dir(path: &Path) {
     #[cfg(not(target_family = "wasm"))]
@@ -20,16 +22,32 @@ pub(crate) fn ensure_dir(path: &Path) {
 
 #[cfg(not(target_family = "wasm"))]
 static TRACING_INIT: Lazy<()> = Lazy::new(|| {
-    let filter = EnvFilter::from_default_env()
-        .add_directive("mages_ffi=debug".parse().unwrap())
-        .add_directive("matrix_sdk=info".parse().unwrap())
-        .add_directive("matrix_sdk_crypto=info".parse().unwrap());
+    #[cfg(target_os = "android")]
+    {
+        use tracing_subscriber::layer::SubscriberExt as _;
+        use tracing_subscriber::util::SubscriberInitExt as _;
+        let android_layer = paranoid_android::layer("mages_ffi");
+        tracing_subscriber::registry()
+            .with(EnvFilter::from_default_env()
+                .add_directive("mages_ffi=debug".parse().unwrap())
+                .add_directive("matrix_sdk=info".parse().unwrap())
+                .add_directive("matrix_sdk_crypto=info".parse().unwrap()))
+            .with(android_layer)
+            .init();
+    }
 
-    fmt()
-        .with_env_filter(filter)
-        .with_target(true)
-        .without_time()
-        .init();
+    #[cfg(not(target_os = "android"))]
+    {
+        let filter = EnvFilter::from_default_env()
+            .add_directive("mages_ffi=debug".parse().unwrap())
+            .add_directive("matrix_sdk=info".parse().unwrap())
+            .add_directive("matrix_sdk_crypto=info".parse().unwrap());
+        fmt()
+            .with_env_filter(filter)
+            .with_target(true)
+            .without_time()
+            .init();
+    }
 });
 
 pub(crate) fn init_tracing() {
