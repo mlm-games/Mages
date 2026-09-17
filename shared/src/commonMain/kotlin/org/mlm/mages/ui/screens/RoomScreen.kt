@@ -1166,14 +1166,15 @@ private fun RoomTopBar(
                                     )
                                 }
                             }
-                            if (isSyncing) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.fillMaxSize(),
-                                    strokeWidth = 2.5.dp,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                                )
-                            }
+                            // Not needed / test-only for notifs incase the issue still exists
+//                            if (isSyncing) {
+//                                CircularProgressIndicator(
+//                                    modifier = Modifier.fillMaxSize(),
+//                                    strokeWidth = 2.5.dp,
+//                                    color = MaterialTheme.colorScheme.primary,
+//                                    trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+//                                )
+//                            }
                         }
                         Spacer(Modifier.width(12.dp))
                         Column {
@@ -1305,14 +1306,15 @@ private fun BubbleTopBar(
                                 )
                             }
                         }
-                        if (isSyncing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.fillMaxSize(),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.primary,
-                                trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                            )
-                        }
+                        // same as above
+//                        if (isSyncing) {
+//                            CircularProgressIndicator(
+//                                modifier = Modifier.fillMaxSize(),
+//                                strokeWidth = 2.dp,
+//                                color = MaterialTheme.colorScheme.primary,
+//                                trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+//                            )
+//                        }
                     }
                     Spacer(Modifier.width(8.dp))
                     Text(
