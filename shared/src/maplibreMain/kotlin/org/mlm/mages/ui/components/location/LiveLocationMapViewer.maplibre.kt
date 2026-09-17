@@ -354,6 +354,40 @@ actual fun LiveLocationMapViewer(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
+        val centerOnMyLocation: () -> Unit = {
+            if (onCenterOnMyLocation != null) {
+                onCenterOnMyLocation()
+            } else {
+                scope.launch {
+                    isCentering = true
+                    val message = runCatching { LiveLocationProvider().getCurrentLocation() }.fold(
+                        onSuccess = { result ->
+                            if (result is LocationResult.Success) {
+                                runCatching {
+                                    mapState.animateCameraPosition(
+                                        CameraPosition(
+                                            target = Position(
+                                                longitude = result.location.longitude,
+                                                latitude = result.location.latitude,
+                                            ),
+                                            zoom = FOCUS_ZOOM
+                                        ),
+                                        animation = CameraAnimation.Ease(),
+                                    )
+                                }.fold(
+                                    onSuccess = { null },
+                                    onFailure = { "Could not move map" },
+                                )
+                            } else locationErrorMessage(result)
+                        },
+                        onFailure = { it.message?.ifBlank { "Could not get location" } ?: "Could not get location" },
+                    )
+                    isCentering = false
+                    if (message != null) snackbarHostState.showSnackbar(message)
+                }
+            }
+        }
+
         LaunchedEffect(focusRequest) {
             val request = focusRequest ?: return@LaunchedEffect
             mapState.animateCameraPosition(
@@ -390,39 +424,7 @@ actual fun LiveLocationMapViewer(
                 }
 
                 FilledIconButton(
-                    onClick = {
-                        if (onCenterOnMyLocation != null) {
-                            onCenterOnMyLocation()
-                        } else {
-                            scope.launch {
-                                isCentering = true
-                                val message = runCatching { LiveLocationProvider().getCurrentLocation() }.fold(
-                                    onSuccess = { result ->
-                                        if (result is LocationResult.Success) {
-                                            runCatching {
-                                                mapState.animateCameraPosition(
-                                                    CameraPosition(
-                                                        target = Position(
-                                                            longitude = result.location.longitude,
-                                                            latitude = result.location.latitude,
-                                                        ),
-                                                        zoom = FOCUS_ZOOM
-                                                    ),
-                                                    animation = CameraAnimation.Ease(),
-                                                )
-                                            }.fold(
-                                                onSuccess = { null },
-                                                onFailure = { "Could not move map" },
-                                            )
-                                        } else locationErrorMessage(result)
-                                    },
-                                    onFailure = { it.message?.ifBlank { "Could not get location" } ?: "Could not get location" },
-                                )
-                                isCentering = false
-                                if (message != null) snackbarHostState.showSnackbar(message)
-                            }
-                        }
-                    },
+                    onClick = { centerOnMyLocation() },
                     enabled = !isCentering,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -484,6 +486,20 @@ actual fun LiveLocationMapViewer(
                         .padding(16.dp),
                 ) {
                     Icon(Icons.Default.Close, contentDescription = "Close map")
+                }
+
+                FilledIconButton(
+                    onClick = { centerOnMyLocation() },
+                    enabled = !isCentering,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(end = 72.dp, top = 16.dp),
+                ) {
+                    if (isCentering) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(Icons.Default.MyLocation, contentDescription = "Center on my location")
+                    }
                 }
 
                 if (isStatic) {
