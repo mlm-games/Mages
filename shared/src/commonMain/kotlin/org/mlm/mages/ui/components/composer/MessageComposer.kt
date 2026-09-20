@@ -3,6 +3,7 @@ package org.mlm.mages.ui.components.composer
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -14,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -213,7 +215,13 @@ private fun ComposerInputRow(
             ),
             shape = RoundedCornerShape(24.dp),
             maxLines = 5,
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Sentences,
+                imeAction = if (enterSendsMessage) ImeAction.Send else ImeAction.Default
+            ),
+            keyboardActions = KeyboardActions(
+                onSend = { if (enabled && !isUploadingAttachment) onSend() }
+            )
         )
 
         Spacer(Modifier.width(Spacing.sm))

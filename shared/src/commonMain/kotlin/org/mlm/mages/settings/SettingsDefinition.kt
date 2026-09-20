@@ -580,7 +580,7 @@ data class AppSettings(
 
     @Setting(
         title = "Enter sends message",
-        description = "When enabled, pressing Enter will send the message and Shift+Enter will insert a new line",
+        description = "When enabled, pressing Enter will send the message and Shift, Ctrl or Cmd + Enter will insert a new line",
         category = Advanced::class,
         type = Toggle::class
     )
