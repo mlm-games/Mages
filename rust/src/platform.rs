@@ -169,7 +169,15 @@ fn init_logging_once(config: &TracingConfiguration) {
 }
 
 pub(crate) fn init_tracing() {
-    init_logging(TracingConfiguration::default());
+    #[cfg(not(target_family = "wasm"))]
+    {
+        init_logging(TracingConfiguration::default());
+    }
+
+    #[cfg(target_family = "wasm")]
+    {
+        tracing_wasm::set_as_global_default();
+    }
 }
 
 #[cfg(not(target_family = "wasm"))]
