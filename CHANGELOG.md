@@ -1,3 +1,8 @@
+## v4.11.7
+
+- No user-facing changes were mentioned since previous release
+
+
 ## v4.11.6
 
 - fix the rustls-platform-verifier issue (adapt from retorrent)
