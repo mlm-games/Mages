@@ -7,7 +7,9 @@ import android.content.Intent
 import android.net.Uri
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import org.koin.core.component.KoinComponent
@@ -37,10 +39,23 @@ class NotificationEnrichWorker(
 
     private val service: MatrixService by inject()
     private val incomingCalls: IncomingCallTracker by inject()
+    private var foregroundServiceHeld = false
 
     override suspend fun doWork(): Result {
+        foregroundServiceHeld = FetchPushForegroundServiceManager.acquire(applicationContext)
         AppNotificationChannels.ensureCreated(applicationContext)
+        return try {
+            doWorkInternal()
+        } finally {
+            if (foregroundServiceHeld) {
+                withContext(NonCancellable) {
+                    FetchPushForegroundServiceManager.release(applicationContext)
+                }
+            }
+        }
+    }
 
+    private suspend fun doWorkInternal(): Result {
         val roomId = inputData.getString(KEY_ROOM_ID) ?: return Result.failure()
         val eventId = inputData.getString(KEY_EVENT_ID) ?: return Result.failure()
 

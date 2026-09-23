@@ -5,7 +5,9 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -26,8 +28,22 @@ class NotificationReconcileWorker(
 ) : CoroutineWorker(appContext, params), KoinComponent {
 
     private val service: MatrixService by inject()
+    private var foregroundServiceHeld = false
 
     override suspend fun doWork(): Result {
+        foregroundServiceHeld = FetchPushForegroundServiceManager.acquire(applicationContext)
+        return try {
+            doWorkInternal()
+        } finally {
+            if (foregroundServiceHeld) {
+                withContext(NonCancellable) {
+                    FetchPushForegroundServiceManager.release(applicationContext)
+                }
+            }
+        }
+    }
+
+    private suspend fun doWorkInternal(): Result {
         val ctx = applicationContext
         val mgr = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
             ?: return Result.success()

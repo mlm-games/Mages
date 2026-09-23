@@ -61,6 +61,7 @@ class AppPushService : PushService(), KoinComponent {
     override fun onMessage(message: PushMessage, instance: String) {
         AppNotificationChannels.ensureCreated(applicationContext)
         AppNotificationChannels.ensureBubblesAllowed(applicationContext)
+        FetchPushForegroundServiceManager.start(applicationContext)
         val raw = try {
             message.content.toString(Charsets.UTF_8)
         } catch (e: Throwable) {
@@ -93,6 +94,9 @@ class AppPushService : PushService(), KoinComponent {
 
         if (!hasEvent && firstCounts == null) {
             Log.w(TAG, "No events or counts extracted from push")
+            scope.launch {
+                FetchPushForegroundServiceManager.stop(applicationContext)
+            }
         }
     }
 

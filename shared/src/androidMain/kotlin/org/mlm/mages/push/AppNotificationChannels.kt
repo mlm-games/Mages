@@ -25,6 +25,7 @@ object AppNotificationChannels {
     const val CHANNEL_INVITES = "invites"
     const val CHANNEL_CALL_ONGOING = "call_ongoing"
     const val CHANNEL_LIVE_LOCATION = "live_location"
+    const val CHANNEL_FETCH_PUSH = "fetch_push"
 
     private val legacyCallChannels = listOf("calls", "calls_v2")
 
@@ -141,6 +142,20 @@ object AppNotificationChannels {
                     NotificationManager.IMPORTANCE_LOW
                 ).apply {
                     description = "Notification while sharing live location"
+                    setSound(null, null)
+                    enableVibration(false)
+                }
+            )
+        }
+
+        if (mgr.getNotificationChannel(CHANNEL_FETCH_PUSH) == null) {
+            mgr.createNotificationChannel(
+                NotificationChannel(
+                    CHANNEL_FETCH_PUSH,
+                    "Syncing notifications",
+                    NotificationManager.IMPORTANCE_LOW
+                ).apply {
+                    description = "Shows while notifications are being fetched"
                     setSound(null, null)
                     enableVibration(false)
                 }

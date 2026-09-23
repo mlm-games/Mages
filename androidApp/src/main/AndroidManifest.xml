@@ -192,6 +192,11 @@
 
 
         <service
+            android:name=".push.FetchPushForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="shortService" />
+        <service
             android:name=".push.AppPushService"
             android:exported="false">
             <intent-filter>

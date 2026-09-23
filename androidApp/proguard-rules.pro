@@ -1,6 +1,7 @@
 -keepattributes *Annotation*,Signature,InnerClasses
 
 -keep class org.mlm.mages.push.AppPushService { *; }
+-keep class org.mlm.mages.push.FetchPushForegroundService { *; }
 -keep class org.mlm.mages.push.RaiseToForegroundService { *; }
 
 -dontwarn sun.misc.Unsafe
