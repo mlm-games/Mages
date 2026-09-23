@@ -1,5 +1,4 @@
 use crate::{RoomListEntry, SessionInfo};
-use once_cell::sync::Lazy;
 use std::path::{Path, PathBuf};
 use tracing::{info, warn};
 
@@ -21,38 +20,162 @@ pub(crate) fn ensure_dir(path: &Path) {
 }
 
 #[cfg(not(target_family = "wasm"))]
-static TRACING_INIT: Lazy<()> = Lazy::new(|| {
-    #[cfg(target_os = "android")]
-    {
-        use tracing_subscriber::layer::SubscriberExt as _;
-        use tracing_subscriber::util::SubscriberInitExt as _;
-        let android_layer = paranoid_android::layer("mages_ffi");
-        tracing_subscriber::registry()
-            .with(EnvFilter::from_default_env()
-                .add_directive("mages_ffi=debug".parse().unwrap())
-                .add_directive("matrix_sdk=info".parse().unwrap())
-                .add_directive("matrix_sdk_crypto=info".parse().unwrap()))
-            .with(android_layer)
-            .init();
-    }
+static TRACING_INIT: std::sync::OnceLock<()> = std::sync::OnceLock::new();
 
-    #[cfg(not(target_os = "android"))]
-    {
-        let filter = EnvFilter::from_default_env()
-            .add_directive("mages_ffi=debug".parse().unwrap())
-            .add_directive("matrix_sdk=info".parse().unwrap())
-            .add_directive("matrix_sdk_crypto=info".parse().unwrap());
-        fmt()
-            .with_env_filter(filter)
-            .with_target(true)
-            .without_time()
-            .init();
+#[cfg(not(target_family = "wasm"))]
+static FILTER_HANDLE: std::sync::OnceLock<
+    tracing_subscriber::reload::Handle<
+        tracing_subscriber::EnvFilter,
+        tracing_subscriber::Registry,
+    >,
+> = std::sync::OnceLock::new();
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, uniffi::Enum)]
+pub enum LogLevel {
+    Error,
+    Warn,
+    Info,
+    Debug,
+    Trace,
+}
+
+impl LogLevel {
+    fn as_str(self) -> &'static str {
+        match self {
+            LogLevel::Error => "error",
+            LogLevel::Warn => "warn",
+            LogLevel::Info => "info",
+            LogLevel::Debug => "debug",
+            LogLevel::Trace => "trace",
+        }
     }
-});
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, uniffi::Enum)]
+pub enum TraceLogPacks {
+    Sync,
+    Timeline,
+    Crypto,
+    EventCache,
+    SendQueue,
+    SlidingSync,
+    SsoLogin,
+}
+
+impl TraceLogPacks {
+    fn targets(self) -> &'static [(&'static str, LogLevel)] {
+        match self {
+            TraceLogPacks::Sync => &[
+                ("matrix_sdk::sliding_sync", LogLevel::Trace),
+                ("matrix_sdk::sync", LogLevel::Trace),
+            ],
+            TraceLogPacks::Timeline => &[("matrix_sdk_ui::timeline", LogLevel::Trace)],
+            TraceLogPacks::Crypto => &[
+                ("matrix_sdk_crypto", LogLevel::Trace),
+                ("matrix_sdk::encryption", LogLevel::Trace),
+            ],
+            TraceLogPacks::EventCache => &[("matrix_sdk::event_cache", LogLevel::Trace)],
+            TraceLogPacks::SendQueue => &[("matrix_sdk::send_queue", LogLevel::Trace)],
+            TraceLogPacks::SlidingSync => &[("matrix_sdk::sliding_sync", LogLevel::Trace)],
+            TraceLogPacks::SsoLogin => &[("matrix_sdk::authentication::oauth", LogLevel::Trace)],
+        }
+    }
+}
+
+#[derive(uniffi::Record)]
+pub struct TracingConfiguration {
+    pub log_level: LogLevel,
+    pub trace_log_packs: Vec<TraceLogPacks>,
+    pub extra_targets: Vec<String>,
+}
+
+impl Default for TracingConfiguration {
+    fn default() -> Self {
+        Self {
+            log_level: LogLevel::Info,
+            trace_log_packs: Vec::new(),
+            extra_targets: vec!["mages_ffi".to_owned()],
+        }
+    }
+}
+
+#[cfg(not(target_family = "wasm"))]
+fn build_tracing_filter(config: &TracingConfiguration) -> String {
+    let mut filters = vec!["panic=error".to_owned()];
+    for (target, pack_level) in config
+        .trace_log_packs
+        .iter()
+        .flat_map(|pack| pack.targets().iter().copied())
+    {
+        filters.push(format!("{target}={}", pack_level.as_str()));
+    }
+    filters.push(format!("mages_ffi={}", config.log_level.as_str()));
+    filters.push(format!("matrix_sdk={}", config.log_level.as_str()));
+    filters.push(format!("matrix_sdk_crypto={}", config.log_level.as_str()));
+    for target in &config.extra_targets {
+        filters.push(format!("{target}={}", config.log_level.as_str()));
+    }
+    filters.join(",")
+}
+
+#[cfg(not(target_family = "wasm"))]
+fn init_logging_once(config: &TracingConfiguration) {
+    let filter_string = build_tracing_filter(config);
+
+    let first_install = TRACING_INIT.get().is_none();
+    let filter_string = if first_install {
+        std::env::var("RUST_LOG").unwrap_or(filter_string)
+    } else {
+        filter_string
+    };
+
+    TRACING_INIT.get_or_init(|| {
+        log_panics::init();
+        let _ = tracing_log::LogTracer::init();
+
+        let filter = EnvFilter::try_new(&filter_string)
+            .unwrap_or_else(|_| "mages_ffi=info".parse().unwrap());
+        #[cfg(target_os = "android")]
+        {
+            use tracing_subscriber::layer::SubscriberExt as _;
+            use tracing_subscriber::util::SubscriberInitExt as _;
+            use tracing_subscriber::reload;
+            let (filter_layer, handle) = reload::Layer::new(filter);
+            let _ = FILTER_HANDLE.set(handle);
+            let android_layer = paranoid_android::layer(env!("CARGO_PKG_NAME"));
+            tracing_subscriber::registry().with(filter_layer).with(android_layer).init();
+        }
+
+        #[cfg(not(target_os = "android"))]
+        {
+            use tracing_subscriber::layer::SubscriberExt as _;
+            use tracing_subscriber::reload;
+            use tracing_subscriber::util::SubscriberInitExt as _;
+            let (filter_layer, handle) = reload::Layer::new(filter);
+            let _ = FILTER_HANDLE.set(handle);
+            tracing_subscriber::registry()
+                .with(filter_layer)
+                .with(fmt::layer().with_target(true).without_time())
+                .init();
+        }
+    });
+
+    if let Some(handle) = FILTER_HANDLE.get() {
+        let filter = EnvFilter::try_new(&filter_string)
+            .unwrap_or_else(|_| "mages_ffi=info".parse().unwrap());
+        let _ = handle.reload(filter);
+    }
+    info!(filter = filter_string.as_str(), "logging initialised");
+}
 
 pub(crate) fn init_tracing() {
-    #[cfg(not(target_family = "wasm"))]
-    Lazy::force(&TRACING_INIT);
+    init_logging(TracingConfiguration::default());
+}
+
+#[cfg(not(target_family = "wasm"))]
+#[uniffi::export]
+pub fn init_logging(config: TracingConfiguration) {
+    init_logging_once(&config);
 }
 
 pub(crate) fn reset_store_dir(path: &Path) {

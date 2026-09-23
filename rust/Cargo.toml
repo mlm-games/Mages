@@ -34,10 +34,12 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
     "env-filter",
     "fmt",
 ] }
+tracing-log = { version = "0.2", default-features = false, features = ["log-tracer", "std"] }
 web-time = "1.1"
 async-stream = "0.3.6"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
+log-panics = { version = "2", features = ["with-backtrace"] }
 matrix-sdk = { version = "0.19.0", default-features = false, features = [
     "e2e-encryption",
     "sqlite",
