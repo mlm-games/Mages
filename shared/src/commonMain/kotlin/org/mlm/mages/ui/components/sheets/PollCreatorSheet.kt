@@ -16,11 +16,12 @@ import org.mlm.mages.ui.theme.Spacing
 
 @Composable
 fun PollCreatorSheet(
-    onCreatePoll: (question: String, answers: List<String>) -> Unit,
+    onCreatePoll: (question: String, answers: List<String>, maxSelections: Int) -> Unit,
     onDismiss: () -> Unit
 ) {
     var question by remember { mutableStateOf("") }
     var answers by remember { mutableStateOf(listOf("", "")) }
+    var allowMultipleAnswers by remember { mutableStateOf(false) }
 
     val isValid = question.isNotBlank() && answers.count { it.isNotBlank() } >= 2
 
@@ -116,6 +117,23 @@ fun PollCreatorSheet(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Allow multiple answers",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Switch(
+                    checked = allowMultipleAnswers,
+                    onCheckedChange = { allowMultipleAnswers = it }
+                )
+            }
+
+            Spacer(Modifier.height(Spacing.lg))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -127,7 +145,8 @@ fun PollCreatorSheet(
                     onClick = {
                         val validAnswers = answers.filter { it.isNotBlank() }
                         if (question.isNotBlank() && validAnswers.size >= 2) {
-                            onCreatePoll(question.trim(), validAnswers.map { it.trim() })
+                            val maxSelections = if (allowMultipleAnswers) validAnswers.size else 1
+                            onCreatePoll(question.trim(), validAnswers.map { it.trim() }, maxSelections)
                             onDismiss()
                         }
                     },

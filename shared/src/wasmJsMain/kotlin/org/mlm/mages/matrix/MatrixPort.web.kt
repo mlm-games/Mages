@@ -1441,8 +1441,8 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
 
     override fun unsubscribeFromOwnBeaconInfoUpdates(token: ULong) {}
 
-    override suspend fun sendPoll(roomId: String, question: String, answers: List<String>): Result<Unit> {
-        val eventId = requireClient().sendPollStart(roomId, question, answers.toJsArray(), "disclosed", 1.0).awaitString()
+    override suspend fun sendPoll(roomId: String, question: String, answers: List<String>, maxSelections: Int): Result<Unit> {
+        val eventId = requireClient().sendPollStart(roomId, question, answers.toJsArray(), "disclosed", maxSelections.coerceIn(1, answers.size).toDouble()).awaitString()
         return if (eventId != null) Result.success(Unit) else Result.failure(Exception("Failed to send poll"))
     }
 

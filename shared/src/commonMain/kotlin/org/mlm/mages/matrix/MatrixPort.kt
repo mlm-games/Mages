@@ -979,7 +979,7 @@ interface MatrixPort {
     fun subscribeToOwnBeaconInfoUpdates(onUpdate: (BeaconInfoUpdate) -> Unit): ULong
     fun unsubscribeFromOwnBeaconInfoUpdates(token: ULong)
 
-    suspend fun sendPoll(roomId: String, question: String, answers: List<String>): Result<Unit>
+    suspend fun sendPoll(roomId: String, question: String, answers: List<String>, maxSelections: Int = 1): Result<Unit>
 
     suspend fun seenByForEvent(roomId: String, eventId: String, limit: Int): List<SeenByEntry>
 

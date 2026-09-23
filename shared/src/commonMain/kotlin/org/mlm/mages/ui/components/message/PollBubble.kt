@@ -74,6 +74,15 @@ fun PollBubble(
             )
         }
 
+        if (poll.maxSelections > 1 && !poll.isEnded) {
+            Text(
+                text = "Select up to ${poll.maxSelections}",
+                style = MaterialTheme.typography.labelSmall,
+                color = contentColor.copy(alpha = 0.6f),
+                modifier = Modifier.padding(top = 2.dp)
+            )
+        }
+
         Spacer(Modifier.height(10.dp))
 
         poll.options.forEachIndexed { index, option ->

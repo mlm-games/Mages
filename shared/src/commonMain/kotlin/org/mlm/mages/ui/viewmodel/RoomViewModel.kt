@@ -1605,13 +1605,13 @@ class RoomViewModel(
 
     //  Polls
 
-    fun sendPoll(question: String, answers: List<String>) {
+    fun sendPoll(question: String, answers: List<String>, maxSelections: Int = 1) {
         val q = question.trim()
         val opts = answers.map { it.trim() }.filter { it.isNotBlank() }
         if (q.isBlank() || opts.size < 2) return
 
         launch {
-            val ok = service.port.sendPoll(currentState.roomId, q, opts).isSuccess
+            val ok = service.port.sendPoll(currentState.roomId, q, opts, maxSelections.coerceIn(1, opts.size)).isSuccess
             if (ok) {
                 updateState { copy(showPollCreator = false) }
             } else {
@@ -1674,11 +1674,14 @@ class RoomViewModel(
     fun votePoll(pollEventId: String, poll: PollData, optionId: String) {
         launch {
             val currentSelections = poll.mySelections.toSet()
-            val newSelections = if (poll.maxSelections == 1L) {
+            val newSelections = if (poll.maxSelections <= 1L) {
                 if (currentSelections.contains(optionId)) emptyList() else listOf(optionId)
             } else {
                 if (currentSelections.contains(optionId)) {
                     currentSelections - optionId
+                } else if (currentSelections.size >= poll.maxSelections) {
+                    _events.send(Event.ShowError("You can select up to ${poll.maxSelections} options"))
+                    return@launch
                 } else {
                     currentSelections + optionId
                 }

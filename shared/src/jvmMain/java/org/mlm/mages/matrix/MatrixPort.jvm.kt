@@ -1664,13 +1664,14 @@ class RustMatrixPort : MatrixPort, VerificationService {
     override suspend fun sendPoll(
         roomId: String,
         question: String,
-        answers: List<String>
+        answers: List<String>,
+        maxSelections: Int
     ): Result<Unit> = withContext(matrixDispatcher) {
         val def = mages.PollDefinition(
             question = question,
             answers = answers,
             kind = mages.PollKind.DISCLOSED,
-            maxSelections = 1u
+            maxSelections = maxSelections.coerceIn(1, answers.size).toUInt()
         )
         runWithFfiResult { withClient { it.sendPollStart(roomId, def) } }.map { }
     }
