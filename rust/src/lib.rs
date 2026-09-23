@@ -279,12 +279,29 @@ pub struct Client {
 }
 
 fn mages_client_metadata(redirect_uri: &Url) -> Raw<ClientMetadata> {
-    let is_localhost = matches!(
+    let host_is_loopback = matches!(
         redirect_uri.host_str(),
         Some("localhost") | Some("127.0.0.1") | Some("[::1]")
     );
+    let is_loopback_http = matches!(redirect_uri.scheme(), "http")
+        && host_is_loopback
+        && redirect_uri.port().is_some();
 
-    let is_web_redirect = matches!(redirect_uri.scheme(), "http" | "https");
+    let registered_redirect_uri = if is_loopback_http {
+        let mut uri = redirect_uri.clone();
+        uri.set_port(None)
+            .expect("loopback http URL should accept clearing the port");
+        uri
+    } else {
+        redirect_uri.clone()
+    };
+
+    let is_localhost = matches!(
+        registered_redirect_uri.host_str(),
+        Some("localhost") | Some("127.0.0.1") | Some("[::1]")
+    );
+
+    let is_web_redirect = matches!(registered_redirect_uri.scheme(), "http" | "https");
     let use_web_metadata = is_web_redirect && !is_localhost;
 
     let application_type = if use_web_metadata {
@@ -297,7 +314,7 @@ fn mages_client_metadata(redirect_uri: &Url) -> Raw<ClientMetadata> {
 
     let client_uri = Localized::new(
         if use_web_metadata {
-            Url::parse(&redirect_uri.origin().ascii_serialization())
+            Url::parse(&registered_redirect_uri.origin().ascii_serialization())
                 .unwrap_or_else(|_| fallback_client_uri.clone())
         } else {
             fallback_client_uri.clone()
@@ -312,7 +329,7 @@ fn mages_client_metadata(redirect_uri: &Url) -> Raw<ClientMetadata> {
         ..ClientMetadata::new(
             application_type,
             vec![OAuthGrantType::AuthorizationCode {
-                redirect_uris: vec![redirect_uri.clone()],
+                redirect_uris: vec![registered_redirect_uri],
             }],
             client_uri,
         )
