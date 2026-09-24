@@ -47,6 +47,8 @@ import org.mlm.mages.matrix.displayName
 import io.github.mlmgames.settings.core.annotations.SettingPlatform
 import io.github.mlmgames.settings.core.platform.currentPlatform
 import org.mlm.mages.platform.RoomPlatformShortcuts
+import mages.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun RoomInfoRoute(
@@ -188,12 +190,12 @@ fun RoomInfoScreen(
                 title = { Text("Room Info") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = onRefresh, enabled = !state.isLoading) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(Res.string.refresh))
                     }
                 }
             )

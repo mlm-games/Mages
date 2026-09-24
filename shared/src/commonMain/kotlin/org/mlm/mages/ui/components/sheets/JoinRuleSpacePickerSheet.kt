@@ -14,6 +14,8 @@ import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.SpaceInfo
 import org.mlm.mages.ui.theme.Spacing
+import mages.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun JoinRuleSpacePickerSheet(
@@ -130,14 +132,14 @@ fun JoinRuleSpacePickerSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 TextButton(onClick = onDismiss) {
-                    Text("Cancel")
+                    Text(stringResource(Res.string.cancel))
                 }
                 Spacer(Modifier.width(Spacing.sm))
                 Button(
                     onClick = { onSave(rule, selected.toList()) },
                     enabled = spaces.isNotEmpty() && selected.isNotEmpty(),
                 ) {
-                    Text("Save")
+                    Text(stringResource(Res.string.save))
                 }
             }
         }

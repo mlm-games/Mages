@@ -41,6 +41,8 @@ import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.matrix.displayName
 import org.mlm.mages.notifications.NotificationSettingsRepository
 import org.mlm.mages.notifications.NotificationToggles
+import mages.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun NotificationRulesScreen(
@@ -77,7 +79,7 @@ fun NotificationRulesScreen(
                 title = { Text("Notification rules") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
                     }
                 },
             )

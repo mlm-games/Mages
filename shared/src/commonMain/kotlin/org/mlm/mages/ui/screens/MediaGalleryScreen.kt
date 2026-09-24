@@ -42,6 +42,8 @@ import org.mlm.mages.ui.util.monthYearLabel
 import org.mlm.mages.ui.viewmodel.ExtractedLink
 import org.mlm.mages.ui.viewmodel.MediaGalleryViewModel
 import org.mlm.mages.ui.viewmodel.MediaTab
+import mages.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.snackbar.snackbarHost
 import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
@@ -99,7 +101,7 @@ fun MediaGalleryScreen(
                     title = { Text("Media & Files") },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
                         }
                     }
                 )

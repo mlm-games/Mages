@@ -27,6 +27,8 @@ import org.mlm.mages.ui.viewmodel.*
 import org.mlm.mages.ui.components.sheets.RoomSelectionList
 import org.mlm.mages.ui.components.sheets.SelectedRoomsRow
 import org.mlm.mages.ui.components.sheets.SelectableRoomItem
+import mages.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ForwardPickerScreen(
@@ -70,7 +72,7 @@ fun ForwardPickerScreen(
                         onClick = onBack,
                         enabled = !state.isSubmitting
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
                     }
                 }
             )
