@@ -90,7 +90,7 @@ class BubbleConversationActivity : ComponentActivity() {
                         onBack = { finish() },
                         onOpenInfo = { },
                         onNavigateToRoom = { _, _ -> },
-                        onNavigateToThread = { _, _, _ -> },
+                        onNavigateToThread = { _, _, _, _ -> },
                         onStartCall = { },
                         onStartVoiceCall = { },
                         onOpenForwardPicker = { _, _ -> },
