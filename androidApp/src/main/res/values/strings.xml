@@ -9,5 +9,4 @@
     <string name="notif_live_location_title">Sharing live location</string>
     <string name="notif_live_location_single">1 room</string>
     <string name="notif_live_location_plural">%1$d rooms</string>
-    <string name="notif_new_message">New message</string>
 </resources>

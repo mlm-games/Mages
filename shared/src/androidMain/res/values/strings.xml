@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Mages</string>
+    <string name="notif_new_message">New message</string>
 </resources>

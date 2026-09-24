@@ -8,5 +8,4 @@
     <string name="notif_live_location_title">Compartiendo ubicacion en vivo</string>
     <string name="notif_live_location_single">1 sala</string>
     <string name="notif_live_location_plural">%1$d salas</string>
-    <string name="notif_new_message">Nuevo mensaje</string>
 </resources>

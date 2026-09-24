@@ -236,7 +236,7 @@ fun SpaceSettingsScreen(
                                 label = { Text("Access") },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
                                 modifier = Modifier
-                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                                     .fillMaxWidth()
                             )
                             ExposedDropdownMenu(
