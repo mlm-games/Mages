@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">魔術師</string>
+    <string name="location_disclosure_title">位置情報へのアクセスが必要です</string>
+    <string name="location_disclosure_message">メイジは、あなたが選択した場合にのみあなたの位置情報を共有します。\n\nライブ位置情報: あなたの正確な位置情報がこのルームに送信され、そのメンバーに表示されます。タイマーが終了するか、[共有の停止] をタップするまで、バックグラウンドで通知が表示され続けます。\n\nワンタイム位置情報: 現在の位置情報がメッセージとして 1 回送信されます。\n\n位置情報は Matrix ホームサーバーに送信され、他の場所では使用されません。 [設定] でいつでも共有を停止したり、許可をオフにしたりできます。</string>
+    <string name="location_disclosure_continue">続く</string>
+    <string name="location_disclosure_not_now">今じゃない</string>
+    <string name="location_permission_required">ライブ位置情報の共有には位置情報の許可が必要です</string>
+    <string name="location_permission_denied">位置情報の許可が拒否されました</string>
+    <string name="notif_live_location_title">ライブ位置の共有</string>
+    <string name="notif_live_location_single">1部屋</string>
+    <string name="notif_live_location_plural">%1$d 部屋</string>
+</resources>

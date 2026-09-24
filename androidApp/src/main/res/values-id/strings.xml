@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Penyihir</string>
+    <string name="location_disclosure_title">Akses lokasi diperlukan</string>
+    <string name="location_disclosure_message">Penyihir membagikan lokasi Anda hanya jika Anda mau.\n\nLokasi langsung: lokasi persis Anda dikirim ke ruangan ini dan terlihat oleh anggotanya. Ini berlanjut di latar belakang dengan pemberitahuan hingga penghitung waktu berakhir atau Anda mengetuk Berhenti Berbagi.\n\nLokasi satu kali: lokasi Anda saat ini dikirim satu kali sebagai pesan.\n\nLokasi Anda dikirim ke server utama Matrix dan tidak digunakan di tempat lain. Anda dapat berhenti berbagi atau menonaktifkan izin di Setelan kapan saja.</string>
+    <string name="location_disclosure_continue">Melanjutkan</string>
+    <string name="location_disclosure_not_now">Tidak sekarang</string>
+    <string name="location_permission_required">Izin lokasi diperlukan untuk berbagi lokasi langsung</string>
+    <string name="location_permission_denied">Izin lokasi ditolak</string>
+    <string name="notif_live_location_title">Berbagi lokasi langsung</string>
+    <string name="notif_live_location_single">1 kamar</string>
+    <string name="notif_live_location_plural">%1$d kamar</string>
+</resources>

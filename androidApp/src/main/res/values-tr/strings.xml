@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Büyücüler</string>
+    <string name="location_disclosure_title">Konum erişimi gerekli</string>
+    <string name="location_disclosure_message">Büyücüler konumunuzu yalnızca siz seçtiğinizde paylaşır.\n\nCanlı konum: Tam konumunuz bu odaya gönderilir ve oda üyeleri tarafından görülebilir. Zamanlayıcı bitene veya Paylaşımı Durdur’a dokunana kadar arka planda bir bildirimle devam eder.\n\nTek seferlik konum: mevcut konumunuz bir kez mesaj olarak gönderilir.\n\nKonumunuz Matrix ev sunucunuza gönderilir ve başka yerde kullanılmaz. İstediğiniz zaman Ayarlar’dan paylaşımı durdurabilir veya izni kapatabilirsiniz.</string>
+    <string name="location_disclosure_continue">Devam etmek</string>
+    <string name="location_disclosure_not_now">Şimdi değil</string>
+    <string name="location_permission_required">Canlı konum paylaşımı için konum izni gereklidir</string>
+    <string name="location_permission_denied">Konum izni reddedildi</string>
+    <string name="notif_live_location_title">Canlı konum paylaşılıyor</string>
+    <string name="notif_live_location_single">1 oda</string>
+    <string name="notif_live_location_plural">%1$d odalar</string>
+</resources>

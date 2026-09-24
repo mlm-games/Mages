@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">קוסמים</string>
+    <string name="location_disclosure_title">דרושה גישה למיקום</string>
+    <string name="location_disclosure_message">קוסמים משתפים את המיקום שלך רק כשאתה בוחר.\n\nמיקום חי: המיקום המדויק שלך נשלח לחדר הזה וגלוי לחבריו. זה ממשיך ברקע עם התראה עד שהטיימר מסתיים או שאתה מקיש על הפסק שיתוף.\n\nמיקום חד פעמי: המיקום הנוכחי שלך נשלח פעם אחת כהודעה.\n\nהמיקום שלך נשלח לשרת הביתי של Matrix ולא נעשה בו שימוש במקומות אחרים. אתה יכול להפסיק לשתף או לבטל את ההרשאה בהגדרות בכל עת.</string>
+    <string name="location_disclosure_continue">לְהַמשִׁיך</string>
+    <string name="location_disclosure_not_now">לא עכשיו</string>
+    <string name="location_permission_required">נדרשת הרשאת מיקום לשיתוף מיקום חי</string>
+    <string name="location_permission_denied">הרשאת המיקום נדחתה</string>
+    <string name="notif_live_location_title">שיתוף מיקום חי</string>
+    <string name="notif_live_location_single">חדר 1</string>
+    <string name="notif_live_location_plural">%1$d חדרים</string>
+</resources>

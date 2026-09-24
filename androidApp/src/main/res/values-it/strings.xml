@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Maghi</string>
+    <string name="location_disclosure_title">È necessario l’accesso alla posizione</string>
+    <string name="location_disclosure_message">Mages condivide la tua posizione solo quando lo desideri.\n\nPosizione live: la tua posizione precisa viene inviata a questa stanza ed è visibile ai suoi membri. Continua in background con una notifica fino allo scadere del timer o finché non tocchi Interrompi condivisione.\n\nPosizione unica: la tua posizione corrente viene inviata una volta come messaggio.\n\nLa tua posizione viene inviata al tuo server home Matrix e non utilizzata altrove. Puoi interrompere la condivisione o disattivare l’autorizzazione nelle Impostazioni in qualsiasi momento.</string>
+    <string name="location_disclosure_continue">Continuare</string>
+    <string name="location_disclosure_not_now">Non adesso</string>
+    <string name="location_permission_required">Per la condivisione della posizione in tempo reale è necessaria l’autorizzazione alla posizione</string>
+    <string name="location_permission_denied">Autorizzazione alla posizione negata</string>
+    <string name="notif_live_location_title">Condivisione della posizione in tempo reale</string>
+    <string name="notif_live_location_single">1 stanza</string>
+    <string name="notif_live_location_plural">%1$d stanze</string>
+</resources>

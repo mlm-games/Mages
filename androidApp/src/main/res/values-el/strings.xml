@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Μάγκες</string>
+    <string name="location_disclosure_title">Απαιτείται πρόσβαση στην τοποθεσία</string>
+    <string name="location_disclosure_message">Το Mages κοινοποιεί την τοποθεσία σας μόνο όταν το επιλέξετε.\n\nΖωντανή τοποθεσία: η ακριβής τοποθεσία σας αποστέλλεται σε αυτό το δωμάτιο και είναι ορατή στα μέλη του. Συνεχίζεται στο παρασκήνιο με μια ειδοποίηση μέχρι να τελειώσει το χρονόμετρο ή να πατήσετε Διακοπή κοινής χρήσης.\n\nΤοποθεσία μίας χρήσης: η τρέχουσα τοποθεσία σας αποστέλλεται μία φορά ως μήνυμα.\n\nΗ τοποθεσία σας αποστέλλεται στον κεντρικό υπολογιστή σας Matrix και δεν χρησιμοποιείται αλλού. Μπορείτε να διακόψετε την κοινή χρήση ή να απενεργοποιήσετε την άδεια στις Ρυθμίσεις ανά πάσα στιγμή.</string>
+    <string name="location_disclosure_continue">Συνεχίζω</string>
+    <string name="location_disclosure_not_now">Όχι τώρα</string>
+    <string name="location_permission_required">Απαιτείται άδεια τοποθεσίας για ζωντανή κοινή χρήση τοποθεσίας</string>
+    <string name="location_permission_denied">Η άδεια τοποθεσίας απορρίφθηκε</string>
+    <string name="notif_live_location_title">Κοινή χρήση ζωντανής τοποθεσίας</string>
+    <string name="notif_live_location_single">1 δωμάτιο</string>
+    <string name="notif_live_location_plural">%1$d δωμάτια</string>
+</resources>

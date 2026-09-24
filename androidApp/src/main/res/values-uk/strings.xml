@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Маги</string>
+    <string name="location_disclosure_title">Потрібен доступ до місцезнаходження</string>
+    <string name="location_disclosure_message">Маги повідомляють ваше місцезнаходження лише тоді, коли ви забажаєте.\n\nОстаннє місцезнаходження: ваше точне місцезнаходження надсилається в цю кімнату та відображається її учасникам. Він продовжує працювати у фоновому режимі зі сповіщенням, доки таймер не закінчиться або ви торкнетеся «Зупинити надсилання».\n\nОдноразове місцезнаходження: ваше поточне місцезнаходження надсилається один раз у вигляді повідомлення.\n\nВаше місцезнаходження надсилається на ваш домашній сервер Matrix і більше не використовується. Ви можете будь-коли припинити ділитися або вимкнути дозвіл у налаштуваннях.</string>
+    <string name="location_disclosure_continue">Продовжити</string>
+    <string name="location_disclosure_not_now">Не зараз</string>
+    <string name="location_permission_required">Для обміну геоданими в реальному часі потрібен дозвіл на місцезнаходження</string>
+    <string name="location_permission_denied">Дозвіл на місцезнаходження відмовлено</string>
+    <string name="notif_live_location_title">Передача поточного місцезнаходження</string>
+    <string name="notif_live_location_single">1 кімната</string>
+    <string name="notif_live_location_plural">%1$d кімнати</string>
+</resources>

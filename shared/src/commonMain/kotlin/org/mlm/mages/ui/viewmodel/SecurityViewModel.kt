@@ -49,6 +49,9 @@ class SecurityViewModel(
     private var accountDataVersion: Long = 0L
 
     init {
+        ActionRegistry.registerAction(OpenMediaCacheAction::class, OpenMediaCacheAction)
+        ActionRegistry.registerAction(OpenNotificationRulesAction::class, OpenNotificationRulesAction)
+
         viewModelScope.launch {
             service.activeAccount.collectLatest { account ->
                 val accountId = account?.id
@@ -290,10 +293,9 @@ class SecurityViewModel(
         }
     }
 
-    fun <T> updateSetting(name: String, value: T) {
+    fun updateSetting(name: String, value: Any?) {
         launch {
-            @Suppress("UNCHECKED_CAST")
-            settingsRepository.set(name, value as Any)
+            settingsRepository.set(name, value)
         }
     }
 

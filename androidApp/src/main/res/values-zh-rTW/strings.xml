@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">法師</string>
+    <string name="location_disclosure_title">需要訪問位置</string>
+    <string name="location_disclosure_message">只有當您選擇時，法師才會共享您的位置。 \n\n即時位置：您的精確位置會傳送到此房間，並且其成員可以看到。它會在背景繼續顯示通知，直到計時器結束或您點擊「停止共享」。 \n\n一次性位置：您目前的位置將作為訊息發送一次。 \n\n您的位置將傳送到您的 Matrix 家庭伺服器，不會在其他地方使用。您可以隨時在「設定」中停止共用或關閉權限。</string>
+    <string name="location_disclosure_continue">繼續</string>
+    <string name="location_disclosure_not_now">現在不要</string>
+    <string name="location_permission_required">即時位置共享需要位置權限</string>
+    <string name="location_permission_denied">位置權限被拒絕</string>
+    <string name="notif_live_location_title">分享即時位置</string>
+    <string name="notif_live_location_single">1 間客房</string>
+    <string name="notif_live_location_plural">%1$d 客房</string>
+</resources>

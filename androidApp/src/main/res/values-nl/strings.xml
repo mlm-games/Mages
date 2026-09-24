@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Magiërs</string>
+    <string name="location_disclosure_title">Locatietoegang vereist</string>
+    <string name="location_disclosure_message">Mages deelt uw locatie alleen als u dat wilt.\n\nLive locatie: uw exacte locatie wordt naar deze kamer verzonden en is zichtbaar voor de leden ervan. Het gaat door op de achtergrond met een melding totdat de timer afloopt of u op ’Stop delen’ tikt.\n\nEenmalige locatie: uw huidige locatie wordt één keer als bericht verzonden.\n\nUw locatie wordt naar uw Matrix-homeserver verzonden en niet elders gebruikt. Je kunt het delen op elk gewenst moment stoppen of de toestemming uitschakelen via Instellingen.</string>
+    <string name="location_disclosure_continue">Doorgaan</string>
+    <string name="location_disclosure_not_now">Niet nu</string>
+    <string name="location_permission_required">Voor het live delen van locaties is locatietoestemming vereist</string>
+    <string name="location_permission_denied">Locatietoestemming geweigerd</string>
+    <string name="notif_live_location_title">Live locatie delen</string>
+    <string name="notif_live_location_single">1 kamer</string>
+    <string name="notif_live_location_plural">%1$d-kamers</string>
+</resources>

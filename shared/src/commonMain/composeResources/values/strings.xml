@@ -453,4 +453,176 @@
     <string name="banner_people_sharing">%1$d people sharing location</string>
     <string name="timeline_shared_live_location">shared live location</string>
     <string name="timeline_shared_location">shared a location</string>
+    <string name="setting_theme">Theme</string>
+    <string name="setting_theme_description">System / Light / Dark</string>
+    <string name="setting_dynamic_colors">Dynamic Colors</string>
+    <string name="setting_dynamic_colors_description">Use Material You colors (Android 12+)</string>
+    <string name="setting_oled_black">Pure black (OLED)</string>
+    <string name="setting_oled_black_description">Use a true black background in dark mode for OLED displays</string>
+    <string name="setting_language">Language</string>
+    <string name="setting_language_description">Application language</string>
+    <string name="setting_font_size">Font size</string>
+    <string name="setting_font_size_description">Message font size</string>
+    <string name="setting_show_message_avatars">Show message avatars</string>
+    <string name="setting_show_message_avatars_description">Display user avatars next to messages</string>
+    <string name="setting_show_reaction_avatars">Show reaction avatars</string>
+    <string name="setting_show_reaction_avatars_description">Display user avatars on reaction chips</string>
+    <string name="setting_show_username_in_dms">Show username in DMs</string>
+    <string name="setting_show_username_in_dms_description">Show usernames in direct messages</string>
+    <string name="setting_bubble_animations">Message bubble animations</string>
+    <string name="setting_bubble_animations_description">Animate messages as they appear</string>
+    <string name="setting_hide_membership_events">Hide membership events</string>
+    <string name="setting_hide_membership_events_description">Join/leave/invite events in rooms</string>
+    <string name="setting_hide_profile_changes">Hide profile changes</string>
+    <string name="setting_hide_profile_changes_description">Display name/avatar changes in rooms</string>
+    <string name="setting_hide_topic_changes">Hide topic changes</string>
+    <string name="setting_hide_topic_changes_description">Topic changes in rooms</string>
+    <string name="setting_hide_redacted_events">Hide redacted events</string>
+    <string name="setting_hide_redacted_events_description">Events whose content was removed by redaction</string>
+    <string name="setting_hide_room_name_changes">Hide room name changes</string>
+    <string name="setting_hide_room_name_changes_description">Room name changes</string>
+    <string name="setting_hide_room_avatar_changes">Hide room avatar changes</string>
+    <string name="setting_hide_room_avatar_changes_description">Room avatar changes</string>
+    <string name="setting_hide_encryption_changes">Hide encryption changes</string>
+    <string name="setting_hide_encryption_changes_description">Encryption state changes</string>
+    <string name="setting_hide_pinned_event_updates">Hide pinned-event updates</string>
+    <string name="setting_hide_pinned_event_updates_description">Pinned event updates</string>
+    <string name="setting_hide_power_level_changes">Hide power-level changes</string>
+    <string name="setting_hide_power_level_changes_description">Moderator/admin permission changes</string>
+    <string name="setting_hide_canonical_alias_changes">Hide canonical alias changes</string>
+    <string name="setting_hide_canonical_alias_changes_description">Primary alias changes</string>
+    <string name="setting_hide_join_rule_changes">Hide join-rule changes</string>
+    <string name="setting_hide_join_rule_changes_description">Who can join the room</string>
+    <string name="setting_hide_history_visibility_changes">Hide history-visibility changes</string>
+    <string name="setting_hide_history_visibility_changes_description">Who can read room history</string>
+    <string name="setting_hide_guest_access_changes">Hide guest-access changes</string>
+    <string name="setting_hide_guest_access_changes_description">Guest access changes</string>
+    <string name="setting_hide_server_acl_changes">Hide server ACL changes</string>
+    <string name="setting_hide_server_acl_changes_description">Server access control list changes</string>
+    <string name="setting_hide_tombstone_events">Hide tombstone events</string>
+    <string name="setting_hide_tombstone_events_description">Room replacement / upgrade notices</string>
+    <string name="setting_hide_space_child_events">Hide space-child events</string>
+    <string name="setting_hide_space_child_events_description">Space child changes</string>
+    <string name="setting_hide_other_state_events">Hide other state events</string>
+    <string name="setting_hide_other_state_events_description">Unknown or uncategorized room state updates</string>
+    <string name="setting_auto_paginate_older_messages">Auto-paginate older messages</string>
+    <string name="setting_auto_paginate_older_messages_description">Automatically load older messages when scrolling to top</string>
+    <string name="setting_include_silent_unread_in_filter">Include silent unread in filter</string>
+    <string name="setting_include_silent_unread_in_filter_description">When on, the unread filter shows rooms with any unread messages (notifications first). When off, only rooms with notifications are shown.</string>
+    <string name="setting_chat_bubbles">Chat bubbles</string>
+    <string name="setting_chat_bubbles_description">Open system settings to enable (or disable) conversation bubbles</string>
+    <string name="setting_notification_rules">Notification rules</string>
+    <string name="setting_notification_rules_description">Manage messages, mentions, reactions, invites, and other server-backed notification rules</string>
+    <string name="setting_enable_notifications">Enable notifications</string>
+    <string name="setting_enable_notifications_description">Show notifications (desktop &amp; web polling + Android push)</string>
+    <string name="setting_request_notification_permission">Request notification permission</string>
+    <string name="setting_request_notification_permission_description">Click to enable browser notifications</string>
+    <string name="setting_test_browser_notification">Test browser notification</string>
+    <string name="setting_test_browser_notification_description">Click to test if notifications work</string>
+    <string name="setting_show_message_preview">Show message preview</string>
+    <string name="setting_show_message_preview_description">Show message content in notifications</string>
+    <string name="setting_vibrate">Vibrate</string>
+    <string name="setting_vibrate_description">Vibrate on notification</string>
+    <string name="setting_notification_sound">Notification sound</string>
+    <string name="setting_notification_sound_description">Play sound for notifications (platform support varies)</string>
+    <string name="setting_sound_once_per_room">Sound once per room</string>
+    <string name="setting_sound_once_per_room_description">Only play sound for first message until you check the room</string>
+    <string name="setting_quiet_hours">Quiet hours</string>
+    <string name="setting_quiet_hours_description">Suppress audible notifications during quiet hours</string>
+    <string name="setting_quiet_hours_start_time">Quiet hours start time</string>
+    <string name="setting_quiet_hours_start_time_description">Start time for quiet hours</string>
+    <string name="setting_quiet_hours_end_time">Quiet hours end time</string>
+    <string name="setting_quiet_hours_end_time_description">End time for quiet hours</string>
+    <string name="setting_auto_join_room_invites">Auto-join room invites</string>
+    <string name="setting_auto_join_room_invites_description">Automatically join rooms when invited</string>
+    <string name="setting_send_public_read_receipts">Send public read receipts</string>
+    <string name="setting_send_public_read_receipts_description">When enabled, other users can see when you&apos;ve read their messages</string>
+    <string name="setting_send_typing_indicators">Send typing indicators</string>
+    <string name="setting_send_typing_indicators_description">When disabled, Mages will not send typing notifications</string>
+    <string name="setting_presence">Presence</string>
+    <string name="setting_presence_description">Set a global presence status</string>
+    <string name="setting_app_lock">App lock</string>
+    <string name="setting_app_lock_description">Require biometrics or device PIN to open</string>
+    <string name="setting_app_lock_timeout">App lock timeout</string>
+    <string name="setting_app_lock_timeout_description">Lock after this much time in the background</string>
+    <string name="setting_screen_security">Screen security</string>
+    <string name="setting_screen_security_description">Block screenshots and hide content in the app switcher</string>
+    <string name="setting_show_call_screen">Show call screen</string>
+    <string name="setting_show_call_screen_description">Show full-screen incoming call UI</string>
+    <string name="setting_call_notifications">Call notifications</string>
+    <string name="setting_call_notifications_description">Incoming call notifications</string>
+    <string name="setting_select_unified_push_distributor">Select UnifiedPush distributor</string>
+    <string name="setting_select_unified_push_distributor_description">Choose the app that delivers pushes (gcompat/sunup/ntfy/etc.)</string>
+    <string name="setting_re_register_unified_push">Re-register UnifiedPush</string>
+    <string name="setting_re_register_unified_push_description">Fix push issues after update/reboot or distributor change</string>
+    <string name="setting_copy_unified_push_endpoint">Copy UnifiedPush endpoint</string>
+    <string name="setting_copy_unified_push_endpoint_description">For debugging; shows what endpoint is registered</string>
+    <string name="setting_block_media_previews">Block media previews</string>
+    <string name="setting_block_media_previews_description">Don&apos;t auto-download thumbnails/previews</string>
+    <string name="setting_media_cache">Media Cache</string>
+    <string name="setting_media_cache_description">View and manage cached media</string>
+    <string name="setting_start_in_tray">Start in tray</string>
+    <string name="setting_start_in_tray_description">Minimize to tray on launch</string>
+    <string name="setting_enter_sends_message">Enter sends message</string>
+    <string name="setting_enter_sends_message_description">When enabled, pressing Enter will send the message and Shift, Ctrl or Cmd + Enter will insert a new line</string>
+    <string name="setting_use_proxy">Use proxy</string>
+    <string name="setting_use_proxy_description">Route all traffic through a SOCKS5 or HTTP proxy</string>
+    <string name="setting_proxy_url">Proxy URL</string>
+    <string name="setting_proxy_url_description">SOCKS5 or HTTP proxy address</string>
+    <string name="setting_live_location_update_interval">Live location update interval</string>
+    <string name="setting_live_location_update_interval_description">Minimum distance (in meters) traveled before sending a location update</string>
+
+    <string-array name="setting_theme_options">
+        <item>System</item>
+        <item>Light</item>
+        <item>Dark</item>
+    </string-array>
+    <string-array name="setting_language_options">
+        <item>System</item>
+        <item>English</item>
+        <item>Español</item>
+        <item>العربية</item>
+        <item>Čeština</item>
+        <item>Deutsch</item>
+        <item>Ελληνικά</item>
+        <item>فارسی</item>
+        <item>Suomi</item>
+        <item>Français</item>
+        <item>Hrvatski</item>
+        <item>Magyar</item>
+        <item>Bahasa Indonesia</item>
+        <item>Italiano</item>
+        <item>עברית</item>
+        <item>日本語</item>
+        <item>한국어</item>
+        <item>Nederlands</item>
+        <item>Polski</item>
+        <item>Português</item>
+        <item>Русский</item>
+        <item>Svenska</item>
+        <item>Türkçe</item>
+        <item>Українська</item>
+        <item>Tiếng Việt</item>
+        <item>简体中文</item>
+        <item>繁體中文</item>
+    </string-array>
+    <string-array name="setting_hide_in_rooms_options">
+        <item>Never</item>
+        <item>Public Rooms</item>
+        <item>Non-DMs</item>
+        <item>Always</item>
+    </string-array>
+    <string-array name="setting_app_lock_timeout_options">
+        <item>Immediate</item>
+        <item>One Minute</item>
+        <item>Five Minutes</item>
+        <item>Thirty Minutes</item>
+        <item>One Hour</item>
+        <item>Never</item>
+    </string-array>
+    <string-array name="setting_presence_options">
+        <item>Online</item>
+        <item>Offline</item>
+        <item>Unavailable</item>
+    </string-array>
 </resources>

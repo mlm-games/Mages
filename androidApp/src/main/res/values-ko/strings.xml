@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">마법사</string>
+    <string name="location_disclosure_title">위치 액세스가 필요함</string>
+    <string name="location_disclosure_message">Mages는 귀하가 선택한 경우에만 귀하의 위치를 ​​공유합니다.\n\n실시간 위치: 귀하의 정확한 위치가 이 방으로 전송되어 회원들에게 표시됩니다. 타이머가 종료되거나 공유 중지를 탭할 때까지 알림과 함께 백그라운드에서 계속됩니다.\n\n일회성 위치: 현재 위치가 메시지로 한 번 전송됩니다.\n\n위치는 Matrix 홈서버로 전송되며 다른 곳에서는 사용되지 않습니다. 언제든지 설정에서 공유를 중지하거나 권한을 끌 수 있습니다.</string>
+    <string name="location_disclosure_continue">계속하다</string>
+    <string name="location_disclosure_not_now">지금은 아님</string>
+    <string name="location_permission_required">실시간 위치 공유를 위해서는 위치 권한이 필요합니다.</string>
+    <string name="location_permission_denied">위치 권한이 거부되었습니다.</string>
+    <string name="notif_live_location_title">실시간 위치 공유</string>
+    <string name="notif_live_location_single">방 1개</string>
+    <string name="notif_live_location_plural">%1$d 룸</string>
+</resources>

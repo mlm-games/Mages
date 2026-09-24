@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">magovi</string>
+    <string name="location_disclosure_title">Potreban pristup lokaciji</string>
+    <string name="location_disclosure_message">Mages dijeli vašu lokaciju samo kada vi to odlučite.\n\nLokacija uživo: vaša točna lokacija šalje se u ovu sobu i vidljiva je njezinim članovima. Nastavlja se u pozadini s obavijesti sve dok mjerač vremena ne završi ili dok ne dodirnete Zaustavi dijeljenje.\n\nJednokratna lokacija: vaša trenutna lokacija šalje se jednom kao poruka.\n\nVaša lokacija šalje se vašem matičnom poslužitelju Matrixa i ne koristi se drugdje. Možete prekinuti dijeljenje ili isključiti dozvolu u Postavkama u bilo kojem trenutku.</string>
+    <string name="location_disclosure_continue">Nastaviti</string>
+    <string name="location_disclosure_not_now">Ne sada</string>
+    <string name="location_permission_required">Za dijeljenje lokacije uživo potrebna je dozvola za lokaciju</string>
+    <string name="location_permission_denied">Dopuštenje za lokaciju odbijeno</string>
+    <string name="notif_live_location_title">Dijeljenje lokacije uživo</string>
+    <string name="notif_live_location_single">1 soba</string>
+    <string name="notif_live_location_plural">%1$d sobe</string>
+</resources>

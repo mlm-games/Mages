@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Magos</string>
+    <string name="location_disclosure_title">Acesso ao local necessário</string>
+    <string name="location_disclosure_message">Mages compartilha sua localização somente quando você quiser.\n\nLocalização ao vivo: sua localização precisa é enviada para esta sala e fica visível para seus membros. Ele continua em segundo plano com uma notificação até que o cronômetro termine ou você toque em Parar compartilhamento.\n\nLocalização única: sua localização atual é enviada uma vez como uma mensagem.\n\nSua localização é enviada para seu servidor doméstico Matrix e não é usada em outro lugar. Você pode interromper o compartilhamento ou desativar a permissão nas configurações a qualquer momento.</string>
+    <string name="location_disclosure_continue">Continuar</string>
+    <string name="location_disclosure_not_now">Agora não</string>
+    <string name="location_permission_required">A permissão de localização é necessária para compartilhamento de localização ao vivo</string>
+    <string name="location_permission_denied">Permissão de localização negada</string>
+    <string name="notif_live_location_title">Compartilhando localização ao vivo</string>
+    <string name="notif_live_location_single">1 quarto</string>
+    <string name="notif_live_location_plural">Quartos %1$d</string>
+</resources>

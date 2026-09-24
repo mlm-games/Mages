@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Mágové</string>
+    <string name="location_disclosure_title">Je vyžadován přístup k poloze</string>
+    <string name="location_disclosure_message">Mágové sdílejí vaši polohu, pouze když se tak rozhodnete.\n\nŽivá poloha: vaše přesná poloha je odeslána do této místnosti a viditelná pro její členy. Pokračuje na pozadí s upozorněním, dokud neskončí časovač nebo neklepnete na Zastavit sdílení.\n\nJednorázová poloha: vaše aktuální poloha je odeslána jednou jako zpráva.\n\nVaše poloha je odeslána na váš domovský server Matrix a jinde se nepoužívá. Sdílení můžete kdykoli ukončit nebo oprávnění vypnout v Nastavení.</string>
+    <string name="location_disclosure_continue">Pokračovat</string>
+    <string name="location_disclosure_not_now">Teď ne</string>
+    <string name="location_permission_required">Pro živé sdílení polohy je vyžadováno oprávnění k poloze</string>
+    <string name="location_permission_denied">Povolení k poloze odepřeno</string>
+    <string name="notif_live_location_title">Sdílení živé polohy</string>
+    <string name="notif_live_location_single">1 pokoj</string>
+    <string name="notif_live_location_plural">Pokoje %1$d</string>
+</resources>

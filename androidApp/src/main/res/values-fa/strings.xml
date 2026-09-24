@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">جادوگران</string>
+    <string name="location_disclosure_title">دسترسی به مکان مورد نیاز است</string>
+    <string name="location_disclosure_message">Mages مکان شما را فقط زمانی به اشتراک می گذارد که شما انتخاب کنید.\n\nموقعیت مکانی زنده: مکان دقیق شما به این اتاق ارسال می شود و برای اعضای آن قابل مشاهده است. در پس‌زمینه با یک اعلان ادامه می‌یابد تا زمان‌سنج تمام شود یا روی توقف اشتراک‌گذاری ضربه بزنید.\n\nموقعیت مکانی یک‌باره: مکان فعلی شما یک‌بار به‌عنوان پیام ارسال می‌شود.\n\nموقعیت مکانی شما به سرور اصلی Matrix شما ارسال می‌شود و در جای دیگری استفاده نمی‌شود. می‌توانید در هر زمانی اشتراک‌گذاری را متوقف کنید یا مجوز را در تنظیمات خاموش کنید.</string>
+    <string name="location_disclosure_continue">ادامه دهید</string>
+    <string name="location_disclosure_not_now">الان نه</string>
+    <string name="location_permission_required">برای اشتراک‌گذاری مکان زنده، مجوز مکان لازم است</string>
+    <string name="location_permission_denied">مجوز مکان رد شد</string>
+    <string name="notif_live_location_title">اشتراک‌گذاری مکان زنده</string>
+    <string name="notif_live_location_single">1 اتاق</string>
+    <string name="notif_live_location_plural">اتاق های %1$d</string>
+</resources>

@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">마법사</string>
+    <string name="notif_new_message">새 메시지</string>
+</resources>

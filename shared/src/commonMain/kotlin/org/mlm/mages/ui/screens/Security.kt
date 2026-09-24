@@ -25,7 +25,7 @@ import androidx.navigation3.runtime.NavKey
 import io.github.mlmgames.settings.core.SettingsSchema
 import io.github.mlmgames.settings.core.annotations.SettingAction
 import io.github.mlmgames.settings.ui.AutoSettingsScreen
-import io.github.mlmgames.settings.ui.CategoryConfig
+import io.github.mlmgames.settings.ui.ProvideStringResources
 import org.koin.compose.koinInject
 import org.mlm.mages.matrix.DeviceSummary
 import org.mlm.mages.matrix.MatrixPort
@@ -695,29 +695,22 @@ private fun SettingsTab(
     onPresenceChange: (Presence) -> Unit,
     onStatusChange: (String) -> Unit,
     onSavePresence: () -> Unit,
-    onSettingChange: (String, Any) -> Unit,
+    onSettingChange: (String, Any?) -> Unit,
     onSettingAction: suspend (KClass<out SettingAction>) -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        AutoSettingsScreen(
-            schema = schema,
-            value = settings,
-            onSet = onSettingChange,
-            onAction = onSettingAction,
-            modifier = Modifier.fillMaxSize(),
-            categoryConfigs = listOf(
-                CategoryConfig(Account::class, stringResource(Res.string.account)),
-                CategoryConfig(Appearance::class, stringResource(Res.string.appearance)),
-                CategoryConfig(Timeline::class, stringResource(Res.string.timeline)),
-                CategoryConfig(Notifications::class, stringResource(Res.string.notifications)),
-                CategoryConfig(Privacy::class, stringResource(Res.string.privacy)),
-                CategoryConfig(Calls::class, stringResource(Res.string.calls)),
-                CategoryConfig(Storage::class, stringResource(Res.string.storage)),
-                CategoryConfig(Advanced::class, stringResource(Res.string.advanced)),
-            ),
-            snackbarHostState = snackbarHostState
-        )
+    val stringResourceProvider = rememberSettingsStringResourceProvider()
+    ProvideStringResources(stringResourceProvider) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            AutoSettingsScreen(
+                schema = schema,
+                value = settings,
+                onSet = onSettingChange,
+                onAction = onSettingAction,
+                modifier = Modifier.fillMaxSize(),
+                snackbarHostState = snackbarHostState
+            )
+        }
     }
 }
 

@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Mages</string>
+    <string name="location_disclosure_title">Accès à la localisation requis</string>
+    <string name="location_disclosure_message">Mages partage votre position uniquement lorsque vous le souhaitez.\n\nLocalisation en direct : votre position précise est envoyée à cette salle et visible par ses membres. Il continue en arrière-plan avec une notification jusqu’à la fin du minuteur ou jusqu’à ce que vous appuyiez sur Arrêter le partage.\n\nLocalisation unique : votre position actuelle est envoyée une fois sous forme de message.\n\nVotre position est envoyée à votre serveur domestique Matrix et n’est pas utilisée ailleurs. Vous pouvez arrêter le partage ou désactiver l’autorisation dans les paramètres à tout moment.</string>
+    <string name="location_disclosure_continue">Continuer</string>
+    <string name="location_disclosure_not_now">Pas maintenant</string>
+    <string name="location_permission_required">Une autorisation de localisation est requise pour le partage de position en direct</string>
+    <string name="location_permission_denied">Autorisation de localisation refusée</string>
+    <string name="notif_live_location_title">Partager la position en direct</string>
+    <string name="notif_live_location_single">1 chambre</string>
+    <string name="notif_live_location_plural">Chambres %1$d</string>
+</resources>

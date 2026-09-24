@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Magier</string>
+    <string name="location_disclosure_title">Standortzugriff erforderlich</string>
+    <string name="location_disclosure_message">Mages gibt Ihren Standort nur dann weiter, wenn Sie dies wünschen.\n\nLive-Standort: Ihr genauer Standort wird an diesen Raum gesendet und ist für seine Mitglieder sichtbar. Es läuft im Hintergrund mit einer Benachrichtigung weiter, bis der Timer abgelaufen ist oder Sie auf „Teilen beenden“ tippen.\n\nEinmaliger Standort: Ihr aktueller Standort wird einmal als Nachricht gesendet.\n\nIhr Standort wird an Ihren Matrix-Homeserver gesendet und nicht anderweitig verwendet. Sie können die Freigabe jederzeit beenden oder die Berechtigung in den Einstellungen deaktivieren.</string>
+    <string name="location_disclosure_continue">Weitermachen</string>
+    <string name="location_disclosure_not_now">Nicht jetzt</string>
+    <string name="location_permission_required">Für die Live-Standortfreigabe ist eine Standortgenehmigung erforderlich</string>
+    <string name="location_permission_denied">Standortberechtigung verweigert</string>
+    <string name="notif_live_location_title">Live-Standort teilen</string>
+    <string name="notif_live_location_single">1 Zimmer</string>
+    <string name="notif_live_location_plural">%1$d Räume</string>
+</resources>

@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Маги</string>
+    <string name="location_disclosure_title">Требуется доступ к местоположению</string>
+    <string name="location_disclosure_message">Маги делятся вашим местоположением только тогда, когда вы этого хотите.\n\nЖивое местоположение: ваше точное местоположение отправляется в эту комнату и видно ее участникам. Оно продолжается в фоновом режиме с уведомлением до тех пор, пока не закончится таймер или вы не нажмете «Остановить общий доступ».\n\nОдноразовое местоположение: ваше текущее местоположение отправляется один раз в виде сообщения.\n\nВаше местоположение отправляется на ваш домашний сервер Matrix и не используется где-либо еще. Вы можете прекратить делиться или отключить разрешение в настройках в любое время.</string>
+    <string name="location_disclosure_continue">Продолжать</string>
+    <string name="location_disclosure_not_now">Не сейчас</string>
+    <string name="location_permission_required">Для обмена данными о местоположении в реальном времени требуется разрешение на определение местоположения.</string>
+    <string name="location_permission_denied">Разрешение на определение местоположения отклонено</string>
+    <string name="notif_live_location_title">Делимся текущим местоположением</string>
+    <string name="notif_live_location_single">1 комната</string>
+    <string name="notif_live_location_plural">%1$d комнаты</string>
+</resources>

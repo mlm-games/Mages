@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">السحراء</string>
+    <string name="location_disclosure_title">يلزم الوصول إلى الموقع</string>
+    <string name="location_disclosure_message">يشارك السحراء موقعك فقط عندما تختار ذلك.\n\nالموقع المباشر: يتم إرسال موقعك الدقيق إلى هذه الغرفة ويكون مرئيًا لأعضائها. ويستمر في الخلفية مع إشعار حتى انتهاء المؤقت أو النقر فوق "إيقاف المشاركة".\n\nموقع لمرة واحدة: يتم إرسال موقعك الحالي مرة واحدة كرسالة.\n\nيتم إرسال موقعك إلى خادم Matrix المنزلي الخاص بك ولا يتم استخدامه في أي مكان آخر. يمكنك إيقاف المشاركة أو إيقاف الأذونات في الإعدادات في أي وقت.</string>
+    <string name="location_disclosure_continue">يكمل</string>
+    <string name="location_disclosure_not_now">ليس الآن</string>
+    <string name="location_permission_required">مطلوب إذن الموقع لمشاركة الموقع المباشر</string>
+    <string name="location_permission_denied">تم رفض إذن تحديد الموقع</string>
+    <string name="notif_live_location_title">مشاركة الموقع المباشر</string>
+    <string name="notif_live_location_single">1 غرفة</string>
+    <string name="notif_live_location_plural">غرف %1$d</string>
+</resources>

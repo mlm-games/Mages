@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Mages</string>
+    <string name="location_disclosure_title">Sijainti tarvitaan</string>
+    <string name="location_disclosure_message">Mages jakaa sijaintisi vain, kun haluat.\n\nElävä sijainti: tarkka sijaintisi lähetetään tähän huoneeseen ja näkyy sen jäsenille. Se jatkuu taustalla ilmoituksella, kunnes ajastin päättyy tai napautat Lopeta jakaminen.\n\nKertaluonteinen sijainti: nykyinen sijaintisi lähetetään kerran viestinä.\n\nSijaintisi lähetetään Matrix-kotipalvelimellesi, eikä sitä käytetä muualla. Voit lopettaa jakamisen tai poistaa käyttöoikeudet käytöstä milloin tahansa asetuksista.</string>
+    <string name="location_disclosure_continue">Jatkaa</string>
+    <string name="location_disclosure_not_now">Ei nyt</string>
+    <string name="location_permission_required">Sijainnin live-jakamiseen tarvitaan sijaintilupa</string>
+    <string name="location_permission_denied">Sijaintilupa evätty</string>
+    <string name="notif_live_location_title">Live-sijainnin jakaminen</string>
+    <string name="notif_live_location_single">1 huone</string>
+    <string name="notif_live_location_plural">%1$d huonetta</string>
+</resources>

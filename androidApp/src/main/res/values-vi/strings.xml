@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">pháp sư</string>
+    <string name="location_disclosure_title">Cần có quyền truy cập vị trí</string>
+    <string name="location_disclosure_message">Các pháp sư chỉ chia sẻ vị trí của bạn khi bạn chọn.\n\nVị trí trực tiếp: vị trí chính xác của bạn được gửi tới phòng này và các thành viên trong đó có thể nhìn thấy. Nó tiếp tục ở chế độ nền kèm theo thông báo cho đến khi hết giờ hoặc bạn nhấn vào Dừng chia sẻ.\n\nVị trí một lần: vị trí hiện tại của bạn được gửi một lần dưới dạng tin nhắn.\n\nVị trí của bạn được gửi đến máy chủ Matrix của bạn và không được sử dụng ở nơi khác. Bạn có thể ngừng chia sẻ hoặc tắt quyền trong Cài đặt bất cứ lúc nào.</string>
+    <string name="location_disclosure_continue">Tiếp tục</string>
+    <string name="location_disclosure_not_now">Không phải bây giờ</string>
+    <string name="location_permission_required">Cần có sự cho phép vị trí để chia sẻ vị trí trực tiếp</string>
+    <string name="location_permission_denied">Quyền vị trí bị từ chối</string>
+    <string name="notif_live_location_title">Chia sẻ vị trí trực tiếp</string>
+    <string name="notif_live_location_single">1 phòng</string>
+    <string name="notif_live_location_plural">Phòng %1$d</string>
+</resources>

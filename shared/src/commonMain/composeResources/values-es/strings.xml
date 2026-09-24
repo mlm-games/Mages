@@ -455,4 +455,215 @@
     <string name="banner_people_sharing">%1$d personas compartiendo ubicacion</string>
     <string name="timeline_shared_live_location">compartio ubicacion en vivo</string>
     <string name="timeline_shared_location">compartio una ubicacion</string>
+    <string name="setting_theme">Tema</string>
+    <string name="setting_theme_description">Sistema / Claro / Oscuro</string>
+    <string name="setting_dynamic_colors">Colores dinámicos</string>
+    <string name="setting_dynamic_colors_description">Usar colores Material You (Android 12+)</string>
+    <string name="setting_oled_black">Negro puro (OLED)</string>
+    <string name="setting_oled_black_description">Usar un fondo negro puro en modo oscuro para pantallas OLED</string>
+    <string name="setting_language">Idioma</string>
+    <string name="setting_language_description">Idioma de la aplicación</string>
+    <string name="setting_font_size">Tamaño de fuente</string>
+    <string name="setting_font_size_description">Tamaño de fuente de los mensajes</string>
+    <string name="setting_show_message_avatars">Mostrar avatares de mensajes</string>
+    <string name="setting_show_message_avatars_description">Mostrar avatares de usuario junto a los mensajes</string>
+    <string name="setting_show_reaction_avatars">Mostrar avatares de reacciones</string>
+    <string name="setting_show_reaction_avatars_description">Mostrar avatares de usuario en las reacciones</string>
+    <string name="setting_show_username_in_dms">Mostrar nombre de usuario en DM</string>
+    <string name="setting_show_username_in_dms_description">Mostrar nombres de usuario en mensajes directos</string>
+    <string name="setting_bubble_animations">Animaciones de burbujas de mensajes</string>
+    <string name="setting_bubble_animations_description">Animar los mensajes al aparecer</string>
+    <string name="setting_hide_membership_events">Ocultar eventos de membresía</string>
+    <string name="setting_hide_membership_events_description">Eventos de entrada, salida e invitaciones en salas</string>
+    <string name="setting_hide_profile_changes">Ocultar cambios de perfil</string>
+    <string name="setting_hide_profile_changes_description">Cambios de nombre o avatar en las salas</string>
+    <string name="setting_hide_topic_changes">Ocultar cambios de tema</string>
+    <string name="setting_hide_topic_changes_description">Cambios de tema en las salas</string>
+    <string name="setting_hide_redacted_events">Ocultar eventos redactados</string>
+    <string name="setting_hide_redacted_events_description">Eventos cuyo contenido fue eliminado por una redacción</string>
+    <string name="setting_hide_room_name_changes">Ocultar cambios de nombre de sala</string>
+    <string name="setting_hide_room_name_changes_description">Cambios de nombre de la sala</string>
+    <string name="setting_hide_room_avatar_changes">Ocultar cambios de avatar de sala</string>
+    <string name="setting_hide_room_avatar_changes_description">Cambios de avatar de la sala</string>
+    <string name="setting_hide_encryption_changes">Ocultar cambios de cifrado</string>
+    <string name="setting_hide_encryption_changes_description">Cambios de estado de cifrado</string>
+    <string name="setting_hide_pinned_event_updates">Ocultar actualizaciones de eventos fijados</string>
+    <string name="setting_hide_pinned_event_updates_description">Actualizaciones de eventos fijados</string>
+    <string name="setting_hide_power_level_changes">Ocultar cambios de niveles de poder</string>
+    <string name="setting_hide_power_level_changes_description">Cambios de permisos de moderadores o administradores</string>
+    <string name="setting_hide_canonical_alias_changes">Ocultar cambios de alias canónico</string>
+    <string name="setting_hide_canonical_alias_changes_description">Cambios del alias principal</string>
+    <string name="setting_hide_join_rule_changes">Ocultar cambios de reglas de acceso</string>
+    <string name="setting_hide_join_rule_changes_description">Quién puede unirse a la sala</string>
+    <string name="setting_hide_history_visibility_changes">Ocultar cambios de visibilidad del historial</string>
+    <string name="setting_hide_history_visibility_changes_description">Quién puede leer el historial de la sala</string>
+    <string name="setting_hide_guest_access_changes">Ocultar cambios de acceso de invitados</string>
+    <string name="setting_hide_guest_access_changes_description">Cambios de acceso de invitados</string>
+    <string name="setting_hide_server_acl_changes">Ocultar cambios de ACL del servidor</string>
+    <string name="setting_hide_server_acl_changes_description">Cambios en la lista de control de acceso del servidor</string>
+    <string name="setting_hide_tombstone_events">Ocultar eventos de lápida</string>
+    <string name="setting_hide_tombstone_events_description">Avisos de reemplazo o mejora de la sala</string>
+    <string name="setting_hide_space_child_events">Ocultar eventos de espacios secundarios</string>
+    <string name="setting_hide_space_child_events_description">Cambios de espacios secundarios</string>
+    <string name="setting_hide_other_state_events">Ocultar otros eventos de estado</string>
+    <string name="setting_hide_other_state_events_description">Actualizaciones de estado desconocidas o no categorizadas</string>
+    <string name="setting_auto_paginate_older_messages">Cargar automáticamente mensajes anteriores</string>
+    <string name="setting_auto_paginate_older_messages_description">Cargar automáticamente mensajes anteriores al desplazarse hacia arriba</string>
+    <string name="setting_include_silent_unread_in_filter">Incluir no leídos silenciosos en el filtro</string>
+    <string name="setting_include_silent_unread_in_filter_description">Con el filtro activado, se muestran las salas con cualquier mensaje no leído (primero las notificaciones). Con el filtro desactivado, solo se muestran las salas con notificaciones.</string>
+    <string name="setting_chat_bubbles">Burbujas de conversación</string>
+    <string name="setting_chat_bubbles_description">Abrir los ajustes del sistema para activar o desactivar las burbujas de conversación</string>
+    <string name="setting_notification_rules">Reglas de notificación</string>
+    <string name="setting_notification_rules_description">Gestionar mensajes, menciones, reacciones, invitaciones y otras reglas de notificación del servidor</string>
+    <string name="setting_enable_notifications">Activar notificaciones</string>
+    <string name="setting_enable_notifications_description">Mostrar notificaciones (sincronización de escritorio y web + push de Android)</string>
+    <string name="setting_request_notification_permission">Solicitar permiso de notificaciones</string>
+    <string name="setting_request_notification_permission_description">Haz clic para activar las notificaciones del navegador</string>
+    <string name="setting_test_browser_notification">Probar notificación del navegador</string>
+    <string name="setting_test_browser_notification_description">Haz clic para comprobar si funcionan las notificaciones</string>
+    <string name="setting_show_message_preview">Mostrar vista previa del mensaje</string>
+    <string name="setting_show_message_preview_description">Mostrar el contenido de los mensajes en las notificaciones</string>
+    <string name="setting_vibrate">Vibrar</string>
+    <string name="setting_vibrate_description">Vibrar al recibir una notificación</string>
+    <string name="setting_notification_sound">Sonido de notificación</string>
+    <string name="setting_notification_sound_description">Reproducir un sonido para las notificaciones (la compatibilidad depende de la plataforma)</string>
+    <string name="setting_sound_once_per_room">Sonido una vez por sala</string>
+    <string name="setting_sound_once_per_room_description">Reproducir el sonido solo para el primer mensaje hasta que revises la sala</string>
+    <string name="setting_quiet_hours">Horario silencioso</string>
+    <string name="setting_quiet_hours_description">Silenciar las notificaciones audibles durante el horario silencioso</string>
+    <string name="setting_quiet_hours_start_time">Hora de inicio del horario silencioso</string>
+    <string name="setting_quiet_hours_start_time_description">Hora de inicio del horario silencioso</string>
+    <string name="setting_quiet_hours_end_time">Hora de fin del horario silencioso</string>
+    <string name="setting_quiet_hours_end_time_description">Hora de fin del horario silencioso</string>
+    <string name="setting_auto_join_room_invites">Unirse automáticamente a invitaciones</string>
+    <string name="setting_auto_join_room_invites_description">Unirse automáticamente a las salas cuando recibas una invitación</string>
+    <string name="setting_send_public_read_receipts">Enviar recibos de lectura públicos</string>
+    <string name="setting_send_public_read_receipts_description">Al activarlo, otras personas pueden ver cuándo has leído sus mensajes</string>
+    <string name="setting_send_typing_indicators">Enviar indicadores de escritura</string>
+    <string name="setting_send_typing_indicators_description">Al desactivarlo, Mages no enviará notificaciones de escritura</string>
+    <string name="setting_presence">Presencia</string>
+    <string name="setting_presence_description">Definir un estado de presencia global</string>
+    <string name="setting_app_lock">Bloqueo de la aplicación</string>
+    <string name="setting_app_lock_description">Requerir biometría o PIN del dispositivo para abrir la aplicación</string>
+    <string name="setting_app_lock_timeout">Tiempo de bloqueo de la aplicación</string>
+    <string name="setting_app_lock_timeout_description">Bloquear después de este tiempo en segundo plano</string>
+    <string name="setting_screen_security">Seguridad de la pantalla</string>
+    <string name="setting_screen_security_description">Bloquear capturas de pantalla y ocultar el contenido en el conmutador de aplicaciones</string>
+    <string name="setting_show_call_screen">Mostrar pantalla de llamada</string>
+    <string name="setting_show_call_screen_description">Mostrar la interfaz de llamada entrante a pantalla completa</string>
+    <string name="setting_call_notifications">Notificaciones de llamadas</string>
+    <string name="setting_call_notifications_description">Notificaciones de llamadas entrantes</string>
+    <string name="setting_select_unified_push_distributor">Seleccionar distribuidor de UnifiedPush</string>
+    <string name="setting_select_unified_push_distributor_description">Elegir la aplicación que entrega las notificaciones push (gcompat, sunup, ntfy, etc.)</string>
+    <string name="setting_re_register_unified_push">Volver a registrar UnifiedPush</string>
+    <string name="setting_re_register_unified_push_description">Solucionar problemas de push después de una actualización, reinicio o cambio de distribuidor</string>
+    <string name="setting_copy_unified_push_endpoint">Copiar endpoint de UnifiedPush</string>
+    <string name="setting_copy_unified_push_endpoint_description">Para depuración; muestra qué endpoint está registrado</string>
+    <string name="setting_block_media_previews">Bloquear vistas previas de medios</string>
+    <string name="setting_block_media_previews_description">No descargar automáticamente miniaturas ni vistas previas</string>
+    <string name="setting_media_cache">Caché de medios</string>
+    <string name="setting_media_cache_description">Ver y gestionar los medios almacenados en caché</string>
+    <string name="setting_start_in_tray">Iniciar en la bandeja</string>
+    <string name="setting_start_in_tray_description">Minimizar a la bandeja al iniciar</string>
+    <string name="setting_enter_sends_message">Enter envía el mensaje</string>
+    <string name="setting_enter_sends_message_description">Al activarlo, Enter enviará el mensaje y Shift, Ctrl o Cmd + Enter insertará una nueva línea</string>
+    <string name="setting_use_proxy">Usar proxy</string>
+    <string name="setting_use_proxy_description">Enviar todo el tráfico a través de un proxy SOCKS5 o HTTP</string>
+    <string name="setting_proxy_url">URL del proxy</string>
+    <string name="setting_proxy_url_description">Dirección del proxy SOCKS5 o HTTP</string>
+    <string name="setting_live_location_update_interval">Intervalo de actualización de ubicación en vivo</string>
+    <string name="setting_live_location_update_interval_description">Distancia mínima (en metros) recorrida antes de enviar una actualización de ubicación</string>
+
+    <string-array name="setting_theme_options">
+        <item>Sistema</item>
+        <item>Claro</item>
+        <item>Oscuro</item>
+    </string-array>
+    <string-array name="setting_language_options">
+        <item>Sistema</item>
+        <item>English</item>
+        <item>Español</item>
+        <item>العربية</item>
+        <item>Čeština</item>
+        <item>Deutsch</item>
+        <item>Ελληνικά</item>
+        <item>فارسی</item>
+        <item>Suomi</item>
+        <item>Français</item>
+        <item>Hrvatski</item>
+        <item>Magyar</item>
+        <item>Bahasa Indonesia</item>
+        <item>Italiano</item>
+        <item>עברית</item>
+        <item>日本語</item>
+        <item>한국어</item>
+        <item>Nederlands</item>
+        <item>Polski</item>
+        <item>Português</item>
+        <item>Русский</item>
+        <item>Svenska</item>
+        <item>Türkçe</item>
+        <item>Українська</item>
+        <item>Tiếng Việt</item>
+        <item>简体中文</item>
+        <item>繁體中文</item>
+    </string-array>
+    <string-array name="setting_hide_in_rooms_options">
+        <item>Nunca</item>
+        <item>Salas públicas</item>
+        <item>No DM</item>
+        <item>Siempre</item>
+    </string-array>
+    <string-array name="setting_app_lock_timeout_options">
+        <item>Inmediatamente</item>
+        <item>Un minuto</item>
+        <item>Cinco minutos</item>
+        <item>Treinta minutos</item>
+        <item>Una hora</item>
+        <item>Nunca</item>
+    </string-array>
+    <string-array name="setting_presence_options">
+        <item>En línea</item>
+        <item>Desconectado</item>
+        <item>No disponible</item>
+    </string-array>
+
+    <string name="syncing">Sincronizando…</string>
+    <string name="start_chat">Iniciar chat</string>
+    <string name="new_room_action">Nueva habitación</string>
+    <string name="room_directory">Directorio de habitaciones</string>
+    <string name="join_room_by_address">Unirse a la sala por dirección</string>
+    <string name="create_room_desc">Crear una nueva habitación</string>
+    <string name="browse_directory_desc">Explorar salas públicas</string>
+    <string name="search_for_someone">Buscar a alguien... p.e. @usuario:servidor</string>
+    <string name="starting_chat">Iniciando chat…</string>
+    <string name="knock">Solicitar acceso</string>
+    <string name="unavailable">Indisponible</string>
+    <string name="answer">Responder</string>
+    <string name="incoming_call">Llamada entrante</string>
+    <string name="incoming_voice_call">llamada de voz entrante</string>
+    <string name="ongoing_call">llamada en curso</string>
+    <string name="tap_to_return">Toca para regresar</string>
+    <string name="raw_json">JSON sin formato</string>
+    <string name="media_cache">Caché de medios</string>
+    <string name="media_cache_calculating">Calculando…</string>
+    <string name="media_cache_used_by_mages">Utilizado por magos</string>
+    <string name="media_cache_reclaimable">Reclamable</string>
+    <string name="media_cache_clear">Limpiar caché</string>
+    <string name="media_cache_clear_thumbnails">Borrar miniaturas</string>
+    <string name="media_cache_clear_previews">Borrar vistas previas</string>
+    <string name="media_cache_clear_temporary">Borrar temporal</string>
+    <string name="media_cache_clear_reclaimable">Borrar recuperable</string>
+    <string name="media_cache_clear_all">Borrar todo</string>
+    <string name="media_cache_clear_except_saved">Borrar excepto guardado</string>
+    <string name="media_cache_avatars">avatares</string>
+    <string name="media_cache_thumbnails">Miniaturas</string>
+    <string name="media_cache_previews">Vistas previas</string>
+    <string name="media_cache_full_media">Medios completos</string>
+    <string name="media_cache_saved">Guardado</string>
+    <string name="auto_download_previews">Vistas previas de descarga automática</string>
+    <string name="media_cache_storage_used">Almacenamiento utilizado</string>
+    <string name="media_cache_clear_media_cache">Borrar caché de medios</string>
+    <string name="media_cache_clear_confirm_title">¿Borrar caché de medios?</string>
+    <string name="media_cache_clear_confirm_body">Se eliminarán los medios almacenados en caché local. Sus mensajes permanecen en sus chats y los medios pueden descargarse nuevamente cuando sea necesario.</string>
 </resources>

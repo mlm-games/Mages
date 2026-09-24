@@ -6,7 +6,31 @@ import kotlinx.serialization.Serializable
 enum class AppLanguage(val languageTag: String?) {
     System(null),
     English("en"),
-    Spanish("es")
+    Spanish("es"),
+    Arabic("ar"),
+    Czech("cs"),
+    German("de"),
+    Greek("el"),
+    Persian("fa"),
+    Finnish("fi"),
+    French("fr"),
+    Croatian("hr"),
+    Hungarian("hu"),
+    Indonesian("id"),
+    Italian("it"),
+    Hebrew("he"),
+    Japanese("ja"),
+    Korean("ko"),
+    Dutch("nl"),
+    Polish("pl"),
+    Portuguese("pt"),
+    Russian("ru"),
+    Swedish("sv"),
+    Turkish("tr"),
+    Ukrainian("uk"),
+    Vietnamese("vi"),
+    ChineseSimplified("zh-CN"),
+    ChineseTraditional("zh-TW")
 }
 
 fun AppSettings.appLanguage(): AppLanguage = language

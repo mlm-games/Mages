@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Mages</string>
+    <string name="location_disclosure_title">Platsåtkomst krävs</string>
+    <string name="location_disclosure_message">Mages delar din plats bara när du väljer att göra det.\n\nLiveplats: din exakta plats skickas till det här rummet och är synlig för dess medlemmar. Det fortsätter i bakgrunden med ett meddelande tills timern slutar eller du trycker på Sluta dela.\n\nEngångsplats: din nuvarande plats skickas en gång som ett meddelande.\n\nDin plats skickas till din Matrix-hemserver och används inte någon annanstans. Du kan när som helst sluta dela eller stänga av behörighet i Inställningar.</string>
+    <string name="location_disclosure_continue">Fortsätta</string>
+    <string name="location_disclosure_not_now">Inte nu</string>
+    <string name="location_permission_required">Platsbehörighet krävs för live platsdelning</string>
+    <string name="location_permission_denied">Platstillstånd nekad</string>
+    <string name="notif_live_location_title">Dela live plats</string>
+    <string name="notif_live_location_single">1 rum</string>
+    <string name="notif_live_location_plural">%1$d rum</string>
+</resources>

@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Mágusok</string>
+    <string name="location_disclosure_title">Helyhozzáférés szükséges</string>
+    <string name="location_disclosure_message">A Mages csak akkor osztja meg a tartózkodási helyét, ha Ön ezt választja.\n\nÉlő hely: a pontos tartózkodási helye elküldésre kerül ennek a helyiségnek, és látható a tagjai számára. A háttérben egy értesítéssel folytatódik, amíg az időzítő le nem jár, vagy megérinti a Megosztás leállítása lehetőséget.\n\nEgyszeri tartózkodási hely: az aktuális tartózkodási helyét a rendszer egyszer küldi el üzenetként.\n\nA tartózkodási helyét a rendszer elküldi a Matrix otthoni szerverére, és máshol nem használja fel. A Beállításokban bármikor leállíthatja a megosztást, vagy kikapcsolhatja az engedélyt.</string>
+    <string name="location_disclosure_continue">Folytatás</string>
+    <string name="location_disclosure_not_now">Most nem</string>
+    <string name="location_permission_required">Az élő helymegosztáshoz helyengedély szükséges</string>
+    <string name="location_permission_denied">Helymeghatározási engedély megtagadva</string>
+    <string name="notif_live_location_title">Élő hely megosztása</string>
+    <string name="notif_live_location_single">1 szoba</string>
+    <string name="notif_live_location_plural">%1$d szobák</string>
+</resources>

@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Magos</string>
+    <string name="notif_new_message">Nova mensagem</string>
+</resources>
