@@ -427,6 +427,7 @@ data class SpaceSettingsUiState(
     val showRoles: Boolean = false,
     val showJoinRulePicker: Boolean = false,
     val pendingJoinRule: RoomJoinRule? = null,
+    val selectedMember: MemberSummary? = null,
 
     // Create room in space
     val showCreateRoom: Boolean = false,

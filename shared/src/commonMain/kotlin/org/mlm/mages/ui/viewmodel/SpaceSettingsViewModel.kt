@@ -3,6 +3,7 @@ package org.mlm.mages.ui.viewmodel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import org.mlm.mages.MatrixService
+import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.ui.SpaceSettingsUiState
@@ -237,6 +238,37 @@ class SpaceSettingsViewModel(
     fun hidePeople() = updateState { copy(showPeople = false) }
     fun showRoles() = updateState { copy(showRoles = true) }
     fun hideRoles() = updateState { copy(showRoles = false) }
+
+    fun selectMember(member: MemberSummary) = updateState { copy(selectedMember = member) }
+    fun clearSelectedMember() = updateState { copy(selectedMember = null) }
+
+    fun kickMember(userId: String, reason: String?) {
+        runSavingResultAction(
+            errorMessage = "Could not remove this member. Try again.",
+            onSuccess = { clearSelectedMember(); loadMembers() }
+        ) { service.port.kickUser(currentState.spaceId, userId, reason) }
+    }
+
+    fun banMember(userId: String, reason: String?) {
+        runSavingResultAction(
+            errorMessage = "Could not ban this member. Try again.",
+            onSuccess = { clearSelectedMember(); loadMembers() }
+        ) { service.port.banUser(currentState.spaceId, userId, reason) }
+    }
+
+    fun unbanMember(userId: String, reason: String?) {
+        runSavingResultAction(
+            errorMessage = "Could not unban this member. Try again.",
+            onSuccess = { clearSelectedMember(); loadMembers() }
+        ) { service.port.unbanUser(currentState.spaceId, userId, reason) }
+    }
+
+    fun ignoreMember(userId: String) {
+        runSavingResultAction(
+            errorMessage = "Could not ignore this user. Try again.",
+            onSuccess = { clearSelectedMember() }
+        ) { service.port.ignoreUser(userId) }
+    }
 
     fun updateMemberRole(userId: String, powerLevel: Long) {
         runSavingResultAction(

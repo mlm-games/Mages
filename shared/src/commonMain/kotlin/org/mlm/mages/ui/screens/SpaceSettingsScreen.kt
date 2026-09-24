@@ -22,8 +22,10 @@ import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.matrix.SpaceInfo
 import org.koin.compose.koinInject
 import org.mlm.mages.ui.components.sheets.JoinRuleSpacePickerSheet
+import org.mlm.mages.ui.components.sheets.MemberActionsSheet
 import org.mlm.mages.ui.components.sheets.MemberListSheet
 import org.mlm.mages.ui.components.sheets.PowerLevelsSheet
+import org.mlm.mages.ui.ActionAvailabilityUi
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.snackbar.snackbarHost
@@ -448,8 +450,27 @@ fun SpaceSettingsScreen(
             isLoading = state.isLoading,
             myUserId = state.myUserId,
             onDismiss = viewModel::hidePeople,
-            onMemberClick = { viewModel.hidePeople(); viewModel.showRoles() },
+            onMemberClick = { viewModel.selectMember(it) },
             onInvite = { viewModel.hidePeople(); viewModel.showInviteDialog() }
+        )
+    }
+
+    // Per-member actions (kick / ban / unban / ignore) for a tapped member
+    state.selectedMember?.let { member ->
+        val moderation = if (state.canManageSettings) ActionAvailabilityUi.Enabled else ActionAvailabilityUi()
+        MemberActionsSheet(
+            member = member,
+            onDismiss = viewModel::clearSelectedMember,
+            dmAction = ActionAvailabilityUi(),
+            kickAction = moderation,
+            banAction = moderation,
+            unbanAction = moderation,
+            onStartDm = { viewModel.clearSelectedMember() },
+            onKick = { reason -> viewModel.kickMember(member.userId, reason) },
+            onBan = { reason -> viewModel.banMember(member.userId, reason) },
+            onUnban = { reason -> viewModel.unbanMember(member.userId, reason) },
+            onIgnore = { viewModel.ignoreMember(member.userId) },
+            isBanned = member.membership == "ban"
         )
     }
 
