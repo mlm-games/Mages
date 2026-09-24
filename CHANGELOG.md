@@ -1,3 +1,10 @@
+## v4.11.9
+
+- fix the attachment send issue
+- Space Settings expansion
+- actually wire notification preview setting on all platforms
+
+
 ## v4.11.8
 
 - Space Settings expansion

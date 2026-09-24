@@ -46,6 +46,15 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="4.11.9" date="2026-09-24" type="stable">
+      <description>
+        <ul>
+          <li>fix the attachment send issue</li>
+          <li>Space Settings expansion</li>
+          <li>actually wire notification preview setting on all platforms</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.11.8" date="2026-09-24" type="stable">
       <description>
         <ul>
