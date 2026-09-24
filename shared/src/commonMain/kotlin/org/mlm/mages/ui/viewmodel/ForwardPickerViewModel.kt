@@ -363,54 +363,16 @@ class ForwardPickerViewModel(
         targetRoomId: String
     ): Boolean {
         return try {
-            val attachment = event.attachment
-            val sticker = event.sticker
-            val result = when {
-                attachment != null -> {
-                    val captionBody = event.body.takeIf { it.isNotBlank() }?.let { b ->
-                        if (attachment.fileName == null) b
-                        else b.takeIf { it != attachment.fileName }
-                    }
-                    val isRealCaption = captionBody != null && attachment.fileName != null
-                    service.port.sendExistingAttachment(
-                        roomId = targetRoomId,
-                        attachment = attachment,
-                        body = captionBody,
-                        formattedBody = event.formattedBody?.takeIf { it.isNotBlank() && isRealCaption },
-                    )
-                }
-                sticker != null -> {
-                    val path = service.downloadStickerToCache(sticker).getOrNull() ?: return false
-                    val body = event.body.takeIf { it.isNotBlank() } ?: "Sticker"
-                    service.port.sendStickerFromPath(
-                        roomId = targetRoomId,
-                        path = path,
-                        mime = sticker.mime ?: "image/png",
-                        body = body,
-                        filename = null
-                    ) { _, _ -> }
-                }
-                else -> {
-                    val body = event.body.takeIf { it.isNotBlank() } ?: return false
-                    service.sendMessage(targetRoomId, body)
-                }
-            }
-            val ok = when (result) {
-                is Result<*> -> result.isSuccess
-                is Boolean -> result
-                else -> false
-            }
+            val result = service.port.forwardEvent(sourceRoomId, event.eventId, listOf(targetRoomId))
+            val sent = result.getOrNull()?.sent
+            val ok = result.isSuccess && sent != null && targetRoomId in sent
             if (!ok) {
-                val message = if (result is Result<*>) {
-                    result.toUserMessage("Send failed")
-                } else {
-                    "Send failed"
-                }
+                val message = result.toUserMessage("Could not forward the message. Try again.")
                 _events.send(Event.ShowError(message))
             }
             ok
         } catch (e: Exception) {
-            e.printStackTrace()
+            _events.send(Event.ShowError("Could not forward the message. Try again."))
             false
         }
     }

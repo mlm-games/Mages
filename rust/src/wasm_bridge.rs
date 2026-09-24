@@ -415,7 +415,7 @@ wasm_delegate_result_bool! {
     "kickUser"             => kick_user(room_id: String, user_id: String, reason: Option<String>);
     "inviteUser"           => invite_user(room_id: String, user_id: String);
     "enableRoomEncryption" => enable_room_encryption(room_id: String);
-    "knock"                => knock(id_or_alias: String);
+    "knock"                => knock(id_or_alias: String, via: Vec<String>);
     "react"                => react(room_id: String, event_id: String, emoji: String);
     "spaceInviteUser"      => space_invite_user(space_id: String, user_id: String);
     "redact"               => redact(room_id: String, event_id: String, reason: Option<String>);
@@ -457,7 +457,8 @@ wasm_delegate_json! {
 wasm_delegate_result_json! {
     "roomPowerLevels"  => room_power_levels(room_id: String);
     "getPresence"      => get_presence(user_id: String);
-    "roomPreview"      => room_preview(id_or_alias: String);
+    "roomPreview"      => room_preview(id_or_alias: String, via: Vec<String>);
+    "forwardEvent"     => forward_event(source_room_id: String, event_id: String, target_room_ids: Vec<String>);
     "spaceHierarchy"   => space_hierarchy(space_id: String, from: Option<String>, limit: u32, max_depth: Option<u32>, suggested_only: bool);
     "threadReplies"    => thread_replies(room_id: String, root_event_id: String, from: Option<String>, limit: u32, forward: bool);
     "threadSummary"    => thread_summary(room_id: String, root_event_id: String, per_page: u32, max_pages: u32);
@@ -977,12 +978,16 @@ impl WasmClient {
     }
 
     #[wasm_bindgen(js_name = joinByIdOrAlias)]
-    pub async fn join_by_id_or_alias(&self, id_or_alias: String) -> Result<(), String> {
+    pub async fn join_by_id_or_alias(
+        &self,
+        id_or_alias: String,
+        via: Option<Vec<String>>,
+    ) -> Result<(), String> {
         let Some(s) = self.state() else {
             return Err("not initialized".into());
         };
         s.core
-            .join_by_id_or_alias(id_or_alias)
+            .join_by_id_or_alias(id_or_alias, via.unwrap_or_default())
             .await
             .map_err(|e| e.to_string())
     }
@@ -2653,6 +2658,20 @@ impl WasmClient {
             Ok(key) => JsValue::from_str(&key),
             Err(e) => {
                 tracing::warn!("setup_recovery failed: {e:?}");
+                JsValue::NULL
+            }
+        }
+    }
+
+    #[wasm_bindgen(js_name = resetRecoveryKey)]
+    pub async fn reset_recovery_key(&self) -> JsValue {
+        let Some(state) = self.state() else {
+            return JsValue::NULL;
+        };
+        match state.client().encryption().recovery().reset_key().await {
+            Ok(key) => JsValue::from_str(&key),
+            Err(e) => {
+                tracing::warn!("reset_recovery_key failed: {e:?}");
                 JsValue::NULL
             }
         }

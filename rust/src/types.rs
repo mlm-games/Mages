@@ -410,6 +410,12 @@ pub struct SpaceInfo {
 }
 
 #[derive(Clone, Serialize, Deserialize, Record)]
+pub struct ForwardResult {
+    pub sent: Vec<String>,
+    pub failed: Vec<String>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Record)]
 pub struct SpaceChildInfo {
     pub room_id: String,
     pub name: Option<String>,

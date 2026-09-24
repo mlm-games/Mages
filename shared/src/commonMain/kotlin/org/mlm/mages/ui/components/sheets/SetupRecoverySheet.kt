@@ -170,7 +170,7 @@ fun SetupRecoverySheet(
                         Spacer(Modifier.height(Spacing.sm))
 
                         Button(
-                            onClick = { viewModel.setupRecovery() },
+                            onClick = { viewModel.setupRecovery(isChange) },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(

@@ -13,10 +13,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import org.mlm.mages.matrix.DirectoryUser
 import org.mlm.mages.matrix.PublicRoom
 import org.mlm.mages.ui.components.core.StatusBanner
 import org.mlm.mages.ui.components.core.BannerType
+import org.mlm.mages.ui.components.snackbar.SnackbarManager
+import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
 import org.mlm.mages.ui.viewmodel.DirectJoinAction
 import org.mlm.mages.ui.viewmodel.DirectJoinPreview
 import org.mlm.mages.ui.viewmodel.DiscoverUi
@@ -30,14 +33,15 @@ fun DiscoverRoute(
     onClose: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+    val snackbarManager: SnackbarManager = koinInject()
+    val postError = rememberErrorPoster(snackbarManager)
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 is DiscoverViewModel.Event.OpenRoom -> onClose()
-                is DiscoverViewModel.Event.ShowError -> {
-                    // Shown via banner
-                }
+                is DiscoverViewModel.Event.ShowError -> postError(event.message)
+                is DiscoverViewModel.Event.ShowSuccess -> snackbarManager.show(event.message)
             }
         }
     }

@@ -316,7 +316,11 @@ class NotificationEnrichWorker(
                     roomName = rendered.roomName,
                     senderName = title,
                     senderUserId = rendered.senderUserId,
-                    messageBody = rendered.body,
+                    messageBody = if (settings.notificationShowPreview) {
+                        rendered.body
+                    } else {
+                        applicationContext.getString(R.string.notif_new_message)
+                    },
                     eventId = eventId,
                     timestamp = rendered.tsMs,
                     notificationId = notifId,

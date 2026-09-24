@@ -487,6 +487,17 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         return true
     }
 
+    override suspend fun resetRecoveryKey(): Result<String> = try {
+        val key = requireClient().resetRecoveryKey().await<JsAny?>()?.toString().orEmpty()
+        if (key.isBlank()) {
+            Result.failure(IllegalStateException("Recovery returned empty key"))
+        } else {
+            Result.success(key)
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
     override fun observeRecoveryState(observer: MatrixPort.RecoveryStateObserver): ULong =
         requireClient().observeRecoveryState(
             jsCallback1 { stateValue: JsAny? ->
@@ -1058,9 +1069,14 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             requireClient().publicRooms(server, search, limit.toDouble(), since).toJsonElement()
         )
 
-    override suspend fun joinByIdOrAlias(idOrAlias: String): Result<Unit> {
+    override suspend fun joinByIdOrAlias(idOrAlias: String, via: List<String>): Result<Unit> {
         return try {
-            requireClient().joinByIdOrAlias(idOrAlias).await<JsAny?>()
+            val client = requireClient()
+            if (via.isEmpty()) {
+                client.joinByIdOrAlias(idOrAlias).await<JsAny?>()
+            } else {
+                client.joinByIdOrAlias(idOrAlias, via.toJsArray()).await<JsAny?>()
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(IllegalStateException("Failed to join room $idOrAlias", e))
@@ -1542,14 +1558,26 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
 
     override suspend fun clearMediaCache(): Result<Unit> = Result.success(Unit)
 
-    override suspend fun roomPreview(idOrAlias: String): Result<RoomPreview> {
-        val value = requireClient().roomPreview(idOrAlias).awaitValue<RoomPreview>()
+    override suspend fun roomPreview(idOrAlias: String, via: List<String>): Result<RoomPreview> {
+        val value = requireClient().roomPreview(idOrAlias, via.toJsArray()).awaitValue<RoomPreview>()
         return if (value != null) Result.success(value)
         else Result.failure(Exception("Failed to load room preview"))
     }
 
-    override suspend fun knock(idOrAlias: String): Result<Unit> =
-        requireClient().knock(idOrAlias).awaitUnitResult()
+    override suspend fun knock(idOrAlias: String, via: List<String>): Result<Unit> =
+        requireClient().knock(idOrAlias, via.toJsArray()).awaitUnitResult()
+
+    override suspend fun forwardEvent(
+        sourceRoomId: String,
+        eventId: String,
+        targetRoomIds: List<String>
+    ): Result<ForwardResult> {
+        val value = requireClient()
+            .forwardEvent(sourceRoomId, eventId, targetRoomIds.toJsArray())
+            .awaitValue<ForwardResult>()
+        return if (value != null) Result.success(value)
+        else Result.failure(Exception("Failed to forward the message"))
+    }
 
     override suspend fun listKnockRequests(roomId: String): List<KnockRequestSummary> {
         return emptyList()

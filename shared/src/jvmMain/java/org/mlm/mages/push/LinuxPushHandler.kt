@@ -131,12 +131,12 @@ class LinuxPushHandler(
                 "${n.sender} \u2022 ${n.roomName}"
             }
 
+            val settings = settingsRepository.flow.first()
             val body = when (n.kind) {
                 NotificationKind.Reaction -> n.body
-                else -> "${n.sender}: ${n.body}"
+                else -> if (settings.notificationShowPreview) "${n.sender}: ${n.body}" else "New message"
             }
 
-            val settings = settingsRepository.flow.first()
             NotifierImpl.notifyMatrixEvent(
                 title = title,
                 body = body,

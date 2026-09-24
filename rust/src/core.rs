@@ -70,6 +70,7 @@ use crate::{
     RoomPowerLevels, RoomPreview, RoomPreviewMembership, RoomSummary, RoomTags, RoomUpgradeLinks,
     SearchHit, SearchPage, SeenByEntry, SendState, SendUpdate, SpaceChildInfo, SpaceHierarchyPage,
     SpaceInfo, SuccessorRoomInfo, ThreadPage, ThreadSummary, UnreadStats,
+    ForwardResult,
     VerificationInboxObserver, build_unstable_poll_content, latest_room_event_for,
     map_event_id_via_timeline, map_timeline_event, paginate_backwards_visible,
     timeline_event_filter,
@@ -295,6 +296,12 @@ impl CoreClient {
 
     pub(crate) fn parse_eid(event_id: &str) -> Result<OwnedEventId, FfiError> {
         OwnedEventId::try_from(event_id).ffi()
+    }
+
+    pub(crate) fn parse_via_servers(via: Vec<String>) -> Result<Vec<OwnedServerName>, FfiError> {
+        via.into_iter()
+            .map(|s| OwnedServerName::try_from(s.as_str()).ffi())
+            .collect()
     }
 
     pub(crate) fn parse_uid(user_id: &str) -> Result<OwnedUserId, FfiError> {
@@ -985,6 +992,65 @@ impl CoreClient {
             .find(|ev| {
                 !ev.body.trim().is_empty() || ev.attachment.is_some() || ev.sticker.is_some()
             }))
+    }
+
+    pub async fn forward_event(
+        &self,
+        source_room_id: String,
+        event_id: String,
+        target_room_ids: Vec<String>,
+    ) -> Result<ForwardResult, FfiError> {
+        let rid = OwnedRoomId::try_from(source_room_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid source room id".into()))?;
+        let eid = OwnedEventId::try_from(event_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid event id".into()))?;
+        let source = self
+            .sdk
+            .get_room(&rid)
+            .ok_or_else(|| FfiError::Msg("source room not found".into()))?;
+
+        let event = source.load_or_fetch_event(&eid, None).await.ffi()?;
+        let raw = event.into_raw();
+        let json: serde_json::Value = serde_json::from_str(raw.json().get())
+            .map_err(|e| FfiError::Msg(format!("event is not valid json: {e}")))?;
+        let serde_json::Value::Object(root) = json else {
+            return Err(FfiError::Msg("event is not a json object".into()));
+        };
+        let event_type = root
+            .get("type")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| FfiError::Msg("event has no type".into()))?
+            .to_string();
+        if event_type != "m.room.message" && event_type != "m.sticker" {
+            return Err(FfiError::Msg(format!("cannot forward {event_type}")));
+        }
+        let serde_json::Value::Object(mut content) = root
+            .get("content")
+            .cloned()
+            .ok_or_else(|| FfiError::Msg("event has no content".into()))?
+        else {
+            return Err(FfiError::Msg("event content is not an object".into()));
+        };
+        content.remove("m.relates_to");
+        content.remove("m.in_reply_to");
+        let content = serde_json::Value::Object(content);
+
+        let mut sent = Vec::new();
+        let mut failed = Vec::new();
+        for target_room_id in target_room_ids {
+            let target = OwnedRoomId::try_from(target_room_id.as_str())
+                .ok()
+                .and_then(|id| self.sdk.get_room(&id));
+            let Some(target) = target else {
+                failed.push(target_room_id);
+                continue;
+            };
+            match target.send_raw(&event_type, content.clone()).await {
+                Ok(_) => sent.push(target_room_id),
+                Err(_) => failed.push(target_room_id),
+            }
+        }
+        Ok(ForwardResult { sent, failed })
     }
 
     pub async fn recent_events(&self, room_id: String, limit: u32) -> Vec<MessageEvent> {
@@ -2633,18 +2699,28 @@ impl CoreClient {
         }
     }
 
-    pub async fn join_by_id_or_alias(&self, id_or_alias: String) -> Result<(), FfiError> {
+    pub async fn join_by_id_or_alias(
+        &self,
+        id_or_alias: String,
+        via: Vec<String>,
+    ) -> Result<(), FfiError> {
         let target = OwnedRoomOrAliasId::try_from(id_or_alias).ffi()?;
+        let via = Self::parse_via_servers(via)?;
         self.sdk
-            .join_room_by_id_or_alias(&target, &[])
+            .join_room_by_id_or_alias(&target, &via)
             .await
             .ffi()?;
         Ok(())
     }
 
-    pub async fn room_preview(&self, id_or_alias: String) -> Result<RoomPreview, FfiError> {
+    pub async fn room_preview(
+        &self,
+        id_or_alias: String,
+        via: Vec<String>,
+    ) -> Result<RoomPreview, FfiError> {
         let target = OwnedRoomOrAliasId::try_from(id_or_alias).ffi()?;
-        let preview = self.sdk.get_room_preview(&target, vec![]).await.ffi()?;
+        let via = Self::parse_via_servers(via)?;
+        let preview = self.sdk.get_room_preview(&target, via).await.ffi()?;
         let join_rule = preview.join_rule.map(|rule| match rule {
             JoinRuleSummary::Public => RoomJoinRule::Public,
             JoinRuleSummary::Invite => RoomJoinRule::Invite,
@@ -2674,10 +2750,11 @@ impl CoreClient {
         })
     }
 
-    pub async fn knock(&self, id_or_alias: String) -> Result<(), FfiError> {
+    pub async fn knock(&self, id_or_alias: String, via: Vec<String>) -> Result<(), FfiError> {
         let target = OwnedRoomOrAliasId::try_from(id_or_alias.as_str())
             .map_err(|_| FfiError::Msg("invalid room id or alias".into()))?;
-        self.sdk.knock(target, None, vec![]).await.ffi().map(|_| ())
+        let via = Self::parse_via_servers(via)?;
+        self.sdk.knock(target, None, via).await.ffi().map(|_| ())
     }
 
     pub async fn resolve_room_id(&self, id_or_alias: String) -> Result<Option<String>, FfiError> {
@@ -3187,7 +3264,7 @@ impl CoreClient {
     ) -> Result<SpaceHierarchyPage, FfiError> {
         use matrix_sdk::ruma::api::client::space::get_hierarchy::v1 as sh;
         let rid = Self::parse_rid(&space_id)?;
-        let mut req = sh::Request::new(rid);
+        let mut req = sh::Request::new(rid.clone());
         req.from = from;
         if limit > 0 {
             req.limit = Some(limit.into());
@@ -3195,9 +3272,23 @@ impl CoreClient {
         req.max_depth = max_depth.map(Into::into);
         req.suggested_only = suggested_only;
         let resp = self.sdk.send(req).await.ffi()?;
+
+        let mut suggested: HashMap<String, bool> = HashMap::new();
+        for chunk in &resp.rooms {
+            if chunk.summary.room_id != rid {
+                continue;
+            }
+            for raw in &chunk.children_state {
+                if let Ok(child) = raw.deserialize() {
+                    suggested.insert(child.state_key.to_string(), child.content.suggested);
+                }
+            }
+        }
+
         let children = resp
             .rooms
             .into_iter()
+            .filter(|chunk| chunk.summary.room_id != rid)
             .map(|chunk| {
                 let s = chunk.summary;
                 let is_space = matches!(s.room_type, Some(RoomType::Space));
@@ -3211,7 +3302,7 @@ impl CoreClient {
                     member_count: s.num_joined_members.into(),
                     world_readable: s.world_readable,
                     guest_can_join: s.guest_can_join,
-                    suggested: false,
+                    suggested: suggested.get(s.room_id.as_str()).copied().unwrap_or(false),
                 }
             })
             .collect();

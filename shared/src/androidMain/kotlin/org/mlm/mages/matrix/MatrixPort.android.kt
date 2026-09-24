@@ -302,6 +302,10 @@ class RustMatrixPort : MatrixPort, VerificationService {
         return withClient { it.setupRecovery(cb) }
     }
 
+    override suspend fun resetRecoveryKey(): Result<String> = runCatching {
+        withClient { it.resetRecoveryKey() }
+    }
+
     override fun observeRecoveryState(observer: MatrixPort.RecoveryStateObserver): ULong {
         val cb = object : mages.RecoveryStateObserver {
             override fun onUpdate(state: mages.RecoveryState) {
@@ -535,6 +539,11 @@ class RustMatrixPort : MatrixPort, VerificationService {
     override fun unobserveRoomInfo(token: ULong) {
         withClient { it.unobserveRoomInfo(token) }
     }
+
+    private fun mages.ForwardResult.toModel() = ForwardResult(
+        sent = sent,
+        failed = failed
+    )
 
     private fun mages.RoomInfoSnapshot.toModel() = RoomInfoSnapshot(
         roomId = roomId,
@@ -1119,19 +1128,28 @@ class RustMatrixPort : MatrixPort, VerificationService {
         )
     }
 
-    override suspend fun joinByIdOrAlias(idOrAlias: String): Result<Unit> =
+    override suspend fun joinByIdOrAlias(idOrAlias: String, via: List<String>): Result<Unit> =
         withContext(matrixDispatcher) {
-            runWithFfiResult { withClient { it.joinByIdOrAlias(idOrAlias) } }
+            runWithFfiResult { withClient { it.joinByIdOrAlias(idOrAlias, via) } }
         }
 
-    override suspend fun roomPreview(idOrAlias: String): Result<RoomPreview> =
+    override suspend fun roomPreview(idOrAlias: String, via: List<String>): Result<RoomPreview> =
         withContext(matrixDispatcher) {
-            runWithFfiResult { withClient { it.roomPreview(idOrAlias).toModel() } }
+            runWithFfiResult { withClient { it.roomPreview(idOrAlias, via).toModel() } }
         }
 
-    override suspend fun knock(idOrAlias: String): Result<Unit> =
+    override suspend fun knock(idOrAlias: String, via: List<String>): Result<Unit> =
         withContext(matrixDispatcher) {
-            runWithFfiResult { withClient { it.knock(idOrAlias) } }
+            runWithFfiResult { withClient { it.knock(idOrAlias, via) } }
+        }
+
+    override suspend fun forwardEvent(
+        sourceRoomId: String,
+        eventId: String,
+        targetRoomIds: List<String>
+    ): Result<ForwardResult> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.forwardEvent(sourceRoomId, eventId, targetRoomIds) }.toModel() }
         }
 
     override suspend fun ensureDm(userId: String): String? =

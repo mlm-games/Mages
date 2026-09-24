@@ -526,6 +526,12 @@ data class SpaceChildInfo(
 )
 
 @Serializable
+data class ForwardResult(
+    val sent: List<String>,
+    val failed: List<String>
+)
+
+@Serializable
 data class SpaceHierarchyPage(
     val children: List<SpaceChildInfo>,
     val nextBatch: String? = null
@@ -655,6 +661,7 @@ interface MatrixPort {
     fun whoami(): String?
     suspend fun accountManagementUrl(): String?
     fun setupRecovery(observer: RecoveryObserver): Boolean
+    suspend fun resetRecoveryKey(): Result<String>
     fun observeRecoveryState(observer: RecoveryStateObserver): ULong
     fun unobserveRecoveryState(subId: ULong)
 
@@ -856,9 +863,10 @@ interface MatrixPort {
     suspend fun searchUsers(term: String, limit: Int = 20): List<DirectoryUser>
     suspend fun getUserProfile(userId: String): DirectoryUser?
     suspend fun publicRooms(server: String? = null, search: String? = null, limit: Int = 50, since: String? = null): PublicRoomsPage
-    suspend fun roomPreview(idOrAlias: String): Result<RoomPreview>
-    suspend fun joinByIdOrAlias(idOrAlias: String): Result<Unit>
-    suspend fun knock(idOrAlias: String): Result<Unit>
+    suspend fun roomPreview(idOrAlias: String, via: List<String> = emptyList()): Result<RoomPreview>
+    suspend fun forwardEvent(sourceRoomId: String, eventId: String, targetRoomIds: List<String>): Result<ForwardResult>
+    suspend fun joinByIdOrAlias(idOrAlias: String, via: List<String> = emptyList()): Result<Unit>
+    suspend fun knock(idOrAlias: String, via: List<String> = emptyList()): Result<Unit>
     suspend fun ensureDm(userId: String): String?
     suspend fun ensureDmIfAllowed(roomId: String, userId: String): String?
     suspend fun resolveRoomId(idOrAlias: String): String?

@@ -198,12 +198,53 @@ class SecurityViewModel(
         }
     }
 
-    fun setupRecovery() {
+    fun setupRecovery(isChange: Boolean = false) {
         val version = accountDataVersion
 
         launch {
             val port = service.portOrNull ?: return@launch
-            
+
+            if (isChange) {
+                updateStateIfCurrent(version) { copy(isEnablingRecovery = true, recoveryProgress = "Resetting recovery key...") }
+                val result = runCatching { port.resetRecoveryKey() }.getOrElse { e ->
+                    updateStateIfCurrent(version) {
+                        copy(
+                            isEnablingRecovery = false,
+                            recoveryProgress = null,
+                            error = "Could not reset the recovery key: ${e.message ?: "unknown error"}"
+                        )
+                    }
+                    return@launch
+                }
+                result.fold(
+                    onSuccess = { key ->
+                        if (key.isBlank()) {
+                            updateStateIfCurrent(version) {
+                                copy(isEnablingRecovery = false, recoveryProgress = null, error = "Recovery returned an empty key")
+                            }
+                        } else {
+                            updateStateIfCurrent(version) {
+                                copy(
+                                    isEnablingRecovery = false,
+                                    recoveryProgress = null,
+                                    generatedRecoveryKey = key,
+                                )
+                            }
+                        }
+                    },
+                    onFailure = { e ->
+                        updateStateIfCurrent(version) {
+                            copy(
+                                isEnablingRecovery = false,
+                                recoveryProgress = null,
+                                error = "Could not reset the recovery key: ${e.message ?: "unknown error"}"
+                            )
+                        }
+                    }
+                )
+                return@launch
+            }
+
             val observer = object : MatrixPort.RecoveryObserver {
                 override fun onProgress(step: String) {
                     updateStateIfCurrent(version) { copy(recoveryProgress = step) }

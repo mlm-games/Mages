@@ -2,24 +2,25 @@ package org.mlm.mages.nav
 
 import org.mlm.mages.MatrixService
 
-// Call from UI or intent handler
 suspend fun handleMatrixLink(
     service: MatrixService,
     link: MatrixLink,
-    openRoom: (roomId: String, title: String) -> Unit
+    openRoom: (roomId: String, eventId: String?) -> Unit
 ): Boolean {
     return when (link) {
         is MatrixLink.User -> {
             val rid = service.port.ensureDm(link.mxid) ?: return false
-            openRoom(rid, link.mxid)
+            openRoom(rid, null)
             true
         }
         is MatrixLink.Room -> {
-            val target = link.target.roomIdOrAlias
-            val result = service.port.joinByIdOrAlias(target)
-            if (result.isFailure) return false
-            // We joined; use roomId if known = target (when it is !id) or alias text otherwise
-            openRoom(target, target)
+            val target = link.target
+            val joinResult = service.port.joinByIdOrAlias(target.roomIdOrAlias, target.via)
+            if (joinResult.isFailure) return false
+
+            val roomId = runCatching { service.port.resolveRoomId(target.roomIdOrAlias) }.getOrNull()
+                ?: target.roomIdOrAlias
+            openRoom(roomId, target.eventId)
             true
         }
         MatrixLink.Unsupported -> false

@@ -158,7 +158,7 @@ delegate_unit_result! {
     set_room_favourite(room_id: String, fav: bool);
     set_room_low_priority(room_id: String, low: bool);
     is_event_read_by(room_id: String, event_id: String, user_id: String);
-    knock(id_or_alias: String);
+    knock(id_or_alias: String, via: Vec<String>);
     space_invite_user(space_id: String, user_id: String);
     leave_room(room_id: String);
     decline_call(room_id: String, notification_event_id: String);
@@ -244,6 +244,7 @@ delegate_option! { bool; is_marked_unread(room_id: String); }
 
 delegate_plain! { Vec<MessageEvent>; recent_events(room_id: String, limit: u32); }
 delegate_result! { Option<MessageEvent>; event_details(room_id: String, event_id: String); }
+delegate_result! { ForwardResult; forward_event(source_room_id: String, event_id: String, target_room_ids: Vec<String>); }
 delegate_plain! { Vec<String>; get_pinned_events(room_id: String); room_aliases(room_id: String); }
 delegate_plain! { i64; get_user_power_level(room_id: String, user_id: String); }
 delegate_plain! { OwnReceipt; own_last_read(room_id: String); }
@@ -805,8 +806,12 @@ impl Client {
         RT.block_on(self.core.create_space(name, topic, is_public, invitees))
     }
 
-    pub fn room_preview(&self, id_or_alias: String) -> Result<RoomPreview, FfiError> {
-        RT.block_on(self.core.room_preview(id_or_alias))
+    pub fn room_preview(
+        &self,
+        id_or_alias: String,
+        via: Vec<String>,
+    ) -> Result<RoomPreview, FfiError> {
+        RT.block_on(self.core.room_preview(id_or_alias, via))
     }
 
     pub fn space_hierarchy(
@@ -869,8 +874,12 @@ impl Client {
         RT.block_on(self.core.room_upgrade_links(room_id))
     }
 
-    pub fn join_by_id_or_alias(&self, id_or_alias: String) -> Result<(), FfiError> {
-        RT.block_on(self.core.join_by_id_or_alias(id_or_alias))
+    pub fn join_by_id_or_alias(
+        &self,
+        id_or_alias: String,
+        via: Vec<String>,
+    ) -> Result<(), FfiError> {
+        RT.block_on(self.core.join_by_id_or_alias(id_or_alias, via))
     }
 
     pub fn search_room(

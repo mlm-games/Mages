@@ -594,6 +594,10 @@ private fun AppContent(
                                         is DiscoverViewModel.Event.ShowError -> {
                                             postError(event.message)
                                         }
+
+                                        is DiscoverViewModel.Event.ShowSuccess -> {
+                                            snackbarManager.show(event.message)
+                                        }
                                     }
                                 }
                             }

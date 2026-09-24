@@ -218,7 +218,7 @@ actual fun BindNotifications(
 
                 val body = when (n.kind) {
                     NotificationKind.Reaction -> n.body
-                    else -> "${n.sender}: ${n.body}"
+                    else -> if (settings.notificationShowPreview) "${n.sender}: ${n.body}" else "New message"
                 }
 
                 val playSound = Notifier.shouldPlaySound(

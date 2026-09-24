@@ -75,7 +75,7 @@ class AppPushService : PushService(), KoinComponent {
         var hasEvent = false
         var firstCounts: ParsedMatrixPush.CountsUpdate? = null
 
-        for (push in pushes.take(5)) {
+        for (push in pushes) {
             when (push) {
                 is ParsedMatrixPush.Event -> {
                     hasEvent = true

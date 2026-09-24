@@ -112,9 +112,15 @@ class RoomsViewModel(
 
     fun acceptInvite(roomId: String) {
         launch {
-            val success = runCatching { service.port.acceptInvite(roomId) }.isSuccess
+            val result = runCatching { service.port.acceptInvite(roomId) }
+            val success = result.getOrNull()?.isSuccess == true
             if (success) {
                 recomputeGroupedRooms()
+            } else {
+                val message = result.exceptionOrNull()?.message
+                    ?: result.getOrNull()?.exceptionOrNull()?.message
+                    ?: "Could not accept the invite. Try again."
+                _events.send(Event.ShowError(message))
             }
         }
     }

@@ -44,6 +44,7 @@ class DiscoverViewModel(
     sealed class Event {
         data class OpenRoom(val roomId: String, val name: String) : Event()
         data class ShowError(val message: String) : Event()
+        data class ShowSuccess(val message: String) : Event()
     }
 
     private val _events = Channel<Event>(Channel.BUFFERED)
@@ -211,9 +212,9 @@ class DiscoverViewModel(
             updateState { copy(isBusy = false) }
 
             if (knockSuccess) {
-                _events.send(Event.ShowError("Knock request sent. Waiting for approval."))
+                _events.send(Event.ShowSuccess("Knock request sent. Waiting for approval."))
             } else {
-                _events.send(Event.ShowError("Failed to knock on room"))
+                _events.send(Event.ShowError("Could not knock on the room. Try again."))
             }
         }
     }
