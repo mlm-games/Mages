@@ -18,7 +18,7 @@ import org.mlm.mages.ui.PinnedMessageUi
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
-import org.mlm.mages.ui.util.formatTime
+import org.mlm.mages.ui.util.formatPinnedTimestamp
 
 @Composable
 fun PinnedMessagesSheet(
@@ -83,7 +83,7 @@ fun PinnedMessagesSheet(
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 items(
-                    items = pinnedMessages,
+                    items = pinnedMessages.asReversed(),
                     key = { it.eventId }
                 ) { pinned ->
                     Surface(
@@ -109,13 +109,24 @@ fun PinnedMessagesSheet(
                             Spacer(Modifier.width(Spacing.sm))
 
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = pinned.senderLabel ?: "Pinned message",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = pinned.senderLabel ?: "Pinned message",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false)
+                                    )
+                                    pinned.timestampMs?.let { ts ->
+                                        Spacer(Modifier.width(Spacing.sm))
+                                        Text(
+                                            text = formatPinnedTimestamp(ts),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
                                 Text(
                                     text = pinned.previewText,
                                     style = MaterialTheme.typography.bodyMedium,

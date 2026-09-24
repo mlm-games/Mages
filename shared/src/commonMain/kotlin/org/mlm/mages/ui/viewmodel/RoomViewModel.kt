@@ -181,7 +181,7 @@ class RoomViewModel(
     sealed class Event {
         data class ShowError(val message: String) : Event()
         data class ShowSuccess(val message: String) : Event()
-        data class NavigateToThread(val roomId: String, val eventId: String, val roomName: String) : Event()
+        data class NavigateToThread(val roomId: String, val eventId: String, val roomName: String, val focusedEventId: String? = null) : Event()
         data class NavigateToRoom(val roomId: String, val name: String) : Event()
         data object NavigateBack : Event()
 
@@ -192,6 +192,8 @@ class RoomViewModel(
         ) : Event()
 
         data class JumpToEvent(val eventId: String) : Event()
+        data class JumpToEventScrolled(val eventIndex: Int) : Event()
+        data object JumpSeekEnded : Event()
 
         data class OpenForwardPicker(val sourceRoomId: String, val eventIds: List<String>) : Event()
 
@@ -262,6 +264,12 @@ class RoomViewModel(
 
     private companion object {
         const val MESSAGE_INFO_READERS_LIMIT = 100
+        const val JUMP_SYNC_SETTLE_MS = 120L
+        const val JUMP_SYNC_SETTLE_CYCLES = 18
+        const val JUMP_MAX_PAGES = 30
+        const val JUMP_SNAPSHOT_TIMEOUT_MS = 15_000L
+        const val JUMP_PAGE_SETTLE_TIMEOUT_MS = 10_000L
+        const val JUMP_PAGINATE_POLL_MS = 50L
     }
 
     private fun filteredVisibleEvents(items: List<MessageEvent>): List<MessageEvent> =
@@ -722,6 +730,33 @@ class RoomViewModel(
         launch {
             val pinned = runSafe { service.port.getPinnedEvents(currentState.roomId) } ?: emptyList()
             updateState { copy(pinnedEventIds = pinned) }
+            resolveUnloadedPinnedEvents(pinned)
+        }
+    }
+
+    private val pinnedResolveInFlight = mutableSetOf<String>()
+
+    private fun resolveUnloadedPinnedEvents(pinned: List<String>) {
+        val missing = pinned.filter { id ->
+            id.isNotBlank() &&
+                    currentState.pinnedResolvedEvents[id] == null &&
+                    currentState.allEvents.none { it.eventId == id }
+        }
+        if (missing.isEmpty()) return
+        launch {
+            for (id in missing) {
+                if (id in pinnedResolveInFlight) continue
+                pinnedResolveInFlight.add(id)
+                try {
+                    val event = runSafe { service.port.eventDetails(currentState.roomId, id) } ?: continue
+                    updateState { copy(pinnedResolvedEvents = pinnedResolvedEvents + (id to event)) }
+                    event.threadRootEventId
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { rootId -> launch { fetchThreadCountFromApi(rootId) } }
+                } finally {
+                    pinnedResolveInFlight.remove(id)
+                }
+            }
         }
     }
 
@@ -734,7 +769,7 @@ class RoomViewModel(
         launch {
             val currentPinned = currentState.pinnedEventIds.toMutableList()
             if (event.eventId !in currentPinned) {
-                currentPinned.add(0, event.eventId) // Add to front
+                currentPinned.add(event.eventId)
                 val ok = runSafe { service.port.setPinnedEvents(currentState.roomId, currentPinned) }?.isSuccess ?: false
                 if (ok) {
                     updateState { copy(pinnedEventIds = currentPinned) }
@@ -998,19 +1033,26 @@ class RoomViewModel(
      *  - true  = SDK reported start of timeline
      *  - false = more may exist
      *  - null  = skipped (already in flight) or hard failure (do NOT set hitStart)
+     *
+     * [useJumpHitStart] routes the "reached start" bookkeeping to a separate flag so a
+     * jump is not short-circuited by a stale [RoomUiState.hitStart] set by an unrelated
+     * unread seek or load-earlier, and vice versa.
      */
-    private suspend fun paginateBackAwait(count: Int = 50): Boolean? {
-        if (currentState.hitStart) return true
-        if (!paginateLock.tryLock()) return null
+    private suspend fun paginateBackAwait(count: Int = 50, useJumpHitStart: Boolean = false, waitForLock: Boolean = false): Boolean? {
+        val hasHitStart: () -> Boolean = {
+            if (useJumpHitStart) currentState.jumpHitStart else currentState.hitStart
+        }
+        if (hasHitStart()) return true
+        if (waitForLock) paginateLock.lock() else if (!paginateLock.tryLock()) return null
         try {
             // Re-check under lock
-            if (currentState.hitStart) return true
+            if (hasHitStart()) return true
             updateState { copy(isPaginatingBack = true) }
             return try {
                 val result = runCatching { service.paginateBack(currentState.roomId, count) }.getOrNull()
                 val hit = result?.getOrNull() // Result<Boolean> -> Boolean?
                 if (hit == true) {
-                    updateState { copy(hitStart = true) }
+                    updateState { if (useJumpHitStart) copy(jumpHitStart = true) else copy(hitStart = true) }
                 }
                 // null failure -> do not touch hitStart
                 hit ?: false
@@ -1769,32 +1811,131 @@ class RoomViewModel(
         performRoomSearch(reset = false)
     }
 
+    private var jumpHighlightJob: Job? = null
+
     fun jumpToSearchResult(hit: SearchHit) {
         hideRoomSearch()
-        val eid = hit.eventId
-        if (eid.isBlank()) return
-
-        launch {
-            _events.send(Event.JumpToEvent(eid))
-        }
+        jumpToEvent(hit.eventId)
     }
 
     fun jumpToEvent(eventId: String) {
         if (eventId.isBlank()) return
 
-        _state.update { it.copy(highlightedEventId = eventId) }
-
-        viewModelScope.launch {
+        setJumpHighlight(eventId)
+        jumpSeekJob?.cancel()
+        jumpSeekJob = viewModelScope.launch {
+            val threadRoot = currentState.pinnedResolvedEvents[eventId]?.threadRootEventId
+                ?: currentState.allEvents.firstOrNull { it.eventId == eventId }?.threadRootEventId
+            if (threadRoot != null) {
+                clearJumpHighlight()
+                _events.send(
+                    Event.NavigateToThread(
+                        roomId = currentState.roomId,
+                        eventId = threadRoot,
+                        roomName = currentState.roomName,
+                        focusedEventId = eventId,
+                    )
+                )
+                return@launch
+            }
+            val idx = currentState.events.indexOfFirst { it.eventId == eventId }
+            if (idx >= 0) {
+                clearJumpHighlightDelayed()
+                _events.send(Event.JumpToEventScrolled(idx))
+                return@launch
+            }
             _events.send(Event.JumpToEvent(eventId))
-            clearHighlight()
         }
     }
 
-    private fun clearHighlight() {
-        viewModelScope.launch {
-            delay(1600)
+    private fun setJumpHighlight(eventId: String) {
+        jumpHighlightJob?.cancel()
+        _state.update { it.copy(highlightedEventId = eventId) }
+    }
+
+    fun clearJumpHighlight() {
+        jumpHighlightJob?.cancel()
+        _state.update { it.copy(highlightedEventId = null) }
+    }
+
+    fun clearJumpHighlightDelayed(delayMs: Long = 1600L) {
+        jumpHighlightJob?.cancel()
+        jumpHighlightJob = viewModelScope.launch {
+            delay(delayMs)
             _state.update { it.copy(highlightedEventId = null) }
         }
+    }
+
+    private var jumpSeekJob: Job? = null
+
+    private suspend fun awaitJumpTarget(eventId: String): JumpTargetResolution? {
+        if (eventId.isBlank()) return null
+
+        fun findIndex(): Int = currentState.events.indexOfFirst { it.eventId == eventId }
+
+        findIndex().takeIf { it >= 0 }?.let { return JumpTargetResolution.Jump(it) }
+
+        if (!currentState.hasTimelineSnapshot) {
+            withTimeoutOrNull(JUMP_SNAPSHOT_TIMEOUT_MS) {
+                state.filter { it.hasTimelineSnapshot }.first()
+            }
+        }
+
+        repeat(JUMP_SYNC_SETTLE_CYCLES) {
+            delay(JUMP_SYNC_SETTLE_MS)
+            findIndex().takeIf { i -> i >= 0 }?.let { return JumpTargetResolution.Jump(it) }
+        }
+
+        repeat(JUMP_MAX_PAGES) {
+            if (currentState.jumpHitStart) return JumpTargetResolution.NotFound
+            if (currentState.isPaginatingBack) {
+                delay(JUMP_PAGINATE_POLL_MS)
+                findIndex().takeIf { i -> i >= 0 }?.let { return JumpTargetResolution.Jump(it) }
+                return@repeat
+            }
+
+            val before = currentState.allEvents.size
+            val hitStart = paginateBackAwait(useJumpHitStart = true, waitForLock = true)
+                ?: return JumpTargetResolution.NotFound
+
+            withTimeoutOrNull(JUMP_PAGE_SETTLE_TIMEOUT_MS) {
+                state.filter { it.allEvents.size > before }.first()
+            }
+            findIndex().takeIf { i -> i >= 0 }?.let { return JumpTargetResolution.Jump(it) }
+            if (hitStart == true) return JumpTargetResolution.NotFound
+        }
+        return JumpTargetResolution.NotFound
+    }
+
+    fun seekEvent(eventId: String) {
+        if (eventId.isBlank()) return
+        jumpSeekJob?.cancel()
+        _state.update { it.copy(jumpHitStart = false, seekingEventId = eventId) }
+        jumpSeekJob = launch {
+            when (val result = awaitJumpTarget(eventId)) {
+                is JumpTargetResolution.Jump -> {
+                    clearJumpHighlightDelayed()
+                    _state.update { it.copy(seekingEventId = null) }
+                    _events.send(Event.JumpToEventScrolled(result.index))
+                    _events.send(Event.JumpSeekEnded)
+                }
+                JumpTargetResolution.NotFound -> {
+                    clearJumpHighlight()
+                    _state.update { it.copy(seekingEventId = null) }
+                    _events.send(Event.ShowError("Message not found"))
+                    _events.send(Event.JumpSeekEnded)
+                }
+                null -> {
+                    _state.update { it.copy(seekingEventId = null) }
+                    _events.send(Event.JumpSeekEnded)
+                }
+            }
+        }
+    }
+
+    sealed interface JumpTargetResolution {
+        data class Jump(val index: Int) : JumpTargetResolution
+        data object NotFound : JumpTargetResolution
     }
 
     fun startForward(event: MessageEvent) {

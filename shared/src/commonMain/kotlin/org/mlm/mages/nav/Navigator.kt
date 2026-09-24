@@ -40,7 +40,7 @@ sealed interface Route : NavKey {
         val eventIds: List<String>
     ) : Route
     @Serializable data class RoomInfo(val roomId: String) : Route
-    @Serializable data class Thread(val roomId: String, val rootEventId: String, val roomName: String) : Route
+    @Serializable data class Thread(val roomId: String, val rootEventId: String, val roomName: String, val focusedEventId: String? = null) : Route
 
     @Serializable data object Spaces : Route
     @Serializable data class SpaceDetail(val spaceId: String, val spaceName: String) : Route

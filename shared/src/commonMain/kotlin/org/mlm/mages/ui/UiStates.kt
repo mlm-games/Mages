@@ -126,6 +126,7 @@ data class RoomUiState(
     val isPaginatingBack: Boolean = false,
     val hasTimelineSnapshot: Boolean = false,
     val hitStart: Boolean = false,
+    val jumpHitStart: Boolean = false,
     val isOffline: Boolean = false,
     /**
      * True between the initial cached timeline Reset and the first live
@@ -213,6 +214,8 @@ data class RoomUiState(
 
     val pinnedEventIds: List<String> = emptyList(),
     val showPinnedMessagesSheet: Boolean = false,
+    val pinnedResolvedEvents: Map<String, MessageEvent> = emptyMap(),
+    val seekingEventId: String? = null,
 
     // Report dialog
     val showReportDialog: Boolean = false,
@@ -248,7 +251,7 @@ data class RoomUiState(
             return pinnedEventIds.map { pinnedId ->
                 PinnedMessageUi(
                     eventId = pinnedId,
-                    event = eventsById[pinnedId],
+                    event = eventsById[pinnedId] ?: pinnedResolvedEvents[pinnedId],
                 )
             }
         }
@@ -393,7 +396,9 @@ data class ThreadUiState(
     val editingEvent: MessageEvent? = null,
     val editInput: String = "",
     val avatarByUserId: Map<String, String> = emptyMap(),
-    val roomMembers: List<MemberSummary> = emptyList()
+    val roomMembers: List<MemberSummary> = emptyList(),
+    val focusedEventId: String? = null,
+    val focusedEventMissing: Boolean = false,
 ) {
     val messageCount: Int get() = (if (rootMessage != null) 1 else 0) + replies.size
 

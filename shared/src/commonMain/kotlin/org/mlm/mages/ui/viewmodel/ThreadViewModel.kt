@@ -24,12 +24,14 @@ class ThreadViewModel(
     private val service: MatrixService,
     private val roomId: String,
     private val rootEventId: String,
-    roomName: String = ""
+    roomName: String = "",
+    focusedEventId: String? = null,
 ) : BaseViewModel<ThreadUiState>(
     ThreadUiState(
         roomId = roomId,
         rootEventId = rootEventId,
-        roomName = roomName
+        roomName = roomName,
+        focusedEventId = focusedEventId,
     )
 ) {
 
@@ -315,7 +317,11 @@ class ThreadViewModel(
                     replies = mergedReplies,
                     nextBatch = page.nextBatch,
                     isLoading = false,
-                    hasInitialLoad = true
+                    hasInitialLoad = true,
+                    focusedEventMissing = focusedEventId != null &&
+                            page.nextBatch == null &&
+                            mergedRoot?.eventId != focusedEventId &&
+                            mergedReplies.none { it.eventId == focusedEventId },
                 )
             }
         }
@@ -325,7 +331,21 @@ class ThreadViewModel(
      * Load more (older) messages in the thread.
      */
     fun loadMore() {
-        val token = currentState.nextBatch ?: return
+        loadMoreInternal(markFocusedMissingWhenExhausted = currentState.focusedEventId != null)
+    }
+
+    fun clearFocusedEvent() {
+        updateState { copy(focusedEventId = null, focusedEventMissing = false) }
+    }
+
+    private fun loadMoreInternal(markFocusedMissingWhenExhausted: Boolean) {
+        val token = currentState.nextBatch
+        if (token == null) {
+            if (markFocusedMissingWhenExhausted && currentState.focusedEventId != null) {
+                updateState { copy(focusedEventMissing = true) }
+            }
+            return
+        }
         if (currentState.isLoading) return
 
         launch(onError = { e ->
@@ -354,7 +374,12 @@ class ThreadViewModel(
                 copy(
                     replies = merged,
                     nextBatch = page.nextBatch,
-                    isLoading = false
+                    isLoading = false,
+                    focusedEventMissing = markFocusedMissingWhenExhausted &&
+                            focusedEventId != null &&
+                            page.nextBatch == null &&
+                            rootMessage?.eventId != focusedEventId &&
+                            merged.none { it.eventId == focusedEventId },
                 )
             }
         }

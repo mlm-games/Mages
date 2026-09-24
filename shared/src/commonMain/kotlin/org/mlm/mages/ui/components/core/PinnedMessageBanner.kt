@@ -19,7 +19,7 @@ fun PinnedMessageBanner(
     pinnedMessages: List<PinnedMessageUi>,
     onViewAll: () -> Unit,
 ) {
-    val primary = pinnedMessages.firstOrNull() ?: return
+    val primary = pinnedMessages.lastOrNull() ?: return
 
     Row(
         modifier = Modifier

@@ -631,6 +631,7 @@ interface MatrixPort {
     suspend fun loginPhone(country: String, phone: String, password: String, deviceDisplayName: String?)
     suspend fun listRooms(): List<RoomSummary>
     suspend fun recent(roomId: String, limit: Int = 50): List<MessageEvent>
+    suspend fun eventDetails(roomId: String, eventId: String): MessageEvent?
     fun timelineDiffs(roomId: String): Flow<TimelineDiff<MessageEvent>>
     suspend fun send(roomId: String, body: String, formattedBody: String? = null): Result<Unit>
 

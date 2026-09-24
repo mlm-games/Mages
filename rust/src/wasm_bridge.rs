@@ -471,6 +471,7 @@ wasm_delegate_option_json! {
     "roomInfoSnapshot" => room_info_snapshot(room_id: String);
     "roomSuccessor"    => room_successor(room_id: String);
     "roomPredecessor"  => room_predecessor(room_id: String);
+    "eventDetails"     => event_details(room_id: String, event_id: String);
 }
 
 wasm_unobserve! {

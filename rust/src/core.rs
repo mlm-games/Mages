@@ -55,7 +55,7 @@ use matrix_sdk_ui::{
     eyeball_im::{Vector, VectorDiff},
     room_list_service::RoomListItem,
     sync_service::SyncService,
-    timeline::{RoomExt as _, Timeline},
+    timeline::{RoomExt as _, Timeline, TimelineEventFocusThreadMode, TimelineFocus},
 };
 use serde_json;
 use tracing::warn;
@@ -892,6 +892,36 @@ impl CoreClient {
             .await
             .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
         tl.paginate_forwards(count).await.ffi()
+    }
+
+    pub async fn event_details(&self, room_id: String, event_id: String) -> Option<MessageEvent> {
+        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+            return None;
+        };
+        let Ok(eid) = OwnedEventId::try_from(event_id) else {
+            return None;
+        };
+        let room = self.sdk.get_room(&rid)?;
+        let tl = room
+            .timeline_builder()
+            .event_filter(timeline_event_filter)
+            .with_focus(TimelineFocus::Event {
+                target: eid,
+                num_context_events: 0,
+                thread_mode: TimelineEventFocusThreadMode::Automatic {
+                    hide_threaded_events: false,
+                },
+            })
+            .build()
+            .await
+            .ok()?;
+        let me = self.user_id_str();
+        let (items, _) = tl.subscribe().await;
+        items.iter().rev().filter_map(|it| {
+            it.as_event().and_then(|ev| {
+                map_timeline_event(ev, rid.as_str(), Some(&it.unique_id().0.to_string()), &me)
+            })
+        }).find(|ev| !ev.body.trim().is_empty() || ev.attachment.is_some() || ev.sticker.is_some())
     }
 
     pub async fn recent_events(&self, room_id: String, limit: u32) -> Vec<MessageEvent> {

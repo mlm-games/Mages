@@ -70,6 +70,8 @@ fun ThreadRoute(
         onReact = viewModel::react,
         onBack = onBack,
         onLoadMore = viewModel::loadMore,
+        onClearFocus = viewModel::clearFocusedEvent,
+        onFocusMissing = { postError("Message not found") },
         onSend = {
             scope.launch {
                 if (state.editingEvent != null) {
@@ -97,6 +99,8 @@ fun ThreadScreen(
     onReact: (MessageEvent, String) -> Unit,
     onBack: () -> Unit,
     onLoadMore: () -> Unit,
+    onClearFocus: () -> Unit = {},
+    onFocusMissing: () -> Unit = {},
     onSend: () -> Unit,
     onInputChange: (String) -> Unit,
     onStartReply: (MessageEvent) -> Unit,
@@ -128,9 +132,43 @@ fun ThreadScreen(
         }
     }
 
+    val focusedEventId = state.focusedEventId
+    var focusedLoadAttempts by remember { mutableIntStateOf(0) }
+    LaunchedEffect(focusedEventId, state.hasInitialLoad, state.replies.size, state.nextBatch, state.isLoading) {
+        val target = focusedEventId ?: return@LaunchedEffect
+        if (!state.hasInitialLoad) return@LaunchedEffect
+        val replyIndex = state.replies.indexOfFirst { it.eventId == target }
+        if (replyIndex >= 0) {
+            listState.scrollToItem(state.replies.lastIndex - replyIndex)
+            focusedLoadAttempts = 0
+            return@LaunchedEffect
+        }
+        if (state.rootMessage?.eventId == target || state.rootEventId == target) {
+            focusedLoadAttempts = 0
+            return@LaunchedEffect
+        }
+        if (state.focusedEventMissing) {
+            onFocusMissing()
+            onClearFocus()
+            focusedLoadAttempts = 0
+            return@LaunchedEffect
+        }
+        if (state.isLoading) return@LaunchedEffect
+        if (state.nextBatch != null && focusedLoadAttempts < 20) {
+            focusedLoadAttempts++
+            onLoadMore()
+            return@LaunchedEffect
+        }
+        if (focusedLoadAttempts >= 20 || state.nextBatch == null) {
+            onFocusMissing()
+            onClearFocus()
+            focusedLoadAttempts = 0
+        }
+    }
+
     // Auto-scroll when new message appears
-    LaunchedEffect(state.replies.lastOrNull()?.itemId, isNearBottom) {
-        if (isNearBottom && totalItems > 0) {
+    LaunchedEffect(state.replies.lastOrNull()?.itemId, isNearBottom, focusedEventId) {
+        if (isNearBottom && totalItems > 0 && focusedEventId == null) {
             listState.animateScrollToItem(0)
         }
     }
@@ -259,7 +297,8 @@ fun ThreadScreen(
                                         onReact = { emoji -> onReact(bubbleItem.event, emoji) },
                                         onLongPress = { sheetEvent = bubbleItem.event },
                                         grouped = shouldGroup,
-                                        groupedWithNext = groupedWithNext
+                                        groupedWithNext = groupedWithNext,
+                                        highlighted = state.focusedEventId == bubbleItem.event.eventId,
                                     )
                                 },
                                 staticLocation = { locItem ->
@@ -604,11 +643,16 @@ private fun ThreadReplyMessage(
     onReact: (String) -> Unit,
     onLongPress: () -> Unit,
     grouped: Boolean = false,
-    groupedWithNext: Boolean = false
+    groupedWithNext: Boolean = false,
+    highlighted: Boolean = false,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .background(
+                if (highlighted) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                else MaterialTheme.colorScheme.surface
+            )
             .padding(horizontal = Spacing.md, vertical = if (grouped) 2.dp else 4.dp)
     ) {
         Box(

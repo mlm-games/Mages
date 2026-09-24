@@ -402,6 +402,15 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         }.getOrElse { emptyList() }
     }
 
+    override suspend fun eventDetails(roomId: String, eventId: String): MessageEvent? {
+        val raw = requireClient().eventDetails(roomId, eventId).await<JsAny?>() ?: return null
+        return runCatching {
+            wasmJson.decodeFromJsonElement<MessageEvent>(raw.toJsonObject())
+        }.onFailure {
+            Logger.w("eventDetails failed: ${it.message}")
+        }.getOrNull()
+    }
+
     override fun timelineDiffs(roomId: String): Flow<TimelineDiff<MessageEvent>> = callbackFlow {
         val f = requireClientOrNull() ?: run { close(); return@callbackFlow }
         val subscription = f.observeTimeline(

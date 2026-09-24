@@ -475,8 +475,8 @@ private fun AppContent(
                                         )
                                     )
                                 },
-                                onNavigateToThread = { roomId, eventId, roomName ->
-                                    backStack.add(Route.Thread(roomId, eventId, roomName))
+                                onNavigateToThread = { roomId, eventId, roomName, focusedEventId ->
+                                    backStack.add(Route.Thread(roomId, eventId, roomName, focusedEventId))
                                 },
                                 onRequestLocationPermissions = onRequestLocationPermissions,
                                 onStartCall = {
@@ -645,7 +645,7 @@ private fun AppContent(
 
                         entry<Route.Thread> { key ->
                             val viewModel: ThreadViewModel = koinViewModel(
-                                parameters = { parametersOf(key.roomId, key.rootEventId) }
+                                parameters = { parametersOf(key.roomId, key.rootEventId, key.focusedEventId) }
                             )
 
                             LaunchedEffect(Unit) {

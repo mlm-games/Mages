@@ -99,7 +99,7 @@ fun RoomScreen(
     onBack: () -> Unit,
     onOpenInfo: () -> Unit,
     onNavigateToRoom: (roomId: String, name: String) -> Unit,
-    onNavigateToThread: (roomId: String, eventId: String, roomName: String) -> Unit,
+    onNavigateToThread: (roomId: String, eventId: String, roomName: String, focusedEventId: String?) -> Unit,
     onRequestLocationPermissions: ((() -> Unit) -> Unit)? = null,
     onStartCall: () -> Unit,
     onStartVoiceCall: () -> Unit,
@@ -123,8 +123,6 @@ fun RoomScreen(
     var pendingJumpEventId by rememberSaveable(initialScrollToEventId) {
         mutableStateOf(initialScrollToEventId)
     }
-    var jumpBackAttempts by remember { mutableIntStateOf(0) }
-    var jumpSyncWaitCycles by remember { mutableIntStateOf(0) }
 
     var seekingUnread by rememberSaveable { mutableStateOf(false) }
     var seekUnreadAttempts by remember { mutableIntStateOf(0) }
@@ -424,7 +422,7 @@ fun RoomScreen(
                 }
 
                 is RoomViewModel.Event.NavigateToThread -> {
-                    onNavigateToThread(event.roomId, event.eventId, event.roomName)
+                    onNavigateToThread(event.roomId, event.eventId, event.roomName, event.focusedEventId)
                 }
 
                 is RoomViewModel.Event.NavigateToRoom -> {
@@ -449,6 +447,15 @@ fun RoomScreen(
                     pendingJumpEventId = event.eventId
                 }
 
+                is RoomViewModel.Event.JumpToEventScrolled -> {
+                    listState.scrollToItem(listIndexForEventIndex(event.eventIndex))
+                    didInitialScroll = true
+                }
+
+                RoomViewModel.Event.JumpSeekEnded -> {
+                    pendingJumpEventId = null
+                }
+
                 is RoomViewModel.Event.ShareContentEvent -> {
                     progressText = null
                     shareHandler(event.content)
@@ -465,60 +472,20 @@ fun RoomScreen(
         }
     }
 
-    LaunchedEffect(events.lastOrNull()?.itemId, isNearBottom, seekingUnread) {
-        if (isNearBottom && !seekingUnread) viewModel.markRoomSeen()
+    val seekingJump = state.seekingEventId != null
+    LaunchedEffect(events.lastOrNull()?.itemId, isNearBottom, seekingUnread, seekingJump) {
+        if ((isNearBottom && !seekingUnread && !seekingJump)) viewModel.markRoomSeen()
     }
 
-    LaunchedEffect(events.size) {
-        if (isNearBottom && events.isNotEmpty() && !seekingUnread) {
+    LaunchedEffect(events.size, seekingJump) {
+        if (isNearBottom && events.isNotEmpty() && !seekingUnread && !seekingJump) {
             listState.animateScrollToItem(lastListIndex())
         }
     }
 
-    LaunchedEffect(
-        pendingJumpEventId,
-        state.hasTimelineSnapshot,
-        state.events,
-        state.hitStart,
-        state.isPaginatingBack
-    ) {
+    LaunchedEffect(pendingJumpEventId) {
         val target = pendingJumpEventId ?: return@LaunchedEffect
-        if (!state.hasTimelineSnapshot || state.events.isEmpty()) return@LaunchedEffect
-
-        val idx = state.events.indexOfFirst { it.eventId == target }
-        if (idx >= 0) {
-            val listIndex = listIndexForEventIndex(idx)
-
-            listState.scrollToItem(index = listIndex)
-
-            pendingJumpEventId = null
-            jumpBackAttempts = 0
-            jumpSyncWaitCycles = 0
-            didInitialScroll = true
-            return@LaunchedEffect
-        }
-
-        // Wait longer for live Appends (sync guaranteed running via refcount + enterForeground).
-        // Notification events are almost always newer than the cached head.
-        jumpSyncWaitCycles++
-        if (jumpSyncWaitCycles <= 18) {
-            delay(120)
-            return@LaunchedEffect
-        }
-
-        // Not found yet -> back paginate until we find it, but don't loop forever
-        if (!state.hitStart && !state.isPaginatingBack && jumpBackAttempts < 30) {
-            jumpBackAttempts++
-            viewModel.paginateBack()
-        } else if (state.hitStart || jumpBackAttempts >= 30) {
-            // Event not found after exhaustive search - scroll to latest instead of error
-            pendingJumpEventId = null
-            jumpBackAttempts = 0
-            jumpSyncWaitCycles = 0
-            if (state.events.isNotEmpty()) {
-                listState.scrollToItem(lastListIndex())
-            }
-        }
+        viewModel.seekEvent(target)
     }
 
     Scaffold(
@@ -840,7 +807,7 @@ fun RoomScreen(
                             }
                         }
 
-                        if (seekingUnread) {
+                        if (seekingUnread || state.seekingEventId != null) {
                             Surface(
                                 modifier = Modifier
                                     .align(Alignment.TopStart)
@@ -858,7 +825,10 @@ fun RoomScreen(
                                         modifier = Modifier.size(16.dp),
                                     )
                                     Text(
-                                        text = stringResource(Res.string.loading_unread),
+                                        text = stringResource(
+                                            if (seekingUnread) Res.string.loading_unread
+                                            else Res.string.loading_pinned
+                                        ),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )

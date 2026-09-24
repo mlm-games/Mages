@@ -124,6 +124,13 @@ class RustMatrixPort : MatrixPort, VerificationService {
             }
         }
 
+    override suspend fun eventDetails(roomId: String, eventId: String): MessageEvent? =
+        withContext(matrixDispatcher) {
+            withClient { cl ->
+                cl.eventDetails(roomId, eventId)?.toModel()
+            }
+        }
+
     override fun timelineDiffs(roomId: String): Flow<TimelineDiff<MessageEvent>> = callbackFlow {
         val obs = object : mages.TimelineObserver {
             override fun onDiff(diff: TimelineDiffKind) {

@@ -36,6 +36,25 @@ fun formatDate(timestampMs: Long): String {
     }
 }
 
+@OptIn(ExperimentalTime::class)
+fun formatPinnedTimestamp(timestampMs: Long): String {
+    val local = Instant.fromEpochMilliseconds(timestampMs)
+        .toLocalDateTime(TimeZone.currentSystemDefault())
+    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val yesterday = Clock.System.now().minus(1.days)
+        .toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val time = "${pad2(local.hour)}:${pad2(local.minute)}"
+    val day = when (local.date) {
+        today -> return time
+        yesterday -> "Yesterday"
+        else -> {
+            val month = local.month.name.lowercase().replaceFirstChar { it.uppercase() }.take(3)
+            "${local.day} $month ${local.year}"
+        }
+    }
+    return "$time ($day)"
+}
+
 fun formatDuration(ms: Long): String {
     val secs = (ms / 1000).toInt()
     val h = secs / 3600
