@@ -69,7 +69,11 @@ fun ActionBanner(replyingTo: MessageEvent?, editing: MessageEvent?, onCancelRepl
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        if (isEditing) "Editing" else "Replying to ${event.sender}",
+                        when {
+                            !isEditing -> "Replying to ${event.sender}"
+                            event.attachment != null -> "Editing caption"
+                            else -> "Editing"
+                        },
                         style = MaterialTheme.typography.labelMedium,
                         color = if (isEditing) {
                             MaterialTheme.colorScheme.onTertiaryContainer

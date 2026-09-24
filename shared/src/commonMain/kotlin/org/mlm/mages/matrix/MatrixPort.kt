@@ -711,6 +711,19 @@ interface MatrixPort {
     suspend fun react(roomId: String, eventId: String, emoji: String): Result<Unit>
     suspend fun reply(roomId: String, inReplyToEventId: String, body: String, formattedBody: String? = null): Result<Unit>
     suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String? = null): Result<Unit>
+    suspend fun editCaption(
+        roomId: String,
+        targetEventId: String,
+        caption: String?,
+        formattedCaption: String? = null,
+    ): Result<Unit>
+    suspend fun editPoll(
+        roomId: String,
+        pollEventId: String,
+        question: String,
+        answers: List<String>,
+        maxSelections: Int,
+    ): Result<Unit>
     suspend fun redact(roomId: String, eventId: String, reason: String? = null): Result<Unit>
     suspend fun getUserPowerLevel(roomId: String, userId: String): Long
 
@@ -855,6 +868,7 @@ interface MatrixPort {
     suspend fun messageActionState(roomId: String, eventId: String, senderUserId: String): MessageActionState?
 
     suspend fun listInvited(): List<RoomProfile>
+    suspend fun roomInviter(roomId: String): String?
     suspend fun acceptInvite(roomId: String): Result<Unit>
     suspend fun leaveRoom(roomId: String): Result<Unit>
     suspend fun declineCall(roomId: String, notificationEventId: String): Result<Unit>
@@ -947,7 +961,12 @@ interface MatrixPort {
     suspend fun roomAliases(roomId: String): List<String>
 
     suspend fun roomJoinRule(roomId: String): RoomJoinRule?
-    suspend fun setRoomJoinRule(roomId: String, rule: RoomJoinRule): Result<Unit>
+    suspend fun roomJoinRuleAllowList(roomId: String): List<String>
+    suspend fun setRoomJoinRule(
+        roomId: String,
+        rule: RoomJoinRule,
+        allowedRoomIds: List<String> = emptyList(),
+    ): Result<Unit>
     suspend fun roomHistoryVisibility(roomId: String): RoomHistoryVisibility?
     suspend fun setRoomHistoryVisibility(roomId: String, visibility: RoomHistoryVisibility): Result<Unit>
 

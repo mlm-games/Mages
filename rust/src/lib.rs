@@ -135,6 +135,8 @@ delegate_unit_result! {
     send_message(room_id: String, body: String, formatted_body: Option<String>);
     reply(room_id: String, in_reply_to: String, body: String, formatted_body: Option<String>);
     edit(room_id: String, target_event_id: String, new_body: String, formatted_body: Option<String>);
+    edit_caption(room_id: String, target_event_id: String, caption: Option<String>, formatted_caption: Option<String>);
+    edit_poll(room_id: String, poll_event_id: String, def: PollDefinition);
     redact(room_id: String, event_id: String, reason: Option<String>);
     react(room_id: String, event_id: String, emoji: String);
     send_thread_text(room_id: String, root_event_id: String, body: String,
@@ -166,7 +168,7 @@ delegate_unit_result! {
     set_default_room_notification_mode(is_encrypted: bool, is_one_to_one: bool, mode: FfiRoomNotificationMode);
     set_room_canonical_alias(room_id: String, alias: Option<String>, alt_aliases: Vec<String>);
     set_room_directory_visibility(room_id: String, visibility: RoomDirectoryVisibility);
-    set_room_join_rule(room_id: String, rule: RoomJoinRule);
+    set_room_join_rule(room_id: String, rule: RoomJoinRule, allowed_room_ids: Vec<String>);
     set_room_history_visibility(room_id: String, visibility: RoomHistoryVisibility);
     apply_power_level_changes(room_id: String, changes: RoomPowerLevelChanges);
     update_power_level_for_user(room_id: String, user_id: String, power_level: i64);
@@ -216,7 +218,9 @@ delegate_result! { PublicRoomsPage; public_rooms(server: Option<String>, search:
 delegate_result! { RoomPowerLevels; room_power_levels(room_id: String); }
 delegate_result! { RoomDirectoryVisibility; room_directory_visibility(room_id: String); }
 delegate_result! { RoomJoinRule; room_join_rule(room_id: String); }
+delegate_result! { Vec<String>; room_join_rule_allow_list(room_id: String); }
 delegate_result! { RoomHistoryVisibility; room_history_visibility(room_id: String); }
+delegate_option! { String; room_inviter(room_id: String); }
 delegate_result! { Vec<SeenByEntry>; seen_by_for_event(room_id: String, event_id: String, limit: u32); }
 delegate_result! { String; upgrade_room(room_id: String, new_version: String); ensure_dm(user_id: String); ensure_dm_if_allowed(room_id: String, user_id: String); }
 delegate_result! { RoomActionState; room_action_state(room_id: String); }
@@ -239,7 +243,7 @@ delegate_option! { PredecessorRoomInfo; room_predecessor(room_id: String); }
 delegate_option! { bool; is_marked_unread(room_id: String); }
 
 delegate_plain! { Vec<MessageEvent>; recent_events(room_id: String, limit: u32); }
-delegate_plain! { Option<MessageEvent>; event_details(room_id: String, event_id: String); }
+delegate_result! { Option<MessageEvent>; event_details(room_id: String, event_id: String); }
 delegate_plain! { Vec<String>; get_pinned_events(room_id: String); room_aliases(room_id: String); }
 delegate_plain! { i64; get_user_power_level(room_id: String, user_id: String); }
 delegate_plain! { OwnReceipt; own_last_read(room_id: String); }

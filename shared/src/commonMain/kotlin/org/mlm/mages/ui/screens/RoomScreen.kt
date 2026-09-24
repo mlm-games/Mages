@@ -898,9 +898,14 @@ fun RoomScreen(
     }
 
     if (state.showPollCreator) {
+        val editingPoll = state.editingPoll?.pollData
         PollCreatorSheet(
             onCreatePoll = viewModel::sendPoll,
-            onDismiss = viewModel::hidePollCreator
+            onDismiss = viewModel::hidePollCreator,
+            isEditing = editingPoll != null,
+            initialQuestion = editingPoll?.question ?: "",
+            initialAnswers = editingPoll?.options?.map { it.text } ?: emptyList(),
+            initialMaxSelections = editingPoll?.maxSelections?.toInt() ?: 1,
         )
     }
 
@@ -996,6 +1001,13 @@ fun RoomScreen(
             onDismiss = { sheetEvent = null; viewModel.clearSelectedMessageActions() },
             onReply = { viewModel.startReply(event); sheetEvent = null },
             onEdit = { viewModel.startEdit(event); sheetEvent = null },
+            onEditCaption = { viewModel.startEditCaption(event); sheetEvent = null },
+            onRemoveCaption = { viewModel.startRemoveCaption(event); sheetEvent = null },
+            onEditPoll = {
+                viewModel.startEditPoll(event)
+                viewModel.showPollCreator()
+                sheetEvent = null
+            },
             onDelete = { viewModel.delete(event); sheetEvent = null },
             onPin = { if (state.pinAction.isEnabled) viewModel.pinEvent(event) },
             onUnpin = { if (state.pinAction.isEnabled) viewModel.unpinEvent(event.eventId) },

@@ -61,6 +61,11 @@ data class RoomsUiState(
     val lowPriorityItems: List<RoomListItemUi> = emptyList(),
     val inviteItems: List<RoomListItemUi> = emptyList(),
 
+    val declineInviteRoomId: String? = null,
+    val declineInviteRoomName: String = "",
+    val declineInviteInviterName: String? = null,
+    val isDecliningInvite: Boolean = false,
+
     val roomAvatarPath: Map<String, String> = emptyMap(),
 
     val unreadChatCount: Int = 0,
@@ -96,6 +101,15 @@ data class ActionAvailabilityUi(
     }
 }
 
+fun MessageEvent.mediaCaption(): String? {
+    val info = attachment ?: return null
+    val fileName = info.fileName?.trim()
+    return body
+        .takeIf { it.isNotBlank() && (fileName == null || it.trim() != fileName) }
+}
+
+fun MessageEvent.hasCaption(): Boolean = mediaCaption() != null
+
 fun MessageEvent.isDisplayableAsPinnedEvent(): Boolean {
     if (isRedacted) return false
     if (eventType == EventType.Unknown) return false
@@ -130,6 +144,7 @@ data class RoomUiState(
     val input: String = "",
     val replyingTo: MessageEvent? = null,
     val editing: MessageEvent? = null,
+    val editingPoll: MessageEvent? = null,
     val typingNames: List<String> = emptyList(),
     val isPaginatingBack: Boolean = false,
     val hasTimelineSnapshot: Boolean = false,

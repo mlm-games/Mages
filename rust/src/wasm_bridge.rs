@@ -443,6 +443,7 @@ wasm_delegate_result_bool! {
     "declineKnockRequest"  => decline_knock_request(room_id: String, user_id: String, reason: Option<String>);
     "acceptInvite"         => accept_invite(room_id: String);
     "declineCall"          => decline_call(room_id: String, notification_event_id: String);
+    "editCaption"          => edit_caption(room_id: String, target_event_id: String, caption: Option<String>, formatted_caption: Option<String>);
 }
 
 wasm_delegate_json! {
@@ -463,6 +464,7 @@ wasm_delegate_result_json! {
     "listMembers"      => list_members(room_id: String);
     "listInvited"      => list_invited();
     "ignoredUsers"     => ignored_users();
+    "roomJoinRuleAllowList" => room_join_rule_allow_list(room_id: String);
 }
 
 wasm_delegate_option_json! {
@@ -1970,7 +1972,12 @@ impl WasmClient {
     }
 
     #[wasm_bindgen(js_name = setRoomJoinRule)]
-    pub async fn set_room_join_rule(&self, room_id: String, rule: String) -> bool {
+    pub async fn set_room_join_rule(
+        &self,
+        room_id: String,
+        rule: String,
+        allowed_room_ids: Option<Vec<String>>,
+    ) -> bool {
         let Some(s) = self.state() else {
             return false;
         };
@@ -1982,7 +1989,10 @@ impl WasmClient {
             "KnockRestricted" => RoomJoinRule::KnockRestricted,
             _ => return false,
         };
-        s.core.set_room_join_rule(room_id, r).await.is_ok()
+        s.core
+            .set_room_join_rule(room_id, r, allowed_room_ids.unwrap_or_default())
+            .await
+            .is_ok()
     }
 
     #[wasm_bindgen(js_name = roomHistoryVisibility)]
@@ -2092,6 +2102,32 @@ impl WasmClient {
         }
     }
 
+    #[wasm_bindgen(js_name = editPoll)]
+    pub async fn edit_poll(
+        &self,
+        room_id: String,
+        poll_event_id: String,
+        question: String,
+        answers: Vec<String>,
+        kind: String,
+        max_selections: u32,
+    ) -> bool {
+        let Some(s) = self.state() else {
+            return false;
+        };
+        let pk = match kind.as_str() {
+            "Undisclosed" => PollKind::Undisclosed,
+            _ => PollKind::Disclosed,
+        };
+        let def = PollDefinition {
+            question,
+            answers,
+            kind: pk,
+            max_selections,
+        };
+        s.core.edit_poll(room_id, poll_event_id, def).await.is_ok()
+    }
+
     #[wasm_bindgen(js_name = sendPollResponse)]
     pub async fn send_poll_response(
         &self,
@@ -2106,6 +2142,20 @@ impl WasmClient {
             .send_poll_response(room_id, poll_event_id, answers)
             .await
             .is_ok()
+    }
+
+    #[wasm_bindgen(js_name = roomInviter)]
+    pub async fn room_inviter(&self, room_id: String) -> Option<String> {
+        let Some(s) = self.state() else {
+            return None;
+        };
+        match s.core.room_inviter(room_id).await {
+            Ok(v) => v,
+            Err(e) => {
+                tracing::warn!("room_inviter failed: {e:?}");
+                None
+            }
+        }
     }
 
     #[wasm_bindgen(js_name = seenByForEvent)]

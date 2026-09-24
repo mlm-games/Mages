@@ -17,11 +17,19 @@ import org.mlm.mages.ui.theme.Spacing
 @Composable
 fun PollCreatorSheet(
     onCreatePoll: (question: String, answers: List<String>, maxSelections: Int) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    isEditing: Boolean = false,
+    initialQuestion: String = "",
+    initialAnswers: List<String> = emptyList(),
+    initialMaxSelections: Int = 1,
 ) {
-    var question by remember { mutableStateOf("") }
-    var answers by remember { mutableStateOf(listOf("", "")) }
-    var allowMultipleAnswers by remember { mutableStateOf(false) }
+    var question by remember(isEditing, initialQuestion) { mutableStateOf(initialQuestion) }
+    var answers by remember(isEditing, initialAnswers) {
+        mutableStateOf(if (initialAnswers.size >= 2) initialAnswers else listOf("", ""))
+    }
+    var allowMultipleAnswers by remember(isEditing, initialMaxSelections) {
+        mutableStateOf(initialMaxSelections > 1)
+    }
 
     val isValid = question.isNotBlank() && answers.count { it.isNotBlank() } >= 2
 
@@ -41,7 +49,7 @@ fun PollCreatorSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Create Poll",
+                    if (isEditing) "Edit Poll" else "Create Poll",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -154,7 +162,7 @@ fun PollCreatorSheet(
                 ) {
                     Icon(Icons.AutoMirrored.Filled.Send, null)
                     Spacer(Modifier.width(Spacing.sm))
-                    Text("Create Poll")
+                    Text(if (isEditing) "Save Poll" else "Create Poll")
                 }
             }
         }

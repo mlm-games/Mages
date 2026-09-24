@@ -386,6 +386,33 @@ class RustMatrixPort : MatrixPort, VerificationService {
             runWithFfiResult { withClient { it.edit(roomId, targetEventId, newBody, formattedBody) } }
         }
 
+    override suspend fun editCaption(
+        roomId: String,
+        targetEventId: String,
+        caption: String?,
+        formattedCaption: String?
+    ): Result<Unit> = withContext(matrixDispatcher) {
+        runWithFfiResult {
+            withClient { it.editCaption(roomId, targetEventId, caption, formattedCaption) }
+        }
+    }
+
+    override suspend fun editPoll(
+        roomId: String,
+        pollEventId: String,
+        question: String,
+        answers: List<String>,
+        maxSelections: Int
+    ): Result<Unit> = withContext(matrixDispatcher) {
+        val def = mages.PollDefinition(
+            question = question,
+            answers = answers,
+            kind = mages.PollKind.DISCLOSED,
+            maxSelections = maxSelections.coerceIn(1, answers.size).toUInt()
+        )
+        runWithFfiResult { withClient { it.editPoll(roomId, pollEventId, def) } }
+    }
+
     override suspend fun redact(roomId: String, eventId: String, reason: String?): Result<Unit> =
         withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.redact(roomId, eventId, reason) } }
@@ -1201,6 +1228,10 @@ class RustMatrixPort : MatrixPort, VerificationService {
         }.getOrElse { emptyList() }
     }
 
+    override suspend fun roomInviter(roomId: String): String? = withContext(matrixDispatcher) {
+        runWithFfiResult { withClient { it.roomInviter(roomId) } }.getOrNull()
+    }
+
     override suspend fun acceptInvite(roomId: String): Result<Unit> = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.acceptInvite(roomId) } }
     }
@@ -1502,8 +1533,16 @@ class RustMatrixPort : MatrixPort, VerificationService {
         runWithFfiResult { withClient { it.roomJoinRule(roomId) } }.getOrNull()?.toKotlin()
     }
 
-    override suspend fun setRoomJoinRule(roomId: String, rule: RoomJoinRule): Result<Unit> = withContext(matrixDispatcher) {
-        runWithFfiResult { withClient { it.setRoomJoinRule(roomId, rule.toFfi()) } }
+    override suspend fun roomJoinRuleAllowList(roomId: String): List<String> = withContext(matrixDispatcher) {
+        runWithFfiResult { withClient { it.roomJoinRuleAllowList(roomId) } }.getOrDefault(emptyList())
+    }
+
+    override suspend fun setRoomJoinRule(
+        roomId: String,
+        rule: RoomJoinRule,
+        allowedRoomIds: List<String>
+    ): Result<Unit> = withContext(matrixDispatcher) {
+        runWithFfiResult { withClient { it.setRoomJoinRule(roomId, rule.toFfi(), allowedRoomIds) } }
     }
 
     override suspend fun roomHistoryVisibility(roomId: String): RoomHistoryVisibility? = withContext(matrixDispatcher) {

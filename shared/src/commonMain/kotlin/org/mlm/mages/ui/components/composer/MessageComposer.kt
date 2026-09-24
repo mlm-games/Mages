@@ -265,6 +265,7 @@ private fun ComposerPlaceholder(isUploading: Boolean, isOffline: Boolean, editin
         text = when {
             isUploading -> "Uploading..."
             isOffline -> "Offline - messages queued"
+            editing?.attachment != null -> "Edit caption..."
             editing != null -> "Edit message..."
             replyingTo != null -> "Type reply..."
             else -> "Type a message..."

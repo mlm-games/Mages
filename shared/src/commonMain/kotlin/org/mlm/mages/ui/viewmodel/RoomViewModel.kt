@@ -39,6 +39,7 @@ import org.mlm.mages.ui.MessageActionStateUi
 import org.mlm.mages.ui.theme.Durations
 import org.mlm.mages.ui.RoomUiState
 import org.mlm.mages.ui.components.AttachmentData
+import org.mlm.mages.ui.mediaCaption
 import org.mlm.mages.ui.components.OutgoingMediaMode
 import org.mlm.mages.ui.util.mimeToExtension
 import org.mlm.mages.ui.util.nowMs
@@ -437,7 +438,7 @@ class RoomViewModel(
     fun hideAttachmentPicker() = updateState { copy(showAttachmentPicker = false) }
 
     fun showPollCreator() = updateState { copy(showPollCreator = true, showAttachmentPicker = false) }
-    fun hidePollCreator() = updateState { copy(showPollCreator = false) }
+    fun hidePollCreator() = updateState { copy(showPollCreator = false, editingPoll = null, editing = null) }
 
     fun showShareLocation() {
         updateState { copy(showShareLocation = true, showAttachmentPicker = false) }
@@ -610,40 +611,76 @@ class RoomViewModel(
     fun startReply(event: MessageEvent) = updateState { copy(replyingTo = event) }
     fun cancelReply() = updateState { copy(replyingTo = null) }
 
-    fun startEdit(event: MessageEvent) = updateState { copy(editing = event, input = event.body) }
-    fun cancelEdit() = updateState { copy(editing = null, input = "") }
+    fun startEdit(event: MessageEvent) {
+        if (event.pollData != null) {
+            startEditPoll(event)
+            return
+        }
+        updateState { copy(editing = event, editingPoll = null, input = event.mediaCaption() ?: event.body) }
+    }
+
+    fun startEditPoll(event: MessageEvent) = updateState {
+        copy(editing = event, editingPoll = event, input = "")
+    }
+
+    fun startEditCaption(event: MessageEvent) = updateState {
+        copy(editing = event, editingPoll = null, input = event.mediaCaption() ?: "")
+    }
+
+    fun startRemoveCaption(event: MessageEvent) {
+        updateState { copy(editing = event, editingPoll = null, input = "") }
+        confirmEdit()
+    }
+
+    fun cancelEdit() = updateState { copy(editing = null, editingPoll = null, input = "") }
 
     fun confirmEdit() {
         val s = currentState
         val target = s.editing ?: return
-        val newBody = s.input.trim()
-        val plainText = newBody.toPlainComposerText()
-        val formattedBody = newBody.toFormattedBodyOrNull()
-        if (newBody.isBlank()) return
+        if (s.editingPoll != null) return
+        val rawInput = s.input.trim()
+        val plainText = rawInput.toPlainComposerText()
+        val formattedBody = rawInput.toFormattedBodyOrNull()
+        val isCaptionEdit = target.attachment != null
+        if (!isCaptionEdit && rawInput.isBlank()) return
 
         launch {
-            val result = service.edit(s.roomId, target.eventId, plainText, formattedBody)
-            if (result?.isSuccess == true) {
+            val result = if (isCaptionEdit) {
+                val caption = rawInput.takeIf { it.isNotBlank() }
+                service.port.editCaption(s.roomId, target.eventId, caption, formattedBody.takeIf { caption != null })
+            } else {
+                service.edit(s.roomId, target.eventId, plainText, formattedBody)
+            }
+            if (result.isSuccess) {
                 updateState {
                     val idx = allEvents.indexOfFirst { it.eventId == target.eventId }
                     if (idx == -1) {
-                        copy(editing = null, input = "")
+                        copy(editing = null, editingPoll = null, input = "")
                     } else {
-                        val updated = allEvents[idx].copy(body = plainText)
+                        val updated = allEvents[idx].copy(
+                            body = if (isCaptionEdit) captionOrFallback(rawInput, target) else plainText,
+                            formattedBody = formattedBody,
+                            isEdited = true,
+                        )
                         val newAll = allEvents.toMutableList().also { it[idx] = updated }
                         copy(
                             allEvents = newAll,
                             events = filteredVisibleEvents(newAll).dedupByItemId(),
                             editing = null,
+                            editingPoll = null,
                             input = ""
                         )
                     }
                 }
+                _events.send(Event.ShowSuccess("Edit saved"))
             } else {
                 _events.send(Event.ShowError(result.toUserMessage("Edit failed")))
             }
         }
     }
+
+    private fun captionOrFallback(caption: String, event: MessageEvent): String =
+        caption.ifBlank { event.attachment?.fileName ?: event.body }
 
     private fun String.toPlainComposerText(): String =
         Regex("\\[([^]]+)]\\(https://matrix\\.to/#/(@[^)]+)\\)")
@@ -1671,11 +1708,22 @@ class RoomViewModel(
         if (q.isBlank() || opts.size < 2) return
 
         launch {
-            val ok = service.port.sendPoll(currentState.roomId, q, opts, maxSelections.coerceIn(1, opts.size)).isSuccess
-            if (ok) {
-                updateState { copy(showPollCreator = false) }
+            val editingPoll = currentState.editingPoll
+            val result = if (editingPoll != null) {
+                service.port.editPoll(
+                    currentState.roomId,
+                    editingPoll.eventId,
+                    q,
+                    opts,
+                    maxSelections.coerceIn(1, opts.size),
+                )
             } else {
-                _events.send(Event.ShowError("Failed to create poll"))
+                service.port.sendPoll(currentState.roomId, q, opts, maxSelections.coerceIn(1, opts.size))
+            }
+            if (result.isSuccess) {
+                updateState { copy(showPollCreator = false, editingPoll = null, editing = null) }
+            } else {
+                _events.send(Event.ShowError(if (editingPoll != null) "Failed to edit poll" else "Failed to create poll"))
             }
         }
     }

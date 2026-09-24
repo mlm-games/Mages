@@ -30,6 +30,7 @@ import mages.shared.generated.resources.retry
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.SendState
+import org.mlm.mages.ui.hasCaption
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.theme.Limits
 import org.mlm.mages.ui.util.formatTime
@@ -46,6 +47,9 @@ fun MessageActionSheet(
     onDismiss: () -> Unit,
     onReply: () -> Unit,
     onEdit: () -> Unit,
+    onEditCaption: (() -> Unit)? = null,
+    onRemoveCaption: (() -> Unit)? = null,
+    onEditPoll: (() -> Unit)? = null,
     onSelect: () -> Unit,
     onDelete: () -> Unit,
     onPin: (() -> Unit)? = null,
@@ -113,7 +117,27 @@ fun MessageActionSheet(
             }
             ActionItem(Icons.Default.Bookmark, "Mark as read here") { onMarkReadHere(); onDismiss() }
             if (isMine && event.sendState != SendState.Failed && event.eventId.isNotBlank()) {
-                ActionItem(Icons.Default.Edit, "Edit") { onEdit(); onDismiss() }
+                if (event.pollData != null) {
+                    if (event.pollData?.isEnded == false && onEditPoll != null) {
+                        ActionItem(Icons.Default.Poll, "Edit poll") { onEditPoll(); onDismiss() }
+                    }
+                } else if (event.attachment != null) {
+                    if (onEditCaption != null) {
+                        ActionItem(
+                            Icons.Default.Edit,
+                            if (event.hasCaption()) "Edit caption" else "Add caption",
+                        ) { onEditCaption(); onDismiss() }
+                    }
+                    if (event.hasCaption() && onRemoveCaption != null) {
+                        ActionItem(
+                            Icons.Default.Close,
+                            "Remove caption",
+                            MaterialTheme.colorScheme.error,
+                        ) { onRemoveCaption(); onDismiss() }
+                    }
+                } else {
+                    ActionItem(Icons.Default.Edit, "Edit") { onEdit(); onDismiss() }
+                }
             }
             if (isMine || (canDeleteOthers && event.eventId.isNotBlank())) {
                 ActionItem(Icons.Default.Delete, "Delete", MaterialTheme.colorScheme.error) { onDelete(); onDismiss() }

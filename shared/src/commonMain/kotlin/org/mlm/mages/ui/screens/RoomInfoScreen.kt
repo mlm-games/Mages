@@ -26,6 +26,7 @@ import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.ui.components.dialogs.ConfirmationDialog
 import org.mlm.mages.ui.components.dialogs.InviteUserDialog
 import org.mlm.mages.ui.components.sheets.GranularPermissionsSheet
+import org.mlm.mages.ui.components.sheets.JoinRuleSpacePickerSheet
 import org.mlm.mages.ui.components.sheets.KnockRequestsSheet
 import org.mlm.mages.ui.components.sheets.MemberActionsSheet
 import org.mlm.mages.ui.components.sheets.MemberListSheet
@@ -87,7 +88,9 @@ fun RoomInfoRoute(
         onLeave = viewModel::leave,
         onSetVisibility = viewModel::setDirectoryVisibility,
         onEnableEncryption = viewModel::enableEncryption,
-        onSetJoinRule = viewModel::setJoinRule,
+        onSetJoinRule = viewModel::requestJoinRule,
+        onHideJoinRuleSpacePicker = viewModel::hideJoinRuleSpacePicker,
+        onSaveJoinRuleSpaces = { rule, spaceIds -> viewModel.setJoinRule(rule, spaceIds) },
         onSetHistoryVisibility = viewModel::setHistoryVisibility,
         onUpdateAliases = viewModel::updateCanonicalAlias,
         onUpdatePowerLevel = viewModel::updatePowerLevel,
@@ -135,6 +138,8 @@ fun RoomInfoScreen(
     onSetVisibility: (RoomDirectoryVisibility) -> Unit,
     onEnableEncryption: () -> Unit,
     onSetJoinRule: (RoomJoinRule) -> Unit,
+    onHideJoinRuleSpacePicker: () -> Unit,
+    onSaveJoinRuleSpaces: (RoomJoinRule, List<String>) -> Unit,
     onSetHistoryVisibility: (RoomHistoryVisibility) -> Unit,
     onUpdateAliases: (String?, List<String>) -> Unit,
     onUpdatePowerLevel: (String, Long) -> Unit,
@@ -331,15 +336,27 @@ fun RoomInfoScreen(
                                 }
 
                                 if (state.canManageSettings) {
+                                    val joinRuleSubtitle = when (state.joinRule) {
+                                        RoomJoinRule.Restricted,
+                                        RoomJoinRule.KnockRestricted -> {
+                                            val count = state.joinRuleAllowedSpaceIds.size
+                                            val spaceWord = if (count == 1) "space" else "spaces"
+                                            "${it.displayName} — $count $spaceWord"
+                                        }
+                                        else -> null
+                                    }
                                     SettingsDropdownRow(
                                         icon = Icons.Default.MeetingRoom,
                                         label = "Who can join",
                                         currentValue = state.joinRule,
                                         displayName = { it.displayName },
+                                        subtitle = joinRuleSubtitle,
                                         options = listOf(
                                             RoomJoinRule.Public to "Public — Anyone can join",
                                             RoomJoinRule.Invite to "Invite only",
-                                            RoomJoinRule.Knock to "Knock — Request to join"
+                                            RoomJoinRule.Knock to "Knock — Request to join",
+                                            RoomJoinRule.Restricted to "Space members can join",
+                                            RoomJoinRule.KnockRestricted to "Ask to join with space members",
                                         ),
                                         enabled = !state.isAdminBusy,
                                         canChange = true,
@@ -528,6 +545,15 @@ fun RoomInfoScreen(
                 myPowerLevel = state.myPowerLevel,
                 onUpdatePowerLevel = onUpdatePowerLevel,
                 onDismiss = { showPowerLevelsSheet = false }
+            )
+        }
+        if (state.showJoinRuleSpacePicker && state.pendingJoinRule != null) {
+            JoinRuleSpacePickerSheet(
+                rule = state.pendingJoinRule,
+                spaces = state.selectableSpaces,
+                initiallyAllowedSpaceIds = state.joinRuleAllowedSpaceIds,
+                onSave = onSaveJoinRuleSpaces,
+                onDismiss = onHideJoinRuleSpacePicker,
             )
         }
         if (showGranularPermissionsSheet) {
@@ -915,7 +941,8 @@ private fun <T> SettingsDropdownRow(
     options: List<Pair<T, String>>,
     enabled: Boolean,
     canChange: Boolean,
-    onSelect: (T) -> Unit
+    onSelect: (T) -> Unit,
+    subtitle: String? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -941,7 +968,7 @@ private fun <T> SettingsDropdownRow(
                 Column(Modifier.weight(1f)) {
                     Text(label, style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        currentValue?.let(displayName) ?: "Unknown",
+                        subtitle ?: (currentValue?.let(displayName) ?: "Unknown"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

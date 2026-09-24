@@ -119,12 +119,60 @@ class RoomsViewModel(
         }
     }
 
-    fun declineInvite(roomId: String) {
+    fun showDeclineInvite(roomId: String) {
         launch {
-            val result = service.port.leaveRoom(roomId)
-            if (result.isSuccess) {
-                recomputeGroupedRooms()
+            val room = currentState.inviteItems.firstOrNull { it.roomId == roomId }
+            updateState {
+                copy(
+                    declineInviteRoomId = roomId,
+                    declineInviteRoomName = room?.name ?: roomId,
+                    declineInviteInviterName = null,
+                )
             }
+            val inviterId = runCatching { service.port.roomInviter(roomId) }.getOrNull()
+            if (inviterId.isNullOrBlank()) return@launch
+            val profile = runCatching { service.port.getUserProfile(inviterId) }.getOrNull()
+            if (currentState.declineInviteRoomId != roomId) return@launch
+            updateState { copy(declineInviteInviterName = profile?.displayName ?: inviterId) }
+        }
+    }
+
+    fun hideDeclineInvite() = updateState {
+        copy(
+            declineInviteRoomId = null,
+            declineInviteRoomName = "",
+            declineInviteInviterName = null,
+            isDecliningInvite = false,
+        )
+    }
+
+    fun declineInvite(blockUser: Boolean, reportRoom: Boolean, reportReason: String) {
+        val roomId = currentState.declineInviteRoomId ?: return
+        if (currentState.isDecliningInvite) return
+        launch {
+            updateState { copy(isDecliningInvite = true) }
+            val inviterId = if (blockUser) {
+                runCatching { service.port.roomInviter(roomId) }.getOrNull()
+            } else {
+                null
+            }
+
+            val leaveResult = service.port.leaveRoom(roomId)
+            if (leaveResult.isFailure) {
+                updateState { copy(isDecliningInvite = false) }
+                _events.send(Event.ShowError("Failed to decline invite"))
+                return@launch
+            }
+
+            if (!inviterId.isNullOrBlank()) {
+                runCatching { service.port.ignoreUser(inviterId) }
+            }
+            if (reportRoom) {
+                runCatching { service.port.reportRoom(roomId, reportReason.ifBlank { null }) }
+            }
+
+            hideDeclineInvite()
+            recomputeGroupedRooms()
         }
     }
 

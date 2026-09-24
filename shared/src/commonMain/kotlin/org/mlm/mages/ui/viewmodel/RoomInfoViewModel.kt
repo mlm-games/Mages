@@ -25,6 +25,7 @@ import org.mlm.mages.matrix.RoomProfile
 import org.mlm.mages.ui.ActionAvailabilityUi
 import org.mlm.mages.ui.ActionPresentationUi
 import org.mlm.mages.matrix.RoomUpgradeInfo
+import org.mlm.mages.matrix.SpaceInfo
 
 data class RoomInfoUiState(
     val profile: RoomProfile? = null,
@@ -39,7 +40,11 @@ data class RoomInfoUiState(
 
     val directoryVisibility: RoomDirectoryVisibility? = null,
     val joinRule: RoomJoinRule? = null,
+    val joinRuleAllowedSpaceIds: List<String> = emptyList(),
     val historyVisibility: RoomHistoryVisibility? = null,
+    val showJoinRuleSpacePicker: Boolean = false,
+    val pendingJoinRule: RoomJoinRule? = null,
+    val selectableSpaces: List<SpaceInfo> = emptyList(),
     val isAdminBusy: Boolean = false,
     val successor: RoomUpgradeInfo? = null,
     val predecessor: RoomPredecessorInfo? = null,
@@ -203,6 +208,7 @@ class RoomInfoViewModel(
 
             val vis = runSafe { service.port.roomDirectoryVisibility(roomId) }
             val joinRule = runSafe { service.port.roomJoinRule(roomId) }
+            val joinRuleAllowedSpaceIds = runSafe { service.port.roomJoinRuleAllowList(roomId) }.orEmpty()
             val historyVis = runSafe { service.port.roomHistoryVisibility(roomId) }
             val successor = runSafe { service.port.roomSuccessor(roomId) }
             val predecessor = runSafe { service.port.roomPredecessor(roomId) }
@@ -237,6 +243,7 @@ class RoomInfoViewModel(
                     isLowPriority = tags?.second ?: false,
                     directoryVisibility = vis,
                     joinRule = joinRule,
+                    joinRuleAllowedSpaceIds = joinRuleAllowedSpaceIds,
                     historyVisibility = historyVis,
                     successor = successor,
                     predecessor = predecessor,
@@ -463,7 +470,38 @@ class RoomInfoViewModel(
         ) { runSafe { service.port.enableRoomEncryption(roomId) } }
     }
 
-    fun setJoinRule(rule: RoomJoinRule) {
+    fun requestJoinRule(rule: RoomJoinRule) {
+        if (!currentState.canManageSettings) {
+            launch { _events.send(Event.ShowError("You don't have permission to change join rules")) }
+            return
+        }
+
+        if (rule == RoomJoinRule.Restricted || rule == RoomJoinRule.KnockRestricted) {
+            launch {
+                val spaces = runSafe { service.port.mySpaces() }.orEmpty()
+                updateState {
+                    copy(
+                        showJoinRuleSpacePicker = true,
+                        pendingJoinRule = rule,
+                        selectableSpaces = spaces,
+                    )
+                }
+            }
+            return
+        }
+
+        setJoinRule(rule, emptyList())
+    }
+
+    fun hideJoinRuleSpacePicker() = updateState {
+        copy(
+            showJoinRuleSpacePicker = false,
+            pendingJoinRule = null,
+            selectableSpaces = emptyList(),
+        )
+    }
+
+    fun setJoinRule(rule: RoomJoinRule, allowedSpaceIds: List<String>) {
         if (!currentState.canManageSettings) {
             launch { _events.send(Event.ShowError("You don't have permission to change join rules")) }
             return
@@ -472,7 +510,18 @@ class RoomInfoViewModel(
         runAdminAction(
             successMessage = "Join rule updated",
             errorMessage = "Failed to update join rule",
-        ) { runSafe { service.port.setRoomJoinRule(roomId, rule) } }
+            onSuccess = {
+                updateState {
+                    copy(
+                        showJoinRuleSpacePicker = false,
+                        pendingJoinRule = null,
+                        selectableSpaces = emptyList(),
+                        joinRule = rule,
+                        joinRuleAllowedSpaceIds = allowedSpaceIds,
+                    )
+                }
+            },
+        ) { runSafe { service.port.setRoomJoinRule(roomId, rule, allowedSpaceIds) } }
     }
 
     fun setHistoryVisibility(visibility: RoomHistoryVisibility) {

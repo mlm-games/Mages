@@ -402,14 +402,8 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         }.getOrElse { emptyList() }
     }
 
-    override suspend fun eventDetails(roomId: String, eventId: String): MessageEvent? {
-        val raw = requireClient().eventDetails(roomId, eventId).await<JsAny?>() ?: return null
-        return runCatching {
-            wasmJson.decodeFromJsonElement<MessageEvent>(raw.toJsonObject())
-        }.onFailure {
-            Logger.w("eventDetails failed: ${it.message}")
-        }.getOrNull()
-    }
+    override suspend fun eventDetails(roomId: String, eventId: String): MessageEvent? =
+        requireClient().eventDetails(roomId, eventId).awaitValue()
 
     override fun timelineDiffs(roomId: String): Flow<TimelineDiff<MessageEvent>> = callbackFlow {
         val f = requireClientOrNull() ?: run { close(); return@callbackFlow }
@@ -669,6 +663,33 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         formattedBody: String?
     ): Result<Unit> =
         requireClient().edit(roomId, targetEventId, newBody, formattedBody).awaitUnitResult()
+
+    override suspend fun editCaption(
+        roomId: String,
+        targetEventId: String,
+        caption: String?,
+        formattedCaption: String?
+    ): Result<Unit> =
+        requireClient().editCaption(roomId, targetEventId, caption, formattedCaption).awaitUnitResult()
+
+    override suspend fun editPoll(
+        roomId: String,
+        pollEventId: String,
+        question: String,
+        answers: List<String>,
+        maxSelections: Int
+    ): Result<Unit> =
+        unitResult(
+            requireClient().editPoll(
+                roomId,
+                pollEventId,
+                question,
+                answers.toJsArray(),
+                "disclosed",
+                maxSelections.coerceIn(1, answers.size).toDouble()
+            ).awaitPlainBool(),
+            "edit poll"
+        )
 
     override suspend fun redact(roomId: String, eventId: String, reason: String?): Result<Unit> =
         requireClient().redact(roomId, eventId, reason).awaitUnitResult()
@@ -1061,6 +1082,9 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun listInvited(): List<RoomProfile> =
         requireClient().listInvited().awaitValue<List<RoomProfile>>() ?: emptyList()
 
+    override suspend fun roomInviter(roomId: String): String? =
+        requireClient().roomInviter(roomId).await<JsAny?>().toString().takeIf { it != "null" && it.isNotBlank() }
+
     override suspend fun acceptInvite(roomId: String): Result<Unit> =
         requireClient().acceptInvite(roomId).awaitUnitResult()
 
@@ -1327,8 +1351,18 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun roomJoinRule(roomId: String): RoomJoinRule? =
         decodeEnum(requireClient().roomJoinRule(roomId).awaitAny())
 
-    override suspend fun setRoomJoinRule(roomId: String, rule: RoomJoinRule): Result<Unit> =
-        unitResult(requireClient().setRoomJoinRule(roomId, rule.name).awaitPlainBool(), "set room join rule")
+    override suspend fun roomJoinRuleAllowList(roomId: String): List<String> =
+        requireClient().roomJoinRuleAllowList(roomId).awaitValue<List<String>>() ?: emptyList()
+
+    override suspend fun setRoomJoinRule(
+        roomId: String,
+        rule: RoomJoinRule,
+        allowedRoomIds: List<String>
+    ): Result<Unit> =
+        unitResult(
+            requireClient().setRoomJoinRule(roomId, rule.name, allowedRoomIds.toJsArray()).awaitPlainBool(),
+            "set room join rule"
+        )
 
     override suspend fun roomHistoryVisibility(roomId: String): RoomHistoryVisibility? =
         decodeEnum(requireClient().roomHistoryVisibility(roomId).awaitAny())

@@ -622,6 +622,58 @@ impl CoreClient {
         tl.edit(&item.identifier(), edited).await.ffi()
     }
 
+    pub async fn edit_caption(
+        &self,
+        room_id: String,
+        target_event_id: String,
+        caption: Option<String>,
+        formatted_caption: Option<String>,
+    ) -> Result<(), FfiError> {
+        use matrix_sdk::room::edit::EditedContent;
+        use matrix_sdk::ruma::events::room::message::FormattedBody;
+        let tl = self
+            .timeline(&room_id)
+            .await
+            .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
+        let eid = EventId::parse(&target_event_id)
+            .map_err(|_| FfiError::Msg("invalid event id".into()))?;
+        let item = tl
+            .item_by_event_id(&eid)
+            .await
+            .ok_or_else(|| FfiError::Msg("event not found".into()))?;
+        let edited = EditedContent::MediaCaption {
+            caption,
+            formatted_caption: formatted_caption.map(FormattedBody::html),
+            mentions: None,
+        };
+        tl.edit(&item.identifier(), edited).await.ffi()
+    }
+
+    pub async fn edit_poll(
+        &self,
+        room_id: String,
+        poll_event_id: String,
+        def: PollDefinition,
+    ) -> Result<(), FfiError> {
+        use matrix_sdk::room::edit::EditedContent;
+        let tl = self
+            .timeline(&room_id)
+            .await
+            .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
+        let eid = EventId::parse(&poll_event_id)
+            .map_err(|_| FfiError::Msg("invalid event id".into()))?;
+        let item = tl
+            .item_by_event_id(&eid)
+            .await
+            .ok_or_else(|| FfiError::Msg("event not found".into()))?;
+        let block = crate::build_unstable_poll_content(&def)?;
+        let edited = EditedContent::PollStart {
+            fallback_text: def.question.clone(),
+            new_content: block.poll_start,
+        };
+        tl.edit(&item.identifier(), edited).await.ffi()
+    }
+
     pub async fn redact(
         &self,
         room_id: String,
@@ -894,14 +946,19 @@ impl CoreClient {
         tl.paginate_forwards(count).await.ffi()
     }
 
-    pub async fn event_details(&self, room_id: String, event_id: String) -> Option<MessageEvent> {
-        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
-            return None;
-        };
-        let Ok(eid) = OwnedEventId::try_from(event_id) else {
-            return None;
-        };
-        let room = self.sdk.get_room(&rid)?;
+    pub async fn event_details(
+        &self,
+        room_id: String,
+        event_id: String,
+    ) -> Result<Option<MessageEvent>, FfiError> {
+        let rid = OwnedRoomId::try_from(room_id)
+            .map_err(|_| FfiError::Msg("invalid room id".into()))?;
+        let eid = OwnedEventId::try_from(event_id)
+            .map_err(|_| FfiError::Msg("invalid event id".into()))?;
+        let room = self
+            .sdk
+            .get_room(&rid)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
         let tl = room
             .timeline_builder()
             .event_filter(timeline_event_filter)
@@ -914,14 +971,20 @@ impl CoreClient {
             })
             .build()
             .await
-            .ok()?;
+            .ffi()?;
         let me = self.user_id_str();
         let (items, _) = tl.subscribe().await;
-        items.iter().rev().filter_map(|it| {
-            it.as_event().and_then(|ev| {
-                map_timeline_event(ev, rid.as_str(), Some(&it.unique_id().0.to_string()), &me)
+        Ok(items
+            .iter()
+            .rev()
+            .filter_map(|it| {
+                it.as_event().and_then(|ev| {
+                    map_timeline_event(ev, rid.as_str(), Some(&it.unique_id().0.to_string()), &me)
+                })
             })
-        }).find(|ev| !ev.body.trim().is_empty() || ev.attachment.is_some() || ev.sticker.is_some())
+            .find(|ev| {
+                !ev.body.trim().is_empty() || ev.attachment.is_some() || ev.sticker.is_some()
+            }))
     }
 
     pub async fn recent_events(&self, room_id: String, limit: u32) -> Vec<MessageEvent> {
@@ -1461,6 +1524,18 @@ impl CoreClient {
             out.push(self.build_room_profile(&room).await?);
         }
         Ok(out)
+    }
+
+    pub async fn room_inviter(&self, room_id: String) -> Result<Option<String>, FfiError> {
+        let rid = Self::parse_rid(&room_id)?;
+        let room = self
+            .sdk
+            .get_room(&rid)
+            .or_ffi("room not found")?;
+        match room.invite_details().await {
+            Ok(invite) => Ok(Some(invite.inviter_id.to_string())),
+            Err(_) => Ok(None),
+        }
     }
 
     pub async fn list_knock_requests(
@@ -2827,17 +2902,42 @@ impl CoreClient {
         &self,
         room_id: String,
         rule: RoomJoinRule,
+        allowed_room_ids: Vec<String>,
     ) -> Result<(), FfiError> {
-        use matrix_sdk::ruma::events::room::join_rules::{JoinRule, Restricted};
+        use matrix_sdk::ruma::events::room::join_rules::{AllowRule, JoinRule, Restricted};
         let room = self.require_room(&room_id)?;
+        let allow: Vec<AllowRule> = allowed_room_ids
+            .into_iter()
+            .filter_map(|id| OwnedRoomId::try_from(id).ok())
+            .map(AllowRule::room_membership)
+            .collect();
         let jr = match rule {
             RoomJoinRule::Public => JoinRule::Public,
             RoomJoinRule::Invite => JoinRule::Invite,
             RoomJoinRule::Knock => JoinRule::Knock,
-            RoomJoinRule::Restricted => JoinRule::Restricted(Restricted::new(vec![])),
-            RoomJoinRule::KnockRestricted => JoinRule::KnockRestricted(Restricted::new(vec![])),
+            RoomJoinRule::Restricted => JoinRule::Restricted(Restricted::new(allow)),
+            RoomJoinRule::KnockRestricted => JoinRule::KnockRestricted(Restricted::new(allow)),
         };
         room.privacy_settings().update_join_rule(jr).await.ffi()
+    }
+
+    pub async fn room_join_rule_allow_list(&self, room_id: String) -> Result<Vec<String>, FfiError> {
+        use matrix_sdk::ruma::events::room::join_rules::JoinRule;
+        let room = self.require_room(&room_id)?;
+        let allow = match room.join_rule() {
+            Some(JoinRule::Restricted(r)) | Some(JoinRule::KnockRestricted(r)) => r
+                .allow
+                .iter()
+                .filter_map(|rule| match rule {
+                    matrix_sdk::ruma::events::room::join_rules::AllowRule::RoomMembership(
+                        membership,
+                    ) => Some(membership.room_id.to_string()),
+                    _ => None,
+                })
+                .collect(),
+            _ => Vec::new(),
+        };
+        Ok(allow)
     }
 
     pub async fn room_history_visibility(

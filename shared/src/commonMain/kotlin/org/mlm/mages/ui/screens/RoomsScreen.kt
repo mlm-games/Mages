@@ -33,6 +33,7 @@ import org.mlm.mages.ui.viewmodel.RoomsViewModel
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.*
 import org.mlm.mages.ui.components.common.InviteListItem
+import org.mlm.mages.ui.components.dialogs.DeclineInviteDialog
 
 @Composable
 fun RoomsScreen(
@@ -277,7 +278,7 @@ fun RoomsScreen(
                             InviteListItem(
                                 item = item,
                                 onAccept = { viewModel.acceptInvite(item.roomId) },
-                                onDecline = { viewModel.declineInvite(item.roomId) }
+                                onDecline = { viewModel.showDeclineInvite(item.roomId) }
                             )
                         }
                     }
@@ -296,6 +297,16 @@ fun RoomsScreen(
             onMarkRead = { viewModel.markRead(roomId) },
             onToggleFavourite = { viewModel.toggleFavourite(roomId, roomId in state.favourites) },
             onToggleLowPriority = { viewModel.toggleLowPriority(roomId, roomId in state.lowPriority) }
+        )
+    }
+
+    state.declineInviteRoomId?.let { roomId ->
+        DeclineInviteDialog(
+            roomName = state.declineInviteRoomName,
+            inviterName = state.declineInviteInviterName,
+            isLoading = state.isDecliningInvite,
+            onDecline = viewModel::declineInvite,
+            onDismiss = viewModel::hideDeclineInvite,
         )
     }
 }
