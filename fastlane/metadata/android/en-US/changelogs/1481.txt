@@ -1,0 +1,2 @@
+- Space Settings expansion
+- actually wire notification preview setting on all platforms
