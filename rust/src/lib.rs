@@ -2772,19 +2772,22 @@ impl Client {
 
     pub fn send_attachment_from_path(
         &self,
-        room_id: String,
-        path: String,
-        mime: String,
-        filename: Option<String>,
-        caption: Option<String>,
-        formatted_caption: Option<String>,
-        reply_to_event_id: Option<String>,
-        voice_duration_ms: Option<u64>,
-        voice_waveform: Option<Vec<f32>>,
-        is_voice: Option<bool>,
+        request: SendAttachmentRequest,
         progress: Option<Box<dyn ProgressObserver>>,
     ) -> bool {
         RT.block_on(async {
+            let SendAttachmentRequest {
+                room_id,
+                path,
+                mime,
+                filename,
+                caption,
+                formatted_caption,
+                reply_to_event_id,
+                voice_duration_ms,
+                voice_waveform,
+                is_voice,
+            } = request;
             let Ok(rid) = OwnedRoomId::try_from(room_id) else {
                 return false;
             };

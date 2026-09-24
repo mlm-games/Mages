@@ -751,13 +751,25 @@ class RustMatrixPort : MatrixPort, VerificationService {
         isVoice: Boolean?,
         onProgress: ((Long, Long?) -> Unit)?
     ): Boolean {
+        val request = mages.SendAttachmentRequest(
+            roomId = roomId,
+            path = path,
+            mime = mime,
+            filename = filename,
+            caption = caption,
+            formattedCaption = formattedCaption,
+            replyToEventId = replyToEventId,
+            voiceDurationMs = voiceDurationMs?.toULong(),
+            voiceWaveform = voiceWaveform,
+            isVoice = isVoice
+        )
         val cb = if (onProgress != null) object : mages.ProgressObserver {
             override fun onProgress(sent: ULong, total: ULong?) {
                 onProgress(sent.toLong(), total?.toLong())
             }
         } else null
         return withContext(Dispatchers.IO) {
-            runWithFfiResult { withClient { it.sendAttachmentFromPath(roomId, path, mime, filename, caption, formattedCaption, replyToEventId, voiceDurationMs?.toULong(), voiceWaveform, isVoice, cb) } }.isSuccess
+            runWithFfiResult { withClient { it.sendAttachmentFromPath(request, cb) } }.isSuccess
         }
     }
 

@@ -152,6 +152,20 @@ pub struct AttachmentInfo {
 }
 
 #[derive(Clone, Serialize, Deserialize, Record)]
+pub struct SendAttachmentRequest {
+    pub room_id: String,
+    pub path: String,
+    pub mime: String,
+    pub filename: Option<String>,
+    pub caption: Option<String>,
+    pub formatted_caption: Option<String>,
+    pub reply_to_event_id: Option<String>,
+    pub voice_duration_ms: Option<u64>,
+    pub voice_waveform: Option<Vec<f32>>,
+    pub is_voice: Option<bool>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Record)]
 pub struct StickerInfo {
     pub mxc_uri: String,
     pub mime: Option<String>,
