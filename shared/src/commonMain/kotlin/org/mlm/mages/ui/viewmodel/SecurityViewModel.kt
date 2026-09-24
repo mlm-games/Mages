@@ -13,9 +13,16 @@ import kotlinx.coroutines.launch
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.Presence
+import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.settings.CopyUnifiedPushEndpointAction
+import org.mlm.mages.settings.OpenBubbleSettingsAction
 import org.mlm.mages.settings.OpenMediaCacheAction
 import org.mlm.mages.settings.OpenNotificationRulesAction
-import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.settings.OpenSystemNotificationSettingsAction
+import org.mlm.mages.settings.ReRegisterUnifiedPushAction
+import org.mlm.mages.settings.RequestNotificationPermissionAction
+import org.mlm.mages.settings.SelectUnifiedPushDistributorAction
+import org.mlm.mages.settings.TestNotificationAction
 import org.mlm.mages.ui.SecurityUiState
 import org.mlm.mages.verification.VerificationCoordinator
 import kotlin.reflect.KClass
@@ -49,8 +56,15 @@ class SecurityViewModel(
     private var accountDataVersion: Long = 0L
 
     init {
-        ActionRegistry.registerAction(OpenMediaCacheAction::class, OpenMediaCacheAction)
+        ActionRegistry.registerAction(OpenSystemNotificationSettingsAction::class, OpenSystemNotificationSettingsAction)
+        ActionRegistry.registerAction(OpenBubbleSettingsAction::class, OpenBubbleSettingsAction)
         ActionRegistry.registerAction(OpenNotificationRulesAction::class, OpenNotificationRulesAction)
+        ActionRegistry.registerAction(RequestNotificationPermissionAction::class, RequestNotificationPermissionAction)
+        ActionRegistry.registerAction(TestNotificationAction::class, TestNotificationAction)
+        ActionRegistry.registerAction(SelectUnifiedPushDistributorAction::class, SelectUnifiedPushDistributorAction)
+        ActionRegistry.registerAction(ReRegisterUnifiedPushAction::class, ReRegisterUnifiedPushAction)
+        ActionRegistry.registerAction(CopyUnifiedPushEndpointAction::class, CopyUnifiedPushEndpointAction)
+        ActionRegistry.registerAction(OpenMediaCacheAction::class, OpenMediaCacheAction)
 
         viewModelScope.launch {
             service.activeAccount.collectLatest { account ->
