@@ -1,11 +1,12 @@
 package org.mlm.mages.ui.components.core
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -18,16 +19,33 @@ import org.mlm.mages.ui.theme.Spacing
 fun PinnedMessageBanner(
     pinnedMessages: List<PinnedMessageUi>,
     onViewAll: () -> Unit,
+    onEventClick: (String) -> Unit = {},
 ) {
-    val primary = pinnedMessages.lastOrNull() ?: return
+    if (pinnedMessages.isEmpty()) return
+    var index by remember { mutableIntStateOf(pinnedMessages.lastIndex) }
+
+    LaunchedEffect(pinnedMessages) {
+        if (index !in pinnedMessages.indices) index = pinnedMessages.lastIndex
+    }
+
+    val primary = pinnedMessages[index]
+    val total = pinnedMessages.size
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onViewAll)
+            .clickable { onEventClick(primary.eventId) }
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        PinIndicators(
+            count = total,
+            activeIndex = index,
+            onClick = { index = it }
+        )
+
+        Spacer(Modifier.width(Spacing.sm))
+
         Icon(
             imageVector = Icons.Default.PushPin,
             contentDescription = null,
@@ -38,6 +56,15 @@ fun PinnedMessageBanner(
         Spacer(Modifier.width(Spacing.sm))
 
         Column(modifier = Modifier.weight(1f)) {
+            if (total > 1) {
+                Text(
+                    text = "${index + 1}/$total",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
             Text(
                 text = primary.senderLabel ?: "Pinned message",
                 style = MaterialTheme.typography.labelSmall,
@@ -55,10 +82,41 @@ fun PinnedMessageBanner(
 
         Spacer(Modifier.width(Spacing.sm))
 
-        Text(
-            text = if (pinnedMessages.size == 1) "View" else "${pinnedMessages.size} pinned",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        TextButton(onClick = onViewAll) {
+            Text(
+                text = "View all",
+                style = MaterialTheme.typography.labelMedium
+            )
+        }
+    }
+}
+
+@Composable
+private fun PinIndicators(
+    count: Int,
+    activeIndex: Int,
+    onClick: (Int) -> Unit,
+) {
+    val visible = minOf(count, 3)
+    val shown = if (activeIndex >= count - visible) visible else minOf(visible, activeIndex + 1)
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        for (i in 0 until visible) {
+            val isActive = i == activeIndex - (count - visible)
+            Box(
+                modifier = Modifier
+                    .width(2.dp)
+                    .height(if (isActive) 18.dp else 8.dp)
+                    .clickable { onClick(count - visible + i) }
+                    .background(
+                        if (isActive || i < shown) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outlineVariant,
+                        MaterialTheme.shapes.extraSmall
+                    )
+            )
+        }
     }
 }

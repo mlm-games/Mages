@@ -517,6 +517,7 @@ fun RoomScreen(
                     videoCallAction = state.videoCallAction,
                     pinnedMessages = state.pinnedMessages,
                     onViewPinnedMessages = viewModel::showPinnedMessagesSheet,
+                    onPinnedEventClick = viewModel::jumpToEvent,
                     onBack = onBack,
                     onOpenInfo = onOpenInfo,
                     onOpenSearch = viewModel::showRoomSearch,
@@ -1040,11 +1041,20 @@ fun RoomScreen(
     if (state.showPinnedMessagesSheet) {
         PinnedMessagesSheet(
             pinnedMessages = state.pinnedMessages,
+            canUnpin = state.pinAction.isEnabled,
             onEventClick = { eventId ->
                 viewModel.jumpToEvent(eventId)
                 viewModel.hidePinnedMessagesSheet()
             },
             onUnpin = viewModel::unpinEvent,
+            onReact = { eventId, emoji ->
+                state.pinnedMessages.firstOrNull { it.eventId == eventId }?.event
+                    ?.let { viewModel.react(it, emoji) }
+            },
+            onForward = { eventId ->
+                viewModel.hidePinnedMessagesSheet()
+                onOpenForwardPicker(state.roomId, listOf(eventId))
+            },
             onDismiss = viewModel::hidePinnedMessagesSheet
         )
     }
@@ -1108,6 +1118,7 @@ private fun RoomTopBar(
     videoCallAction: ActionAvailabilityUi,
     pinnedMessages: List<PinnedMessageUi>,
     onViewPinnedMessages: () -> Unit,
+    onPinnedEventClick: (String) -> Unit,
     onBack: () -> Unit,
     onOpenInfo: () -> Unit,
     onOpenSearch: () -> Unit,
@@ -1228,7 +1239,8 @@ private fun RoomTopBar(
             if (pinnedMessages.isNotEmpty()) {
                 PinnedMessageBanner(
                     pinnedMessages = pinnedMessages,
-                    onViewAll = onViewPinnedMessages
+                    onViewAll = onViewPinnedMessages,
+                    onEventClick = onPinnedEventClick,
                 )
             }
 
@@ -1624,6 +1636,21 @@ private fun MessageItem(
                         } else null
                     )
                 }
+            }
+        }
+
+        if (state.pinnedEventIds.contains(event.eventId)) {
+            Spacer(Modifier.height(2.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PushPin,
+                    contentDescription = stringResource(Res.string.message_pinned),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(12.dp)
+                )
             }
         }
 

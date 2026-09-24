@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Forward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.*
@@ -16,6 +17,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.ui.PinnedMessageUi
 import org.mlm.mages.ui.components.core.Avatar
+import org.mlm.mages.ui.components.message.ReactionChipsRow
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatPinnedTimestamp
@@ -23,8 +25,11 @@ import org.mlm.mages.ui.util.formatPinnedTimestamp
 @Composable
 fun PinnedMessagesSheet(
     pinnedMessages: List<PinnedMessageUi>,
+    canUnpin: Boolean,
     onEventClick: (String) -> Unit,
     onUnpin: (String) -> Unit,
+    onReact: (String, String) -> Unit,
+    onForward: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
     ModalBottomSheet(
@@ -133,20 +138,36 @@ fun PinnedMessagesSheet(
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis
                                 )
-                                if (!pinned.isResolved) {
-                                    Text(
+                                val event = pinned.event
+                                when {
+                                    event == null -> Text(
                                         text = "Tap to jump to the message in the timeline",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
+
+                                    event.reactions.isNotEmpty() -> ReactionChipsRow(
+                                        chips = event.reactions,
+                                        maxVisible = 6,
+                                        onClick = { emoji -> onReact(pinned.eventId, emoji) }
+                                    )
                                 }
                             }
 
-                            IconButton(onClick = { onUnpin(pinned.eventId) }) {
+                            IconButton(onClick = { onForward(pinned.eventId) }) {
                                 Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Unpin"
+                                    imageVector = Icons.AutoMirrored.Filled.Forward,
+                                    contentDescription = "Forward"
                                 )
+                            }
+
+                            if (canUnpin) {
+                                IconButton(onClick = { onUnpin(pinned.eventId) }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Unpin"
+                                    )
+                                }
                             }
                         }
                     }

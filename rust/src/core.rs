@@ -1561,6 +1561,10 @@ impl CoreClient {
         let levels = room.power_levels().await.ffi()?;
         let power_levels = map_power_levels(&levels);
         let action_state = self.resolve_room_action_state_impl(room).await?;
+        let pinned_event_ids = room
+            .pinned_event_ids()
+            .map(|ids| ids.iter().map(|id| id.to_string()).collect())
+            .unwrap_or_default();
         Ok(RoomInfoSnapshot {
             room_id: room.room_id().to_string(),
             profile,
@@ -1570,6 +1574,7 @@ impl CoreClient {
             membership: room_list_membership(room),
             join_rule: Self::snapshot_join_rule(room),
             history_visibility: Self::snapshot_history_visibility(room),
+            pinned_event_ids,
         })
     }
 

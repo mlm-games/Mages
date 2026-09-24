@@ -165,7 +165,10 @@ class RoomViewModel(
         } ?: return
 
         updateState {
-            copy(selectedMessageActions = actionState.toUi())
+            copy(
+                selectedMessageActions = actionState.toUi(),
+                selectedMessageActionEventId = eventId,
+            )
         }
     }
 
@@ -174,7 +177,7 @@ class RoomViewModel(
     }
 
     fun clearSelectedMessageActions() {
-        updateState { copy(selectedMessageActions = null) }
+        updateState { copy(selectedMessageActions = null, selectedMessageActionEventId = null) }
     }
 
     // One-time events
@@ -729,12 +732,23 @@ class RoomViewModel(
     private fun loadPinnedEvents() {
         launch {
             val pinned = runSafe { service.port.getPinnedEvents(currentState.roomId) } ?: emptyList()
-            updateState { copy(pinnedEventIds = pinned) }
-            resolveUnloadedPinnedEvents(pinned)
+            onPinnedEventsChanged(pinned)
         }
     }
 
     private val pinnedResolveInFlight = mutableSetOf<String>()
+
+    private fun onPinnedEventsChanged(pinned: List<String>) {
+        if (pinned == currentState.pinnedEventIds) return
+        val removed = currentState.pinnedEventIds - pinned.toSet()
+        updateState {
+            copy(
+                pinnedEventIds = pinned,
+                pinnedResolvedEvents = if (removed.isEmpty()) pinnedResolvedEvents else pinnedResolvedEvents - removed,
+            )
+        }
+        resolveUnloadedPinnedEvents(pinned)
+    }
 
     private fun resolveUnloadedPinnedEvents(pinned: List<String>) {
         val missing = pinned.filter { id ->
@@ -772,8 +786,8 @@ class RoomViewModel(
                 currentPinned.add(event.eventId)
                 val ok = runSafe { service.port.setPinnedEvents(currentState.roomId, currentPinned) }?.isSuccess ?: false
                 if (ok) {
-                    updateState { copy(pinnedEventIds = currentPinned) }
-                    _events.send(Event.ShowError("Message pinned"))
+                    onPinnedEventsChanged(currentPinned)
+                    _events.send(Event.ShowSuccess("Message pinned"))
                 } else {
                     _events.send(Event.ShowError("Failed to pin message"))
                 }
@@ -782,12 +796,16 @@ class RoomViewModel(
     }
 
     fun unpinEvent(eventId: String) {
-        if (!currentState.pinAction.isEnabled) {
-            launch { _events.send(Event.ShowError("You don't have permission to unpin messages")) }
+        if (eventId.isBlank()) return
+        val perEvent = currentState.selectedMessageActions
+            ?.takeIf { currentState.selectedMessageActionEventId == eventId }
+        val unpinAllowed = perEvent?.unpin ?: currentState.pinAction
+        if (!unpinAllowed.isEnabled) {
+            launch {
+                _events.send(Event.ShowError(unpinAllowed.reason ?: "You don't have permission to unpin messages"))
+            }
             return
         }
-
-        if (eventId.isBlank()) return
 
         launch {
             val currentPinned = currentState.pinnedEventIds.toMutableList()
@@ -798,8 +816,8 @@ class RoomViewModel(
                 }?.isSuccess ?: false
 
                 if (ok) {
-                    updateState { copy(pinnedEventIds = currentPinned) }
-                    _events.send(Event.ShowError("Message unpinned"))
+                    onPinnedEventsChanged(currentPinned)
+                    _events.send(Event.ShowSuccess("Message unpinned"))
                 } else {
                     _events.send(Event.ShowError("Failed to unpin message"))
                 }
@@ -2470,6 +2488,7 @@ class RoomViewModel(
                             }
                             remoteCallActiveForRoom = snapshot.callState.hasActiveCall
                             recomputeActiveCall()
+                            onPinnedEventsChanged(snapshot.pinnedEventIds)
                         }
                     }
                 )

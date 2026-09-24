@@ -135,6 +135,7 @@ enum class EventType {
     Sticker,
     LiveLocation,
     Location,
+    Unknown,
 }
 
 @Serializable
@@ -275,7 +276,8 @@ data class RoomInfoSnapshot(
     val callState: RoomCallState,
     val membership: RoomListMembership,
     val joinRule: RoomJoinRule? = null,
-    val historyVisibility: RoomHistoryVisibility? = null
+    val historyVisibility: RoomHistoryVisibility? = null,
+    val pinnedEventIds: List<String> = emptyList()
 )
 
 @Serializable

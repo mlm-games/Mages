@@ -61,6 +61,8 @@ internal fun MessageEvent.toTimelineContent(): TimelineContent =
             } else {
                 TimelineContent.System(this)
             }
+
+        EventType.Unknown -> TimelineContent.Hidden(this)
     }
 
 @Composable

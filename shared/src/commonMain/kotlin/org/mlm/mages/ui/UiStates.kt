@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.RoomSummary
 import org.mlm.mages.matrix.DeviceSummary
+import org.mlm.mages.matrix.EventType
 import org.mlm.mages.matrix.HomeserverLoginDetails
 import org.mlm.mages.matrix.LiveLocationShare
 import org.mlm.mages.matrix.MemberSummary
@@ -93,6 +94,13 @@ data class ActionAvailabilityUi(
             reason = null,
         )
     }
+}
+
+fun MessageEvent.isDisplayableAsPinnedEvent(): Boolean {
+    if (isRedacted) return false
+    if (eventType == EventType.Unknown) return false
+    if (body.isBlank() && attachment == null && sticker == null && pollData == null) return false
+    return true
 }
 
 data class PinnedMessageUi(
@@ -206,6 +214,7 @@ data class RoomUiState(
 
     // Per-message action availability states (for selected message)
     val selectedMessageActions: MessageActionStateUi? = null,
+    val selectedMessageActionEventId: String? = null,
 
     val isSelectionMode: Boolean = false,
     val selectedEventIds: Set<String> = emptySet(),
@@ -248,11 +257,10 @@ data class RoomUiState(
         get() {
             if (pinnedEventIds.isEmpty()) return emptyList()
             val eventsById = allEvents.associateBy { it.eventId }
-            return pinnedEventIds.map { pinnedId ->
-                PinnedMessageUi(
-                    eventId = pinnedId,
-                    event = eventsById[pinnedId] ?: pinnedResolvedEvents[pinnedId],
-                )
+            return pinnedEventIds.mapNotNull { pinnedId ->
+                val event = eventsById[pinnedId] ?: pinnedResolvedEvents[pinnedId]
+                if (event == null || !event.isDisplayableAsPinnedEvent()) return@mapNotNull null
+                PinnedMessageUi(eventId = pinnedId, event = event)
             }
         }
 }
