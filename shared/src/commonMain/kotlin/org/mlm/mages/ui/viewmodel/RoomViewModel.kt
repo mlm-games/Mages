@@ -672,9 +672,9 @@ class RoomViewModel(
                         )
                     }
                 }
-                _events.send(Event.ShowSuccess("Edit saved"))
+                _events.send(Event.ShowSuccess(if (isCaptionEdit) "Caption saved" else "Message edited"))
             } else {
-                _events.send(Event.ShowError(result.toUserMessage("Edit failed")))
+                _events.send(Event.ShowError(result.toUserMessage("Could not save the edit. Try again.")))
             }
         }
     }
@@ -1722,8 +1722,14 @@ class RoomViewModel(
             }
             if (result.isSuccess) {
                 updateState { copy(showPollCreator = false, editingPoll = null, editing = null) }
+                if (editingPoll != null) _events.send(Event.ShowSuccess("Poll edited"))
             } else {
-                _events.send(Event.ShowError(if (editingPoll != null) "Failed to edit poll" else "Failed to create poll"))
+                _events.send(
+                    Event.ShowError(
+                        if (editingPoll != null) "Could not save the poll. Try again."
+                        else "Could not create the poll. Try again."
+                    )
+                )
             }
         }
     }

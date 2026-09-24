@@ -68,7 +68,7 @@ fun VoiceRecorderBar(
             // Pulsing dot
             PulsingDot()
 
-            // Timer — fixed width so bars don't jump
+            // Timer. Fixed width so bars don't jump.
             Text(
                 text = formatDuration(duration),
                 style = MaterialTheme.typography.bodyMedium,
@@ -76,7 +76,7 @@ fun VoiceRecorderBar(
                 modifier = Modifier.widthIn(min = 36.dp)
             )
 
-            // Live amplitude bars — takes all remaining space
+            // Live amplitude bars. Takes all remaining space.
             LiveAmplitudeBars(
                 amplitude = amplitude,
                 modifier = Modifier.weight(1f)

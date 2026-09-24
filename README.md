@@ -5,19 +5,19 @@ Mages is an experimental matrix chat client.
 - UI: [Compose Multiplatform](https://www.jetbrains.com/lp/compose-multiplatform/)
 - Core: a Rust library built on top of [matrix-rust-sdk](https://github.com/matrix-org/matrix-rust-sdk), exposed to Kotlin via UniFFI (not using matrix-sdk-ffi)
 
-The goal was to have a cross‑platform desktop/mobile client, while not being as heavy as web apps (initially there were very few alternatives to element-desktop which notify, with proper screen-sharing support and that stay hidden in my tray (unlike neochat, though it has linux-specific push notifs via kunifiedpush, while this currently polls)). 
+The goal was to have a cross-platform desktop/mobile client, while not being as heavy as web apps (initially there were very few alternatives to element-desktop which notify, with proper screen-sharing support and that stay hidden in my tray (unlike neochat, though it has linux-specific push notifs via kunifiedpush, while this currently polls)). 
 
 The client might work well for most, but is never aiming to be as stable as element's clients (or other clients like fluffy or fractal, for example, which seem to have a user-focused goal)
 
 ## Status 
 
-This is experimental‑stage software. It is still in its early stages, and might lack common features or have (game/use-breaking?) bugs (do open an issue if you've encountered any)
+This is experimental-stage software. It is still in its early stages, and might lack common features or have (game/use-breaking?) bugs (do open an issue if you've encountered any)
 
 ## Features (as of the last README update)
 
 - Room list with previews and unread counts
 - Room and thread timelines (text, media, polls, live-location sharing)
-- End‑to‑end encryption (via matrix‑sdk)
+- End-to-end encryption (via matrix-sdk)
 - Spaces support ( space settings are basic, does not have member settings yet)
 - Simple presence / privacy settings
 - Android app and Linux desktop builds (Available on/as FDroid, AppImage (updatable via `Gear Lever` or similar tools), AUR (`mages-bin`), snapcraft and flathub)
@@ -48,7 +48,7 @@ This is experimental‑stage software. It is still in its early stages, and migh
   - Koin for dependency injection.
   - ViewModels for state, backed by the Rust core.
 
-Most Matrix‑specific logic lives in Rust; Kotlin mostly handles presentation.
+Most Matrix-specific logic lives in Rust; Kotlin mostly handles presentation.
 
 ## Building from source
 
@@ -92,7 +92,7 @@ Most Matrix‑specific logic lives in Rust; Kotlin mostly handles presentation.
 
 ## Contributing
 
-Issues and small PRs are welcome. Please keep changes focused and self‑contained.
+Issues and small PRs are welcome. Please keep changes focused and self-contained.
 
 ## License
 

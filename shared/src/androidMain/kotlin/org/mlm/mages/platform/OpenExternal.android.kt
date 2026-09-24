@@ -21,7 +21,7 @@ actual fun rememberFileOpener(): (String, String?) -> Boolean {
             )
         } catch (e: Throwable) {
             Logger.d { "OpenExternal: FileProvider failed, file:// fallback: ${e.message}" }
-            Uri.fromFile(file) // many won’t accept file://
+            Uri.fromFile(file) // many won't accept file://
         }
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, mime ?: "*/*")

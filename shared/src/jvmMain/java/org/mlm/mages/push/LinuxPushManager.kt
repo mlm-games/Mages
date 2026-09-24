@@ -30,7 +30,7 @@ object LinuxPushManager {
     private var endpointFuture: CompletableFuture<String>? = null
     private var onMessage: ((String) -> Unit)? = null
 
-    /** Connector v1 — distributor calls this with (token, endpoint) etc. */
+    /** Connector v1. The distributor calls this with (token, endpoint) etc. */
     @DBusInterfaceName("org.unifiedpush.Connector1")
     class Connector1(
         private val tokenProvider: () -> String?,

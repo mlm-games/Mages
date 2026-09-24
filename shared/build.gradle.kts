@@ -448,7 +448,7 @@ abstract class GenerateWasmExternsTask : DefaultTask() {
         val classBody = classMatch.groupValues[1]
 
         val sb = StringBuilder()
-        sb.appendLine("// AUTO-GENERATED from ${dtsFile.get().asFile.name} — do not edit")
+        sb.appendLine("// AUTO-GENERATED from ${dtsFile.get().asFile.name}. Do not edit.")
         sb.appendLine("@file:JsModule(\"./wasm/mages_ffi.js\")")
         sb.appendLine()
         sb.appendLine("package org.mlm.mages.matrix")

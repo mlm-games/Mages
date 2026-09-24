@@ -97,7 +97,7 @@ class NotificationEnrichWorker(
         } ?: Fetch(timedOut = true, rendered = null)
 
         if (fetch.timedOut) {
-            // Retry a couple of times, then stop (keep placeholder or cancel—choose one).
+            // Retry a couple of times, then stop (keep the placeholder or cancel).
             // I recommend cancelling after a few attempts to avoid WorkManager spam + stale notifs.
             return if (runAttemptCount < 3) Result.retry() else {
                 nm.cancel(notifId)

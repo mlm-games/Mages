@@ -27,11 +27,11 @@ class LinuxPushHandler(
 
     suspend fun init(): Boolean = withContext(Dispatchers.IO) {
         val endpoint = LinuxPushManager.tryRegister() ?: run {
-            Logger.w("[UP] push init failed — no endpoint from distributor")
+            Logger.w("[UP] push init failed: no endpoint from distributor")
             return@withContext false
         }
         val port = service.portOrNull ?: run {
-            Logger.w("[UP] push init failed — no matrix port")
+            Logger.w("[UP] push init failed: no matrix port")
             return@withContext false
         }
 
@@ -53,7 +53,7 @@ class LinuxPushHandler(
         )
         if (!ok) {
             LinuxPushManager.shutdown()
-            Logger.w("[UP] push init failed — registerUnifiedPush returned false")
+            Logger.w("[UP] push init failed: registerUnifiedPush returned false")
             return@withContext false
         }
 

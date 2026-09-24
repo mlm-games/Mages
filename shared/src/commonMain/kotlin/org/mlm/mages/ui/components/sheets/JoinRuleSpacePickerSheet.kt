@@ -46,7 +46,7 @@ fun JoinRuleSpacePickerSheet(
             Spacer(Modifier.height(Spacing.sm))
             Text(
                 if (asksToKnock) {
-                    "Members of the selected spaces can request to join. Admins can then accept the request."
+                    "Members of the selected spaces can ask to join. A room admin approves each request."
                 } else {
                     "Members of the selected spaces can join without an invite."
                 },
@@ -58,7 +58,7 @@ fun JoinRuleSpacePickerSheet(
 
             if (spaces.isEmpty()) {
                 Text(
-                    "You are not a member of any spaces. Create or join a space first, then set this access level.",
+                    "No spaces available. Join or create a space first, then set this access level.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                 )

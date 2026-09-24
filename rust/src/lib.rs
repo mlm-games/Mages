@@ -4698,9 +4698,9 @@ fn render_profile_change(
 
     if let Some(ch) = pc.displayname_change() {
         match (&ch.old, &ch.new) {
-            (None, Some(new)) => return format!("{subject} set their display name to “{new}”"),
+            (None, Some(new)) => return format!("{subject} set their display name to \"{new}\""),
             (Some(old), Some(new)) if old != new => {
-                return format!("{subject} changed their display name from “{old}” to “{new}”");
+                return format!("{subject} changed their display name from \"{old}\" to \"{new}\"");
             }
             (Some(_), None) => return format!("{subject} removed their display name"),
             _ => {}
@@ -5033,7 +5033,7 @@ async fn count_visible_room_view(tl: &Arc<Timeline>, rid: &OwnedRoomId, me: &str
             let ev = it.as_event()?;
             let item_id = it.unique_id().0.to_string();
 
-            // Use your existing mapper so “visible” matches Kotlin.
+            // Use your existing mapper so "visible" matches Kotlin.
             let mapped = map_timeline_event(ev, rid.as_str(), Some(&item_id), me)?;
 
             // Room view hides thread replies.

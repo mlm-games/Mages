@@ -27,12 +27,12 @@ fun DeclineInviteDialog(
 
     AlertDialog(
         onDismissRequest = { if (!isLoading) onDismiss() },
-        title = { Text("Decline invitation") },
+        title = { Text("Decline invite") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 Text(
                     text = buildString {
-                        append("Decline the invitation to ")
+                        append("Decline the invite to ")
                         append(roomName)
                         if (inviterName != null) {
                             append(" from ")

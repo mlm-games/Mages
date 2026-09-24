@@ -425,7 +425,7 @@ pub(crate) fn has_session_file(store_dir: &Path) -> bool {
 /// Best-effort cleanup of stale `probe_*` store dirs left behind by server
 /// checks (each probe builds a real SQLite store). Only runs inside an
 /// `accounts/` dir, keeps the caller's own dir, and only removes
-/// directories — real accounts and `<id>.session.json` siblings are never
+/// directories. Real accounts and `<id>.session.json` siblings are never
 /// touched.
 pub(crate) fn sweep_probe_dirs(store_dir: &Path) {
     #[cfg(not(target_family = "wasm"))]

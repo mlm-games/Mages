@@ -160,7 +160,7 @@ class RoomsViewModel(
             val leaveResult = service.port.leaveRoom(roomId)
             if (leaveResult.isFailure) {
                 updateState { copy(isDecliningInvite = false) }
-                _events.send(Event.ShowError("Failed to decline invite"))
+                _events.send(Event.ShowError("Could not decline the invite. Try again."))
                 return@launch
             }
 

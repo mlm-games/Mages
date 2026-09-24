@@ -43,7 +43,7 @@ object TimelineListReducer {
             }
 
             is TimelineDiff.Clear ->
-                // should never receive this, but if it does, don’t nuke user-visible history.
+                // should never receive this, but if it does, don't nuke user-visible history.
                 Result(list = current, cleared = false)
 
             is TimelineDiff.Append -> {

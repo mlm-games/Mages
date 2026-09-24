@@ -207,7 +207,7 @@ class LoginViewModel(
                 val userId = port.whoami()
                 if (userId.isNullOrBlank()) {
                     port.close()
-                    updateState { copy(isBusy = false, error = "Login failed — couldn't get user ID") }
+                    updateState { copy(isBusy = false, error = "Login failed. The server did not return a user ID. Try again.") }
                     return@launch
                 }
 
@@ -285,7 +285,7 @@ class LoginViewModel(
                 val userId = port.whoami()
                 if (userId.isNullOrBlank()) {
                     port.close()
-                    updateState { copy(isBusy = false, ssoInProgress = false, error = "SSO failed — couldn't get user ID") }
+                    updateState { copy(isBusy = false, ssoInProgress = false, error = "SSO failed. The server did not return a user ID. Try again.") }
                     return@launch
                 }
 
@@ -382,7 +382,7 @@ class LoginViewModel(
                 val userId = port.whoami()
                 if (userId.isNullOrBlank()) {
                     port.close()
-                    updateState { copy(isBusy = false, oauthInProgress = false, error = "OAuth failed — couldn't get user ID") }
+                    updateState { copy(isBusy = false, oauthInProgress = false, error = "OAuth failed. The server did not return a user ID. Try again.") }
                     return@launch
                 }
 

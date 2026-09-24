@@ -336,12 +336,13 @@ fun RoomInfoScreen(
                                 }
 
                                 if (state.canManageSettings) {
-                                    val joinRuleSubtitle = when (state.joinRule) {
+                                    val joinRule = state.joinRule
+                                    val joinRuleSubtitle = when (joinRule) {
                                         RoomJoinRule.Restricted,
                                         RoomJoinRule.KnockRestricted -> {
                                             val count = state.joinRuleAllowedSpaceIds.size
                                             val spaceWord = if (count == 1) "space" else "spaces"
-                                            "${it.displayName} — $count $spaceWord"
+                                            "${joinRule.displayName}: $count $spaceWord allowed"
                                         }
                                         else -> null
                                     }
@@ -352,9 +353,9 @@ fun RoomInfoScreen(
                                         displayName = { it.displayName },
                                         subtitle = joinRuleSubtitle,
                                         options = listOf(
-                                            RoomJoinRule.Public to "Public — Anyone can join",
+                                            RoomJoinRule.Public to "Public (anyone can join)",
                                             RoomJoinRule.Invite to "Invite only",
-                                            RoomJoinRule.Knock to "Knock — Request to join",
+                                            RoomJoinRule.Knock to "Knock (ask to join)",
                                             RoomJoinRule.Restricted to "Space members can join",
                                             RoomJoinRule.KnockRestricted to "Ask to join with space members",
                                         ),

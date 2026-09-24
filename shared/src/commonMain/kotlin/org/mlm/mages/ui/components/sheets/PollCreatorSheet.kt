@@ -49,7 +49,7 @@ fun PollCreatorSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    if (isEditing) "Edit Poll" else "Create Poll",
+                    if (isEditing) "Edit poll" else "Create poll",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -160,9 +160,11 @@ fun PollCreatorSheet(
                     },
                     enabled = isValid
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.Send, null)
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text(if (isEditing) "Save Poll" else "Create Poll")
+                    if (!isEditing) {
+                        Icon(Icons.AutoMirrored.Filled.Send, null)
+                        Spacer(Modifier.width(Spacing.sm))
+                    }
+                    Text(if (isEditing) "Save poll" else "Create poll")
                 }
             }
         }
