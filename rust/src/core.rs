@@ -2786,6 +2786,7 @@ impl CoreClient {
         invitees: Vec<String>,
         is_public: bool,
         room_alias: Option<String>,
+        parent_space_id: Option<String>,
     ) -> Result<String, FfiError> {
         use matrix_sdk::ruma::api::client::room::{Visibility, create_room::v3 as cr};
         let mut req = cr::Request::new();
@@ -2804,6 +2805,21 @@ impl CoreClient {
         }
         if let Some(t) = &topic {
             req.topic = Some(t.clone());
+        }
+        if let Some(parent) = &parent_space_id {
+            let parent_rid = OwnedRoomId::try_from(parent.as_str())
+                .map_err(|_| FfiError::Msg("invalid parent space id".into()))?;
+            let server = parent_rid
+                .server_name()
+                .ok_or_else(|| FfiError::Msg("parent space id has no server".into()))?
+                .to_string();
+            let raw: _ = serde_json::from_value(serde_json::json!({
+                "type": "m.space.parent",
+                "state_key": parent_rid.as_str(),
+                "content": { "via": [server] },
+            }))
+            .map_err(|e| FfiError::Msg(format!("could not build parent state: {e}")))?;
+            req.initial_state.push(raw);
         }
         if let Some(alias) = &room_alias {
             let normalized = if alias.starts_with('#') {
@@ -3203,6 +3219,7 @@ impl CoreClient {
                 is_encrypted: matches!(room.encryption_state(), EncryptionState::Encrypted),
                 is_public: room.is_public().unwrap_or(false),
                 avatar_url: room.avatar_url().map(|mxc| mxc.to_string()),
+                canonical_alias: room.canonical_alias().map(|a| a.to_string()),
             });
         }
         out

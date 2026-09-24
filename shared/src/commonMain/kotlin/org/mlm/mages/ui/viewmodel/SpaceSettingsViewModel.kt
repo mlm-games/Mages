@@ -3,6 +3,7 @@ package org.mlm.mages.ui.viewmodel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import org.mlm.mages.MatrixService
+import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.ui.SpaceSettingsUiState
 
@@ -30,14 +31,20 @@ class SpaceSettingsViewModel(
         loadSpaceInfo()
         loadChildren()
         loadAvailableRooms()
+        loadPermissions()
+        loadMembers()
+        loadJoinRule()
     }
 
-    //  Public Actions 
+    //  Public Actions
 
     fun refresh() {
         loadSpaceInfo()
         loadChildren()
         loadAvailableRooms()
+        loadPermissions()
+        loadMembers()
+        loadJoinRule()
     }
 
     // Add room dialog
@@ -181,7 +188,226 @@ class SpaceSettingsViewModel(
         }
     }
 
-    //  Private Methods 
+    // Edit details
+
+    fun showEditDetailsDialog() {
+        if (!currentState.canEditDetails) {
+            launch { _events.send(Event.ShowError("You don't have permission to edit this space")) }
+            return
+        }
+        val space = currentState.space
+        updateState {
+            copy(
+                showEditDetails = true,
+                editName = space?.name.orEmpty(),
+                editTopic = space?.topic.orEmpty(),
+                editAlias = space?.canonicalAlias.orEmpty()
+            )
+        }
+    }
+
+    fun hideEditDetailsDialog() = updateState { copy(showEditDetails = false) }
+    fun setEditName(value: String) = updateState { copy(editName = value) }
+    fun setEditTopic(value: String) = updateState { copy(editTopic = value) }
+    fun setEditAlias(value: String) = updateState { copy(editAlias = value.trim()) }
+
+    fun saveEditDetails() {
+        val name = currentState.editName.trim()
+        val topic = currentState.editTopic.trim()
+        val alias = currentState.editAlias.trim().ifBlank { null }
+        runSavingBooleanAction(
+            successMessage = "Space details updated",
+            errorMessage = "Could not update the space. Try again.",
+            onSuccess = {
+                updateState { copy(showEditDetails = false) }
+                loadSpaceInfo()
+            }
+        ) {
+            val oldName = currentState.space?.name.orEmpty()
+            val nameOk = if (name == oldName) true else service.port.setRoomName(currentState.spaceId, name).isSuccess
+            val topicOk = service.port.setRoomTopic(currentState.spaceId, topic).isSuccess
+            val aliasOk = service.port.setRoomCanonicalAlias(currentState.spaceId, alias, emptyList()).isSuccess
+            nameOk && topicOk && aliasOk
+        }
+    }
+
+    // People & roles
+
+    fun showPeople() = updateState { copy(showPeople = true) }
+    fun hidePeople() = updateState { copy(showPeople = false) }
+    fun showRoles() = updateState { copy(showRoles = true) }
+    fun hideRoles() = updateState { copy(showRoles = false) }
+
+    fun updateMemberRole(userId: String, powerLevel: Long) {
+        runSavingResultAction(
+            errorMessage = "Could not change the role. Try again.",
+            onSuccess = { loadPermissions() }
+        ) {
+            service.port.updatePowerLevelForUser(currentState.spaceId, userId, powerLevel)
+        }
+    }
+
+    // Security (join rule)
+
+    fun requestJoinRule(rule: RoomJoinRule) {
+        if (!currentState.canManageSettings) {
+            launch { _events.send(Event.ShowError("You don't have permission to change who can join")) }
+            return
+        }
+        if (rule == RoomJoinRule.Restricted || rule == RoomJoinRule.KnockRestricted) {
+            launch {
+                val spaces = runSafe { service.port.mySpaces() }.orEmpty()
+                updateState {
+                    copy(
+                        showJoinRulePicker = true,
+                        pendingJoinRule = rule,
+                        selectableSpaces = spaces
+                    )
+                }
+            }
+            return
+        }
+        setJoinRule(rule, emptyList())
+    }
+
+    fun hideJoinRuleSpacePicker() = updateState {
+        copy(showJoinRulePicker = false, pendingJoinRule = null, selectableSpaces = emptyList())
+    }
+
+    fun setJoinRule(rule: RoomJoinRule, allowedSpaceIds: List<String>) {
+        if (!currentState.canManageSettings) {
+            launch { _events.send(Event.ShowError("You don't have permission to change who can join")) }
+            return
+        }
+        runSavingResultAction(
+            errorMessage = "Could not update who can join. Try again.",
+            onSuccess = {
+                updateState {
+                    copy(
+                        showJoinRulePicker = false,
+                        pendingJoinRule = null,
+                        selectableSpaces = emptyList(),
+                        joinRule = rule,
+                        joinRuleAllowedSpaceIds = allowedSpaceIds
+                    )
+                }
+            }
+        ) {
+            service.port.setRoomJoinRule(currentState.spaceId, rule, allowedSpaceIds)
+        }
+    }
+
+    // Create room inside this space
+
+    fun showCreateRoom() = updateState { copy(showCreateRoom = true, newRoomName = "", newRoomTopic = "", newRoomIsPublic = false) }
+    fun hideCreateRoom() = updateState { copy(showCreateRoom = false) }
+    fun setNewRoomName(value: String) = updateState { copy(newRoomName = value) }
+    fun setNewRoomTopic(value: String) = updateState { copy(newRoomTopic = value) }
+    fun setNewRoomIsPublic(value: Boolean) = updateState { copy(newRoomIsPublic = value) }
+
+    fun createRoomInSpace() {
+        val name = currentState.newRoomName.trim()
+        if (name.isBlank()) {
+            launch { _events.send(Event.ShowError("Give the room a name")) }
+            return
+        }
+        val topic = currentState.newRoomTopic.trim().ifBlank { null }
+        runSavingResultAction(
+            errorMessage = "Could not create the room. Try again.",
+            onSuccess = {
+                updateState { copy(showCreateRoom = false) }
+                loadChildren()
+            }
+        ) {
+            val roomId = service.port.createRoom(
+                name = name,
+                topic = topic,
+                invitees = emptyList(),
+                isPublic = currentState.newRoomIsPublic,
+                roomAlias = null,
+                parentSpaceId = currentState.spaceId
+            )
+            if (roomId == null) null else Result.success(Unit)
+        }
+    }
+
+    // Leave with children
+
+    fun showLeaveWithChildren() {
+        launch {
+            val joined = currentState.children.filter { it.roomId != currentState.spaceId }
+            updateState {
+                copy(
+                    showLeaveWithChildren = true,
+                    joinedChildren = joined,
+                    selectedChildIds = emptySet()
+                )
+            }
+        }
+    }
+
+    fun hideLeaveWithChildren() = updateState {
+        copy(showLeaveWithChildren = false, selectedChildIds = emptySet())
+    }
+
+    fun toggleChildSelection(roomId: String) = updateState {
+        copy(
+            selectedChildIds = if (roomId in selectedChildIds) selectedChildIds - roomId
+            else selectedChildIds + roomId
+        )
+    }
+
+    fun leaveSpaceWithChildren() {
+        val childIds = currentState.selectedChildIds.toList()
+        runSavingResultAction(
+            errorMessage = "Could not leave. Try again.",
+            onSuccess = { _events.send(Event.LeaveSuccess) }
+        ) {
+            var allOk = true
+            for (childId in childIds) {
+                if (service.port.leaveRoom(childId).isFailure) allOk = false
+            }
+            val spaceResult = service.port.leaveRoom(currentState.spaceId)
+            if (spaceResult.isFailure) allOk = false
+            if (allOk) Result.success(Unit) else null
+        }
+    }
+
+    //  Private Methods
+
+    private fun loadPermissions() {
+        launch {
+            val snapshot = runSafe { service.port.roomInfoSnapshot(currentState.spaceId) }
+            val me = runSafe { service.port.whoami() }
+            updateState {
+                copy(
+                    canManageSettings = snapshot?.actionState?.manageSettings?.isEnabled == true,
+                    canEditDetails = snapshot?.actionState?.editName?.isEnabled == true,
+                    canInvite = snapshot?.actionState?.invite?.isEnabled == true,
+                    powerLevels = snapshot?.powerLevels ?: powerLevels,
+                    myUserId = me ?: myUserId,
+                    myPowerLevel = snapshot?.powerLevels?.users?.get(me ?: "") ?: myPowerLevel
+                )
+            }
+        }
+    }
+
+    private fun loadMembers() {
+        launch {
+            val members = runSafe { service.port.listMembers(currentState.spaceId) }.orEmpty()
+            updateState { copy(members = members) }
+        }
+    }
+
+    private fun loadJoinRule() {
+        launch {
+            val rule = runSafe { service.port.roomJoinRule(currentState.spaceId) }
+            val allow = runSafe { service.port.roomJoinRuleAllowList(currentState.spaceId) }.orEmpty()
+            updateState {
+                copy(joinRule = rule ?: joinRule, joinRuleAllowedSpaceIds = allow)
+            }
+        }
+    }
 
     private fun loadSpaceInfo() {
         launch {

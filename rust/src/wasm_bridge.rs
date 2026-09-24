@@ -1815,13 +1815,14 @@ impl WasmClient {
         invitees: Vec<String>,
         is_public: bool,
         room_alias: Option<String>,
+        parent_space_id: Option<String>,
     ) -> JsValue {
         let Some(s) = self.state() else {
             return JsValue::NULL;
         };
         match s
             .core
-            .create_room(name, topic, invitees, is_public, room_alias)
+            .create_room(name, topic, invitees, is_public, room_alias, parent_space_id)
             .await
         {
             Ok(v) => JsValue::from_str(&v),

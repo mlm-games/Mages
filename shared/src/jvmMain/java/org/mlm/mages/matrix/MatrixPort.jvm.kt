@@ -1233,9 +1233,9 @@ class RustMatrixPort : MatrixPort, VerificationService {
     }
 
     override suspend fun createRoom(
-        name: String?, topic: String?, invitees: List<String>, isPublic: Boolean, roomAlias: String?
+        name: String?, topic: String?, invitees: List<String>, isPublic: Boolean, roomAlias: String?, parentSpaceId: String?
     ): String? = withContext(matrixDispatcher) {
-        runWithFfiResult { withClient { it.createRoom(name, topic, invitees, isPublic, roomAlias) } }
+        runWithFfiResult { withClient { it.createRoom(name, topic, invitees, isPublic, roomAlias, parentSpaceId) } }
             .onFailure { Logger.w("createRoom failed: ${it.message}") }
             .getOrNull()
     }
@@ -1374,7 +1374,8 @@ class RustMatrixPort : MatrixPort, VerificationService {
                             memberCount = space.memberCount.toLong(),
                             isEncrypted = space.isEncrypted,
                             isPublic = space.isPublic,
-                            avatarUrl = space.avatarUrl
+                            avatarUrl = space.avatarUrl,
+                            canonicalAlias = space.canonicalAlias
                         )
                     }
                 }
@@ -1911,7 +1912,33 @@ private fun mages.MessageEvent.toModel() = MessageEvent(
     stateEventType = stateEventType,
     liveLocation = liveLocation?.toModel(),
     rawJson = rawJson,
+    shield = shield?.let { MessageShield(it.level.toKotlin(), it.code.toKotlin()) },
+    sendFailure = sendFailure?.toKotlin(),
+    utd = utd?.let { UtdInfo(it.algorithmKnown, it.isMegolm) },
 )
+
+private fun mages.ShieldLevel.toKotlin(): ShieldLevel = when (this) {
+    mages.ShieldLevel.RED -> ShieldLevel.Red
+    mages.ShieldLevel.GREY -> ShieldLevel.Grey
+}
+
+private fun mages.ShieldCode.toKotlin(): ShieldCode = when (this) {
+    mages.ShieldCode.AUTHENTICITY_NOT_GUARANTEED -> ShieldCode.AuthenticityNotGuaranteed
+    mages.ShieldCode.UNKNOWN_DEVICE -> ShieldCode.UnknownDevice
+    mages.ShieldCode.UNSIGNED_DEVICE -> ShieldCode.UnsignedDevice
+    mages.ShieldCode.UNVERIFIED_IDENTITY -> ShieldCode.UnverifiedIdentity
+    mages.ShieldCode.VERIFICATION_VIOLATION -> ShieldCode.VerificationViolation
+    mages.ShieldCode.MISMATCHED_SENDER -> ShieldCode.MismatchedSender
+    mages.ShieldCode.SENT_IN_CLEAR -> ShieldCode.SentInClear
+}
+
+private fun mages.SendFailureReason.toKotlin(): SendFailureReason = when (this) {
+    mages.SendFailureReason.UNKNOWN_DEVICE -> SendFailureReason.UnknownDevice
+    mages.SendFailureReason.UNVERIFIED_DEVICE -> SendFailureReason.UnverifiedDevice
+    mages.SendFailureReason.USER_IDENTITY_MISMATCH -> SendFailureReason.UserIdentityMismatch
+    mages.SendFailureReason.UNABLE_TO_DECRYPT -> SendFailureReason.UnableToDecrypt
+    mages.SendFailureReason.UNKNOWN -> SendFailureReason.Unknown
+}
 
 private fun mages.LiveLocationEvent.toModel() = LiveLocationEvent(
     userId = userId,

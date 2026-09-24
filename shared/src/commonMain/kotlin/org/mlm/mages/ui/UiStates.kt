@@ -11,6 +11,8 @@ import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.Presence
 import org.mlm.mages.matrix.RoomNotificationMode
+import org.mlm.mages.matrix.RoomPowerLevels
+import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.PasswordLoginKind
 import org.mlm.mages.matrix.RoomPredecessorInfo
 import org.mlm.mages.matrix.RoomUpgradeInfo
@@ -392,11 +394,50 @@ data class SpaceSettingsUiState(
     val avatarPathByRoomId: Map<String, String> = emptyMap(),
     val spaceAvatarPath: String? = null,
 
+    // Permissions (from roomInfoSnapshot on the space)
+    val canManageSettings: Boolean = false,
+    val canEditDetails: Boolean = false,
+    val canInvite: Boolean = false,
+
+    // People & roles
+    val members: List<MemberSummary> = emptyList(),
+    val powerLevels: RoomPowerLevels? = null,
+    val myUserId: String? = null,
+    val myPowerLevel: Long = 0L,
+
+    // Security
+    val joinRule: RoomJoinRule? = null,
+    val joinRuleAllowedSpaceIds: List<String> = emptyList(),
+    val selectableSpaces: List<SpaceInfo> = emptyList(),
+
     // Dialogs
     val showAddRoom: Boolean = false,
     val showInviteUser: Boolean = false,
     val inviteUserId: String = "",
     val showLeaveConfirm: Boolean = false,
+
+    // Edit details
+    val showEditDetails: Boolean = false,
+    val editName: String = "",
+    val editTopic: String = "",
+    val editAlias: String = "",
+
+    // People / roles / security sheets
+    val showPeople: Boolean = false,
+    val showRoles: Boolean = false,
+    val showJoinRulePicker: Boolean = false,
+    val pendingJoinRule: RoomJoinRule? = null,
+
+    // Create room in space
+    val showCreateRoom: Boolean = false,
+    val newRoomName: String = "",
+    val newRoomTopic: String = "",
+    val newRoomIsPublic: Boolean = false,
+
+    // Leave with children
+    val showLeaveWithChildren: Boolean = false,
+    val joinedChildren: List<SpaceChildInfo> = emptyList(),
+    val selectedChildIds: Set<String> = emptySet(),
 )
 
 data class ThreadUiState(

@@ -77,6 +77,47 @@ pub struct MessageEvent {
     pub state_event_type: Option<String>,
     pub live_location: Option<LiveLocationEvent>,
     pub raw_json: Option<String>,
+    pub shield: Option<MessageShield>,
+    pub send_failure: Option<SendFailureReason>,
+    pub utd: Option<UtdInfo>,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, Enum)]
+pub enum ShieldLevel {
+    Red,
+    Grey,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, Enum)]
+pub enum ShieldCode {
+    AuthenticityNotGuaranteed,
+    UnknownDevice,
+    UnsignedDevice,
+    UnverifiedIdentity,
+    VerificationViolation,
+    MismatchedSender,
+    SentInClear,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, Record)]
+pub struct MessageShield {
+    pub level: ShieldLevel,
+    pub code: ShieldCode,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, Enum)]
+pub enum SendFailureReason {
+    UnknownDevice,
+    UnverifiedDevice,
+    UserIdentityMismatch,
+    UnableToDecrypt,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, Record)]
+pub struct UtdInfo {
+    pub algorithm_known: bool,
+    pub is_megolm: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Record)]
@@ -407,6 +448,7 @@ pub struct SpaceInfo {
     pub is_encrypted: bool,
     pub is_public: bool,
     pub avatar_url: Option<String>,
+    pub canonical_alias: Option<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Record)]

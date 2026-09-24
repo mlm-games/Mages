@@ -789,10 +789,11 @@ impl Client {
         invitees: Vec<String>,
         is_public: bool,
         room_alias: Option<String>,
+        parent_space_id: Option<String>,
     ) -> Result<String, FfiError> {
         RT.block_on(
             self.core
-                .create_room(name, topic, invitees, is_public, room_alias),
+                .create_room(name, topic, invitees, is_public, room_alias, parent_space_id),
         )
     }
 
@@ -3967,6 +3968,13 @@ fn map_timeline_event(
 
     let reactions = extract_reactions(ev.content(), me);
 
+    let shield = map_shield(ev);
+    let send_failure = match send_state {
+        Some(SendState::Failed) => Some(map_send_failure(ev)),
+        _ => None,
+    };
+    let utd = map_utd(ev);
+
     Some(MessageEvent {
         item_id: item_id_str,
         event_id,
@@ -3994,6 +4002,72 @@ fn map_timeline_event(
         state_event_type,
         live_location,
         raw_json,
+        shield,
+        send_failure,
+        utd,
+    })
+}
+
+fn map_shield(ev: &EventTimelineItem) -> Option<MessageShield> {
+    use matrix_sdk_ui::timeline::TimelineEventShieldState;
+    match ev.get_shield(true) {
+        TimelineEventShieldState::None => None,
+        TimelineEventShieldState::Red { code } => Some(MessageShield {
+            level: ShieldLevel::Red,
+            code: map_shield_code(code),
+        }),
+        TimelineEventShieldState::Grey { code } => Some(MessageShield {
+            level: ShieldLevel::Grey,
+            code: map_shield_code(code),
+        }),
+    }
+}
+
+fn map_shield_code(code: matrix_sdk_ui::timeline::TimelineEventShieldStateCode) -> ShieldCode {
+    use matrix_sdk_ui::timeline::TimelineEventShieldStateCode as C;
+    match code {
+        C::AuthenticityNotGuaranteed => ShieldCode::AuthenticityNotGuaranteed,
+        C::UnknownDevice => ShieldCode::UnknownDevice,
+        C::UnsignedDevice => ShieldCode::UnsignedDevice,
+        C::UnverifiedIdentity => ShieldCode::UnverifiedIdentity,
+        C::VerificationViolation => ShieldCode::VerificationViolation,
+        C::MismatchedSender => ShieldCode::MismatchedSender,
+        C::SentInClear => ShieldCode::SentInClear,
+    }
+}
+
+fn map_send_failure(ev: &EventTimelineItem) -> SendFailureReason {
+    let Some(EventSendState::SendingFailed { error, .. }) = ev.send_state() else {
+        return SendFailureReason::Unknown;
+    };
+    let text = error.to_string();
+    let lower = text.to_ascii_lowercase();
+    if lower.contains("unknown device") {
+        SendFailureReason::UnknownDevice
+    } else if lower.contains("unverified") || lower.contains("not verified") {
+        SendFailureReason::UnverifiedDevice
+    } else if lower.contains("mismatch") || lower.contains("identity") {
+        SendFailureReason::UserIdentityMismatch
+    } else {
+        SendFailureReason::Unknown
+    }
+}
+
+fn map_utd(ev: &EventTimelineItem) -> Option<UtdInfo> {
+    if !ev.content().is_unable_to_decrypt() {
+        return None;
+    }
+    let raw = ev.latest_json()?;
+    let parsed: serde_json::Value = serde_json::from_str(raw.json().get()).ok()?;
+    let algorithm = parsed
+        .get("content")
+        .and_then(|c| c.get("algorithm"))
+        .and_then(|a| a.as_str())
+        .unwrap_or_default()
+        .to_owned();
+    Some(UtdInfo {
+        algorithm_known: !algorithm.is_empty(),
+        is_megolm: algorithm == "m.megolm.v1.aes-sha2",
     })
 }
 

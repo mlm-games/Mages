@@ -508,7 +508,8 @@ data class SpaceInfo(
     val memberCount: Long,
     val isEncrypted: Boolean,
     val isPublic: Boolean,
-    val avatarUrl: String? = null
+    val avatarUrl: String? = null,
+    val canonicalAlias: String? = null
 )
 
 @Serializable
@@ -881,7 +882,7 @@ interface MatrixPort {
     suspend fun leaveRoom(roomId: String): Result<Unit>
     suspend fun declineCall(roomId: String, notificationEventId: String): Result<Unit>
 
-    suspend fun createRoom(name: String?, topic: String?, invitees: List<String>, isPublic: Boolean, roomAlias: String?): String?
+    suspend fun createRoom(name: String?, topic: String?, invitees: List<String>, isPublic: Boolean, roomAlias: String?, parentSpaceId: String? = null): String?
     suspend fun setRoomName(roomId: String, name: String): Result<Unit>
     suspend fun setRoomTopic(roomId: String, topic: String): Result<Unit>
 

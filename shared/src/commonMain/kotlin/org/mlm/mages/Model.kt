@@ -35,7 +35,30 @@ data class MessageEvent(
     var stateEventType: String? = null,
     var liveLocation: LiveLocationEvent? = null,
     var rawJson: String? = null,
+    var shield: MessageShield? = null,
+    var sendFailure: SendFailureReason? = null,
+    var utd: UtdInfo? = null,
 )
+
+@Serializable
+enum class ShieldLevel { Red, Grey }
+
+@Serializable
+enum class ShieldCode {
+    AuthenticityNotGuaranteed, UnknownDevice, UnsignedDevice, UnverifiedIdentity,
+    VerificationViolation, MismatchedSender, SentInClear
+}
+
+@Serializable
+data class MessageShield(val level: ShieldLevel, val code: ShieldCode)
+
+@Serializable
+enum class SendFailureReason {
+    UnknownDevice, UnverifiedDevice, UserIdentityMismatch, UnableToDecrypt, Unknown
+}
+
+@Serializable
+data class UtdInfo(val algorithmKnown: Boolean, val isMegolm: Boolean)
 
 @Serializable
 data class RoomSummary(

@@ -17,9 +17,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.RoomSummary
+import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.matrix.SpaceInfo
 import org.koin.compose.koinInject
+import org.mlm.mages.ui.components.sheets.JoinRuleSpacePickerSheet
+import org.mlm.mages.ui.components.sheets.MemberListSheet
+import org.mlm.mages.ui.components.sheets.PowerLevelsSheet
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.snackbar.snackbarHost
@@ -89,6 +93,60 @@ fun SpaceSettingsScreen(
                     SectionTitle("Actions")
                 }
 
+                if (state.canEditDetails) {
+                    item(key = "action_edit_details") {
+                        ListItem(
+                            headlineContent = { Text("Edit details") },
+                            supportingContent = { Text("Name, topic, and address") },
+                            leadingContent = {
+                                Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.primary)
+                            },
+                            modifier = Modifier.clickable(enabled = !state.isSaving) {
+                                viewModel.showEditDetailsDialog()
+                            }
+                        )
+                    }
+                }
+
+                item(key = "action_people") {
+                    ListItem(
+                        headlineContent = { Text("People") },
+                        supportingContent = { Text("${state.members.size} members") },
+                        leadingContent = {
+                            Icon(Icons.Default.Group, null, tint = MaterialTheme.colorScheme.primary)
+                        },
+                        modifier = Modifier.clickable { viewModel.showPeople() }
+                    )
+                }
+
+                if (state.canManageSettings) {
+                    item(key = "action_roles") {
+                        ListItem(
+                            headlineContent = { Text("Roles and permissions") },
+                            supportingContent = { Text("Who can change what") },
+                            leadingContent = {
+                                Icon(Icons.Default.AdminPanelSettings, null, tint = MaterialTheme.colorScheme.primary)
+                            },
+                            modifier = Modifier.clickable(enabled = !state.isSaving) {
+                                viewModel.showRoles()
+                            }
+                        )
+                    }
+                }
+
+                item(key = "action_new_room") {
+                    ListItem(
+                        headlineContent = { Text("New room in this space") },
+                        supportingContent = { Text("Create a room inside this space") },
+                        leadingContent = {
+                            Icon(Icons.Default.AddComment, null, tint = MaterialTheme.colorScheme.primary)
+                        },
+                        modifier = Modifier.clickable(enabled = !state.isSaving) {
+                            viewModel.showCreateRoom()
+                        }
+                    )
+                }
+
                 item(key = "action_add_room") {
                     ListItem(
                         headlineContent = { Text("Add rooms") },
@@ -107,20 +165,22 @@ fun SpaceSettingsScreen(
                 }
 
                 item(key = "action_invite") {
-                    ListItem(
-                        headlineContent = { Text("Invite users") },
-                        supportingContent = { Text("Invite users to this space") },
-                        leadingContent = {
-                            Icon(
-                                Icons.Default.PersonAdd,
-                                null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        },
-                        modifier = Modifier.clickable(enabled = !state.isSaving) {
-                            viewModel.showInviteDialog()
-                        }
-                    )
+                    if (state.canInvite || !state.canManageSettings) {
+                        ListItem(
+                            headlineContent = { Text("Invite users") },
+                            supportingContent = { Text("Invite users to this space") },
+                            leadingContent = {
+                                Icon(
+                                    Icons.Default.PersonAdd,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            modifier = Modifier.clickable(enabled = !state.isSaving) {
+                                viewModel.showInviteDialog()
+                            }
+                        )
+                    }
                 }
 
                 item(key = "action_leave") {
@@ -136,12 +196,66 @@ fun SpaceSettingsScreen(
                             )
                         },
                         modifier = Modifier.clickable(enabled = !state.isSaving) {
-                            viewModel.showLeaveConfirm()
+                            viewModel.showLeaveWithChildren()
                         }
                     )
                 }
 
                 item(key = "divider") {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.md))
+                }
+
+                if (state.canManageSettings) {
+                    item(key = "security_title") {
+                        SectionTitle("Who can join")
+                    }
+                    item(key = "security_join_rule") {
+                        var expanded by remember { mutableStateOf(false) }
+                        val rule = state.joinRule ?: RoomJoinRule.Invite
+                        val allowCount = state.joinRuleAllowedSpaceIds.size
+                        val subtitle = when (rule) {
+                            RoomJoinRule.Public -> "Anyone can join"
+                            RoomJoinRule.Invite -> "Invite only"
+                            RoomJoinRule.Knock -> "Ask to join"
+                            RoomJoinRule.Restricted -> "Space members can join"
+                            RoomJoinRule.KnockRestricted -> "Ask to join with space members"
+                        }
+                        ExposedDropdownMenuBox(
+                            expanded = expanded,
+                            onExpandedChange = { expanded = it },
+                            modifier = Modifier.padding(horizontal = Spacing.lg)
+                        ) {
+                            OutlinedTextField(
+                                value = if (allowCount > 0 &&
+                                    (rule == RoomJoinRule.Restricted || rule == RoomJoinRule.KnockRestricted)
+                                ) "$rule: $allowCount spaces allowed" else "$rule ($subtitle)",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Access") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+                                modifier = Modifier
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                    .fillMaxWidth()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                RoomJoinRule.entries.forEach { option ->
+                                    DropdownMenuItem(
+                                        text = { Text(option.displayNameForSpace()) },
+                                        onClick = {
+                                            expanded = false
+                                            viewModel.requestJoinRule(option)
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                item(key = "divider2") {
                     HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.md))
                 }
 
@@ -208,6 +322,159 @@ fun SpaceSettingsScreen(
                 TextButton(onClick = viewModel::hideLeaveConfirm) { Text("Cancel") }
             }
         )
+    }
+
+    // Edit details dialog
+    if (state.showEditDetails) {
+        AlertDialog(
+            onDismissRequest = viewModel::hideEditDetailsDialog,
+            title = { Text("Edit details") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    OutlinedTextField(
+                        value = state.editName,
+                        onValueChange = viewModel::setEditName,
+                        label = { Text("Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = state.editTopic,
+                        onValueChange = viewModel::setEditTopic,
+                        label = { Text("Topic") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = state.editAlias,
+                        onValueChange = viewModel::setEditAlias,
+                        label = { Text("Address") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::saveEditDetails, enabled = !state.isSaving) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::hideEditDetailsDialog) { Text("Cancel") }
+            }
+        )
+    }
+
+    // Create room in space dialog
+    if (state.showCreateRoom) {
+        AlertDialog(
+            onDismissRequest = viewModel::hideCreateRoom,
+            title = { Text("New room") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    OutlinedTextField(
+                        value = state.newRoomName,
+                        onValueChange = viewModel::setNewRoomName,
+                        label = { Text("Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = state.newRoomTopic,
+                        onValueChange = viewModel::setNewRoomTopic,
+                        label = { Text("Topic") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(
+                            checked = state.newRoomIsPublic,
+                            onCheckedChange = viewModel::setNewRoomIsPublic
+                        )
+                        Spacer(Modifier.width(Spacing.sm))
+                        Text("Make this room public")
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::createRoomInSpace, enabled = !state.isSaving) { Text("Create") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::hideCreateRoom) { Text("Cancel") }
+            }
+        )
+    }
+
+    // Leave space with children dialog
+    if (state.showLeaveWithChildren) {
+        AlertDialog(
+            onDismissRequest = viewModel::hideLeaveWithChildren,
+            title = { Text("Leave space") },
+            text = {
+                Column {
+                    Text("Select any rooms to leave as well.")
+                    Spacer(Modifier.height(Spacing.sm))
+                    state.joinedChildren.forEach { child ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Checkbox(
+                                checked = child.roomId in state.selectedChildIds,
+                                onCheckedChange = { viewModel.toggleChildSelection(child.roomId) }
+                            )
+                            Text(
+                                child.name ?: child.roomId,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = viewModel::leaveSpaceWithChildren,
+                    enabled = !state.isSaving,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("Leave") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::hideLeaveWithChildren) { Text("Cancel") }
+            }
+        )
+    }
+
+    // People sheet
+    if (state.showPeople) {
+        MemberListSheet(
+            members = state.members,
+            isLoading = state.isLoading,
+            myUserId = state.myUserId,
+            onDismiss = viewModel::hidePeople,
+            onMemberClick = { viewModel.hidePeople(); viewModel.showRoles() },
+            onInvite = { viewModel.hidePeople(); viewModel.showInviteDialog() }
+        )
+    }
+
+    // Roles sheet
+    if (state.showRoles) {
+        PowerLevelsSheet(
+            members = state.members,
+            powerLevels = state.powerLevels,
+            myPowerLevel = state.myPowerLevel,
+            onUpdatePowerLevel = viewModel::updateMemberRole,
+            onDismiss = viewModel::hideRoles
+        )
+    }
+
+    // Join rule space picker
+    state.pendingJoinRule?.let { pending ->
+        if (state.showJoinRulePicker) {
+            JoinRuleSpacePickerSheet(
+                rule = pending,
+                spaces = state.selectableSpaces,
+                initiallyAllowedSpaceIds = state.joinRuleAllowedSpaceIds,
+                onSave = { rule, ids -> viewModel.setJoinRule(rule, ids) },
+                onDismiss = viewModel::hideJoinRuleSpacePicker
+            )
+        }
     }
 }
 
@@ -296,6 +563,14 @@ private fun ChildRoomItem(
             }
         }
     )
+}
+
+private fun RoomJoinRule.displayNameForSpace(): String = when (this) {
+    RoomJoinRule.Public -> "Public (anyone can join)"
+    RoomJoinRule.Invite -> "Invite only"
+    RoomJoinRule.Knock -> "Knock (ask to join)"
+    RoomJoinRule.Restricted -> "Space members can join"
+    RoomJoinRule.KnockRestricted -> "Ask to join with space members"
 }
 
 @Composable
