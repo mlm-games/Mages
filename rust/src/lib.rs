@@ -5283,6 +5283,106 @@ fn classify_notification_kind_and_expiry(
     }
 }
 
+fn notification_text(value: &serde_json::Value) -> Option<String> {
+    match value {
+        serde_json::Value::String(text) if !text.trim().is_empty() => Some(text.clone()),
+        serde_json::Value::Object(map) => [
+            "body",
+            "question",
+            "text",
+            "m.text",
+            "org.matrix.msc1767.text",
+            "org.matrix.msc1767.message",
+            "org.matrix.msc1767.emote",
+            "org.matrix.msc3488.location",
+            "org.matrix.msc3672.beacon",
+            "description",
+            "name",
+            "topic",
+        ]
+        .iter()
+        .find_map(|key| map.get(*key).and_then(notification_text)),
+        _ => None,
+    }
+}
+
+fn raw_notification_content(item: &NotificationItem) -> Option<serde_json::Value> {
+    let raw = match &item.raw_event {
+        matrix_sdk_ui::notification_client::RawNotificationEvent::Timeline(raw) => raw.json().get(),
+        matrix_sdk_ui::notification_client::RawNotificationEvent::Invite(_) => return None,
+    };
+    let value: serde_json::Value = serde_json::from_str(raw).ok()?;
+    value.get("content").cloned()
+}
+
+fn raw_notification_body(item: &NotificationItem) -> Option<String> {
+    let content = raw_notification_content(item)?;
+
+    for key in [
+        "m.poll",
+        "m.poll.start",
+        "org.matrix.msc3381.poll.start",
+        "m.location",
+        "org.matrix.msc3488.location",
+        "m.beacon",
+        "org.matrix.msc3672.beacon",
+    ] {
+        if let Some(text) = content.get(key).and_then(notification_text) {
+            return Some(text);
+        }
+    }
+
+    notification_text(&content)
+}
+
+fn raw_notification_msgtype_label(item: &NotificationItem) -> Option<String> {
+    let content = raw_notification_content(item)?;
+    let msgtype = content.get("msgtype")?.as_str()?;
+    Some(
+        match msgtype {
+            "m.image" => "Sent an image",
+            "m.video" => "Sent a video",
+            "m.audio" | "m.voice" => "Sent an audio message",
+            "m.file" => "Sent a file",
+            "m.location" => "Shared a location",
+            _ => return None,
+        }
+        .to_string(),
+    )
+}
+
+fn notification_event_label(event: &NotificationEvent) -> Option<String> {
+    let NotificationEvent::Timeline(event) = event else {
+        return None;
+    };
+    let event_type = event.event_type().to_string();
+    Some(
+        match event_type.as_str() {
+            "m.sticker" => "Sent a sticker",
+            "m.poll.start" | "org.matrix.msc3381.poll.start" => "Started a poll",
+            "m.poll.response" | "org.matrix.msc3381.poll.response" => "Responded to a poll",
+            "m.poll.end" | "org.matrix.msc3381.poll.end" => "Ended a poll",
+            "m.location" | "m.beacon" | "org.matrix.msc3672.beacon" => "Shared a location",
+            "m.room.encrypted" | "org.matrix.msc1767.encrypted" => "Encrypted message",
+            "m.room.redaction" => "Message deleted",
+            "m.room.message" | "org.matrix.msc1767.message" | "org.matrix.msc1767.emote" => {
+                "Sent a message"
+            }
+            "m.image" | "org.matrix.msc1767.image" => "Sent an image",
+            "m.video" | "org.matrix.msc1767.video" => "Sent a video",
+            "m.audio" | "org.matrix.msc1767.audio" | "m.voice" | "org.matrix.msc3245.voice.v2" => {
+                "Sent an audio message"
+            }
+            "m.file" | "org.matrix.msc1767.file" => "Sent a file",
+            _ if event_type.starts_with("m.call.") || event_type.starts_with("m.rtc.") => "Call update",
+            _ if event_type.starts_with("m.key.verification.") => "Verification update",
+            _ if matches!(event.as_ref(), AnySyncTimelineEvent::State(_)) => "Room state updated",
+            _ => return None,
+        }
+        .to_string(),
+    )
+}
+
 pub fn map_notification_item_to_rendered(
     rid: &ruma::OwnedRoomId,
     eid: &ruma::OwnedEventId,
@@ -5361,6 +5461,13 @@ pub fn map_notification_item_to_rendered(
             },
             _ => {}
         }
+    }
+
+    if body.trim().is_empty() || body == "New event" {
+        body = raw_notification_body(item)
+            .or_else(|| raw_notification_msgtype_label(item))
+            .or_else(|| notification_event_label(&item.event))
+            .unwrap_or(body);
     }
 
     if let NotificationEvent::Invite(invite) = &item.event {
