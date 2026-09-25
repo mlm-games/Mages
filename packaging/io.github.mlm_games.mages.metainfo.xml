@@ -10,9 +10,9 @@
   </developer>
   <description>
     <p>
-      Mages is an experimental Matrix chat client built with Compose Multiplatform 
-      and a Rust core powered by matrix-rust-sdk. The flatpak version has limitations with screen sharing and video cam access, 
-      which work better on manual downloads / aur builds.
+      Mages is an experimental Matrix chat client built with Compose Multiplatform
+      and a Rust core powered by matrix-rust-sdk. The flatpak currently shows 2 tray
+      icons and the tray menu doesn't follow the system theme (legacy lib).
     </p>
     <p>Features include:</p>
     <ul>
@@ -23,7 +23,7 @@
       <li>Presence and privacy settings</li>
     </ul>
     <p>
-      Note: This is experimental software. Things may break, but encryption 
+      Note: This is experimental software. Things may break, but encryption
       is handled by the battle-tested matrix-rust-sdk.
     </p>
   </description>
