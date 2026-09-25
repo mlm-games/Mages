@@ -5298,6 +5298,7 @@ fn notification_text(value: &serde_json::Value) -> Option<String> {
             "org.matrix.msc3672.beacon",
             "description",
             "name",
+            "filename",
             "topic",
         ]
         .iter()
@@ -5342,8 +5343,10 @@ fn raw_notification_msgtype_label(item: &NotificationItem) -> Option<String> {
         match msgtype {
             "m.image" => "Sent an image",
             "m.video" => "Sent a video",
-            "m.audio" | "m.voice" => "Sent an audio message",
+            "m.audio" => "Sent an audio message",
+            "m.voice" => "Voice message",
             "m.file" => "Sent a file",
+            "m.gallery" => "Sent a gallery",
             "m.location" => "Shared a location",
             _ => return None,
         }
@@ -5370,10 +5373,10 @@ fn notification_event_label(event: &NotificationEvent) -> Option<String> {
             }
             "m.image" | "org.matrix.msc1767.image" => "Sent an image",
             "m.video" | "org.matrix.msc1767.video" => "Sent a video",
-            "m.audio" | "org.matrix.msc1767.audio" | "m.voice" | "org.matrix.msc3245.voice.v2" => {
-                "Sent an audio message"
-            }
+            "m.audio" | "org.matrix.msc1767.audio" => "Sent an audio message",
+            "m.voice" | "org.matrix.msc3245.voice.v2" => "Voice message",
             "m.file" | "org.matrix.msc1767.file" => "Sent a file",
+            "m.gallery" => "Sent a gallery",
             _ if event_type.starts_with("m.call.") || event_type.starts_with("m.rtc.") => "Call update",
             _ if event_type.starts_with("m.key.verification.") => "Verification update",
             _ if matches!(event.as_ref(), AnySyncTimelineEvent::State(_)) => "Room state updated",
