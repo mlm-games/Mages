@@ -8,8 +8,12 @@ plugins {
     alias(libs.plugins.javafx)
 }
 
+val desktopJavaHome = providers.gradleProperty("desktop.java.home")
+    .orElse(providers.environmentVariable("JAVA_HOME"))
+    .getOrElse(System.getProperty("java.home"))
+
 kotlin {
-    jvmToolchain(25) // for MapLibre Native FFI (FFM)
+    jvmToolchain(25)
 }
 
 javafx {
@@ -68,6 +72,8 @@ dependencies {
 compose.desktop {
     application {
         mainClass = "org.mlm.mages.DesktopMainKt"
+
+        javaHome = desktopJavaHome
 
         jvmArgs("--enable-native-access=ALL-UNNAMED")
 
