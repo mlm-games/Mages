@@ -138,6 +138,8 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.browser)
+            implementation(libs.compass.geolocation)
+            implementation(libs.compass.geolocation.browser)
         }
     }
 }

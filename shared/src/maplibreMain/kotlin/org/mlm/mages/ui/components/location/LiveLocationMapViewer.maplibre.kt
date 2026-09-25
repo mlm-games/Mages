@@ -151,6 +151,7 @@ private fun List<Position>.sphericalCenterOrNull(): Position? {
 }
 
 private fun locationErrorMessage(result: LocationResult): String = when (result) {
+    LocationResult.Started -> ""
     is LocationResult.PermissionDenied -> "Location permission denied"
     LocationResult.NotSupported -> "Location is not supported on this device"
     is LocationResult.Error -> result.message.ifBlank { "Could not get location" }

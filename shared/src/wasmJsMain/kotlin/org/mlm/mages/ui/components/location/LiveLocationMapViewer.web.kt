@@ -27,6 +27,9 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import org.mlm.mages.matrix.LiveLocationShare
 import org.mlm.mages.ui.theme.Spacing
+import org.jetbrains.compose.resources.stringResource
+import mages.shared.generated.resources.Res
+import mages.shared.generated.resources.live_location_web_foreground_desc
 
 @Composable
 actual fun LiveLocationMapViewer(
@@ -78,7 +81,7 @@ actual fun LiveLocationMapViewer(
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
                 Text(
-                    text = "Live location map is available on Android only.",
+                    text = stringResource(Res.string.live_location_web_foreground_desc),
                     style = MaterialTheme.typography.titleLarge,
                 )
 

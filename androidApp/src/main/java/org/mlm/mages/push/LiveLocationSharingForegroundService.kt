@@ -153,8 +153,10 @@ class LiveLocationSharingForegroundService : Service() {
     override fun onDestroy() {
         handlerThread?.let {
             if (hasLocationPermission()) {
-                runCatching {
+                try {
                     LocationManagerCompat.removeUpdates(locationManager, locationListener)
+                } catch (e: SecurityException) {
+                    e.printStackTrace();
                 }
             }
             it.quitSafely()

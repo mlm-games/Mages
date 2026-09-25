@@ -174,4 +174,5 @@ actual object LiveLocationSharingCoordinator {
     actual var onFirstStarted: (() -> Unit)? = null
     actual var onAllStopped: (() -> Unit)? = null
     actual var onLocationDispatched: ((Double, Double) -> Unit)? = null
+    actual var onError: ((String) -> Unit)? = null
 }

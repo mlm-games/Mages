@@ -13,4 +13,5 @@ expect object LiveLocationSharingCoordinator {
     var onFirstStarted: (() -> Unit)?
     var onAllStopped: (() -> Unit)?
     var onLocationDispatched: ((Double, Double) -> Unit)?
+    var onError: ((String) -> Unit)?
 }

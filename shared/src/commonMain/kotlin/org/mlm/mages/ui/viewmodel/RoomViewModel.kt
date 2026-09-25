@@ -261,6 +261,12 @@ class RoomViewModel(
                 }
             }
         }
+        LiveLocationSharingCoordinator.onError = { message ->
+            viewModelScope.launch {
+                updateState { copy(liveLocationError = message) }
+                _events.send(Event.ShowError(message))
+            }
+        }
     }
 
     private val settings = settingsRepo.flow
@@ -472,8 +478,12 @@ class RoomViewModel(
         }
     }
 
-    fun showLiveLocation() = updateState { copy(showLiveLocation = true, showAttachmentPicker = false) }
-    fun hideLiveLocation() = updateState { copy(showLiveLocation = false, isLiveLocationLoading = false) }
+    fun showLiveLocation() = updateState {
+        copy(showLiveLocation = true, showAttachmentPicker = false, liveLocationError = null)
+    }
+    fun hideLiveLocation() = updateState {
+        copy(showLiveLocation = false, isLiveLocationLoading = false, liveLocationError = null)
+    }
     fun showLiveLocationMap() = updateState { copy(showLiveLocationMap = true) }
     fun hideLiveLocationMap() = updateState { copy(showLiveLocationMap = false) }
 
@@ -1646,7 +1656,7 @@ class RoomViewModel(
     fun startLiveLocation(durationMinutes: Int) {
         if (currentState.isLiveLocationLoading) return
         launch {
-            updateState { copy(isLiveLocationLoading = true) }
+            updateState { copy(isLiveLocationLoading = true, liveLocationError = null) }
             val result = liveLocationSession.startSharing(currentState.roomId, durationMinutes)
             if (result.isSuccess) {
                 val eventId = result.getOrThrow()
@@ -1662,9 +1672,18 @@ class RoomViewModel(
                         beaconInfoEventId = eventId,
                         endTimestampMs = tsMs + durationMinutes * 60 * 1000L,
                     )
-                    updateState { copy(liveLocationShares = liveLocationShares + (myUserId to share), showLiveLocation = false, isLiveLocationLoading = false) }
+                    updateState {
+                        copy(
+                            liveLocationShares = liveLocationShares + (myUserId to share),
+                            showLiveLocation = false,
+                            isLiveLocationLoading = false,
+                            liveLocationError = null,
+                        )
+                    }
                 } else {
-                    updateState { copy(showLiveLocation = false, isLiveLocationLoading = false) }
+                    updateState {
+                        copy(showLiveLocation = false, isLiveLocationLoading = false, liveLocationError = null)
+                    }
                 }
                 launch {
                     withTimeoutOrNull(10_000L) {
@@ -1673,7 +1692,9 @@ class RoomViewModel(
                 }
             } else {
                 val message = result.exceptionOrNull()?.message ?: "Failed to start location sharing"
-                updateState { copy(isLiveLocationLoading = false) }
+                updateState {
+                    copy(isLiveLocationLoading = false, liveLocationError = message)
+                }
                 _events.send(Event.ShowError(message))
             }
         }
@@ -1687,7 +1708,9 @@ class RoomViewModel(
             if (myUserId != null) {
                 updateState { copy(liveLocationShares = liveLocationShares - myUserId) }
             }
-            updateState { copy(showLiveLocation = false, isLiveLocationLoading = false) }
+            updateState {
+                copy(showLiveLocation = false, isLiveLocationLoading = false, liveLocationError = null)
+            }
             if (result.isSuccess) {
                 _events.send(Event.ShowSuccess("Location sharing stopped"))
             } else {
@@ -2827,5 +2850,6 @@ class RoomViewModel(
         currentState.liveLocationSubToken?.let { service.port.stopObserveLiveLocation(it) }
         liveLocationBeaconToken?.let { service.port.unsubscribeFromOwnBeaconInfoUpdates(it) }
         LiveLocationSharingCoordinator.onLocationDispatched = null
+        LiveLocationSharingCoordinator.onError = null
     }
 }

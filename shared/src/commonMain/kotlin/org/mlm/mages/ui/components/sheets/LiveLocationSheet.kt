@@ -1,6 +1,8 @@
 package org.mlm.mages.ui.components.sheets
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -10,14 +12,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import io.github.mlmgames.settings.core.annotations.SettingPlatform
+import io.github.mlmgames.settings.core.platform.currentPlatform
+import org.mlm.mages.platform.LiveLocationProvider
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.live_location_active_desc
 import mages.shared.generated.resources.live_location_inactive_desc
+import mages.shared.generated.resources.live_location_web_foreground_desc
 import mages.shared.generated.resources.live_location_duration_15m
 import mages.shared.generated.resources.live_location_duration_1h
 import mages.shared.generated.resources.live_location_duration_8h
+import mages.shared.generated.resources.live_location_desktop_desc
 import mages.shared.generated.resources.live_location_shared_with_members
 import mages.shared.generated.resources.live_location_share_for
 import mages.shared.generated.resources.live_location_start_sharing
@@ -30,11 +37,16 @@ import mages.shared.generated.resources.live_location_title_sharing
 fun LiveLocationSheet(
     isCurrentlySharing: Boolean,
     isLoading: Boolean = false,
+    errorMessage: String? = null,
     onStartSharing: (durationMinutes: Int) -> Unit,
     onStopSharing: () -> Unit,
     onDismiss: () -> Unit
 ) {
     var selectedDuration by remember { mutableIntStateOf(15) }
+    val locationProvider = remember { LiveLocationProvider() }
+    val isForeground by locationProvider.isForeground.collectAsState()
+    val isWeb = currentPlatform == SettingPlatform.WEB
+    val isDesktop = currentPlatform == SettingPlatform.JVM
     val durations = listOf(
         15 to stringResource(Res.string.live_location_duration_15m),
         60 to stringResource(Res.string.live_location_duration_1h),
@@ -45,6 +57,7 @@ fun LiveLocationSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(Spacing.lg)
                 .padding(bottom = Spacing.xxl),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -69,13 +82,35 @@ fun LiveLocationSheet(
 
             Text(
                 stringResource(
-                    if (isCurrentlySharing) Res.string.live_location_active_desc
+                    if (isWeb) Res.string.live_location_web_foreground_desc
+                    else if (isDesktop) Res.string.live_location_desktop_desc
+                    else if (isCurrentlySharing) Res.string.live_location_active_desc
                     else Res.string.live_location_inactive_desc
                 ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
+
+            if (!errorMessage.isNullOrBlank()) {
+                Text(
+                    errorMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(Spacing.sm))
+            }
+
+            if (isWeb && !isForeground) {
+                Text(
+                    stringResource(Res.string.live_location_web_foreground_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(Spacing.sm))
+            }
 
             Spacer(Modifier.height(Spacing.xl))
 

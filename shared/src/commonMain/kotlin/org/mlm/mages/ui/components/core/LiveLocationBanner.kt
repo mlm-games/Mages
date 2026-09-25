@@ -12,11 +12,13 @@ import androidx.compose.ui.unit.dp
 import io.github.mlmgames.settings.core.annotations.SettingPlatform
 import io.github.mlmgames.settings.core.platform.currentPlatform
 import org.mlm.mages.matrix.LiveLocationShare
+import org.mlm.mages.platform.LiveLocationProvider
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.banner_is_sharing
 import mages.shared.generated.resources.banner_people_sharing
+import mages.shared.generated.resources.live_location_web_foreground_desc
 
 @Composable
 fun LiveLocationBanner(
@@ -34,6 +36,10 @@ fun LiveLocationBanner(
     if (activeShares.isEmpty()) return
 
     val isMeSharing = myUserId != null && activeShares.any { it.userId == myUserId }
+    val locationProvider = remember { LiveLocationProvider() }
+    val isForeground by locationProvider.isForeground.collectAsState()
+    val showForegroundWarning =
+        isMeSharing && currentPlatform == SettingPlatform.WEB && !isForeground
     
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -67,15 +73,23 @@ fun LiveLocationBanner(
             
             Spacer(Modifier.width(Spacing.sm))
             
-            Text(
-                when (activeShares.size) {
-                    1 -> stringResource(Res.string.banner_is_sharing, displayNameByUserId[activeShares[0].userId] ?: formatDisplayName(activeShares[0].userId))
-                    else -> stringResource(Res.string.banner_people_sharing, activeShares.size)
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.weight(1f),
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    when (activeShares.size) {
+                        1 -> stringResource(Res.string.banner_is_sharing, displayNameByUserId[activeShares[0].userId] ?: formatDisplayName(activeShares[0].userId))
+                        else -> stringResource(Res.string.banner_people_sharing, activeShares.size)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+                if (showForegroundWarning) {
+                    Text(
+                        stringResource(Res.string.live_location_web_foreground_desc),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
             
             if (isMeSharing && onStopSharing != null) {
                 IconButton(onClick = onStopSharing) {
@@ -83,7 +97,7 @@ fun LiveLocationBanner(
                 }
             }
 
-            if (currentPlatform == SettingPlatform.ANDROID) {
+            if (currentPlatform == SettingPlatform.ANDROID || currentPlatform == SettingPlatform.JVM) {
                 IconButton(onClick = onViewAll) {
                     Icon(Icons.Default.Map, "View")
                 }

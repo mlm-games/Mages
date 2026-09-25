@@ -16,6 +16,8 @@ pub enum FfiError {
     BeaconNotFound,
     #[error("TLS is unavailable on this device: {0}")]
     TlsUnavailable(String),
+    #[error("Location permission denied")]
+    LocationPermissionDenied,
 }
 
 impl From<matrix_sdk::Error> for FfiError {

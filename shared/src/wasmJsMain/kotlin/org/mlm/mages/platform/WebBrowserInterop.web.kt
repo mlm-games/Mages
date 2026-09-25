@@ -216,6 +216,9 @@ internal fun navigatorOnLine(): Boolean =
 internal fun documentHasFocus(): Boolean =
     js("typeof document !== 'undefined' && document.hasFocus() === true")
 
+internal fun documentVisibilityState(): String =
+    js("document.visibilityState")
+
 internal fun dataTransferHasFiles(transfer: JsAny?): Boolean {
     if (transfer == null) return false
 

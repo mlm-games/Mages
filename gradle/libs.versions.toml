@@ -1,5 +1,6 @@
 [versions]
 composeMultiplatform = "1.12.0"
+compass = "3.3.0"
 
 composeBom = "2026.09.00"
 
@@ -72,6 +73,8 @@ androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling
 androidx-paging-compose = { module = "androidx.paging:paging-compose", version.ref = "pagingCompose" }
 compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
 #compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "composeMultiplatform" }
+compass-geolocation = { module = "dev.jordond.compass:geolocation", version.ref = "compass" }
+compass-geolocation-browser = { module = "dev.jordond.compass:geolocation-browser", version.ref = "compass" }
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
 compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
 compose-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }

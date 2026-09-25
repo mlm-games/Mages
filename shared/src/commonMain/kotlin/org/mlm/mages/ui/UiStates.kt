@@ -298,6 +298,7 @@ data class RoomUiState(
     val shareLocationInitialLon: Double? = null,
     val showLiveLocationMap: Boolean = false,
     val isLiveLocationLoading: Boolean = false,
+    val liveLocationError: String? = null,
     val showStaticLocationViewer: Boolean = false,
     val staticLocationViewerLat: Double = 0.0,
     val staticLocationViewerLon: Double = 0.0,

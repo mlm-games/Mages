@@ -10,23 +10,28 @@ import android.location.LocationManager
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.mp.KoinPlatform
 import kotlin.coroutines.resume
 
-actual class LiveLocationProvider actual constructor() {
+actual class LiveLocationProvider actual constructor() : LocationSource {
 
     private val context: Context = KoinPlatform.getKoin().get()
     private val locationManager: LocationManager =
         context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+    private val foreground = MutableStateFlow(true)
 
-    actual val isSupported: Boolean = true
-    actual val canSend: Boolean = true
+    actual override val isSupported: Boolean = true
+    actual override val canSend: Boolean = true
+    actual override val isForeground: StateFlow<Boolean> = foreground
 
     @SuppressLint("MissingPermission")
-    actual suspend fun getCurrentLocation(): LocationResult {
+    actual override suspend fun getCurrentLocation(): LocationResult {
         if (!hasLocationPermission()) return LocationResult.PermissionDenied
 
         val lastKnown = sequenceOf(
@@ -60,10 +65,10 @@ actual class LiveLocationProvider actual constructor() {
         }
     }
 
-    actual suspend fun startLocationUpdates() = Unit
+    actual override suspend fun startLocationUpdates(): LocationResult = LocationResult.Started
 
     @SuppressLint("MissingPermission")
-    actual fun locationUpdates(): Flow<LocationData> = callbackFlow {
+    actual override fun locationUpdates(): Flow<LocationData> = callbackFlow {
         if (!hasLocationPermission()) {
             close()
             return@callbackFlow
@@ -93,9 +98,11 @@ actual class LiveLocationProvider actual constructor() {
         }
     }
 
-    actual fun stopLocationUpdates() = Unit
+    actual override fun locationErrors(): Flow<String> = emptyFlow()
 
-    actual fun hasLocationPermission(): Boolean {
+    actual override fun stopLocationUpdates() = Unit
+
+    actual override fun hasLocationPermission(): Boolean {
         val fine = ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -107,7 +114,7 @@ actual class LiveLocationProvider actual constructor() {
         return fine || coarse
     }
 
-    actual suspend fun requestLocationPermission(): Boolean = hasLocationPermission()
+    actual override suspend fun requestLocationPermission(): Boolean = hasLocationPermission()
 }
 
 private fun Location.toLocationData() = LocationData(

@@ -914,6 +914,7 @@ fun RoomScreen(
         LiveLocationSheet(
             isCurrentlySharing = viewModel.isCurrentlySharingLocation,
             isLoading = state.isLiveLocationLoading,
+            errorMessage = state.liveLocationError,
             onStartSharing = { durationMinutes ->
                 onRequestLocationPermissions?.invoke {
                     viewModel.startLiveLocation(durationMinutes)
@@ -1696,10 +1697,7 @@ private fun MessageItem(
                 Spacer(Modifier.height(2.dp))
                 MessageStatusLine(text = stringResource(Res.string.queued), isMine = true)
             }
-            SendState.Failed -> {
-                Spacer(Modifier.height(2.dp))
-                MessageStatusLine(text = stringResource(Res.string.failed_to_send), isMine = true)
-            }
+            SendState.Failed -> Unit
             SendState.Sent, null -> {
                 if (isLastOutgoing) {
                     Spacer(Modifier.height(2.dp))

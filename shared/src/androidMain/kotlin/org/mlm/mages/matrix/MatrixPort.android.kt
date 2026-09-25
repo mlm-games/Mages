@@ -33,6 +33,7 @@ private inline fun <T> runWithFfiResult(block: () -> T): Result<T> =
                 is FfiException.NotLive -> ex
                 is FfiException.BeaconNotFound -> ex
                 is FfiException.TlsUnavailable -> TlsUnavailableException(ex.v1)
+                 is FfiException.LocationPermissionDenied -> IllegalStateException("Location permission denied")
             }
         } ?: e as? Exception ?: IllegalStateException(e.toString())
         throw mapped

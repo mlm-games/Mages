@@ -29,9 +29,12 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.js.JsAny
 import kotlin.js.JsArray
+import kotlin.js.JsNumber
+import kotlin.js.JsString
 import kotlin.js.Promise
 import kotlin.js.ExperimentalWasmJsInterop
-import kotlin.js.unsafeCast
+import kotlin.js.toJsNumber
+import kotlin.js.toJsString
 
 // -- Callback fns since Kotlin/Wasm cannot pass lambdas as JsAny? --
 
@@ -226,12 +229,12 @@ private suspend fun Promise<JsAny?>.awaitBoolLike(): Boolean {
   return value.toString() == "true"
 }
 
-private fun List<String>.toJsArray(): JsArray<JsAny> = JsArray<JsAny>().also { arr ->
-    forEachIndexed { i, v -> arr[i] = v as JsAny }
+private fun List<String>.toJsArray(): JsArray<JsString> = JsArray<JsString>().also { arr ->
+    forEachIndexed { i, v -> arr[i] = v.toJsString() }
 }
 
-private fun List<Double>.toJsArray(): JsArray<JsAny> = JsArray<JsAny>().also { arr ->
-    forEachIndexed { i, v -> arr[i] = v as JsAny }
+private fun List<Double>.toJsArray(): JsArray<JsNumber> = JsArray<JsNumber>().also { arr ->
+    forEachIndexed { i, v -> arr[i] = v.toJsNumber() }
 }
 
 @OptIn(ExperimentalWasmJsInterop::class)

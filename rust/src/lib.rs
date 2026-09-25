@@ -55,6 +55,8 @@ mod verification_flow;
 mod android_tls;
 #[cfg(target_family = "wasm")]
 mod wasm_bridge;
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+mod desktop_location;
 
 pub use core::{CoreClient, TimelineManager};
 pub use types::*;

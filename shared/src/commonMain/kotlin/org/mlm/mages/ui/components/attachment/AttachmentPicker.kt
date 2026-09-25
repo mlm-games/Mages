@@ -1,6 +1,8 @@
 package org.mlm.mages.ui.components.attachment
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -50,7 +52,12 @@ fun AttachmentPicker(
     onShareStaticLocation: (() -> Unit)? = null,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.xxl)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = Spacing.xxl)
+        ) {
             Text(
                 stringResource(Res.string.picker_share),
                 style = MaterialTheme.typography.titleMedium,
@@ -118,8 +125,18 @@ fun AttachmentPicker(
                     ) { onCreatePoll(); onDismiss() }
                 }
 
-                if ((onShareLocation != null || onShareStaticLocation != null) && currentPlatform == SettingPlatform.ANDROID) {
-                    if (onShareStaticLocation != null) {
+                if (
+                    (onShareLocation != null || onShareStaticLocation != null) &&
+                    (
+                        currentPlatform == SettingPlatform.ANDROID ||
+                            currentPlatform == SettingPlatform.WEB ||
+                            currentPlatform == SettingPlatform.JVM
+                        )
+                ) {
+                    if (
+                        onShareStaticLocation != null &&
+                        (currentPlatform == SettingPlatform.ANDROID || currentPlatform == SettingPlatform.JVM)
+                    ) {
                         AttachmentOption(
                             Icons.Default.LocationOn,
                             stringResource(Res.string.picker_location),

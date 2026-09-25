@@ -99,6 +99,18 @@ compose.desktop {
                 iconFile.set(project.file("../packaging/icon.icns"))
                 bundleID = "org.mlm.mages"
                 appCategory = "public.app-category.social-networking"
+                infoPlist {
+                    extraKeysRawXml = """
+                        <key>NSLocationWhenInUseUsageDescription</key>
+                        <string>Mages uses your location while live location sharing is active.</string>
+                        <key>NSLocationUsageDescription</key>
+                        <string>Mages uses your location while live location sharing is active.</string>
+                        <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+                        <string>Mages uses your location while live location sharing is active.</string>
+                        <key>NSLocationDefaultAccuracyReduced</key>
+                        <false/>
+                    """.trimIndent()
+                }
             }
 
             linux {
