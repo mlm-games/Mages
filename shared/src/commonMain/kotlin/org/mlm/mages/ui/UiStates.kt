@@ -1,6 +1,7 @@
 package org.mlm.mages.ui
 
 import kotlinx.serialization.Serializable
+import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.RoomSummary
 import org.mlm.mages.matrix.DeviceSummary
@@ -112,6 +113,19 @@ fun MessageEvent.mediaCaption(): String? {
 
 fun MessageEvent.hasCaption(): Boolean = mediaCaption() != null
 
+fun MessageEvent.displayPreview(): String {
+    mediaCaption()?.let { return it }
+    if (sticker != null) return "Sticker"
+    pollData?.let { return it.question }
+    val attachment = attachment ?: return body
+    return when (attachment.kind) {
+        AttachmentKind.Image -> "Image"
+        AttachmentKind.Video -> "Video"
+        AttachmentKind.Audio -> if (attachment.isVoice == true) "Voice message" else attachment.fileName ?: "Audio"
+        AttachmentKind.File -> attachment.fileName ?: "File"
+    }
+}
+
 fun MessageEvent.isDisplayableAsPinnedEvent(): Boolean {
     if (isRedacted) return false
     if (eventType == EventType.Unknown) return false
@@ -125,7 +139,7 @@ data class PinnedMessageUi(
 ) {
     val isResolved: Boolean get() = event != null
     val senderLabel: String? get() = event?.senderDisplayName ?: event?.sender
-    val previewText: String get() = event?.body?.ifBlank { "Pinned message" } ?: "Pinned message"
+    val previewText: String get() = event?.displayPreview()?.ifBlank { "Pinned message" } ?: "Pinned message"
     val timestampMs: Long? get() = event?.timestampMs
 }
 

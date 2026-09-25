@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.MessageEvent
+import org.mlm.mages.ui.displayPreview
 import org.mlm.mages.ui.theme.Spacing
 
 @Composable
@@ -45,7 +46,7 @@ fun ReportContentDialog(
                         )
                         Spacer(Modifier.height(Spacing.xs))
                         Text(
-                            event.body.take(200),
+                            event.displayPreview().take(200),
                             style = MaterialTheme.typography.bodyMedium,
                             maxLines = 3,
                             overflow = TextOverflow.Ellipsis

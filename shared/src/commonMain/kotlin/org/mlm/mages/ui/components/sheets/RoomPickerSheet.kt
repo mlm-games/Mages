@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.ui.ForwardableRoom
+import org.mlm.mages.ui.displayPreview
 import org.mlm.mages.ui.theme.Spacing
 
 @Composable
@@ -150,7 +151,7 @@ private fun ForwardPreview(event: MessageEvent) {
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    event.body,
+                    event.displayPreview(),
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis

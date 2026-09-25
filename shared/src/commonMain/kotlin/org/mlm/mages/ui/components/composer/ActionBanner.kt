@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.MessageEvent
+import org.mlm.mages.ui.displayPreview
 import org.mlm.mages.ui.theme.Limits
 import org.mlm.mages.ui.theme.Spacing
 
@@ -82,7 +83,7 @@ fun ActionBanner(replyingTo: MessageEvent?, editing: MessageEvent?, onCancelRepl
                         }
                     )
                     Text(
-                        event.body.take(Limits.previewCharsShort),
+                        event.displayPreview().take(Limits.previewCharsShort),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,

@@ -27,6 +27,7 @@ import org.koin.compose.koinInject
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.ui.ThreadUiState
+import org.mlm.mages.ui.displayPreview
 import org.mlm.mages.ui.components.composer.MessageComposer
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.LoadMoreButton
@@ -553,7 +554,7 @@ private fun ThreadRootMessage(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    event.body,
+                    event.displayPreview(),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(Spacing.md),
                     color = if (isMine)

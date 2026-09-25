@@ -30,6 +30,7 @@ import mages.shared.generated.resources.retry
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.SendState
+import org.mlm.mages.ui.displayPreview
 import org.mlm.mages.ui.hasCaption
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.theme.Limits
@@ -175,7 +176,7 @@ private fun MessagePreview(event: MessageEvent) {
                 )
             }
             Spacer(Modifier.height(Spacing.xs))
-            Text(event.body.take(Limits.previewCharsLong), style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            Text(event.displayPreview().take(Limits.previewCharsLong), style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)
         }
     }
 }
