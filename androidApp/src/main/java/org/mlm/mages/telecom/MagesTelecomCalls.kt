@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -28,7 +29,7 @@ object MagesTelecomCalls {
 
     @SuppressLint("MissingPermission")
     fun register(appContext: Context) {
-        if (registered) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || registered) return
         if (!appContext.packageManager.hasSystemFeature(PackageManager.FEATURE_TELECOM)) {
             Logger.w { "Telecom: FEATURE_TELECOM missing, skipping register" }
             return
@@ -99,6 +100,8 @@ object MagesTelecomCalls {
         isVideo: Boolean,
         onRemoteDisconnect: (() -> Unit)?,
     ) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+
         val mgr = try {
             CallsManager(appContext.applicationContext)
         } catch (e: Exception) {

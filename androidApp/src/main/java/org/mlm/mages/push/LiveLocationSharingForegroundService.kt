@@ -51,6 +51,10 @@ class LiveLocationSharingForegroundService : Service() {
         locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
     }
 
+    private fun hasLocationPermission(): Boolean =
+        checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+            checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
     @SuppressLint("MissingPermission")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
@@ -71,10 +75,7 @@ class LiveLocationSharingForegroundService : Service() {
 
     @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
-        if (
-            checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-            checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
-        ) return
+        if (!hasLocationPermission()) return
 
         dispatchLastKnownLocationOnce()
 
@@ -151,13 +152,12 @@ class LiveLocationSharingForegroundService : Service() {
 
     override fun onDestroy() {
         handlerThread?.let {
-            LocationManagerCompat.removeUpdates(locationManager, locationListener)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                it.quitSafely()
-            } else {
-                @Suppress("DEPRECATION")
-                it.quit()
+            if (hasLocationPermission()) {
+                runCatching {
+                    LocationManagerCompat.removeUpdates(locationManager, locationListener)
+                }
             }
+            it.quitSafely()
         }
         stopForeground(STOP_FOREGROUND_REMOVE)
         super.onDestroy()
