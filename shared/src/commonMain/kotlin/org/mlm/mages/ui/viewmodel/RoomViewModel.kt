@@ -315,7 +315,8 @@ class RoomViewModel(
         }
         launch {
             runCatching { service.portOrNull?.enterForeground() }
-            runCatching { service.portOrNull?.subscribeToVisibleRooms(listOf(currentState.roomId)) }
+            service.portOrNull?.subscribeToVisibleRooms(listOf(currentState.roomId))
+                ?.onFailure { Logger.w("Failed to subscribe room for full timeline: ${it.message}") }
             runCatching { service.startSupervisedSync() }
         }
         launch {

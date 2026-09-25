@@ -228,6 +228,7 @@ class RoomsViewModel(
         roomListToken?.let { token ->
             launch {
                 service.port.roomListUpdateVisibleRange(token, range.toList(), threshold)
+                    .onFailure { Logger.w("Failed to update visible range: ${it.message}") }
             }
         }
         subscribePrefetchJob?.cancel()
@@ -242,7 +243,8 @@ class RoomsViewModel(
             val roomIds = clamped.mapNotNull { items.getOrNull(it)?.roomId }
                 .take(40)
             if (roomIds.isEmpty()) return@launch
-            runCatching { service.port.subscribeToVisibleRooms(roomIds) }
+            service.port.subscribeToVisibleRooms(roomIds)
+                .onFailure { Logger.w("Failed to subscribe visible rooms: ${it.message}") }
         }
     }
 

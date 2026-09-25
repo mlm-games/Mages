@@ -75,6 +75,16 @@ private suspend fun Promise<JsAny?>.awaitUnitResult(): Result<Unit> {
     return if (result.ok) Result.success(Unit) else Result.failure(Exception(result.error ?: "Unknown error"))
 }
 
+/** Synchronous envelope -> Result<Unit>, for non-Promise WASM exports. */
+private fun JsAny?.toUnitResult(label: String): Result<Unit> {
+    val obj = this?.toJsonObject()
+        ?: return Result.failure(IllegalStateException("$label returned no response"))
+    val ok = (obj["ok"] as? JsonPrimitive)?.booleanOrNull == true
+    if (ok) return Result.success(Unit)
+    val error = (obj["error"] as? JsonPrimitive)?.contentOrNull
+    return Result.failure(IllegalStateException(error ?: "$label failed"))
+}
+
 /** Envelope -> Result<Boolean> (reads inner "value" bool). */
 private suspend fun Promise<JsAny?>.awaitBoolResult(): Result<Boolean> {
     val obj = await<JsAny?>()?.toJsonObject()
@@ -983,12 +993,13 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun roomListSetUnreadOnly(token: ULong, unreadOnly: Boolean): Boolean =
         requireClient().roomListSetUnreadOnly(token.toDouble(), unreadOnly)
 
-    override suspend fun roomListUpdateVisibleRange(token: ULong, range: List<Int>, threshold: Int): Boolean =
+    override suspend fun roomListUpdateVisibleRange(token: ULong, range: List<Int>, threshold: Int): Result<Unit> =
         requireClient().roomListUpdateVisibleRange(token.toDouble(), range.map { it.toDouble() }.toJsArray(), threshold.toDouble())
+            .toUnitResult("roomListUpdateVisibleRange")
 
-    override suspend fun subscribeToVisibleRooms(roomIds: List<String>) {
-        runCatching { requireClientOrNull()?.subscribeRooms(roomIds.toJsArray()) }
-    }
+    override suspend fun subscribeToVisibleRooms(roomIds: List<String>): Result<Unit> =
+        requireClientOrNull()?.subscribeRooms(roomIds.toJsArray())?.toUnitResult("subscribeRooms")
+            ?: Result.failure(IllegalStateException("subscribeRooms: client not available"))
 
     override suspend fun loginSsoLoopback(openUrl: (String) -> Boolean, deviceName: String?): Result<Unit> {
         return Result.failure(UnsupportedOperationException("SSO not supported on web"))

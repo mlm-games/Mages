@@ -1366,38 +1366,39 @@ impl Client {
         token: u64,
         range: Vec<u64>,
         threshold: u32,
-    ) -> bool {
-        if let Some(tx) = self
-            .room_list_cmds
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .get(&token)
-            .cloned()
-        {
-            tx.send(RoomListCmd::UpdateVisibleRange((range, threshold as usize)))
-                .is_ok()
-        } else {
-            false
-        }
+    ) -> Result<(), FfiError> {
+        let tx = {
+            let guard = self.room_list_cmds.lock().unwrap_or_else(|e| e.into_inner());
+            guard.get(&token).cloned()
+        };
+        let Some(tx) = tx else {
+            return Err(FfiError::Msg("room list subscription is no longer active".into()));
+        };
+        tx.send(RoomListCmd::UpdateVisibleRange((range, threshold as usize)))
+            .map_err(|_| FfiError::Msg("room list subscription is no longer active".into()))
     }
 
     /// Prefetch full-timeline subscriptions for viewport rooms (and re-assert
-    /// on room open). Non-blocking: invalid IDs are skipped, the subscribe is
-    /// spawned so Kotlin's dispatcher is never blocked waiting for sync.
-    pub fn subscribe_rooms(&self, room_ids: Vec<String>) {
+    /// on room open). Rejects malformed input synchronously, the subscribe
+    /// itself is spawned so Kotlin's dispatcher is never blocked waiting for
+    /// sync.
+    pub fn subscribe_rooms(&self, room_ids: Vec<String>) -> Result<(), FfiError> {
         use matrix_sdk::ruma::OwnedRoomId;
-        let rids: Vec<OwnedRoomId> = room_ids
-            .iter()
-            .filter_map(|s| OwnedRoomId::try_from(s.as_str()).ok())
-            .collect();
+        let mut rids = Vec::with_capacity(room_ids.len());
+        for (index, id) in room_ids.iter().enumerate() {
+            let rid = OwnedRoomId::try_from(id.as_str())
+                .map_err(|error| FfiError::Msg(format!("room_ids[{index}]: {error}")))?;
+            rids.push(rid);
+        }
         if rids.is_empty() {
-            return;
+            return Ok(());
         }
         let core = self.core.clone();
         let _ = spawn_task!(async move {
             core.ensure_sync_active().await;
             core.subscribe_rooms_full_timeline(&rids).await;
         });
+        Ok(())
     }
 
     pub fn start_call_inbox(&self, observer: Box<dyn CallObserver>) -> u64 {

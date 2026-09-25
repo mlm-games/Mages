@@ -835,9 +835,9 @@ interface MatrixPort {
     ): List<RenderedNotification>
 
     suspend fun roomListSetUnreadOnly(token: ULong, unreadOnly: Boolean): Boolean
-    suspend fun roomListUpdateVisibleRange(token: ULong, range: List<Int>, threshold: Int): Boolean
+    suspend fun roomListUpdateVisibleRange(token: ULong, range: List<Int>, threshold: Int): Result<Unit>
 
-    suspend fun subscribeToVisibleRooms(roomIds: List<String>)
+    suspend fun subscribeToVisibleRooms(roomIds: List<String>): Result<Unit>
 
     suspend fun loginSsoLoopback(openUrl: (String) -> Boolean, deviceName: String? = null): Result<Unit>
 

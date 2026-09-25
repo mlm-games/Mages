@@ -388,7 +388,7 @@ impl CoreClient {
                 .cloned()
         };
         if let Some(svc) = svc {
-            let _ = svc.start().await;
+            svc.start().await;
         }
         self.sdk.send_queue().set_enabled(true).await;
         let _ = self

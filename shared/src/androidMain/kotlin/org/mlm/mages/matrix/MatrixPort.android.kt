@@ -1024,17 +1024,18 @@ class RustMatrixPort : MatrixPort, VerificationService {
             }
         }
 
-    override suspend fun roomListUpdateVisibleRange(token: ULong, range: List<Int>, threshold: Int): Boolean =
+    override suspend fun roomListUpdateVisibleRange(token: ULong, range: List<Int>, threshold: Int): Result<Unit> =
         withContext(matrixDispatcher) {
-            withClient {
-                it.roomListUpdateVisibleRange(token, range.map { it.toULong() }, threshold.toUInt())
+            runWithFfiResult {
+                withClient {
+                    it.roomListUpdateVisibleRange(token, range.map { it.toULong() }, threshold.toUInt())
+                }
             }
         }
 
-    override suspend fun subscribeToVisibleRooms(roomIds: List<String>) =
+    override suspend fun subscribeToVisibleRooms(roomIds: List<String>): Result<Unit> =
         withContext(matrixDispatcher) {
-            runCatching { withClient { it.subscribeRooms(roomIds) } }
-            Unit
+            runWithFfiResult { withClient { it.subscribeRooms(roomIds) } }
         }
 
     override suspend fun loginSsoLoopback(

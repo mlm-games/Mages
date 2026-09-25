@@ -94,9 +94,9 @@ pub fn to_json<T: serde::Serialize>(v: &T) -> JsValue {
         .unwrap_or_else(|e| JsValue::from_str(&format!("{{\"error\":\"{e}\"}}")))
 }
 
-fn decode_string_array(value: JsValue) -> Result<Vec<String>, String> {
+fn decode_string_array(value: JsValue, name: &str) -> Result<Vec<String>, String> {
     if !Array::is_array(&value) {
-        return Err("expected an array of strings".into());
+        return Err(format!("{name} must be an array of strings"));
     }
 
     let array: Array = Array::from(&value);
@@ -106,7 +106,7 @@ fn decode_string_array(value: JsValue) -> Result<Vec<String>, String> {
         .map(|(index, value)| {
             value
                 .as_string()
-                .ok_or_else(|| format!("event_ids[{index}] must be a string"))
+                .ok_or_else(|| format!("{name}[{index}] must be a string"))
         })
         .collect()
 }
@@ -127,7 +127,7 @@ fn decode_u64_array(value: JsValue) -> Result<Vec<u64>, String> {
             if !number.is_finite() || number < 0.0 || number.fract() != 0.0 {
                 return Err(format!("range[{index}] must be a non-negative integer"));
             }
-            if number > u64::MAX as f64 {
+            if number >= u64::MAX as f64 {
                 return Err(format!("range[{index}] is too large"));
             }
             Ok(number as u64)
@@ -332,12 +332,17 @@ impl WasmAsyncState {
         if self.client().session_meta().is_none() {
             return None;
         }
-        let svc: Arc<SyncService> = SyncService::builder(self.client().clone())
+        let built = SyncService::builder(self.client().clone())
             .with_offline_mode()
             .build()
-            .await
-            .ok()?
-            .into();
+            .await;
+        let svc: Arc<SyncService> = match built {
+            Ok(svc) => svc.into(),
+            Err(error) => {
+                tracing::warn!("ensure_sync_service: build failed: {error:?}");
+                return None;
+            }
+        };
         self.sync_service.borrow_mut().replace(svc.clone());
         Some(svc)
     }
@@ -1763,7 +1768,7 @@ impl WasmClient {
         let Some(s) = self.state() else {
             return webffi_not_init();
         };
-        let event_ids = match decode_string_array(event_ids) {
+        let event_ids = match decode_string_array(event_ids, "event_ids") {
             Ok(event_ids) => event_ids,
             Err(error) => return webffi_err(&error),
         };
@@ -2289,25 +2294,21 @@ impl WasmClient {
         token: f64,
         #[wasm_bindgen(unchecked_param_type = "number[]")] range: JsValue,
         threshold: f64,
-    ) -> bool {
-        let Some(state) = self.state() else {
-            return false;
+    ) -> JsValue {
+        let Some(s) = self.state() else {
+            return webffi_not_init();
         };
         let range_vec = match decode_u64_array(range) {
             Ok(range) => range,
-            Err(error) => {
-                tracing::warn!("room_list_update_visible_range: {error}");
-                return false;
-            }
+            Err(error) => return webffi_err(&error),
         };
-        if let Some(tx) = state.room_list_cmds.borrow().get(&(token as u64)).cloned() {
-            tx.send(RoomListCmd::UpdateVisibleRange((
-                range_vec,
-                threshold as usize,
-            )))
-            .is_ok()
-        } else {
-            false
+        let tx = s.room_list_cmds.borrow().get(&(token as u64)).cloned();
+        let Some(tx) = tx else {
+            return webffi_err("room list subscription is no longer active");
+        };
+        match tx.send(RoomListCmd::UpdateVisibleRange((range_vec, threshold as usize))) {
+            Ok(()) => to_json(&serde_json::json!({"ok":true})),
+            Err(_) => webffi_err("room list subscription is no longer active"),
         }
     }
 
@@ -2315,33 +2316,39 @@ impl WasmClient {
     pub fn subscribe_rooms(
         &self,
         #[wasm_bindgen(unchecked_param_type = "string[]")] room_ids: JsValue,
-    ) {
-        let Some(state) = self.state() else {
-            return;
+    ) -> JsValue {
+        let Some(s) = self.state() else {
+            return webffi_not_init();
         };
-        let ids = match decode_string_array(room_ids) {
+        let ids = match decode_string_array(room_ids, "room_ids") {
             Ok(ids) => ids,
-            Err(error) => {
-                tracing::warn!("subscribe_rooms: {error}");
-                return;
-            }
+            Err(error) => return webffi_err(&error),
         };
-        let rids: Vec<OwnedRoomId> = ids
-            .iter()
-            .filter_map(|s| OwnedRoomId::try_from(s.as_str()).ok())
-            .collect();
-        if rids.is_empty() {
-            return;
-        }
-        let s = state.clone();
-        wasm_bindgen_futures::spawn_local(async move {
-            if let Some(svc) = s.ensure_sync_service().await {
-                let _ = svc.start().await;
-                let refs: Vec<&matrix_sdk::ruma::RoomId> =
-                    rids.iter().map(|r| r.as_ref()).collect();
-                svc.room_list_service().set_room_subscriptions(&refs).await;
+        let mut rids = Vec::with_capacity(ids.len());
+        for (index, id) in ids.iter().enumerate() {
+            match OwnedRoomId::try_from(id.as_str()) {
+                Ok(rid) => rids.push(rid),
+                Err(error) => {
+                    return webffi_err(&format!(
+                        "room_ids[{index}] is not a valid room id: {error}"
+                    ));
+                }
             }
+        }
+        if rids.is_empty() {
+            return to_json(&serde_json::json!({"ok":true}));
+        }
+        let s = s.clone();
+        wasm_bindgen_futures::spawn_local(async move {
+            let Some(svc) = s.ensure_sync_service().await else {
+                tracing::warn!("subscribe_rooms: sync service is unavailable");
+                return;
+            };
+            svc.start().await;
+            let refs: Vec<&matrix_sdk::ruma::RoomId> = rids.iter().map(|r| r.as_ref()).collect();
+            svc.room_list_service().set_room_subscriptions(&refs).await;
         });
+        to_json(&serde_json::json!({"ok":true}))
     }
 
     #[wasm_bindgen(js_name = observeOwnReceipt)]
