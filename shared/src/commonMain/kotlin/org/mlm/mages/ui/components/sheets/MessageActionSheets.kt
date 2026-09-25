@@ -138,7 +138,7 @@ fun MessageActionSheet(
                             MaterialTheme.colorScheme.error,
                         ) { onRemoveCaption(); onDismiss() }
                     }
-                } else {
+                } else if (event.sticker == null) {
                     ActionItem(Icons.Default.Edit, "Edit") { onEdit(); onDismiss() }
                 }
             }
