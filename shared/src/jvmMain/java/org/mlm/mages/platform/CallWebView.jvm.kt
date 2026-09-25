@@ -35,6 +35,27 @@ private val ELEMENT_SPECIFIC_ACTIONS = setOf(
     "im.vector.hangup",
 )
 
+// CEF loses non-BMP characters (emoji) crossing the JS/native boundary, so they
+// travel as JSON \u escapes and are decoded again by the parser on the other side.
+private fun escapeNonBmp(json: String): String {
+    if (json.none { it.isSurrogate() }) return json
+
+    val out = StringBuilder(json.length + 16)
+    var i = 0
+    while (i < json.length) {
+        val c = json[i]
+        if (c.isHighSurrogate() && i + 1 < json.length && json[i + 1].isLowSurrogate()) {
+            out.append("\\u").append(c.code.toString(16).padStart(4, '0'))
+            out.append("\\u").append(json[i + 1].code.toString(16).padStart(4, '0'))
+            i += 2
+        } else {
+            out.append(c)
+            i++
+        }
+    }
+    return out.toString()
+}
+
 @Composable
 actual fun CallWebViewHost(
     widgetUrl: String,
@@ -189,7 +210,7 @@ private class JcefCallWebViewController(
             val action = json.optString("action")
 
             if (action in ELEMENT_SPECIFIC_ACTIONS) {
-                sendElementActionResponse(message)
+                if (!json.has("response")) sendElementActionResponse(message)
 
                 when (action) {
                     "io.element.close", "im.vector.hangup" -> fireClosedOnce()
@@ -237,7 +258,8 @@ private class JcefCallWebViewController(
             return
         }
 
-        val js = "window.__MagesPostFromHost && window.__MagesPostFromHost($jsonMessage) || postMessage($jsonMessage, '*')"
+        val payload = escapeNonBmp(jsonMessage)
+        val js = "if (window.__MagesPostFromHost) window.__MagesPostFromHost($payload); else postMessage($payload, '*');"
         f.executeJavaScript(js, b.url ?: "", 0)
     }
 
@@ -361,6 +383,15 @@ private class JcefCallWebViewController(
                     });
                 }
                 
+                // The message router truncates non-BMP characters, so emoji are
+                // handed over as JSON \u escapes and decoded by the native parser.
+                function escapeNonBmp(text) {
+                    return text.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(pair) {
+                        return '\\u' + pair.charCodeAt(0).toString(16).padStart(4, '0') +
+                               '\\u' + pair.charCodeAt(1).toString(16).padStart(4, '0');
+                    });
+                }
+                
                 // Called by native to send messages TO the widget
                 window.__MagesPostFromHost = function(payload) {
                     const key = keyFor(payload);
@@ -389,7 +420,7 @@ private class JcefCallWebViewController(
                     
                     if (typeof elementX === 'function') {
                         elementX({
-                            request: JSON.stringify(data),
+                            request: escapeNonBmp(JSON.stringify(data)),
                             persistent: false
                         });
                     }

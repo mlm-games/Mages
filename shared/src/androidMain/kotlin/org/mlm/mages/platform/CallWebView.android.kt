@@ -581,7 +581,7 @@ actual fun CallWebViewHost(
             val action = json.optString("action")
 
             if (action in ELEMENT_SPECIFIC_ACTIONS) {
-                sendElementActionResponse(webView, message)
+                if (!json.has("response")) sendElementActionResponse(webView, message)
 
                 when (action) {
                     "io.element.close", "im.vector.hangup" -> onClosed()
@@ -607,7 +607,7 @@ actual fun CallWebViewHost(
                 }
 
                 // echo-suppressed post
-                val script = "window.__MagesPostFromHost && window.__MagesPostFromHost($message) || postMessage($message, '*')" // HACK: Same as above (*)
+                val script = "if (window.__MagesPostFromHost) window.__MagesPostFromHost($message); else postMessage($message, '*');"
                 webView.post {
                     Log.d("WidgetBridge", "Sending to widget: $message")
                     webView.evaluateJavascript(script) { result ->
