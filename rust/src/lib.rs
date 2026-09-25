@@ -3787,6 +3787,58 @@ fn extract_reactions(content: &TimelineItemContent, me: &str) -> Vec<ReactionSum
     reactions
 }
 
+fn render_reply_preview(ev: &matrix_sdk_ui::timeline::EmbeddedEvent, me: &str) -> Option<String> {
+    let text = match &ev.content {
+        TimelineItemContent::MsgLike(ml) => match &ml.kind {
+            MsgLikeKind::Message(msg) => {
+                use matrix_sdk::ruma::events::room::message::MessageType;
+
+                let body = msg.body().trim();
+                let file_name = match msg.msgtype() {
+                    MessageType::Image(content) => content.filename.as_deref(),
+                    MessageType::Video(content) => content.filename.as_deref(),
+                    MessageType::Audio(content) => content.filename.as_deref(),
+                    MessageType::File(content) => content.filename.as_deref(),
+                    _ => None,
+                };
+                let is_voice = matches!(msg.msgtype(), MessageType::Audio(content) if content.voice.is_some());
+
+                if is_voice {
+                    "Voice message".to_owned()
+                } else if matches!(msg.msgtype(), MessageType::Location(_)) {
+                    "Shared location".to_owned()
+                } else if !body.is_empty() {
+                    body.to_owned()
+                } else {
+                    match msg.msgtype() {
+                        MessageType::Image(_) => "Image".to_owned(),
+                        MessageType::Video(_) => "Video".to_owned(),
+                        MessageType::Audio(_) => file_name.unwrap_or("Audio").to_owned(),
+                        MessageType::File(_) => file_name.unwrap_or("File").to_owned(),
+                        _ => "Message".to_owned(),
+                    }
+                }
+            }
+            MsgLikeKind::Poll(poll) => map_poll_state(poll, me).question,
+            MsgLikeKind::Sticker(_) => "Sticker".to_owned(),
+            MsgLikeKind::LiveLocation(_) => "Shared live location".to_owned(),
+            MsgLikeKind::Redacted => "Message deleted".to_owned(),
+            MsgLikeKind::UnableToDecrypt(_) => "Unable to decrypt this message".to_owned(),
+            MsgLikeKind::Other(_) => "Unsupported event".to_owned(),
+        },
+        TimelineItemContent::MembershipChange(change) => {
+            format!("{} updated membership", change.user_id())
+        }
+        TimelineItemContent::ProfileChange(_) => "Profile updated".to_owned(),
+        TimelineItemContent::OtherState(state) => {
+            format!("State updated: {}", state.content().event_type())
+        }
+        _ => return None,
+    };
+
+    (!text.trim().is_empty()).then_some(text)
+}
+
 fn map_timeline_event(
     ev: &EventTimelineItem,
     room_id: &str,
@@ -3860,9 +3912,7 @@ fn map_timeline_event(
                     let (dn, _av) = map_sender_profile(&embed.sender, &embed.sender_profile);
                     reply_to_sender_display_name = dn;
 
-                    if let Some(m) = embed.content.as_message() {
-                        reply_to_body = Some(m.body().to_owned());
-                    }
+                    reply_to_body = render_reply_preview(embed, me);
                 }
             }
 
