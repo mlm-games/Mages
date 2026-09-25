@@ -74,7 +74,10 @@ fun MessageActionSheet(
         return
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        modifier = Modifier.fillMaxHeight(),
+        onDismissRequest = onDismiss
+    ) {
         Column(
             Modifier
                 .fillMaxWidth()
