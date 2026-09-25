@@ -116,19 +116,43 @@ fun MessageEvent.mediaCaption(): String? {
 fun MessageEvent.hasCaption(): Boolean = mediaCaption() != null
 
 fun MessageEvent.displayPreview(): String {
+    if (isRedacted) return "Message deleted"
+    if (utd != null) return "Unable to decrypt this message"
     mediaCaption()?.let { return it }
+    if (eventType == EventType.CallInvite) return "Call"
+    if (eventType == EventType.CallNotification) {
+        return when {
+            body.contains("video", ignoreCase = true) -> "Video call"
+            body.contains("audio", ignoreCase = true) || body.contains("voice", ignoreCase = true) -> "Voice call"
+            else -> "Call"
+        }
+    }
     if (sticker != null) return "Sticker"
     pollData?.let { return it.question }
     val attachment = attachment ?: return body
     return when (attachment.kind) {
         AttachmentKind.Image -> "Image"
         AttachmentKind.Video -> "Video"
-        AttachmentKind.Audio -> if (attachment.isVoice == true) "Voice message" else attachment.fileName ?: "Audio"
-        AttachmentKind.File -> attachment.fileName ?: "File"
+        AttachmentKind.Audio -> if (attachment.isVoice == true) {
+            "Voice message"
+        } else attachment.fileName?.takeIf { it.isNotBlank() } ?: "Audio"
+        AttachmentKind.File -> attachment.fileName?.takeIf { it.isNotBlank() } ?: "File"
     }
 }
 
 fun MessageEvent.toReplyPreview(): ReplyPreview {
+    if (isRedacted) {
+        return ReplyPreview(
+            kind = ReplyPreviewKind.Redacted,
+            text = "Message deleted",
+        )
+    }
+    if (utd != null) {
+        return ReplyPreview(
+            kind = ReplyPreviewKind.Encrypted,
+            text = "Unable to decrypt this message",
+        )
+    }
     if (sticker != null) {
         return ReplyPreview(
             kind = ReplyPreviewKind.Sticker,
@@ -151,24 +175,36 @@ fun MessageEvent.toReplyPreview(): ReplyPreview {
         }
         val text = when (kind) {
             ReplyPreviewKind.Voice -> "Voice message"
-            else -> body.trim().ifBlank { attachment.fileName ?: when (kind) {
-                ReplyPreviewKind.Image -> "Image"
-                ReplyPreviewKind.Video -> "Video"
-                ReplyPreviewKind.Audio -> "Audio"
-                else -> "File"
-            } }
+            else -> body.trim().ifBlank {
+                attachment.fileName?.takeIf { it.isNotBlank() } ?: when (kind) {
+                    ReplyPreviewKind.Image -> "Image"
+                    ReplyPreviewKind.Video -> "Video"
+                    ReplyPreviewKind.Audio -> "Audio"
+                    else -> "File"
+                }
+            }
         }
         return ReplyPreview(kind = kind, text = text, attachment = attachment)
     }
     return ReplyPreview(
         kind = when {
-            isRedacted -> ReplyPreviewKind.Redacted
+            eventType == org.mlm.mages.matrix.EventType.CallNotification &&
+                body.contains("video", ignoreCase = true) -> ReplyPreviewKind.VideoCall
+            eventType == org.mlm.mages.matrix.EventType.CallNotification &&
+                (body.contains("audio", ignoreCase = true) || body.contains("voice", ignoreCase = true)) -> ReplyPreviewKind.VoiceCall
+            eventType == org.mlm.mages.matrix.EventType.CallInvite ||
+                eventType == org.mlm.mages.matrix.EventType.CallNotification -> ReplyPreviewKind.Call
             eventType == org.mlm.mages.matrix.EventType.Location -> ReplyPreviewKind.Location
             eventType == org.mlm.mages.matrix.EventType.LiveLocation -> ReplyPreviewKind.LiveLocation
             else -> ReplyPreviewKind.Text
         },
         text = when {
-            isRedacted -> "Message deleted"
+            eventType == org.mlm.mages.matrix.EventType.CallNotification &&
+                body.contains("video", ignoreCase = true) -> "Video call"
+            eventType == org.mlm.mages.matrix.EventType.CallNotification &&
+                (body.contains("audio", ignoreCase = true) || body.contains("voice", ignoreCase = true)) -> "Voice call"
+            eventType == org.mlm.mages.matrix.EventType.CallInvite ||
+                eventType == org.mlm.mages.matrix.EventType.CallNotification -> "Call"
             eventType == org.mlm.mages.matrix.EventType.Location -> "Shared location"
             eventType == org.mlm.mages.matrix.EventType.LiveLocation -> "Shared live location"
             else -> body.takeIf { it.isNotBlank() }

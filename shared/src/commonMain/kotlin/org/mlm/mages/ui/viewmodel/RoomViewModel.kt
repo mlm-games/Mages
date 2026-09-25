@@ -2674,11 +2674,11 @@ class RoomViewModel(
 
         events.forEach { ev ->
             ensureThumbnail(ev)
-            ensureReplyThumbnail(ev)
         }
     }
 
     fun ensureThumbnail(event: MessageEvent) {
+        ensureReplyThumbnail(event)
         if (settings.value.blockMediaPreviews) return
         if (event.eventId.isBlank()) return
         if (currentState.thumbByEvent.containsKey(event.eventId)) return
@@ -2712,7 +2712,7 @@ class RoomViewModel(
         }
     }
 
-    private fun ensureReplyThumbnail(event: MessageEvent) {
+    private fun ensureReplyThumbnail(event: MessageEvent, retryAttempt: Int = 0) {
         if (settings.value.blockMediaPreviews) return
         val replyId = event.replyToEventId?.takeIf { it.isNotBlank() } ?: return
         val preview = event.replyPreview ?: return
@@ -2720,7 +2720,9 @@ class RoomViewModel(
             preview.kind != ReplyPreviewKind.Video &&
             preview.kind != ReplyPreviewKind.Sticker
         ) return
-        if (currentState.replyThumbByEvent.containsKey(replyId)) return
+        if (currentState.replyThumbByEvent.containsKey(replyId) ||
+            currentState.thumbByEvent.containsKey(replyId)
+        ) return
 
         val inFlightKey = "reply:$replyId"
         if (!thumbnailFetchInFlight.add(inFlightKey)) return
@@ -2736,9 +2738,15 @@ class RoomViewModel(
             try {
                 val result = attachment?.let { service.thumbnailToCache(it, 320, 320, true) }
                     ?: sticker?.let { service.port.downloadStickerToCache(it) }
-                result?.onSuccess { path ->
+                val path = result?.getOrNull()?.takeIf { it.isNotBlank() }
+                if (path != null) {
                     updateState {
                         copy(replyThumbByEvent = replyThumbByEvent + (replyId to path))
+                    }
+                } else if (retryAttempt < 2) {
+                    launch {
+                        delay(1_000L * (retryAttempt + 1))
+                        ensureReplyThumbnail(event, retryAttempt + 1)
                     }
                 }
             } finally {

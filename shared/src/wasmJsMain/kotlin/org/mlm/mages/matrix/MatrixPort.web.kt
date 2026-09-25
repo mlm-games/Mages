@@ -132,6 +132,16 @@ private suspend fun Promise<JsAny?>.awaitPlainBool(): Boolean =
 private suspend fun Promise<JsAny?>.awaitString(): String? =
     await<JsAny?>()?.toString()?.takeIf { it != "null" && it != "undefined" }
 
+private suspend fun Promise<JsAny?>.awaitDataUri(): String? {
+    val value = await<JsAny?>() ?: return null
+    val obj = value.toJsonObject()
+    if (obj != null) {
+        if ((obj["ok"] as? JsonPrimitive)?.booleanOrNull != true) return null
+        return (obj["value"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.startsWith("data:") }
+    }
+    return value.toString().takeIf { it.startsWith("data:") }
+}
+
 private suspend fun Promise<JsAny?>.awaitUnit(): Result<Unit> {
     await<JsAny?>()
     return Result.success(Unit)
@@ -809,12 +819,10 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         info: StickerInfo,
         filenameHint: String?
     ): Result<String> = runCatching {
-        val raw = requireClient()
+        requireClient()
             .getMediaContent(wasmJson.encodeToString(info), false)
-            .await<JsAny?>()
-            ?.toString()
+            .awaitDataUri()
             ?: error("Sticker download failed")
-        raw
     }
 
     override suspend fun searchRoom(

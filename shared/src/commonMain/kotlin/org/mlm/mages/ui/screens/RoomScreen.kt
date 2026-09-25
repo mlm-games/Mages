@@ -36,6 +36,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MessageEvent
+import org.mlm.mages.ReplyPreviewKind
 import org.mlm.mages.matrix.SendState
 import org.mlm.mages.platform.*
 import org.mlm.mages.ui.components.AttachmentData
@@ -1488,11 +1489,25 @@ private fun MessageItem(
 
         val isSelected = state.isSelectionMode && event.eventId in state.selectedEventIds
 
-        LaunchedEffect(event.eventId, state.thumbByEvent[event.eventId]) {
+        LaunchedEffect(
+            event.eventId,
+            state.thumbByEvent[event.eventId],
+            event.replyToEventId?.let { state.replyThumbByEvent[it] ?: state.thumbByEvent[it] },
+        ) {
             val hasThumb = state.thumbByEvent.containsKey(event.eventId)
-            val needsThumb = !hasThumb && (
+            val hasReplyThumb = event.replyToEventId?.let {
+                state.replyThumbByEvent.containsKey(it) || state.thumbByEvent.containsKey(it)
+            } ?: true
+            val hasReplyMedia = when (event.replyPreview?.kind) {
+                ReplyPreviewKind.Image,
+                ReplyPreviewKind.Video,
+                ReplyPreviewKind.Sticker -> true
+                else -> false
+            }
+            val needsThumb = (!hasThumb || (hasReplyMedia && !hasReplyThumb)) && (
                 event.attachment?.let { it.kind == AttachmentKind.Image || it.kind == AttachmentKind.Video } == true ||
-                    event.sticker != null
+                    event.sticker != null ||
+                    hasReplyMedia
                 )
             if (needsThumb) viewModel.ensureThumbnail(event)
         }
@@ -1622,7 +1637,9 @@ private fun MessageItem(
                             threadCount = state.threadCount[event.eventId],
                             variant = MessageBubbleVariant.Timeline,
                             resolvedPreviewPath = state.thumbByEvent[event.eventId],
-                            resolvedReplyPreviewPath = event.replyToEventId?.let { state.replyThumbByEvent[it] },
+                            resolvedReplyPreviewPath = event.replyToEventId?.let {
+                                state.replyThumbByEvent[it] ?: state.thumbByEvent[it]
+                            },
                             resolvedAudioPath = state.audioFileByEvent[event.eventId],
                             resolvedAudioWaveform = state.waveformByEvent[event.eventId].orEmpty(),
                             senderVisible = true,

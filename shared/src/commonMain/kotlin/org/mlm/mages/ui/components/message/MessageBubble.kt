@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
@@ -177,18 +178,20 @@ fun MessageBubble(
                 Layout(
                     modifier = Modifier.padding(Spacing.md),
                     content = {
-                        val hasReply = model.reply != null &&
-                            (!model.reply.body.isNullOrBlank() || model.reply.preview != null)
-                        if (hasReply) {
-                            val reply = model.reply!!
-                            ReplyPreview(
-                                isMine = isMine,
-                                sender = reply.sender,
-                                body = reply.body,
-                                preview = reply.preview,
-                                previewPath = reply.previewPath,
-                                onClick = onReplyPreviewClick,
-                            )
+                        model.reply?.let { reply ->
+                            if (!reply.body.isNullOrBlank() ||
+                                reply.preview != null ||
+                                !reply.sender.isNullOrBlank()
+                            ) {
+                                ReplyPreview(
+                                    isMine = isMine,
+                                    sender = reply.sender,
+                                    body = reply.body,
+                                    preview = reply.preview,
+                                    previewPath = reply.previewPath,
+                                    onClick = onReplyPreviewClick,
+                                )
+                            }
                         }
                         Column(horizontalAlignment = horizontalAlignment) {
                             when (val attachment = model.attachment) {
@@ -419,8 +422,12 @@ internal fun ReplyPreview(
     preview: ReplyPreview?,
     previewPath: String? = null,
     showAccent: Boolean = true,
+    maxLines: Int = 2,
     onClick: (() -> Unit)? = null,
 ) {
+    val accentHeight = if (
+        preview?.kind != null && preview.kind != ReplyPreviewKind.Text
+    ) 40.dp else 24.dp
     Surface(
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
         shape = RoundedCornerShape(8.dp),
@@ -431,7 +438,7 @@ internal fun ReplyPreview(
                 Box(
                     modifier = Modifier
                         .width(3.dp)
-                        .height(40.dp)
+                        .height(accentHeight)
                         .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
                 )
                 Spacer(Modifier.width(Spacing.sm))
@@ -451,7 +458,7 @@ internal fun ReplyPreview(
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
+                maxLines = maxLines,
                 overflow = TextOverflow.Ellipsis
             )
         }
@@ -460,20 +467,7 @@ internal fun ReplyPreview(
 
 @Composable
 private fun ReplyPreviewVisual(preview: ReplyPreview, resolvedPath: String?) {
-    val attachment = preview.attachment
-    val sticker = preview.sticker
-    val imageSource = resolvedPath ?: when (preview.kind) {
-        ReplyPreviewKind.Image -> attachment?.thumbnailMxcUri ?: attachment?.mxcUri
-        ReplyPreviewKind.Video -> attachment?.thumbnailMxcUri ?: attachment?.mxcUri
-        ReplyPreviewKind.Sticker -> sticker?.thumbnailMxcUri ?: sticker?.mxcUri
-        else -> null
-    }
-    val encrypted = when (preview.kind) {
-        ReplyPreviewKind.Image, ReplyPreviewKind.Video ->
-            attachment?.encrypted != null || attachment?.thumbnailEncrypted != null
-        ReplyPreviewKind.Sticker -> sticker?.encrypted != null || sticker?.thumbnailEncrypted != null
-        else -> false
-    }
+    val imageSource = resolvedPath
     val icon = when (preview.kind) {
         ReplyPreviewKind.Image -> Icons.Default.Image
         ReplyPreviewKind.Video -> Icons.Default.Videocam
@@ -482,6 +476,8 @@ private fun ReplyPreviewVisual(preview: ReplyPreview, resolvedPath: String?) {
         ReplyPreviewKind.File -> Icons.AutoMirrored.Filled.InsertDriveFile
         ReplyPreviewKind.Sticker -> Icons.Default.EmojiEmotions
         ReplyPreviewKind.Poll -> Icons.Default.Poll
+        ReplyPreviewKind.Call, ReplyPreviewKind.VoiceCall -> Icons.Default.Call
+        ReplyPreviewKind.VideoCall -> Icons.Default.Videocam
         ReplyPreviewKind.Location, ReplyPreviewKind.LiveLocation -> Icons.Default.LocationOn
         ReplyPreviewKind.Encrypted -> Icons.Default.Lock
         ReplyPreviewKind.Redacted, ReplyPreviewKind.Unsupported -> Icons.Default.Info
@@ -495,14 +491,18 @@ private fun ReplyPreviewVisual(preview: ReplyPreview, resolvedPath: String?) {
             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
         contentAlignment = Alignment.Center,
     ) {
-        if (imageSource != null && (resolvedPath != null || !encrypted)) {
+        if (imageSource != null) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalPlatformContext.current)
                     .data(imageSource)
                     .crossfade(true)
                     .build(),
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
+                contentScale = if (preview.kind == ReplyPreviewKind.Sticker) {
+                    ContentScale.Fit
+                } else {
+                    ContentScale.Crop
+                },
                 modifier = Modifier.fillMaxSize(),
             )
         } else if (icon != null) {

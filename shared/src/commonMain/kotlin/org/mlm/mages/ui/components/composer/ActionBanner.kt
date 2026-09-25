@@ -32,6 +32,7 @@ fun ActionBanner(
     val isEditing = editing != null
     val event = editing ?: replyingTo
     if (event != null) {
+        val replyTargetName = event.senderDisplayName?.takeIf { it.isNotBlank() } ?: event.sender
         Surface(
             color = if (isEditing) {
                 MaterialTheme.colorScheme.tertiaryContainer
@@ -76,7 +77,7 @@ fun ActionBanner(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         when {
-                            !isEditing -> "Replying to ${event.sender}"
+                            !isEditing -> "Replying to $replyTargetName"
                             event.attachment != null -> "Editing caption"
                             else -> "Editing"
                         },
@@ -94,6 +95,7 @@ fun ActionBanner(
                         preview = event.toReplyPreview(),
                         previewPath = resolvedPreviewPath,
                         showAccent = false,
+                        maxLines = 1,
                     )
                 }
 

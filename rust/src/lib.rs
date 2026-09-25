@@ -3821,7 +3821,10 @@ fn extract_sticker_info(sticker_event: &matrix_sdk_ui::timeline::Sticker) -> Sti
     }
 }
 
-fn map_reply_preview(ev: &matrix_sdk_ui::timeline::EmbeddedEvent, me: &str) -> Option<ReplyPreview> {
+fn map_reply_preview(
+    ev: &matrix_sdk_ui::timeline::EmbeddedEvent,
+    me: &str,
+) -> Option<ReplyPreview> {
     let content = &ev.content;
     match content {
         TimelineItemContent::MsgLike(ml) => match &ml.kind {
@@ -3829,7 +3832,10 @@ fn map_reply_preview(ev: &matrix_sdk_ui::timeline::EmbeddedEvent, me: &str) -> O
                 use matrix_sdk::ruma::events::room::message::MessageType;
 
                 let attachment = extract_attachment(msg);
-                let is_voice = attachment.as_ref().and_then(|info| info.is_voice).unwrap_or(false)
+                let is_voice = attachment
+                    .as_ref()
+                    .and_then(|info| info.is_voice)
+                    .unwrap_or(false)
                     || matches!(msg.msgtype(), MessageType::Audio(content) if content.voice.is_some());
                 let kind = match msg.msgtype() {
                     MessageType::Image(_) => ReplyPreviewKind::Image,
@@ -3840,7 +3846,8 @@ fn map_reply_preview(ev: &matrix_sdk_ui::timeline::EmbeddedEvent, me: &str) -> O
                     MessageType::Location(_) => ReplyPreviewKind::Location,
                     _ => ReplyPreviewKind::Text,
                 };
-                let body = msg.body().trim();
+                let body = strip_reply_fallback(msg.body());
+                let body = body.trim();
                 let text = if is_voice {
                     Some("Voice message".to_owned())
                 } else if matches!(kind, ReplyPreviewKind::Location) {
@@ -3848,19 +3855,26 @@ fn map_reply_preview(ev: &matrix_sdk_ui::timeline::EmbeddedEvent, me: &str) -> O
                 } else if !body.is_empty() {
                     Some(body.to_owned())
                 } else {
-                    attachment.as_ref().and_then(|info| info.file_name.clone()).or_else(|| {
-                        Some(
-                            match kind {
-                                ReplyPreviewKind::Image => "Image",
-                                ReplyPreviewKind::Video => "Video",
-                                ReplyPreviewKind::Audio => "Audio",
-                                ReplyPreviewKind::File => "File",
-                                ReplyPreviewKind::Location => "Shared location",
-                                _ => "Message",
-                            }
-                            .to_owned(),
-                        )
-                    })
+                    attachment
+                        .as_ref()
+                        .and_then(|info| {
+                            info.file_name
+                                .clone()
+                                .filter(|name| !name.trim().is_empty())
+                        })
+                        .or_else(|| {
+                            Some(
+                                match kind {
+                                    ReplyPreviewKind::Image => "Image",
+                                    ReplyPreviewKind::Video => "Video",
+                                    ReplyPreviewKind::Audio => "Audio",
+                                    ReplyPreviewKind::File => "File",
+                                    ReplyPreviewKind::Location => "Shared location",
+                                    _ => "Message",
+                                }
+                                .to_owned(),
+                            )
+                        })
                 };
                 Some(ReplyPreview {
                     kind,
@@ -3907,17 +3921,24 @@ fn map_reply_preview(ev: &matrix_sdk_ui::timeline::EmbeddedEvent, me: &str) -> O
             }),
         },
         TimelineItemContent::CallInvite => Some(ReplyPreview {
-            kind: ReplyPreviewKind::Unsupported,
-            text: Some("Unsupported call".to_owned()),
-            attachment: None,
-            sticker: None,
-        }),
-        TimelineItemContent::RtcNotification { .. } => Some(ReplyPreview {
-            kind: ReplyPreviewKind::Unsupported,
+            kind: ReplyPreviewKind::Call,
             text: Some("Call".to_owned()),
             attachment: None,
             sticker: None,
         }),
+        TimelineItemContent::RtcNotification { call_intent, .. } => {
+            let (kind, text) = match call_intent {
+                Some(CallIntent::Video) => (ReplyPreviewKind::VideoCall, "Video call"),
+                Some(CallIntent::Audio) => (ReplyPreviewKind::VoiceCall, "Voice call"),
+                Some(_) | None => (ReplyPreviewKind::Call, "Call"),
+            };
+            Some(ReplyPreview {
+                kind,
+                text: Some(text.to_owned()),
+                attachment: None,
+                sticker: None,
+            })
+        }
         TimelineItemContent::MembershipChange(change) => Some(ReplyPreview {
             kind: ReplyPreviewKind::Unsupported,
             text: Some(format!("{} updated membership", change.user_id())),
@@ -4015,7 +4036,9 @@ fn map_timeline_event(
                     reply_to_sender_display_name = dn;
 
                     reply_preview = map_reply_preview(embed, me);
-                    reply_to_body = reply_preview.as_ref().and_then(|preview| preview.text.clone());
+                    reply_to_body = reply_preview
+                        .as_ref()
+                        .and_then(|preview| preview.text.clone());
                 }
             }
 
@@ -4378,6 +4401,11 @@ fn extract_attachment(msg: &matrix_sdk_ui::timeline::Message) -> Option<Attachme
                     )
                 })
                 .unwrap_or((None, None, None, None, None, None, None));
+            let (thumb_mxc, thumb_enc) = if thumb_mxc.is_some() {
+                (thumb_mxc, thumb_enc)
+            } else {
+                (Some(mxc_uri.clone()), encrypted.clone())
+            };
 
             Some(AttachmentInfo {
                 kind: AttachmentKind::Video,

@@ -1976,6 +1976,9 @@ private fun mages.ReplyPreviewKind.toKotlin(): ReplyPreviewKind = when (this) {
     mages.ReplyPreviewKind.FILE -> ReplyPreviewKind.File
     mages.ReplyPreviewKind.STICKER -> ReplyPreviewKind.Sticker
     mages.ReplyPreviewKind.POLL -> ReplyPreviewKind.Poll
+    mages.ReplyPreviewKind.CALL -> ReplyPreviewKind.Call
+    mages.ReplyPreviewKind.VOICE_CALL -> ReplyPreviewKind.VoiceCall
+    mages.ReplyPreviewKind.VIDEO_CALL -> ReplyPreviewKind.VideoCall
     mages.ReplyPreviewKind.LOCATION -> ReplyPreviewKind.Location
     mages.ReplyPreviewKind.LIVE_LOCATION -> ReplyPreviewKind.LiveLocation
     mages.ReplyPreviewKind.REDACTED -> ReplyPreviewKind.Redacted

@@ -187,6 +187,8 @@ class ThreadViewModel(
         prefetchReactionUserAvatars(events)
         prefetchReplyThumbnails(events)
 
+        val hasOnlyRootSnapshot = isReset && events.none { it.eventId != rootEventId }
+
         updateState {
             // Find root message
             val newRoot = events.find { it.eventId == rootEventId }
@@ -208,7 +210,7 @@ class ThreadViewModel(
             copy(
                 rootMessage = updatedRoot,
                 replies = mergedReplies,
-                hasInitialLoad = true,
+                hasInitialLoad = !hasOnlyRootSnapshot,
                 isLoading = false,
                 error = null
             )
@@ -309,6 +311,7 @@ class ThreadViewModel(
 
             // Track all seen items
             allMessages.forEach { seenItemIds.add(it.itemId) }
+            prefetchReplyThumbnails(allMessages)
 
             updateState {
                 // Merge with any existing data from timeline
@@ -364,13 +367,14 @@ class ThreadViewModel(
                 rootEventId = rootEventId,
                 from = token,
                 limit = 50,
-                forward = true
+                forward = false
             )
 
             val newReplies = page.messages.filter { it.eventId != rootEventId }
 
             // Track new items
             newReplies.forEach { seenItemIds.add(it.itemId) }
+            prefetchReplyThumbnails(newReplies)
 
             updateState {
                 val merged = (newReplies + replies)
@@ -438,33 +442,41 @@ class ThreadViewModel(
 
     private fun prefetchReplyThumbnails(events: List<MessageEvent>) {
         if (prefs.value.blockMediaPreviews) return
+        events.forEach { prefetchReplyThumbnail(it) }
+    }
 
-        events.forEach { event ->
-            val replyId = event.replyToEventId?.takeIf { it.isNotBlank() } ?: return@forEach
-            val preview = event.replyPreview ?: return@forEach
-            if (preview.kind != ReplyPreviewKind.Image &&
-                preview.kind != ReplyPreviewKind.Video &&
-                preview.kind != ReplyPreviewKind.Sticker
-            ) return@forEach
-            if (currentState.replyThumbByEvent.containsKey(replyId)) return@forEach
+    private fun prefetchReplyThumbnail(event: MessageEvent, retryAttempt: Int = 0) {
+        if (prefs.value.blockMediaPreviews) return
+        val replyId = event.replyToEventId?.takeIf { it.isNotBlank() } ?: return
+        val preview = event.replyPreview ?: return
+        if (preview.kind != ReplyPreviewKind.Image &&
+            preview.kind != ReplyPreviewKind.Video &&
+            preview.kind != ReplyPreviewKind.Sticker
+        ) return
+        if (currentState.replyThumbByEvent.containsKey(replyId)) return
 
-            val inFlightKey = "reply:$replyId"
-            if (!replyThumbnailFetchInFlight.add(inFlightKey)) return@forEach
+        val inFlightKey = "reply:$replyId"
+        if (!replyThumbnailFetchInFlight.add(inFlightKey)) return
 
-            val attachment = preview.attachment
-            val sticker = preview.sticker
-            launch {
-                try {
-                    val result = attachment?.let { service.thumbnailToCache(it, 320, 320, true) }
-                        ?: sticker?.let { service.port.downloadStickerToCache(it) }
-                    result?.onSuccess { path ->
-                        updateState {
-                            copy(replyThumbByEvent = replyThumbByEvent + (replyId to path))
-                        }
+        val attachment = preview.attachment
+        val sticker = preview.sticker
+        launch {
+            try {
+                val result = attachment?.let { service.thumbnailToCache(it, 320, 320, true) }
+                    ?: sticker?.let { service.port.downloadStickerToCache(it) }
+                val path = result?.getOrNull()?.takeIf { it.isNotBlank() }
+                if (path != null) {
+                    updateState {
+                        copy(replyThumbByEvent = replyThumbByEvent + (replyId to path))
                     }
-                } finally {
-                    replyThumbnailFetchInFlight.remove(inFlightKey)
+                } else if (retryAttempt < 2) {
+                    launch {
+                        delay(1_000L * (retryAttempt + 1))
+                        prefetchReplyThumbnail(event, retryAttempt + 1)
+                    }
                 }
+            } finally {
+                replyThumbnailFetchInFlight.remove(inFlightKey)
             }
         }
     }
