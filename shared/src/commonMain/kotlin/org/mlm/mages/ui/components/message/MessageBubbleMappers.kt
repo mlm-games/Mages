@@ -108,6 +108,8 @@ internal fun TimelineContent.Bubble.toBubbleModel(
         reply = MessageReplyUi(
             sender = event.replyToSenderDisplayName,
             body = event.replyToBody,
+            preview = event.replyPreview,
+            previewPath = ctx.resolvedReplyPreviewPath,
         ),
         sendState = event.sendState,
         attachment = event.toAttachmentUi(

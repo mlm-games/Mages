@@ -3787,56 +3787,157 @@ fn extract_reactions(content: &TimelineItemContent, me: &str) -> Vec<ReactionSum
     reactions
 }
 
-fn render_reply_preview(ev: &matrix_sdk_ui::timeline::EmbeddedEvent, me: &str) -> Option<String> {
-    let text = match &ev.content {
+fn extract_sticker_info(sticker_event: &matrix_sdk_ui::timeline::Sticker) -> StickerInfo {
+    let content = sticker_event.content();
+    let info = &content.info;
+    let (mxc_uri, encrypted) = match &content.source {
+        matrix_sdk::ruma::events::sticker::StickerMediaSource::Plain(url) => {
+            (url.to_string(), None)
+        }
+        matrix_sdk::ruma::events::sticker::StickerMediaSource::Encrypted(file) => {
+            (file.url.to_string(), Some(enc_to_record(file)))
+        }
+        _ => (String::new(), None),
+    };
+    let (thumbnail_mxc_uri, thumbnail_encrypted) = match &info.thumbnail_source {
+        Some(matrix_sdk::ruma::events::room::MediaSource::Plain(url)) => {
+            (Some(url.to_string()), None)
+        }
+        Some(matrix_sdk::ruma::events::room::MediaSource::Encrypted(file)) => {
+            (Some(file.url.to_string()), Some(enc_to_record(file)))
+        }
+        None => (None, None),
+    };
+
+    StickerInfo {
+        mxc_uri,
+        mime: info.mimetype.clone(),
+        size_bytes: info.size.map(|value| value.try_into().unwrap_or(0)),
+        width: info.width.map(|value| value.try_into().unwrap_or(0)),
+        height: info.height.map(|value| value.try_into().unwrap_or(0)),
+        thumbnail_mxc_uri,
+        encrypted,
+        thumbnail_encrypted,
+    }
+}
+
+fn map_reply_preview(ev: &matrix_sdk_ui::timeline::EmbeddedEvent, me: &str) -> Option<ReplyPreview> {
+    let content = &ev.content;
+    match content {
         TimelineItemContent::MsgLike(ml) => match &ml.kind {
             MsgLikeKind::Message(msg) => {
                 use matrix_sdk::ruma::events::room::message::MessageType;
 
-                let body = msg.body().trim();
-                let file_name = match msg.msgtype() {
-                    MessageType::Image(content) => content.filename.as_deref(),
-                    MessageType::Video(content) => content.filename.as_deref(),
-                    MessageType::Audio(content) => content.filename.as_deref(),
-                    MessageType::File(content) => content.filename.as_deref(),
-                    _ => None,
+                let attachment = extract_attachment(msg);
+                let is_voice = attachment.as_ref().and_then(|info| info.is_voice).unwrap_or(false)
+                    || matches!(msg.msgtype(), MessageType::Audio(content) if content.voice.is_some());
+                let kind = match msg.msgtype() {
+                    MessageType::Image(_) => ReplyPreviewKind::Image,
+                    MessageType::Video(_) => ReplyPreviewKind::Video,
+                    MessageType::Audio(_) if is_voice => ReplyPreviewKind::Voice,
+                    MessageType::Audio(_) => ReplyPreviewKind::Audio,
+                    MessageType::File(_) => ReplyPreviewKind::File,
+                    MessageType::Location(_) => ReplyPreviewKind::Location,
+                    _ => ReplyPreviewKind::Text,
                 };
-                let is_voice = matches!(msg.msgtype(), MessageType::Audio(content) if content.voice.is_some());
-
-                if is_voice {
-                    "Voice message".to_owned()
-                } else if matches!(msg.msgtype(), MessageType::Location(_)) {
-                    "Shared location".to_owned()
+                let body = msg.body().trim();
+                let text = if is_voice {
+                    Some("Voice message".to_owned())
+                } else if matches!(kind, ReplyPreviewKind::Location) {
+                    Some("Shared location".to_owned())
                 } else if !body.is_empty() {
-                    body.to_owned()
+                    Some(body.to_owned())
                 } else {
-                    match msg.msgtype() {
-                        MessageType::Image(_) => "Image".to_owned(),
-                        MessageType::Video(_) => "Video".to_owned(),
-                        MessageType::Audio(_) => file_name.unwrap_or("Audio").to_owned(),
-                        MessageType::File(_) => file_name.unwrap_or("File").to_owned(),
-                        _ => "Message".to_owned(),
-                    }
-                }
+                    attachment.as_ref().and_then(|info| info.file_name.clone()).or_else(|| {
+                        Some(
+                            match kind {
+                                ReplyPreviewKind::Image => "Image",
+                                ReplyPreviewKind::Video => "Video",
+                                ReplyPreviewKind::Audio => "Audio",
+                                ReplyPreviewKind::File => "File",
+                                ReplyPreviewKind::Location => "Shared location",
+                                _ => "Message",
+                            }
+                            .to_owned(),
+                        )
+                    })
+                };
+                Some(ReplyPreview {
+                    kind,
+                    text,
+                    attachment,
+                    sticker: None,
+                })
             }
-            MsgLikeKind::Poll(poll) => map_poll_state(poll, me).question,
-            MsgLikeKind::Sticker(_) => "Sticker".to_owned(),
-            MsgLikeKind::LiveLocation(_) => "Shared live location".to_owned(),
-            MsgLikeKind::Redacted => "Message deleted".to_owned(),
-            MsgLikeKind::UnableToDecrypt(_) => "Unable to decrypt this message".to_owned(),
-            MsgLikeKind::Other(_) => "Unsupported event".to_owned(),
+            MsgLikeKind::Poll(poll) => Some(ReplyPreview {
+                kind: ReplyPreviewKind::Poll,
+                text: Some(map_poll_state(poll, me).question),
+                attachment: None,
+                sticker: None,
+            }),
+            MsgLikeKind::Sticker(sticker) => Some(ReplyPreview {
+                kind: ReplyPreviewKind::Sticker,
+                text: None,
+                attachment: None,
+                sticker: Some(extract_sticker_info(sticker)),
+            }),
+            MsgLikeKind::LiveLocation(_) => Some(ReplyPreview {
+                kind: ReplyPreviewKind::LiveLocation,
+                text: Some("Shared live location".to_owned()),
+                attachment: None,
+                sticker: None,
+            }),
+            MsgLikeKind::Redacted => Some(ReplyPreview {
+                kind: ReplyPreviewKind::Redacted,
+                text: Some("Message deleted".to_owned()),
+                attachment: None,
+                sticker: None,
+            }),
+            MsgLikeKind::UnableToDecrypt(_) => Some(ReplyPreview {
+                kind: ReplyPreviewKind::Encrypted,
+                text: Some("Unable to decrypt this message".to_owned()),
+                attachment: None,
+                sticker: None,
+            }),
+            MsgLikeKind::Other(_) => Some(ReplyPreview {
+                kind: ReplyPreviewKind::Unsupported,
+                text: Some("Unsupported event".to_owned()),
+                attachment: None,
+                sticker: None,
+            }),
         },
-        TimelineItemContent::MembershipChange(change) => {
-            format!("{} updated membership", change.user_id())
-        }
-        TimelineItemContent::ProfileChange(_) => "Profile updated".to_owned(),
-        TimelineItemContent::OtherState(state) => {
-            format!("State updated: {}", state.content().event_type())
-        }
-        _ => return None,
-    };
-
-    (!text.trim().is_empty()).then_some(text)
+        TimelineItemContent::CallInvite => Some(ReplyPreview {
+            kind: ReplyPreviewKind::Unsupported,
+            text: Some("Unsupported call".to_owned()),
+            attachment: None,
+            sticker: None,
+        }),
+        TimelineItemContent::RtcNotification { .. } => Some(ReplyPreview {
+            kind: ReplyPreviewKind::Unsupported,
+            text: Some("Call".to_owned()),
+            attachment: None,
+            sticker: None,
+        }),
+        TimelineItemContent::MembershipChange(change) => Some(ReplyPreview {
+            kind: ReplyPreviewKind::Unsupported,
+            text: Some(format!("{} updated membership", change.user_id())),
+            attachment: None,
+            sticker: None,
+        }),
+        TimelineItemContent::ProfileChange(_) => Some(ReplyPreview {
+            kind: ReplyPreviewKind::Unsupported,
+            text: Some("Profile updated".to_owned()),
+            attachment: None,
+            sticker: None,
+        }),
+        TimelineItemContent::OtherState(state) => Some(ReplyPreview {
+            kind: ReplyPreviewKind::Unsupported,
+            text: Some(format!("State updated: {}", state.content().event_type())),
+            attachment: None,
+            sticker: None,
+        }),
+        _ => None,
+    }
 }
 
 fn map_timeline_event(
@@ -3888,6 +3989,7 @@ fn map_timeline_event(
     let mut reply_to_event_id: Option<String> = None;
     let mut reply_to_sender: Option<String> = None;
     let mut reply_to_body: Option<String> = None;
+    let mut reply_preview: Option<ReplyPreview> = None;
     let mut attachment: Option<AttachmentInfo> = None;
     let mut sticker: Option<StickerInfo> = None;
     let thread_root_event_id = ev.content().thread_root().map(|id| id.to_string());
@@ -3912,7 +4014,8 @@ fn map_timeline_event(
                     let (dn, _av) = map_sender_profile(&embed.sender, &embed.sender_profile);
                     reply_to_sender_display_name = dn;
 
-                    reply_to_body = render_reply_preview(embed, me);
+                    reply_preview = map_reply_preview(embed, me);
+                    reply_to_body = reply_preview.as_ref().and_then(|preview| preview.text.clone());
                 }
             }
 
@@ -4106,6 +4209,7 @@ fn map_timeline_event(
         reply_to_sender,
         reply_to_sender_display_name,
         reply_to_body,
+        reply_preview,
         attachment,
         sticker,
         thread_root_event_id,

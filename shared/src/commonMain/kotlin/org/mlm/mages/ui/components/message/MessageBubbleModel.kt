@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.components.message
 
+import org.mlm.mages.ReplyPreview
 import org.mlm.mages.matrix.PollData
 import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.matrix.SendState
@@ -24,6 +25,8 @@ data class MessageGroupingUi(
 data class MessageReplyUi(
     val sender: String?,
     val body: String?,
+    val preview: ReplyPreview? = null,
+    val previewPath: String? = null,
 )
 
 sealed interface MessageAttachmentUi {
@@ -90,6 +93,7 @@ data class MessageBubbleRenderContext(
     val threadCount: Int? = null,
     val variant: MessageBubbleVariant = MessageBubbleVariant.Timeline,
     val resolvedPreviewPath: String? = null,
+    val resolvedReplyPreviewPath: String? = null,
     val resolvedAudioPath: String? = null,
     val resolvedAudioWaveform: List<Float> = emptyList(),
     val senderVisible: Boolean = true,

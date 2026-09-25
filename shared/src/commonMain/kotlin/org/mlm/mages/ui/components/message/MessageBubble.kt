@@ -11,6 +11,14 @@ import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.EmojiEmotions
+import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Poll
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -30,6 +38,8 @@ import coil3.request.crossfade
 import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
+import org.mlm.mages.ReplyPreview
+import org.mlm.mages.ReplyPreviewKind
 import org.mlm.mages.matrix.SendState
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.MarkdownText
@@ -167,10 +177,18 @@ fun MessageBubble(
                 Layout(
                     modifier = Modifier.padding(Spacing.md),
                     content = {
-                        val hasReply = model.reply != null && !model.reply.body.isNullOrBlank()
+                        val hasReply = model.reply != null &&
+                            (!model.reply.body.isNullOrBlank() || model.reply.preview != null)
                         if (hasReply) {
                             val reply = model.reply!!
-                            ReplyPreview(isMine, reply.sender, reply.body!!, onReplyPreviewClick)
+                            ReplyPreview(
+                                isMine = isMine,
+                                sender = reply.sender,
+                                body = reply.body,
+                                preview = reply.preview,
+                                previewPath = reply.previewPath,
+                                onClick = onReplyPreviewClick,
+                            )
                         }
                         Column(horizontalAlignment = horizontalAlignment) {
                             when (val attachment = model.attachment) {
@@ -394,30 +412,101 @@ private fun bubbleShape(isMine: Boolean, groupedWithPrev: Boolean, groupedWithNe
 )
 
 @Composable
-private fun ReplyPreview(isMine: Boolean, sender: String?, body: String, onClick: (() -> Unit)? = null) {
+internal fun ReplyPreview(
+    isMine: Boolean,
+    sender: String?,
+    body: String?,
+    preview: ReplyPreview?,
+    previewPath: String? = null,
+    showAccent: Boolean = true,
+    onClick: (() -> Unit)? = null,
+) {
     Surface(
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
         shape = RoundedCornerShape(8.dp),
         modifier = if (onClick != null) Modifier.clickable { onClick() } else Modifier
     ) {
         Row(modifier = Modifier.padding(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .width(3.dp)
-                    .height(24.dp)
-                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
-            )
-            Spacer(Modifier.width(Spacing.sm))
+            if (showAccent) {
+                Box(
+                    modifier = Modifier
+                        .width(3.dp)
+                        .height(40.dp)
+                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
+                )
+                Spacer(Modifier.width(Spacing.sm))
+            }
+            preview?.takeIf { it.kind != ReplyPreviewKind.Text }?.let {
+                ReplyPreviewVisual(it, previewPath)
+                Spacer(Modifier.width(Spacing.sm))
+            }
             Text(
                 text = buildString {
-                    if (!sender.isNullOrBlank()) { append(sender); append(": ") }
-                    append(body)
+                    val previewText = body?.takeIf { it.isNotBlank() } ?: preview?.text
+                    if (!sender.isNullOrBlank()) {
+                        append(sender)
+                        if (!previewText.isNullOrBlank()) append(": ")
+                    }
+                    append(previewText.orEmpty())
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
+        }
+    }
+}
+
+@Composable
+private fun ReplyPreviewVisual(preview: ReplyPreview, resolvedPath: String?) {
+    val attachment = preview.attachment
+    val sticker = preview.sticker
+    val imageSource = resolvedPath ?: when (preview.kind) {
+        ReplyPreviewKind.Image -> attachment?.thumbnailMxcUri ?: attachment?.mxcUri
+        ReplyPreviewKind.Video -> attachment?.thumbnailMxcUri ?: attachment?.mxcUri
+        ReplyPreviewKind.Sticker -> sticker?.thumbnailMxcUri ?: sticker?.mxcUri
+        else -> null
+    }
+    val encrypted = when (preview.kind) {
+        ReplyPreviewKind.Image, ReplyPreviewKind.Video ->
+            attachment?.encrypted != null || attachment?.thumbnailEncrypted != null
+        ReplyPreviewKind.Sticker -> sticker?.encrypted != null || sticker?.thumbnailEncrypted != null
+        else -> false
+    }
+    val icon = when (preview.kind) {
+        ReplyPreviewKind.Image -> Icons.Default.Image
+        ReplyPreviewKind.Video -> Icons.Default.Videocam
+        ReplyPreviewKind.Audio -> Icons.Default.AudioFile
+        ReplyPreviewKind.Voice -> Icons.Default.Mic
+        ReplyPreviewKind.File -> Icons.AutoMirrored.Filled.InsertDriveFile
+        ReplyPreviewKind.Sticker -> Icons.Default.EmojiEmotions
+        ReplyPreviewKind.Poll -> Icons.Default.Poll
+        ReplyPreviewKind.Location, ReplyPreviewKind.LiveLocation -> Icons.Default.LocationOn
+        ReplyPreviewKind.Encrypted -> Icons.Default.Lock
+        ReplyPreviewKind.Redacted, ReplyPreviewKind.Unsupported -> Icons.Default.Info
+        ReplyPreviewKind.Text -> null
+    }
+
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (imageSource != null && (resolvedPath != null || !encrypted)) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalPlatformContext.current)
+                    .data(imageSource)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else if (icon != null) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -772,8 +861,15 @@ private fun StickerMessage(
         model.reply?.let { reply ->
             val replyBody = reply.body
             val replySender = reply.sender
-            if (replyBody != null || replySender != null) {
-                ReplyPreview(isMine, replySender ?: "", replyBody ?: "", onReplyPreviewClick)
+            if (!replyBody.isNullOrBlank() || reply.preview != null || replySender != null) {
+                ReplyPreview(
+                    isMine = isMine,
+                    sender = replySender,
+                    body = replyBody,
+                    preview = reply.preview,
+                    previewPath = reply.previewPath,
+                    onClick = onReplyPreviewClick,
+                )
                 Spacer(Modifier.height(4.dp))
             }
         }

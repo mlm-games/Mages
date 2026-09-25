@@ -66,6 +66,7 @@ pub struct MessageEvent {
     pub reply_to_sender: Option<String>,
     pub reply_to_sender_display_name: Option<String>,
     pub reply_to_body: Option<String>,
+    pub reply_preview: Option<ReplyPreview>,
     pub attachment: Option<AttachmentInfo>,
     pub sticker: Option<StickerInfo>,
     pub thread_root_event_id: Option<String>,
@@ -175,6 +176,31 @@ pub struct StickerInfo {
     pub thumbnail_mxc_uri: Option<String>,
     pub encrypted: Option<EncFile>,
     pub thumbnail_encrypted: Option<EncFile>,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, Enum)]
+pub enum ReplyPreviewKind {
+    Text,
+    Image,
+    Video,
+    Audio,
+    Voice,
+    File,
+    Sticker,
+    Poll,
+    Location,
+    LiveLocation,
+    Redacted,
+    Encrypted,
+    Unsupported,
+}
+
+#[derive(Clone, Serialize, Deserialize, Record)]
+pub struct ReplyPreview {
+    pub kind: ReplyPreviewKind,
+    pub text: Option<String>,
+    pub attachment: Option<AttachmentInfo>,
+    pub sticker: Option<StickerInfo>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Record)]

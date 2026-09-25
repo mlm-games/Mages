@@ -15,15 +15,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.MessageEvent
-import org.mlm.mages.ui.displayPreview
-import org.mlm.mages.ui.theme.Limits
+import org.mlm.mages.ui.components.message.ReplyPreview
 import org.mlm.mages.ui.theme.Spacing
+import org.mlm.mages.ui.toReplyPreview
 
 @Composable
-fun ActionBanner(replyingTo: MessageEvent?, editing: MessageEvent?, onCancelReply: () -> Unit, onCancelEdit: () -> Unit) {
+fun ActionBanner(
+    replyingTo: MessageEvent?,
+    editing: MessageEvent?,
+    onCancelReply: () -> Unit,
+    onCancelEdit: () -> Unit,
+    resolvedPreviewPath: String? = null,
+) {
     val isEditing = editing != null
     val event = editing ?: replyingTo
     if (event != null) {
@@ -82,12 +87,13 @@ fun ActionBanner(replyingTo: MessageEvent?, editing: MessageEvent?, onCancelRepl
                             MaterialTheme.colorScheme.onSurfaceVariant
                         }
                     )
-                    Text(
-                        event.displayPreview().take(Limits.previewCharsShort),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                    ReplyPreview(
+                        isMine = false,
+                        sender = null,
+                        body = null,
+                        preview = event.toReplyPreview(),
+                        previewPath = resolvedPreviewPath,
+                        showAccent = false,
                     )
                 }
 

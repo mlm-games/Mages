@@ -297,6 +297,7 @@ fun ThreadScreen(
                                         isMine = bubbleItem.event.sender == myUserId,
                                         reactionSummaries = bubbleItem.event.reactions,
                                         avatarByUserId = state.avatarByUserId,
+                                        replyThumbByEvent = state.replyThumbByEvent,
                                         onReact = { emoji -> onReact(bubbleItem.event, emoji) },
                                         onLongPress = { sheetEvent = bubbleItem.event },
                                         grouped = shouldGroup,
@@ -643,6 +644,7 @@ private fun ThreadReplyMessage(
     isMine: Boolean,
     reactionSummaries: List<ReactionSummary>,
     avatarByUserId: Map<String, String>,
+    replyThumbByEvent: Map<String, String>,
     onReact: (String) -> Unit,
     onLongPress: () -> Unit,
     grouped: Boolean = false,
@@ -687,6 +689,7 @@ private fun ThreadReplyMessage(
                     threadCount = null,
                     variant = MessageBubbleVariant.ThreadReply,
                     resolvedPreviewPath = null,
+                    resolvedReplyPreviewPath = event.replyToEventId?.let { replyThumbByEvent[it] },
                     senderVisible = !grouped,
                 )
             ).copy(

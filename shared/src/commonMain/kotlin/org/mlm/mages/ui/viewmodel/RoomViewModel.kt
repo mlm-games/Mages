@@ -2674,6 +2674,7 @@ class RoomViewModel(
 
         events.forEach { ev ->
             ensureThumbnail(ev)
+            ensureReplyThumbnail(ev)
         }
     }
 
@@ -2707,6 +2708,41 @@ class RoomViewModel(
                 }
             } finally {
                 thumbnailFetchInFlight.remove(event.eventId)
+            }
+        }
+    }
+
+    private fun ensureReplyThumbnail(event: MessageEvent) {
+        if (settings.value.blockMediaPreviews) return
+        val replyId = event.replyToEventId?.takeIf { it.isNotBlank() } ?: return
+        val preview = event.replyPreview ?: return
+        if (preview.kind != ReplyPreviewKind.Image &&
+            preview.kind != ReplyPreviewKind.Video &&
+            preview.kind != ReplyPreviewKind.Sticker
+        ) return
+        if (currentState.replyThumbByEvent.containsKey(replyId)) return
+
+        val inFlightKey = "reply:$replyId"
+        if (!thumbnailFetchInFlight.add(inFlightKey)) return
+
+        val attachment = preview.attachment
+        val sticker = preview.sticker
+        if (attachment == null && sticker == null) {
+            thumbnailFetchInFlight.remove(inFlightKey)
+            return
+        }
+
+        launch {
+            try {
+                val result = attachment?.let { service.thumbnailToCache(it, 320, 320, true) }
+                    ?: sticker?.let { service.port.downloadStickerToCache(it) }
+                result?.onSuccess { path ->
+                    updateState {
+                        copy(replyThumbByEvent = replyThumbByEvent + (replyId to path))
+                    }
+                }
+            } finally {
+                thumbnailFetchInFlight.remove(inFlightKey)
             }
         }
     }

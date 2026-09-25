@@ -3,6 +3,8 @@ package org.mlm.mages.ui
 import kotlinx.serialization.Serializable
 import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MessageEvent
+import org.mlm.mages.ReplyPreview
+import org.mlm.mages.ReplyPreviewKind
 import org.mlm.mages.RoomSummary
 import org.mlm.mages.matrix.DeviceSummary
 import org.mlm.mages.matrix.EventType
@@ -126,6 +128,54 @@ fun MessageEvent.displayPreview(): String {
     }
 }
 
+fun MessageEvent.toReplyPreview(): ReplyPreview {
+    if (sticker != null) {
+        return ReplyPreview(
+            kind = ReplyPreviewKind.Sticker,
+            sticker = sticker,
+        )
+    }
+    pollData?.let { poll ->
+        return ReplyPreview(
+            kind = ReplyPreviewKind.Poll,
+            text = poll.question,
+        )
+    }
+    val attachment = attachment
+    if (attachment != null) {
+        val kind = when (attachment.kind) {
+            AttachmentKind.Image -> ReplyPreviewKind.Image
+            AttachmentKind.Video -> ReplyPreviewKind.Video
+            AttachmentKind.Audio -> if (attachment.isVoice == true) ReplyPreviewKind.Voice else ReplyPreviewKind.Audio
+            AttachmentKind.File -> ReplyPreviewKind.File
+        }
+        val text = when (kind) {
+            ReplyPreviewKind.Voice -> "Voice message"
+            else -> body.trim().ifBlank { attachment.fileName ?: when (kind) {
+                ReplyPreviewKind.Image -> "Image"
+                ReplyPreviewKind.Video -> "Video"
+                ReplyPreviewKind.Audio -> "Audio"
+                else -> "File"
+            } }
+        }
+        return ReplyPreview(kind = kind, text = text, attachment = attachment)
+    }
+    return ReplyPreview(
+        kind = when {
+            isRedacted -> ReplyPreviewKind.Redacted
+            eventType == org.mlm.mages.matrix.EventType.Location -> ReplyPreviewKind.Location
+            eventType == org.mlm.mages.matrix.EventType.LiveLocation -> ReplyPreviewKind.LiveLocation
+            else -> ReplyPreviewKind.Text
+        },
+        text = when {
+            isRedacted -> "Message deleted"
+            eventType == org.mlm.mages.matrix.EventType.Location -> "Shared location"
+            eventType == org.mlm.mages.matrix.EventType.LiveLocation -> "Shared live location"
+            else -> body.takeIf { it.isNotBlank() }
+        },
+    )
+}
+
 fun MessageEvent.isDisplayableAsPinnedEvent(): Boolean {
     if (isRedacted) return false
     if (eventType == EventType.Unknown) return false
@@ -187,6 +237,7 @@ data class RoomUiState(
     val lastOutgoingRead: Boolean = false,
 
     val thumbByEvent: Map<String, String> = emptyMap(),
+    val replyThumbByEvent: Map<String, String> = emptyMap(),
     val avatarByUserId: Map<String, String> = emptyMap(),
     val roomMembers: List<MemberSummary> = emptyList(),
     val threadCount: Map<String, Int> = emptyMap(),
@@ -475,6 +526,7 @@ data class ThreadUiState(
     val editingEvent: MessageEvent? = null,
     val editInput: String = "",
     val avatarByUserId: Map<String, String> = emptyMap(),
+    val replyThumbByEvent: Map<String, String> = emptyMap(),
     val roomMembers: List<MemberSummary> = emptyList(),
     val focusedEventId: String? = null,
     val focusedEventMissing: Boolean = false,

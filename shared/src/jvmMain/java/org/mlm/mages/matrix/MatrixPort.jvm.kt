@@ -1917,6 +1917,7 @@ private fun mages.MessageEvent.toModel() = MessageEvent(
     senderAvatarUrl = senderAvatarUrl,
     senderDisplayName = senderDisplayName,
     replyToSenderDisplayName = replyToSenderDisplayName,
+    replyPreview = replyPreview?.toModel(),
     pollData = pollData?.toModel(),
     reactions = reactions.map { ReactionSummary(it.key, it.count.toInt(), it.mine, it.userIds) },
     eventType = eventType.toKotlin(),
@@ -1928,6 +1929,29 @@ private fun mages.MessageEvent.toModel() = MessageEvent(
     sendFailure = sendFailure?.toKotlin(),
     utd = utd?.let { UtdInfo(it.algorithmKnown, it.isMegolm) },
 )
+
+private fun mages.ReplyPreview.toModel() = ReplyPreview(
+    kind = kind.toKotlin(),
+    text = text,
+    attachment = attachment?.toModel(),
+    sticker = sticker?.toModel(),
+)
+
+private fun mages.ReplyPreviewKind.toKotlin(): ReplyPreviewKind = when (this) {
+    mages.ReplyPreviewKind.TEXT -> ReplyPreviewKind.Text
+    mages.ReplyPreviewKind.IMAGE -> ReplyPreviewKind.Image
+    mages.ReplyPreviewKind.VIDEO -> ReplyPreviewKind.Video
+    mages.ReplyPreviewKind.AUDIO -> ReplyPreviewKind.Audio
+    mages.ReplyPreviewKind.VOICE -> ReplyPreviewKind.Voice
+    mages.ReplyPreviewKind.FILE -> ReplyPreviewKind.File
+    mages.ReplyPreviewKind.STICKER -> ReplyPreviewKind.Sticker
+    mages.ReplyPreviewKind.POLL -> ReplyPreviewKind.Poll
+    mages.ReplyPreviewKind.LOCATION -> ReplyPreviewKind.Location
+    mages.ReplyPreviewKind.LIVE_LOCATION -> ReplyPreviewKind.LiveLocation
+    mages.ReplyPreviewKind.REDACTED -> ReplyPreviewKind.Redacted
+    mages.ReplyPreviewKind.ENCRYPTED -> ReplyPreviewKind.Encrypted
+    mages.ReplyPreviewKind.UNSUPPORTED -> ReplyPreviewKind.Unsupported
+}
 
 private fun mages.ShieldLevel.toKotlin(): ShieldLevel = when (this) {
     mages.ShieldLevel.RED -> ShieldLevel.Red

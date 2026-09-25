@@ -1348,7 +1348,8 @@ private fun RoomBottomBar(
             replyingTo = state.replyingTo,
             editing = state.editing,
             onCancelReply = onCancelReply,
-            onCancelEdit = onCancelEdit
+            onCancelEdit = onCancelEdit,
+            resolvedPreviewPath = (state.editing ?: state.replyingTo)?.eventId?.let { state.thumbByEvent[it] },
         )
 
         if (state.isUploadingAttachment) {
@@ -1621,6 +1622,7 @@ private fun MessageItem(
                             threadCount = state.threadCount[event.eventId],
                             variant = MessageBubbleVariant.Timeline,
                             resolvedPreviewPath = state.thumbByEvent[event.eventId],
+                            resolvedReplyPreviewPath = event.replyToEventId?.let { state.replyThumbByEvent[it] },
                             resolvedAudioPath = state.audioFileByEvent[event.eventId],
                             resolvedAudioWaveform = state.waveformByEvent[event.eventId].orEmpty(),
                             senderVisible = true,

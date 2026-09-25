@@ -15,6 +15,7 @@ import org.intellij.markdown.parser.MarkdownParser
 import org.koin.core.component.inject
 import org.mlm.mages.MatrixService
 import org.mlm.mages.MessageEvent
+import org.mlm.mages.ReplyPreviewKind
 import org.mlm.mages.matrix.TimelineDiff
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.ThreadUiState
@@ -49,6 +50,7 @@ class ThreadViewModel(
 
     // Track all events we've seen for this thread (for deduplication)
     private val seenItemIds = mutableSetOf<String>()
+    private val replyThumbnailFetchInFlight = mutableSetOf<String>()
 
     private val settingsRepo: SettingsRepository<AppSettings> by inject()
 
@@ -183,6 +185,7 @@ class ThreadViewModel(
         newEvents.forEach { seenItemIds.add(it.itemId) }
         prefetchSenderAvatars(events)
         prefetchReactionUserAvatars(events)
+        prefetchReplyThumbnails(events)
 
         updateState {
             // Find root message
@@ -217,6 +220,7 @@ class ThreadViewModel(
      */
     private fun updateSingleEvent(event: MessageEvent) {
         seenItemIds.add(event.itemId)
+        prefetchReplyThumbnails(listOf(event))
 
         updateState {
             when {
@@ -240,6 +244,7 @@ class ThreadViewModel(
      */
     private fun upsertSingleEvent(event: MessageEvent) {
         seenItemIds.add(event.itemId)
+        prefetchReplyThumbnails(listOf(event))
 
         updateState {
             when {
@@ -429,6 +434,39 @@ class ThreadViewModel(
     fun setInput(value: String) {
         updateState { copy(input = value) }
         if (!prefs.value.sendTypingIndicators) return
+    }
+
+    private fun prefetchReplyThumbnails(events: List<MessageEvent>) {
+        if (prefs.value.blockMediaPreviews) return
+
+        events.forEach { event ->
+            val replyId = event.replyToEventId?.takeIf { it.isNotBlank() } ?: return@forEach
+            val preview = event.replyPreview ?: return@forEach
+            if (preview.kind != ReplyPreviewKind.Image &&
+                preview.kind != ReplyPreviewKind.Video &&
+                preview.kind != ReplyPreviewKind.Sticker
+            ) return@forEach
+            if (currentState.replyThumbByEvent.containsKey(replyId)) return@forEach
+
+            val inFlightKey = "reply:$replyId"
+            if (!replyThumbnailFetchInFlight.add(inFlightKey)) return@forEach
+
+            val attachment = preview.attachment
+            val sticker = preview.sticker
+            launch {
+                try {
+                    val result = attachment?.let { service.thumbnailToCache(it, 320, 320, true) }
+                        ?: sticker?.let { service.port.downloadStickerToCache(it) }
+                    result?.onSuccess { path ->
+                        updateState {
+                            copy(replyThumbByEvent = replyThumbByEvent + (replyId to path))
+                        }
+                    }
+                } finally {
+                    replyThumbnailFetchInFlight.remove(inFlightKey)
+                }
+            }
+        }
     }
 
     private fun prefetchSenderAvatars(events: List<MessageEvent>) {

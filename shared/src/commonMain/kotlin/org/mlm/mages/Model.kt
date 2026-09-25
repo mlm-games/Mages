@@ -24,6 +24,7 @@ data class MessageEvent(
     var replyToSender: String? = null,
     var replyToSenderDisplayName: String? = null,
     var replyToBody: String? = null,
+    var replyPreview: ReplyPreview? = null,
     var attachment: AttachmentInfo? = null,
     var sticker: StickerInfo? = null,
     var threadRootEventId: String? = null,
@@ -38,6 +39,31 @@ data class MessageEvent(
     var shield: MessageShield? = null,
     var sendFailure: SendFailureReason? = null,
     var utd: UtdInfo? = null,
+)
+
+@Serializable
+enum class ReplyPreviewKind {
+    Text,
+    Image,
+    Video,
+    Audio,
+    Voice,
+    File,
+    Sticker,
+    Poll,
+    Location,
+    LiveLocation,
+    Redacted,
+    Encrypted,
+    Unsupported,
+}
+
+@Serializable
+data class ReplyPreview(
+    val kind: ReplyPreviewKind,
+    val text: String? = null,
+    val attachment: AttachmentInfo? = null,
+    val sticker: StickerInfo? = null,
 )
 
 @Serializable
