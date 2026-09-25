@@ -26,7 +26,7 @@ use crate::{
 
 use futures_util::StreamExt;
 use futures_util::future::{AbortHandle, Abortable};
-use js_sys::Function;
+use js_sys::{Array, Function};
 
 use matrix_sdk::authentication::oauth::registration::language_tags::LanguageTag;
 use matrix_sdk::utils::UrlOrQuery;
@@ -92,6 +92,47 @@ pub fn to_json<T: serde::Serialize>(v: &T) -> JsValue {
     let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
     v.serialize(&serializer)
         .unwrap_or_else(|e| JsValue::from_str(&format!("{{\"error\":\"{e}\"}}")))
+}
+
+fn decode_string_array(value: JsValue) -> Result<Vec<String>, String> {
+    if !Array::is_array(&value) {
+        return Err("expected an array of strings".into());
+    }
+
+    let array: Array = Array::from(&value);
+    array
+        .iter()
+        .enumerate()
+        .map(|(index, value)| {
+            value
+                .as_string()
+                .ok_or_else(|| format!("event_ids[{index}] must be a string"))
+        })
+        .collect()
+}
+
+fn decode_u64_array(value: JsValue) -> Result<Vec<u64>, String> {
+    if !Array::is_array(&value) {
+        return Err("expected an array of numbers".into());
+    }
+
+    let array: Array = Array::from(&value);
+    array
+        .iter()
+        .enumerate()
+        .map(|(index, value)| {
+            let number = value
+                .as_f64()
+                .ok_or_else(|| format!("range[{index}] must be a number"))?;
+            if !number.is_finite() || number < 0.0 || number.fract() != 0.0 {
+                return Err(format!("range[{index}] must be a non-negative integer"));
+            }
+            if number > u64::MAX as f64 {
+                return Err(format!("range[{index}] is too large"));
+            }
+            Ok(number as u64)
+        })
+        .collect()
 }
 
 #[wasm_bindgen(js_name = base64Encode)]
@@ -1714,9 +1755,17 @@ impl WasmClient {
     }
 
     #[wasm_bindgen(js_name = setPinnedEvents)]
-    pub async fn set_pinned_events(&self, room_id: String, event_ids: Vec<String>) -> JsValue {
+    pub async fn set_pinned_events(
+        &self,
+        room_id: String,
+        #[wasm_bindgen(unchecked_param_type = "string[]")] event_ids: JsValue,
+    ) -> JsValue {
         let Some(s) = self.state() else {
             return webffi_not_init();
+        };
+        let event_ids = match decode_string_array(event_ids) {
+            Ok(event_ids) => event_ids,
+            Err(error) => return webffi_err(&error),
         };
         webffi_unit(s.core.set_pinned_events(room_id, event_ids).await)
     }
@@ -2238,13 +2287,19 @@ impl WasmClient {
     pub fn room_list_update_visible_range(
         &self,
         token: f64,
-        range: JsValue,
+        #[wasm_bindgen(unchecked_param_type = "number[]")] range: JsValue,
         threshold: f64,
     ) -> bool {
         let Some(state) = self.state() else {
             return false;
         };
-        let range_vec: Vec<u64> = serde_wasm_bindgen::from_value(range).unwrap_or_default();
+        let range_vec = match decode_u64_array(range) {
+            Ok(range) => range,
+            Err(error) => {
+                tracing::warn!("room_list_update_visible_range: {error}");
+                return false;
+            }
+        };
         if let Some(tx) = state.room_list_cmds.borrow().get(&(token as u64)).cloned() {
             tx.send(RoomListCmd::UpdateVisibleRange((
                 range_vec,
@@ -2257,11 +2312,20 @@ impl WasmClient {
     }
 
     #[wasm_bindgen(js_name = subscribeRooms)]
-    pub fn subscribe_rooms(&self, room_ids: JsValue) {
+    pub fn subscribe_rooms(
+        &self,
+        #[wasm_bindgen(unchecked_param_type = "string[]")] room_ids: JsValue,
+    ) {
         let Some(state) = self.state() else {
             return;
         };
-        let ids: Vec<String> = serde_wasm_bindgen::from_value(room_ids).unwrap_or_default();
+        let ids = match decode_string_array(room_ids) {
+            Ok(ids) => ids,
+            Err(error) => {
+                tracing::warn!("subscribe_rooms: {error}");
+                return;
+            }
+        };
         let rids: Vec<OwnedRoomId> = ids
             .iter()
             .filter_map(|s| OwnedRoomId::try_from(s.as_str()).ok())

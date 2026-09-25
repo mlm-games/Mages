@@ -141,7 +141,38 @@ kotlin {
             implementation(libs.compass.geolocation)
             implementation(libs.compass.geolocation.browser)
         }
+
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+        }
     }
+}
+
+val checkWasmInteropTypes = tasks.register("checkWasmInteropTypes") {
+    val sourceRoot = project.layout.projectDirectory.dir("src/wasmJsMain/kotlin")
+    inputs.dir(sourceRoot)
+    doLast {
+        val forbiddenCast = Regex("\\bas\\s+(?:kotlin\\.js\\.)?JsAny\\b(?!\\?)")
+        val matches = sourceRoot.asFile.walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .flatMap { file ->
+                file.readLines().withIndex().mapNotNull { indexedLine ->
+                    if (forbiddenCast.containsMatchIn(indexedLine.value)) {
+                        "${file.relativeTo(sourceRoot.asFile)}:${indexedLine.index + 1}"
+                    } else {
+                        null
+                    }
+                }
+            }
+            .toList()
+        if (matches.isNotEmpty()) {
+            throw GradleException("Primitive values must not be cast to JsAny: ${matches.joinToString()}")
+        }
+    }
+}
+
+tasks.named("compileKotlinWasmJs") {
+    dependsOn(checkWasmInteropTypes)
 }
 
 dependencies {
@@ -442,10 +473,7 @@ abstract class GenerateWasmExternsTask : DefaultTask() {
 
         // Extract only the WasmClient class body
         val classMatch = Regex("""export class WasmClient\s*\{([^}]+(?:\{[^}]*\}[^}]*)*)\}""", RegexOption.DOT_MATCHES_ALL).find(content)
-        if (classMatch == null) {
-            outputKt.get().asFile.writeText("// Could not find WasmClient class")
-            return
-        }
+        if (classMatch == null) error("Could not find WasmClient class")
 
         val classBody = classMatch.groupValues[1]
 
@@ -456,7 +484,11 @@ abstract class GenerateWasmExternsTask : DefaultTask() {
         sb.appendLine("package org.mlm.mages.matrix")
         sb.appendLine()
         sb.appendLine("import kotlin.js.JsAny")
+        sb.appendLine("import kotlin.js.JsArray")
+        sb.appendLine("import kotlin.js.JsBoolean")
         sb.appendLine("import kotlin.js.JsName")
+        sb.appendLine("import kotlin.js.JsNumber")
+        sb.appendLine("import kotlin.js.JsString")
         sb.appendLine("import kotlin.js.Promise")
         sb.appendLine()
 
@@ -578,21 +610,43 @@ abstract class GenerateWasmExternsTask : DefaultTask() {
             }
         }
 
+        fun convertArrayElementType(ts: String): String = when (ts) {
+            "string" -> "JsString"
+            "number" -> "JsNumber"
+            "boolean", "bool" -> "JsBoolean"
+            "any" -> "JsAny?"
+            else -> error("Unsupported TypeScript array element type: $ts")
+        }
+
+        fun convertOpaqueType(ts: String): String = when (ts) {
+            "any", "object", "Function", "Uint8Array", "Float32Array", "bigint", "WasmClient" -> "JsAny?"
+            else -> error("Unsupported TypeScript type: $ts")
+        }
+
+        fun makeNullable(type: String, nullable: Boolean): String =
+            if (nullable && !type.endsWith("?")) "$type?" else type
+
         fun convertParamType(ts: String): String {
             val t = ts.trim()
             return when {
+                t.endsWith("[]") -> "JsArray<${convertArrayElementType(t.dropLast(2))}>"
                 t == "boolean" || t == "bool" -> "Boolean"
                 t == "string" -> "String"
                 t == "number" -> "Double"
-                // Function type: (params) => returnType
                 t.startsWith("(") && t.contains("=>") -> {
                     var depth = 0
                     var closeIdx = -1
                     for (i in t.indices) {
                         if (t[i] == '(') depth++
-                        if (t[i] == ')') { depth--; if (depth == 0) { closeIdx = i; break } }
+                        if (t[i] == ')') {
+                            depth--
+                            if (depth == 0) {
+                                closeIdx = i
+                                break
+                            }
+                        }
                     }
-                    if (closeIdx < 0) return "JsAny?"
+                    if (closeIdx < 0) error("Invalid TypeScript function type: $t")
                     val inner = t.substring(1, closeIdx).trim()
                     val retPart = t.substring(closeIdx + 1).trim().removePrefix("=>").trim()
                     val ktRet = convertReturnType(retPart)
@@ -602,27 +656,22 @@ abstract class GenerateWasmExternsTask : DefaultTask() {
                         val paramParts = splitBalanced(inner, ',')
                         val ktParams = paramParts.joinToString(", ") { p ->
                             val ci = p.indexOf(':')
-                            if (ci < 0) "JsAny?"
+                            if (ci < 0) error("Invalid TypeScript function parameter: $p")
                             else convertParamType(p.substring(ci + 1).trim())
                         }
                         "($ktParams) -> $ktRet"
                     }
                 }
-                // Union types: normalize and resolve
+                t.startsWith("Promise<") -> "Promise<JsAny?>"
                 t.contains("|") -> {
                     val parts = t.split("|").map { it.trim() }.toSet()
                     val nonNull = parts - setOf("null", "undefined")
                     val nullable = parts.contains("null") || parts.contains("undefined")
                     val base = nonNull.singleOrNull()
-                    when (base) {
-                        "string" -> if (nullable) "String?" else "String"
-                        "number" -> if (nullable) "Double?" else "Double"
-                        "boolean", "bool" -> if (nullable) "Boolean?" else "Boolean"
-                        else -> "JsAny?"
-                    }
+                        ?: error("Unsupported TypeScript union type: $t")
+                    makeNullable(convertParamType(base), nullable)
                 }
-                t.startsWith("Promise<") -> "Promise<JsAny?>"
-                else -> "JsAny?"
+                else -> convertOpaqueType(t)
             }
         }
 
@@ -630,23 +679,16 @@ abstract class GenerateWasmExternsTask : DefaultTask() {
             val t = ts.trim()
             return when {
                 t == "void" -> "Unit"
-                t == "boolean" -> "Boolean"
-                t == "string" -> "String"
-                t == "number" -> "Double"
                 t.startsWith("Promise<") -> "Promise<JsAny?>"
                 t.contains("|") -> {
                     val parts = t.split("|").map { it.trim() }.toSet()
                     val nonNull = parts - setOf("null", "undefined")
                     val nullable = parts.contains("null") || parts.contains("undefined")
                     val base = nonNull.singleOrNull()
-                    when {
-                        base == "string" -> if (nullable) "String?" else "String"
-                        base == "number" -> if (nullable) "Double?" else "Double"
-                        base == "boolean" -> if (nullable) "Boolean?" else "Boolean"
-                        else -> "JsAny?"
-                    }
+                        ?: error("Unsupported TypeScript union type: $t")
+                    makeNullable(convertParamType(base), nullable)
                 }
-                else -> "JsAny?"
+                else -> convertParamType(t)
             }
         }
 
@@ -656,7 +698,7 @@ abstract class GenerateWasmExternsTask : DefaultTask() {
             return params.joinToString(", ") { param ->
                 val p = param.trim()
                 val colonIdx = p.indexOf(':')
-                if (colonIdx < 0) return@joinToString "param: JsAny?"
+                if (colonIdx < 0) error("Invalid TypeScript parameter: $p")
                 val rawName = p.substring(0, colonIdx).trim()
                 val optional = rawName.endsWith("?")
                 val tsName = rawName.removeSuffix("?")

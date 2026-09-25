@@ -229,11 +229,11 @@ private suspend fun Promise<JsAny?>.awaitBoolLike(): Boolean {
   return value.toString() == "true"
 }
 
-private fun List<String>.toJsArray(): JsArray<JsString> = JsArray<JsString>().also { arr ->
+internal fun List<String>.toJsArray(): JsArray<JsString> = JsArray<JsString>().also { arr ->
     forEachIndexed { i, v -> arr[i] = v.toJsString() }
 }
 
-private fun List<Double>.toJsArray(): JsArray<JsNumber> = JsArray<JsNumber>().also { arr ->
+internal fun List<Double>.toJsArray(): JsArray<JsNumber> = JsArray<JsNumber>().also { arr ->
     forEachIndexed { i, v -> arr[i] = v.toJsNumber() }
 }
 
