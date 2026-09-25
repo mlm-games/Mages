@@ -164,6 +164,9 @@ private fun AppContent(
 
     // isLoggedIn() calls in remember{} are non-suspend and safe for initialization
 
+    val backStack: NavBackStack<NavKey> =
+        rememberNavBackStack(navSavedStateConfiguration, initialRoute)
+
     val isDark = when (settings.themeMode) {
         ThemeMode.System -> isSystemInDarkTheme()
         ThemeMode.Dark -> true
@@ -188,9 +191,6 @@ private fun AppContent(
             var showAccountSwitcher by remember { mutableStateOf(false) }
             val accounts by accountStore.accounts.collectAsState()
             val activeAccountId by accountStore.activeAccountId.collectAsState()
-
-            val backStack: NavBackStack<NavKey> =
-                rememberNavBackStack(navSavedStateConfiguration, initialRoute)
 
             val localDeepLinks = remember {
                 MutableSharedFlow<DeepLinkAction>(

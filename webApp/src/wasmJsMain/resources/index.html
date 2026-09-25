@@ -61,6 +61,18 @@
         </div>
     </div>
 
+    <script>
+        const currentLanguagesImplementation = Object.getOwnPropertyDescriptor(Navigator.prototype, "languages");
+        const newLanguagesImplementation = Object.assign({}, currentLanguagesImplementation, {
+            get: function () {
+                if (window.__customLocale) {
+                    return [window.__customLocale];
+                }
+                return currentLanguagesImplementation.get.apply(this);
+            }
+        });
+        Object.defineProperty(Navigator.prototype, "languages", newLanguagesImplementation);
+    </script>
     <script src="mages.js"></script>
 </body>
 
