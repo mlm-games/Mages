@@ -17,7 +17,6 @@ use matrix_sdk::ruma::room_version_rules::RoomVersionRules;
 use matrix_sdk::ruma::serde::Raw;
 #[cfg(not(target_family = "wasm"))]
 use matrix_sdk::search_index::SearchIndexStoreKind;
-use matrix_sdk::send_queue::SendHandle;
 use matrix_sdk::sleep::sleep;
 #[cfg(not(target_family = "wasm"))]
 use matrix_sdk::utils::local_server::LocalServerBuilder;
@@ -271,7 +270,6 @@ pub struct Client {
     receipts_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     room_list_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     room_list_cmds: Mutex<HashMap<u64, tokio::sync::mpsc::UnboundedSender<RoomListCmd>>>,
-    send_handles_by_txn: Arc<Mutex<HashMap<String, SendHandle>>>,
     send_queue_supervised: AtomicBool,
     call_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     live_location_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
@@ -341,6 +339,87 @@ fn mages_client_metadata(redirect_uri: &Url) -> Raw<ClientMetadata> {
         )
     };
     Raw::new(&metadata).expect("Couldn't serialize client metadata")
+}
+
+async fn queue_send_attachment(
+    room: &Room,
+    filename: String,
+    mime_type: Mime,
+    data: Vec<u8>,
+    mut config: matrix_sdk::attachment::AttachmentConfig,
+    progress: Option<Box<dyn ProgressObserver>>,
+) -> bool {
+    let transaction_id = config
+        .txn_id
+        .clone()
+        .unwrap_or_else(matrix_sdk::ruma::TransactionId::new);
+    config.txn_id = Some(transaction_id.clone());
+    let transaction_id = transaction_id.to_string();
+    let total = data.len() as u64;
+
+    room.client().send_queue().enable_upload_progress(true);
+    let (_local_echoes, mut updates) = match room.send_queue().subscribe().await {
+        Ok(value) => value,
+        Err(error) => {
+            warn!("cannot subscribe to send queue: {error}");
+            return false;
+        }
+    };
+
+    if let Some(observer) = progress.as_ref() {
+        observer.on_progress(0, Some(total));
+    }
+
+    if room
+        .send_queue()
+        .send_attachment(filename, mime_type, data, config)
+        .await
+        .is_err()
+    {
+        return false;
+    }
+
+    loop {
+        match updates.recv().await {
+            Ok(matrix_sdk::send_queue::RoomSendQueueUpdate::MediaUpload {
+                related_to,
+                progress: upload_progress,
+                ..
+            }) if related_to.as_str() == transaction_id.as_str() => {
+                if let Some(observer) = progress.as_ref() {
+                    observer.on_progress(
+                        upload_progress.current as u64,
+                        Some(upload_progress.total as u64),
+                    );
+                }
+            }
+            Ok(matrix_sdk::send_queue::RoomSendQueueUpdate::SentEvent {
+                transaction_id: sent_transaction_id,
+                ..
+            }) if sent_transaction_id.as_str() == transaction_id.as_str() => {
+                if let Some(observer) = progress {
+                    observer.on_progress(total, Some(total));
+                }
+                return true;
+            }
+            Ok(matrix_sdk::send_queue::RoomSendQueueUpdate::SendError {
+                transaction_id: failed_transaction_id,
+                error,
+                ..
+            }) if failed_transaction_id.as_str() == transaction_id.as_str() => {
+                warn!("send queue failed for {transaction_id}: {error}");
+                return false;
+            }
+            Ok(matrix_sdk::send_queue::RoomSendQueueUpdate::CancelledLocalEvent {
+                transaction_id: cancelled_transaction_id,
+            }) if cancelled_transaction_id.as_str() == transaction_id.as_str() => {
+                return false;
+            }
+            Ok(_) => {}
+            Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
+            Err(tokio::sync::broadcast::error::RecvError::Closed) => return false,
+        }
+    }
 }
 
 fn now_ms() -> u64 {
@@ -546,7 +625,6 @@ impl Client {
             receipts_subs: Mutex::new(HashMap::new()),
             room_list_subs: Mutex::new(HashMap::new()),
             room_list_cmds: Mutex::new(HashMap::new()),
-            send_handles_by_txn: core.send_handles_by_txn.clone(),
             send_queue_supervised: AtomicBool::new(false),
             call_subs: Mutex::new(HashMap::new()),
             live_location_subs: Mutex::new(HashMap::new()),
@@ -2754,20 +2832,8 @@ impl Client {
         RT.block_on(self.core.set_key_backup_enabled(enabled))
     }
 
-    pub fn retry_by_txn(&self, _room_id: String, txn_id: String) -> bool {
-        RT.block_on(async {
-            if let Some(handle) = self
-                .send_handles_by_txn
-                .lock()
-                .unwrap()
-                .get(&txn_id)
-                .cloned()
-            {
-                handle.unwedge().await.is_ok()
-            } else {
-                false
-            }
-        })
+    pub fn retry_by_txn(&self, room_id: String, txn_id: String) -> bool {
+        RT.block_on(self.core.retry_by_txn(room_id, txn_id))
     }
 
     pub fn send_attachment_from_path(
@@ -2843,14 +2909,7 @@ impl Client {
                     }));
                 }
             }
-            if let Some(p) = progress.as_ref() {
-                p.on_progress(0, Some(data.len() as u64));
-            }
-            let result = room.send_attachment(&fname, &mime_type, data, config).await;
-            if let Some(p) = progress {
-                p.on_progress(1, Some(1));
-            }
-            result.is_ok()
+            queue_send_attachment(&room, fname, mime_type, data, config, progress).await
         })
     }
 
@@ -2865,10 +2924,13 @@ impl Client {
     ) -> bool {
         let _ = &filename;
         RT.block_on(async {
-            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+            let Ok(rid) = OwnedRoomId::try_from(room_id.as_str()) else {
                 return false;
             };
-            let Some(room) = self.core.sdk.get_room(&rid) else {
+            if self.core.sdk.get_room(&rid).is_none() {
+                return false;
+            }
+            let Some(tl) = self.core.timeline(&room_id).await else {
                 return false;
             };
             let data = match std::fs::read(&path) {
@@ -2909,7 +2971,7 @@ impl Client {
 
             let content = StickerEventContent::new(body, info, response.content_uri);
 
-            let result = room.send(content).await;
+            let result = tl.send(content.into()).await;
 
             if let Some(p) = progress {
                 p.on_progress(data_len as u64, Some(data_len as u64));

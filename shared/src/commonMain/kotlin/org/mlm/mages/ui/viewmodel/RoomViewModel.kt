@@ -738,14 +738,15 @@ class RoomViewModel(
     }
 
     fun retry(event: MessageEvent) {
-        if (event.body.isBlank()) return
-        launch {
-            val retryResult = event.txnId?.let { txn ->
-                service.retryByTxn(currentState.roomId, txn)
-            }
+        val txnId = event.txnId
+        if (txnId.isNullOrBlank()) {
+            launch { _events.send(Event.ShowError("This message cannot be retried")) }
+            return
+        }
 
-            val result = if (retryResult?.isSuccess == true) Result.success(Unit) else service.sendMessage(currentState.roomId, event.body.trim())
-            if (result?.isSuccess != true) {
+        launch {
+            val result = service.retryByTxn(currentState.roomId, txnId)
+            if (result.isFailure) {
                 _events.send(Event.ShowError(result.toUserMessage("Retry failed")))
             }
         }

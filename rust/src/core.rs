@@ -49,7 +49,6 @@ use matrix_sdk::{
         presence::PresenceState,
         room::{JoinRuleSummary, RoomType},
     },
-    send_queue::SendHandle as SdkSendHandle,
 };
 use matrix_sdk_ui::{
     eyeball_im::{Vector, VectorDiff},
@@ -276,7 +275,6 @@ pub struct CoreClient {
     pub sdk: SdkClient,
     pub timeline_mgr: TimelineManager,
     pub sync_service: Arc<Mutex<Option<Arc<SyncService>>>>,
-    pub send_handles_by_txn: Arc<Mutex<HashMap<String, SdkSendHandle>>>,
 }
 
 impl CoreClient {
@@ -286,7 +284,6 @@ impl CoreClient {
             sdk,
             timeline_mgr,
             sync_service: Arc::new(Mutex::new(None)),
-            send_handles_by_txn: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -545,6 +542,53 @@ impl CoreClient {
         out
     }
 
+    pub async fn retry_by_txn(&self, room_id: String, txn_id: String) -> bool {
+        if room_id.trim().is_empty() || txn_id.trim().is_empty() {
+            return false;
+        }
+
+        self.sdk.send_queue().set_enabled(true).await;
+
+        let Ok(rid) = OwnedRoomId::try_from(room_id.as_str()) else {
+            return false;
+        };
+        if let Some(room) = self.sdk.get_room(&rid) {
+            if let Ok((local_echoes, _)) = room.send_queue().subscribe().await {
+                for local in local_echoes.iter().rev() {
+                    if local.transaction_id.as_str() != txn_id {
+                        continue;
+                    }
+                    if let matrix_sdk::send_queue::LocalEchoContent::Event {
+                        send_handle, ..
+                    } = &local.content
+                    {
+                        if send_handle.unwedge().await.is_ok() {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        let Some(tl) = self.timeline(&room_id).await else {
+            return false;
+        };
+
+        for item in tl.items().await.iter().rev() {
+            let Some(event) = item.as_event() else {
+                continue;
+            };
+            if event.transaction_id().map(|id| id.as_str()) != Some(txn_id.as_str()) {
+                continue;
+            }
+            if let Some(handle) = event.local_echo_send_handle() {
+                return handle.unwedge().await.is_ok();
+            }
+        }
+
+        false
+    }
+
     pub async fn send_message(
         &self,
         room_id: String,
@@ -561,21 +605,7 @@ impl CoreClient {
         } else {
             RoomMessageEventContent::text_plain(body)
         };
-        let handle = tl.send(content.into()).await.ffi()?;
-        let items = tl.items().await;
-        if let Some(last) = items.last() {
-            if let Some(ev) = last.as_event() {
-                if ev.event_id().is_none() {
-                    if let Some(txn) = ev.transaction_id() {
-                        self.send_handles_by_txn
-                            .lock()
-                            .unwrap()
-                            .insert(txn.to_string(), handle);
-                    }
-                }
-            }
-        }
-        Ok(())
+        tl.send(content.into()).await.ffi().map(|_| ())
     }
 
     pub async fn reply(
@@ -2309,12 +2339,12 @@ impl CoreClient {
         body: Option<String>,
         formatted_body: Option<String>,
     ) -> Result<(), FfiError> {
-        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+        let Ok(rid) = OwnedRoomId::try_from(room_id.as_str()) else {
             return Err(FfiError::Msg("invalid room id".into()));
         };
-        let Some(room) = self.sdk.get_room(&rid) else {
+        if self.sdk.get_room(&rid).is_none() {
             return Err(FfiError::Msg("room not found".into()));
-        };
+        }
         let typed_caption = body.filter(|b| !b.trim().is_empty());
         let formatted = typed_caption.as_ref().and_then(|_| {
             formatted_body
@@ -2437,7 +2467,10 @@ impl CoreClient {
             }
         };
         let content = RoomMessageEventContent::new(msgtype);
-        room.send(content).await.ffi().map(|_| ())
+        let Some(tl) = self.timeline(&room_id).await else {
+            return Err(FfiError::Msg("timeline not found".into()));
+        };
+        tl.send(content.into()).await.ffi().map(|_| ())
     }
 
     pub async fn reactions_for_event(
@@ -3120,11 +3153,13 @@ impl CoreClient {
         room_id: String,
         def: PollDefinition,
     ) -> Result<String, FfiError> {
-        let room = self.require_room(&room_id)?;
         let content = build_unstable_poll_content(&def)?;
         let any = AnyMessageLikeEventContent::UnstablePollStart(content.into());
-        let res = room.send(any).await.ffi()?;
-        Ok(res.response.event_id.to_string())
+        let Some(tl) = self.timeline(&room_id).await else {
+            return Err(FfiError::Msg("timeline not found".into()));
+        };
+        tl.send(any).await.ffi()?;
+        Ok(String::new())
     }
 
     pub async fn send_poll_response(
@@ -3133,13 +3168,15 @@ impl CoreClient {
         poll_event_id: String,
         answers: Vec<String>,
     ) -> Result<(), FfiError> {
-        let room = self.require_room(&room_id)?;
         let eid = Self::parse_eid(&poll_event_id)?;
         let content = UnstablePollResponseEventContent::new(answers, eid.to_owned());
-        room.send(AnyMessageLikeEventContent::UnstablePollResponse(content))
+        let Some(tl) = self.timeline(&room_id).await else {
+            return Err(FfiError::Msg("timeline not found".into()));
+        };
+        tl.send(AnyMessageLikeEventContent::UnstablePollResponse(content))
             .await
-            .map(|_| ())
             .ffi()
+            .map(|_| ())
     }
 
     pub async fn send_poll_end(
@@ -3147,13 +3184,15 @@ impl CoreClient {
         room_id: String,
         poll_event_id: String,
     ) -> Result<(), FfiError> {
-        let room = self.require_room(&room_id)?;
         let eid = Self::parse_eid(&poll_event_id)?;
         let end = UnstablePollEndEventContent::new("Poll ended", eid);
-        room.send(AnyMessageLikeEventContent::UnstablePollEnd(end))
+        let Some(tl) = self.timeline(&room_id).await else {
+            return Err(FfiError::Msg("timeline not found".into()));
+        };
+        tl.send(AnyMessageLikeEventContent::UnstablePollEnd(end))
             .await
-            .map(|_| ())
             .ffi()
+            .map(|_| ())
     }
 
     pub async fn set_presence(
