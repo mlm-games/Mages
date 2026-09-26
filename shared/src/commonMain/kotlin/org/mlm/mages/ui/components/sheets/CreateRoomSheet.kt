@@ -2,6 +2,10 @@ package org.mlm.mages.ui.components.sheets
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -11,6 +15,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -43,6 +50,7 @@ fun CreateRoomSheet(
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
     val serverDomain = remember {
         matrixPort.whoami()?.substringAfter(":") ?: ""
     }
@@ -106,128 +114,148 @@ fun CreateRoomSheet(
             modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            Text("New room", style = MaterialTheme.typography.titleMedium)
-
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Name") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                isError = name.isBlank() && isPublic,
-                supportingText = if (name.isBlank() && isPublic) {
-                    { Text("Room name is required for public rooms") }
-                } else null
-            )
-
-            OutlinedTextField(
-                value = topic,
-                onValueChange = { topic = it },
-                label = { Text("Topic (optional)") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                Checkbox(checked = isPublic, onCheckedChange = { isPublic = it })
-                Text("Make room public (visible in room directory)")
-            }
-
-            AnimatedVisibility(visible = isPublic) {
-                Column {
-                    OutlinedTextField(
-                        value = roomAlias,
-                        onValueChange = { roomAlias = slugifyInput(it) },
-                        label = { Text("Room address") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        isError = aliasAvailability == AliasAvailability.Taken || aliasAvailability == AliasAvailability.Invalid,
-                        prefix = { Text("#", style = MaterialTheme.typography.bodyLarge) },
-                        suffix = { Text(":$serverDomain", style = MaterialTheme.typography.bodyMedium) },
-                        supportingText = {
-                            aliasCheckMessage?.let { message ->
-                                Text(
-                                    text = message,
-                                    color = when (aliasAvailability) {
-                                        AliasAvailability.Available -> MaterialTheme.colorScheme.primary
-                                        AliasAvailability.Taken, AliasAvailability.Invalid -> MaterialTheme.colorScheme.error
-                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                    }
-                                )
-                            }
-                        },
-                        trailingIcon = {
-                            when (aliasAvailability) {
-                                AliasAvailability.Checking -> {
-                                    CircularWavyProgressIndicator(modifier = Modifier.size(20.dp))
-                                }
-                                AliasAvailability.Available -> {
-                                    Icon(Icons.Default.Check, contentDescription = "Available", tint = MaterialTheme.colorScheme.primary)
-                                }
-                                AliasAvailability.Taken, AliasAvailability.Invalid -> {
-                                    Icon(Icons.Default.Warning, contentDescription = "Error", tint = MaterialTheme.colorScheme.error)
-                                }
-                                else -> {}
-                            }
-                        }
-                    )
-                }
-            }
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+            // Shrinks with the IME so the fields stay reachable and the action row stays on screen.
+            Column(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
-                OutlinedTextField(
-                    value = inviteeInput,
-                    onValueChange = { inviteeInput = it },
-                    label = { Text("@user:server (optional)") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f)
-                )
-                IconButton(
-                    onClick = {
-                        val v = inviteeInput.trim()
-                        if (isValidMxid(v) && v !in invitees) {
-                            invitees = invitees + v
-                            inviteeInput = ""
-                        }
-                    },
-                    enabled = isValidMxid(inviteeInput.trim())
-                ) {
-                    Icon(Icons.Default.Add, "Add")
-                }
-            }
+                Text("New room", style = MaterialTheme.typography.titleMedium)
 
-            if (invitees.isNotEmpty()) {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                ) {
-                    invitees.forEach { mxid ->
-                        InputChip(
-                            selected = false,
-                            onClick = {},
-                            label = { Text(mxid) },
-                            trailingIcon = {
-                                IconButton(
-                                    onClick = { invitees = invitees - mxid },
-                                    modifier = Modifier.size(18.dp)
-                                ) {
-                                    Icon(Icons.Default.Close, "Remove", Modifier.size(14.dp))
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = name.isBlank() && isPublic,
+                    supportingText = if (name.isBlank() && isPublic) {
+                        { Text("Room name is required for public rooms") }
+                    } else null,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                    )
+                )
+
+                OutlinedTextField(
+                    value = topic,
+                    onValueChange = { topic = it },
+                    label = { Text("Topic (optional)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Checkbox(checked = isPublic, onCheckedChange = { isPublic = it })
+                    Text("Make room public (visible in room directory)")
+                }
+
+                AnimatedVisibility(visible = isPublic) {
+                    Column {
+                        OutlinedTextField(
+                            value = roomAlias,
+                            onValueChange = { roomAlias = slugifyInput(it) },
+                            label = { Text("Room address") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            isError = aliasAvailability == AliasAvailability.Taken || aliasAvailability == AliasAvailability.Invalid,
+                            prefix = { Text("#", style = MaterialTheme.typography.bodyLarge) },
+                            suffix = { Text(":$serverDomain", style = MaterialTheme.typography.bodyMedium) },
+                            supportingText = {
+                                aliasCheckMessage?.let { message ->
+                                    Text(
+                                        text = message,
+                                        color = when (aliasAvailability) {
+                                            AliasAvailability.Available -> MaterialTheme.colorScheme.primary
+                                            AliasAvailability.Taken, AliasAvailability.Invalid -> MaterialTheme.colorScheme.error
+                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
+                                    )
                                 }
-                            }
+                            },
+                            trailingIcon = {
+                                when (aliasAvailability) {
+                                    AliasAvailability.Checking -> {
+                                        CircularWavyProgressIndicator(modifier = Modifier.size(20.dp))
+                                    }
+                                    AliasAvailability.Available -> {
+                                        Icon(Icons.Default.Check, contentDescription = "Available", tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                    AliasAvailability.Taken, AliasAvailability.Invalid -> {
+                                        Icon(Icons.Default.Warning, contentDescription = "Error", tint = MaterialTheme.colorScheme.error)
+                                    }
+                                    else -> {}
+                                }
+                            },
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                            keyboardActions = KeyboardActions(
+                                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                            )
                         )
                     }
                 }
-            }
 
-            errorMessage?.let {
-                Text(
-                    text = it,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = inviteeInput,
+                        onValueChange = { inviteeInput = it },
+                        label = { Text("@user:server (optional)") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(
+                            onDone = { focusManager.clearFocus() }
+                        )
+                    )
+                    IconButton(
+                        onClick = {
+                            val v = inviteeInput.trim()
+                            if (isValidMxid(v) && v !in invitees) {
+                                invitees = invitees + v
+                                inviteeInput = ""
+                            }
+                        },
+                        enabled = isValidMxid(inviteeInput.trim())
+                    ) {
+                        Icon(Icons.Default.Add, "Add")
+                    }
+                }
+
+                if (invitees.isNotEmpty()) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
+                        invitees.forEach { mxid ->
+                            InputChip(
+                                selected = false,
+                                onClick = {},
+                                label = { Text(mxid) },
+                                trailingIcon = {
+                                    IconButton(
+                                        onClick = { invitees = invitees - mxid },
+                                        modifier = Modifier.size(18.dp)
+                                    ) {
+                                        Icon(Icons.Default.Close, "Remove", Modifier.size(14.dp))
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+
+                errorMessage?.let {
+                    Text(
+                        text = it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {

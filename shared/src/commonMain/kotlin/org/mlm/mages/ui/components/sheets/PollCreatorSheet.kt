@@ -1,8 +1,10 @@
 package org.mlm.mages.ui.components.sheets
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
@@ -10,7 +12,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.ui.theme.Spacing
 
@@ -31,6 +36,7 @@ fun PollCreatorSheet(
         mutableStateOf(initialMaxSelections > 1)
     }
 
+    val focusManager = LocalFocusManager.current
     val isValid = question.isNotBlank() && answers.count { it.isNotBlank() } >= 2
 
     ModalBottomSheet(
@@ -60,33 +66,35 @@ fun PollCreatorSheet(
 
             Spacer(Modifier.height(Spacing.lg))
 
-            // Question
-            OutlinedTextField(
-                value = question,
-                onValueChange = { question = it },
-                label = { Text("Question") },
-                placeholder = { Text("Ask something...") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = false,
-                maxLines = 3,
-                leadingIcon = { Icon(Icons.Default.Poll, null) }
-            )
-
-            Spacer(Modifier.height(Spacing.lg))
-
-            Text(
-                "Options (minimum 2)",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium
-            )
-
-            Spacer(Modifier.height(Spacing.sm))
-
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                modifier = Modifier.weight(1f, fill = false).heightIn(max = 250.dp)
+            // Shrinks with the IME so options stay reachable and the action row stays on screen.
+            Column(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .heightIn(max = 250.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                itemsIndexed(answers) { index, answer ->
+                OutlinedTextField(
+                    value = question,
+                    onValueChange = { question = it },
+                    label = { Text("Question") },
+                    placeholder = { Text("Ask something...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = false,
+                    maxLines = 3,
+                    leadingIcon = { Icon(Icons.Default.Poll, null) }
+                )
+
+                Spacer(Modifier.height(Spacing.sm))
+
+                Text(
+                    "Options (minimum 2)",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium
+                )
+
+                answers.forEachIndexed { index, answer ->
+                    val isLast = index == answers.lastIndex
                     OutlinedTextField(
                         value = answer,
                         onValueChange = { newValue ->
@@ -95,6 +103,13 @@ fun PollCreatorSheet(
                         label = { Text("Option ${index + 1}") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = if (isLast) ImeAction.Done else ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onNext = { focusManager.moveFocus(FocusDirection.Down) },
+                            onDone = { focusManager.clearFocus() }
+                        ),
                         trailingIcon = {
                             if (answers.size > 2) {
                                 IconButton(onClick = {
@@ -108,34 +123,30 @@ fun PollCreatorSheet(
                 }
 
                 if (answers.size < 10) {
-                    item {
-                        TextButton(
-                            onClick = { answers = answers + "" },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Default.Add, null)
-                            Spacer(Modifier.width(Spacing.sm))
-                            Text("Add option")
-                        }
+                    TextButton(
+                        onClick = { answers = answers + "" },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Add, null)
+                        Spacer(Modifier.width(Spacing.sm))
+                        Text("Add option")
                     }
                 }
-            }
 
-            Spacer(Modifier.height(Spacing.lg))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "Allow multiple answers",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Switch(
-                    checked = allowMultipleAnswers,
-                    onCheckedChange = { allowMultipleAnswers = it }
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Allow multiple answers",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Switch(
+                        checked = allowMultipleAnswers,
+                        onCheckedChange = { allowMultipleAnswers = it }
+                    )
+                }
             }
 
             Spacer(Modifier.height(Spacing.lg))
