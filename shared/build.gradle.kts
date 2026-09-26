@@ -1,6 +1,5 @@
 @file:OptIn(ExperimentalWasmDsl::class)
 
-import org.gradle.internal.os.OperatingSystem
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
@@ -10,6 +9,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.rustUniffi)
 }
 
 kotlin {
@@ -182,192 +182,18 @@ dependencies {
     add("kspWasmJs", libs.kmp.settings.ksp)
 }
 
-val cargoAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
-val rustDirDefault = rootProject.layout.projectDirectory.dir("rust")
-val os = OperatingSystem.current()!!
-val ffiLibName = providers.gradleProperty("ffiLibName").orElse("mages_ffi").get()
-val hostLibName = when {
-    os.isMacOsX -> "lib$ffiLibName.dylib"
-    os.isWindows -> "$ffiLibName.dll"
-    else -> "lib$ffiLibName.so"
-}
-val hostLibFile = rustDirDefault.file("target/release/$hostLibName")
-val androidLibName = "lib$ffiLibName.so"
-val wasmLibFile = rustDirDefault.file("target/wasm32-unknown-unknown/release/mages_ffi.wasm")
+// The rust/uniffi tasks (cargoBuildDesktop, cargoBuildAndroid, cargoBuildWasm, genUniFFIAndroid,
+// genUniFFIJvm, copyNativeForJna and the source-set wiring) come from the rust-uniffi plugin.
+
 val webAppWasmDir = rootProject.layout.projectDirectory.dir("webApp/src/wasm")
 val generatedWebWasmResources = layout.buildDirectory.dir("generated/web/wasm")
-
-val useCargoFallback = providers.provider { true }
-val cargoBinDefault = providers.environmentVariable("MAGES_CARGO")
-    .orElse(providers.provider { if (os.isWindows) "cargo.exe" else "cargo" })
-val vendoredManifestVar = rustDirDefault.file("uniffi-bindgen/Cargo.toml")
-val targetAbiList = providers.gradleProperty("targetAbi").orNull?.let { listOf(it) } ?: cargoAbis
-
-val cargoBuildAndroid = tasks.register<CargoNdkTask>("cargoBuildAndroid") {
-    abis.set(targetAbiList)
-    cargoBin.set(cargoBinDefault)
-    rustDir.set(rustDirDefault)
-    jniOut.set(layout.projectDirectory.dir("src/androidMain/jniLibs"))
-}
-
-val cargoBuildDesktop = tasks.register<CargoBuildOnlyTask>("cargoBuildDesktop") {
-    cargoBin.set(cargoBinDefault)
-    rustDir.set(rustDirDefault)
-}
-
-val cargoBuildWasm = tasks.register<CargoBuildWasmTask>("cargoBuildWasm") {
-    cargoBin.set(cargoBinDefault)
-    rustDir.set(rustDirDefault)
-}
-
-val uniffiAndroidOut = layout.buildDirectory.dir("generated/uniffi/androidMain/kotlin")
-val uniffiJvmOut = layout.buildDirectory.dir("generated/uniffi/jvmMain/kotlin")
-val uniffiWasmOut = layout.buildDirectory.dir("generated/uniffi/wasmJsMain/kotlin")
-
-val genUniFFIAndroid = tasks.register<GenerateUniFFITask>("genUniFFIAndroid") {
-    // The host build compiles modules the android, and
-    // build does not (e.g. desktop_location, gated on linux/macos/windows), and JNA resolves
-    // every uniffi function eagerly, so host-derived bindings fail at UniffiLib class init.
-    mustRunAfter(cargoBuildAndroid)
-    libraryFile.set(layout.file(providers.provider {
-        targetAbiList.firstNotNullOfOrNull { abi ->
-            layout.projectDirectory.file("src/androidMain/jniLibs/$abi/$androidLibName").asFile
-                .takeIf { it.isFile }
-        } ?: error("no android library found; cargoBuildAndroid must run first")
-    }))
-    configFile.set(rustDirDefault.file("uniffi.android.toml"))
-    language.set("kotlin")
-    uniffiPath.set("")
-    useFallbackCargo.set(useCargoFallback)
-    cargoBin.set(cargoBinDefault)
-    vendoredManifest.set(vendoredManifestVar)
-    outDir.set(uniffiAndroidOut)
-}
-
-val genUniFFIJvm = tasks.register<GenerateUniFFITask>("genUniFFIJvm") {
-    dependsOn(cargoBuildDesktop)
-    libraryFile.set(hostLibFile)
-    configFile.set(rustDirDefault.file("uniffi.jvm.toml"))
-    language.set("kotlin")
-    uniffiPath.set("")
-    useFallbackCargo.set(useCargoFallback)
-    cargoBin.set(cargoBinDefault)
-    vendoredManifest.set(vendoredManifestVar)
-    outDir.set(uniffiJvmOut)
-}
-
-val genUniFFIWasm = tasks.register<GenerateUniFFITask>("genUniFFIWasm") {
-    dependsOn(cargoBuildDesktop)
-    libraryFile.set(hostLibFile)
-    configFile.set(rustDirDefault.file("uniffi.wasm.toml"))
-    language.set("kotlin")
-    uniffiPath.set("")
-    useFallbackCargo.set(useCargoFallback)
-    cargoBin.set(cargoBinDefault)
-    vendoredManifest.set(vendoredManifestVar)
-    outDir.set(uniffiWasmOut)
-}
+val rustDirDefault = rootProject.layout.projectDirectory.dir("rust")
 
 val syncWebWasmAssets = tasks.register<Copy>("syncWebWasmAssets") {
     from(webAppWasmDir)
     into(generatedWebWasmResources)
 }
 
-val jnaPlatformDir: String = run {
-    val arch = System.getProperty("os.arch").lowercase()
-    when {
-        os.isLinux && (arch.contains("aarch64") || arch.contains("arm64")) -> "linux-aarch64"
-        os.isLinux -> "linux-x86-64"
-        os.isMacOsX && (arch.contains("aarch64") || arch.contains("arm64")) -> "darwin-aarch64"
-        os.isMacOsX -> "darwin-x86-64"
-        os.isWindows && arch.contains("64") -> "win32-x86-64"
-        os.isWindows -> "win32-x86"
-        else -> error("Unsupported OS/arch: ${System.getProperty("os.name")} $arch")
-    }
-}
-
-val copyNativeForJna = tasks.register<Copy>("copyNativeForJna") {
-    dependsOn(cargoBuildDesktop)
-    from(rustDirDefault.file("target/release/$hostLibName"))
-    into(file("src/jvmMain/resources/$jnaPlatformDir"))
-}
-
-tasks.named("jvmProcessResources") {
-    dependsOn(copyNativeForJna)
-}
-
-@DisableCachingByDefault(because = "Builds native code")
-abstract class CargoBuildOnlyTask @Inject constructor(private val execOps: ExecOperations) : DefaultTask() {
-    @get:Input abstract val cargoBin: Property<String>
-    @get:InputDirectory abstract val rustDir: DirectoryProperty
-    @TaskAction fun run() {
-        execOps.exec {
-            workingDir = rustDir.get().asFile
-            commandLine(cargoBin.get(), "build", "--release")
-        }
-    }
-}
-
-@DisableCachingByDefault(because = "Builds WASM code")
-abstract class CargoBuildWasmTask @Inject constructor(private val execOps: ExecOperations) : DefaultTask() {
-    @get:Input abstract val cargoBin: Property<String>
-    @get:InputDirectory abstract val rustDir: DirectoryProperty
-    @TaskAction fun run() {
-        execOps.exec {
-            workingDir = rustDir.get().asFile
-            commandLine(cargoBin.get(), "build", "--target", "wasm32-unknown-unknown", "--release")
-        }
-    }
-}
-
-@DisableCachingByDefault(because = "Invokes external tool")
-abstract class CargoNdkTask @Inject constructor(private val execOps: ExecOperations) : DefaultTask() {
-    @get:Input abstract val abis: ListProperty<String>
-    @get:Input abstract val cargoBin: Property<String>
-    @get:InputDirectory abstract val rustDir: DirectoryProperty
-    @get:OutputDirectory abstract val jniOut: DirectoryProperty
-    @TaskAction fun run() {
-        val rustDirFile = rustDir.get().asFile
-        val outDir = jniOut.get().asFile; if (!outDir.exists()) outDir.mkdirs()
-        abis.get().forEach { abi ->
-            execOps.exec { workingDir = rustDirFile; commandLine(cargoBin.get(), "ndk", "-t", abi, "-o", outDir.absolutePath, "build", "--release") }
-        }
-    }
-}
-
-@DisableCachingByDefault(because = "Runs external tool")
-abstract class GenerateUniFFITask @Inject constructor(private val execOps: ExecOperations) : DefaultTask() {
-    @get:InputFile abstract val libraryFile: RegularFileProperty
-    @get:Optional @get:InputFile abstract val configFile: RegularFileProperty
-    @get:Input abstract val language: Property<String>
-    @get:Input abstract val uniffiPath: Property<String>
-    @get:Input abstract val useFallbackCargo: Property<Boolean>
-    @get:Input abstract val cargoBin: Property<String>
-    @get:Optional @get:InputFile abstract val vendoredManifest: RegularFileProperty
-    @get:OutputDirectory abstract val outDir: DirectoryProperty
-    @TaskAction fun run() {
-        val lib = libraryFile.get().asFile
-        val manifest = vendoredManifest.orNull?.asFile ?: throw GradleException("Manifest missing")
-
-        val cmd = mutableListOf(
-            cargoBin.get(), "run", "--release",
-            "--manifest-path", manifest.absolutePath,
-            "--bin", "uniffi-bindgen",
-            "--",
-            "generate",
-            "--library", lib.absolutePath,
-            "--language", language.get(),
-            "--out-dir", outDir.get().asFile.absolutePath
-        )
-
-        configFile.orNull?.let { cfg ->
-            cmd += listOf("--config", cfg.asFile.absolutePath)
-        }
-
-        outDir.get().asFile.mkdirs()
-        execOps.exec { workingDir = manifest.parentFile; commandLine(cmd) }
-    }
-}
 
 compose.resources {
     publicResClass = true
@@ -376,53 +202,21 @@ compose.resources {
 
 kotlin {
     sourceSets {
-        named("androidMain") {
-            kotlin.srcDir(uniffiAndroidOut)
-        }
-        named("jvmMain") {
-            kotlin.srcDir(uniffiJvmOut)
-        }
         named("wasmJsMain") {
             kotlin.srcDir(layout.buildDirectory.dir("generated/wasmJs/kotlin"))
         }
     }
 
-    android {
-        compilations.all {
-            compileTaskProvider.configure {
-                dependsOn(genUniFFIAndroid, cargoBuildAndroid)
-            }
-        }
-    }
-    jvm {
-        compilations.all {
-            compileTaskProvider.configure {
-                dependsOn(genUniFFIJvm)
-            }
-        }
-    }
+    // cargoBuildWasm comes from the rust-uniffi plugin; the externs are generated here.
     wasmJs {
         compilations.all {
             compileTaskProvider.configure {
-                dependsOn(generateWasmExterns, cargoBuildWasm)
+                dependsOn(generateWasmExterns)
             }
         }
     }
 }
-tasks.matching { it.name == "mergeAndroidMainJniLibFolders" }.configureEach {
-    dependsOn(cargoBuildAndroid)
-}
 
-tasks.matching { it.name.contains("JniLibFolders") && it.name.contains("AndroidMain") }.configureEach {
-    dependsOn(cargoBuildAndroid)
-}
-
-tasks.matching { it.name.startsWith("kspAndroid") }.configureEach {
-    dependsOn(genUniFFIAndroid)
-}
-tasks.matching { it.name.startsWith("kspJvm") || it.name == "kspKotlinJvm" }.configureEach {
-    dependsOn(genUniFFIJvm)
-}
 tasks.matching { it.name.startsWith("kspWasmJs") || it.name == "kspKotlinWasmJs" }.configureEach {
     dependsOn(generateWasmExterns)
 }
