@@ -279,7 +279,7 @@ val jnaPlatformDir: String = run {
         os.isLinux && (arch.contains("aarch64") || arch.contains("arm64")) -> "linux-aarch64"
         os.isLinux -> "linux-x86-64"
         os.isMacOsX && (arch.contains("aarch64") || arch.contains("arm64")) -> "darwin-aarch64"
-        os.isMacOsX -> "darwin"
+        os.isMacOsX -> "darwin-x86-64"
         os.isWindows && arch.contains("64") -> "win32-x86-64"
         os.isWindows -> "win32-x86"
         else -> error("Unsupported OS/arch: ${System.getProperty("os.name")} $arch")
