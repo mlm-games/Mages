@@ -55,7 +55,8 @@ internal fun MessageEvent.toTimelineContent(): TimelineContent =
         EventType.RoomCanonicalAlias,
         EventType.OtherState,
         EventType.CallInvite,
-        EventType.CallNotification ->
+        EventType.CallNotification,
+        EventType.Unsupported ->
             if (body.isBlank()) {
                 TimelineContent.Hidden(this)
             } else {

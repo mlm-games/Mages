@@ -135,6 +135,7 @@ enum class EventType {
     Sticker,
     LiveLocation,
     Location,
+    Unsupported,
     Unknown,
 }
 

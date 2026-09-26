@@ -707,6 +707,7 @@ pub enum EventType {
     Sticker,
     LiveLocation,
     Location,
+    Unsupported,
 }
 
 #[derive(Clone, Serialize, Deserialize, Enum)]

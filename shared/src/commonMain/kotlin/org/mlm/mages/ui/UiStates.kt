@@ -220,6 +220,7 @@ fun MessageEvent.toReplyPreview(): ReplyPreview {
 fun MessageEvent.isDisplayableAsPinnedEvent(): Boolean {
     if (isRedacted) return false
     if (eventType == EventType.Unknown) return false
+    if (eventType == EventType.Unsupported) return false
     if (body.isBlank() && attachment == null && sticker == null && pollData == null) return false
     return true
 }

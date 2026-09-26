@@ -3964,6 +3964,8 @@ fn map_reply_preview(
     }
 }
 
+const UNSUPPORTED_EVENT_BODY: &str = "Unsupported event";
+
 fn map_timeline_event(
     ev: &EventTimelineItem,
     room_id: &str,
@@ -4028,6 +4030,7 @@ fn map_timeline_event(
     let mut state_event_type: Option<String> = None;
     let mut live_location: Option<LiveLocationEvent> = None;
 
+    #[allow(unreachable_patterns)]
     match content {
         TimelineItemContent::MsgLike(ml) => {
             if let Some(details) = &ml.in_reply_to {
@@ -4197,6 +4200,11 @@ fn map_timeline_event(
                 Some(_) | None => "Call started".to_string(),
             };
             event_type = EventType::CallNotification;
+        }
+        TimelineItemContent::FailedToParseMessageLike { .. }
+        | TimelineItemContent::FailedToParseState { .. } => {
+            body = UNSUPPORTED_EVENT_BODY.to_owned();
+            event_type = EventType::Unsupported;
         }
         _ => {
             body = render_timeline_text(ev);

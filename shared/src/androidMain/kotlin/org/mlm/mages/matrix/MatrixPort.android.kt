@@ -2045,6 +2045,7 @@ private fun mages.EventType.toKotlin(): EventType = when (this) {
     mages.EventType.STICKER -> EventType.Sticker
     mages.EventType.LIVE_LOCATION -> EventType.LiveLocation
     mages.EventType.LOCATION -> EventType.Location
+    mages.EventType.UNSUPPORTED -> EventType.Unsupported
 }
 
 private fun mages.EncFile.toModel() = EncFile(url = url, json = json)
