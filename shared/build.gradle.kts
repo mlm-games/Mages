@@ -185,12 +185,14 @@ dependencies {
 val cargoAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
 val rustDirDefault = rootProject.layout.projectDirectory.dir("rust")
 val os = OperatingSystem.current()!!
+val ffiLibName = providers.gradleProperty("ffiLibName").orElse("mages_ffi").get()
 val hostLibName = when {
-    os.isMacOsX -> "libmages_ffi.dylib"
-    os.isWindows -> "mages_ffi.dll"
-    else -> "libmages_ffi.so"
+    os.isMacOsX -> "lib$ffiLibName.dylib"
+    os.isWindows -> "$ffiLibName.dll"
+    else -> "lib$ffiLibName.so"
 }
 val hostLibFile = rustDirDefault.file("target/release/$hostLibName")
+val androidLibName = "lib$ffiLibName.so"
 val wasmLibFile = rustDirDefault.file("target/wasm32-unknown-unknown/release/mages_ffi.wasm")
 val webAppWasmDir = rootProject.layout.projectDirectory.dir("webApp/src/wasm")
 val generatedWebWasmResources = layout.buildDirectory.dir("generated/web/wasm")
@@ -223,8 +225,16 @@ val uniffiJvmOut = layout.buildDirectory.dir("generated/uniffi/jvmMain/kotlin")
 val uniffiWasmOut = layout.buildDirectory.dir("generated/uniffi/wasmJsMain/kotlin")
 
 val genUniFFIAndroid = tasks.register<GenerateUniFFITask>("genUniFFIAndroid") {
-    dependsOn(cargoBuildDesktop)
-    libraryFile.set(hostLibFile)
+    // The host build compiles modules the android, and
+    // build does not (e.g. desktop_location, gated on linux/macos/windows), and JNA resolves
+    // every uniffi function eagerly, so host-derived bindings fail at UniffiLib class init.
+    mustRunAfter(cargoBuildAndroid)
+    libraryFile.set(layout.file(providers.provider {
+        targetAbiList.firstNotNullOfOrNull { abi ->
+            layout.projectDirectory.file("src/androidMain/jniLibs/$abi/$androidLibName").asFile
+                .takeIf { it.isFile }
+        } ?: error("no android library found; cargoBuildAndroid must run first")
+    }))
     configFile.set(rustDirDefault.file("uniffi.android.toml"))
     language.set("kotlin")
     uniffiPath.set("")
