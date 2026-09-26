@@ -115,6 +115,11 @@ fun MessageEvent.mediaCaption(): String? {
 
 fun MessageEvent.hasCaption(): Boolean = mediaCaption() != null
 
+fun MessageEvent.isForwardable(): Boolean = when (eventType) {
+    EventType.Message, EventType.Sticker, EventType.Location -> true
+    else -> false
+}
+
 fun MessageEvent.displayPreview(): String {
     if (isRedacted) return "Message deleted"
     if (utd != null) return "Unable to decrypt this message"

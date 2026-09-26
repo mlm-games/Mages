@@ -32,6 +32,7 @@ import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.SendState
 import org.mlm.mages.ui.displayPreview
 import org.mlm.mages.ui.hasCaption
+import org.mlm.mages.ui.isForwardable
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.theme.Limits
 import org.mlm.mages.ui.util.formatTime
@@ -109,7 +110,7 @@ fun MessageActionSheet(
                 ActionItem(Icons.Default.Share,
                     if (currentPlatform == SettingPlatform.WEB) "Download" else "Share") { onShare(); onDismiss() }
             }
-            if (onForward != null) {
+            if (onForward != null && event.isForwardable()) {
                 ActionItem(Icons.AutoMirrored.Filled.Forward, "Forward") { onForward(); onDismiss() }
             }
             ActionItem(Icons.AutoMirrored.Filled.Reply, "Reply") { onReply(); onDismiss() }

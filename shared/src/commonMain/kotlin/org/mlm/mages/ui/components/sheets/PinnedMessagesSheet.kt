@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import org.mlm.mages.ui.PinnedMessageUi
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.message.ReactionChipsRow
+import org.mlm.mages.ui.isForwardable
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatPinnedTimestamp
@@ -154,11 +155,13 @@ fun PinnedMessagesSheet(
                                 }
                             }
 
-                            IconButton(onClick = { onForward(pinned.eventId) }) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Forward,
-                                    contentDescription = "Forward"
-                                )
+                            if (pinned.event?.isForwardable() != false) {
+                                IconButton(onClick = { onForward(pinned.eventId) }) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Forward,
+                                        contentDescription = "Forward"
+                                    )
+                                }
                             }
 
                             if (canUnpin) {
