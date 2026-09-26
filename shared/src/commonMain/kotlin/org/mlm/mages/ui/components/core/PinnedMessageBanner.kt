@@ -22,14 +22,15 @@ fun PinnedMessageBanner(
     onEventClick: (String) -> Unit = {},
 ) {
     if (pinnedMessages.isEmpty()) return
-    var index by remember { mutableIntStateOf(pinnedMessages.lastIndex) }
+    val total = pinnedMessages.size
+    var index by remember { mutableIntStateOf(total - 1) }
+    val active = index.coerceIn(0, total - 1)
 
-    LaunchedEffect(pinnedMessages) {
-        if (index !in pinnedMessages.indices) index = pinnedMessages.lastIndex
+    LaunchedEffect(active) {
+        if (index != active) index = active
     }
 
-    val primary = pinnedMessages[index]
-    val total = pinnedMessages.size
+    val primary = pinnedMessages[active]
 
     Row(
         modifier = Modifier
@@ -40,7 +41,7 @@ fun PinnedMessageBanner(
     ) {
         PinIndicators(
             count = total,
-            activeIndex = index,
+            activeIndex = active,
             onClick = { index = it }
         )
 
@@ -58,7 +59,7 @@ fun PinnedMessageBanner(
         Column(modifier = Modifier.weight(1f)) {
             if (total > 1) {
                 Text(
-                    text = "${index + 1}/$total",
+                    text = "${active + 1}/$total",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     maxLines = 1,
