@@ -77,6 +77,24 @@ macro_rules! delegate_plain {
 }
 pub(crate) use delegate_plain;
 
+macro_rules! delegate_plain_option {
+    ($ret:ty; $($name:ident($($arg:ident : $ty:ty),* $(,)?));+ $(;)?) => {
+        #[uniffi::export]
+        impl Client {
+            $(
+                pub fn $name(&self, $($arg: $ty),*) -> Option<$ret> {
+                    debug_assert!(
+                        tokio::runtime::Handle::try_current().is_err(),
+                        concat!(stringify!($name), ": must not be called from inside a client callback"),
+                    );
+                    RT.block_on(self.core.$name($($arg),*))
+                }
+            )+
+        }
+    };
+}
+pub(crate) use delegate_plain_option;
+
 macro_rules! sub_manager {
     ($self:expr, $subs:ident, $spawn:expr) => {{
         let id = $self.next_sub_id();

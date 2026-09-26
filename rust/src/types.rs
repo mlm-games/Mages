@@ -929,7 +929,7 @@ pub struct RoomInfoSnapshot {
     pub membership: RoomListMembership,
     pub join_rule: Option<RoomJoinRule>,
     pub history_visibility: Option<RoomHistoryVisibility>,
-    pub pinned_event_ids: Vec<String>,
+    pub pinned_event_ids: Option<Vec<String>>,
 }
 
 #[export(callback_interface)]

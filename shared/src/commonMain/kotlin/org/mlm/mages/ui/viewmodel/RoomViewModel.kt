@@ -780,14 +780,15 @@ class RoomViewModel(
 
     private fun loadPinnedEvents() {
         launch {
-            val pinned = runSafe { service.port.getPinnedEvents(currentState.roomId) } ?: emptyList()
-            onPinnedEventsChanged(pinned)
+            val pinned = runSafe { service.port.getPinnedEvents(currentState.roomId) }
+            if (pinned != null) onPinnedEventsChanged(pinned)
         }
     }
 
     private val pinnedResolveInFlight = mutableSetOf<String>()
 
-    private fun onPinnedEventsChanged(pinned: List<String>) {
+    private fun onPinnedEventsChanged(pinned: List<String>?) {
+        if (pinned == null) return
         if (pinned == currentState.pinnedEventIds) return
         val removed = currentState.pinnedEventIds - pinned.toSet()
         updateState {

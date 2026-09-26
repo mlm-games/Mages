@@ -294,8 +294,10 @@ fun RoomScreen(
         }
     }
 
+    val eventsRef = rememberUpdatedState(events)
+
     fun listIndexForEventIndex(eventIndex: Int): Int {
-        val last = events.lastIndex
+        val last = eventsRef.value.lastIndex
         if (last < 0) return 0
         return (last - eventIndex).coerceIn(0, last)
     }
@@ -308,6 +310,8 @@ fun RoomScreen(
             events.isNotEmpty() && firstVisible <= 3
         }
     }
+
+    val pinnedEventIdSet = remember(state.pinnedEventIds) { state.pinnedEventIds.toSet() }
 
     val lastOutgoingIndex = remember(events, state.myUserId) {
         if (state.myUserId == null) -1
@@ -734,6 +738,7 @@ fun RoomScreen(
                                                 index = eventIndex,
                                                 events = events,
                                                 state = state,
+                                                pinnedEventIdSet = pinnedEventIdSet,
                                                 isLastOutgoing = eventIndex == lastOutgoingIndex,
                                                 onLongPress = {
                                                     sheetEvent = bubbleItem.event
@@ -1431,6 +1436,7 @@ private fun MessageItem(
     index: Int,
     events: List<MessageEvent>,
     state: RoomUiState,
+    pinnedEventIdSet: Set<String>,
     isLastOutgoing: Boolean,
     onLongPress: () -> Unit,
     onReply: () -> Unit,
@@ -1644,6 +1650,7 @@ private fun MessageItem(
                             resolvedAudioPath = state.audioFileByEvent[event.eventId],
                             resolvedAudioWaveform = state.waveformByEvent[event.eventId].orEmpty(),
                             senderVisible = true,
+                            isPinned = event.eventId in pinnedEventIdSet,
                         )
                     ).copy(poll = event.pollData)
 
@@ -1668,21 +1675,6 @@ private fun MessageItem(
                         } else null
                     )
                 }
-            }
-        }
-
-        if (state.pinnedEventIds.contains(event.eventId)) {
-            Spacer(Modifier.height(2.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PushPin,
-                    contentDescription = stringResource(Res.string.message_pinned),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(12.dp)
-                )
             }
         }
 

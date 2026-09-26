@@ -1732,10 +1732,11 @@ impl CoreClient {
         let levels = room.power_levels().await.ffi()?;
         let power_levels = map_power_levels(&levels);
         let action_state = self.resolve_room_action_state_impl(room).await?;
-        let pinned_event_ids = room
-            .pinned_event_ids()
-            .map(|ids| ids.iter().map(|id| id.to_string()).collect())
-            .unwrap_or_default();
+        let pinned_event_ids = room.pinned_event_ids().map(|ids| {
+            ids.iter()
+                .map(|id| id.to_string())
+                .collect::<Vec<String>>()
+        });
         Ok(RoomInfoSnapshot {
             room_id: room.room_id().to_string(),
             profile,
@@ -2007,16 +2008,15 @@ impl CoreClient {
             .ffi()
     }
 
-    pub async fn get_pinned_events(&self, room_id: String) -> Vec<String> {
+    pub async fn get_pinned_events(&self, room_id: String) -> Option<Vec<String>> {
         let Ok(rid) = OwnedRoomId::try_from(room_id) else {
-            return vec![];
+            return None;
         };
         let Some(room) = self.sdk.get_room(&rid) else {
-            return vec![];
+            return None;
         };
         room.pinned_event_ids()
             .map(|ids| ids.iter().map(|id| id.to_string()).collect())
-            .unwrap_or_default()
     }
 
     pub async fn set_pinned_events(

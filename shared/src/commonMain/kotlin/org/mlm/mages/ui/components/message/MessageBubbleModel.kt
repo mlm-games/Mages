@@ -97,6 +97,7 @@ data class MessageBubbleRenderContext(
     val resolvedAudioPath: String? = null,
     val resolvedAudioWaveform: List<Float> = emptyList(),
     val senderVisible: Boolean = true,
+    val isPinned: Boolean = false,
 )
 
 data class MessageBubbleModel(
@@ -119,6 +120,7 @@ data class MessageBubbleModel(
     val sticker: MessageStickerUi? = null,
     val isSticker: Boolean = false,
     val isEdited: Boolean = false,
+    val isPinned: Boolean = false,
     val poll: PollData? = null,
     val thread: MessageThreadUi? = null,
     val variant: MessageBubbleVariant = MessageBubbleVariant.Timeline,

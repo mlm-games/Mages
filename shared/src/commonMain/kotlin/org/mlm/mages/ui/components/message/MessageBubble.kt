@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Poll
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -171,7 +172,9 @@ fun MessageBubble(
                     MessageTimeAndStatus(
                         timestamp = model.timestamp,
                         isEdited = model.isEdited,
-                        textColor = bubbleTextColor
+                        textColor = bubbleTextColor,
+                        isPinned = model.isPinned,
+                        isMine = isMine
                     )
                 }
 
@@ -214,6 +217,8 @@ fun MessageBubble(
                                             timestamp = model.timestamp,
                                             isEdited = model.isEdited,
                                             textColor = bubbleTextColor,
+                                            isPinned = model.isPinned,
+                                            isMine = isMine,
                                             modifier = Modifier.align(horizontalAlignment)
                                         )
                                     }
@@ -263,6 +268,8 @@ fun MessageBubble(
                                             timestamp = model.timestamp,
                                             isEdited = model.isEdited,
                                             textColor = bubbleTextColor,
+                                            isPinned = model.isPinned,
+                                            isMine = isMine,
                                             modifier = Modifier.align(horizontalAlignment)
                                         )
                                     }
@@ -281,6 +288,8 @@ fun MessageBubble(
                                     timestamp = model.timestamp,
                                     isEdited = model.isEdited,
                                     textColor = bubbleTextColor,
+                                    isPinned = model.isPinned,
+                                    isMine = isMine,
                                     modifier = Modifier.align(horizontalAlignment)
                                 )
                             } else if (model.attachment == null && model.body.isNotBlank()) {
@@ -298,6 +307,8 @@ fun MessageBubble(
                                     timestamp = model.timestamp,
                                     isEdited = model.isEdited,
                                     textColor = bubbleTextColor,
+                                    isPinned = model.isPinned,
+                                    isMine = isMine,
                                     modifier = Modifier.align(horizontalAlignment)
                                 )
                             }
@@ -883,7 +894,9 @@ private fun StickerMessage(
             MessageTimeAndStatus(
                 timestamp = model.timestamp,
                 isEdited = model.isEdited,
-                textColor = MaterialTheme.colorScheme.onSurfaceVariant
+                textColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                isPinned = model.isPinned,
+                isMine = isMine
             )
         }
 
@@ -1005,10 +1018,22 @@ private fun FailedIndicator() {
 }
 
 @Composable
+private fun PinnedIndicator(tint: Color) {
+    Icon(
+        imageVector = Icons.Default.PushPin,
+        contentDescription = stringResource(Res.string.message_pinned),
+        tint = tint,
+        modifier = Modifier.size(12.dp)
+    )
+}
+
+@Composable
 fun MessageTimeAndStatus(
     timestamp: Long,
     isEdited: Boolean,
     textColor: Color,
+    isPinned: Boolean = false,
+    isMine: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -1016,11 +1041,13 @@ fun MessageTimeAndStatus(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
+        if (isPinned && !isMine) PinnedIndicator(tint = textColor.copy(alpha = 0.7f))
         Text(
             text = formatTime(timestamp),
             style = MaterialTheme.typography.labelSmall,
             color = textColor.copy(alpha = 0.7f)
         )
+        if (isPinned && isMine) PinnedIndicator(tint = textColor.copy(alpha = 0.7f))
         if (isEdited) {
             Text(
                 text = "(edited)",

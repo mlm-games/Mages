@@ -1786,9 +1786,12 @@ impl WasmClient {
     #[wasm_bindgen(js_name = getPinnedEvents)]
     pub async fn get_pinned_events(&self, room_id: String) -> JsValue {
         let Some(s) = self.state() else {
-            return to_json(&Vec::<String>::new());
+            return JsValue::NULL;
         };
-        to_json(&s.core.get_pinned_events(room_id).await)
+        match s.core.get_pinned_events(room_id).await {
+            Some(ids) => to_json(&ids),
+            None => JsValue::NULL,
+        }
     }
 
     #[wasm_bindgen(js_name = roomNotificationMode)]

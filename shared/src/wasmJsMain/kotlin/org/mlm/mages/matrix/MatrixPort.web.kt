@@ -358,6 +358,9 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     private fun decodeStringList(value: JsAny?): List<String> =
         decodeValueOrNull<List<String>>(value) ?: emptyList()
 
+    private fun decodeNullableStringList(value: JsAny?): List<String>? =
+        decodeValueOrNull<List<String>>(value)
+
     private fun decodeOwnLastRead(value: JsAny?): Pair<String?, Long?> {
         val obj = value.toJsonObject() ?: return null to null
         val eventPrimitive = obj["event_id"] as? JsonPrimitive
@@ -737,8 +740,8 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             ?.toLong()
             ?: 0L
 
-    override suspend fun getPinnedEvents(roomId: String): List<String> =
-        decodeStringList(requireClient().getPinnedEvents(roomId).awaitAny())
+    override suspend fun getPinnedEvents(roomId: String): List<String>? =
+        decodeNullableStringList(requireClient().getPinnedEvents(roomId).awaitAny())
 
     override suspend fun setPinnedEvents(roomId: String, eventIds: List<String>): Result<Unit> =
         requireClient().setPinnedEvents(roomId, eventIds.toJsArray()).awaitUnitResult()

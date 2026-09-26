@@ -278,7 +278,7 @@ data class RoomInfoSnapshot(
     val membership: RoomListMembership,
     val joinRule: RoomJoinRule? = null,
     val historyVisibility: RoomHistoryVisibility? = null,
-    val pinnedEventIds: List<String> = emptyList()
+    val pinnedEventIds: List<String>? = null
 )
 
 @Serializable
@@ -736,7 +736,7 @@ interface MatrixPort {
     suspend fun redact(roomId: String, eventId: String, reason: String? = null): Result<Unit>
     suspend fun getUserPowerLevel(roomId: String, userId: String): Long
 
-    suspend fun getPinnedEvents(roomId: String): List<String>
+    suspend fun getPinnedEvents(roomId: String): List<String>?
     suspend fun setPinnedEvents(roomId: String, eventIds: List<String>): Result<Unit>
 
     suspend fun observeTyping(roomId: String, onUpdate: (List<String>) -> Unit): ULong

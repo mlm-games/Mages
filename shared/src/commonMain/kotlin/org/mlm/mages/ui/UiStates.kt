@@ -1,5 +1,7 @@
 package org.mlm.mages.ui
 
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import kotlinx.serialization.Serializable
 import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MessageEvent
@@ -378,16 +380,15 @@ data class RoomUiState(
     val voiceRecordingWaveform: List<Float> = emptyList(),
     val showVoicePreview: Boolean = false,
 ) {
-    val pinnedMessages: List<PinnedMessageUi>
-        get() {
-            if (pinnedEventIds.isEmpty()) return emptyList()
-            val eventsById = allEvents.associateBy { it.eventId }
-            return pinnedEventIds.mapNotNull { pinnedId ->
-                val event = eventsById[pinnedId] ?: pinnedResolvedEvents[pinnedId]
-                if (event == null || !event.isDisplayableAsPinnedEvent()) return@mapNotNull null
-                PinnedMessageUi(eventId = pinnedId, event = event)
-            }
+    val pinnedMessages: List<PinnedMessageUi> by derivedStateOf {
+        if (pinnedEventIds.isEmpty()) return@derivedStateOf emptyList()
+        val eventsById = allEvents.associateBy { it.eventId }
+        pinnedEventIds.mapNotNull { pinnedId ->
+            val event = eventsById[pinnedId] ?: pinnedResolvedEvents[pinnedId]
+            if (event != null && !event.isDisplayableAsPinnedEvent()) return@mapNotNull null
+            PinnedMessageUi(eventId = pinnedId, event = event)
         }
+    }
 }
 
 @Serializable

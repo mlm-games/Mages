@@ -429,9 +429,9 @@ class RustMatrixPort : MatrixPort, VerificationService {
             runWithFfiResult { withClient { it.getUserPowerLevel(roomId, userId) } }.getOrDefault(-1L)
         }
 
-    override suspend fun getPinnedEvents(roomId: String): List<String> =
+    override suspend fun getPinnedEvents(roomId: String): List<String>? =
         withContext(matrixDispatcher) {
-            runWithFfiResult { withClient { it.getPinnedEvents(roomId) } }.getOrDefault(emptyList())
+            runWithFfiResult { withClient { it.getPinnedEvents(roomId) } }.getOrNull()
         }
 
     override suspend fun setPinnedEvents(roomId: String, eventIds: List<String>): Result<Unit> =

@@ -120,6 +120,7 @@ internal fun TimelineContent.Bubble.toBubbleModel(
         sticker = stickerData,
         isSticker = stickerData != null,
         isEdited = event.isEdited,
+        isPinned = ctx.isPinned,
         poll = event.pollData,
         thread = ctx.threadCount?.let { count -> MessageThreadUi(count) },
         variant = ctx.variant,

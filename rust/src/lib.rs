@@ -246,7 +246,8 @@ delegate_option! { bool; is_marked_unread(room_id: String); }
 delegate_plain! { Vec<MessageEvent>; recent_events(room_id: String, limit: u32); }
 delegate_result! { Option<MessageEvent>; event_details(room_id: String, event_id: String); }
 delegate_result! { ForwardResult; forward_event(source_room_id: String, event_id: String, target_room_ids: Vec<String>); }
-delegate_plain! { Vec<String>; get_pinned_events(room_id: String); room_aliases(room_id: String); }
+delegate_plain_option! { Vec<String>; get_pinned_events(room_id: String); }
+delegate_plain! { Vec<String>; room_aliases(room_id: String); }
 delegate_plain! { i64; get_user_power_level(room_id: String, user_id: String); }
 delegate_plain! { OwnReceipt; own_last_read(room_id: String); }
 delegate_plain! { HashMap<String, Vec<ReactionSummary>>; reactions_batch(room_id: String, event_ids: Vec<String>); }
