@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">At</string>
     <string name="sticker_pack_discard_cancel">Düzenlemeye devam et</string>
     <string name="setting_hide_space_rooms_in_room_list">Oda listesinde alan odalarını gizle</string>
+    <string name="setting_room_list_swipe_right">Sağa kaydırma eylemi</string>
+    <string name="setting_room_list_swipe_right_description">Oda listesinde bir odayı sağa kaydırdığında gerçekleştirilen eylem</string>
+    <string name="setting_room_list_swipe_left">Sola kaydırma eylemi</string>
+    <string name="setting_room_list_swipe_left_description">Oda listesinde bir odayı sola kaydırdığında gerçekleştirilen eylem</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>Okundu olarak işaretle</item>
+        <item>Okunmadı olarak işaretle</item>
+        <item>Hiçbir şey</item>
+    </string-array>
     <string name="setting_show_media_preview">Medya önizlemesini göster</string>
     <string name="setting_show_media_preview_description">Bildirimlerde göstermek için görselleri indir</string>
     <string name="abuse">Kötüye kullanım</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">Burada okundu olarak işaretle</string>
     <string name="mark_as_suggested">Önerilen olarak işaretle</string>
     <string name="mark_read">Okundu olarak işaretle</string>
+    <string name="mark_as_unread">Okunmadı olarak işaretle</string>
     <string name="marked_as_low_priority">Düşük öncelikli olarak işaretlendi</string>
     <string name="matrix_not_ready">Matrix hazır değil</string>
     <string name="member">Üye</string>

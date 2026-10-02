@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">Verwerpen</string>
     <string name="sticker_pack_discard_cancel">Doorgaan met bewerken</string>
     <string name="setting_hide_space_rooms_in_room_list">Ruimtekamers verbergen in kamerlijst</string>
+    <string name="setting_room_list_swipe_right">Actie bij vegen naar rechts</string>
+    <string name="setting_room_list_swipe_right_description">Actie die wordt uitgevoerd wanneer een kamer naar rechts wordt geveegd in de kamerlijst</string>
+    <string name="setting_room_list_swipe_left">Actie bij vegen naar links</string>
+    <string name="setting_room_list_swipe_left_description">Actie die wordt uitgevoerd wanneer een kamer naar links wordt geveegd in de kamerlijst</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>Als gelezen markeren</item>
+        <item>Als ongelezen markeren</item>
+        <item>Niets</item>
+    </string-array>
     <string name="setting_show_media_preview">Mediavoorbeeld tonen</string>
     <string name="setting_show_media_preview_description">Afbeeldingen downloaden om in meldingen te tonen</string>
     <string name="abuse">Misbruik</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">Hier als gelezen markeren</string>
     <string name="mark_as_suggested">Als voorgesteld markeren</string>
     <string name="mark_read">Als gelezen markeren</string>
+    <string name="mark_as_unread">Als ongelezen markeren</string>
     <string name="marked_as_low_priority">Gemarkeerd als lage prioriteit</string>
     <string name="matrix_not_ready">Matrix niet gereed</string>
     <string name="member">Lid</string>

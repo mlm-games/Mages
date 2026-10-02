@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">تجاهل</string>
     <string name="sticker_pack_discard_cancel">متابعة التحرير</string>
     <string name="setting_hide_space_rooms_in_room_list">إخفاء غرف المساحات في قائمة الغرف</string>
+    <string name="setting_room_list_swipe_right">إجراء السحب لليمين</string>
+    <string name="setting_room_list_swipe_right_description">يُنفذ عند سحب غرفة إلى اليمين في قائمة الغرف</string>
+    <string name="setting_room_list_swipe_left">إجراء السحب لليسار</string>
+    <string name="setting_room_list_swipe_left_description">يُنفذ عند سحب غرفة إلى اليسار في قائمة الغرف</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>وضع علامة مقروء</item>
+        <item>وضع علامة غير مقروء</item>
+        <item>لا شيء</item>
+    </string-array>
     <string name="setting_show_media_preview">إظهار معاينة الوسائط</string>
     <string name="setting_show_media_preview_description">تنزيل الصور لعرضها في الإشعارات</string>
     <string name="abuse">إساءة</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">وضع علامة مقروء هنا</string>
     <string name="mark_as_suggested">وضع علامة مقترح</string>
     <string name="mark_read">وضع علامة مقروء</string>
+    <string name="mark_as_unread">وضع علامة غير مقروء</string>
     <string name="marked_as_low_priority">تم وضع علامة أولوية منخفضة</string>
     <string name="matrix_not_ready">Matrix غير جاهز</string>
     <string name="member">عضو</string>

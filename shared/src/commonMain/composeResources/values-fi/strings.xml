@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">Hylkää</string>
     <string name="sticker_pack_discard_cancel">Jatka muokkaamista</string>
     <string name="setting_hide_space_rooms_in_room_list">Piilota tilojen huoneet huoneluettelossa</string>
+    <string name="setting_room_list_swipe_right">Toiminto vedettäessä oikealle</string>
+    <string name="setting_room_list_swipe_right_description">Toiminto, jota suoritetaan kun huonetta vedetään oikealle huoneluettelossa</string>
+    <string name="setting_room_list_swipe_left">Toiminto vedettäessä vasemmalle</string>
+    <string name="setting_room_list_swipe_left_description">Toiminto, jota suoritetaan kun huonetta vedetään vasemmalle huoneluettelossa</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>Merkitse luetuksi</item>
+        <item>Merkitse lukemattomaksi</item>
+        <item>Ei mitään</item>
+    </string-array>
     <string name="setting_show_media_preview">Näytä median esikatselu</string>
     <string name="setting_show_media_preview_description">Lataa kuvat näytettäväksi ilmoituksissa</string>
     <string name="abuse">Häirintä</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">Merkitse luetuksi tässä</string>
     <string name="mark_as_suggested">Merkitse ehdotetuksi</string>
     <string name="mark_read">Merkitse luetuksi</string>
+    <string name="mark_as_unread">Merkitse lukemattomaksi</string>
     <string name="marked_as_low_priority">Merkitty matalan prioriteetin tilaan</string>
     <string name="matrix_not_ready">Matrix ei ole valmis</string>
     <string name="member">Jäsen</string>

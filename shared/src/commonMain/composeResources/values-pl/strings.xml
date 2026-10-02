@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">Odrzuć</string>
     <string name="sticker_pack_discard_cancel">Kontynuuj edycję</string>
     <string name="setting_hide_space_rooms_in_room_list">Ukryj pokoje przestrzeni na liście pokoi</string>
+    <string name="setting_room_list_swipe_right">Akcja przesunięcia w prawo</string>
+    <string name="setting_room_list_swipe_right_description">Akcja wykonywana podczas przesuwania pokoju w prawo na liście pokoi</string>
+    <string name="setting_room_list_swipe_left">Akcja przesunięcia w lewo</string>
+    <string name="setting_room_list_swipe_left_description">Akcja wykonywana podczas przesuwania pokoju w lewo na liście pokoi</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>Oznacz jako przeczytane</item>
+        <item>Oznacz jako nieprzeczytane</item>
+        <item>Brak</item>
+    </string-array>
     <string name="setting_show_media_preview">Pokaż podgląd multimediów</string>
     <string name="setting_show_media_preview_description">Pobieraj obrazy, aby wyświetlać je w powiadomieniach</string>
     <string name="abuse">Nadużycie</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">Oznacz jako przeczytane tutaj</string>
     <string name="mark_as_suggested">Oznacz jako sugerowane</string>
     <string name="mark_read">Oznacz jako przeczytane</string>
+    <string name="mark_as_unread">Oznacz jako nieprzeczytane</string>
     <string name="marked_as_low_priority">Oznaczono jako niski priorytet</string>
     <string name="matrix_not_ready">Matrix nie jest gotowe</string>
     <string name="member">Członek</string>

@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">Απόρριψη</string>
     <string name="sticker_pack_discard_cancel">Συνέχιση επεξεργασίας</string>
     <string name="setting_hide_space_rooms_in_room_list">Απόκρυψη δωματίων χώρων στη λίστα δωματίων</string>
+    <string name="setting_room_list_swipe_right">Ενέργεια κατά το σύρσιμο προς τα δεξιά</string>
+    <string name="setting_room_list_swipe_right_description">Ενέργεια που εκτελείται κατά το σύρσιμο δωματίου προς τα δεξιά στη λίστα δωματίων</string>
+    <string name="setting_room_list_swipe_left">Ενέργεια κατά το σύρσιμο προς τα αριστερά</string>
+    <string name="setting_room_list_swipe_left_description">Ενέργεια που εκτελείται κατά το σύρσιμο δωματίου προς τα αριστερά στη λίστα δωματίων</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>Ορισμός ως αναγνωσμένου</item>
+        <item>Ορισμός ως μη αναγνωσμένου</item>
+        <item>Τίποτα</item>
+    </string-array>
     <string name="setting_show_media_preview">Εμφάνιση προεπισκόπησης πολυμέσων</string>
     <string name="setting_show_media_preview_description">Λήψη εικόνων για εμφάνιση στις ειδοποιήσεις</string>
     <string name="abuse">Παρενόχληση</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">Ορισμός ως αναγνωσμένου εδώ</string>
     <string name="mark_as_suggested">Ορισμός ως προτεινόμενου</string>
     <string name="mark_read">Ορισμός ως αναγνωσμένου</string>
+    <string name="mark_as_unread">Ορισμός ως μη αναγνωσμένου</string>
     <string name="marked_as_low_priority">Ορίστηκε ως χαμηλής προτεραιότητας</string>
     <string name="matrix_not_ready">Το Matrix δεν είναι έτοιμο</string>
     <string name="member">Μέλος</string>

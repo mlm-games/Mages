@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">Descartar</string>
     <string name="sticker_pack_discard_cancel">Continuar editando</string>
     <string name="setting_hide_space_rooms_in_room_list">Ocultar salas de espaços na lista de salas</string>
+    <string name="setting_room_list_swipe_right">Ação de deslizar para a direita</string>
+    <string name="setting_room_list_swipe_right_description">Ação executada ao deslizar uma sala para a direita na lista de salas</string>
+    <string name="setting_room_list_swipe_left">Ação de deslizar para a esquerda</string>
+    <string name="setting_room_list_swipe_left_description">Ação executada ao deslizar uma sala para a esquerda na lista de salas</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>Marcar como lido</item>
+        <item>Marcar como não lido</item>
+        <item>Nada</item>
+    </string-array>
     <string name="setting_show_media_preview">Mostrar pré-visualização de mídia</string>
     <string name="setting_show_media_preview_description">Baixar imagens para mostrar nas notificações</string>
     <string name="abuse">Abuso</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">Marcar como lido aqui</string>
     <string name="mark_as_suggested">Marcar como sugerido</string>
     <string name="mark_read">Marcar como lido</string>
+    <string name="mark_as_unread">Marcar como não lido</string>
     <string name="marked_as_low_priority">Marcado como baixa prioridade</string>
     <string name="matrix_not_ready">Matrix não está pronto</string>
     <string name="member">Membro</string>

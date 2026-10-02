@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">Odbaci</string>
     <string name="sticker_pack_discard_cancel">Nastavi uređivati</string>
     <string name="setting_hide_space_rooms_in_room_list">Sakrij sobe prostora na popisu soba</string>
+    <string name="setting_room_list_swipe_right">Radnja pri povlačenju udesno</string>
+    <string name="setting_room_list_swipe_right_description">Radnja koja se izvodi pri povlačenju sobe udesno na popisu soba</string>
+    <string name="setting_room_list_swipe_left">Radnja pri povlačenju ulijevo</string>
+    <string name="setting_room_list_swipe_left_description">Radnja koja se izvodi pri povlačenju sobe ulijevo na popisu soba</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>Označi kao pročitano</item>
+        <item>Označi kao nepročitano</item>
+        <item>Ništa</item>
+    </string-array>
     <string name="setting_show_media_preview">Prikaži pretpregled medija</string>
     <string name="setting_show_media_preview_description">Preuzmi slike za prikaz u obavijestima</string>
     <string name="abuse">Zloupotreba</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">Označi kao pročitano ovdje</string>
     <string name="mark_as_suggested">Označi kao predloženo</string>
     <string name="mark_read">Označi kao pročitano</string>
+    <string name="mark_as_unread">Označi kao nepročitano</string>
     <string name="marked_as_low_priority">Označeno kao niski prioritet</string>
     <string name="matrix_not_ready">Matrix nije spreman</string>
     <string name="member">Član</string>

@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">לוותר</string>
     <string name="sticker_pack_discard_cancel">להמשיך בעריכה</string>
     <string name="setting_hide_space_rooms_in_room_list">הסתרת חדרי מרחבים ברשימת החדרים</string>
+    <string name="setting_room_list_swipe_right">פעולה בהחלקה לימינה</string>
+    <string name="setting_room_list_swipe_right_description">פעולה המתבצעת בהחלקת חדר ימינה ברשימת החדרים</string>
+    <string name="setting_room_list_swipe_left">פעולה בהחלקה לשמאלה</string>
+    <string name="setting_room_list_swipe_left_description">פעולה המתבצעת בהחלקת חדר שמאלה ברשימת החדרים</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>סימון כנקרא</item>
+        <item>סימון כלא נקרא</item>
+        <item>כלום</item>
+    </string-array>
     <string name="setting_show_media_preview">הצגת תצוגה מקדימה של מדיה</string>
     <string name="setting_show_media_preview_description">הורדת תמונות להצגה בהתראות</string>
     <string name="abuse">התעללות</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">סימון כנקרא כאן</string>
     <string name="mark_as_suggested">סימון כמומלץ</string>
     <string name="mark_read">סימון כנקרא</string>
+    <string name="mark_as_unread">סימון כלא נקרא</string>
     <string name="marked_as_low_priority">סומן כעדיפות נמוכה</string>
     <string name="matrix_not_ready">Matrix אינו מוכן</string>
     <string name="member">חבר</string>

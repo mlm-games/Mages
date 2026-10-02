@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">破棄</string>
     <string name="sticker_pack_discard_cancel">編集を続ける</string>
     <string name="setting_hide_space_rooms_in_room_list">ルーム一覧にスペースのルームを非表示</string>
+    <string name="setting_room_list_swipe_right">右へスワイプしたときの操作</string>
+    <string name="setting_room_list_swipe_right_description">ルーム一覧でルームを右へスワイプしたときに実行する操作</string>
+    <string name="setting_room_list_swipe_left">左へスワイプしたときの操作</string>
+    <string name="setting_room_list_swipe_left_description">ルーム一覧でルームを左へスワイプしたときに実行する操作</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>既読にする</item>
+        <item>未読にする</item>
+        <item>なし</item>
+    </string-array>
     <string name="setting_show_media_preview">メディアプレビューを表示</string>
     <string name="setting_show_media_preview_description">通知に表示する画像をダウンロード</string>
     <string name="abuse">迷惑行為</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">ここで既読にする</string>
     <string name="mark_as_suggested">おすすめとしてマーク</string>
     <string name="mark_read">既読にする</string>
+    <string name="mark_as_unread">未読にする</string>
     <string name="marked_as_low_priority">低優先度に設定しました</string>
     <string name="matrix_not_ready">Matrix が準備できていません</string>
     <string name="member">メンバー</string>

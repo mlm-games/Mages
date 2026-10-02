@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">放棄</string>
     <string name="sticker_pack_discard_cancel">繼續編輯</string>
     <string name="setting_hide_space_rooms_in_room_list">在房間清單中隱藏空間房間</string>
+    <string name="setting_room_list_swipe_right">向右滑動動作</string>
+    <string name="setting_room_list_swipe_right_description">在房間清單中將房間向右滑動時執行的動作</string>
+    <string name="setting_room_list_swipe_left">向左滑動動作</string>
+    <string name="setting_room_list_swipe_left_description">在房間清單中將房間向左滑動時執行的動作</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>標記為已讀</item>
+        <item>標記為未讀</item>
+        <item>無</item>
+    </string-array>
     <string name="setting_show_media_preview">顯示媒體預覽</string>
     <string name="setting_show_media_preview_description">下載圖像以在通知中顯示</string>
     <string name="abuse">濫用</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">在此標記為已讀</string>
     <string name="mark_as_suggested">標記為建議項目</string>
     <string name="mark_read">標記為已讀</string>
+    <string name="mark_as_unread">標記為未讀</string>
     <string name="marked_as_low_priority">已標記為低優先級</string>
     <string name="matrix_not_ready">Matrix 尚未就緒</string>
     <string name="member">成員</string>

@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">Verwerfen</string>
     <string name="sticker_pack_discard_cancel">Weiter bearbeiten</string>
     <string name="setting_hide_space_rooms_in_room_list">Räume von Spaces in der Raumliste ausblenden</string>
+    <string name="setting_room_list_swipe_right">Aktion beim Wischen nach rechts</string>
+    <string name="setting_room_list_swipe_right_description">Aktion beim Wischen eines Raums nach rechts in der Raumliste</string>
+    <string name="setting_room_list_swipe_left">Aktion beim Wischen nach links</string>
+    <string name="setting_room_list_swipe_left_description">Aktion beim Wischen eines Raums nach links in der Raumliste</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>Als gelesen markieren</item>
+        <item>Als ungelesen markieren</item>
+        <item>Nichts</item>
+    </string-array>
     <string name="setting_show_media_preview">Medienvorschau anzeigen</string>
     <string name="setting_show_media_preview_description">Bilder herunterladen, um sie in Benachrichtigungen anzuzeigen</string>
     <string name="abuse">Missbrauch</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">Hier als gelesen markieren</string>
     <string name="mark_as_suggested">Als vorgeschlagen markieren</string>
     <string name="mark_read">Als gelesen markieren</string>
+    <string name="mark_as_unread">Als ungelesen markieren</string>
     <string name="marked_as_low_priority">Als niedrige Priorität markiert</string>
     <string name="matrix_not_ready">Matrix nicht bereit</string>
     <string name="member">Mitglied</string>

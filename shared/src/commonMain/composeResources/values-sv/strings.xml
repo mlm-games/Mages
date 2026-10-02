@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">Förkasta</string>
     <string name="sticker_pack_discard_cancel">Fortsätt redigera</string>
     <string name="setting_hide_space_rooms_in_room_list">Dölj rum i utrymmen i rumslistan</string>
+    <string name="setting_room_list_swipe_right">Åtgärd vid svep åt höger</string>
+    <string name="setting_room_list_swipe_right_description">Åtgärd som utförs när ett rum sveps åt höger i rumslistan</string>
+    <string name="setting_room_list_swipe_left">Åtgärd vid svep åt vänster</string>
+    <string name="setting_room_list_swipe_left_description">Åtgärd som utförs när ett rum sveps åt vänster i rumslistan</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>Markera som läst</item>
+        <item>Markera som oläst</item>
+        <item>Inget</item>
+    </string-array>
     <string name="setting_show_media_preview">Visa mediaförhandsvisning</string>
     <string name="setting_show_media_preview_description">Ladda ner bilder som visas i aviseringar</string>
     <string name="abuse">Missbruk</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">Markera som läst här</string>
     <string name="mark_as_suggested">Markera som föreslagen</string>
     <string name="mark_read">Markera som läst</string>
+    <string name="mark_as_unread">Markera som oläst</string>
     <string name="marked_as_low_priority">Markerad som låg prioritet</string>
     <string name="matrix_not_ready">Matrix inte redo</string>
     <string name="member">Medlem</string>

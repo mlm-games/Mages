@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">Zahodit</string>
     <string name="sticker_pack_discard_cancel">Pokračovat v úpravách</string>
     <string name="setting_hide_space_rooms_in_room_list">Skrýt místnosti prostorů v seznamu místností</string>
+    <string name="setting_room_list_swipe_right">Akce při posunu doprava</string>
+    <string name="setting_room_list_swipe_right_description">Akce provedená při posunutí místnosti doprava v seznamu místností</string>
+    <string name="setting_room_list_swipe_left">Akce při posunu doleva</string>
+    <string name="setting_room_list_swipe_left_description">Akce provedená při posunutí místnosti doleva v seznamu místností</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>Označit jako přečtené</item>
+        <item>Označit jako nepřečtené</item>
+        <item>Nic</item>
+    </string-array>
     <string name="setting_show_media_preview">Zobrazit náhled médií</string>
     <string name="setting_show_media_preview_description">Stahovat obrázky pro zobrazení v oznámeních</string>
     <string name="abuse">Zneužití</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">Označit zde jako přečtené</string>
     <string name="mark_as_suggested">Označit jako doporučené</string>
     <string name="mark_read">Označit jako přečtené</string>
+    <string name="mark_as_unread">Označit jako nepřečtené</string>
     <string name="marked_as_low_priority">Označeno jako nízká priorita</string>
     <string name="matrix_not_ready">Matrix není připraven</string>
     <string name="member">Člen</string>

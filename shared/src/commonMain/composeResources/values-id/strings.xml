@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">Buang</string>
     <string name="sticker_pack_discard_cancel">Lanjutkan mengedit</string>
     <string name="setting_hide_space_rooms_in_room_list">Sembunyikan ruang spasi di daftar ruang</string>
+    <string name="setting_room_list_swipe_right">Tindakan geser ke kanan</string>
+    <string name="setting_room_list_swipe_right_description">Tindakan yang dilakukan saat menggeser ruang ke kanan di daftar ruang</string>
+    <string name="setting_room_list_swipe_left">Tindakan geser ke kiri</string>
+    <string name="setting_room_list_swipe_left_description">Tindakan yang dilakukan saat menggeser ruang ke kiri di daftar ruang</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>Tandai sudah dibaca</item>
+        <item>Tandai belum dibaca</item>
+        <item>Tidak ada</item>
+    </string-array>
     <string name="setting_show_media_preview">Tampilkan pratinjau media</string>
     <string name="setting_show_media_preview_description">Unduh gambar untuk ditampilkan di notifikasi</string>
     <string name="abuse">Penyalahgunaan</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">Tandai sudah dibaca di sini</string>
     <string name="mark_as_suggested">Tandai sebagai disarankan</string>
     <string name="mark_read">Tandai sudah dibaca</string>
+    <string name="mark_as_unread">Tandai belum dibaca</string>
     <string name="marked_as_low_priority">Ditandai sebagai prioritas rendah</string>
     <string name="matrix_not_ready">Matrix belum siap</string>
     <string name="member">Anggota</string>

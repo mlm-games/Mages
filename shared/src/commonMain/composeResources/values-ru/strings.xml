@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">Отменить</string>
     <string name="sticker_pack_discard_cancel">Продолжить редактирование</string>
     <string name="setting_hide_space_rooms_in_room_list">Скрывать комнаты пространств в списке комнат</string>
+    <string name="setting_room_list_swipe_right">Действие при свайпе вправо</string>
+    <string name="setting_room_list_swipe_right_description">Действие, выполняемое при свайпе комнаты вправо в списке комнат</string>
+    <string name="setting_room_list_swipe_left">Действие при свайпе влево</string>
+    <string name="setting_room_list_swipe_left_description">Действие, выполняемое при свайпе комнаты влево в списке комнат</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>Отметить прочитанным</item>
+        <item>Отметить непрочитанным</item>
+        <item>Ничего</item>
+    </string-array>
     <string name="setting_show_media_preview">Показывать предпросмотр медиа</string>
     <string name="setting_show_media_preview_description">Загружать изображения для показа в уведомлениях</string>
     <string name="abuse">Нарушение правил</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">Отметить прочитанным здесь</string>
     <string name="mark_as_suggested">Отметить как рекомендуемое</string>
     <string name="mark_read">Отметить прочитанным</string>
+    <string name="mark_as_unread">Отметить непрочитанным</string>
     <string name="marked_as_low_priority">Отмечено как низкий приоритет</string>
     <string name="matrix_not_ready">Matrix ещё не готов</string>
     <string name="member">Участник</string>

@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">نادیده گرفتن</string>
     <string name="sticker_pack_discard_cancel">ادامه ویرایش</string>
     <string name="setting_hide_space_rooms_in_room_list">پنهان کردن اتاق‌های فضا در فهرست اتاق‌ها</string>
+    <string name="setting_room_list_swipe_right">اقدام کشیدن به راست</string>
+    <string name="setting_room_list_swipe_right_description">اقدامی که هنگام کشیدن یک اتاق به سمت راست در فهرست اتاق‌ها انجام می‌شود</string>
+    <string name="setting_room_list_swipe_left">اقدام کشیدن به چپ</string>
+    <string name="setting_room_list_swipe_left_description">اقدامی که هنگام کشیدن یک اتاق به سمت چپ در فهرست اتاق‌ها انجام می‌شود</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>علامت‌گذاری به‌عنوان خوانده‌شده</item>
+        <item>علامت‌گذاری به‌عنوان خوانده‌نشده</item>
+        <item>هیچ</item>
+    </string-array>
     <string name="setting_show_media_preview">نمایش پیش‌نمایش رسانه</string>
     <string name="setting_show_media_preview_description">دانلود تصاویر برای نمایش در اعلان‌ها</string>
     <string name="abuse">سوءاستفاده</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">علامت‌گذاری به‌عنوان خوانده‌شده در اینجا</string>
     <string name="mark_as_suggested">علامت‌گذاری به‌عنوان پیشنهادی</string>
     <string name="mark_read">علامت‌گذاری به‌عنوان خوانده‌شده</string>
+    <string name="mark_as_unread">علامت‌گذاری به‌عنوان خوانده‌نشده</string>
     <string name="marked_as_low_priority">به‌عنوان اولویت پایین علامت‌گذاری شد</string>
     <string name="matrix_not_ready">Matrix آماده نیست</string>
     <string name="member">عضو</string>

@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">Abandonner</string>
     <string name="sticker_pack_discard_cancel">Continuer la modification</string>
     <string name="setting_hide_space_rooms_in_room_list">Masquer les salles des espaces dans la liste des salles</string>
+    <string name="setting_room_list_swipe_right">Action de balayage vers la droite</string>
+    <string name="setting_room_list_swipe_right_description">Action effectuée en balayant une salle vers la droite dans la liste des salles</string>
+    <string name="setting_room_list_swipe_left">Action de balayage vers la gauche</string>
+    <string name="setting_room_list_swipe_left_description">Action effectuée en balayant une salle vers la gauche dans la liste des salles</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>Marquer comme lu</item>
+        <item>Marquer comme non lu</item>
+        <item>Rien</item>
+    </string-array>
     <string name="setting_show_media_preview">Afficher l\'aperçu des médias</string>
     <string name="setting_show_media_preview_description">Télécharger les images à afficher dans les notifications</string>
     <string name="abuse">Abus</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">Marquer comme lu ici</string>
     <string name="mark_as_suggested">Marquer comme suggéré</string>
     <string name="mark_read">Marquer comme lu</string>
+    <string name="mark_as_unread">Marquer comme non lu</string>
     <string name="marked_as_low_priority">Marqué comme faible priorité</string>
     <string name="matrix_not_ready">Matrix n\'est pas prêt</string>
     <string name="member">Membre</string>

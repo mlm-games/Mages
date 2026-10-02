@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">폐기</string>
     <string name="sticker_pack_discard_cancel">계속 편집</string>
     <string name="setting_hide_space_rooms_in_room_list">방 목록에서 공간의 방 숨기기</string>
+    <string name="setting_room_list_swipe_right">오른쪽으로 스와이프 동작</string>
+    <string name="setting_room_list_swipe_right_description">방 목록에서 방을 오른쪽으로 스와이프할 때 수행되는 동작</string>
+    <string name="setting_room_list_swipe_left">왼쪽으로 스와이프 동작</string>
+    <string name="setting_room_list_swipe_left_description">방 목록에서 방을 왼쪽으로 스와이프할 때 수행되는 동작</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>읽음으로 표시</item>
+        <item>읽지 않음으로 표시</item>
+        <item>없음</item>
+    </string-array>
     <string name="setting_show_media_preview">미디어 미리보기 표시</string>
     <string name="setting_show_media_preview_description">알림에 표시할 이미지 다운로드</string>
     <string name="abuse">남용</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">여기서 읽음으로 표시</string>
     <string name="mark_as_suggested">제안됨으로 표시</string>
     <string name="mark_read">읽음으로 표시</string>
+    <string name="mark_as_unread">읽지 않음으로 표시</string>
     <string name="marked_as_low_priority">낮은 우선순위로 표시됨</string>
     <string name="matrix_not_ready">Matrix가 준비되지 않았습니다</string>
     <string name="member">멤버</string>

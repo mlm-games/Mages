@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">Hủy bỏ</string>
     <string name="sticker_pack_discard_cancel">Tiếp tục chỉnh sửa</string>
     <string name="setting_hide_space_rooms_in_room_list">Ẩn phòng của không gian trong danh sách phòng</string>
+    <string name="setting_room_list_swipe_right">Hành động khi trượt sang phải</string>
+    <string name="setting_room_list_swipe_right_description">Hành động được thực hiện khi trượt một phòng sang phải trong danh sách phòng</string>
+    <string name="setting_room_list_swipe_left">Hành động khi trượt sang trái</string>
+    <string name="setting_room_list_swipe_left_description">Hành động được thực hiện khi trượt một phòng sang trái trong danh sách phòng</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>Đánh dấu đã đọc</item>
+        <item>Đánh dấu chưa đọc</item>
+        <item>Không có gì</item>
+    </string-array>
     <string name="setting_show_media_preview">Hiển thị xem trước phương tiện</string>
     <string name="setting_show_media_preview_description">Tải hình ảnh để hiển thị trong thông báo</string>
     <string name="abuse">Quấy rối</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">Đánh dấu đã đọc tại đây</string>
     <string name="mark_as_suggested">Đánh dấu là đề xuất</string>
     <string name="mark_read">Đánh dấu đã đọc</string>
+    <string name="mark_as_unread">Đánh dấu chưa đọc</string>
     <string name="marked_as_low_priority">Đã đặt làm ưu tiên thấp</string>
     <string name="matrix_not_ready">Matrix chưa sẵn sàng</string>
     <string name="member">Thành viên</string>

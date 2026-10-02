@@ -623,6 +623,15 @@
     <string name="sticker_pack_discard_confirm">Elvetés</string>
     <string name="sticker_pack_discard_cancel">Szerkesztés folytatása</string>
     <string name="setting_hide_space_rooms_in_room_list">Térszobák elrejtése a szobalistában</string>
+    <string name="setting_room_list_swipe_right">Húzás jobbra művelet</string>
+    <string name="setting_room_list_swipe_right_description">Húzáskor végrehajtott művelet, amikor egy szobát jobbra húzunk a szobalistában</string>
+    <string name="setting_room_list_swipe_left">Húzás balra művelet</string>
+    <string name="setting_room_list_swipe_left_description">Húzáskor végrehajtott művelet, amikor egy szobát balra húzunk a szobalistában</string>
+    <string-array name="setting_room_list_swipe_options">
+        <item>Megjelölés olvasottként</item>
+        <item>Megjelölés olvasatlanul</item>
+        <item>Semmi</item>
+    </string-array>
     <string name="setting_show_media_preview">Média előnézetének megjelenítése</string>
     <string name="setting_show_media_preview_description">Képek letöltése az értesítésekben való megjelenítéshez</string>
     <string name="abuse">Visszaélés</string>
@@ -892,6 +901,7 @@
     <string name="mark_as_read_here">Megjelölés olvasottként itt</string>
     <string name="mark_as_suggested">Megjelölés javasoltként</string>
     <string name="mark_read">Megjelölés olvasottként</string>
+    <string name="mark_as_unread">Megjelölés olvasatlanul</string>
     <string name="marked_as_low_priority">Megjelölve alacsony prioritásként</string>
     <string name="matrix_not_ready">A Matrix nem áll készen</string>
     <string name="member">Tag</string>
