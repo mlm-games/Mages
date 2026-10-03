@@ -128,6 +128,8 @@
     <string name="setting_media_cache_description">Προβολή και διαχείριση αποθηκευμένων πολυμέσων</string>
     <string name="setting_start_in_tray_description">Ελαχιστοποίηση στο δίσκο κατά την εκκίνηση</string>
     <string name="setting_enter_sends_message_description">Όταν είναι ενεργοποιημένο, πατώντας Enter θα στείλει το μήνυμα και Shift, Ctrl ή Cmd + Enter θα εισαγάγει μια νέα γραμμή</string>
+    <string name="setting_edit_latest_with_up_arrow">Επεξεργασία τελευταίου μηνύματος με το βελάκι προς τα πάνω</string>
+    <string name="setting_edit_latest_with_up_arrow_description">Όταν είναι ενεργοποιημένο, η πίεση του βελακιού προς τα πάνω όταν το πλαίσιο μηνύματος είναι κενό ξεκινά την επεξεργασία του τελευταίου επεξεργάσιμου μηνύματος ή της λεζάντας του</string>
     <string name="setting_use_proxy_description">Δρομολογήστε όλη την κυκλοφορία μέσω ενός διακομιστή μεσολάβησης SOCKS5 ή http</string>
     <string name="setting_proxy_url_description">SOCKS5 ή διεύθυνση διαμεσολαβητή http</string>
     <string name="setting_live_location_update_interval_description">Ελάχιστη απόσταση (σε μέτρα) που διανύθηκε πριν από την αποστολή μιας ενημέρωσης τοποθεσίας</string>
@@ -631,7 +633,7 @@
         <item>Ορισμός ως αναγνωσμένου</item>
         <item>Ορισμός ως μη αναγνωσμένου</item>
         <item>Τίποτα</item>
-    <item>Toggle read/unread</item>
+        <item>Εναλλαγή αναγνωσμένου/μη αναγνωσμένου</item>
     </string-array>
     <string name="setting_show_media_preview">Εμφάνιση προεπισκόπησης πολυμέσων</string>
     <string name="setting_show_media_preview_description">Λήψη εικόνων για εμφάνιση στις ειδοποιήσεις</string>
@@ -903,6 +905,7 @@
     <string name="mark_as_suggested">Ορισμός ως προτεινόμενου</string>
     <string name="mark_read">Ορισμός ως αναγνωσμένου</string>
     <string name="mark_as_unread">Ορισμός ως μη αναγνωσμένου</string>
+    <string name="toggle_read_unread">Εναλλαγή αναγνωσμένου/μη αναγνωσμένου</string>
     <string name="marked_as_low_priority">Ορίστηκε ως χαμηλής προτεραιότητας</string>
     <string name="matrix_not_ready">Το Matrix δεν είναι έτοιμο</string>
     <string name="member">Μέλος</string>

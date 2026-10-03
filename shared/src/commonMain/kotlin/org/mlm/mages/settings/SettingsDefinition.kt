@@ -856,7 +856,7 @@ data class AppSettings(
     @Setting(
         title = "Edit latest message with up arrow",
         titleKey = MagesSettingsKeys.EDIT_LATEST_WITH_UP_ARROW,
-        description = "Show an up arrow beside the send button that starts editing your latest editable message or caption",
+        description = "When enabled, pressing the up arrow while the message box is empty starts editing your latest editable message or caption",
         descriptionKey = MagesSettingsKeys.EDIT_LATEST_WITH_UP_ARROW_DESCRIPTION,
         category = Advanced::class,
         type = Toggle::class

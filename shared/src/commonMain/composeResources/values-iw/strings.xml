@@ -128,6 +128,8 @@
     <string name="setting_media_cache_description">צפייה וניהול מדיה במטמון</string>
     <string name="setting_start_in_tray_description">מזעור למגש המערכת בעת ההפעלה</string>
     <string name="setting_enter_sends_message_description">כשהאפשרות פעילה, Enter שולח את ההודעה ו- Shift, Ctrl או Cmd + Enter מוסיף שורה חדשה</string>
+    <string name="setting_edit_latest_with_up_arrow">עריכת ההודעה האחרונה עם החץ למעלה</string>
+    <string name="setting_edit_latest_with_up_arrow_description">כאשר מופעל, לחיצה על החץ למעלה כשתיבת ההודעה ריקה מתחילה לערוך את ההודעה האחרונה שניתן לערוך או את הכותרת שלה</string>
     <string name="setting_use_proxy_description">ניתוב כל התעבורה דרך פרוקסי SOCKS5 או HTTP</string>
     <string name="setting_proxy_url_description">כתובת פרוקסי SOCKS5 או HTTP</string>
     <string name="setting_live_location_update_interval_description">מרחק מזערי במטרים לפני שליחת עדכון מיקום</string>
@@ -631,7 +633,7 @@
         <item>סימון כנקרא</item>
         <item>סימון כלא נקרא</item>
         <item>כלום</item>
-    <item>Toggle read/unread</item>
+        <item>החלפת נקרא/לא נקרא</item>
     </string-array>
     <string name="setting_show_media_preview">הצגת תצוגה מקדימה של מדיה</string>
     <string name="setting_show_media_preview_description">הורדת תמונות להצגה בהתראות</string>
@@ -903,6 +905,7 @@
     <string name="mark_as_suggested">סימון כמומלץ</string>
     <string name="mark_read">סימון כנקרא</string>
     <string name="mark_as_unread">סימון כלא נקרא</string>
+    <string name="toggle_read_unread">החלפת נקרא/לא נקרא</string>
     <string name="marked_as_low_priority">סומן כעדיפות נמוכה</string>
     <string name="matrix_not_ready">Matrix אינו מוכן</string>
     <string name="member">חבר</string>

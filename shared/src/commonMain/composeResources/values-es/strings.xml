@@ -578,6 +578,8 @@
     <string name="setting_start_in_tray_description">Minimizar a la bandeja al iniciar</string>
     <string name="setting_enter_sends_message">Enter envía el mensaje</string>
     <string name="setting_enter_sends_message_description">Al activarlo, Enter enviará el mensaje y Shift, Ctrl o Cmd + Enter insertará una nueva línea</string>
+    <string name="setting_edit_latest_with_up_arrow">Editar el último mensaje con la flecha hacia arriba</string>
+    <string name="setting_edit_latest_with_up_arrow_description">Si está activado, pulsar la flecha hacia arriba cuando el campo de mensaje está vacío comienza a editar el último mensaje editable o su pie de foto</string>
     <string name="setting_use_proxy">Usar proxy</string>
     <string name="setting_use_proxy_description">Enviar todo el tráfico a través de un proxy SOCKS5 o HTTP</string>
     <string name="setting_proxy_url">URL del proxy</string>
@@ -747,7 +749,7 @@
         <item>Marcar como leído</item>
         <item>Marcar como no leído</item>
         <item>Nada</item>
-    <item>Toggle read/unread</item>
+        <item>Alternar leído/no leído</item>
     </string-array>
     <string name="setting_show_media_preview">Mostrar vista previa de medios</string>
     <string name="setting_show_media_preview_description">Descargar imágenes para mostrarlas en las notificaciones</string>
@@ -1019,6 +1021,7 @@
     <string name="mark_as_suggested">Marcar como sugerido</string>
     <string name="mark_read">Marcar como leído</string>
     <string name="mark_as_unread">Marcar como no leído</string>
+    <string name="toggle_read_unread">Alternar leído/no leído</string>
     <string name="marked_as_low_priority">Marcado como baja prioridad</string>
     <string name="matrix_not_ready">Matrix no está listo</string>
     <string name="member">Miembro</string>

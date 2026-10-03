@@ -128,6 +128,8 @@
     <string name="setting_media_cache_description">Xem và quản lý phương tiện đã lưu đệm</string>
     <string name="setting_start_in_tray_description">Thu nhỏ vào khay hệ thống khi khởi động</string>
     <string name="setting_enter_sends_message_description">Khi bật, Enter gửi tin nhắn và Shift, Ctrl hoặc Cmd + Enter chèn dòng mới</string>
+    <string name="setting_edit_latest_with_up_arrow">Chỉnh sửa tin nhắn gần nhất bằng phím mũi tên lên</string>
+    <string name="setting_edit_latest_with_up_arrow_description">Khi bật, nhấn mũi tên lên khi khung tin nhắn trống sẽ bắt đầu chỉnh sửa tin nhắn có thể chỉnh sửa gần nhất hoặc chú thích của nó</string>
     <string name="setting_use_proxy_description">Định tuyến toàn bộ lưu lượng qua proxy SOCKS5 hoặc HTTP</string>
     <string name="setting_proxy_url_description">Địa chỉ proxy SOCKS5 hoặc HTTP</string>
     <string name="setting_live_location_update_interval_description">Khoảng cách tối thiểu tính bằng mét trước khi gửi cập nhật vị trí</string>
@@ -631,7 +633,7 @@
         <item>Đánh dấu đã đọc</item>
         <item>Đánh dấu chưa đọc</item>
         <item>Không có gì</item>
-    <item>Toggle read/unread</item>
+        <item>Chuyển trạng thái đã đọc/chưa đọc</item>
     </string-array>
     <string name="setting_show_media_preview">Hiển thị xem trước phương tiện</string>
     <string name="setting_show_media_preview_description">Tải hình ảnh để hiển thị trong thông báo</string>
@@ -903,6 +905,7 @@
     <string name="mark_as_suggested">Đánh dấu là đề xuất</string>
     <string name="mark_read">Đánh dấu đã đọc</string>
     <string name="mark_as_unread">Đánh dấu chưa đọc</string>
+    <string name="toggle_read_unread">Chuyển trạng thái đã đọc/chưa đọc</string>
     <string name="marked_as_low_priority">Đã đặt làm ưu tiên thấp</string>
     <string name="matrix_not_ready">Matrix chưa sẵn sàng</string>
     <string name="member">Thành viên</string>

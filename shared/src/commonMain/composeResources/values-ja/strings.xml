@@ -128,6 +128,8 @@
     <string name="setting_media_cache_description">_キャッシュされたメディアの表示と管理</string>
     <string name="setting_start_in_tray_description">_起動時にトレイに最小化</string>
     <string name="setting_enter_sends_message_description">有効にすると、Enter を押すとメッセージが送信され、Shift、Ctrl、または Cmd Enter を押すと新しい行が挿入されます</string>
+    <string name="setting_edit_latest_with_up_arrow">上矢印で最新のメッセージを編集</string>
+    <string name="setting_edit_latest_with_up_arrow_description">有効にすると、メッセージ欄が空の状態で上矢印を押すと、編集可能な最新のメッセージまたはキャプションの編集が始まります</string>
     <string name="setting_use_proxy_description">すべてのトラフィックを SOCKS5 または HTTP プロキシ経由でルーティング</string>
     <string name="setting_proxy_url_description">SOCKS5 または HTTP プロキシ アドレス_</string>
     <string name="setting_live_location_update_interval_description">位置情報の更新を送信するまでの最小移動距離 (メートル単位)</string>
@@ -631,7 +633,7 @@
         <item>既読にする</item>
         <item>未読にする</item>
         <item>なし</item>
-    <item>Toggle read/unread</item>
+        <item>既読/未読を切り替え</item>
     </string-array>
     <string name="setting_show_media_preview">メディアプレビューを表示</string>
     <string name="setting_show_media_preview_description">通知に表示する画像をダウンロード</string>
@@ -903,6 +905,7 @@
     <string name="mark_as_suggested">おすすめとしてマーク</string>
     <string name="mark_read">既読にする</string>
     <string name="mark_as_unread">未読にする</string>
+    <string name="toggle_read_unread">既読/未読を切り替え</string>
     <string name="marked_as_low_priority">低優先度に設定しました</string>
     <string name="matrix_not_ready">Matrix が準備できていません</string>
     <string name="member">メンバー</string>

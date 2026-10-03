@@ -128,6 +128,8 @@
     <string name="setting_media_cache_description">Zwischengespeicherte Medien ansehen und verwalten</string>
     <string name="setting_start_in_tray_description">Beim Start in den Infobereich minimieren</string>
     <string name="setting_enter_sends_message_description">Wenn aktiviert, sendet Enter die Nachricht; Shift, Strg oder Cmd + Enter fügt eine neue Zeile ein</string>
+    <string name="setting_edit_latest_with_up_arrow">Letzte Nachricht mit Pfeil nach oben bearbeiten</string>
+    <string name="setting_edit_latest_with_up_arrow_description">Wenn aktiviert, startet ein Druck auf die Pfeiltaste nach oben im leeren Nachrichtenfeld die Bearbeitung der letzten bearbeitbaren Nachricht oder ihres Untertitels</string>
     <string name="setting_use_proxy_description">Gesamten Datenverkehr über einen SOCKS5- oder HTTP-Proxy leiten</string>
     <string name="setting_proxy_url_description">SOCKS5- oder HTTP-Proxy-Adresse</string>
     <string name="setting_live_location_update_interval_description">Mindeststrecke in Metern vor einem Standortupdate</string>
@@ -631,7 +633,7 @@
         <item>Als gelesen markieren</item>
         <item>Als ungelesen markieren</item>
         <item>Nichts</item>
-    <item>Toggle read/unread</item>
+        <item>Gelesen/ungelesen umschalten</item>
     </string-array>
     <string name="setting_show_media_preview">Medienvorschau anzeigen</string>
     <string name="setting_show_media_preview_description">Bilder herunterladen, um sie in Benachrichtigungen anzuzeigen</string>
@@ -903,6 +905,7 @@
     <string name="mark_as_suggested">Als vorgeschlagen markieren</string>
     <string name="mark_read">Als gelesen markieren</string>
     <string name="mark_as_unread">Als ungelesen markieren</string>
+    <string name="toggle_read_unread">Gelesen/ungelesen umschalten</string>
     <string name="marked_as_low_priority">Als niedrige Priorität markiert</string>
     <string name="matrix_not_ready">Matrix nicht bereit</string>
     <string name="member">Mitglied</string>

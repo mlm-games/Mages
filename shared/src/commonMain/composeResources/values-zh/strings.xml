@@ -128,6 +128,8 @@
     <string name="setting_media_cache_description">查看和管理缓存的媒体</string>
     <string name="setting_start_in_tray_description">启动时最小化到系统托盘</string>
     <string name="setting_enter_sends_message_description">启用后，Enter 发送消息，Shift、Ctrl 或 Cmd + Enter 插入新行</string>
+    <string name="setting_edit_latest_with_up_arrow">用上方向键编辑最新消息</string>
+    <string name="setting_edit_latest_with_up_arrow_description">启用后，在消息框为空时按上方向键即可开始编辑最新的可编辑消息或其标题</string>
     <string name="setting_use_proxy_description">通过 SOCKS5 或 HTTP 代理转发所有流量</string>
     <string name="setting_proxy_url_description">SOCKS5 或 HTTP 代理地址</string>
     <string name="setting_live_location_update_interval_description">发送位置更新前需要移动的最小距离（米）</string>
@@ -631,7 +633,7 @@
         <item>标记为已读</item>
         <item>标记为未读</item>
         <item>无</item>
-    <item>Toggle read/unread</item>
+        <item>切换已读/未读</item>
     </string-array>
     <string name="setting_show_media_preview">显示媒体预览</string>
     <string name="setting_show_media_preview_description">下载图像以便在通知中显示</string>
@@ -903,6 +905,7 @@
     <string name="mark_as_suggested">标记为推荐</string>
     <string name="mark_read">标记为已读</string>
     <string name="mark_as_unread">标记为未读</string>
+    <string name="toggle_read_unread">切换已读/未读</string>
     <string name="marked_as_low_priority">已标记为低优先级</string>
     <string name="matrix_not_ready">Matrix 尚未就绪</string>
     <string name="member">成员</string>

@@ -128,6 +128,8 @@
     <string name="setting_media_cache_description">عرض الوسائط المخزنة مؤقتًا وإدارتها</string>
     <string name="setting_start_in_tray_description">قم بالتصغير إلى الدرج عند الإطلاق</string>
     <string name="setting_enter_sends_message_description">عند التمكين، سيؤدي الضغط على Enter إلى إرسال الرسالة وسيقوم Shift أو Ctrl أو Cmd + Enter بإدراج سطر جديد</string>
+    <string name="setting_edit_latest_with_up_arrow">تعديل آخر رسالة بالسهم للأعلى</string>
+    <string name="setting_edit_latest_with_up_arrow_description">عند تفعيله، يبدأ الضغط على السهم للأعلى عندما يكون مربع الرسالة فارغًا بتعديل آخر رسالة قابلة للتعديل أو التسمية التوضيحية لها</string>
     <string name="setting_use_proxy_description">توجيه جميع حركة المرور من خلال وكيل SOCKS5 أو HTTP</string>
     <string name="setting_proxy_url_description">SOCKS5 أو عنوان وكيل HTTP</string>
     <string name="setting_live_location_update_interval_description">الحد الأدنى للمسافة المقطوعة (بالأمتار) قبل إرسال تحديث الموقع</string>
@@ -631,7 +633,7 @@
         <item>وضع علامة مقروء</item>
         <item>وضع علامة غير مقروء</item>
         <item>لا شيء</item>
-    <item>Toggle read/unread</item>
+        <item>تبديل مقروء/غير مقروء</item>
     </string-array>
     <string name="setting_show_media_preview">إظهار معاينة الوسائط</string>
     <string name="setting_show_media_preview_description">تنزيل الصور لعرضها في الإشعارات</string>
@@ -903,6 +905,7 @@
     <string name="mark_as_suggested">وضع علامة مقترح</string>
     <string name="mark_read">وضع علامة مقروء</string>
     <string name="mark_as_unread">وضع علامة غير مقروء</string>
+    <string name="toggle_read_unread">تبديل مقروء/غير مقروء</string>
     <string name="marked_as_low_priority">تم وضع علامة أولوية منخفضة</string>
     <string name="matrix_not_ready">Matrix غير جاهز</string>
     <string name="member">عضو</string>

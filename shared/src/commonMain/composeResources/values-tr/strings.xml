@@ -128,6 +128,8 @@
     <string name="setting_media_cache_description">Önbelleğe alınmış medyayı görüntüleyin ve yönetin</string>
     <string name="setting_start_in_tray_description">Başlangıçta tepsiye küçültün</string>
     <string name="setting_enter_sends_message_description">Etkinleştirildiğinde, Enter tuşuna basmak mesajı gönderir ve Shift, Ctrl veya Cmd Enter yeni bir satır ekler</string>
+    <string name="setting_edit_latest_with_up_arrow">Son mesajı yukarı ok ile düzenle</string>
+    <string name="setting_edit_latest_with_up_arrow_description">Etkinleştirildiğinde, mesaj kutusu boşken yukarı oka basmak düzenlenebilir son mesajın veya altyazısının düzenlenmesini başlatır</string>
     <string name="setting_use_proxy_description">Tüm trafiği bir SOCKS5 veya HTTP proxy</string>
     <string name="setting_proxy_url_description">SOCKS5 veya HTTP proxy adresi üzerinden yönlendirin</string>
     <string name="setting_live_location_update_interval_description">Konum güncellemesi göndermeden önce kat edilen minimum mesafe (metre cinsinden)</string>
@@ -631,7 +633,7 @@
         <item>Okundu olarak işaretle</item>
         <item>Okunmadı olarak işaretle</item>
         <item>Hiçbir şey</item>
-    <item>Toggle read/unread</item>
+        <item>Okundu/okunmadı durumunu değiştir</item>
     </string-array>
     <string name="setting_show_media_preview">Medya önizlemesini göster</string>
     <string name="setting_show_media_preview_description">Bildirimlerde göstermek için görselleri indir</string>
@@ -903,6 +905,7 @@
     <string name="mark_as_suggested">Önerilen olarak işaretle</string>
     <string name="mark_read">Okundu olarak işaretle</string>
     <string name="mark_as_unread">Okunmadı olarak işaretle</string>
+    <string name="toggle_read_unread">Okundu/okunmadı durumunu değiştir</string>
     <string name="marked_as_low_priority">Düşük öncelikli olarak işaretlendi</string>
     <string name="matrix_not_ready">Matrix hazır değil</string>
     <string name="member">Üye</string>

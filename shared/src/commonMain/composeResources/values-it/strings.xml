@@ -128,6 +128,8 @@
     <string name="setting_media_cache_description">Visualizza e gestisci i contenuti multimediali nella cache</string>
     <string name="setting_start_in_tray_description">Riduci a icona nel vassoio di sistema all’avvio</string>
     <string name="setting_enter_sends_message_description">Se attivo, Invio invia il messaggio e Maiusc, Ctrl o Cmd + Invio inserisce una nuova riga</string>
+    <string name="setting_edit_latest_with_up_arrow">Modifica l&apos;ultimo messaggio con la freccia su</string>
+    <string name="setting_edit_latest_with_up_arrow_description">Se attivato, premere la freccia su quando il campo del messaggio è vuoto modifica l&apos;ultimo messaggio modificabile o la sua didascalia</string>
     <string name="setting_use_proxy_description">Instrada tutto il traffico attraverso un proxy SOCKS5 o HTTP</string>
     <string name="setting_proxy_url_description">Indirizzo del proxy SOCKS5 o HTTP</string>
     <string name="setting_live_location_update_interval_description">Distanza minima in metri prima di inviare un aggiornamento della posizione</string>
@@ -631,7 +633,7 @@
         <item>Segna come letto</item>
         <item>Segna come non letto</item>
         <item>Nulla</item>
-    <item>Toggle read/unread</item>
+        <item>Alterna letto/non letto</item>
     </string-array>
     <string name="setting_show_media_preview">Mostra anteprima multimediale</string>
     <string name="setting_show_media_preview_description">Scarica le immagini da mostrare nelle notifiche</string>
@@ -903,6 +905,7 @@
     <string name="mark_as_suggested">Segna come suggerito</string>
     <string name="mark_read">Segna come letto</string>
     <string name="mark_as_unread">Segna come non letto</string>
+    <string name="toggle_read_unread">Alterna letto/non letto</string>
     <string name="marked_as_low_priority">Segnato come priorità bassa</string>
     <string name="matrix_not_ready">Matrix non pronto</string>
     <string name="member">Membro</string>

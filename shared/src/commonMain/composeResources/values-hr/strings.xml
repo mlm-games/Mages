@@ -128,6 +128,8 @@
     <string name="setting_media_cache_description">Pregledaj i upravljaj predmemoriranim medijima</string>
     <string name="setting_start_in_tray_description">Minimiziraj u ladicu pri pokretanju</string>
     <string name="setting_enter_sends_message_description">Kada je omogućeno, pritiskom na Enter poslat će se poruka, a Shift, Ctrl ili Cmd Enter će umetnuti novi red</string>
+    <string name="setting_edit_latest_with_up_arrow">Uredi posljednju poruku strelicom prema gore</string>
+    <string name="setting_edit_latest_with_up_arrow_description">Kada je uključeno, pritisak strelice prema gore dok je okvir poruke prazan počinje uređivati posljednju poruku koju je moguće urediti ili njezin natpis</string>
     <string name="setting_use_proxy_description">Usmjerite sav promet kroz SOCKS5 ili HTTP proxy</string>
     <string name="setting_proxy_url_description">SOCKS5 ili HTTP proxy adresu</string>
     <string name="setting_live_location_update_interval_description">Minimalna udaljenost (u metrima) prijeđena prije slanja ažuriranja lokacije</string>
@@ -631,7 +633,7 @@
         <item>Označi kao pročitano</item>
         <item>Označi kao nepročitano</item>
         <item>Ništa</item>
-    <item>Toggle read/unread</item>
+        <item>Prebaci pročitano/nepročitano</item>
     </string-array>
     <string name="setting_show_media_preview">Prikaži pretpregled medija</string>
     <string name="setting_show_media_preview_description">Preuzmi slike za prikaz u obavijestima</string>
@@ -903,6 +905,7 @@
     <string name="mark_as_suggested">Označi kao predloženo</string>
     <string name="mark_read">Označi kao pročitano</string>
     <string name="mark_as_unread">Označi kao nepročitano</string>
+    <string name="toggle_read_unread">Prebaci pročitano/nepročitano</string>
     <string name="marked_as_low_priority">Označeno kao niski prioritet</string>
     <string name="matrix_not_ready">Matrix nije spreman</string>
     <string name="member">Član</string>

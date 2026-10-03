@@ -8,7 +8,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,6 +26,7 @@ import mages.shared.generated.resources.*
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.platform.ClipboardAttachmentHandler
+import org.mlm.mages.platform.editLatestShortcutHandler
 import org.mlm.mages.platform.pasteInterceptor
 import org.mlm.mages.platform.sendShortcutHandler
 import org.mlm.mages.ui.components.AttachmentData
@@ -58,7 +58,7 @@ fun MessageComposer(
     clipboardHandler: ClipboardAttachmentHandler? = null,
     onAttachmentPasted: ((AttachmentData) -> Unit)? = null,
     enterSendsMessage: Boolean = false,
-    showEditLatest: Boolean = false,
+    canEditLatest: Boolean = false,
     onEditLatest: () -> Unit = {},
     roomMembers: List<MemberSummary> = emptyList(),
     avatarPathByUserId: Map<String, String> = emptyMap(),
@@ -164,7 +164,7 @@ fun MessageComposer(
                 },
                 onSend = onSend,
                 enterSendsMessage = enterSendsMessage,
-                showEditLatest = showEditLatest,
+                canEditLatest = canEditLatest,
                 onEditLatest = onEditLatest,
                 clipboardHandler = clipboardHandler,
                 onAttachmentPasted = onAttachmentPasted,
@@ -189,7 +189,7 @@ private fun ComposerInputRow(
     onValueChange: (TextFieldValue) -> Unit,
     onSend: () -> Unit,
     enterSendsMessage: Boolean,
-    showEditLatest: Boolean,
+    canEditLatest: Boolean,
     onEditLatest: () -> Unit,
     clipboardHandler: ClipboardAttachmentHandler?,
     onAttachmentPasted: ((AttachmentData) -> Unit)?,
@@ -216,6 +216,11 @@ private fun ComposerInputRow(
             }
         }
 
+        val editLatestShortcutEnabled = canEditLatest &&
+            enabled && !isUploadingAttachment &&
+            editing == null && replyingTo == null &&
+            fieldValue.text.isEmpty() && attachments.isEmpty()
+
         val textFieldModifier = Modifier
             .weight(1f)
             .then(
@@ -240,6 +245,10 @@ private fun ComposerInputRow(
                     onValueChange(newValue)
                 },
                 onSend = onSend
+            )
+            .editLatestShortcutHandler(
+                enabled = editLatestShortcutEnabled,
+                onEditLatest = onEditLatest
             )
 
         OutlinedTextField(
@@ -269,16 +278,6 @@ private fun ComposerInputRow(
         )
 
         Spacer(Modifier.width(Spacing.sm))
-
-        AnimatedVisibility(visible = showEditLatest) {
-            IconButton(onClick = onEditLatest) {
-                Icon(
-                    Icons.Default.KeyboardArrowUp,
-                    stringResource(Res.string.edit_latest_message),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
 
         val canSend = enabled && (fieldValue.text.isNotBlank() || attachments.isNotEmpty()) && !isUploadingAttachment
         val canRecordVoice = enabled && !isUploadingAttachment && fieldValue.text.isBlank() && attachments.isEmpty() && onStartVoiceRecording != null

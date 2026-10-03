@@ -128,6 +128,8 @@
     <string name="setting_media_cache_description">查看及管理快取媒體</string>
     <string name="setting_start_in_tray_description">啟動時最小化到系統匣</string>
     <string name="setting_enter_sends_message_description">啟用後，Enter 傳送訊息，Shift、Ctrl 或 Cmd + Enter 插入新行</string>
+    <string name="setting_edit_latest_with_up_arrow">用上方向鍵編輯最新訊息</string>
+    <string name="setting_edit_latest_with_up_arrow_description">啟用後，在訊息框為空時按上方向鍵即可開始編輯最新的可編輯訊息或其標題</string>
     <string name="setting_use_proxy_description">透過 SOCKS5 或 HTTP proxy 路由所有流量</string>
     <string name="setting_proxy_url_description">SOCKS5 或 HTTP proxy 位址</string>
     <string name="setting_live_location_update_interval_description">傳送位置更新前需移動的最小距離（公尺）</string>
@@ -631,7 +633,7 @@
         <item>標記為已讀</item>
         <item>標記為未讀</item>
         <item>無</item>
-    <item>Toggle read/unread</item>
+        <item>切換已讀/未讀</item>
     </string-array>
     <string name="setting_show_media_preview">顯示媒體預覽</string>
     <string name="setting_show_media_preview_description">下載圖像以在通知中顯示</string>
@@ -903,6 +905,7 @@
     <string name="mark_as_suggested">標記為建議項目</string>
     <string name="mark_read">標記為已讀</string>
     <string name="mark_as_unread">標記為未讀</string>
+    <string name="toggle_read_unread">切換已讀/未讀</string>
     <string name="marked_as_low_priority">已標記為低優先級</string>
     <string name="matrix_not_ready">Matrix 尚未就緒</string>
     <string name="member">成員</string>

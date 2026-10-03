@@ -128,6 +128,8 @@
     <string name="setting_media_cache_description">Переглядати керовані медіафайли в кеші</string>
     <string name="setting_start_in_tray_description">Згортати до трея під час запуску</string>
     <string name="setting_enter_sends_message_description">Якщо ввімкнено, Enter надсилає повідомлення, а Shift, Ctrl або Cmd + Enter вставляє новий рядок</string>
+    <string name="setting_edit_latest_with_up_arrow">Змінити останнє повідомлення стрілкою вгору</string>
+    <string name="setting_edit_latest_with_up_arrow_description">Якщо ввімкнено, натискання стрілки вгору, коли поле повідомлення порожнє, починає змінювати останнє повідомлення, доступне для зміни, або його підпис</string>
     <string name="setting_use_proxy_description">Спрямовувати весь трафік через SOCKS5- або HTTP-проксі</string>
     <string name="setting_proxy_url_description">Адреса SOCKS5- або HTTP-проксі</string>
     <string name="setting_live_location_update_interval_description">Мінімальна відстань у метрах перед надсиланням оновлення місця</string>
@@ -631,7 +633,7 @@
         <item>Позначити прочитаним</item>
         <item>Позначити непрочитаним</item>
         <item>Нічого</item>
-    <item>Toggle read/unread</item>
+        <item>Перемкнути прочитано/непрочитано</item>
     </string-array>
     <string name="setting_show_media_preview">Показувати попередній перегляд медіа</string>
     <string name="setting_show_media_preview_description">Завантажувати зображення для показу в сповіщеннях</string>
@@ -903,6 +905,7 @@
     <string name="mark_as_suggested">Позначити як рекомендоване</string>
     <string name="mark_read">Позначити прочитаним</string>
     <string name="mark_as_unread">Позначити непрочитаним</string>
+    <string name="toggle_read_unread">Перемкнути прочитано/непрочитано</string>
     <string name="marked_as_low_priority">Позначено як низький пріоритет</string>
     <string name="matrix_not_ready">Matrix ще не готовий</string>
     <string name="member">Учасник</string>

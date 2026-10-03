@@ -54,3 +54,22 @@ private fun handleEnterShortcut(
     }
     return false
 }
+
+
+fun Modifier.editLatestShortcutHandler(
+    enabled: Boolean,
+    onEditLatest: () -> Unit
+): Modifier = if (!enabled) this else this
+    .onPreInterceptKeyBeforeSoftKeyboard { event -> handleEditLatestShortcut(event, onEditLatest) }
+    .onPreviewKeyEvent { event -> handleEditLatestShortcut(event, onEditLatest) }
+
+private fun handleEditLatestShortcut(
+    event: KeyEvent,
+    onEditLatest: () -> Unit
+): Boolean {
+    if (event.type != KeyEventType.KeyDown) return false
+    if (event.key != Key.DirectionUp) return false
+    if (event.isShiftPressed || event.isCtrlPressed || event.isMetaPressed || event.isAltPressed) return false
+    onEditLatest()
+    return true
+}

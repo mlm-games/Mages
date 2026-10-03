@@ -128,6 +128,8 @@
     <string name="setting_media_cache_description">Afficher et gérer les médias en cache</string>
     <string name="setting_start_in_tray_description">Réduire dans la barre d'état au lancement</string>
     <string name="setting_enter_sends_message_description">Lorsque cette option est activée, appuyer sur Entrée enverra le message et Shift, Ctrl ou Cmd Enter insérera une nouvelle ligne</string>
+    <string name="setting_edit_latest_with_up_arrow">Modifier le dernier message avec la flèche vers le haut</string>
+    <string name="setting_edit_latest_with_up_arrow_description">Si activé, appuyer sur la flèche vers le haut lorsque la zone de message est vide lance la modification du dernier message modifiable ou de sa légende</string>
     <string name="setting_use_proxy_description">Acheminez tout le trafic via un proxy SOCKS5 ou HTTP</string>
     <string name="setting_proxy_url_description">Adresse SOCKS5 ou proxy HTTP</string>
     <string name="setting_live_location_update_interval_description">Distance minimale (en mètres) parcourue avant d'envoyer une mise à jour de localisation</string>
@@ -631,7 +633,7 @@
         <item>Marquer comme lu</item>
         <item>Marquer comme non lu</item>
         <item>Rien</item>
-    <item>Toggle read/unread</item>
+        <item>Basculer lu/non lu</item>
     </string-array>
     <string name="setting_show_media_preview">Afficher l&apos;aperçu des médias</string>
     <string name="setting_show_media_preview_description">Télécharger les images à afficher dans les notifications</string>
@@ -903,6 +905,7 @@
     <string name="mark_as_suggested">Marquer comme suggéré</string>
     <string name="mark_read">Marquer comme lu</string>
     <string name="mark_as_unread">Marquer comme non lu</string>
+    <string name="toggle_read_unread">Basculer lu/non lu</string>
     <string name="marked_as_low_priority">Marqué comme faible priorité</string>
     <string name="matrix_not_ready">Matrix n&apos;est pas prêt</string>
     <string name="member">Membre</string>

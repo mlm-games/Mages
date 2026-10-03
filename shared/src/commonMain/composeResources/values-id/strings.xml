@@ -128,6 +128,8 @@
     <string name="setting_media_cache_description">Lihat dan kelola media cache</string>
     <string name="setting_start_in_tray_description">Minimalkan ke baki saat peluncuran</string>
     <string name="setting_enter_sends_message_description">Saat diaktifkan, menekan Enter akan mengirim pesan dan Shift, Ctrl atau Cmd Enter akan menyisipkan baris baru</string>
+    <string name="setting_edit_latest_with_up_arrow">Edit pesan terakhir dengan panah ke atas</string>
+    <string name="setting_edit_latest_with_up_arrow_description">Jika diaktifkan, menekan panah ke atas saat kotak pesan kosong akan mulai mengedit pesan terakhir yang dapat diedit atau keterangannya</string>
     <string name="setting_use_proxy_description">Rutekan semua lalu lintas melalui SOCKS5 atau proksi HTTP</string>
     <string name="setting_proxy_url_description">SOCKS5 atau alamat proksi HTTP</string>
     <string name="setting_live_location_update_interval_description">Jarak minimum (dalam meter) yang ditempuh sebelum mengirim pembaruan lokasi</string>
@@ -631,7 +633,7 @@
         <item>Tandai sudah dibaca</item>
         <item>Tandai belum dibaca</item>
         <item>Tidak ada</item>
-    <item>Toggle read/unread</item>
+        <item>Alihkan sudah/belum dibaca</item>
     </string-array>
     <string name="setting_show_media_preview">Tampilkan pratinjau media</string>
     <string name="setting_show_media_preview_description">Unduh gambar untuk ditampilkan di notifikasi</string>
@@ -903,6 +905,7 @@
     <string name="mark_as_suggested">Tandai sebagai disarankan</string>
     <string name="mark_read">Tandai sudah dibaca</string>
     <string name="mark_as_unread">Tandai belum dibaca</string>
+    <string name="toggle_read_unread">Alihkan sudah/belum dibaca</string>
     <string name="marked_as_low_priority">Ditandai sebagai prioritas rendah</string>
     <string name="matrix_not_ready">Matrix belum siap</string>
     <string name="member">Anggota</string>

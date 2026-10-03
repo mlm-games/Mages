@@ -128,6 +128,8 @@
     <string name="setting_media_cache_description">Tarkastele ja hallinnoi välimuistia</string>
     <string name="setting_start_in_tray_description">Pienennä lokeroon käynnistyksen yhteydessä</string>
     <string name="setting_enter_sends_message_description">Kun tämä on käytössä, Enter-näppäin lähettää viestin ja Shift, Ctrl tai Cmd Enter lisää uuden rivin</string>
+    <string name="setting_edit_latest_with_up_arrow">Muokkaa viimeistä viestiä ylänuolella</string>
+    <string name="setting_edit_latest_with_up_arrow_description">Kun asetus on käytössä, viestikentän ollessa tyhjä ylänuolen painallus aloittaa viimeisen muokattavan viestin tai sen kuvatekstin muokkaamisen</string>
     <string name="setting_use_proxy_description">Ohjaa kaikki liikenne SOCKS5- tai HTTP-välityspalvelimen kautta</string>
     <string name="setting_proxy_url_description">SOCKS5 tai HTTP-välityspalvelinosoite</string>
     <string name="setting_live_location_update_interval_description">Vähimmäismatka (metreinä) ennen sijaintipäivityksen lähettämistä</string>
@@ -631,7 +633,7 @@
         <item>Merkitse luetuksi</item>
         <item>Merkitse lukemattomaksi</item>
         <item>Ei mitään</item>
-    <item>Toggle read/unread</item>
+        <item>Vaihda luetun/lukemattoman tila</item>
     </string-array>
     <string name="setting_show_media_preview">Näytä median esikatselu</string>
     <string name="setting_show_media_preview_description">Lataa kuvat näytettäväksi ilmoituksissa</string>
@@ -903,6 +905,7 @@
     <string name="mark_as_suggested">Merkitse ehdotetuksi</string>
     <string name="mark_read">Merkitse luetuksi</string>
     <string name="mark_as_unread">Merkitse lukemattomaksi</string>
+    <string name="toggle_read_unread">Vaihda luetun/lukemattoman tila</string>
     <string name="marked_as_low_priority">Merkitty matalan prioriteetin tilaan</string>
     <string name="matrix_not_ready">Matrix ei ole valmis</string>
     <string name="member">Jäsen</string>
