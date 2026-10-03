@@ -1621,7 +1621,7 @@ private fun MessageItem(
         var hapticTriggered by remember { mutableStateOf(false) }
         val haptics = LocalHapticFeedback.current
 
-        val onRowLongPress = {
+        val onRowLongPress: () -> Unit = {
             if (state.isSelectionMode) viewModel.toggleSelected(event.eventId)
             else onLongPress()
         }
