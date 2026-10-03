@@ -259,7 +259,7 @@ tasks.named<ProcessResources>("wasmJsProcessResources") {
 
 /* WEB tasks */
 
-@DisableCachingByDefault(because = "Invokes external Rust tooling")
+@UntrackedTask(because = "cargo owns rust/target/ inside rustProjectDir")
 abstract class GenerateRustWasmBindingsTask @Inject constructor(
     private val execOps: ExecOperations,
 ) : DefaultTask() {
