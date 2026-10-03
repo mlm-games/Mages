@@ -24,6 +24,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,7 +34,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
 import mages.shared.generated.resources.Res
@@ -73,6 +76,7 @@ fun SwipeActionRow(
 
     Box(modifier = modifier.fillMaxWidth()) {
         val goingRight = animatedOffsetPx > 0f
+        val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
         val action = if (goingRight) swipeRightAction else swipeLeftAction
         val progress = (abs(animatedOffsetPx) / thresholdPx).coerceIn(0f, 1f)
         val background = when (action) {
@@ -84,7 +88,7 @@ fun SwipeActionRow(
             modifier = Modifier
                 .matchParentSize()
                 .background(background.copy(alpha = progress)),
-            contentAlignment = if (goingRight) Alignment.CenterStart else Alignment.CenterEnd
+            contentAlignment = if (goingRight) AbsoluteAlignment.CenterLeft else AbsoluteAlignment.CenterRight
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -92,9 +96,15 @@ fun SwipeActionRow(
                     .padding(horizontal = 16.dp)
                     .onSizeChanged { revealWidthPx = it.width.toFloat() }
             ) {
-                RevealIcon(action, progress)
-                Spacer(Modifier.width(8.dp))
-                RevealLabel(action, progress)
+                if (goingRight != isRtl) {
+                    RevealIcon(action, progress)
+                    Spacer(Modifier.width(8.dp))
+                    RevealLabel(action, progress)
+                } else {
+                    RevealLabel(action, progress)
+                    Spacer(Modifier.width(8.dp))
+                    RevealIcon(action, progress)
+                }
             }
         }
 
