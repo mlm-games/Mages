@@ -30,14 +30,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
 import mages.shared.generated.resources.Res
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.settings.RoomSwipeAction
 import kotlin.math.abs
+import kotlin.math.max
 
 @Composable
 fun SwipeActionRow(
@@ -57,9 +60,8 @@ fun SwipeActionRow(
 
     val haptics = LocalHapticFeedback.current
     val thresholdPx = with(LocalDensity.current) { 72.dp.toPx() }
-    val maxPx = thresholdPx * 1.2f
-    val minPx = if (leftEnabled) -maxPx else 0f
-    val maxDragPx = if (rightEnabled) maxPx else 0f
+
+    var revealWidthPx by remember { mutableFloatStateOf(0f) }
 
     var offsetPx by remember { mutableFloatStateOf(0f) }
     val animatedOffsetPx by animateFloatAsState(
@@ -70,29 +72,29 @@ fun SwipeActionRow(
     var hapticArmed by remember { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxWidth()) {
-        if (animatedOffsetPx != 0f) {
-            val goingRight = animatedOffsetPx > 0f
-            val action = if (goingRight) swipeRightAction else swipeLeftAction
-            val progress = (abs(animatedOffsetPx) / thresholdPx).coerceIn(0f, 1f)
-            val background = when (action) {
-                RoomSwipeAction.MarkRead -> MaterialTheme.colorScheme.primaryContainer
-                RoomSwipeAction.MarkUnread -> MaterialTheme.colorScheme.secondaryContainer
-                RoomSwipeAction.Nothing -> Color.Transparent
-            }
-            Box(
+        val goingRight = animatedOffsetPx > 0f
+        val action = if (goingRight) swipeRightAction else swipeLeftAction
+        val progress = (abs(animatedOffsetPx) / thresholdPx).coerceIn(0f, 1f)
+        val background = when (action) {
+            RoomSwipeAction.MarkRead -> MaterialTheme.colorScheme.primaryContainer
+            RoomSwipeAction.MarkUnread -> MaterialTheme.colorScheme.secondaryContainer
+            RoomSwipeAction.Nothing -> Color.Transparent
+        }
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(background.copy(alpha = progress)),
+            contentAlignment = if (goingRight) Alignment.CenterStart else Alignment.CenterEnd
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .matchParentSize()
-                    .background(background.copy(alpha = progress)),
-                contentAlignment = if (goingRight) Alignment.CenterStart else Alignment.CenterEnd
+                    .padding(horizontal = 16.dp)
+                    .onSizeChanged { revealWidthPx = it.width.toFloat() }
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                ) {
-                    RevealIcon(action, progress)
-                    Spacer(Modifier.width(8.dp))
-                    RevealLabel(action, progress)
-                }
+                RevealIcon(action, progress)
+                Spacer(Modifier.width(8.dp))
+                RevealLabel(action, progress)
             }
         }
 
@@ -121,7 +123,10 @@ fun SwipeActionRow(
                             hapticArmed = false
                         },
                         onHorizontalDrag = { _, dragAmount ->
-                            offsetPx = (offsetPx + dragAmount).coerceIn(minPx, maxDragPx)
+                            val cap = max(thresholdPx * 1.2f, revealWidthPx)
+                            val dragMax = if (rightEnabled) cap else 0f
+                            val dragMin = if (leftEnabled) -cap else 0f
+                            offsetPx = (offsetPx + dragAmount).coerceIn(dragMin, dragMax)
                             if (abs(offsetPx) >= thresholdPx) {
                                 if (!hapticArmed) {
                                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -165,6 +170,8 @@ private fun RevealLabel(action: RoomSwipeAction, alpha: Float) {
         text = label,
         style = MaterialTheme.typography.labelMedium,
         color = revealContentColor(action),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
         modifier = Modifier.graphicsLayer { this.alpha = alpha }
     )
 }

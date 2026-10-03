@@ -218,7 +218,7 @@ class RoomsViewModel(
                     copy(
                         unread = unread + (roomId to 1),
                         allItems = allItems.map { item ->
-                            if (item.roomId == roomId) item.copy(hasUnreadMessages = true) else item
+                            if (item.roomId == roomId) item.copy(hasUnreadMessages = true, isMarkedUnread = true) else item
                         }
                     )
                 }
@@ -290,6 +290,11 @@ class RoomsViewModel(
         }
     }
 
+    private fun RoomListEntry.unreadMarkerCount(): Int {
+        val messages = messages.toInt()
+        return if (markedUnread) maxOf(messages, 1) else messages
+    }
+
     private fun mapRoomSummary(entry: RoomListEntry): RoomSummary {
         return RoomSummary(
             id = entry.roomId,
@@ -314,7 +319,8 @@ class RoomsViewModel(
             isDm = entry.isDm,
             isEncrypted = entry.isEncrypted,
             unreadCount = entry.notifications.toInt(),
-            hasUnreadMessages = entry.messages > 0u,
+            hasUnreadMessages = entry.messages > 0u || entry.markedUnread,
+            isMarkedUnread = entry.markedUnread,
             isFavourite = entry.isFavourite,
             isLowPriority = entry.isLowPriority,
             isInvited = entry.isInvited,
@@ -463,7 +469,7 @@ class RoomsViewModel(
                         updateState {
                             copy(
                                 rooms = domainRooms,
-                                unread = items.associate { e -> e.roomId to e.messages.toInt() },
+                                unread = items.associate { e -> e.roomId to e.unreadMarkerCount() },
                                 favourites = items.filter { e -> e.isFavourite }.map { e -> e.roomId }.toSet(),
                                 lowPriority = items.filter { e -> e.isLowPriority }.map { e -> e.roomId }.toSet(),
                                 allItems = uiItems,
@@ -485,7 +491,7 @@ class RoomsViewModel(
                             }
 
                             val updatedUnread = unread.toMutableMap().apply {
-                                put(item.roomId, item.messages.toInt())
+                                put(item.roomId, item.unreadMarkerCount())
                             }
 
                             val updatedFavourites =
@@ -543,6 +549,9 @@ class RoomsViewModel(
         val query = s.roomSearchQuery.trim()
         val includeSilent = settings.value.includeSilentUnreadInFilter
 
+        fun RoomListItemUi.hasUnread(): Boolean =
+            isMarkedUnread || if (includeSilent) hasUnreadMessages || unreadCount > 0 else unreadCount > 0
+
         val visibleRooms = if (settings.value.hideSpaceRoomsInRoomList) {
             s.allItems.filter {
                 it.isInvited || s.parentSpaces[it.roomId].isNullOrEmpty()
@@ -561,11 +570,7 @@ class RoomsViewModel(
         }
 
         if (s.unreadOnly) {
-            list = if (includeSilent) {
-                list.filter { it.hasUnreadMessages || it.unreadCount > 0 }
-            } else {
-                list.filter { it.unreadCount > 0 }
-            }
+            list = list.filter { it.hasUnread() }
         }
 
         list = when (s.typeFilter) {
@@ -577,32 +582,18 @@ class RoomsViewModel(
 
         fun sortUnread(items: List<RoomListItemUi>): List<RoomListItemUi> {
             if (!s.unreadOnly || !includeSilent) return items
-            return items.sortedByDescending { it.unreadCount > 0 }
+            return items.sortedByDescending { it.unreadCount > 0 || it.isMarkedUnread }
         }
 
         val allFiltered = visibleRooms.filter { !it.isInvited }
-        val unreadChatCount = if (includeSilent) {
-            allFiltered.count { it.hasUnreadMessages || it.unreadCount > 0 }
-        } else {
-            allFiltered.count { it.unreadCount > 0 }
-        }
-        val unreadGroupsCount = if (includeSilent) {
-            allFiltered.count { !it.isDm && (it.hasUnreadMessages || it.unreadCount > 0) }
-        } else {
-            allFiltered.count { !it.isDm && it.unreadCount > 0 }
-        }
-        val unreadDmsCount = if (includeSilent) {
-            allFiltered.count { it.isDm && (it.hasUnreadMessages || it.unreadCount > 0) }
-        } else {
-            allFiltered.count { it.isDm && it.unreadCount > 0 }
-        }
+        val unreadChatCount = allFiltered.count { it.hasUnread() }
+        val unreadGroupsCount = allFiltered.count { !it.isDm && it.hasUnread() }
+        val unreadDmsCount = allFiltered.count { it.isDm && it.hasUnread() }
         val spacesUnreadCount = s.allItems.count { item ->
             if (item.isInvited || s.parentSpaces[item.roomId].isNullOrEmpty()) {
                 false
-            } else if (includeSilent) {
-                item.hasUnreadMessages || item.unreadCount > 0
             } else {
-                item.unreadCount > 0
+                item.hasUnread()
             }
         }
 
