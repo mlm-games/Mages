@@ -933,10 +933,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     }
 
     override suspend fun roomInfoSnapshot(roomId: String): RoomInfoSnapshot? =
-        decodeValueOrNull(
-            requireClient().roomInfoSnapshot(roomId).awaitAny(),
-            "roomInfoSnapshot"
-        )
+        requireClient().roomInfoSnapshot(roomId).awaitValue()
 
     override suspend fun observeRoomInfo(roomId: String, observer: MatrixPort.RoomInfoObserver): ULong =
         requireClient().observeRoomInfo(
