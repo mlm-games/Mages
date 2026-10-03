@@ -1,3 +1,9 @@
+## v5.1.0
+
+- Prev. release fixes and new swipe settings for rooms
+- fix: Change Discover to a more descriptiv title and hint (#135)
+
+
 ## v5.0.4
 
 - fix :emote: display (not send)

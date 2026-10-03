@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="5.1.0" date="2026-10-03" type="stable">
+      <description>
+        <ul>
+          <li>Prev. release fixes and new swipe settings for rooms</li>
+          <li>fix: Change Discover to a more descriptiv title and hint (#135)</li>
+        </ul>
+      </description>
+    </release>
     <release version="5.0.4" date="2026-10-01" type="stable">
       <description>
         <ul>
