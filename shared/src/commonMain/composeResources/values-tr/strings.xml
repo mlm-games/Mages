@@ -580,7 +580,7 @@
     <string name="rooms_hidden_in_spaces">Alanlardaki odalar gizlidir</string>
     <string name="rooms_hidden_in_spaces_subtitle">Alanlarınızdaki odalara göz atmak için Alanları açın</string>
     <string name="find_users_and_public_rooms">Kullanıcıları ve Umumi Odaları Bul</string>
-    <string name="invite_to_chat_on_matrix">Matrix\'te sohbet etmeye davet et</string>
+    <string name="invite_to_chat_on_matrix">Matrix&apos;te sohbet etmeye davet et</string>
     <string name="copied_to_clipboard">Panoya kopyalandı</string>
     <string name="share_failed">Paylaşılamadı</string>
     <string name="profile">Profil</string>
@@ -736,8 +736,8 @@
     <string name="decline_invite">Daveti reddet</string>
     <string name="decline_the_invite_to">Daveti reddet: </string>
     <string name="default">Varsayılan</string>
-    <string name="default_for_dms_encrypted">DM\'ler için varsayılan (şifreli)</string>
-    <string name="default_for_dms_unencrypted">DM\'ler için varsayılan (şifresiz)</string>
+    <string name="default_for_dms_encrypted">DM&apos;ler için varsayılan (şifreli)</string>
+    <string name="default_for_dms_unencrypted">DM&apos;ler için varsayılan (şifresiz)</string>
     <string name="default_for_groups_encrypted">Gruplar için varsayılan (şifreli)</string>
     <string name="default_for_groups_unencrypted">Gruplar için varsayılan (şifresiz)</string>
     <string name="default_permissions">Varsayılan izinler</string>
@@ -917,7 +917,7 @@
     <string name="message_history">Mesaj geçmişi</string>
     <string name="messages">Mesajlar</string>
     <string name="messages_from_bots_and_bridges">Bot ve köprülerden mesajlar</string>
-    <string name="messages_in_dms">DM\'lerdeki mesajlar</string>
+    <string name="messages_in_dms">DM&apos;lerdeki mesajlar</string>
     <string name="messages_in_group_rooms">Grup odalarındaki mesajlar</string>
     <string name="messages_in_groups">Gruplardaki mesajlar</string>
     <string name="moderation">Moderasyon</string>
@@ -991,7 +991,7 @@
     <string name="reconnecting">Yeniden bağlanıyor...</string>
     <string name="record_voice">Ses kaydet</string>
     <string name="recovery_failed">Kurtarma başarısız oldu</string>
-    <string name="recovery_keys_are_usually_48_characters_in_groups_of_4">Kurtarma anahtarları genellikle 4\'erli gruplar halinde 48 karakterdir</string>
+    <string name="recovery_keys_are_usually_48_characters_in_groups_of_4">Kurtarma anahtarları genellikle 4&apos;erli gruplar halinde 48 karakterdir</string>
     <string name="recovery_returned_an_empty_key">Kurtarma boş bir anahtar döndürdü</string>
     <string name="recovery_successful">Kurtarma başarılı</string>
     <string name="redact_messages_others">Başkalarının mesajlarını kaldır</string>
@@ -1122,7 +1122,7 @@
     <string name="unknown">Bilinmiyor</string>
     <string name="unknown_error">Bilinmeyen hata</string>
     <string name="unlock">Kilidi aç</string>
-    <string name="unlock_with_biometrics_or_device_pin">Biyometrik veya cihaz PIN\'i ile kilidi aç</string>
+    <string name="unlock_with_biometrics_or_device_pin">Biyometrik veya cihaz PIN&apos;i ile kilidi aç</string>
     <string name="unpin">Sabitlemeyi kaldır</string>
     <string name="unread_messages">Okunmamış mesajlar</string>
     <string name="upgraded_from_another_room">Başka bir odadan yükseltildi</string>
@@ -1191,7 +1191,7 @@
     <string name="custom_power_level_for">%1$s için özel bir yetki seviyesi girin</string>
     <string name="decline_user_named">%1$s davetini reddet</string>
     <string name="deleted_n_messages">%1$d mesaj silindi</string>
-    <string name="deleted_n_of_m_messages">%2$d mesajın %1$d\'si silindi</string>
+    <string name="deleted_n_of_m_messages">%2$d mesajın %1$d&apos;si silindi</string>
     <string name="downloaded_file_missing">İndirilen dosya eksik veya boş: %1$s</string>
     <string name="downloaded_n_files">%1$d dosya indirildi</string>
     <string name="downloaded_sticker_missing">İndirilen çıkartma eksik veya boş: %1$s</string>
@@ -1199,7 +1199,7 @@
     <string name="failed_to_load_devices">Cihazlar yüklenemedi: %1$s</string>
     <string name="failed_to_switch_to_account">%1$s hesabına geçilemedi</string>
     <string name="forward_to_n_rooms">%1$d odaya ilet</string>
-    <string name="forwarding_room_progress">Oda iletiliyor: %2$d\'den %1$d</string>
+    <string name="forwarding_room_progress">Oda iletiliyor: %2$d&apos;den %1$d</string>
     <string name="join_rule_n_spaces_allowed">%1$s: %2$d %3$s izinli</string>
     <string name="knock_requests_count">Vuruş istekleri (%1$d)</string>
     <string name="knocked_on_named">%1$s odasına vuruş yapıldı</string>
@@ -1254,7 +1254,7 @@
         <item quantity="other">%1$d ortak oda</item>
     </plurals>
     <string name="call">Arama</string>
-    <string name="dms">DM\'ler</string>
+    <string name="dms">DM&apos;ler</string>
     <string name="edit">Düzenle</string>
     <string name="food">Yiyecek</string>
     <string name="left">Sol</string>

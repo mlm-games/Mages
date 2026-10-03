@@ -701,7 +701,7 @@
     <string name="checking_availability">Beschikbaarheid controleren...</string>
     <string name="checking_whether_you_can_start_a_conversation">Controleren of u een gesprek kunt starten…</string>
     <string name="clear_selection">Selectie wissen</string>
-    <string name="compare_these_emojis">Deze emoji\'s vergelijken</string>
+    <string name="compare_these_emojis">Deze emoji&apos;s vergelijken</string>
     <string name="configure_what_each_role_can_do">Stel in wat elke rol mag doen</string>
     <string name="confirm">Bevestigen</string>
     <string name="confirm_failed">Bevestigen mislukt</string>
@@ -736,8 +736,8 @@
     <string name="decline_invite">Uitnodiging afwijzen</string>
     <string name="decline_the_invite_to">Weiger de uitnodiging voor </string>
     <string name="default">Standaard</string>
-    <string name="default_for_dms_encrypted">Standaard voor DM\'s (gecodeerd)</string>
-    <string name="default_for_dms_unencrypted">Standaard voor DM\'s (niet gecodeerd)</string>
+    <string name="default_for_dms_encrypted">Standaard voor DM&apos;s (gecodeerd)</string>
+    <string name="default_for_dms_unencrypted">Standaard voor DM&apos;s (niet gecodeerd)</string>
     <string name="default_for_groups_encrypted">Standaard voor groepen (gecodeerd)</string>
     <string name="default_for_groups_unencrypted">Standaard voor groepen (niet gecodeerd)</string>
     <string name="default_permissions">Standaardrechten</string>
@@ -917,7 +917,7 @@
     <string name="message_history">Berichtgeschiedenis</string>
     <string name="messages">Berichten</string>
     <string name="messages_from_bots_and_bridges">Berichten van bots en bridges</string>
-    <string name="messages_in_dms">Berichten in DM\'s</string>
+    <string name="messages_in_dms">Berichten in DM&apos;s</string>
     <string name="messages_in_group_rooms">Berichten in groepskamers</string>
     <string name="messages_in_groups">Berichten in groepen</string>
     <string name="moderation">Moderatie</string>
@@ -1211,7 +1211,7 @@
     <string name="media_tab_files">Bestanden</string>
     <string name="media_tab_images">Afbeeldingen</string>
     <string name="media_tab_links">Links</string>
-    <string name="media_tab_videos">Video\'s</string>
+    <string name="media_tab_videos">Video&apos;s</string>
     <string name="members_count">Leden (%1$d)</string>
     <string name="more_reactions">+%1$d meer</string>
     <string name="n_members">%1$d leden</string>
@@ -1254,7 +1254,7 @@
         <item quantity="other">%1$d gedeelde kamers</item>
     </plurals>
     <string name="call">Oproep</string>
-    <string name="dms">DM\'s</string>
+    <string name="dms">DM&apos;s</string>
     <string name="edit">Bewerken</string>
     <string name="food">Eten</string>
     <string name="left">Verlaten</string>

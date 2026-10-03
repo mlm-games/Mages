@@ -584,8 +584,8 @@
     <string name="copied_to_clipboard">Скопійовано в буфер обміну</string>
     <string name="share_failed">Не вдалося поділитися</string>
     <string name="profile">Профіль</string>
-    <string name="profile_display_name">Відображуване ім\'я</string>
-    <string name="profile_display_name_placeholder">Ваше ім\'я</string>
+    <string name="profile_display_name">Відображуване ім&apos;я</string>
+    <string name="profile_display_name_placeholder">Ваше ім&apos;я</string>
     <string name="profile_change_photo">Змінити фото</string>
     <string name="profile_remove_photo">Видалити фото</string>
     <string name="profile_load_failed">Не вдалося завантажити профіль</string>
@@ -653,7 +653,7 @@
     <string name="add_to_favorites">Додати до вибраного</string>
     <string name="add_to_home_screen">Додати на головний екран</string>
     <string name="added_to_favourites">Додано до вибраного</string>
-    <string name="additional_details_optional">Додаткові відомості (необов\'язково)</string>
+    <string name="additional_details_optional">Додаткові відомості (необов&apos;язково)</string>
     <string name="address">Адреса</string>
     <string name="admin">Адміністратор</string>
     <string name="admin_100">Адміністратор (100)</string>
@@ -675,7 +675,7 @@
     <string name="ask_to_join">Попросити приєднатися</string>
     <string name="ask_to_join_with_space_members">Попросити приєднатися разом з учасниками простору</string>
     <string name="at_room_mentions">Згадки @room</string>
-    <string name="at_user_server_optional">@user:server (необов\'язково)</string>
+    <string name="at_user_server_optional">@user:server (необов&apos;язково)</string>
     <string name="attach">Прикріпити</string>
     <string name="audio">Аудіо</string>
     <string name="audio_message">Аудіоповідомлення</string>
@@ -746,7 +746,7 @@
     <string name="default_user_level">Стандартний рівень користувача</string>
     <string name="direct_message">Приватне повідомлення</string>
     <string name="direct_messages_from_contacts">Приватні повідомлення від контактів</string>
-    <string name="display_name_was_rejected">Відображуване ім\'я відхилено</string>
+    <string name="display_name_was_rejected">Відображуване ім&apos;я відхилено</string>
     <string name="do_these_match_on_the_other_device">Чи збігаються вони на іншому пристрої?</string>
     <string name="downloaded_file_is_missing_or_empty">Завантажений файл відсутній або порожній</string>
     <string name="edit_caption">Редагувати підпис</string>
@@ -931,7 +931,7 @@
     <string name="new_event">Нова подія</string>
     <string name="new_room_in_this_space">Нова кімната в цьому просторі</string>
     <string name="no_active_verification">Немає активної перевірки</string>
-    <string name="no_connection">Немає з\'єднання</string>
+    <string name="no_connection">Немає з&apos;єднання</string>
     <string name="no_files_found">Файлів не знайдено</string>
     <string name="no_links_found">Посилань не знайдено</string>
     <string name="no_media_found">Медіа не знайдено</string>
@@ -953,7 +953,7 @@
     <string name="oauth_failed">Помилка OAuth</string>
     <string name="oauth_failed_or_was_cancelled">OAuth не вдався або був скасований</string>
     <string name="oauth_failed_the_server_did_not_return_a_user_id_try_again">Не вдалося увійти через OAuth. Сервер не повернув ID користувача. Спробуйте ще раз.</string>
-    <string name="objects">Об\'єкти</string>
+    <string name="objects">Об&apos;єкти</string>
     <string name="offline_messages_queued">Офлайн - повідомлення в черзі</string>
     <string name="only_notify_when_mentioned_or_keywords_match">Сповіщувати лише за згадок або збігу ключових слів</string>
     <string name="options_minimum_2">Варіанти (щонайменше 2)</string>
@@ -976,7 +976,7 @@
     <string name="preparing">Підготовка…</string>
     <string name="preparing_upload">Підготовка до завантаження...</string>
     <string name="primary_address">Основна адреса</string>
-    <string name="primary_address_optional">Основна адреса (необов\'язково)</string>
+    <string name="primary_address_optional">Основна адреса (необов&apos;язково)</string>
     <string name="profile_picture_could_not_be_removed">Не вдалося видалити зображення профілю</string>
     <string name="profile_picture_was_rejected">Зображення профілю відхилено</string>
     <string name="profile_updated">Профіль оновлено</string>
@@ -986,7 +986,7 @@
     <string name="reached_start">досягнуто початку</string>
     <string name="react_with_an_image">Відреагувати зображенням</string>
     <string name="reactions">Реакції</string>
-    <string name="reason_optional">Причина (необов\'язково)</string>
+    <string name="reason_optional">Причина (необов&apos;язково)</string>
     <string name="recent">Нещодавні</string>
     <string name="reconnecting">Повторне підключення...</string>
     <string name="record_voice">Записати голос</string>
@@ -1028,7 +1028,7 @@
     <string name="room_listings_will_be_added_later">Списки кімнат буде додано пізніше</string>
     <string name="room_name">Назва кімнати</string>
     <string name="room_name_cannot_be_empty">Назва кімнати не може бути порожньою</string>
-    <string name="room_name_is_required_for_public_rooms">Назва кімнати обов\'язкова для публічних кімнат</string>
+    <string name="room_name_is_required_for_public_rooms">Назва кімнати обов&apos;язкова для публічних кімнат</string>
     <string name="room_name_updated">Назву кімнати оновлено</string>
     <string name="room_not_found">Кімнату не знайдено</string>
     <string name="room_permissions">Дозволи кімнати</string>
