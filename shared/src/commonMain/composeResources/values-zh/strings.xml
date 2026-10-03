@@ -631,6 +631,7 @@
         <item>标记为已读</item>
         <item>标记为未读</item>
         <item>无</item>
+    <item>Toggle read/unread</item>
     </string-array>
     <string name="setting_show_media_preview">显示媒体预览</string>
     <string name="setting_show_media_preview_description">下载图像以便在通知中显示</string>

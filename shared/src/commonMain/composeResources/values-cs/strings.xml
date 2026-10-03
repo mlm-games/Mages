@@ -631,6 +631,7 @@
         <item>Označit jako přečtené</item>
         <item>Označit jako nepřečtené</item>
         <item>Nic</item>
+    <item>Toggle read/unread</item>
     </string-array>
     <string name="setting_show_media_preview">Zobrazit náhled médií</string>
     <string name="setting_show_media_preview_description">Stahovat obrázky pro zobrazení v oznámeních</string>

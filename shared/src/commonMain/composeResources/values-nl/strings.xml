@@ -631,6 +631,7 @@
         <item>Als gelezen markeren</item>
         <item>Als ongelezen markeren</item>
         <item>Niets</item>
+    <item>Toggle read/unread</item>
     </string-array>
     <string name="setting_show_media_preview">Mediavoorbeeld tonen</string>
     <string name="setting_show_media_preview_description">Afbeeldingen downloaden om in meldingen te tonen</string>

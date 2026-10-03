@@ -631,6 +631,7 @@
         <item>Označi kao pročitano</item>
         <item>Označi kao nepročitano</item>
         <item>Ništa</item>
+    <item>Toggle read/unread</item>
     </string-array>
     <string name="setting_show_media_preview">Prikaži pretpregled medija</string>
     <string name="setting_show_media_preview_description">Preuzmi slike za prikaz u obavijestima</string>

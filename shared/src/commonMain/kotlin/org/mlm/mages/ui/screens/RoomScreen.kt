@@ -89,6 +89,7 @@ import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import kotlinx.coroutines.flow.distinctUntilChanged
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.AttachmentUploadStage
+import org.mlm.mages.ui.isEditableBy
 import org.mlm.mages.ui.PinnedMessageUi
 import org.mlm.mages.ui.RoomUiState
 import org.mlm.mages.ui.components.message.MessageBubbleRenderContext
@@ -129,6 +130,10 @@ fun RoomScreen(
         settingsRepository.flow.collect { persistedSettings = it }
     }
     val settings = persistedSettings ?: AppSettings()
+
+    val hasEditableLatest = remember(state.allEvents, state.myUserId) {
+        state.allEvents.any { it.isEditableBy(state.myUserId) }
+    }
 
     LaunchedEffect(Unit) { viewModel.refreshImagePacks() }
 
@@ -568,6 +573,8 @@ fun RoomScreen(
                         clipboardHandler = clipboardHandler,
                         onAttachmentPasted = { viewModel.attachFile(it) },
                         enterSendsMessage = settings.enterSendsMessage,
+                        showEditLatest = settings.editLatestWithUpArrow && state.editing == null && hasEditableLatest,
+                        onEditLatest = viewModel::startEditLatestEditable,
                         onStartVoiceRecording = viewModel::startVoiceRecording,
                         onCancelVoiceRecording = viewModel::cancelVoiceRecording,
                         onVoiceRecordingComplete = viewModel::onVoiceRecordingComplete,
@@ -1412,6 +1419,8 @@ private fun RoomBottomBar(
     clipboardHandler: ClipboardAttachmentHandler? = null,
     onAttachmentPasted: ((AttachmentData) -> Unit)? = null,
     enterSendsMessage: Boolean = false,
+    showEditLatest: Boolean = false,
+    onEditLatest: () -> Unit = {},
     onStartVoiceRecording: () -> Unit = {},
     onCancelVoiceRecording: () -> Unit = {},
     onVoiceRecordingComplete: (filePath: String, durationMs: Long, waveform: List<Float>) -> Unit = { _, _, _ -> },
@@ -1454,6 +1463,8 @@ private fun RoomBottomBar(
             clipboardHandler = clipboardHandler,
             onAttachmentPasted = onAttachmentPasted,
             enterSendsMessage = enterSendsMessage,
+            showEditLatest = showEditLatest,
+            onEditLatest = onEditLatest,
             roomMembers = state.roomMembers,
             avatarPathByUserId = state.avatarByUserId,
             isRecordingVoice = state.isRecordingVoice,

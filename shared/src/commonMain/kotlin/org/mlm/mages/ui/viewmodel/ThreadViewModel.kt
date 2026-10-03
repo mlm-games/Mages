@@ -24,6 +24,7 @@ import org.mlm.mages.matrix.allowsLinkPreviews
 import org.mlm.mages.matrix.allowsMediaPreviews
 import org.mlm.mages.emoji.RecentEmojiStore
 import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.ui.isEditableBy
 import org.mlm.mages.ui.ThreadUiState
 import org.mlm.mages.ui.components.composer.EmoteSuggestion
 import org.mlm.mages.ui.components.composer.OutgoingText
@@ -539,6 +540,16 @@ class ThreadViewModel(
      */
     fun startEdit(event: MessageEvent) {
         updateState { copy(editingEvent = event, input = event.body) }
+    }
+
+    private fun MessageEvent.isThreadEditable(): Boolean =
+        isEditableBy(myUserId) && attachment == null && pollData == null
+
+    fun hasEditableLatest(): Boolean = currentState.allMessages.any { it.isThreadEditable() }
+
+    fun startEditLatestEditable() {
+        val event = currentState.allMessages.lastOrNull { it.isThreadEditable() } ?: return
+        startEdit(event)
     }
 
     /**

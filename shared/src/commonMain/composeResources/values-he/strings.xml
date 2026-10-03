@@ -631,6 +631,7 @@
         <item>סימון כנקרא</item>
         <item>סימון כלא נקרא</item>
         <item>כלום</item>
+    <item>Toggle read/unread</item>
     </string-array>
     <string name="setting_show_media_preview">הצגת תצוגה מקדימה של מדיה</string>
     <string name="setting_show_media_preview_description">הורדת תמונות להצגה בהתראות</string>

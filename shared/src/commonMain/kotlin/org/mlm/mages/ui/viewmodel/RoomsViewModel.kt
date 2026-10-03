@@ -204,7 +204,16 @@ class RoomsViewModel(
         launch {
             service.port.markRead(roomId, settings.value.sendReadReceipts).onSuccess {
                 updateState {
-                    copy(unread = unread - roomId)
+                    copy(
+                        unread = unread - roomId,
+                        allItems = allItems.map {
+                            if (it.roomId == roomId) {
+                                it.copy(unreadCount = 0, hasUnreadMessages = false, isMarkedUnread = false)
+                            } else {
+                                it
+                            }
+                        }
+                    )
                 }
                 recomputeGroupedRooms()
             }
@@ -231,6 +240,14 @@ class RoomsViewModel(
         when (action) {
             RoomSwipeAction.MarkRead -> markRead(roomId)
             RoomSwipeAction.MarkUnread -> markUnread(roomId)
+            RoomSwipeAction.ToggleUnread -> {
+                val item = currentState.allItems.firstOrNull { it.roomId == roomId } ?: return
+                if (item.isMarkedUnread || item.unreadCount > 0 || item.hasUnreadMessages) {
+                    markRead(roomId)
+                } else {
+                    markUnread(roomId)
+                }
+            }
             RoomSwipeAction.Nothing -> Unit
         }
     }

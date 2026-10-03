@@ -631,6 +631,7 @@
         <item>Позначити прочитаним</item>
         <item>Позначити непрочитаним</item>
         <item>Нічого</item>
+    <item>Toggle read/unread</item>
     </string-array>
     <string name="setting_show_media_preview">Показувати попередній перегляд медіа</string>
     <string name="setting_show_media_preview_description">Завантажувати зображення для показу в сповіщеннях</string>

@@ -576,6 +576,7 @@
         <item>Mark as read</item>
         <item>Mark as unread</item>
         <item>Nothing</item>
+        <item>Toggle read/unread</item>
     </string-array>
     <string name="setting_chat_bubbles">Chat bubbles</string>
     <string name="setting_chat_bubbles_description">Open system settings to enable (or disable) conversation bubbles</string>
@@ -639,6 +640,8 @@
     <string name="setting_start_in_tray_description">Minimize to tray on launch</string>
     <string name="setting_enter_sends_message">Enter sends message</string>
     <string name="setting_enter_sends_message_description">When enabled, pressing Enter will send the message and Shift, Ctrl or Cmd + Enter will insert a new line</string>
+    <string name="setting_edit_latest_with_up_arrow">Edit latest message with up arrow</string>
+    <string name="setting_edit_latest_with_up_arrow_description">Show an up arrow beside the send button that starts editing your latest editable message or caption</string>
     <string name="setting_use_proxy">Use proxy</string>
     <string name="setting_use_proxy_description">Route all traffic through a SOCKS5 or HTTP proxy</string>
     <string name="setting_proxy_url">Proxy URL</string>
@@ -977,6 +980,8 @@
     <string name="mark_as_suggested">Mark as suggested</string>
     <string name="mark_read">Mark read</string>
     <string name="mark_as_unread">Mark as unread</string>
+    <string name="toggle_read_unread">Toggle read/unread</string>
+    <string name="edit_latest_message">Edit latest message</string>
     <string name="marked_as_low_priority">Marked as low priority</string>
     <string name="matrix_not_ready">Matrix not ready</string>
     <string name="member">Member</string>

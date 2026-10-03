@@ -631,6 +631,7 @@
         <item>علامت‌گذاری به‌عنوان خوانده‌شده</item>
         <item>علامت‌گذاری به‌عنوان خوانده‌نشده</item>
         <item>هیچ</item>
+    <item>Toggle read/unread</item>
     </string-array>
     <string name="setting_show_media_preview">نمایش پیش‌نمایش رسانه</string>
     <string name="setting_show_media_preview_description">دانلود تصاویر برای نمایش در اعلان‌ها</string>

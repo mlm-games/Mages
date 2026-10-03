@@ -63,7 +63,7 @@ fun AppLockTimeout.toSeconds(): Long = when (this) {
 enum class HideInRoomsMode { Never, PublicRooms, NonDMs, Always }
 
 @Serializable
-enum class RoomSwipeAction { MarkRead, MarkUnread, Nothing }
+enum class RoomSwipeAction { MarkRead, MarkUnread, Nothing, ToggleUnread }
 
 @Serializable
 data class AppSettings(
@@ -430,7 +430,7 @@ data class AppSettings(
         descriptionKey = MagesSettingsKeys.ROOM_LIST_SWIPE_RIGHT_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Mark as read", "Mark as unread", "Nothing"],
+        options = ["Mark as read", "Mark as unread", "Nothing", "Toggle read/unread"],
         optionsKey = MagesSettingsKeys.ROOM_LIST_SWIPE_OPTIONS,
     )
     val swipeRightAction: RoomSwipeAction = RoomSwipeAction.Nothing,
@@ -442,7 +442,7 @@ data class AppSettings(
         descriptionKey = MagesSettingsKeys.ROOM_LIST_SWIPE_LEFT_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Mark as read", "Mark as unread", "Nothing"],
+        options = ["Mark as read", "Mark as unread", "Nothing", "Toggle read/unread"],
         optionsKey = MagesSettingsKeys.ROOM_LIST_SWIPE_OPTIONS,
     )
     val swipeLeftAction: RoomSwipeAction = RoomSwipeAction.Nothing,
@@ -852,6 +852,16 @@ data class AppSettings(
         type = Toggle::class
     )
     val enterSendsMessage: Boolean = false,
+
+    @Setting(
+        title = "Edit latest message with up arrow",
+        titleKey = MagesSettingsKeys.EDIT_LATEST_WITH_UP_ARROW,
+        description = "Show an up arrow beside the send button that starts editing your latest editable message or caption",
+        descriptionKey = MagesSettingsKeys.EDIT_LATEST_WITH_UP_ARROW_DESCRIPTION,
+        category = Advanced::class,
+        type = Toggle::class
+    )
+    val editLatestWithUpArrow: Boolean = false,
 
     @Setting(
         title = "Use proxy",

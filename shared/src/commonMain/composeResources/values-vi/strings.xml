@@ -631,6 +631,7 @@
         <item>Đánh dấu đã đọc</item>
         <item>Đánh dấu chưa đọc</item>
         <item>Không có gì</item>
+    <item>Toggle read/unread</item>
     </string-array>
     <string name="setting_show_media_preview">Hiển thị xem trước phương tiện</string>
     <string name="setting_show_media_preview_description">Tải hình ảnh để hiển thị trong thông báo</string>

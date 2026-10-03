@@ -631,6 +631,7 @@
         <item>وضع علامة مقروء</item>
         <item>وضع علامة غير مقروء</item>
         <item>لا شيء</item>
+    <item>Toggle read/unread</item>
     </string-array>
     <string name="setting_show_media_preview">إظهار معاينة الوسائط</string>
     <string name="setting_show_media_preview_description">تنزيل الصور لعرضها في الإشعارات</string>

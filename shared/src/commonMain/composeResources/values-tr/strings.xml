@@ -631,6 +631,7 @@
         <item>Okundu olarak işaretle</item>
         <item>Okunmadı olarak işaretle</item>
         <item>Hiçbir şey</item>
+    <item>Toggle read/unread</item>
     </string-array>
     <string name="setting_show_media_preview">Medya önizlemesini göster</string>
     <string name="setting_show_media_preview_description">Bildirimlerde göstermek için görselleri indir</string>

@@ -631,6 +631,7 @@
         <item>Markera som läst</item>
         <item>Markera som oläst</item>
         <item>Inget</item>
+    <item>Toggle read/unread</item>
     </string-array>
     <string name="setting_show_media_preview">Visa mediaförhandsvisning</string>
     <string name="setting_show_media_preview_description">Ladda ner bilder som visas i aviseringar</string>

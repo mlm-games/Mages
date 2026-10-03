@@ -631,6 +631,7 @@
         <item>既読にする</item>
         <item>未読にする</item>
         <item>なし</item>
+    <item>Toggle read/unread</item>
     </string-array>
     <string name="setting_show_media_preview">メディアプレビューを表示</string>
     <string name="setting_show_media_preview_description">通知に表示する画像をダウンロード</string>

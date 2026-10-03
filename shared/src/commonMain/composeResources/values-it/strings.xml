@@ -631,6 +631,7 @@
         <item>Segna come letto</item>
         <item>Segna come non letto</item>
         <item>Nulla</item>
+    <item>Toggle read/unread</item>
     </string-array>
     <string name="setting_show_media_preview">Mostra anteprima multimediale</string>
     <string name="setting_show_media_preview_description">Scarica le immagini da mostrare nelle notifiche</string>

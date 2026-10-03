@@ -40,6 +40,7 @@ import org.mlm.mages.ui.MessageActionStateUi
 import org.mlm.mages.ui.theme.Durations
 import org.mlm.mages.ui.RoomUiState
 import org.mlm.mages.ui.components.AttachmentData
+import org.mlm.mages.ui.isEditableBy
 import org.mlm.mages.ui.mediaCaption
 import org.mlm.mages.ui.components.OutgoingMediaMode
 import org.mlm.mages.ui.components.composer.EmoteSuggestion
@@ -803,6 +804,19 @@ class RoomViewModel(
     }
 
     fun cancelEdit() = updateState { copy(editing = null, editingPoll = null, input = "") }
+
+    fun startEditLatestEditable() {
+        val s = currentState
+        val event = s.allEvents.lastOrNull { it.isEditableBy(s.myUserId) } ?: return
+        when {
+            event.pollData != null -> {
+                startEditPoll(event)
+                showPollCreator()
+            }
+            event.attachment != null -> startEditCaption(event)
+            else -> startEdit(event)
+        }
+    }
 
     fun confirmEdit() {
         val s = currentState

@@ -631,6 +631,7 @@
         <item>읽음으로 표시</item>
         <item>읽지 않음으로 표시</item>
         <item>없음</item>
+    <item>Toggle read/unread</item>
     </string-array>
     <string name="setting_show_media_preview">미디어 미리보기 표시</string>
     <string name="setting_show_media_preview_description">알림에 표시할 이미지 다운로드</string>

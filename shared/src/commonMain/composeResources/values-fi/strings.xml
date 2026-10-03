@@ -631,6 +631,7 @@
         <item>Merkitse luetuksi</item>
         <item>Merkitse lukemattomaksi</item>
         <item>Ei mitään</item>
+    <item>Toggle read/unread</item>
     </string-array>
     <string name="setting_show_media_preview">Näytä median esikatselu</string>
     <string name="setting_show_media_preview_description">Lataa kuvat näytettäväksi ilmoituksissa</string>

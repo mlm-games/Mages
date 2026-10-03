@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.MarkEmailUnread
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -82,6 +83,7 @@ fun SwipeActionRow(
         val background = when (action) {
             RoomSwipeAction.MarkRead -> MaterialTheme.colorScheme.primaryContainer
             RoomSwipeAction.MarkUnread -> MaterialTheme.colorScheme.secondaryContainer
+            RoomSwipeAction.ToggleUnread -> MaterialTheme.colorScheme.tertiaryContainer
             RoomSwipeAction.Nothing -> Color.Transparent
         }
         Box(
@@ -157,6 +159,7 @@ private fun RevealIcon(action: RoomSwipeAction, alpha: Float) {
     val icon = when (action) {
         RoomSwipeAction.MarkRead -> Icons.Default.Done
         RoomSwipeAction.MarkUnread -> Icons.Default.MarkEmailUnread
+        RoomSwipeAction.ToggleUnread -> Icons.Default.SwapHoriz
         RoomSwipeAction.Nothing -> null
     } ?: return
     Icon(
@@ -174,6 +177,7 @@ private fun RevealLabel(action: RoomSwipeAction, alpha: Float) {
     val label = when (action) {
         RoomSwipeAction.MarkRead -> stringResource(Res.string.mark_read)
         RoomSwipeAction.MarkUnread -> stringResource(Res.string.mark_as_unread)
+        RoomSwipeAction.ToggleUnread -> stringResource(Res.string.toggle_read_unread)
         RoomSwipeAction.Nothing -> return
     }
     Text(
@@ -190,5 +194,6 @@ private fun RevealLabel(action: RoomSwipeAction, alpha: Float) {
 private fun revealContentColor(action: RoomSwipeAction): Color = when (action) {
     RoomSwipeAction.MarkRead -> MaterialTheme.colorScheme.onPrimaryContainer
     RoomSwipeAction.MarkUnread -> MaterialTheme.colorScheme.onSecondaryContainer
+    RoomSwipeAction.ToggleUnread -> MaterialTheme.colorScheme.onTertiaryContainer
     RoomSwipeAction.Nothing -> Color.Transparent
 }

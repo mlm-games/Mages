@@ -631,6 +631,7 @@
         <item>Tandai sudah dibaca</item>
         <item>Tandai belum dibaca</item>
         <item>Tidak ada</item>
+    <item>Toggle read/unread</item>
     </string-array>
     <string name="setting_show_media_preview">Tampilkan pratinjau media</string>
     <string name="setting_show_media_preview_description">Unduh gambar untuk ditampilkan di notifikasi</string>

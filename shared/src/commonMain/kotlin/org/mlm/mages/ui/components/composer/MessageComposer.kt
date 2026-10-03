@@ -8,6 +8,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -57,6 +58,8 @@ fun MessageComposer(
     clipboardHandler: ClipboardAttachmentHandler? = null,
     onAttachmentPasted: ((AttachmentData) -> Unit)? = null,
     enterSendsMessage: Boolean = false,
+    showEditLatest: Boolean = false,
+    onEditLatest: () -> Unit = {},
     roomMembers: List<MemberSummary> = emptyList(),
     avatarPathByUserId: Map<String, String> = emptyMap(),
     isRecordingVoice: Boolean = false,
@@ -161,6 +164,8 @@ fun MessageComposer(
                 },
                 onSend = onSend,
                 enterSendsMessage = enterSendsMessage,
+                showEditLatest = showEditLatest,
+                onEditLatest = onEditLatest,
                 clipboardHandler = clipboardHandler,
                 onAttachmentPasted = onAttachmentPasted,
                 scope = scope,
@@ -184,6 +189,8 @@ private fun ComposerInputRow(
     onValueChange: (TextFieldValue) -> Unit,
     onSend: () -> Unit,
     enterSendsMessage: Boolean,
+    showEditLatest: Boolean,
+    onEditLatest: () -> Unit,
     clipboardHandler: ClipboardAttachmentHandler?,
     onAttachmentPasted: ((AttachmentData) -> Unit)?,
     scope: CoroutineScope,
@@ -262,6 +269,16 @@ private fun ComposerInputRow(
         )
 
         Spacer(Modifier.width(Spacing.sm))
+
+        AnimatedVisibility(visible = showEditLatest) {
+            IconButton(onClick = onEditLatest) {
+                Icon(
+                    Icons.Default.KeyboardArrowUp,
+                    stringResource(Res.string.edit_latest_message),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
 
         val canSend = enabled && (fieldValue.text.isNotBlank() || attachments.isNotEmpty()) && !isUploadingAttachment
         val canRecordVoice = enabled && !isUploadingAttachment && fieldValue.text.isBlank() && attachments.isEmpty() && onStartVoiceRecording != null

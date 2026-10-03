@@ -631,6 +631,7 @@
         <item>Oznacz jako przeczytane</item>
         <item>Oznacz jako nieprzeczytane</item>
         <item>Brak</item>
+    <item>Toggle read/unread</item>
     </string-array>
     <string name="setting_show_media_preview">Pokaż podgląd multimediów</string>
     <string name="setting_show_media_preview_description">Pobieraj obrazy, aby wyświetlać je w powiadomieniach</string>

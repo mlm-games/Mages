@@ -631,6 +631,7 @@
         <item>Als gelesen markieren</item>
         <item>Als ungelesen markieren</item>
         <item>Nichts</item>
+    <item>Toggle read/unread</item>
     </string-array>
     <string name="setting_show_media_preview">Medienvorschau anzeigen</string>
     <string name="setting_show_media_preview_description">Bilder herunterladen, um sie in Benachrichtigungen anzuzeigen</string>
