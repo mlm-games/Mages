@@ -75,7 +75,7 @@ class NotificationEnrichWorker(
         // Notifications off entirely, or no session to attribute them to: nothing
         // this room is showing is still wanted, so the room is cleared.
         if (!settings.notificationsEnabled) {
-            AndroidNotificationHelper.cancelRoomNotification(applicationContext, roomId)
+            AndroidNotificationHelper.cancelRoomNotification(applicationContext, roomId, force = true)
             return Result.success()
         }
 
@@ -83,7 +83,7 @@ class NotificationEnrichWorker(
 
         val port = service.portOrNull
         if (port == null || !service.isLoggedIn()) {
-            AndroidNotificationHelper.cancelRoomNotification(applicationContext, roomId)
+            AndroidNotificationHelper.cancelRoomNotification(applicationContext, roomId, force = true)
             return Result.success()
         }
 
@@ -122,7 +122,7 @@ class NotificationEnrichWorker(
 
             NotificationKind.Invite -> {
                 // The invite is its own notification, so the room's is replaced rather than kept.
-                AndroidNotificationHelper.cancelRoomNotification(applicationContext, roomId)
+                AndroidNotificationHelper.cancelRoomNotification(applicationContext, roomId, force = true)
 
                 if (settings.autoJoinInvites) {
                     runCatching {
@@ -153,7 +153,7 @@ class NotificationEnrichWorker(
                 }
 
                 // The call takes over the room's notification for the duration of the ring.
-                AndroidNotificationHelper.cancelRoomNotification(applicationContext, roomId)
+                AndroidNotificationHelper.cancelRoomNotification(applicationContext, roomId, force = true)
 
                 val callerAvatarPath = runCatching {
                     val members = port.listMembers(roomId)

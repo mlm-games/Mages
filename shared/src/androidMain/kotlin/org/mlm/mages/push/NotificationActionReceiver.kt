@@ -103,7 +103,7 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                             port.markFullyReadAt(roomId, eventId, settingsRepo.flow.first().sendReadReceipts)
                         }
                         if (notifId != 0) {
-                            AndroidNotificationHelper.cancelRoomNotification(context, roomId)
+                            AndroidNotificationHelper.cancelRoomNotification(context, roomId, force = true)
                         }
                     }
 

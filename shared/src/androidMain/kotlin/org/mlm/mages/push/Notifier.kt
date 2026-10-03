@@ -141,11 +141,12 @@ object AndroidNotificationHelper : KoinComponent {
         CallTelecomBridge.sendCallDismissed(ctx, roomId, eventId, silent)
     }
 
-    fun cancelRoomNotification(ctx: Context, roomId: String) {
+    fun cancelRoomNotification(ctx: Context, roomId: String, force: Boolean = false) {
         if (BubbleActivityTracker.isBubbleOpen(roomId)) return
         val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val id = roomId.hashCode()
-        val keptAsBubble = BubbleEligibilityEvaluator.canBubble(ctx, roomId) &&
+        val keptAsBubble = !force &&
+            BubbleEligibilityEvaluator.canBubble(ctx, roomId) &&
             suppressBubbledNotification(ctx, mgr, id)
         if (!keptAsBubble) {
             mgr.cancel(id)
