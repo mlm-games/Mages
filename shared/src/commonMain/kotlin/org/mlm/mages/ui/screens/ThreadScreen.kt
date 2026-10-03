@@ -51,6 +51,7 @@ import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
 import org.mlm.mages.platform.rememberFileOpener
 import org.mlm.mages.ui.theme.Spacing
+import org.mlm.mages.ui.util.secondaryClick
 import org.mlm.mages.ui.viewmodel.ThreadViewModel
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -533,7 +534,8 @@ private fun ThreadRootMessage(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(Spacing.md),
+            .padding(Spacing.md)
+            .secondaryClick(onLongPress),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         ),

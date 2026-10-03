@@ -6,8 +6,9 @@ import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
 
-fun Modifier.secondaryClick(onSecondaryClick: () -> Unit): Modifier =
-    pointerInput(onSecondaryClick) {
+fun Modifier.secondaryClick(onSecondaryClick: (() -> Unit)?): Modifier {
+    if (onSecondaryClick == null) return this
+    return pointerInput(onSecondaryClick) {
         awaitPointerEventScope {
             while (true) {
                 val event = awaitPointerEvent(PointerEventPass.Main)
@@ -18,3 +19,4 @@ fun Modifier.secondaryClick(onSecondaryClick: () -> Unit): Modifier =
             }
         }
     }
+}

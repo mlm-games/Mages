@@ -159,13 +159,15 @@ private fun ReactionChip(
         MaterialTheme.colorScheme.surfaceContainerLowest
     }
 
+    val chipLongPress = { onLongClick?.invoke(chip.key) }
+
     Surface(
         modifier = Modifier
-            .secondaryClick { onLongClick?.invoke(chip.key) }
             .combinedClickable(
                 onClick = { onClick?.invoke(chip.key) },
-                onLongClick = { onLongClick?.invoke(chip.key) }
-            ),
+                onLongClick = chipLongPress
+            )
+            .secondaryClick(chipLongPress),
         shape = RoundedCornerShape(percent = 50),
         color = backgroundColor,
         border = BorderStroke(1.dp, outlineColor)

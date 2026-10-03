@@ -460,11 +460,11 @@ private fun MediaGridItem(
         modifier = Modifier
             .aspectRatio(1f)
             .clip(MaterialTheme.shapes.extraSmall)
-            .secondaryClick(onLongClick)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
             )
+            .secondaryClick(onLongClick)
     ) {
         // Thumbnail or placeholder
         Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
@@ -686,11 +686,11 @@ private fun FileListItem(
                     MaterialTheme.shapes.medium
                 ) else Modifier
             )
-            .secondaryClick(onLongClick)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
             )
+            .secondaryClick(onLongClick)
     ) {
         Row(
             modifier = Modifier

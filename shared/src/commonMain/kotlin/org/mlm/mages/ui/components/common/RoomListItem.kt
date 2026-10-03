@@ -44,11 +44,11 @@ fun RoomListItem(
 ) {
     val clickModifier = if (onLongClick != null) {
         Modifier
-            .secondaryClick(onLongClick)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
             )
+            .secondaryClick(onLongClick)
     } else {
         Modifier.clickable(onClick = onClick)
     }

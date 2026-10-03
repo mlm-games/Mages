@@ -1630,7 +1630,6 @@ private fun MessageItem(
             modifier = Modifier
                 .then(if (enableBubbleAnimations) Modifier.animateContentSize() else Modifier)
                 .fillMaxWidth()
-                .secondaryClick(onRowLongPress)
                 .combinedClickable(
                     onClick = {
                         if (state.isSelectionMode) {
@@ -1639,6 +1638,7 @@ private fun MessageItem(
                     },
                     onLongClick = onRowLongPress
                 )
+                .secondaryClick(onRowLongPress)
                 .then(
                     if (isSelected) Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
                     else Modifier

@@ -182,8 +182,8 @@ fun MessageBubble(
                 shape = bubbleShape(isMine, grouping.groupedWithPrev, grouping.groupedWithNext),
                 tonalElevation = if (isRedacted) 0.dp else if (isMine) 3.dp else 1.dp,
                 modifier = Modifier
-                    .secondaryClick(onLongPress)
                     .combinedClickable(onClick = {}, onLongClick = onLongPress)
+                    .secondaryClick(onLongPress)
             ) {
                 val timestampContent = @Composable {
                     MessageTimeAndStatus(
@@ -953,11 +953,11 @@ private fun StickerMessage(
                     .widthIn(max = maxStickerSize)
                     .aspectRatio(aspectRatio, matchHeightConstraintsFirst = false)
                     .blurHashBackground(blurhashImage)
-                    .secondaryClick(onLongPress)
                     .combinedClickable(
                         onClick = { onOpen?.invoke() },
                         onLongClick = onLongPress,
                     )
+                    .secondaryClick(onLongPress)
             ) {
                 if (sticker.thumbPath != null) {
                     AsyncImage(
