@@ -503,7 +503,7 @@
 - Add language setting (to switch without switching the default lang.)
 - change secondary color to be slighly less greyish
 - fix: settings "calls" section shown as a "privacy" section
-- fix \' strings translation
+- fix ' strings translation
 
 
 ## v4.2.2

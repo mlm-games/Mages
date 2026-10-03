@@ -670,7 +670,7 @@
           <li>Add language setting (to switch without switching the default lang.)</li>
           <li>change secondary color to be slighly less greyish</li>
           <li>fix: settings "calls" section shown as a "privacy" section</li>
-          <li>fix \' strings translation</li>
+          <li>fix ' strings translation</li>
         </ul>
       </description>
     </release>
