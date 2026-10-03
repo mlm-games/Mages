@@ -55,6 +55,7 @@ import org.mlm.mages.ui.components.voice.VoiceMessageBubble
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatDuration
 import org.mlm.mages.ui.util.formatTime
+import org.mlm.mages.ui.util.secondaryClick
 import kotlin.math.min
 import org.jetbrains.compose.resources.pluralStringResource
 
@@ -181,6 +182,7 @@ fun MessageBubble(
                 shape = bubbleShape(isMine, grouping.groupedWithPrev, grouping.groupedWithNext),
                 tonalElevation = if (isRedacted) 0.dp else if (isMine) 3.dp else 1.dp,
                 modifier = Modifier
+                    .secondaryClick(onLongPress)
                     .combinedClickable(onClick = {}, onLongClick = onLongPress)
             ) {
                 val timestampContent = @Composable {
@@ -951,6 +953,7 @@ private fun StickerMessage(
                     .widthIn(max = maxStickerSize)
                     .aspectRatio(aspectRatio, matchHeightConstraintsFirst = false)
                     .blurHashBackground(blurhashImage)
+                    .secondaryClick(onLongPress)
                     .combinedClickable(
                         onClick = { onOpen?.invoke() },
                         onLongClick = onLongPress,

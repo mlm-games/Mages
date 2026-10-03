@@ -27,6 +27,7 @@ import org.mlm.mages.settings.ThemeMode
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatTime
+import org.mlm.mages.ui.util.secondaryClick
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.timeline_shared_live_location
@@ -82,7 +83,9 @@ internal fun TimelineLocationItem(
     }
 
     val clickModifier = if (onLongClick != null) {
-        Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+        Modifier
+            .secondaryClick(onLongClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
     } else {
         Modifier.clickable(onClick = onClick)
     }

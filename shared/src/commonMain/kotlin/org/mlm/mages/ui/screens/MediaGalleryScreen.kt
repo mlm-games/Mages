@@ -42,6 +42,7 @@ import org.mlm.mages.platform.ShareOutcome
 import org.mlm.mages.platform.rememberShareHandler
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.monthYearLabel
+import org.mlm.mages.ui.util.secondaryClick
 import org.mlm.mages.ui.viewmodel.ExtractedLink
 import org.mlm.mages.ui.viewmodel.MediaGalleryViewModel
 import org.mlm.mages.ui.viewmodel.MediaTab
@@ -459,6 +460,7 @@ private fun MediaGridItem(
         modifier = Modifier
             .aspectRatio(1f)
             .clip(MaterialTheme.shapes.extraSmall)
+            .secondaryClick(onLongClick)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
@@ -684,6 +686,7 @@ private fun FileListItem(
                     MaterialTheme.shapes.medium
                 ) else Modifier
             )
+            .secondaryClick(onLongClick)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick

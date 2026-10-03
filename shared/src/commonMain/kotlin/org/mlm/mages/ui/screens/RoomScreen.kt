@@ -78,6 +78,7 @@ import org.mlm.mages.ui.util.formatTime
 import org.mlm.mages.ui.util.formatTimelineDate
 import org.mlm.mages.ui.util.formatTypingText
 import org.mlm.mages.ui.util.rememberTopVisibleRoomEventTimestamp
+import org.mlm.mages.ui.util.secondaryClick
 import org.mlm.mages.ui.viewmodel.RoomViewModel
 import mages.shared.generated.resources.*
 import org.mlm.mages.ui.components.snackbar.snackbarHost
@@ -1620,20 +1621,23 @@ private fun MessageItem(
         var hapticTriggered by remember { mutableStateOf(false) }
         val haptics = LocalHapticFeedback.current
 
+        val onRowLongPress = {
+            if (state.isSelectionMode) viewModel.toggleSelected(event.eventId)
+            else onLongPress()
+        }
+
         Box(
             modifier = Modifier
                 .then(if (enableBubbleAnimations) Modifier.animateContentSize() else Modifier)
                 .fillMaxWidth()
+                .secondaryClick(onRowLongPress)
                 .combinedClickable(
                     onClick = {
                         if (state.isSelectionMode) {
                             viewModel.toggleSelected(event.eventId)
                         }
                     },
-                    onLongClick = {
-                        if (state.isSelectionMode) viewModel.toggleSelected(event.eventId)
-                        else onLongPress()
-                    }
+                    onLongClick = onRowLongPress
                 )
                 .then(
                     if (isSelected) Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))

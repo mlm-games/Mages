@@ -23,6 +23,7 @@ import coil3.request.crossfade
 import org.mlm.mages.LocalMessageFontSize
 import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.ui.components.core.Avatar
+import org.mlm.mages.ui.util.secondaryClick
 
 @Composable
 fun ReactionChipsRow(
@@ -159,10 +160,12 @@ private fun ReactionChip(
     }
 
     Surface(
-        modifier = Modifier.combinedClickable(
-            onClick = { onClick?.invoke(chip.key) },
-            onLongClick = { onLongClick?.invoke(chip.key) }
-        ),
+        modifier = Modifier
+            .secondaryClick { onLongClick?.invoke(chip.key) }
+            .combinedClickable(
+                onClick = { onClick?.invoke(chip.key) },
+                onLongClick = { onLongClick?.invoke(chip.key) }
+            ),
         shape = RoundedCornerShape(percent = 50),
         color = backgroundColor,
         border = BorderStroke(1.dp, outlineColor)
