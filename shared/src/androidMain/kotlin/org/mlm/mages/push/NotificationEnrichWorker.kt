@@ -1,6 +1,5 @@
 package org.mlm.mages.push
 
-import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -63,7 +62,6 @@ class NotificationEnrichWorker(
         // Cancelling it therefore drops the whole conversation's history, so a decision
         // to withhold *this* event must never cancel: it just skips the event.
         val notifId = (roomId).hashCode()
-        val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         val settingsRepo = SettingsProvider.get(applicationContext)
         val settings = settingsRepo.flow.first()
@@ -77,7 +75,7 @@ class NotificationEnrichWorker(
         // Notifications off entirely, or no session to attribute them to: nothing
         // this room is showing is still wanted, so the room is cleared.
         if (!settings.notificationsEnabled) {
-            nm.cancel(notifId)
+            AndroidNotificationHelper.cancelRoomNotification(applicationContext, roomId)
             return Result.success()
         }
 
@@ -85,7 +83,7 @@ class NotificationEnrichWorker(
 
         val port = service.portOrNull
         if (port == null || !service.isLoggedIn()) {
-            nm.cancel(notifId)
+            AndroidNotificationHelper.cancelRoomNotification(applicationContext, roomId)
             return Result.success()
         }
 
@@ -124,7 +122,7 @@ class NotificationEnrichWorker(
 
             NotificationKind.Invite -> {
                 // The invite is its own notification, so the room's is replaced rather than kept.
-                nm.cancel(notifId)
+                AndroidNotificationHelper.cancelRoomNotification(applicationContext, roomId)
 
                 if (settings.autoJoinInvites) {
                     runCatching {
@@ -155,7 +153,7 @@ class NotificationEnrichWorker(
                 }
 
                 // The call takes over the room's notification for the duration of the ring.
-                nm.cancel(notifId)
+                AndroidNotificationHelper.cancelRoomNotification(applicationContext, roomId)
 
                 val callerAvatarPath = runCatching {
                     val members = port.listMembers(roomId)

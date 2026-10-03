@@ -17,6 +17,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import io.github.mlmgames.settings.core.SettingsRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.compose.koinInject
@@ -33,6 +34,9 @@ import org.mlm.mages.settings.ThemeMode
 import org.mlm.mages.ui.screens.RoomScreen
 import org.mlm.mages.ui.theme.MainTheme
 import org.mlm.mages.ui.viewmodel.RoomViewModel
+
+private const val SESSION_READY_ATTEMPTS = 10
+private const val SESSION_READY_RETRY_MS = 500L
 
 class BubbleConversationActivity : ComponentActivity() {
     private val service: MatrixService by inject()
@@ -77,12 +81,17 @@ class BubbleConversationActivity : ComponentActivity() {
             var ready by remember { mutableStateOf(false) }
 
             LaunchedEffect(roomId) {
-                SessionBootstrapper.ensureReadyAndSyncing(service)
-                if (service.isLoggedIn() && service.portOrNull != null) {
-                    ready = true
-                } else {
-                    finish()
+                var attempts = 0
+                while (true) {
+                    SessionBootstrapper.ensureReadyAndSyncing(service)
+                    if (service.isLoggedIn() && service.portOrNull != null) break
+                    if (service.isReady.value || ++attempts >= SESSION_READY_ATTEMPTS) {
+                        finish()
+                        return@LaunchedEffect
+                    }
+                    delay(SESSION_READY_RETRY_MS)
                 }
+                ready = true
             }
 
             val settingsRepository: SettingsRepository<AppSettings> = koinInject()
