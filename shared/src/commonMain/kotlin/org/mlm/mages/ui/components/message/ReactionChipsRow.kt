@@ -159,7 +159,7 @@ private fun ReactionChip(
         MaterialTheme.colorScheme.surfaceContainerLowest
     }
 
-    val chipLongPress = { onLongClick?.invoke(chip.key) }
+    val chipLongPress: () -> Unit = { onLongClick?.invoke(chip.key) }
 
     Surface(
         modifier = Modifier
