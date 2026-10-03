@@ -1148,10 +1148,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         requireClient().ensureDm(userId).awaitStringValue()
 
     override suspend fun ensureDmIfAllowed(roomId: String, userId: String): String? =
-        decodeValueOrNull(
-            requireClient().ensureDmIfAllowed(roomId, userId).awaitAny(),
-            "ensureDmIfAllowed"
-        )
+        requireClient().ensureDmIfAllowed(roomId, userId).awaitStringValue()
 
     override suspend fun resolveRoomId(idOrAlias: String): String? =
         requireClient().resolveRoomId(idOrAlias).awaitStringValue()
@@ -1247,7 +1244,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         ruleId: String,
         enabled: Boolean
     ): Result<Unit> = unitResult(
-        requireClient().setPushRuleEnabled(kind.name, ruleId, enabled).awaitPlainBool(),
+        requireClient().setPushRuleEnabled(kind.name, ruleId, enabled).awaitBool(),
         "set push rule enabled"
     )
 
@@ -1257,7 +1254,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun setReactionNotificationsEnabled(
         enabled: Boolean,
     ): Result<Unit> = unitResult(
-        requireClient().setReactionNotificationsEnabled(enabled).awaitPlainBool(),
+        requireClient().setReactionNotificationsEnabled(enabled).awaitBool(),
         "setReactionNotificationsEnabled"
     )
 
@@ -1275,7 +1272,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         isOneToOne: Boolean,
         mode: RoomNotificationMode
     ): Result<Unit> = unitResult(
-        requireClient().setDefaultRoomNotificationMode(isEncrypted, isOneToOne, mode.name).awaitPlainBool(),
+        requireClient().setDefaultRoomNotificationMode(isEncrypted, isOneToOne, mode.name).awaitBool(),
         "set default room notification mode"
     )
 
@@ -1418,7 +1415,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     }
 
     override suspend fun canSetProfileFields(): Boolean =
-        requireClient().canSetProfileFields().awaitPlainBool()
+        requireClient().canSetProfileFields().awaitBool()
 
     override suspend fun ownProfileFields(): List<ProfileField> =
         requireClient().ownProfileFields().awaitValue() ?: emptyList()
@@ -1534,13 +1531,13 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         requireClient().roomPowerLevels(roomId).awaitValue()
 
     override suspend fun canUserBan(roomId: String, userId: String): Boolean =
-        requireClient().canUserBan(roomId, userId).awaitPlainBool()
+        requireClient().canUserBan(roomId, userId).awaitBool()
 
     override suspend fun canUserInvite(roomId: String, userId: String): Boolean =
-        requireClient().canUserInvite(roomId, userId).awaitPlainBool()
+        requireClient().canUserInvite(roomId, userId).awaitBool()
 
     override suspend fun canUserRedactOther(roomId: String, userId: String): Boolean =
-        requireClient().canUserRedactOther(roomId, userId).awaitPlainBool()
+        requireClient().canUserRedactOther(roomId, userId).awaitBool()
 
     override suspend fun updatePowerLevelForUser(
         roomId: String,
@@ -1726,14 +1723,10 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     }
 
     override suspend fun listImagePacks(roomId: String): List<ImagePackSummary> =
-        wasmJson.decodeFromJsonElement(
-            requireClient().listImagePacks(roomId).await<JsAny?>().toJsonElement()
-        )
+        requireClient().listImagePacks(roomId).awaitValue<List<ImagePackSummary>>() ?: emptyList()
 
     override suspend fun listAllImagePacks(refresh: Boolean): List<ImagePackSummary> =
-        wasmJson.decodeFromJsonElement(
-            requireClient().listAllImagePacks(refresh).await<JsAny?>().toJsonElement()
-        )
+        requireClient().listAllImagePacks(refresh).awaitValue<List<ImagePackSummary>>() ?: emptyList()
 
     override suspend fun setImagePackEnabled(
         roomId: String,
@@ -1743,7 +1736,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         requireClient().setImagePackEnabled(roomId, stateKey, enabled).awaitUnitResult()
 
     override suspend fun canEditImagePacks(roomId: String): Boolean =
-        requireClient().canEditImagePacks(roomId).awaitPlainBool()
+        requireClient().canEditImagePacks(roomId).awaitBoolResult().getOrDefault(false)
 
     override suspend fun saveImagePack(roomId: String, write: PackWrite): Result<String> =
         requireClient()
@@ -1756,12 +1749,10 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun suggestImageShortcodes(
         bases: List<String>,
         taken: List<String>
-    ): List<String> = wasmJson.decodeFromJsonElement(
+    ): List<String> =
         requireClient()
             .suggestImageShortcodes(bases.toJsArray(), taken.toJsArray())
-            .await<JsAny?>()
-            .toJsonArray()
-    )
+            .awaitValue<List<String>>() ?: emptyList()
 
     override suspend fun uploadPackImage(path: String, mime: String): Result<UploadedPackImage> {
         // Picked files are staged as blobs rather than written to disk, so the
@@ -1777,9 +1768,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     }
 
     override suspend fun recentEmoji(): List<RecentEmojiEntry> =
-        wasmJson.decodeFromJsonElement(
-            requireClient().recentEmoji().await<JsAny?>().toJsonElement()
-        )
+        requireClient().recentEmoji().awaitValue<List<RecentEmojiEntry>>() ?: emptyList()
 
     override suspend fun recordEmojiUse(emoji: String): Result<Unit> =
         requireClient().recordEmojiUse(emoji).awaitUnitResult()

@@ -523,7 +523,6 @@ wasm_delegate! { webffi_unit;
 }
 
 wasm_delegate! { webffi_bool;
-    "markRoomSeenLatest"   => mark_room_seen_latest(room_id: String, send_public_receipt: bool);
     "canUserBan"           => can_user_ban(room_id: String, user_id: String);
     "canUserInvite"        => can_user_invite(room_id: String, user_id: String);
     "canUserRedactOther"   => can_user_redact_other(room_id: String, user_id: String);
@@ -622,6 +621,7 @@ wasm_delegate! { webffi_value;
     "uploadBytes"        => upload_bytes(bytes: Vec<u8>, mime: String);
     "recentEmoji"        => recent_emoji();
     "isReactionNotificationsEnabled" => is_reaction_notifications_enabled();
+    "markRoomSeenLatest" => mark_room_seen_latest(room_id: String, send_public_receipt: bool);
 }
 
 wasm_delegate! { webffi_option;
