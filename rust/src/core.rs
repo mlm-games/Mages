@@ -4589,7 +4589,7 @@ impl CoreClient {
             .await
             .ffi()?;
         let mut hits = Vec::new();
-        for (_score, eid) in event_ids.events.iter() {
+        for (_score, eid) in event_ids.iter() {
             if let Some(mev) =
                 map_event_id_via_timeline(&self.timeline_mgr, &self.sdk, &rid, eid).await
             {
