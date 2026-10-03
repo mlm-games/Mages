@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -62,6 +63,23 @@ abstract class BaseViewModel<S>(initialState: S) : ViewModel(), KoinComponent {
         throw e
     } catch (e: Throwable) {
         onError?.invoke(e)
+    }
+
+    /**
+     * Repeats [block] until it yields a value. Sliding sync only ships a room's state once it is
+     * subscribed or scrolled into the viewport, so a snapshot requested right after subscribing
+     * may only become available a sync or two later.
+     */
+    protected suspend fun <T> retryUntilPresent(
+        attempts: Int = 5,
+        delayMs: Long = 500,
+        block: suspend () -> T?
+    ): T? {
+        repeat(attempts) { attempt ->
+            if (attempt > 0) delay(delayMs * attempt)
+            block()?.let { return it }
+        }
+        return null
     }
 
     /**

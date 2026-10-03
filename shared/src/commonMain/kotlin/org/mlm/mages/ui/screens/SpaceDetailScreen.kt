@@ -82,7 +82,13 @@ fun SpaceDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = viewModel::refresh, enabled = !state.isLoading) {
+                    IconButton(
+                        onClick = {
+                            viewModel.refresh()
+                            actionsViewModel.refresh()
+                        },
+                        enabled = !state.isLoading
+                    ) {
                         Icon(Icons.Default.Refresh, stringResource(Res.string.refresh))
                     }
                     IconButton(onClick = onOpenSettings) {

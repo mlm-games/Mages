@@ -401,6 +401,27 @@ pub(crate) fn map_power_levels(
     }
 }
 
+/// [`map_power_levels`] with the room's creators folded into `users`.
+///
+/// Room version 12+ keeps creators out of the `users` map (they hold infinite power), so a plain
+/// read of that map reports 0 for the creator and UIs built on it call the room owner a member.
+pub(crate) fn map_room_power_levels(
+    room: &matrix_sdk::Room,
+    levels: &matrix_sdk::ruma::events::room::power_levels::RoomPowerLevels,
+) -> RoomPowerLevels {
+    let mut mapped = map_power_levels(levels);
+    for creator in room.creators().into_iter().flatten() {
+        let level: i64 = match levels.for_user(&creator) {
+            UserPowerLevel::Infinite => i64::MAX,
+            UserPowerLevel::Int(v) => v.into(),
+            _ => continue,
+        };
+        let entry = mapped.users.entry(creator.to_string()).or_insert(0);
+        *entry = (*entry).max(level);
+    }
+    mapped
+}
+
 #[derive(Clone)]
 pub struct TimelineManager {
     pub(crate) client: SdkClient,
@@ -2076,7 +2097,7 @@ impl CoreClient {
     ) -> Result<RoomInfoSnapshot, FfiError> {
         let profile = self.build_room_profile(room).await?;
         let levels = room.power_levels().await.ffi()?;
-        let power_levels = map_power_levels(&levels);
+        let power_levels = map_room_power_levels(room, &levels);
         let action_state = self.resolve_room_action_state_impl(room).await?;
         let pinned_event_ids = room.pinned_event_ids().map(|ids| {
             ids.iter()
@@ -2101,7 +2122,10 @@ impl CoreClient {
         room_id: String,
     ) -> Result<Option<RoomInfoSnapshot>, FfiError> {
         let room = self.require_room(&room_id)?;
-        Ok(Some(self.build_room_info_snapshot(&room).await?))
+        self.build_room_info_snapshot(&room).await.map(Some).map_err(|error| {
+            warn!(room_id = %room_id, "room_info_snapshot failed: {error}");
+            error
+        })
     }
 
     pub async fn room_tags(&self, room_id: String) -> Result<Option<RoomTags>, FfiError> {
@@ -2604,7 +2628,7 @@ impl CoreClient {
     pub async fn room_power_levels(&self, room_id: String) -> Result<RoomPowerLevels, FfiError> {
         let room = self.require_room(&room_id)?;
         let levels = room.power_levels().await.ffi()?;
-        Ok(map_power_levels(&levels))
+        Ok(map_room_power_levels(&room, &levels))
     }
 
     pub async fn update_power_level_for_user(

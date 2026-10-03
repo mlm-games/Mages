@@ -95,29 +95,35 @@ impl CoreClient {
             return;
         };
         let mut rx = room.subscribe_to_updates();
-        match self.build_room_info_snapshot(&room).await {
-            Ok(first) => {
-                let mut last = first.clone();
-                safe_call(|| obs.on_update(first));
-                loop {
-                    match rx.recv().await {
-                        Ok(_) => {}
-                        Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
-                        Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
-                            warn!(room_id = %room_id, skipped, "room info updates lagged; re-reading snapshot");
-                        }
+        let mut last: Option<RoomInfoSnapshot> = None;
+        loop {
+            if last.is_none() {
+                match self.build_room_info_snapshot(&room).await {
+                    Ok(first) => {
+                        last = Some(first.clone());
+                        safe_call(|| obs.on_update(first));
                     }
-                    let Ok(next) = self.build_room_info_snapshot(&room).await else {
-                        continue;
-                    };
-                    if next != last {
-                        last = next.clone();
-                        safe_call(|| obs.on_update(next));
+                    Err(e) => {
+                        warn!(room_id = %room_id, "observe_room_info: snapshot failed: {e}; retrying after the next room update");
                     }
                 }
             }
-            Err(e) => {
-                warn!(room_id = %room_id, "observe_room_info: initial snapshot failed: {e}");
+            match rx.recv().await {
+                Ok(_) => {}
+                Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+                Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
+                    warn!(room_id = %room_id, skipped, "room info updates lagged; re-reading snapshot");
+                }
+            }
+            if last.is_none() {
+                continue;
+            }
+            let Ok(next) = self.build_room_info_snapshot(&room).await else {
+                continue;
+            };
+            if last.as_ref() != Some(&next) {
+                last = Some(next.clone());
+                safe_call(|| obs.on_update(next));
             }
         }
     }

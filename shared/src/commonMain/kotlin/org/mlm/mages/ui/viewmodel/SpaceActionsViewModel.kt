@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.viewmodel
 
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import mages.shared.generated.resources.*
@@ -168,8 +169,13 @@ class SpaceActionsViewModel(
 
     private fun loadPermissions() {
         launch {
-            val snapshot = runSafe { service.port.roomInfoSnapshot(currentState.spaceId) }
-            val actionState = snapshot?.actionState
+            service.port.subscribeToVisibleRooms(listOf(currentState.spaceId))
+                .onFailure { Logger.w("Space ${currentState.spaceId}: subscribe failed: ${it.message}") }
+            val actionState = retryUntilPresent { runSafe { service.port.roomInfoSnapshot(currentState.spaceId) } }
+                ?.actionState
+            if (actionState == null) {
+                Logger.w("Space ${currentState.spaceId}: room info snapshot unavailable; action permissions unknown")
+            }
             updateState {
                 copy(
                     canManageChildren = actionState?.spaceChild?.isEnabled == true,

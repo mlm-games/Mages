@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.viewmodel
 
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -331,15 +332,25 @@ class SpaceSettingsViewModel(
 
     private fun loadPermissions() {
         launch {
-            val snapshot = runSafe { service.port.roomInfoSnapshot(currentState.spaceId) }
+            service.port.subscribeToVisibleRooms(listOf(currentState.spaceId))
+                .onFailure { Logger.w("Space ${currentState.spaceId}: subscribe failed: ${it.message}") }
+            val snapshot = retryUntilPresent { runSafe { service.port.roomInfoSnapshot(currentState.spaceId) } }
             val me = runSafe { service.port.whoami() }
+            if (snapshot == null) {
+                Logger.w("Space ${currentState.spaceId}: room info snapshot unavailable; permissions unknown")
+            }
+            val myLevel = me
+                ?.let { runSafe { service.port.getUserPowerLevel(currentState.spaceId, it) } }
+                ?.takeIf { it >= 0L }
             updateState {
                 copy(
                     canManageSettings = snapshot?.actionState?.manageSettings?.isEnabled == true,
                     canEditDetails = snapshot?.actionState?.editName?.isEnabled == true,
                     powerLevels = snapshot?.powerLevels ?: powerLevels,
                     myUserId = me ?: myUserId,
-                    myPowerLevel = snapshot?.powerLevels?.users?.get(me ?: "") ?: myPowerLevel
+                    myPowerLevel = myLevel
+                        ?: snapshot?.powerLevels?.users?.get(me ?: "")
+                        ?: myPowerLevel
                 )
             }
         }
