@@ -558,7 +558,10 @@ wasm_delegate! { |r| to_json(&r);
     "ownLastRead"       => own_last_read(room_id: String)                         or OwnReceipt { event_id: None, ts_ms: None };
     "reactionsForEvent" => reactions_for_event(room_id: String, event_id: String)  or Vec::<ReactionSummary>::new();
     "mySpaces"          => my_spaces()                                             or Vec::<SpaceInfo>::new();
-    "roomParentSpaces"  => room_parent_spaces(room_id: String)                     or Vec::<SpaceParentInfo>::new();
+}
+
+wasm_delegate! { |r: Result<Vec<SpaceParentInfo>, crate::FfiError>| to_json(&r.unwrap_or_default());
+    "roomParentSpaces"  => room_parent_spaces(room_id: String)                     or Ok(Vec::<SpaceParentInfo>::new());
 }
 
 wasm_delegate! { webffi_value;

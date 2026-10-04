@@ -596,8 +596,8 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         val ok = (obj["ok"] as? JsonPrimitive)?.booleanOrNull == true
         if (!ok) return null
         val value = obj["value"] as? JsonObject ?: return null
-        val favourite = (value["favourite"] as? JsonPrimitive)?.booleanOrNull == true
-        val lowPriority = (value["low_priority"] as? JsonPrimitive)?.booleanOrNull == true
+        val favourite = (value["is_favourite"] as? JsonPrimitive)?.booleanOrNull == true
+        val lowPriority = (value["is_low_priority"] as? JsonPrimitive)?.booleanOrNull == true
         return favourite to lowPriority
     }
 
@@ -1112,10 +1112,10 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         )
 
     override suspend fun searchUsers(term: String, limit: Int): List<DirectoryUser> =
-        decodeValueOrNull(requireClient().searchUsers(term, limit.toDouble()), "searchUsers") ?: emptyList()
+        decodeValueOrNull(requireClient().searchUsers(term, limit.toDouble()).await<JsAny?>(), "searchUsers") ?: emptyList()
 
     override suspend fun getUserProfile(userId: String): DirectoryUser? =
-        decodeValueOrNull(requireClient().getUserProfile(userId), "getUserProfile")
+        decodeValueOrNull(requireClient().getUserProfile(userId).await<JsAny?>(), "getUserProfile")
 
     override suspend fun mutualRooms(userId: String): MutualRooms? =
         requireClient().mutualRooms(userId).awaitValue()
@@ -1127,7 +1127,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         since: String?
     ): PublicRoomsPage =
         wasmJson.decodeFromJsonElement(
-            requireClient().publicRooms(server, search, limit.toDouble(), since).toJsonElement()
+            requireClient().publicRooms(server, search, limit.toDouble(), since).await<JsAny?>().toJsonElement()
         )
 
     override suspend fun joinByIdOrAlias(idOrAlias: String, via: List<String>): Result<Unit> {
