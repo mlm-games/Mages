@@ -34,6 +34,7 @@ import com.fleeksoft.ksoup.nodes.Element
 import com.fleeksoft.ksoup.nodes.Node
 import com.fleeksoft.ksoup.nodes.TextNode
 import org.mlm.mages.LocalMessageFontSize
+import org.mlm.mages.nav.isMatrixPermalink
 
 private val MXC_SRC_ATTR = Regex("""\ssrc\s*=\s*["']?(mxc://[^"'\s>]+)""", RegexOption.IGNORE_CASE)
 
@@ -166,13 +167,16 @@ private fun absoluteUrl(url: String): String =
 private fun isPreviewableUrl(url: String): Boolean =
     url.startsWith("http://", ignoreCase = true) || url.startsWith("https://", ignoreCase = true)
 
+private fun isPreviewCandidate(url: String): Boolean =
+    isPreviewableUrl(url) && !isMatrixPermalink(url)
+
 private fun firstAnchorHref(node: Node): String? {
     if (node !is Element) return null
     val tag = node.normalName()
     if (tag in DROPPED_TAGS) return null
     if (tag == "a") {
         val href = absoluteUrl(node.attr("href").trim())
-        if (isPreviewableUrl(href)) return href
+        if (isPreviewCandidate(href)) return href
     }
     for (child in node.childNodes()) {
         firstAnchorHref(child)?.let { return it }
@@ -180,15 +184,18 @@ private fun firstAnchorHref(node: Node): String? {
     return null
 }
 
-/** The first link a message renders as: the formatted anchor when there is one, else the bare URL. */
+/** The first link a message offers for previewing: the formatted anchor when there is one, else the first bare URL. */
 fun firstLinkIn(body: String?, formattedBody: String?): String? {
     val fromHtml = formattedBody
         ?.takeIf { it.contains("href", ignoreCase = true) }
         ?.let { firstAnchorHref(Ksoup.parse(it).body()) }
-    val fromText = body
-        ?.let { BARE_URL.find(it)?.value }
-        ?.let { absoluteUrl(trimUrlTail(it)) }
-    return fromHtml ?: fromText?.takeIf { isPreviewableUrl(it) }
+    if (fromHtml != null) return fromHtml
+
+    return body?.let { text ->
+        BARE_URL.findAll(text)
+            .mapNotNull { absoluteUrl(trimUrlTail(it.value)).takeIf(::isPreviewCandidate) }
+            .firstOrNull()
+    }
 }
 
 private class Builder(
