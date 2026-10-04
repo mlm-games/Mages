@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Mages
 Comment=Experimental Matrix chat client
-MimeType=x-scheme-handler/matrix;
+MimeType=x-scheme-handler/matrix;x-scheme-handler/mages;
 Exec=mages %U
 Icon=io.github.mlm_games.mages
 Terminal=false

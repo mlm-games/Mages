@@ -88,10 +88,6 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:host="matrix.to" android:scheme="https" />
-                <uri-relative-filter-group>
-                    <data android:pathPrefix="/" />
-                    <data android:fragment="/" />
-                </uri-relative-filter-group>
             </intent-filter>
 
             <!-- matrix: URIs -->

@@ -20,6 +20,7 @@ import androidx.lifecycle.lifecycleScope
 import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -30,6 +31,7 @@ import org.mlm.mages.calls.CallManager
 import org.mlm.mages.di.KoinApp
 import org.mlm.mages.nav.DeepLinkAction
 import org.mlm.mages.nav.MatrixLink
+import org.mlm.mages.nav.PendingDeepLinks
 import org.mlm.mages.nav.handleMatrixLink
 import org.mlm.mages.nav.parseMatrixLink
 import org.mlm.mages.platform.SettingsProvider
@@ -296,7 +298,6 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun handleIntent(sourceIntent: Intent) {
         intentHandlingMutex.withLock {
-            val snackbarManager: SnackbarManager by inject()
             val uri = sourceIntent.data ?: return@withLock
 
             sourceIntent.data = null
@@ -309,6 +310,11 @@ class MainActivity : AppCompatActivity() {
                 return@withLock
             }
 
+            // A cold start can deliver the intent before App restores the
+            // Matrix client from disk, so wait for that before the login
+            // checks below.
+            service.isReady.first { it }
+
             if (uri.scheme == "mages" && uri.host == "room") {
                 handleRoomIntent(uri)
                 return@withLock
@@ -318,7 +324,8 @@ class MainActivity : AppCompatActivity() {
             val link = parseMatrixLink(uri.toString())
             if (link !is MatrixLink.Unsupported) {
                 if (!service.isLoggedIn() || service.portOrNull == null) {
-                    snackbarManager.showError(getString(R.string.logged_out))
+                    // Resolved and joined by App once an account is available.
+                    PendingDeepLinks.offer(uri.toString())
                     return@withLock
                 }
 
@@ -351,6 +358,11 @@ class MainActivity : AppCompatActivity() {
                     getSystemService(NOTIFICATION_SERVICE) as NotificationManager
                 notificationManager.cancel((roomId + eventId).hashCode())
             }
+        }
+
+        if (!service.isLoggedIn() || service.portOrNull == null) {
+            PendingDeepLinks.offer(uri.toString())
+            return
         }
 
         deepLinkActions.send(

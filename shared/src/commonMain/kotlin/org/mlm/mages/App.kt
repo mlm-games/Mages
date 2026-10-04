@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.awaitCancellation
@@ -108,7 +109,6 @@ val LocalMessageFontSize = staticCompositionLocalOf { 16f }
 fun App(
     settingsRepository: SettingsRepository<AppSettings>,
     deepLinks: Flow<DeepLinkAction>? = null,
-    initialDeepLink: String? = null,
     onRequestLocationPermissions: ((() -> Unit) -> Unit)? = null,
     onRequestVideoCallPermissions: ((() -> Unit) -> Unit)? = null,
     onRequestVoiceCallPermissions: ((() -> Unit) -> Unit)? = null
@@ -118,7 +118,6 @@ fun App(
     CompositionLocalProvider(LocalMessageFontSize provides settings.fontSize) {
         AppContent(
             deepLinks = deepLinks,
-            initialDeepLink = initialDeepLink,
             onRequestLocationPermissions = onRequestLocationPermissions,
             onRequestVideoCallPermissions = onRequestVideoCallPermissions,
             onRequestVoiceCallPermissions = onRequestVoiceCallPermissions,
@@ -130,7 +129,6 @@ fun App(
 @Composable
 private fun AppContent(
     deepLinks: Flow<DeepLinkAction>?,
-    initialDeepLink: String? = null,
     onRequestLocationPermissions: ((() -> Unit) -> Unit)? = null,
     onRequestVideoCallPermissions: ((() -> Unit) -> Unit)? = null,
     onRequestVoiceCallPermissions: ((() -> Unit) -> Unit)? = null
@@ -285,32 +283,18 @@ private fun AppContent(
                 }
             }
 
-            // Held until an account is available so a link opened while logged out still works.
-            var pendingInitialDeepLink by remember {
-                mutableStateOf(initialDeepLink?.takeIf { it.isNotBlank() })
-            }
+            // Held until an account is available.
+            LaunchedEffect(Unit) {
+                PendingDeepLinks.links.collect { raw ->
+                    service.activeAccount.first { it != null }
 
-            LaunchedEffect(activeId) {
-                val raw = pendingInitialDeepLink ?: return@LaunchedEffect
-                if (activeId == null || !service.isLoggedInSuspend()) return@LaunchedEffect
-                pendingInitialDeepLink = null
-
-                val link = parseMatrixLink(raw)
-                if (link is MatrixLink.Unsupported) {
-                    snackbarManager.showError(getString(Res.string.could_not_open_link, raw))
-                    return@LaunchedEffect
+                    val action = resolveDeepLink(service, raw)
+                    if (action == null) {
+                        snackbarManager.showError(getString(Res.string.could_not_open_link, raw))
+                    } else {
+                        localDeepLinks.emit(action)
+                    }
                 }
-
-                var target: Pair<String, String?>? = null
-                val opened = handleMatrixLink(service, link) { roomId, eventId ->
-                    target = roomId to eventId
-                }
-                val resolved = target
-                if (!opened || resolved == null) {
-                    snackbarManager.showError(getString(Res.string.could_not_open_link, raw))
-                    return@LaunchedEffect
-                }
-                localDeepLinks.emit(DeepLinkAction(roomId = resolved.first, eventId = resolved.second))
             }
 
             // Presence is tracked and pushed on its own. applySyncPresence sets the status

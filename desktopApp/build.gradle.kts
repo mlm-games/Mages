@@ -101,6 +101,20 @@ compose.desktop {
                 appCategory = "public.app-category.social-networking"
                 infoPlist {
                     extraKeysRawXml = """
+                        <key>CFBundleURLTypes</key>
+                        <array>
+                            <dict>
+                                <key>CFBundleTypeRole</key>
+                                <string>Viewer</string>
+                                <key>CFBundleURLName</key>
+                                <string>org.mlm.mages</string>
+                                <key>CFBundleURLSchemes</key>
+                                <array>
+                                    <string>mages</string>
+                                    <string>matrix</string>
+                                </array>
+                            </dict>
+                        </array>
                         <key>NSLocationWhenInUseUsageDescription</key>
                         <string>Mages uses your location while live location sharing is active.</string>
                         <key>NSLocationUsageDescription</key>

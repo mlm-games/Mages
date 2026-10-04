@@ -34,6 +34,20 @@ fun matrixToUserLink(mxid: String): String? {
     return if (looksLikeUser(id)) "https://matrix.to/#/$id" else null
 }
 
+fun parseMagesRoomLink(rawLink: String): DeepLinkAction? {
+    return runCatching {
+        val uri = Uri.parse(rawLink.trim())
+        if (uri.scheme != "mages" || uri.host != "room") return null
+        val roomId = uri.getQueryParameter("id")?.takeIf { it.isNotBlank() } ?: return null
+        DeepLinkAction(
+            roomId = roomId,
+            eventId = uri.getQueryParameter("event")?.takeIf { it.isNotBlank() },
+            joinCall = uri.getQueryParameter("join_call") == "1",
+            voiceOnly = uri.getQueryParameter("voice_only") == "1",
+        )
+    }.getOrNull()
+}
+
 fun parseMatrixLink(urlOrId: String): MatrixLink {
     val raw = urlOrId.trim()
     if (raw.isEmpty()) return MatrixLink.Unsupported

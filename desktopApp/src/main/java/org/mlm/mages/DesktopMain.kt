@@ -21,19 +21,38 @@ import org.maplibre.compose.desktop.ProvideMapPresentationHost
 import org.maplibre.compose.desktop.rememberAwtComposeMapPresentationHost
 import org.mlm.mages.di.KoinApp
 import org.mlm.mages.nav.DeepLinkAction
+import org.mlm.mages.nav.PendingDeepLinks
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.Notifier
 import org.mlm.mages.platform.SettingsProvider
 import java.awt.event.WindowEvent
 import java.awt.event.WindowFocusListener
+import java.nio.file.Paths
 import javax.swing.SwingUtilities
 
+private fun isDeepLinkArg(arg: String): Boolean =
+    arg.startsWith("matrix:", ignoreCase = true) ||
+        arg.startsWith("http://", ignoreCase = true) ||
+        arg.startsWith("https://", ignoreCase = true) ||
+        arg.startsWith("mages://room", ignoreCase = true)
+
 fun main(args: Array<String>) {
-    val initialDeepLink =
-        args.firstOrNull { it.startsWith("matrix:") || it.startsWith("http") }
+    MagesPaths.init()
+
+    val initialDeepLink = args.firstOrNull { isDeepLinkArg(it) }
+
+    val singleInstance = SingleInstance(Paths.get(MagesPaths.storeDir()).parent)
+    if (!singleInstance.isFirstInstance) {
+        val links = args.filter { isDeepLinkArg(it) }
+        if (links.isNotEmpty() && !singleInstance.forwardArgs(links.toTypedArray())) {
+            println("A Mages instance is already running and did not accept the link.")
+        }
+        return
+    }
+
+    WindowsUriSchemes.registerSchemes()
 
     application {
-        MagesPaths.init()
 
     val settingsRepo = remember { SettingsProvider.get() }
     val initialStartInTray = remember {
@@ -43,8 +62,30 @@ fun main(args: Array<String>) {
     var startInTray by remember { mutableStateOf(initialStartInTray) }
 var showWindow by remember { mutableStateOf(!startInTray || initialDeepLink != null) }
 
+    runCatching {
+        java.awt.Desktop.getDesktop().setOpenURIHandler { event ->
+            SwingUtilities.invokeLater {
+                showWindow = true
+                PendingDeepLinks.offer(event.getURI().toString())
+            }
+        }
+    }
+
     val deepLinkEmitter = remember { MutableSharedFlow<DeepLinkAction>(extraBufferCapacity = 8) }
     val deepLinks = remember { deepLinkEmitter.asSharedFlow() }
+
+    LaunchedEffect(Unit) {
+        args.filter { isDeepLinkArg(it) }.forEach { PendingDeepLinks.offer(it) }
+
+        singleInstance.startReceiving { received ->
+            val links = received.filter { isDeepLinkArg(it) }
+            if (links.isEmpty()) return@startReceiving
+            SwingUtilities.invokeLater {
+                showWindow = true
+                links.forEach { PendingDeepLinks.offer(it) }
+            }
+        }
+    }
 
     val scope = rememberCoroutineScope()
 
@@ -188,8 +229,7 @@ var showWindow by remember { mutableStateOf(!startInTray || initialDeepLink != n
 
             ProvideMapPresentationHost(host = rememberAwtComposeMapPresentationHost(window)) {
                 DesktopAppContent(
-                    deepLinks = deepLinks,
-                    initialDeepLink = initialDeepLink
+                    deepLinks = deepLinks
                 )
             }
         }

@@ -26,3 +26,16 @@ suspend fun handleMatrixLink(
         MatrixLink.Unsupported -> false
     }
 }
+
+suspend fun resolveDeepLink(service: MatrixService, rawLink: String): DeepLinkAction? {
+    val link = parseMatrixLink(rawLink)
+    if (link is MatrixLink.Unsupported) {
+        return parseMagesRoomLink(rawLink)
+    }
+
+    var action: DeepLinkAction? = null
+    val opened = handleMatrixLink(service, link) { roomId, eventId ->
+        action = DeepLinkAction(roomId = roomId, eventId = eventId)
+    }
+    return action.takeIf { opened }
+}

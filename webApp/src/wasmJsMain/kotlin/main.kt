@@ -4,15 +4,11 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
 import io.github.mlmgames.settings.core.actions.ActionRegistry
 import kotlinx.browser.window
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import org.mlm.mages.di.KoinApp
-import org.mlm.mages.nav.DeepLinkAction
 import org.mlm.mages.nav.MatrixLink
+import org.mlm.mages.nav.PendingDeepLinks
 import org.mlm.mages.nav.parseMatrixLink
 import org.mlm.mages.platform.Notifier
 import org.mlm.mages.platform.SettingsProvider
@@ -22,7 +18,7 @@ import org.mlm.mages.settings.RequestNotificationPermissionAction
 import org.mlm.mages.settings.TestNotificationAction
 import org.mlm.mages.ui.util.nowMs
 
-@OptIn(ExperimentalComposeUiApi::class, FlowPreview::class)
+@OptIn(ExperimentalComposeUiApi::class)
 fun main() {
     installWebImageLoader()
 
@@ -52,35 +48,35 @@ fun main() {
         )
     }
 
+    watchBrowserLinks()
+
     ComposeViewport {
         KoinApp(settingsRepo) {
-            App(settingsRepo, deepLinks = browserDeepLinks())
+            App(settingsRepo)
         }
     }
 }
 
-@OptIn(FlowPreview::class)
-private fun browserDeepLinks(): Flow<DeepLinkAction> {
-    val deepLinkEmitter = MutableSharedFlow<DeepLinkAction>(
-        replay = 0,
-        extraBufferCapacity = 8
-    )
-    val deepLinks = deepLinkEmitter.asSharedFlow()
+// The web build is reached at its own origin, so room links arrive as
+// fragments on the page URL (https://host/#/!room:server). They are
+// re-parsed as matrix.to links and held by App until an account exists.
+private fun watchBrowserLinks() {
+    fun parseAndOffer(url: String) {
+        if (parseMatrixLink(url) !is MatrixLink.Unsupported) {
+            PendingDeepLinks.offer(url)
+            return
+        }
 
-    fun parseAndEmit(url: String) {
-        val link = parseMatrixLink(url)
-        if (link is MatrixLink.Room) {
-            deepLinkEmitter.tryEmit(DeepLinkAction(
-                roomId = link.target.roomIdOrAlias,
-                eventId = link.target.eventId
-            ))
+        val fragment = url.substringAfter('#', "").trim()
+        if (fragment.isEmpty()) return
+
+        val asMatrixToLink = "https://matrix.to/#/$fragment"
+        if (parseMatrixLink(asMatrixToLink) !is MatrixLink.Unsupported) {
+            PendingDeepLinks.offer(asMatrixToLink)
         }
     }
 
-    parseAndEmit(window.location.href)
-
-    window.addEventListener("hashchange") { parseAndEmit(window.location.href) }
-    window.addEventListener("popstate") { parseAndEmit(window.location.href) }
-
-    return deepLinks
+    parseAndOffer(window.location.href)
+    window.addEventListener("hashchange") { parseAndOffer(window.location.href) }
+    window.addEventListener("popstate") { parseAndOffer(window.location.href) }
 }

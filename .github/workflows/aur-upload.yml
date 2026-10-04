@@ -96,7 +96,7 @@ jobs:
           [Desktop Entry]
           Name=Mages
           Comment=Mages matrix client (desktop)
-          MimeType=x-scheme-handler/matrix;
+          MimeType=x-scheme-handler/matrix;x-scheme-handler/mages;
           Exec=mages %U
           Icon=mages
           Terminal=false
