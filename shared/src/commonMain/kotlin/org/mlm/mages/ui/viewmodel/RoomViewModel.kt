@@ -306,6 +306,9 @@ class RoomViewModel(
 
         /** Custom emotes render at 32dp, so this covers high-density screens. */
         const val EMOTE_PX = 128
+
+        /** Retries after the first attempt, so a transient failure is not terminal. */
+        const val EMOTE_FETCH_ATTEMPTS = 2
     }
 
     private fun filteredVisibleEvents(items: List<MessageEvent>): List<MessageEvent> =
@@ -3052,7 +3055,7 @@ class RoomViewModel(
      * authoritative parse and repeats the scheme check, so a message crafted to
      * fool this regex still cannot cause a non-mxc fetch.
      */
-    fun ensureEmotes(event: MessageEvent) {
+    fun ensureEmotes(event: MessageEvent, attempt: Int = 0) {
         val uris = emoteMxcUrisFrom(event.formattedBody)
         if (uris.isEmpty()) return
         if (!mediaPreviewsAllowed()) return
@@ -3071,6 +3074,13 @@ class RoomViewModel(
                 }.toMap()
                 if (resolved.isNotEmpty()) {
                     updateState { copy(emotePathByMxc = emotePathByMxc + resolved) }
+                }
+                val stillMissing = missing.filterNot { resolved.containsKey(it) }
+                if (stillMissing.isNotEmpty() && attempt < EMOTE_FETCH_ATTEMPTS) {
+                    // Released before the delay so the retry re-claims them itself.
+                    stillMissing.forEach { emoteFetchInFlight.remove(it) }
+                    delay(1_000L * (attempt + 1))
+                    ensureEmotes(event, attempt + 1)
                 }
             } finally {
                 missing.forEach { emoteFetchInFlight.remove(it) }

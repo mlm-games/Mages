@@ -107,7 +107,7 @@ data class EmoteRef(
     val title: String?,
     val path: String? = null
 ) {
-    val label: String get() = alt?.takeIf { it.isNotBlank() } ?: title?.takeIf { it.isNotBlank() } ?: mxcUri
+    val label: String get() = alt?.takeIf { it.isNotBlank() } ?: title?.takeIf { it.isNotBlank() } ?: ""
 }
 
 /** A run of text the sender marked as hidden, addressed by its position in the body. */
@@ -345,7 +345,7 @@ private class Builder(
 
         val path = ref.path
         if (path == null) {
-            text.append(ref.label)
+            if (ref.label.isNotEmpty()) text.append(ref.label)
             return
         }
 
@@ -369,13 +369,15 @@ private fun EmoteImage(emote: EmoteRef) {
     val path = emote.path
 
     if (path == null) {
-        Text(
-            text = emote.label,
-            color = LocalContentColor.current.copy(alpha = 0.7f),
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontSize = LocalMessageFontSize.current.sp
+        if (emote.label.isNotEmpty()) {
+            Text(
+                text = emote.label,
+                color = LocalContentColor.current.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = LocalMessageFontSize.current.sp
+                )
             )
-        )
+        }
         return
     }
 

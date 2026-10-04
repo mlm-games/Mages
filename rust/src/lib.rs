@@ -2919,7 +2919,6 @@ impl Client {
                 UInt::from(width.max(1)),
                 UInt::from(height.max(1)),
             );
-            let settings = matrix_sdk::media::MediaThumbnailSettings { animated: true, ..settings };
             let req = MediaRequestParameters {
                 source: MediaSource::Plain(mxc_uri.clone().into()),
                 format: MediaFormat::Thumbnail(settings),
