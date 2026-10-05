@@ -9,8 +9,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import mages.shared.generated.resources.*
 import org.mlm.mages.MatrixService
-import org.mlm.mages.matrix.ActionAvailability
-import org.mlm.mages.matrix.ActionPresentation
 import org.mlm.mages.matrix.isInviteBlocked
 import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.KnockRequestSummary
@@ -26,7 +24,7 @@ import org.mlm.mages.matrix.MatrixPort.RoomInfoObserver
 import org.mlm.mages.matrix.RoomPredecessorInfo
 import org.mlm.mages.matrix.RoomProfile
 import org.mlm.mages.ui.ActionAvailabilityUi
-import org.mlm.mages.ui.ActionPresentationUi
+import org.mlm.mages.ui.toUi
 import org.mlm.mages.matrix.RoomUpgradeInfo
 import org.mlm.mages.matrix.SpaceInfo
 import org.jetbrains.compose.resources.getString
@@ -95,16 +93,6 @@ class RoomInfoViewModel(
     private val service: MatrixService,
     private val roomId: String
 ) : BaseViewModel<RoomInfoUiState>(RoomInfoUiState()) {
-
-    private fun ActionAvailability.toUi(): ActionAvailabilityUi =
-        ActionAvailabilityUi(
-            presentation = when (presentation) {
-                ActionPresentation.Hidden -> ActionPresentationUi.Hidden
-                ActionPresentation.Disabled -> ActionPresentationUi.Disabled
-                ActionPresentation.Enabled -> ActionPresentationUi.Enabled
-            },
-            reason = reason,
-        )
 
     sealed class Event {
         object LeaveSuccess : Event()

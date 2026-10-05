@@ -33,7 +33,7 @@ import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.storage.UserProfile
 import org.mlm.mages.ui.ActionAvailabilityUi
 import org.mlm.mages.ui.ActionPresentationUi
-import org.mlm.mages.matrix.ActionAvailability
+import org.mlm.mages.ui.toUi
 import org.mlm.mages.matrix.ActionPresentation
 import org.mlm.mages.ui.ForwardableRoom
 import org.mlm.mages.ui.AttachmentUploadStage
@@ -82,16 +82,6 @@ class RoomViewModel(
         service = service,
         savedStateHandle = SavedStateHandle(mapOf("roomId" to roomId, "roomName" to roomName))
     )
-
-    private fun ActionAvailability.toUi(): ActionAvailabilityUi =
-        ActionAvailabilityUi(
-            presentation = when (presentation) {
-                ActionPresentation.Hidden -> ActionPresentationUi.Hidden
-                ActionPresentation.Disabled -> ActionPresentationUi.Disabled
-                ActionPresentation.Enabled -> ActionPresentationUi.Enabled
-            },
-            reason = reason,
-        )
 
     private fun MessageActionState.toUi(): MessageActionStateUi =
         MessageActionStateUi(
@@ -1219,8 +1209,21 @@ class RoomViewModel(
         }
     }
 
+    /**
+     * Offers the actions for [userId] rather than acting on them, so a tap on a mention pill or on
+     * a sender picks what to do instead of falling straight into a conversation.
+     *
+     * A mentioned user need not be in the member list, so a pill falls back to the profile it
+     * resolved; the sheet then offers only the actions a non-member can take.
+     */
     fun selectMemberForAction(userId: String) {
-        val member = currentState.roomMembers.firstOrNull { it.userId == userId } ?: return
+        if (userId.isBlank() || userId == currentState.myUserId) return
+        if (currentState.isSelectionMode) return
+        val member = currentState.roomMembers.firstOrNull { it.userId == userId }
+            ?: currentState.mentionProfilesByUserId[userId]?.let {
+                MemberSummary(userId = it.userId, displayName = it.displayName, avatarUrl = it.avatarPath)
+            }
+            ?: return
         launch {
             val reason = getString(Res.string.checking_whether_you_can_start_a_conversation)
             updateState {
@@ -1256,18 +1259,6 @@ class RoomViewModel(
                 _events.send(Event.ShowSuccess(getString(Res.string.user_ignored)))
             } else {
                 _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.failed_to_ignore_user))))
-            }
-        }
-    }
-
-    /** Tapping a mention pill, which opens a DM with the mentioned user. */
-    fun openMention(userId: String) {
-        if (userId.isBlank() || userId == currentState.myUserId) return
-        if (currentState.isSelectionMode) return
-        launch {
-            val dmRoomId = runSafe { service.port.ensureDm(userId) }
-            if (dmRoomId != null) {
-                _events.send(Event.NavigateToRoom(dmRoomId, userId))
             }
         }
     }

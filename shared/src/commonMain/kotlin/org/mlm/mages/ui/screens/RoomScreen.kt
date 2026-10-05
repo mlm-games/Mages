@@ -1775,9 +1775,7 @@ private fun MessageItem(
                             event.pollData?.let { p -> viewModel.votePoll(event.eventId, p, optionId) }
                         },
                         onEndPoll = { viewModel.endPoll(event.eventId) },
-                        onMentionClick = { userId ->
-                            viewModel.openMention(userId)
-                        },
+                        onMentionClick = viewModel::selectMemberForAction,
                         onReplyPreviewClick = event.replyToEventId?.let { rid ->
                             {
                                 onSaveReturnPosition(event.eventId)

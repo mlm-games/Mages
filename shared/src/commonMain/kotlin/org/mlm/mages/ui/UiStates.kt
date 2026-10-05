@@ -11,6 +11,8 @@ import org.mlm.mages.ReplyPreview
 import org.mlm.mages.ReplyPreviewKind
 import org.mlm.mages.RoomSummary
 import org.mlm.mages.captionOr
+import org.mlm.mages.matrix.ActionAvailability
+import org.mlm.mages.matrix.ActionPresentation
 import org.mlm.mages.matrix.DeviceSummary
 import org.mlm.mages.matrix.EventType
 import org.mlm.mages.matrix.HomeserverLoginDetails
@@ -126,6 +128,16 @@ data class ActionAvailabilityUi(
         )
     }
 }
+
+fun ActionAvailability.toUi(): ActionAvailabilityUi =
+    ActionAvailabilityUi(
+        presentation = when (presentation) {
+            ActionPresentation.Hidden -> ActionPresentationUi.Hidden
+            ActionPresentation.Disabled -> ActionPresentationUi.Disabled
+            ActionPresentation.Enabled -> ActionPresentationUi.Enabled
+        },
+        reason = reason,
+    )
 
 fun MessageEvent.mediaCaption(): String? {
     val info = attachment ?: return null
@@ -674,6 +686,11 @@ data class ThreadUiState(
     val isRoomEncrypted: Boolean = false,
     /** See [RoomUiState.mentionProfilesByUserId]. */
     val mentionProfilesByUserId: Map<String, MentionProfileUi> = emptyMap(),
+    val selectedMemberForAction: MemberSummary? = null,
+    val selectedMemberDmAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val selectedMemberKickAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val selectedMemberBanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    val selectedMemberUnbanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
 ) {
     val messageCount: Int get() = (if (rootMessage != null) 1 else 0) + replies.size
 

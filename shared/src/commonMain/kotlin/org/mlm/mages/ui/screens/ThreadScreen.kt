@@ -27,6 +27,7 @@ import org.koin.compose.koinInject
 import org.mlm.mages.LinkPreview
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.thumbKey
+import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.ui.MentionProfileUi
 import org.mlm.mages.ui.ThreadUiState
@@ -47,6 +48,7 @@ import org.mlm.mages.ui.components.message.toBubbleModel
 import org.mlm.mages.ui.components.timeline.TimelineContent
 import org.mlm.mages.ui.components.timeline.TimelineEventItem
 import org.mlm.mages.ui.components.timeline.toTimelineContent
+import org.mlm.mages.ui.components.sheets.MemberActionsSheet
 import org.mlm.mages.ui.components.sheets.MessageActionSheet
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
@@ -105,7 +107,16 @@ fun ThreadRoute(
         showReactionAvatars = settings.showReactionAvatars,
         canEditLatest = settings.editLatestWithUpArrow && state.editingEvent == null && viewModel.hasEditableLatest(),
         onEditLatest = viewModel::startEditLatestEditable,
-        onMentionClick = { userId -> viewModel.openMention(userId) },
+        onMentionClick = viewModel::selectMemberForAction,
+        onDismissMember = viewModel::clearSelectedMember,
+        onStartDm = viewModel::startDmWith,
+        onKick = viewModel::kickUser,
+        onBan = viewModel::banUser,
+        onUnban = viewModel::unbanUser,
+        onIgnore = viewModel::ignoreUser,
+        onOpenAvatar = { member ->
+            viewModel.openAvatarExternally(member) { path, mime -> openExternal(path, mime) }
+        },
         emoteSuggestions = viewModel.emoteSuggestions,
         resolveEmotePreview = { thumbnail, mxc -> viewModel.emotePreview(thumbnail, mxc) },
         reactionShortcodes = viewModel.reactionShortcodes,
@@ -134,6 +145,13 @@ fun ThreadScreen(
     canEditLatest: Boolean = false,
     onEditLatest: () -> Unit = {},
     onMentionClick: ((String) -> Unit)? = null,
+    onDismissMember: () -> Unit = {},
+    onStartDm: (String) -> Unit = { },
+    onKick: (String, String?) -> Unit = { _, _ -> },
+    onBan: (String, String?) -> Unit = { _, _ -> },
+    onUnban: (String, String?) -> Unit = { _, _ -> },
+    onIgnore: (String) -> Unit = { },
+    onOpenAvatar: (MemberSummary) -> Unit = { },
     showReactionAvatars: Boolean = true,
     emoteSuggestions: List<EmoteSuggestion> = emptyList(),
     resolveEmotePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String? = { _, _ -> null },
@@ -462,6 +480,24 @@ fun ThreadScreen(
             onReact = { emoji -> onReact(ev, emoji) },
             onMarkReadHere = { sheetEvent = null },
             onSelect = { }// viewModel.enterSelectionMode(event.eventId) },
+        )
+    }
+
+    state.selectedMemberForAction?.let { member ->
+        MemberActionsSheet(
+            member = member.copy(avatarUrl = state.avatarByUserId[member.userId] ?: member.avatarUrl),
+            onDismiss = onDismissMember,
+            dmAction = state.selectedMemberDmAction,
+            kickAction = state.selectedMemberKickAction,
+            banAction = state.selectedMemberBanAction,
+            unbanAction = state.selectedMemberUnbanAction,
+            onStartDm = { onStartDm(member.userId) },
+            onKick = { reason -> onKick(member.userId, reason) },
+            onBan = { reason -> onBan(member.userId, reason) },
+            onUnban = { reason -> onUnban(member.userId, reason) },
+            onIgnore = { onIgnore(member.userId) },
+            onAvatarClick = { onOpenAvatar(member) },
+            isBanned = member.membership == "ban"
         )
     }
 }

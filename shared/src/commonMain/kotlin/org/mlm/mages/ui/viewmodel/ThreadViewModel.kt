@@ -19,14 +19,19 @@ import org.mlm.mages.ReplyPreviewKind
 import org.mlm.mages.thumbKey
 import org.mlm.mages.thumbToBridge
 import org.mlm.mages.matrix.ImagePackSummary
+import org.mlm.mages.matrix.ActionPresentation
 import org.mlm.mages.matrix.LINK_PREVIEW_IMAGE_PX
+import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.TimelineDiff
 import org.mlm.mages.matrix.allowsLinkPreviews
 import org.mlm.mages.matrix.allowsMediaPreviews
 import org.mlm.mages.emoji.RecentEmojiStore
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.storage.UserProfile
+import org.mlm.mages.ui.ActionAvailabilityUi
+import org.mlm.mages.ui.ActionPresentationUi
 import org.mlm.mages.ui.MentionProfileUi
+import org.mlm.mages.ui.toUi
 import org.mlm.mages.ui.isEditableBy
 import org.mlm.mages.ui.ThreadUiState
 import org.mlm.mages.ui.components.composer.EmoteSuggestion
@@ -593,15 +598,137 @@ class ThreadViewModel(
         events.forEach { ensureLinkPreview(it) }
     }
 
-    /** Tapping a mention pill, which opens a DM with the mentioned user. */
-    fun openMention(userId: String) {
+    /**
+     * Offers the actions for [userId] rather than acting on them, so a tap on a mention pill picks
+     * what to do instead of falling straight into a conversation.
+     *
+     * A mentioned user need not be in the member list, so a pill falls back to the profile it
+     * resolved; the sheet then offers only the actions a non-member can take.
+     */
+    fun selectMemberForAction(userId: String) {
         if (userId.isBlank() || userId == myUserId) return
+        val member = currentState.roomMembers.firstOrNull { it.userId == userId }
+            ?: currentState.mentionProfilesByUserId[userId]?.let {
+                MemberSummary(userId = it.userId, displayName = it.displayName, avatarUrl = it.avatarPath)
+            }
+            ?: return
         launch {
-            val dmRoomId = runSafe { service.port.ensureDm(userId) }
-            if (dmRoomId != null) {
-                _events.send(Event.NavigateToRoom(dmRoomId, userId))
+            val reason = getString(Res.string.checking_whether_you_can_start_a_conversation)
+            updateState {
+                copy(
+                    selectedMemberForAction = member,
+                    selectedMemberDmAction = ActionAvailabilityUi(
+                        presentation = ActionPresentationUi.Disabled,
+                        reason = reason,
+                    ),
+                )
+            }
+            val actionState = runSafe { service.port.memberActionState(roomId, userId) }
+            if (actionState == null || currentState.selectedMemberForAction?.userId != userId) return@launch
+            updateState {
+                copy(
+                    selectedMemberDmAction = actionState.directMessage.toUi(),
+                    selectedMemberKickAction = actionState.kick.toUi(),
+                    selectedMemberBanAction = actionState.ban.toUi(),
+                    selectedMemberUnbanAction = actionState.unban.toUi(),
+                )
             }
         }
+    }
+
+    fun clearSelectedMember() = updateState {
+        copy(
+            selectedMemberForAction = null,
+            selectedMemberDmAction = ActionAvailabilityUi(),
+        )
+    }
+
+    fun startDmWith(userId: String) {
+        launch {
+            val actionState = runSafe { service.port.memberActionState(roomId, userId) }
+            if (actionState == null) {
+                _events.send(Event.ShowError(getString(Res.string.failed_to_check_whether_a_conversation_can_be_started)))
+                return@launch
+            }
+
+            if (actionState.directMessage.presentation != ActionPresentation.Enabled) {
+                _events.send(
+                    Event.ShowError(
+                        actionState.directMessage.reason
+                            ?: getString(Res.string.you_cannot_start_a_conversation_with_this_user)
+                    )
+                )
+                return@launch
+            }
+
+            val dmRoomId = runSafe { service.port.ensureDmIfAllowed(roomId, userId) }
+            if (dmRoomId == null) {
+                _events.send(Event.ShowError(getString(Res.string.failed_to_start_conversation)))
+                return@launch
+            }
+
+            clearSelectedMember()
+            val profile = runSafe { service.port.roomProfile(dmRoomId) }
+            _events.send(Event.NavigateToRoom(dmRoomId, profile?.name ?: userId))
+        }
+    }
+
+    fun kickUser(userId: String, reason: String?) {
+        launch {
+            val result = runSafe { service.port.kickUser(roomId, userId, reason) }
+            if (result?.isSuccess == true) {
+                clearSelectedMember()
+                _events.send(Event.ShowSuccess(getString(Res.string.user_kicked)))
+            } else {
+                _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.failed_to_kick_user))))
+            }
+        }
+    }
+
+    fun banUser(userId: String, reason: String?) {
+        launch {
+            val result = runSafe { service.port.banUser(roomId, userId, reason) }
+            if (result?.isSuccess == true) {
+                clearSelectedMember()
+                _events.send(Event.ShowSuccess(getString(Res.string.user_banned)))
+            } else {
+                _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.failed_to_ban_user))))
+            }
+        }
+    }
+
+    fun unbanUser(userId: String, reason: String?) {
+        launch {
+            val result = runSafe { service.port.unbanUser(roomId, userId, reason) }
+            if (result?.isSuccess == true) {
+                clearSelectedMember()
+                _events.send(Event.ShowSuccess(getString(Res.string.user_unbanned)))
+            } else {
+                _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.failed_to_unban_user))))
+            }
+        }
+    }
+
+    fun ignoreUser(userId: String) {
+        launch {
+            val result = runSafe { service.port.ignoreUser(userId) }
+            if (result?.isSuccess == true) {
+                clearSelectedMember()
+                _events.send(Event.ShowSuccess(getString(Res.string.user_ignored)))
+            } else {
+                _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.failed_to_ignore_user))))
+            }
+        }
+    }
+
+    fun openAvatarExternally(member: MemberSummary, onOpen: (String, String?) -> Unit) {
+        openAvatarForViewing(
+            service = service,
+            userId = member.userId,
+            fallbackAvatarUrl = member.avatarUrl,
+            onOpen = onOpen,
+            onError = { _events.send(Event.ShowError(getString(Res.string.download_failed))) },
+        )
     }
 
     private fun prefetchMentionProfiles(events: List<MessageEvent>) {
