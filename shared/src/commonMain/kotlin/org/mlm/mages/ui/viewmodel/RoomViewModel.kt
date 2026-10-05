@@ -137,31 +137,15 @@ class RoomViewModel(
         }
     }
 
-    private suspend fun refreshSelectedMemberActionState(userId: String?) {
-        if (userId == null) {
-            updateState {
-                copy(
-                    selectedMemberDmAction = ActionAvailabilityUi(),
-                    selectedMemberKickAction = ActionAvailabilityUi(),
-                    selectedMemberBanAction = ActionAvailabilityUi(),
-                    selectedMemberUnbanAction = ActionAvailabilityUi(),
-                )
-            }
-            return
-        }
-
-        val actionState = runSafe {
-            service.port.memberActionState(currentState.roomId, userId)
-        } ?: return
-
+    private suspend fun refreshSelectedMemberActionState(userId: String) {
+        val actionState = runSafe { service.port.memberActionState(currentState.roomId, userId) }
         if (currentState.selectedMemberForAction?.userId != userId) return
-
         updateState {
             copy(
-                selectedMemberDmAction = actionState.directMessage.toUi(),
-                selectedMemberKickAction = actionState.kick.toUi(),
-                selectedMemberBanAction = actionState.ban.toUi(),
-                selectedMemberUnbanAction = actionState.unban.toUi(),
+                selectedMemberDmAction = actionState?.directMessage?.toUi() ?: ActionAvailabilityUi(),
+                selectedMemberKickAction = actionState?.kick?.toUi() ?: ActionAvailabilityUi(),
+                selectedMemberBanAction = actionState?.ban?.toUi() ?: ActionAvailabilityUi(),
+                selectedMemberUnbanAction = actionState?.unban?.toUi() ?: ActionAvailabilityUi(),
             )
         }
     }
@@ -1101,7 +1085,7 @@ class RoomViewModel(
             if (result?.isSuccess == true) {
                 _events.send(Event.ShowSuccess(getString(Res.string.user_kicked)))
             } else {
-                _events.send(Event.ShowError(result?.exceptionOrNull()?.message ?: getString(Res.string.failed_to_kick_user)))
+                _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.failed_to_kick_user))))
             }
         }
     }
@@ -1112,7 +1096,7 @@ class RoomViewModel(
             if (result?.isSuccess == true) {
                 _events.send(Event.ShowSuccess(getString(Res.string.user_banned)))
             } else {
-                _events.send(Event.ShowError(result?.exceptionOrNull()?.message ?: getString(Res.string.failed_to_ban_user)))
+                _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.failed_to_ban_user))))
             }
         }
     }
@@ -1123,7 +1107,7 @@ class RoomViewModel(
             if (result?.isSuccess == true) {
                 _events.send(Event.ShowSuccess(getString(Res.string.user_unbanned)))
             } else {
-                _events.send(Event.ShowError(result?.exceptionOrNull()?.message ?: getString(Res.string.failed_to_unban_user)))
+                _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.failed_to_unban_user))))
             }
         }
     }
@@ -1213,25 +1197,23 @@ class RoomViewModel(
      * Offers the actions for [userId] rather than acting on them, so a tap on a mention pill or on
      * a sender picks what to do instead of falling straight into a conversation.
      *
-     * A mentioned user need not be in the member list, so a pill falls back to the profile it
-     * resolved; the sheet then offers only the actions a non-member can take.
+     * Every action the sheet offers is room-scoped, so a pill for someone who is not a member has
+     * nothing to offer and is left alone.
      */
     fun selectMemberForAction(userId: String) {
         if (userId.isBlank() || userId == currentState.myUserId) return
         if (currentState.isSelectionMode) return
-        val member = currentState.roomMembers.firstOrNull { it.userId == userId }
-            ?: currentState.mentionProfilesByUserId[userId]?.let {
-                MemberSummary(userId = it.userId, displayName = it.displayName, avatarUrl = it.avatarPath)
-            }
-            ?: return
+        val member = currentState.roomMembers.firstOrNull { it.userId == userId } ?: return
+        clearSelectedMember()
+        updateState { copy(selectedMemberForAction = member) }
         launch {
-            val reason = getString(Res.string.checking_whether_you_can_start_a_conversation)
+            val checking = getString(Res.string.checking_whether_you_can_start_a_conversation)
+            if (currentState.selectedMemberForAction?.userId != userId) return@launch
             updateState {
                 copy(
-                    selectedMemberForAction = member,
                     selectedMemberDmAction = ActionAvailabilityUi(
                         presentation = ActionPresentationUi.Disabled,
-                        reason = reason,
+                        reason = checking,
                     ),
                 )
             }
@@ -1243,6 +1225,9 @@ class RoomViewModel(
         copy(
             selectedMemberForAction = null,
             selectedMemberDmAction = ActionAvailabilityUi(),
+            selectedMemberKickAction = ActionAvailabilityUi(),
+            selectedMemberBanAction = ActionAvailabilityUi(),
+            selectedMemberUnbanAction = ActionAvailabilityUi(),
         )
     }
 
@@ -1250,12 +1235,6 @@ class RoomViewModel(
         launch {
             val result = runSafe { service.port.ignoreUser(userId) }
             if (result?.isSuccess == true) {
-                updateState {
-                    copy(
-                        selectedMemberForAction = null,
-                        selectedMemberDmAction = ActionAvailabilityUi(),
-                    )
-                }
                 _events.send(Event.ShowSuccess(getString(Res.string.user_ignored)))
             } else {
                 _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.failed_to_ignore_user))))
@@ -1289,12 +1268,6 @@ class RoomViewModel(
             }
 
             if (dmRoomId != null) {
-                updateState {
-                    copy(
-                        selectedMemberForAction = null,
-                        selectedMemberDmAction = ActionAvailabilityUi(),
-                    )
-                }
                 val profile = runSafe { service.port.roomProfile(dmRoomId) }
                 _events.send(Event.NavigateToRoom(dmRoomId, profile?.name ?: userId))
             } else {
