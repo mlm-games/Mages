@@ -388,14 +388,14 @@ actual fun LiveLocationMapViewer(
                         onSuccess = { result ->
                             if (result is LocationResult.Success) {
                                 runCatching {
-                                    mapState.animateCameraPosition(
+                                    mapState.animateCamera(
                                         CameraPosition(
                                             target = Position(
                                                 longitude = result.location.longitude,
                                                 latitude = result.location.latitude,
                                             ),
                                             zoom = FOCUS_ZOOM
-                                        ),
+                                        ).toCameraUpdate(),
                                         animation = CameraAnimation.Ease(),
                                     )
                                 }.fold(
@@ -443,8 +443,8 @@ actual fun LiveLocationMapViewer(
             val request = focusRequest ?: return@LaunchedEffect
             endFollow()
             runCatching {
-                mapState.animateCameraPosition(
-                    CameraPosition(target = request.position, zoom = FOCUS_ZOOM),
+                mapState.animateCamera(
+                    CameraPosition(target = request.position, zoom = FOCUS_ZOOM).toCameraUpdate(),
                     animation = CameraAnimation.Ease(),
                 )
             }
@@ -466,7 +466,7 @@ actual fun LiveLocationMapViewer(
         MaplibreMap(
             modifier = Modifier.fillMaxSize(),
             state = mapState,
-            cameraPadding = mapCameraPadding,
+            viewportInsets = mapCameraPadding,
         )
 
         if (isPicking) {
