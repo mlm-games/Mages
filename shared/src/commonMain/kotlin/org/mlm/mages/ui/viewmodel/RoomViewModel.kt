@@ -30,6 +30,7 @@ import org.mlm.mages.platform.platformEmbeddedElementCallUrlOrNull
 import org.mlm.mages.platform.voiceMessageMimeType
 import org.mlm.mages.platform.voiceMessageExtension
 import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.storage.UserProfile
 import org.mlm.mages.ui.ActionAvailabilityUi
 import org.mlm.mages.ui.ActionPresentationUi
 import org.mlm.mages.matrix.ActionAvailability
@@ -37,6 +38,7 @@ import org.mlm.mages.matrix.ActionPresentation
 import org.mlm.mages.ui.ForwardableRoom
 import org.mlm.mages.ui.AttachmentUploadStage
 import org.mlm.mages.ui.MessageActionStateUi
+import org.mlm.mages.ui.MentionProfileUi
 import org.mlm.mages.ui.theme.Durations
 import org.mlm.mages.ui.RoomUiState
 import org.mlm.mages.ui.components.AttachmentData
@@ -1258,6 +1260,18 @@ class RoomViewModel(
         }
     }
 
+    /** Tapping a mention pill, which opens a DM with the mentioned user. */
+    fun openMention(userId: String) {
+        if (userId.isBlank() || userId == currentState.myUserId) return
+        if (currentState.isSelectionMode) return
+        launch {
+            val dmRoomId = runSafe { service.port.ensureDm(userId) }
+            if (dmRoomId != null) {
+                _events.send(Event.NavigateToRoom(dmRoomId, userId))
+            }
+        }
+    }
+
     fun startDmWith(userId: String) {
         launch {
             val actionState = runSafe {
@@ -2359,6 +2373,7 @@ class RoomViewModel(
         prefetchThumbnailsForEvents(visible.takeLast(8))
         prefetchLinkPreviews(visible.takeLast(8))
         prefetchSenderAvatars(newEvents)
+        prefetchMentionProfiles(newEvents)
         prefetchReactionUserAvatars(newEvents)
         prefetchAudioForEvents(visible.takeLast(8))
     }
@@ -2956,6 +2971,14 @@ class RoomViewModel(
     private fun linkPreviewsAllowed(): Boolean =
         settings.value.linkPreviews.allowsLinkPreviews(currentState.isRoomEncrypted)
 
+    private fun prefetchLinkPreviews(events: List<MessageEvent>) {
+        if (!linkPreviewsAllowed()) return
+
+        events.forEach { ev ->
+            ensureLinkPreview(ev)
+        }
+    }
+
     private fun prefetchThumbnailsForEvents(events: List<MessageEvent>) {
         if (!mediaPreviewsAllowed()) return
 
@@ -2964,11 +2987,46 @@ class RoomViewModel(
         }
     }
 
-    private fun prefetchLinkPreviews(events: List<MessageEvent>) {
-        if (!linkPreviewsAllowed()) return
+    private fun prefetchMentionProfiles(events: List<MessageEvent>) {
+        val known = currentState.mentionProfilesByUserId
+        val wanted = LinkedHashSet<String>()
+        // The timeline already carries a name for everyone who spoke, which covers the
+        // common case of being mentioned by someone in view.
+        val seen = LinkedHashMap<String, UserProfile>()
+        events.forEach { event ->
+            val senderName = event.senderDisplayName
+            if (!senderName.isNullOrBlank()) {
+                seen[event.sender] = UserProfile(senderName, event.senderAvatarUrl)
+            }
+            event.mentionedUserIds.forEach { userId ->
+                if (userId.isNotBlank() && userId !in known) wanted += userId
+            }
+        }
+        if (wanted.isEmpty()) return
 
-        events.forEach { ev ->
-            ensureLinkPreview(ev)
+        launch {
+            service.profiles.rememberAll(seen + currentState.roomMembers.mapNotNull { member ->
+                member.displayName?.let { member.userId to UserProfile(it, member.avatarUrl) }
+            }.toMap())
+
+            val resolved = LinkedHashMap<String, MentionProfileUi>()
+            wanted.take(24).forEach { userId ->
+                val profile = withTimeoutOrNull(8_000) {
+                    runCatching { service.profiles.resolve(userId) }.getOrNull()
+                }
+                val name = profile?.displayName?.takeIf { it.isNotBlank() } ?: userId
+                val avatarUrl = profile?.avatarUrl
+                val avatarPath = if (avatarUrl != null && mediaPreviewsAllowed()) {
+                    withTimeoutOrNull(8_000) {
+                        runCatching { service.avatars.resolve(avatarUrl, px = 64, crop = true) }.getOrNull()
+                    }
+                } else {
+                    null
+                }
+                resolved[userId] = MentionProfileUi(userId, name, avatarPath)
+            }
+            if (resolved.isEmpty()) return@launch
+            updateState { copy(mentionProfilesByUserId = mentionProfilesByUserId + resolved) }
         }
     }
 

@@ -49,6 +49,7 @@ import org.mlm.mages.matrix.SendState
 import org.mlm.mages.ui.components.blurHashBackground
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.FormattedBodyText
+import org.mlm.mages.ui.components.core.MentionRef
 import org.mlm.mages.ui.components.rememberBlurHashImage
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.components.voice.VoiceMessageBubble
@@ -77,6 +78,7 @@ fun TimelineSenderAvatar(
 fun MessageBubble(
     model: MessageBubbleModel,
     modifier: Modifier = Modifier,
+    onMentionClick: ((String) -> Unit)? = null,
     onLongPress: (() -> Unit)? = null,
     onReact: ((String) -> Unit)? = null,
     onOpenAttachment: (() -> Unit)? = null,
@@ -228,7 +230,10 @@ fun MessageBubble(
                                                 fallbackBody = attachment.caption,
                                                 color = bubbleTextColor,
                                                 containerColor = bubbleContainerColor,
-                                                emotePaths = emotePaths
+                                                emotePaths = emotePaths,
+                                                mentionRefs = model.mentions,
+                                                mentionsRoom = model.mentionsRoom,
+                                                onMentionClick = onMentionClick
                                             )
                                         }
                                     } else {
@@ -250,7 +255,10 @@ fun MessageBubble(
                                         onOpen = onOpenAttachment,
                                         timestamp = timestampContent,
                                         containerColor = bubbleContainerColor,
-                                        emotePaths = emotePaths
+                                        emotePaths = emotePaths,
+                                        mentionRefs = model.mentions,
+                                        mentionsRoom = model.mentionsRoom,
+                                        onMentionClick = onMentionClick
                                     )
                                 }
                                 is MessageAttachmentUi.Video -> {
@@ -260,7 +268,10 @@ fun MessageBubble(
                                         onOpen = onOpenAttachment,
                                         timestamp = timestampContent,
                                         containerColor = bubbleContainerColor,
-                                        emotePaths = emotePaths
+                                        emotePaths = emotePaths,
+                                        mentionRefs = model.mentions,
+                                        mentionsRoom = model.mentionsRoom,
+                                        onMentionClick = onMentionClick
                                     )
                                 }
                                 null -> { /* no attachment */ }
@@ -286,7 +297,10 @@ fun MessageBubble(
                                                 fallbackBody = attachment.caption,
                                                 color = bubbleTextColor,
                                                 containerColor = bubbleContainerColor,
-                                                emotePaths = emotePaths
+                                                emotePaths = emotePaths,
+                                                mentionRefs = model.mentions,
+                                                mentionsRoom = model.mentionsRoom,
+                                                onMentionClick = onMentionClick
                                             )
                                         }
                                     } else {
@@ -339,7 +353,10 @@ fun MessageBubble(
                                         fallbackBody = model.body,
                                         emotePaths = emotePaths,
                                         color = bubbleTextColor,
-                                        containerColor = bubbleContainerColor
+                                        containerColor = bubbleContainerColor,
+                                        mentionRefs = model.mentions,
+                                        mentionsRoom = model.mentionsRoom,
+                                        onMentionClick = onMentionClick
                                     )
                                 }
                             } else if (model.attachment == null && model.body.isBlank()) {
@@ -690,6 +707,9 @@ private fun ImageAttachmentBubble(
     timestamp: @Composable () -> Unit,
     containerColor: Color,
     emotePaths: Map<String, String> = emptyMap(),
+    mentionRefs: Map<String, MentionRef> = emptyMap(),
+    mentionsRoom: Boolean = false,
+    onMentionClick: ((String) -> Unit)? = null,
 ) {
     val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
     else MaterialTheme.colorScheme.onSecondaryContainer
@@ -755,7 +775,10 @@ private fun ImageAttachmentBubble(
                         fallbackBody = attachment.caption!!,
                         color = contentColor,
                         containerColor = containerColor,
-                        emotePaths = emotePaths
+                        emotePaths = emotePaths,
+                        mentionRefs = mentionRefs,
+                        mentionsRoom = mentionsRoom,
+                        onMentionClick = onMentionClick
                     )
                 }
             }
@@ -777,6 +800,9 @@ private fun VideoAttachmentBubble(
     timestamp: @Composable () -> Unit,
     containerColor: Color,
     emotePaths: Map<String, String> = emptyMap(),
+    mentionRefs: Map<String, MentionRef> = emptyMap(),
+    mentionsRoom: Boolean = false,
+    onMentionClick: ((String) -> Unit)? = null,
 ) {
     val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
     else MaterialTheme.colorScheme.onSecondaryContainer
@@ -847,7 +873,10 @@ private fun VideoAttachmentBubble(
                         fallbackBody = attachment.caption!!,
                         color = contentColor,
                         containerColor = containerColor,
-                        emotePaths = emotePaths
+                        emotePaths = emotePaths,
+                        mentionRefs = mentionRefs,
+                        mentionsRoom = mentionsRoom,
+                        onMentionClick = onMentionClick
                     )
                 }
             }

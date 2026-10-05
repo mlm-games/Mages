@@ -282,6 +282,13 @@ data class MessageActionStateUi(
     val react: ActionAvailabilityUi = ActionAvailabilityUi(),
 )
 
+/** A mentioned user, resolved far enough to draw a pill. */
+data class MentionProfileUi(
+    val userId: String,
+    val displayName: String,
+    val avatarPath: String? = null,
+)
+
 data class RoomUiState(
     val roomId: String,
     val roomName: String,
@@ -329,6 +336,9 @@ data class RoomUiState(
     /** Preview for the link in an event, keyed by event id; null is a remembered miss. */
     val linkPreviewByEvent: Map<String, LinkPreview?> = emptyMap(),
     val linkPreviewImageByEvent: Map<String, String> = emptyMap(),
+
+    /** Resolved `m.mentions.user_ids` for the visible events, keyed by user ID. */
+    val mentionProfilesByUserId: Map<String, MentionProfileUi> = emptyMap(),
 
     val liveLocationShares: Map<String, LiveLocationShare> = emptyMap(),
     val liveLocationSubToken: ULong? = null,
@@ -662,6 +672,8 @@ data class ThreadUiState(
     val linkPreviewByEvent: Map<String, LinkPreview?> = emptyMap(),
     val linkPreviewImageByEvent: Map<String, String> = emptyMap(),
     val isRoomEncrypted: Boolean = false,
+    /** See [RoomUiState.mentionProfilesByUserId]. */
+    val mentionProfilesByUserId: Map<String, MentionProfileUi> = emptyMap(),
 ) {
     val messageCount: Int get() = (if (rootMessage != null) 1 else 0) + replies.size
 

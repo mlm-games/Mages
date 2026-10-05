@@ -3465,6 +3465,8 @@ fn map_timeline_event(
     let is_redacted = content.is_redacted();
     let mut state_event_type: Option<String> = None;
     let mut live_location: Option<LiveLocationEvent> = None;
+    let mut mentioned_user_ids: Vec<String> = Vec::new();
+    let mut mentions_room = false;
 
     #[allow(unreachable_patterns)]
     match content {
@@ -3488,6 +3490,11 @@ fn map_timeline_event(
                 MsgLikeKind::Message(msg) => {
                     if is_verification_request(msg.msgtype()) {
                         return None;
+                    }
+                    if let Some(mentions) = msg.mentions() {
+                        mentioned_user_ids =
+                            mentions.user_ids.iter().map(|id| id.to_string()).collect();
+                        mentions_room = mentions.room;
                     }
                     attachment = extract_attachment(msg.msgtype());
                     is_edited = msg.is_edited();
@@ -3640,6 +3647,8 @@ fn map_timeline_event(
         sender_avatar_url,
         body,
         formatted_body,
+        mentioned_user_ids,
+        mentions_room,
         timestamp_ms: ts,
         send_state,
         txn_id,

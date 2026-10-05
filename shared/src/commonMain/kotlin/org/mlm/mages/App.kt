@@ -779,6 +779,10 @@ private fun AppContent(
                                         is ThreadViewModel.Event.ShowSuccess -> {
                                             snackbarManager.show(event.message)
                                         }
+
+                                        is ThreadViewModel.Event.NavigateToRoom -> {
+                                            backStack.add(Route.Room(event.roomId, event.title))
+                                        }
                                     }
                                 }
                             }

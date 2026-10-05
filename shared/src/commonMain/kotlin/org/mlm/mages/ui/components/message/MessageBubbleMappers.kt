@@ -152,5 +152,7 @@ internal fun TimelineContent.Bubble.toBubbleModel(
         linkPreview = if (toRedactedEvent) null else ctx.resolvedLinkPreview,
         linkPreviewImage = if (toRedactedEvent) null else ctx.resolvedLinkPreviewImage,
         variant = ctx.variant,
+        mentions = ctx.resolvedMentions,
+        mentionsRoom = event.mentionsRoom,
     )
 }

@@ -68,6 +68,7 @@ import org.mlm.mages.ui.components.location.*
 import org.mlm.mages.ui.components.sheets.MemberActionsSheet
 import org.mlm.mages.ui.ActionAvailabilityUi
 import org.mlm.mages.ui.ActionPresentationUi
+import org.mlm.mages.ui.MentionProfileUi
 import org.koin.compose.koinInject
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.sheets.*
@@ -1513,6 +1514,20 @@ private fun StartOfConversationChip() {
     }
 }
 
+/** The mention pills a message can draw, limited to the ones already resolved. */
+internal fun mentionsOf(
+    event: MessageEvent,
+    profiles: Map<String, MentionProfileUi>,
+): Map<String, MentionRef> {
+    if (event.mentionedUserIds.isEmpty()) return emptyMap()
+    val out = LinkedHashMap<String, MentionRef>()
+    event.mentionedUserIds.forEach { userId ->
+        val profile = profiles[userId] ?: return@forEach
+        out[userId] = MentionRef(userId, profile.displayName, profile.avatarPath)
+    }
+    return out
+}
+
 @Composable
 private fun MessageItem(
     event: MessageEvent,
@@ -1745,6 +1760,7 @@ private fun MessageItem(
                             resolvedAudioWaveform = state.waveformByEvent[event.eventId].orEmpty(),
                             resolvedLinkPreview = state.linkPreviewByEvent[event.eventId],
                             resolvedLinkPreviewImage = state.linkPreviewImageByEvent[event.eventId],
+                            resolvedMentions = mentionsOf(event, state.mentionProfilesByUserId),
                             senderVisible = true,
                             isPinned = event.eventId in pinnedEventIdSet,
                         )
@@ -1759,6 +1775,9 @@ private fun MessageItem(
                             event.pollData?.let { p -> viewModel.votePoll(event.eventId, p, optionId) }
                         },
                         onEndPoll = { viewModel.endPoll(event.eventId) },
+                        onMentionClick = { userId ->
+                            viewModel.openMention(userId)
+                        },
                         onReplyPreviewClick = event.replyToEventId?.let { rid ->
                             {
                                 onSaveReturnPosition(event.eventId)

@@ -28,6 +28,7 @@ import org.mlm.mages.LinkPreview
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.thumbKey
 import org.mlm.mages.matrix.ReactionSummary
+import org.mlm.mages.ui.MentionProfileUi
 import org.mlm.mages.ui.ThreadUiState
 import org.mlm.mages.ui.displayPreview
 import org.mlm.mages.ui.components.composer.EmoteSuggestion
@@ -104,6 +105,7 @@ fun ThreadRoute(
         showReactionAvatars = settings.showReactionAvatars,
         canEditLatest = settings.editLatestWithUpArrow && state.editingEvent == null && viewModel.hasEditableLatest(),
         onEditLatest = viewModel::startEditLatestEditable,
+        onMentionClick = { userId -> viewModel.openMention(userId) },
         emoteSuggestions = viewModel.emoteSuggestions,
         resolveEmotePreview = { thumbnail, mxc -> viewModel.emotePreview(thumbnail, mxc) },
         reactionShortcodes = viewModel.reactionShortcodes,
@@ -131,6 +133,7 @@ fun ThreadScreen(
     enterSendsMessage: Boolean = false,
     canEditLatest: Boolean = false,
     onEditLatest: () -> Unit = {},
+    onMentionClick: ((String) -> Unit)? = null,
     showReactionAvatars: Boolean = true,
     emoteSuggestions: List<EmoteSuggestion> = emptyList(),
     resolveEmotePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String? = { _, _ -> null },
@@ -332,6 +335,8 @@ fun ThreadScreen(
                                         thumbByEvent = state.thumbByEvent,
                                         linkPreviewByEvent = state.linkPreviewByEvent,
                                         linkPreviewImageByEvent = state.linkPreviewImageByEvent,
+                                        mentionProfilesByUserId = state.mentionProfilesByUserId,
+                                        onMentionClick = onMentionClick,
                                         emotePaths = state.emotePathByMxc,
                                         reactionImagePaths = state.reactionImagePathByMxc,
                                         reactionShortcodes = reactionShortcodes,
@@ -694,6 +699,8 @@ private fun ThreadReplyMessage(
     thumbByEvent: Map<String, String>,
     linkPreviewByEvent: Map<String, LinkPreview?>,
     linkPreviewImageByEvent: Map<String, String>,
+    mentionProfilesByUserId: Map<String, MentionProfileUi> = emptyMap(),
+    onMentionClick: ((String) -> Unit)? = null,
     emotePaths: Map<String, String>,
     reactionImagePaths: Map<String, String>,
     reactionShortcodes: Map<String, String>,
@@ -745,6 +752,7 @@ private fun ThreadReplyMessage(
                     resolvedReplyPreviewPath = event.replyToEventId?.let { replyThumbByEvent[it] },
                     resolvedLinkPreview = linkPreviewByEvent[event.eventId],
                     resolvedLinkPreviewImage = linkPreviewImageByEvent[event.eventId],
+                    resolvedMentions = mentionsOf(event, mentionProfilesByUserId),
                     senderVisible = !grouped,
                     reactionImagePaths = reactionImagePaths,
                     reactionShortcodes = reactionShortcodes,
@@ -755,6 +763,7 @@ private fun ThreadReplyMessage(
             )
             MessageBubble(
                 model = bubbleModel,
+                onMentionClick = onMentionClick,
                 onLongPress = onLongPress,
                 onReact = onReact,
                 onOpenAttachment = onOpenAttachment,

@@ -5,6 +5,7 @@ import org.mlm.mages.ReplyPreview
 import org.mlm.mages.matrix.PollData
 import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.matrix.SendState
+import org.mlm.mages.ui.components.core.MentionRef
 
 enum class MessageBubbleVariant {
     Timeline,
@@ -110,6 +111,7 @@ data class MessageBubbleRenderContext(
     val resolvedAudioWaveform: List<Float> = emptyList(),
     val resolvedLinkPreview: LinkPreview? = null,
     val resolvedLinkPreviewImage: String? = null,
+    val resolvedMentions: Map<String, MentionRef> = emptyMap(),
     val senderVisible: Boolean = true,
     val isPinned: Boolean = false,
 )
@@ -143,4 +145,6 @@ data class MessageBubbleModel(
     val linkPreview: LinkPreview? = null,
     val linkPreviewImage: String? = null,
     val variant: MessageBubbleVariant = MessageBubbleVariant.Timeline,
+    val mentions: Map<String, MentionRef> = emptyMap(),
+    val mentionsRoom: Boolean = false,
 )

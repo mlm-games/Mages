@@ -17,6 +17,8 @@ data class MessageEvent(
     var senderAvatarUrl: String? = null,
     var body: String,
     var formattedBody: String? = null,
+    var mentionedUserIds: List<String> = emptyList(),
+    var mentionsRoom: Boolean = false,
     var timestampMs: Long,
     var sendState: SendState? = null,
     var txnId: String? = null,

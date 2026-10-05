@@ -85,6 +85,11 @@ pub struct MessageEvent {
     pub sender_avatar_url: Option<String>,
     pub body: String,
     pub formatted_body: Option<String>,
+    /// MSC3952 `m.mentions.user_ids`, which is the only trustworthy record of who a
+    /// message mentions: the anchors in `formatted_body` are written by the sender.
+    pub mentioned_user_ids: Vec<String>,
+    /// MSC3952 `m.mentions.room`, set when the sender wrote `@room`.
+    pub mentions_room: bool,
     pub timestamp_ms: u64,
     pub send_state: Option<SendState>,
     pub txn_id: Option<String>,

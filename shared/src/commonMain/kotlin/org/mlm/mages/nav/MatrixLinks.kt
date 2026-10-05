@@ -36,6 +36,8 @@ fun matrixToUserLink(mxid: String): String? {
 
 fun isMatrixPermalink(raw: String): Boolean = parseMatrixLink(raw) !is MatrixLink.Unsupported
 
+fun matrixUserIdFromLink(raw: String): String? = (parseMatrixLink(raw) as? MatrixLink.User)?.mxid
+
 fun parseMagesRoomLink(rawLink: String): DeepLinkAction? {
     return runCatching {
         val uri = Uri.parse(rawLink.trim())

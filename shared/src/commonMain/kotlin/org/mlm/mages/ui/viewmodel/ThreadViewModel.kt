@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import mages.shared.generated.resources.*
 import org.koin.core.component.inject
 import org.mlm.mages.LinkPreview
@@ -24,6 +25,8 @@ import org.mlm.mages.matrix.allowsLinkPreviews
 import org.mlm.mages.matrix.allowsMediaPreviews
 import org.mlm.mages.emoji.RecentEmojiStore
 import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.storage.UserProfile
+import org.mlm.mages.ui.MentionProfileUi
 import org.mlm.mages.ui.isEditableBy
 import org.mlm.mages.ui.ThreadUiState
 import org.mlm.mages.ui.components.composer.EmoteSuggestion
@@ -61,6 +64,7 @@ class ThreadViewModel(
     sealed class Event {
         data class ShowError(val message: String) : Event()
         data class ShowSuccess(val message: String) : Event()
+        data class NavigateToRoom(val roomId: String, val title: String) : Event()
     }
 
     private val _events = Channel<Event>(Channel.BUFFERED)
@@ -252,6 +256,7 @@ class ThreadViewModel(
         prefetchReactionUserAvatars(events)
         prefetchReplyThumbnails(events)
         prefetchLinkPreviews(events)
+        prefetchMentionProfiles(events)
 
         val hasOnlyRootSnapshot = isReset && events.none { it.eventId != rootEventId }
 
@@ -458,6 +463,7 @@ class ThreadViewModel(
             newReplies.forEach { seenItemIds.add(it.itemId) }
             prefetchReplyThumbnails(newReplies)
             prefetchLinkPreviews(newReplies)
+        prefetchMentionProfiles(newReplies)
 
             updateState {
                 val merged = (newReplies + replies)
@@ -585,6 +591,58 @@ class ThreadViewModel(
     private fun prefetchLinkPreviews(events: List<MessageEvent>) {
         if (!linkPreviewsAllowed()) return
         events.forEach { ensureLinkPreview(it) }
+    }
+
+    /** Tapping a mention pill, which opens a DM with the mentioned user. */
+    fun openMention(userId: String) {
+        if (userId.isBlank() || userId == myUserId) return
+        launch {
+            val dmRoomId = runSafe { service.port.ensureDm(userId) }
+            if (dmRoomId != null) {
+                _events.send(Event.NavigateToRoom(dmRoomId, userId))
+            }
+        }
+    }
+
+    private fun prefetchMentionProfiles(events: List<MessageEvent>) {
+        val known = currentState.mentionProfilesByUserId
+        val wanted = LinkedHashSet<String>()
+        val seen = LinkedHashMap<String, UserProfile>()
+        events.forEach { event ->
+            val senderName = event.senderDisplayName
+            if (!senderName.isNullOrBlank()) {
+                seen[event.sender] = UserProfile(senderName, event.senderAvatarUrl)
+            }
+            event.mentionedUserIds.forEach { userId ->
+                if (userId.isNotBlank() && userId !in known) wanted += userId
+            }
+        }
+        if (wanted.isEmpty()) return
+
+        launch {
+            service.profiles.rememberAll(seen + currentState.roomMembers.mapNotNull { member ->
+                member.displayName?.let { member.userId to UserProfile(it, member.avatarUrl) }
+            }.toMap())
+
+            val resolved = LinkedHashMap<String, MentionProfileUi>()
+            wanted.take(24).forEach { userId ->
+                val profile = withTimeoutOrNull(8_000) {
+                    runCatching { service.profiles.resolve(userId) }.getOrNull()
+                }
+                val name = profile?.displayName?.takeIf { it.isNotBlank() } ?: userId
+                val avatarUrl = profile?.avatarUrl
+                val avatarPath = if (avatarUrl != null && mediaPreviewsAllowed()) {
+                    withTimeoutOrNull(8_000) {
+                        runCatching { service.avatars.resolve(avatarUrl, px = 64, crop = true) }.getOrNull()
+                    }
+                } else {
+                    null
+                }
+                resolved[userId] = MentionProfileUi(userId, name, avatarPath)
+            }
+            if (resolved.isEmpty()) return@launch
+            updateState { copy(mentionProfilesByUserId = mentionProfilesByUserId + resolved) }
+        }
     }
 
     fun ensureLinkPreview(event: MessageEvent) {
