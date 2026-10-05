@@ -13,7 +13,7 @@ import androidx.compose.ui.text.input.VisualTransformation
  * shortcode back out and needs the target to be an mxc URI.
  */
 private val EMOTE_WITH_SHORTCODE =
-    Regex("""!\[([^\]]*)]\((mxc://[^ )]+)\s+"([^"]*)"\)""")
+    Regex("""!\[(?:\\.|[^\]\\])*]\((mxc://[^ )]+)\s+"([^"]*)"\)""")
 
 class ComposerVisualTransformation(private val emoteUris: Set<String>) : VisualTransformation {
 
@@ -47,8 +47,8 @@ class ComposerVisualTransformation(private val emoteUris: Set<String>) : VisualT
         }
 
         for (match in EMOTE_WITH_SHORTCODE.findAll(source)) {
-            val mxcUri = match.groupValues[2]
-            val shortcode = match.groupValues[3]
+            val mxcUri = match.groupValues[1]
+            val shortcode = match.groupValues[2]
             if (mxcUri in emoteUris && shortcode.isNotBlank()) {
                 found += Pair(match.range, ":$shortcode:")
             }

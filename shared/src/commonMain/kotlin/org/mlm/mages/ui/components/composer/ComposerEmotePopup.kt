@@ -71,7 +71,7 @@ fun emoteSuggestionsFrom(packs: List<ImagePackSummary>): List<EmoteSuggestion> {
                 packName = packName,
                 ref = EmoteRef(
                     mxcUri = image.mxcUrl,
-                    alt = image.body ?: image.shortcode,
+                    alt = image.body?.takeIf { it.isNotBlank() } ?: image.shortcode,
                     title = image.shortcode
                 )
             )

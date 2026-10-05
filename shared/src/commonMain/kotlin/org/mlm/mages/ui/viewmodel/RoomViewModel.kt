@@ -587,7 +587,7 @@ class RoomViewModel(
 
     fun sendPackSticker(image: ImagePackImageEntry, threadRootEventId: String? = null) {
         val roomId = currentState.roomId
-        val body = image.body ?: image.shortcode
+        val body = image.body?.takeIf { it.isNotBlank() } ?: image.shortcode
         hideStickerPicker()
         launch {
             val sent = service.port.sendStickerMxc(

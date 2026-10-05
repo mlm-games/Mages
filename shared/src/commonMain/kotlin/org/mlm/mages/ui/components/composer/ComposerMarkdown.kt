@@ -23,8 +23,10 @@ private val MENTION_ANCHOR = Regex(
     """<a href="https://matrix\.to/#/[^"]+">([\s\S]*?)</a>"""
 )
 
-/** An emote stands in as a markdown image while composing. */
-private val EMOTE_MARKDOWN = Regex("""!\[([^\]]*)]\([^)]*\)""")
+private val EMOTE_MARKDOWN = Regex("""!\[((?:\\.|[^\]\\])*)]\([^)]*\)""")
+
+/** A backslash before ASCII punctuation, which markdown treats as an escape. */
+private val MARKDOWN_ESCAPE = Regex("""\\([!"#$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~])""")
 
 private val IMG_TAG = Regex("""<img\b[^>]*>""", RegexOption.IGNORE_CASE)
 private val IMG_SRC = Regex("""\ssrc\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
@@ -93,7 +95,7 @@ fun composerToPlainBody(parsed: ComposerMarkdown, spoilerImage: String? = null):
         .replace(redactSpoilers(parsed.text, parsed.spoilerRanges, spoilerImage)) {
             unescapeHtml(it.groupValues[1])
         }
-        .replace(EMOTE_MARKDOWN) { it.groupValues[1] }
+        .replace(EMOTE_MARKDOWN) { unescapeMarkdown(it.groupValues[1]) }
 
 private fun redactSpoilers(text: String, ranges: List<IntRange>, image: String?): String {
     if (ranges.isEmpty()) return text
@@ -139,7 +141,7 @@ private fun markEmoteImages(html: String, emoteImages: List<ImagePackImageEntry>
         val raw = IMG_SRC.find(match.value)?.groupValues?.get(1) ?: return@replace match.value
         val image = known[raw] ?: return@replace match.value
         changed = true
-        val alt = escapeHtmlAttribute(image.body ?: image.shortcode)
+        val alt = escapeHtmlAttribute(image.body?.takeIf { it.isNotBlank() } ?: image.shortcode)
         "<img data-mx-emoticon src=\"${escapeHtmlAttribute(image.mxcUrl)}\" alt=\"$alt\" " +
             "title=\"${escapeHtmlAttribute(image.shortcode)}\" height=\"32\">"
     }
@@ -157,5 +159,8 @@ private fun unescapeHtml(text: String): String = text
     .replace("&gt;", ">")
     .replace("&lt;", "<")
     .replace("&amp;", "&")
+
+/** Drops the escapes [EmoteSuggestion.markdown] adds, recovering the alt text. */
+private fun unescapeMarkdown(text: String): String = MARKDOWN_ESCAPE.replace(text) { it.groupValues[1] }
 
 private fun escapeHtmlAttribute(text: String): String = escapeHtml(text)
