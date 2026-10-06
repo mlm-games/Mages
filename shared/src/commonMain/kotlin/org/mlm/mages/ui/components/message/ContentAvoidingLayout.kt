@@ -85,17 +85,16 @@ private fun ContentAvoidingRow(
         val timestampWidth = timestampPlaceable.width
         val timestampHeight = timestampPlaceable.height
 
-        val besideMax = (constraints.maxWidth - timestampWidth - 8).coerceAtLeast(0)
-        val besidePlaceable = measurables[0].measure(Constraints(minWidth = 0, maxWidth = besideMax))
-        val needsBelow = besidePlaceable.width >= besideMax
+        val contentConstraints = Constraints(
+            minWidth = 0,
+            maxWidth = (constraints.maxWidth - timestampWidth - 8).coerceAtLeast(0)
+        )
+        val contentPlaceable = measurables[0].measure(contentConstraints)
 
-        val contentPlaceable = if (needsBelow) {
-            measurables[0].measure(Constraints(minWidth = 0, maxWidth = constraints.maxWidth))
-        } else {
-            besidePlaceable
-        }
         val contentWidth = contentPlaceable.width
         val contentHeight = contentPlaceable.height
+
+        val needsBelow = contentWidth >= constraints.maxWidth - timestampWidth - 8
 
         val layoutWidth = if (needsBelow) {
             maxOf(contentWidth, timestampWidth)
