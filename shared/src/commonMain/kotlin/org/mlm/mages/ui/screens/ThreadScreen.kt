@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.mlm.mages.LinkPreview
+import org.mlm.mages.MatrixService
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.thumbKey
 import org.mlm.mages.matrix.MemberSummary
@@ -52,9 +53,16 @@ import org.mlm.mages.ui.components.sheets.MemberActionsSheet
 import org.mlm.mages.ui.components.sheets.MessageActionSheet
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
+import org.mlm.mages.platform.ShareContent
+import org.mlm.mages.platform.ShareOutcome
 import org.mlm.mages.platform.rememberFileOpener
+import org.mlm.mages.platform.rememberShareHandler
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.secondaryClick
+import org.mlm.mages.ui.components.viewer.ImageViewerOverlay
+import org.mlm.mages.ui.components.viewer.imageViewerItems
+import org.mlm.mages.ui.components.viewer.isViewableImage
+import org.mlm.mages.ui.components.viewer.loadImageForViewing
 import org.mlm.mages.ui.viewmodel.ThreadViewModel
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -75,8 +83,20 @@ fun ThreadRoute(
     val settingsRepository: SettingsRepository<AppSettings> = koinInject()
     val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
     val openExternal = rememberFileOpener()
+    val shareHandler = rememberShareHandler()
+    val service: MatrixService = koinInject()
+
+    val copiedLabel = stringResource(Res.string.copied_to_clipboard)
+    val shareFailedLabel = stringResource(Res.string.share_failed)
+    val downloadFailedLabel = stringResource(Res.string.download_failed)
 
     LaunchedEffect(Unit) { viewModel.refreshImagePacks() }
+
+    var openedImageKey by remember { mutableStateOf<String?>(null) }
+    val viewerItems = remember(state.allMessages, state.thumbByEvent) {
+        imageViewerItems(state.allMessages) { event -> event.thumbKey?.let { state.thumbByEvent[it] } }
+    }
+    val viewerStartIndex = viewerItems.indexOfFirst { it.event.itemId == openedImageKey }
 
     val messageNotFound = stringResource(Res.string.message_not_found)
     ThreadScreen(
@@ -103,6 +123,7 @@ fun ThreadRoute(
         onCancelEdit = viewModel::cancelEdit,
         onDelete = { ev -> viewModel.delete(ev) },
         onOpenAttachment = { ev -> viewModel.openAttachment(ev) { path, mime -> openExternal(path, mime) } },
+        onOpenImage = { ev -> openedImageKey = ev.itemId },
         enterSendsMessage = settings.enterSendsMessage,
         showReactionAvatars = settings.showReactionAvatars,
         canEditLatest = settings.editLatestWithUpArrow && state.editingEvent == null && viewModel.hasEditableLatest(),
@@ -122,6 +143,28 @@ fun ThreadRoute(
         reactionShortcodes = viewModel.reactionShortcodes,
         onReactionImages = { chips -> viewModel.ensureReactionImages(chips) },
     )
+
+    val openedImage = openedImageKey
+    if (openedImage != null) {
+        ImageViewerOverlay(
+            items = viewerItems,
+            startKey = openedImage,
+            startIndex = viewerStartIndex.coerceAtLeast(0),
+            onDismiss = { openedImageKey = null },
+            loadFullMedia = { event -> service.loadImageForViewing(event) },
+            onOpenMedia = { path, mime -> openExternal(path, mime) },
+            onShareMedia = { path, mime ->
+                scope.launch {
+                    when (shareHandler(ShareContent(filePaths = listOf(path), mimeTypes = listOf(mime)))) {
+                        ShareOutcome.Shared -> Unit
+                        ShareOutcome.Copied -> snackbarManager.show(copiedLabel)
+                        ShareOutcome.Failed -> snackbarManager.showError(shareFailedLabel)
+                    }
+                }
+            },
+            onLoadFailed = { postError(downloadFailedLabel) },
+        )
+    }
 }
 
 @Composable
@@ -141,6 +184,7 @@ fun ThreadScreen(
     onCancelEdit: () -> Unit,
     onDelete: suspend (MessageEvent) -> Boolean,
     onOpenAttachment: (MessageEvent) -> Unit = {},
+    onOpenImage: (MessageEvent) -> Unit = {},
     enterSendsMessage: Boolean = false,
     canEditLatest: Boolean = false,
     onEditLatest: () -> Unit = {},
@@ -360,7 +404,11 @@ fun ThreadScreen(
                                         reactionShortcodes = reactionShortcodes,
                                         onReact = { emoji -> onReact(bubbleItem.event, emoji) },
                                         onLongPress = { sheetEvent = bubbleItem.event },
-                                        onOpenAttachment = { onOpenAttachment(bubbleItem.event) },
+                                        onOpenAttachment = {
+                                            val event = bubbleItem.event
+                                            if (event.isViewableImage()) onOpenImage(event)
+                                            else onOpenAttachment(event)
+                                        },
                                         grouped = shouldGroup,
                                         groupedWithNext = groupedWithNext,
                                         highlighted = state.focusedEventId == bubbleItem.event.eventId,

@@ -38,6 +38,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.mlm.mages.AttachmentKind
+import org.mlm.mages.MatrixService
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.ReplyPreviewKind
 import org.mlm.mages.thumbKey
@@ -100,6 +101,10 @@ import org.mlm.mages.ui.components.message.toBubbleModel
 import org.mlm.mages.ui.components.timeline.TimelineContent
 import org.mlm.mages.ui.components.timeline.TimelineEventItem
 import org.mlm.mages.ui.components.timeline.toTimelineContent
+import org.mlm.mages.ui.components.viewer.ImageViewerOverlay
+import org.mlm.mages.ui.components.viewer.imageViewerItems
+import org.mlm.mages.ui.components.viewer.isViewableImage
+import org.mlm.mages.ui.components.viewer.loadImageForViewing
 import org.jetbrains.compose.resources.getString
 
 @Suppress("NewApi")
@@ -125,6 +130,7 @@ fun RoomScreen(
     val postError = rememberErrorPoster(snackbarManager)
     val copiedLabel = stringResource(Res.string.copied_to_clipboard)
     val shareFailedLabel = stringResource(Res.string.share_failed)
+    val downloadFailedLabel = stringResource(Res.string.download_failed)
     val listState = rememberLazyListState()
     val settingsRepository: SettingsRepository<AppSettings> = koinInject()
     var persistedSettings by remember { mutableStateOf<AppSettings?>(null) }
@@ -247,6 +253,7 @@ fun RoomScreen(
 
     var isDragging by remember { mutableStateOf(false) }
     var sheetEvent by remember { mutableStateOf<MessageEvent?>(null) }
+    var openedImageKey by remember { mutableStateOf<String?>(null) }
 
     var didInitialScroll by rememberSaveable { mutableStateOf(false) }
 
@@ -254,6 +261,12 @@ fun RoomScreen(
 
 
     val events = state.events
+
+    val service: MatrixService = koinInject()
+    val viewerItems = remember(state.allEvents, state.thumbByEvent) {
+        imageViewerItems(state.allEvents) { event -> event.thumbKey?.let { state.thumbByEvent[it] } }
+    }
+    val viewerStartIndex = viewerItems.indexOfFirst { it.event.itemId == openedImageKey }
 
     val todayLabel = stringResource(Res.string.timeline_date_today)
     val yesterdayLabel = stringResource(Res.string.timeline_date_yesterday)
@@ -766,8 +779,15 @@ fun RoomScreen(
                                                     }
                                                 },
                                                 onOpenAttachment = {
-                                                    viewModel.openAttachment(bubbleItem.event) { path, mime ->
-                                                        openExternal(path, mime)
+                                                    val event = bubbleItem.event
+                                                    if (state.isSelectionMode) {
+                                                        viewModel.toggleSelected(event.eventId)
+                                                    } else if (event.isViewableImage()) {
+                                                        openedImageKey = event.itemId
+                                                    } else {
+                                                        viewModel.openAttachment(event) { path, mime ->
+                                                            openExternal(path, mime)
+                                                        }
                                                     }
                                                 },
                                                 onOpenThread = { viewModel.openThread(bubbleItem.event) },
@@ -1185,6 +1205,28 @@ fun RoomScreen(
             onSend = viewModel::sendVoiceRecording,
             onReRecord = viewModel::reRecordVoice,
             onCancel = viewModel::cancelVoicePreview
+        )
+    }
+
+    val openedImage = openedImageKey
+    if (openedImage != null) {
+        ImageViewerOverlay(
+            items = viewerItems,
+            startKey = openedImage,
+            startIndex = viewerStartIndex.coerceAtLeast(0),
+            onDismiss = { openedImageKey = null },
+            loadFullMedia = { event -> service.loadImageForViewing(event) },
+            onOpenMedia = { path, mime -> openExternal(path, mime) },
+            onShareMedia = { path, mime ->
+                scope.launch {
+                    when (shareHandler(ShareContent(filePaths = listOf(path), mimeTypes = listOf(mime)))) {
+                        ShareOutcome.Shared -> Unit
+                        ShareOutcome.Copied -> snackbarManager.show(copiedLabel)
+                        ShareOutcome.Failed -> snackbarManager.showError(shareFailedLabel)
+                    }
+                }
+            },
+            onLoadFailed = { postError(downloadFailedLabel) },
         )
     }
 }

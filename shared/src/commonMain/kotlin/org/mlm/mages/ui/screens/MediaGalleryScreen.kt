@@ -33,13 +33,19 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import org.koin.compose.koinInject
 import org.mlm.mages.AttachmentKind
+import org.mlm.mages.MatrixService
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.platform.ShareContent
 import org.mlm.mages.platform.ShareOutcome
+import org.mlm.mages.platform.rememberFileOpener
 import org.mlm.mages.platform.rememberShareHandler
+import org.mlm.mages.ui.components.viewer.ImageViewerOverlay
+import org.mlm.mages.ui.components.viewer.imageViewerItems
+import org.mlm.mages.ui.components.viewer.loadImageForViewing
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.monthYearLabel
 import org.mlm.mages.ui.util.secondaryClick
@@ -64,11 +70,21 @@ fun MediaGalleryScreen(
     val state by viewModel.state.collectAsState()
     val uriHandler = LocalUriHandler.current
     val shareHandler = rememberShareHandler()
+    val openExternal = rememberFileOpener()
     var selectedTab by remember { mutableStateOf(MediaTab.Images) }
     val snackbarManager: SnackbarManager = koinInject()
     val postError = rememberErrorPoster(snackbarManager)
+    val service: MatrixService = koinInject()
+    val scope = rememberCoroutineScope()
     val copiedLabel = stringResource(Res.string.copied_to_clipboard)
     val shareFailedLabel = stringResource(Res.string.share_failed)
+    val downloadFailedLabel = stringResource(Res.string.download_failed)
+
+    var openedImageKey by remember { mutableStateOf<String?>(null) }
+    val viewerItems = remember(state.allEvents, state.thumbnails) {
+        imageViewerItems(state.allEvents) { event -> state.thumbnails[event.eventId] }
+    }
+    val viewerStartIndex = viewerItems.indexOfFirst { it.event.itemId == openedImageKey }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -174,7 +190,7 @@ fun MediaGalleryScreen(
                                 if (state.isSelectionMode) {
                                     viewModel.toggleSelection(event.eventId)
                                 } else {
-                                    onOpenAttachment(event)
+                                    openedImageKey = event.itemId
                                 }
                             },
                             onItemLongClick = { event ->
@@ -231,6 +247,28 @@ fun MediaGalleryScreen(
                 }
             }
         }
+    }
+
+    val openedImage = openedImageKey
+    if (openedImage != null) {
+        ImageViewerOverlay(
+            items = viewerItems,
+            startKey = openedImage,
+            startIndex = viewerStartIndex.coerceAtLeast(0),
+            onDismiss = { openedImageKey = null },
+            loadFullMedia = { event -> service.loadImageForViewing(event) },
+            onOpenMedia = { path, mime -> openExternal(path, mime) },
+            onShareMedia = { path, mime ->
+                scope.launch {
+                    when (shareHandler(ShareContent(filePaths = listOf(path), mimeTypes = listOf(mime)))) {
+                        ShareOutcome.Shared -> Unit
+                        ShareOutcome.Copied -> snackbarManager.show(copiedLabel)
+                        ShareOutcome.Failed -> snackbarManager.showError(shareFailedLabel)
+                    }
+                }
+            },
+            onLoadFailed = { postError(downloadFailedLabel) },
+        )
     }
 }
 
