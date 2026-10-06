@@ -163,7 +163,7 @@ private fun unescapeHtml(text: String): String = text
 
 internal fun unescapeMarkdown(text: String): String = MARKDOWN_ESCAPE.replace(text) { it.groupValues[1] }
 
-private val LABEL_ESCAPE = Regex("""([\\`*_\[\]])""")
+private val LABEL_ESCAPE = Regex("""([\\`*_\[\]|])""")
 
 internal fun escapeMarkdown(text: String): String =
     LABEL_ESCAPE.replace(text) { "\\${it.groupValues[1]}" }

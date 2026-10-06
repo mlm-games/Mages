@@ -72,6 +72,7 @@ internal class SpoilerPipeLexer(private val base: GeneratedLexer) : GeneratedLex
     override fun reset(buffer: CharSequence, start: Int, end: Int, initialState: Int) {
         text = buffer
         queue.clear()
+        pending = null
         exhausted = false
         base.reset(buffer, start, end, initialState)
         tokenStart = start
@@ -86,17 +87,38 @@ internal class SpoilerPipeLexer(private val base: GeneratedLexer) : GeneratedLex
         return token.type
     }
 
+    private var pending: Token? = null
+
     private fun pull() {
         while (queue.isEmpty() && !exhausted) {
             val type = base.advance()
             if (type == null) {
                 exhausted = true
+                flushPending()
                 return
             }
             val start = base.tokenStart
             val end = base.tokenEnd
             if (type != MarkdownTokenTypes.TEXT) {
+                flushPending()
                 queue.addLast(Token(type, start, end))
+                continue
+            }
+            // The base lexer leaves a backslash and the pipe it
+            // escapes as separate runs, because `|` is missing.
+            if (end - start == 1 && text[start] == PIPE_CHAR &&
+                pending != null && pending!!.end == start &&
+                pending!!.end - pending!!.start == 1 &&
+                text[pending!!.start] == '\\'
+            ) {
+                val from = pending!!.start
+                pending = null
+                queue.addLast(Token(MarkdownTokenTypes.TEXT, from, end))
+                continue
+            }
+            flushPending()
+            if (end - start == 1 && text[start] == '\\') {
+                pending = Token(type, start, end)
                 continue
             }
             var pos = start
@@ -110,6 +132,14 @@ internal class SpoilerPipeLexer(private val base: GeneratedLexer) : GeneratedLex
                 queue.addLast(Token(SpoilerSyntax.PIPE, pipe, pipe + 1))
                 pos = pipe + 1
             }
+        }
+    }
+
+    private fun flushPending() {
+        val held = pending
+        if (held != null) {
+            pending = null
+            queue.addLast(held)
         }
     }
 
