@@ -46,6 +46,7 @@ fun EmojiPickerSheet(
 
     // Reset grid scroll when category changes
     LaunchedEffect(selectedCategory) { gridState.scrollToItem(0) }
+    LaunchedEffect(query) { searchGridState.scrollToItem(0) }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -83,6 +84,13 @@ fun EmojiPickerSheet(
                     state = gridState,
                     onEmojiSelected = onEmojiSelected,
                     onDismiss = onDismiss,
+                )
+            } else if (matches.isEmpty()) {
+                Text(
+                    text = stringResource(Res.string.search_no_results),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.md),
                 )
             } else {
                 EmojiGrid(

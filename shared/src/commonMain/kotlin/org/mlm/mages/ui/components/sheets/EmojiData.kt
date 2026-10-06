@@ -9,19 +9,36 @@ data class EmojiEntry(val emoji: String, val name: String = "")
 data class EmojiCategory(val name: StringResource, val emojis: List<EmojiEntry>)
 
 fun filterEmojiEntries(query: String): List<EmojiEntry> {
-    val normalized = query.trim(':').lowercase()
+    val trimmed = query.trim()
+    val normalized = trimmed.lowercase()
     if (normalized.isEmpty()) return emptyList()
+    val queryWords = normalized.split(' ').filter { it.isNotBlank() }
     return emojiCategories
         .asSequence()
         .flatMap { it.emojis.asSequence() }
-        .filter { entry ->
-            val name = entry.name.lowercase()
-            name.startsWith(normalized) ||
-                name.split(Regex("[^a-z0-9]+")).any { it.startsWith(normalized) }
-        }
-        .distinct()
+        .map { it to rank(it, trimmed, normalized, queryWords) }
+        .filter { it.second != NO_MATCH }
+        .distinctBy { it.first }
+        .sortedBy { it.second }
         .take(48)
+        .map { it.first }
         .toList()
+}
+
+private const val NO_MATCH = Int.MAX_VALUE
+
+private fun rank(entry: EmojiEntry, trimmed: String, normalized: String, queryWords: List<String>): Int {
+    if (entry.emoji == trimmed) return 5
+    val name = entry.name.lowercase()
+    if (name == normalized) return 0
+    if (name.startsWith(normalized)) return 1
+    if (queryWords.all { name.contains(it) }) {
+        val nameWords = name.split(Regex("[^a-z0-9]+")).filter { it.isNotBlank() }
+        if (queryWords.all { queryWord -> nameWords.any { it == queryWord } }) return 2
+        if (queryWords.all { queryWord -> nameWords.any { it.startsWith(queryWord) } }) return 3
+        return 4
+    }
+    return NO_MATCH
 }
 
 val emojiCategories: List<EmojiCategory> = listOf(

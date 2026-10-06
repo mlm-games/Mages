@@ -112,6 +112,10 @@ fun ComposerEmotePopup(
     modifier: Modifier = Modifier,
     showUnencryptedNotice: Boolean = false,
 ) {
+    val recentStore: RecentEmojiStore = koinInject()
+    val searchGridState = rememberLazyGridState()
+    LaunchedEffect(query) { searchGridState.scrollToItem(0) }
+
     if (query.isNotEmpty() && emotes.isEmpty() && emoji.isEmpty()) return
 
     Surface(
@@ -140,6 +144,7 @@ fun ComposerEmotePopup(
                 if (emoji.isNotEmpty()) {
                     LazyVerticalGrid(
                         columns = GridCells.Adaptive(minSize = 48.dp),
+                        state = searchGridState,
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(max = 240.dp),
@@ -152,7 +157,10 @@ fun ComposerEmotePopup(
                             Box(
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .clickable { onEmojiSelected(entry.emoji) },
+                                    .clickable {
+                                        recentStore.record(entry.emoji)
+                                        onEmojiSelected(entry.emoji)
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(entry.emoji, fontSize = 24.sp, textAlign = TextAlign.Center)
@@ -164,7 +172,7 @@ fun ComposerEmotePopup(
                     EmoteRow(emotes, resolvePreview, onEmoteSelected, rememberLazyListState())
                 }
             } else {
-                EmojiEmoteBrowser(emotes, resolvePreview, onEmoteSelected, onEmojiSelected)
+                EmojiEmoteBrowser(emotes, resolvePreview, onEmoteSelected, onEmojiSelected, recentStore)
             }
         }
     }
@@ -181,8 +189,8 @@ private fun EmojiEmoteBrowser(
     resolvePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String?,
     onEmoteSelected: (EmoteSuggestion) -> Unit,
     onEmojiSelected: (String) -> Unit,
+    recentStore: RecentEmojiStore,
 ) {
-    val recentStore: RecentEmojiStore = koinInject()
     val recent by recentStore.recent.collectAsState()
 
     val tabs = remember(recent, emotes) {
