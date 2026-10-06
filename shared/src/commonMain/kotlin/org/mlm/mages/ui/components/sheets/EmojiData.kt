@@ -3,6 +3,7 @@ package org.mlm.mages.ui.components.sheets
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.StringResource
 import mages.shared.generated.resources.Res
+import org.mlm.mages.emoji.EmojiKeywords
 
 data class EmojiEntry(val emoji: String, val name: String = "")
 
@@ -10,13 +11,14 @@ data class EmojiCategory(val name: StringResource, val emojis: List<EmojiEntry>)
 
 fun filterEmojiEntries(query: String): List<EmojiEntry> {
     val trimmed = query.trim()
-    val normalized = trimmed.lowercase()
-    if (normalized.isEmpty()) return emptyList()
-    val queryWords = normalized.split(' ').filter { it.isNotBlank() }
+    val normalized = trimmed.foldForSearch()
+    if (normalized.isBlank()) return emptyList()
+    val queryWords = wordsOf(normalized).ifEmpty { listOf(normalized) }
+    val glyph = bareGlyphs[trimmed.asBareSequence()]
     return emojiCategories
         .asSequence()
         .flatMap { it.emojis.asSequence() }
-        .map { it to rank(it, trimmed, normalized, queryWords) }
+        .map { it to if (it.emoji == glyph) GLYPH_MATCH else rank(it, normalized, queryWords) }
         .filter { it.second != NO_MATCH }
         .distinctBy { it.first }
         .sortedBy { it.second }
@@ -25,20 +27,92 @@ fun filterEmojiEntries(query: String): List<EmojiEntry> {
         .toList()
 }
 
+private const val GLYPH_MATCH = 0
+private const val NAME_EXACT = 1
+private const val NAME_PREFIX = 2
+private const val NAME_WORD = 3
+private const val NAME_WORD_PREFIX = 4
+private const val NAME_SUBSTRING = 5
+
+/** An annotation is scored one step below [NAME_SUBSTRING], so no annotation can outrank a name. */
+private const val ANNOTATION_OFFSET = NAME_SUBSTRING + 1
+
 private const val NO_MATCH = Int.MAX_VALUE
 
-private fun rank(entry: EmojiEntry, trimmed: String, normalized: String, queryWords: List<String>): Int {
-    if (entry.emoji == trimmed) return 5
-    val name = entry.name.lowercase()
-    if (name == normalized) return 0
-    if (name.startsWith(normalized)) return 1
-    if (queryWords.all { name.contains(it) }) {
-        val nameWords = name.split(Regex("[^a-z0-9]+")).filter { it.isNotBlank() }
-        if (queryWords.all { queryWord -> nameWords.any { it == queryWord } }) return 2
-        if (queryWords.all { queryWord -> nameWords.any { it.startsWith(queryWord) } }) return 3
-        return 4
+private val bareGlyphs: Map<String, String> by lazy {
+    emojiCategories.flatMap { it.emojis }.associate { it.emoji.asBareSequence() to it.emoji }
+}
+
+private val foldedNames: Map<String, String> by lazy {
+    emojiCategories.flatMap { it.emojis }.associate { it.emoji to it.name.foldForSearch() }
+}
+
+private fun rank(entry: EmojiEntry, normalized: String, queryWords: List<String>): Int {
+    val name = rankName(foldedNames[entry.emoji] ?: "", normalized, queryWords)
+    if (name != NO_MATCH) return name
+    val annotations = EmojiKeywords.byEmoji[entry.emoji] ?: return NO_MATCH
+    return rankAnnotations(annotations, normalized, queryWords)
+}
+
+private fun rankName(name: String, normalized: String, queryWords: List<String>): Int {
+    if (name == normalized) return NAME_EXACT
+    if (name.startsWith(normalized)) return NAME_PREFIX
+    if (!queryWords.all { name.contains(it) }) return NO_MATCH
+    val nameWords = wordsOf(name)
+    if (queryWords.all { queryWord -> nameWords.any { it == queryWord } }) return NAME_WORD
+    if (queryWords.all { queryWord -> nameWords.any { it.startsWith(queryWord) } }) return NAME_WORD_PREFIX
+    return NAME_SUBSTRING
+}
+
+private fun rankAnnotations(annotations: String, normalized: String, queryWords: List<String>): Int {
+    if (!queryWords.all { annotations.contains(it) }) return NO_MATCH
+    var exact = false
+    var prefix = false
+    var start = 0
+    while (start <= annotations.length) {
+        val separator = annotations.indexOf('|', start)
+        val end = if (separator < 0) annotations.length else separator
+        if (end - start == normalized.length && annotations.startsWith(normalized, start)) {
+            exact = true
+            break
+        }
+        if (annotations.startsWith(normalized, start)) prefix = true
+        if (separator < 0) break
+        start = separator + 1
     }
-    return NO_MATCH
+    if (exact) return ANNOTATION_OFFSET
+    if (prefix) return ANNOTATION_OFFSET + 1
+    return ANNOTATION_OFFSET + 2
+}
+
+private fun String.foldForSearch(): String {
+    val lowered = lowercase()
+    if (lowered.all { it.code < 0x80 }) return lowered
+    val folded = StringBuilder(lowered.length)
+    for (char in lowered) folded.append(EmojiKeywords.fold[char] ?: char)
+    return folded.toString()
+}
+
+private val SKIN_TONES = listOf(
+    "\uD83C\uDFFB", "\uD83C\uDFFC", "\uD83C\uDFFD", "\uD83C\uDFFE", "\uD83C\uDFFF",
+)
+
+private fun String.asBareSequence(): String =
+    SKIN_TONES.fold(replace("\uFE0F", "")) { sequence, tone -> sequence.removeSuffix(tone) }
+
+private fun wordsOf(text: String): List<String> {
+    val words = mutableListOf<String>()
+    val word = StringBuilder()
+    for (char in text) {
+        if (char.isLetterOrDigit()) {
+            word.append(char)
+        } else if (word.isNotEmpty()) {
+            words.add(word.toString())
+            word.clear()
+        }
+    }
+    if (word.isNotEmpty()) words.add(word.toString())
+    return words
 }
 
 val emojiCategories: List<EmojiCategory> = listOf(
