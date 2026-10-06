@@ -602,12 +602,12 @@ class ThreadViewModel(
      * Offers the actions for [userId] rather than acting on them, so a tap on a mention pill picks
      * what to do instead of falling straight into a conversation.
      *
-     * Every action the sheet offers is room-scoped, so a pill for someone who is not a member has
-     * nothing to offer and is left alone.
+     * The member list is dropped for a room too large to hold, so the sender of a visible message
+     * or a mentioned user is taken from the thread rather than from it.
      */
     fun selectMemberForAction(userId: String) {
         if (userId.isBlank() || userId == myUserId) return
-        val member = currentState.roomMembers.firstOrNull { it.userId == userId } ?: return
+        val member = knownMember(userId) ?: return
         clearSelectedMember()
         updateState { copy(selectedMemberForAction = member) }
         launch {
@@ -623,6 +623,17 @@ class ThreadViewModel(
             }
             refreshSelectedMemberActionState(userId)
         }
+    }
+
+    private fun knownMember(userId: String): MemberSummary? {
+        currentState.roomMembers.firstOrNull { it.userId == userId }?.let { return it }
+        currentState.mentionProfilesByUserId[userId]?.let {
+            return MemberSummary(userId = it.userId, displayName = it.displayName)
+        }
+        val sender = (currentState.rootMessage + currentState.replies).lastOrNull { it.sender == userId }
+            ?: return null
+        val displayName = sender.senderDisplayName?.takeIf { it.isNotBlank() } ?: return null
+        return MemberSummary(userId = userId, displayName = displayName)
     }
 
     private suspend fun refreshSelectedMemberActionState(userId: String) {

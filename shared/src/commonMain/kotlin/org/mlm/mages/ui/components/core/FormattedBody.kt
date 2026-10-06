@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -86,9 +87,10 @@ private val mentionPaddingHorizontal = 6.dp
 private val mentionPaddingVertical = 1.dp
 private val mentionCornerRadius = 6.dp
 
-/** What a pill costs beyond its glyphs, which [measureMentionPills] adds to the measured text. */
-private val mentionChromeWidth = mentionAvatarSize + mentionAvatarGap + mentionPaddingHorizontal * 2
 private val mentionChromeHeight = mentionAvatarSize + mentionPaddingVertical * 2
+
+/** The layouter floors a placeholder width back to whole pixels, so a reserved box is a pixel wider. */
+private const val MENTION_PLACEHOLDER_SLACK_PX = 1f
 
 /** Matches the tint the file-attachment box uses, so both inset elements agree. */
 private const val MENTION_TINT_ALPHA = 0.15f
@@ -578,6 +580,8 @@ private fun MentionPill(
             text = label,
             color = content,
             maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
             style = MaterialTheme.typography.bodyMedium.copy(fontSize = fontSize.sp)
         )
     }
@@ -679,16 +683,21 @@ private fun measureMentionPills(
     val widths = LinkedHashMap<String, TextUnit>(refs.size)
     with(density) {
         refs.forEach { (userId, ref) ->
-            val labelPx = measurer.measure(ref.label, style).size.width.toFloat()
-            val chrome = if (ref.avatarPath != null) mentionChromeWidth else mentionPaddingHorizontal * 2
-            widths[userId] = (labelPx + chrome.toPx()).toSp()
+            val labelPx = measurer.measure(ref.label, style).size.width
+            val chromePx = mentionPaddingHorizontal.roundToPx() * 2 +
+                if (ref.avatarPath != null) {
+                    mentionAvatarSize.roundToPx() + mentionAvatarGap.roundToPx()
+                } else {
+                    0
+                }
+            widths[userId] = (labelPx + chromePx + MENTION_PLACEHOLDER_SLACK_PX).toSp()
         }
 
         val lineHeightPx = measurer.measure("Ag", style).size.height.toFloat()
         val heightPx = maxOf(mentionChromeHeight.toPx(), lineHeightPx)
         val roomWidth = if (mentionsRoom) {
-            val labelPx = measurer.measure(ROOM_LABEL, style).size.width.toFloat()
-            (labelPx + (mentionPaddingHorizontal * 2).toPx()).toSp()
+            val labelPx = measurer.measure(ROOM_LABEL, style).size.width
+            (labelPx + mentionPaddingHorizontal.roundToPx() * 2 + MENTION_PLACEHOLDER_SLACK_PX).toSp()
         } else {
             null
         }
