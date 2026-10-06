@@ -256,6 +256,7 @@
     <string name="reject">Reject</string>
 
     <string name="save">Save</string>
+    <string name="open_in">Open in other app</string>
     <string name="done">Done</string>
     <string name="close">Close</string>
     <string name="next">Next</string>

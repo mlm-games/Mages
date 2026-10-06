@@ -230,7 +230,7 @@
     <string name="timeline_date_yesterday">I går</string>
     <string name="jump_to_unread">Hoppa till oläst</string>
     <string name="scroll_to_top">Bläddra till toppen</string>
-    <string name="spaces">Mellanslag</string>
+    <string name="spaces">Utrymmen</string>
     <string name="settings">Inställningar</string>
     <string name="discover">Upptäcka</string>
     <string name="invites">Inbjuder</string>
@@ -346,7 +346,7 @@
     <string name="offline_queued">Offline - Meddelanden kommer att ställas i kö</string>
     <string name="share">Dela</string>
     <string name="share_profile">Dela profil</string>
-    <string name="forward">Fram</string>
+    <string name="forward">Vidarebefordra</string>
     <string name="delete">Radera</string>
     <string name="replies">%1$d svarar</string>
     <string name="reply">1 svar</string>
@@ -357,7 +357,7 @@
     <string name="delivered">Levereras</string>
     <string name="start_call">Starta samtalet</string>
     <string name="join_call">Gå med i samtalet</string>
-    <string name="answer">Svar</string>
+    <string name="answer">Svara</string>
     <string name="incoming_call">Inkommande samtal</string>
     <string name="incoming_voice_call">Inkommande röstsamtal</string>
     <string name="ongoing_call">Pågående samtal</string>
@@ -378,14 +378,15 @@
     <string name="they_dont_match">De matchar inte</string>
     <string name="reject">Avvisa</string>
     <string name="save">Spara</string>
-    <string name="done">Gjort</string>
-    <string name="close">Nära</string>
+    <string name="open_in">Öppna i en annan app</string>
+    <string name="done">Klar</string>
+    <string name="close">Stäng</string>
     <string name="next">Nästa</string>
     <string name="previous">Tidigare</string>
     <string name="ok">OK</string>
     <string name="error">Fel</string>
     <string name="success">Framgång</string>
-    <string name="loading">Belastning...</string>
+    <string name="loading">Laddar...</string>
     <string name="submit">Överlämna</string>
     <string name="couldnt_find_message">Det gick inte att hitta det meddelandet i den laddade historiken.</string>
     <string name="reply_failed">Svar misslyckades</string>
@@ -429,7 +430,7 @@
     <string name="failed_to_unban_user">Det gick inte att avbanna användaren</string>
     <string name="invitation_sent">Inbjudan skickad</string>
     <string name="failed_to_invite">Det gick inte att bjuda in användare</string>
-    <string name="user_ignored">Användaren ignoreras</string>
+    <string name="user_ignored">Användaren ignorerad</string>
     <string name="failed_to_ignore">Det gick inte att ignorera användaren</string>
     <string name="failed_to_start_conversation">Det gick inte att starta konversationen</string>
     <string name="message_forwarded">Meddelande vidarebefordrat</string>
@@ -854,7 +855,7 @@
     <string name="incoming_voice_and_video_calls">Inkommande röst- och videosamtal</string>
     <string name="invalid_characters_in_address">Ogiltiga tecken i adressen</string>
     <string name="invalid_user_id">Ogiltigt användar-ID</string>
-    <string name="invite">Inbjudan</string>
+    <string name="invite">Bjud in</string>
     <string name="invite_only">Endast inbjudna</string>
     <string name="invite_user">Bjud in användare</string>
     <string name="invite_user_to_space">Bjud in användare i utrymmet</string>
@@ -1127,7 +1128,7 @@
     <string name="unknown_error">Okänt fel</string>
     <string name="unlock">Lås upp</string>
     <string name="unlock_with_biometrics_or_device_pin">Lås upp med biometri eller enhetens PIN</string>
-    <string name="unpin">Lossa</string>
+    <string name="unpin">Avnåla</string>
     <string name="unread_messages">Olästa meddelanden</string>
     <string name="upgraded_from_another_room">Uppgraderat från ett annat rum</string>
     <string name="uploading">Laddar upp...</string>

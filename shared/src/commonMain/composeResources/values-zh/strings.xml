@@ -210,7 +210,7 @@
     <string name="show_advanced_options">显示高级选项</string>
     <string name="sign_in">登入</string>
     <string name="or_use_password">或者使用密码登录</string>
-    <string name="rooms">客房</string>
+    <string name="rooms">聊天室</string>
     <string name="favourites">收藏夹</string>
     <string name="low_priority">低优先级</string>
     <string name="new_activity">新活动</string>
@@ -220,7 +220,7 @@
     <string name="no_rooms_found">没有找到房间</string>
     <string name="join_a_room">加入房间开始聊天</string>
     <string name="no_rooms_match">没有房间匹配“%1$s”</string>
-    <string name="discover_rooms">探索客房</string>
+    <string name="discover_rooms">探索聊天室</string>
     <string name="search_rooms">搜索房间...</string>
     <string name="unread_only">未读</string>
     <string name="loading_unread">查找未读消息...</string>
@@ -258,9 +258,9 @@
     <string name="search_results_count">%1$d 结果</string>
     <string name="search_in_this_room">在这个房间里搜索……</string>
     <string name="no_pending_invites">没有待处理的邀请</string>
-    <string name="decline">衰退</string>
+    <string name="decline">拒绝</string>
     <string name="accept">接受</string>
-    <string name="back">后退</string>
+    <string name="back">返回</string>
     <string name="refresh">刷新</string>
     <string name="create_space">创造空间</string>
     <string name="search_spaces">搜索空间...</string>
@@ -280,7 +280,7 @@
     <string name="invite_users_optional">邀请用户（可选）</string>
     <string name="user_placeholder">@用户：服务器</string>
     <string name="add">添加</string>
-    <string name="remove">消除</string>
+    <string name="remove">移除</string>
     <string name="encrypted">加密的</string>
     <string name="public">民众</string>
     <string name="members">%1$d 成员</string>
@@ -304,7 +304,7 @@
     <string name="join">加入</string>
     <string name="knock">敲</string>
     <string name="unavailable">不可用</string>
-    <string name="message">信息</string>
+    <string name="message">消息</string>
     <string name="no_results_for">没有找到“%1$s”的结果</string>
     <string name="try_different_search_term">尝试不同的搜索词或目录服务器</string>
     <string name="search_tips">搜索提示</string>
@@ -346,7 +346,7 @@
     <string name="offline_queued">离线 - 消息将排队</string>
     <string name="share">分享</string>
     <string name="share_profile">分享个人资料</string>
-    <string name="forward">向前</string>
+    <string name="forward">转发</string>
     <string name="delete">删除</string>
     <string name="replies">%1$d 回复</string>
     <string name="reply">1 条回复</string>
@@ -377,12 +377,13 @@
     <string name="they_match">他们匹配</string>
     <string name="they_dont_match">他们不匹配</string>
     <string name="reject">拒绝</string>
-    <string name="save">节省</string>
-    <string name="done">完毕</string>
+    <string name="save">保存</string>
+    <string name="open_in">在其他应用中打开</string>
+    <string name="done">完成</string>
     <string name="close">关闭</string>
     <string name="next">下一个</string>
-    <string name="previous">以前的</string>
-    <string name="ok">好的</string>
+    <string name="previous">上一个</string>
+    <string name="ok">确定</string>
     <string name="error">错误</string>
     <string name="success">成功</string>
     <string name="loading">加载中...</string>
@@ -488,8 +489,8 @@
     <string name="event_id">事件ID</string>
     <string name="transaction_id">交易ID</string>
     <string name="room_id">房间号</string>
-    <string name="yes">是的</string>
-    <string name="no">不</string>
+    <string name="yes">是</string>
+    <string name="no">否</string>
     <string name="image">图像</string>
     <string name="video">视频</string>
     <string name="file">文件</string>

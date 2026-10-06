@@ -346,7 +346,7 @@
     <string name="offline_queued">Çevrimdışı - Mesajlar sıraya alınacak</string>
     <string name="share">Paylaşmak</string>
     <string name="share_profile">Profili paylaş</string>
-    <string name="forward">İleri</string>
+    <string name="forward">İlet</string>
     <string name="delete">Silmek</string>
     <string name="replies">%1$d yanıtlar</string>
     <string name="reply">1 yanıt</string>
@@ -357,7 +357,7 @@
     <string name="delivered">Teslim edilmiş</string>
     <string name="start_call">Aramayı başlat</string>
     <string name="join_call">Görüşmeye katıl</string>
-    <string name="answer">Cevap</string>
+    <string name="answer">Yanıtla</string>
     <string name="incoming_call">Gelen çağrı</string>
     <string name="incoming_voice_call">Gelen sesli arama</string>
     <string name="ongoing_call">Devam eden arama</string>
@@ -378,11 +378,12 @@
     <string name="they_dont_match">Bunlar eşleşmiyor</string>
     <string name="reject">Reddetmek</string>
     <string name="save">Kaydetmek</string>
-    <string name="done">Tamamlamak</string>
-    <string name="close">Kapalı</string>
+    <string name="open_in">Başka uygulamada aç</string>
+    <string name="done">Tamamlandı</string>
+    <string name="close">Kapat</string>
     <string name="next">Sonraki</string>
     <string name="previous">Öncesi</string>
-    <string name="ok">TAMAM</string>
+    <string name="ok">Tamam</string>
     <string name="error">Hata</string>
     <string name="success">Başarı</string>
     <string name="loading">Yükleniyor...</string>
@@ -489,7 +490,7 @@
     <string name="transaction_id">İşlem Kimliği</string>
     <string name="room_id">Oda Kimliği</string>
     <string name="yes">Evet</string>
-    <string name="no">HAYIR</string>
+    <string name="no">Hayır</string>
     <string name="image">Resim</string>
     <string name="video">Video</string>
     <string name="file">Dosya</string>

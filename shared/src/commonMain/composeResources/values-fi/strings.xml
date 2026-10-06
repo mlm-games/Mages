@@ -6,7 +6,7 @@
     <string name="privacy">Yksityisyys</string>
     <string name="calls">Puhelut</string>
     <string name="storage">Säilytys</string>
-    <string name="advanced">Edistynyt</string>
+    <string name="advanced">Edistyneet</string>
     <string name="setting_theme">Teema</string>
     <string name="setting_dynamic_colors">Dynaamiset värit</string>
     <string name="setting_oled_black">Puhdas musta (OLED)</string>
@@ -230,7 +230,7 @@
     <string name="timeline_date_yesterday">Eilen</string>
     <string name="jump_to_unread">Siirry lukemattomiin</string>
     <string name="scroll_to_top">Vieritä ylös</string>
-    <string name="spaces">Spaces</string>
+    <string name="spaces">Tilat</string>
     <string name="settings">Asetukset</string>
     <string name="discover">Tutustu</string>
     <string name="invites">Kutsut</string>
@@ -264,7 +264,7 @@
     <string name="refresh">Päivitä</string>
     <string name="create_space">Luo tilaa</string>
     <string name="search_spaces">Hae paikkoja...</string>
-    <string name="clear">Selkeä</string>
+    <string name="clear">Tyhjennä</string>
     <string name="no_spaces_yet">Ei vielä paikkoja</string>
     <string name="no_spaces_found">Välilyöntejä ei löytynyt</string>
     <string name="create_space_subtitle">Luo tilaa huoneiden järjestämiseen</string>
@@ -357,7 +357,7 @@
     <string name="delivered">Toimitettu</string>
     <string name="start_call">Aloita puhelu</string>
     <string name="join_call">Liity puheluun</string>
-    <string name="answer">Vastaus</string>
+    <string name="answer">Vastaa</string>
     <string name="incoming_call">Saapuva puhelu</string>
     <string name="incoming_voice_call">Saapuva äänipuhelu</string>
     <string name="ongoing_call">Meneillään oleva puhelu</string>
@@ -378,8 +378,9 @@
     <string name="they_dont_match">Ne eivät sovi yhteen</string>
     <string name="reject">Hylätä</string>
     <string name="save">Tallentaa</string>
+    <string name="open_in">Avaa toisessa sovelluksessa</string>
     <string name="done">Tehty</string>
-    <string name="close">Lähellä</string>
+    <string name="close">Sulje</string>
     <string name="next">Seuraavaksi</string>
     <string name="previous">Edellinen</string>
     <string name="ok">OK</string>
@@ -1130,7 +1131,7 @@
     <string name="unpin">Irrota</string>
     <string name="unread_messages">Lukemattomat viestit</string>
     <string name="upgraded_from_another_room">Päivitetty toisesta huoneesta</string>
-    <string name="uploading">Lähetetään...</string>
+    <string name="uploading">Ladataan…</string>
     <string name="use_letters_numbers_and_only">Käytä vain kirjaimia, numeroita sekä merkkejä - ja _</string>
     <string name="user_0">Käyttäjä (0)</string>
     <string name="user_kicked">Käyttäjä poistettu</string>

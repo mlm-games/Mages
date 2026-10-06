@@ -230,7 +230,7 @@
     <string name="timeline_date_yesterday">вчора</string>
     <string name="jump_to_unread">Перейти до непрочитаного</string>
     <string name="scroll_to_top">Прокрутіть до верху</string>
-    <string name="spaces">Пробіли</string>
+    <string name="spaces">Простори</string>
     <string name="settings">Налаштування</string>
     <string name="discover">Відкрийте для себе</string>
     <string name="invites">Запрошує</string>
@@ -259,12 +259,12 @@
     <string name="search_in_this_room">Пошук у цій кімнаті…</string>
     <string name="no_pending_invites">Немає незавершених запрошень</string>
     <string name="decline">відхилити</string>
-    <string name="accept">прийняти</string>
+    <string name="accept">Прийняти</string>
     <string name="back">Назад</string>
     <string name="refresh">Оновити</string>
     <string name="create_space">Створити простір</string>
     <string name="search_spaces">Пошук місць...</string>
-    <string name="clear">ясно</string>
+    <string name="clear">Очистити</string>
     <string name="no_spaces_yet">Ще немає місць</string>
     <string name="no_spaces_found">Вільних місць не знайдено</string>
     <string name="create_space_subtitle">Створіть простір для організації кімнат</string>
@@ -304,7 +304,7 @@
     <string name="join">Приєднуйтесь</string>
     <string name="knock">Стук</string>
     <string name="unavailable">Недоступний</string>
-    <string name="message">повідомлення</string>
+    <string name="message">Повідомлення</string>
     <string name="no_results_for">Немає результатів для "%1$s"</string>
     <string name="try_different_search_term">Спробуйте інший пошуковий термін або сервер каталогу</string>
     <string name="search_tips">Поради щодо пошуку</string>
@@ -326,7 +326,7 @@
     <string name="change_recovery_key">Змініть ключ відновлення</string>
     <string name="recovery_key">Ключ відновлення</string>
     <string name="save_recovery_key_warning">Збережіть цей ключ у безпечному місці. Він знадобиться вам, щоб відновити зашифровані повідомлення, якщо ви втратите доступ до своїх пристроїв.</string>
-    <string name="copy">Копія</string>
+    <string name="copy">Копіювати</string>
     <string name="copied">Скопійовано</string>
     <string name="your_devices">Ваші пристрої</string>
     <string name="no_devices_found">Пристроїв не знайдено</string>
@@ -344,9 +344,9 @@
     <string name="send_message_to_start">Щоб почати розмову, надішліть повідомлення</string>
     <string name="drop_file_to_send">Перетягніть файл, щоб надіслати</string>
     <string name="offline_queued">Офлайн – повідомлення будуть додані в чергу</string>
-    <string name="share">Поділіться</string>
+    <string name="share">Поділитися</string>
     <string name="share_profile">Поділитися профілем</string>
-    <string name="forward">вперед</string>
+    <string name="forward">Переслати</string>
     <string name="delete">Видалити</string>
     <string name="replies">%1$d відповідає</string>
     <string name="reply">1 відповідь</string>
@@ -357,7 +357,7 @@
     <string name="delivered">Доставлено</string>
     <string name="start_call">Розпочати виклик</string>
     <string name="join_call">Приєднатися до дзвінка</string>
-    <string name="answer">Відповідь</string>
+    <string name="answer">Відповісти</string>
     <string name="incoming_call">Вхідний дзвінок</string>
     <string name="incoming_voice_call">Вхідний голосовий виклик</string>
     <string name="ongoing_call">Поточний дзвінок</string>
@@ -378,11 +378,12 @@
     <string name="they_dont_match">Вони не збігаються</string>
     <string name="reject">Відхиляти</string>
     <string name="save">зберегти</string>
+    <string name="open_in">Відкрити в іншому застосунку</string>
     <string name="done">Готово</string>
     <string name="close">Закрити</string>
     <string name="next">Далі</string>
     <string name="previous">Попередній</string>
-    <string name="ok">добре</string>
+    <string name="ok">Гаразд</string>
     <string name="error">Помилка</string>
     <string name="success">Успіх</string>
     <string name="loading">Завантаження...</string>
@@ -429,7 +430,7 @@
     <string name="failed_to_unban_user">Не вдалося розблокувати користувача</string>
     <string name="invitation_sent">Запрошення надіслано</string>
     <string name="failed_to_invite">Не вдалося запросити користувача</string>
-    <string name="user_ignored">Користувач ігнорується</string>
+    <string name="user_ignored">Користувача проігноровано</string>
     <string name="failed_to_ignore">Не вдалося проігнорувати користувача</string>
     <string name="failed_to_start_conversation">Не вдалося почати розмову</string>
     <string name="message_forwarded">Повідомлення переслано</string>
@@ -491,7 +492,7 @@
     <string name="yes">так</string>
     <string name="no">немає</string>
     <string name="image">Зображення</string>
-    <string name="video">відео</string>
+    <string name="video">Відео</string>
     <string name="file">Файл</string>
     <string name="media_cache">Медіа-кеш</string>
     <string name="media_cache_calculating">Розрахунок…</string>
@@ -1142,7 +1143,7 @@
     <string name="verification_failed_to_start">Не вдалося розпочати перевірку</string>
     <string name="verification_request_received">Отримано запит на перевірку</string>
     <string name="verification_service_unavailable">Служба перевірки недоступна</string>
-    <string name="verified">Підтверджено</string>
+    <string name="verified">Перевірено</string>
     <string name="video_call">Відеодзвінок</string>
     <string name="view_all">Переглянути все</string>
     <string name="view_old_room">Переглянути стару кімнату</string>

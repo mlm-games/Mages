@@ -258,13 +258,13 @@
     <string name="search_results_count">תוצאות %1$d</string>
     <string name="search_in_this_room">חפש בחדר הזה...</string>
     <string name="no_pending_invites">אין הזמנות ממתינות</string>
-    <string name="decline">יְרִידָה</string>
+    <string name="decline">דחייה</string>
     <string name="accept">לְקַבֵּל</string>
     <string name="back">בְּחֲזָרָה</string>
     <string name="refresh">לְרַעֲנֵן</string>
     <string name="create_space">צור שטח</string>
     <string name="search_spaces">חפש מרחבים...</string>
-    <string name="clear">בָּרוּר</string>
+    <string name="clear">ניקוי</string>
     <string name="no_spaces_yet">עדיין אין מקומות</string>
     <string name="no_spaces_found">לא נמצאו רווחים</string>
     <string name="create_space_subtitle">צור מקום לארגון החדרים שלך</string>
@@ -346,7 +346,7 @@
     <string name="offline_queued">לא מקוון - הודעות יעמדו בתור</string>
     <string name="share">לַחֲלוֹק</string>
     <string name="share_profile">שיתוף פרופיל</string>
-    <string name="forward">קָדִימָה</string>
+    <string name="forward">העברה</string>
     <string name="delete">לִמְחוֹק</string>
     <string name="replies">%1$d עונה</string>
     <string name="reply">תשובה אחת</string>
@@ -378,7 +378,8 @@
     <string name="they_dont_match">הם לא תואמים</string>
     <string name="reject">לִדחוֹת</string>
     <string name="save">לְהַצִיל</string>
-    <string name="done">נַעֲשָׂה</string>
+    <string name="open_in">פתיחה ביישום אחר</string>
+    <string name="done">הושלם</string>
     <string name="close">לִסְגוֹר</string>
     <string name="next">הַבָּא</string>
     <string name="previous">קוֹדֵם</string>
@@ -435,7 +436,7 @@
     <string name="message_forwarded">ההודעה הועברה</string>
     <string name="preparing_share">מכין שיתוף...</string>
     <string name="media_files">מדיה וקבצים</string>
-    <string name="download">הורד</string>
+    <string name="download">הורדה</string>
     <string name="recovery_key_prompt_title">פענוח היסטוריית הודעות</string>
     <string name="recovery_key_prompt_body">הזן את מפתח השחזור שלך כדי לשחזר גישה להודעות המוצפנות שלך ממכשירים אחרים.</string>
     <string name="enter_recovery_key">הזן מפתח שחזור</string>
@@ -876,7 +877,7 @@
     <string name="knock_required_before_joining">נדרשת בקשת הצטרפות לפני ההצטרפות</string>
     <string name="knock_restricted">נקישה + מוגבל</string>
     <string name="latest">החדש ביותר</string>
-    <string name="leave">יציאה</string>
+    <string name="leave">עזיבה</string>
     <string name="leave_room">לצאת מהחדר?</string>
     <string name="leave_room_action">יציאה מהחדר</string>
     <string name="leave_space">יציאה מהמרחב</string>

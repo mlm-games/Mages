@@ -236,6 +236,7 @@
     <string name="reject">Rechazar</string>
 
     <string name="save">Guardar</string>
+    <string name="open_in">Abrir en otra aplicación</string>
     <string name="done">Hecho</string>
     <string name="close">Cerrar</string>
     <string name="next">Siguiente</string>
@@ -257,7 +258,7 @@
     <string
         name="no_permission_pin"
     >No tienes permiso para fijar mensajes</string>
-    <string name="message_pinned">Mensaje fijado</string>
+    <string name="message_pinned">Se fijó el mensaje</string>
     <string name="failed_to_pin">Error al fijar mensaje</string>
     <string
         name="no_permission_unpin"
@@ -304,7 +305,7 @@
     <string name="failed_to_remove_user">Error al eliminar usuario</string>
     <string name="user_banned">Usuario baneado</string>
     <string name="failed_to_ban_user">Error al banear usuario</string>
-    <string name="user_unbanned">Usuario desbanedo</string>
+    <string name="user_unbanned">Usuario desbaneado</string>
     <string name="failed_to_unban_user">Error al desbanear usuario</string>
     <string name="invitation_sent">Invitación enviada</string>
     <string name="failed_to_invite">Error al invitar usuario</string>
@@ -643,10 +644,10 @@
 
     <string name="syncing">Sincronizando…</string>
     <string name="start_chat">Iniciar chat</string>
-    <string name="new_room_action">Nueva habitación</string>
-    <string name="room_directory">Directorio de habitaciones</string>
+    <string name="new_room_action">Nueva sala</string>
+    <string name="room_directory">Directorio de salas</string>
     <string name="join_room_by_address">Unirse a la sala por dirección</string>
-    <string name="create_room_desc">Crear una nueva habitación</string>
+    <string name="create_room_desc">Crear una nueva sala</string>
     <string name="browse_directory_desc">Explorar salas públicas</string>
     <string name="search_for_someone">Buscar a alguien... p.e. @usuario:servidor</string>
     <string name="starting_chat">Iniciando chat…</string>

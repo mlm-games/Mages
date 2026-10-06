@@ -346,7 +346,7 @@
     <string name="offline_queued">آفلاین - پیام ها در صف قرار می گیرند</string>
     <string name="share">به اشتراک بگذارید</string>
     <string name="share_profile">اشتراک‌گذاری نمایه</string>
-    <string name="forward">به جلو</string>
+    <string name="forward">ارسال به جلو</string>
     <string name="delete">حذف کنید</string>
     <string name="replies">%1$d پاسخ می دهد</string>
     <string name="reply">1 پاسخ</string>
@@ -378,6 +378,7 @@
     <string name="they_dont_match">مطابقت ندارند</string>
     <string name="reject">رد کردن</string>
     <string name="save">ذخیره کنید</string>
+    <string name="open_in">باز کردن در برنامهٔ دیگر</string>
     <string name="done">انجام شد</string>
     <string name="close">بستن</string>
     <string name="next">بعدی</string>
@@ -385,7 +386,7 @@
     <string name="ok">باشه</string>
     <string name="error">خطا</string>
     <string name="success">موفقیت</string>
-    <string name="loading">در حال بارگیری...</string>
+    <string name="loading">در حال بارگذاری...</string>
     <string name="submit">ارسال کنید</string>
     <string name="couldnt_find_message">آن پیام در تاریخچه بارگیری شده یافت نشد.</string>
     <string name="reply_failed">پاسخ ناموفق بود</string>
@@ -423,7 +424,7 @@
     <string name="poll_ended">نظرسنجی به پایان رسید</string>
     <string name="user_removed">کاربر از اتاق حذف شد</string>
     <string name="failed_to_remove_user">کاربر حذف نشد</string>
-    <string name="user_banned">کاربر ممنوع شد</string>
+    <string name="user_banned">کاربر مسدود شد</string>
     <string name="failed_to_ban_user">مسدود کردن کاربر ناموفق بود</string>
     <string name="user_unbanned">کاربر لغو ممنوعیت</string>
     <string name="failed_to_unban_user">لغو ممنوعیت کاربر انجام نشد</string>
@@ -1130,7 +1131,7 @@
     <string name="unpin">برداشتن سنجاق</string>
     <string name="unread_messages">پیام‌های خوانده‌نشده</string>
     <string name="upgraded_from_another_room">از اتاق دیگری ارتقا یافته است</string>
-    <string name="uploading">در حال بارگذاری...</string>
+    <string name="uploading">در حال ارسال...</string>
     <string name="use_letters_numbers_and_only">فقط از حروف، اعداد، - و _ استفاده کنید</string>
     <string name="user_0">کاربر (0)</string>
     <string name="user_kicked">کاربر اخراج شد</string>

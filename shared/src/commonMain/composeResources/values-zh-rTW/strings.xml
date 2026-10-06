@@ -210,7 +210,7 @@
     <string name="show_advanced_options">顯示進階選項</string>
     <string name="sign_in">登入</string>
     <string name="or_use_password">或使用密碼登入</string>
-    <string name="rooms">客房</string>
+    <string name="rooms">聊天室</string>
     <string name="favourites">收藏夾</string>
     <string name="low_priority">低優先級</string>
     <string name="new_activity">新活動</string>
@@ -220,7 +220,7 @@
     <string name="no_rooms_found">沒有找到房間</string>
     <string name="join_a_room">加入房間開始聊天</string>
     <string name="no_rooms_match">沒有房間匹配“%1$s”</string>
-    <string name="discover_rooms">探索客房</string>
+    <string name="discover_rooms">探索聊天室</string>
     <string name="search_rooms">搜索房間...</string>
     <string name="unread_only">未讀</string>
     <string name="loading_unread">尋找未讀訊息...</string>
@@ -258,9 +258,9 @@
     <string name="search_results_count">%1$d 結果</string>
     <string name="search_in_this_room">在這個房間裡搜尋…</string>
     <string name="no_pending_invites">沒有待處理的邀請</string>
-    <string name="decline">衰退</string>
+    <string name="decline">拒絕</string>
     <string name="accept">接受</string>
-    <string name="back">後退</string>
+    <string name="back">返回</string>
     <string name="refresh">重新整理</string>
     <string name="create_space">創造空間</string>
     <string name="search_spaces">搜尋空間...</string>
@@ -280,7 +280,7 @@
     <string name="invite_users_optional">邀請使用者（可選）</string>
     <string name="user_placeholder">@用戶：伺服器</string>
     <string name="add">添加</string>
-    <string name="remove">消除</string>
+    <string name="remove">移除</string>
     <string name="encrypted">加密的</string>
     <string name="public">民眾</string>
     <string name="members">%1$d 成員</string>
@@ -346,7 +346,7 @@
     <string name="offline_queued">離線 - 訊息將排隊</string>
     <string name="share">分享</string>
     <string name="share_profile">分享個人資料</string>
-    <string name="forward">向前</string>
+    <string name="forward">轉發</string>
     <string name="delete">刪除</string>
     <string name="replies">%1$d 回复</string>
     <string name="reply">1 則回覆</string>
@@ -377,12 +377,13 @@
     <string name="they_match">他們匹配</string>
     <string name="they_dont_match">他們不匹配</string>
     <string name="reject">拒絕</string>
-    <string name="save">節省</string>
-    <string name="done">完畢</string>
+    <string name="save">儲存</string>
+    <string name="open_in">在其他應用程式中開啟</string>
+    <string name="done">完成</string>
     <string name="close">關閉</string>
     <string name="next">下一個</string>
-    <string name="previous">以前的</string>
-    <string name="ok">好的</string>
+    <string name="previous">上一個</string>
+    <string name="ok">確定</string>
     <string name="error">錯誤</string>
     <string name="success">成功</string>
     <string name="loading">載入中...</string>
@@ -429,7 +430,7 @@
     <string name="failed_to_unban_user">取消禁止用戶失敗</string>
     <string name="invitation_sent">邀請已發送</string>
     <string name="failed_to_invite">邀請用戶失敗</string>
-    <string name="user_ignored">用戶被忽略</string>
+    <string name="user_ignored">使用者已被忽略</string>
     <string name="failed_to_ignore">無法忽略用戶</string>
     <string name="failed_to_start_conversation">無法開始對話</string>
     <string name="message_forwarded">訊息已轉發</string>
@@ -488,8 +489,8 @@
     <string name="event_id">事件ID</string>
     <string name="transaction_id">交易ID</string>
     <string name="room_id">房號</string>
-    <string name="yes">是的</string>
-    <string name="no">不</string>
+    <string name="yes">是</string>
+    <string name="no">否</string>
     <string name="image">影像</string>
     <string name="video">影片</string>
     <string name="file">文件</string>

@@ -260,11 +260,11 @@
     <string name="no_pending_invites">Geen openstaande uitnodigingen</string>
     <string name="decline">Afwijzen</string>
     <string name="accept">Accepteren</string>
-    <string name="back">Rug</string>
+    <string name="back">Terug</string>
     <string name="refresh">Vernieuwen</string>
     <string name="create_space">Creëer ruimte</string>
     <string name="search_spaces">Zoek ruimtes...</string>
-    <string name="clear">Duidelijk</string>
+    <string name="clear">Wissen</string>
     <string name="no_spaces_yet">Nog geen spaties</string>
     <string name="no_spaces_found">Geen spaties gevonden</string>
     <string name="create_space_subtitle">Creëer een ruimte om uw kamers te organiseren</string>
@@ -281,7 +281,7 @@
     <string name="user_placeholder">@gebruiker:server</string>
     <string name="add">Toevoegen</string>
     <string name="remove">Verwijderen</string>
-    <string name="encrypted">Gecodeerd</string>
+    <string name="encrypted">Versleuteld</string>
     <string name="public">Openbaar</string>
     <string name="members">%1$d-leden</string>
     <string name="search_users_or_rooms">Zoek naar gebruikers of openbare ruimtes</string>
@@ -301,7 +301,7 @@
     <string name="add_server">Toevoegen</string>
     <string name="cancel">Annuleren</string>
     <string name="join_this_room">Sluit u rechtstreeks aan bij deze ruimte via een alias/ID</string>
-    <string name="join">Meedoen</string>
+    <string name="join">Deelnemen</string>
     <string name="knock">Klop</string>
     <string name="unavailable">Niet beschikbaar</string>
     <string name="message">Bericht</string>
@@ -344,9 +344,9 @@
     <string name="send_message_to_start">Stuur een bericht om het gesprek te starten</string>
     <string name="drop_file_to_send">Bestand neerzetten om te verzenden</string>
     <string name="offline_queued">Offline - Berichten worden in de wachtrij geplaatst</string>
-    <string name="share">Deel</string>
+    <string name="share">Delen</string>
     <string name="share_profile">Profiel delen</string>
-    <string name="forward">Vooruit</string>
+    <string name="forward">Doorsturen</string>
     <string name="delete">Verwijderen</string>
     <string name="replies">%1$d antwoordt</string>
     <string name="reply">1 antwoord</string>
@@ -357,7 +357,7 @@
     <string name="delivered">Afgeleverd</string>
     <string name="start_call">Bel starten</string>
     <string name="join_call">Neem deel aan de oproep</string>
-    <string name="answer">Antwoord</string>
+    <string name="answer">Beantwoorden</string>
     <string name="incoming_call">Inkomend gesprek</string>
     <string name="incoming_voice_call">Inkomende spraakoproep</string>
     <string name="ongoing_call">Lopende oproep</string>
@@ -377,9 +377,10 @@
     <string name="they_match">Ze komen overeen</string>
     <string name="they_dont_match">Ze komen niet overeen</string>
     <string name="reject">Afwijzen</string>
-    <string name="save">Redden</string>
+    <string name="save">Opslaan</string>
+    <string name="open_in">Openen in andere app</string>
     <string name="done">Klaar</string>
-    <string name="close">Dichtbij</string>
+    <string name="close">Sluiten</string>
     <string name="next">Volgende</string>
     <string name="previous">Vorig</string>
     <string name="ok">OK</string>
@@ -731,7 +732,7 @@
     <string name="could_not_update_this_pack">Kon dit pakket niet bijwerken</string>
     <string name="could_not_update_who_can_join_try_again">Kon niet bijwerken wie kan deelnemen. Probeer het opnieuw.</string>
     <string name="country_code">Landcode</string>
-    <string name="create">Maken</string>
+    <string name="create">Aanmaken</string>
     <string name="create_a_launcher_shortcut_for_this_room">Maak een snelkoppeling voor deze kamer op het startscherm</string>
     <string name="create_a_room_inside_this_space">Maak een kamer in deze ruimte</string>
     <string name="create_poll">Enquête maken</string>
@@ -1127,7 +1128,7 @@
     <string name="unknown_error">Onbekende fout</string>
     <string name="unlock">Ontgrendelen</string>
     <string name="unlock_with_biometrics_or_device_pin">Ontgrendelen met biometrie of apparaat-PIN</string>
-    <string name="unpin">Losmaken</string>
+    <string name="unpin">Speld verwijderen</string>
     <string name="unread_messages">Ongelezen berichten</string>
     <string name="upgraded_from_another_room">Geüpgraded uit een andere kamer</string>
     <string name="uploading">Uploaden...</string>

@@ -230,9 +230,9 @@
     <string name="timeline_date_yesterday">Kemarin</string>
     <string name="jump_to_unread">Lompat ke belum dibaca</string>
     <string name="scroll_to_top">Gulir ke atas</string>
-    <string name="spaces">Spasi</string>
+    <string name="spaces">Ruang Lingkup</string>
     <string name="settings">Pengaturan</string>
-    <string name="discover">Menemukan</string>
+    <string name="discover">Jelajahi</string>
     <string name="invites">Undangan</string>
     <string name="new_room">Kamar Baru</string>
     <string name="start_chat">Mulai obrolan</string>
@@ -264,7 +264,7 @@
     <string name="refresh">Menyegarkan</string>
     <string name="create_space">Ciptakan Ruang</string>
     <string name="search_spaces">Ruang pencarian...</string>
-    <string name="clear">Jernih</string>
+    <string name="clear">Bersihkan</string>
     <string name="no_spaces_yet">Belum ada spasi</string>
     <string name="no_spaces_found">Tidak ada spasi yang ditemukan</string>
     <string name="create_space_subtitle">Ciptakan ruang untuk mengatur kamar Anda</string>
@@ -346,7 +346,7 @@
     <string name="offline_queued">Offline - Pesan akan dimasukkan dalam antrean</string>
     <string name="share">Membagikan</string>
     <string name="share_profile">Bagikan profil</string>
-    <string name="forward">Maju</string>
+    <string name="forward">Teruskan</string>
     <string name="delete">Menghapus</string>
     <string name="replies">Balasan %1$d</string>
     <string name="reply">1 balasan</string>
@@ -378,11 +378,12 @@
     <string name="they_dont_match">Mereka tidak cocok</string>
     <string name="reject">Menolak</string>
     <string name="save">Menyimpan</string>
+    <string name="open_in">Buka di aplikasi lain</string>
     <string name="done">Selesai</string>
     <string name="close">Menutup</string>
     <string name="next">Berikutnya</string>
     <string name="previous">Sebelumnya</string>
-    <string name="ok">OKE</string>
+    <string name="ok">OK</string>
     <string name="error">Kesalahan</string>
     <string name="success">Kesuksesan</string>
     <string name="loading">Memuat...</string>
@@ -489,10 +490,10 @@
     <string name="transaction_id">ID Transaksi</string>
     <string name="room_id">ID Kamar</string>
     <string name="yes">Ya</string>
-    <string name="no">TIDAK</string>
+    <string name="no">Tidak</string>
     <string name="image">Gambar</string>
     <string name="video">Video</string>
-    <string name="file">Mengajukan</string>
+    <string name="file">Berkas</string>
     <string name="media_cache">Tembolok Media</string>
     <string name="media_cache_calculating">Menghitung…</string>
     <string name="media_cache_used_by_mages">Digunakan oleh Penyihir</string>

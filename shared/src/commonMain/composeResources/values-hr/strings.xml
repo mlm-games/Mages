@@ -230,7 +230,7 @@
     <string name="timeline_date_yesterday">Jučer</string>
     <string name="jump_to_unread">Skoči na nepročitano</string>
     <string name="scroll_to_top">Pomaknite se na vrh</string>
-    <string name="spaces">Razmaci</string>
+    <string name="spaces">Prostori</string>
     <string name="settings">postavke</string>
     <string name="discover">Otkriti</string>
     <string name="invites">poziva</string>
@@ -258,13 +258,13 @@
     <string name="search_results_count">Rezultati %1$d</string>
     <string name="search_in_this_room">Traži u ovoj sobi…</string>
     <string name="no_pending_invites">Nema pozivnica na čekanju</string>
-    <string name="decline">Pad</string>
+    <string name="decline">Odbij</string>
     <string name="accept">Prihvatiti</string>
     <string name="back">Nazad</string>
     <string name="refresh">Osvježiti</string>
     <string name="create_space">Stvorite prostor</string>
     <string name="search_spaces">Traži prostore...</string>
-    <string name="clear">Jasan</string>
+    <string name="clear">Očisti</string>
     <string name="no_spaces_yet">Još nema mjesta</string>
     <string name="no_spaces_found">Nije pronađen nijedan prostor</string>
     <string name="create_space_subtitle">Stvorite prostor za organiziranje svojih soba</string>
@@ -344,9 +344,9 @@
     <string name="send_message_to_start">Pošaljite poruku da započnete razgovor</string>
     <string name="drop_file_to_send">Ispustite datoteku za slanje</string>
     <string name="offline_queued">Izvan mreže - poruke će biti stavljene u red čekanja</string>
-    <string name="share">Udio</string>
+    <string name="share">Podijeli</string>
     <string name="share_profile">Podijeli profil</string>
-    <string name="forward">Naprijed</string>
+    <string name="forward">Proslijedi</string>
     <string name="delete">Izbrisati</string>
     <string name="replies">%1$d odgovara</string>
     <string name="reply">1 odgovor</string>
@@ -357,7 +357,7 @@
     <string name="delivered">Isporučeno</string>
     <string name="start_call">Započni poziv</string>
     <string name="join_call">Pridružite se pozivu</string>
-    <string name="answer">Odgovor</string>
+    <string name="answer">Odgovori</string>
     <string name="incoming_call">Dolazni poziv</string>
     <string name="incoming_voice_call">Dolazni glasovni poziv</string>
     <string name="ongoing_call">Poziv u tijeku</string>
@@ -378,6 +378,7 @@
     <string name="they_dont_match">Ne poklapaju se</string>
     <string name="reject">Odbiti</string>
     <string name="save">Uštedjeti</string>
+    <string name="open_in">Otvori u drugoj aplikaciji</string>
     <string name="done">Gotovo</string>
     <string name="close">Zatvoriti</string>
     <string name="next">Sljedeći</string>
@@ -435,7 +436,7 @@
     <string name="message_forwarded">Poruka proslijeđena</string>
     <string name="preparing_share">Priprema dijeljenja…</string>
     <string name="media_files">Mediji i datoteke</string>
-    <string name="download">preuzimanje</string>
+    <string name="download">Preuzmi</string>
     <string name="recovery_key_prompt_title">Dešifriranje povijesti poruka</string>
     <string name="recovery_key_prompt_body">Unesite svoj ključ za oporavak kako biste vratili pristup svojim šifriranim porukama s drugih uređaja.</string>
     <string name="enter_recovery_key">Unesite ključ za oporavak</string>
@@ -1142,7 +1143,7 @@
     <string name="verification_failed_to_start">Pokretanje provjere nije uspjelo</string>
     <string name="verification_request_received">Zahtjev za provjeru je primljen</string>
     <string name="verification_service_unavailable">Usluga provjere nije dostupna</string>
-    <string name="verified">Potvrđeno</string>
+    <string name="verified">Verificirano</string>
     <string name="video_call">Video poziv</string>
     <string name="view_all">Prikaži sve</string>
     <string name="view_old_room">Prikaži staru sobu</string>

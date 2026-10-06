@@ -258,13 +258,13 @@
     <string name="search_results_count">Výsledky %1$d</string>
     <string name="search_in_this_room">Hledat v této místnosti…</string>
     <string name="no_pending_invites">Žádné nevyřízené pozvánky</string>
-    <string name="decline">Pokles</string>
+    <string name="decline">Odmítnout</string>
     <string name="accept">Přijmout</string>
     <string name="back">Zadní</string>
     <string name="refresh">Obnovit</string>
     <string name="create_space">Vytvořte prostor</string>
     <string name="search_spaces">Hledat prostory...</string>
-    <string name="clear">Jasný</string>
+    <string name="clear">Vymazat</string>
     <string name="no_spaces_yet">Zatím žádná volná místa</string>
     <string name="no_spaces_found">Nebyla nalezena žádná místa</string>
     <string name="create_space_subtitle">Vytvořte si prostor pro uspořádání svých pokojů</string>
@@ -326,7 +326,7 @@
     <string name="change_recovery_key">Změňte klíč pro obnovení</string>
     <string name="recovery_key">Obnovovací klíč</string>
     <string name="save_recovery_key_warning">Uložte tento klíč na bezpečné místo. Budete jej potřebovat k obnovení zašifrovaných zpráv, pokud ztratíte přístup ke svým zařízením.</string>
-    <string name="copy">Kopie</string>
+    <string name="copy">Kopírovat</string>
     <string name="copied">Zkopírováno</string>
     <string name="your_devices">Vaše zařízení</string>
     <string name="no_devices_found">Nebyla nalezena žádná zařízení</string>
@@ -344,9 +344,9 @@
     <string name="send_message_to_start">Odesláním zprávy zahájíte konverzaci</string>
     <string name="drop_file_to_send">Přetáhněte soubor k odeslání</string>
     <string name="offline_queued">Offline – zprávy budou zařazeny do fronty</string>
-    <string name="share">Podíl</string>
+    <string name="share">Sdílet</string>
     <string name="share_profile">Sdílet profil</string>
-    <string name="forward">Vpřed</string>
+    <string name="forward">Přeposlat</string>
     <string name="delete">Vymazat</string>
     <string name="replies">%1$d odpovídá</string>
     <string name="reply">1 odpověď</string>
@@ -357,7 +357,7 @@
     <string name="delivered">Doručeno</string>
     <string name="start_call">Zahájit hovor</string>
     <string name="join_call">Připojte se k hovoru</string>
-    <string name="answer">Odpověď</string>
+    <string name="answer">Odpovědět</string>
     <string name="incoming_call">Příchozí hovor</string>
     <string name="incoming_voice_call">Příchozí hlasový hovor</string>
     <string name="ongoing_call">Probíhající hovor</string>
@@ -378,8 +378,9 @@
     <string name="they_dont_match">Neshodují se</string>
     <string name="reject">Odmítnout</string>
     <string name="save">Uložit</string>
+    <string name="open_in">Otevřít v jiné aplikaci</string>
     <string name="done">Hotovo</string>
-    <string name="close">Blízko</string>
+    <string name="close">Zavřít</string>
     <string name="next">Další</string>
     <string name="previous">Předchozí</string>
     <string name="ok">OK</string>
@@ -854,7 +855,7 @@
     <string name="incoming_voice_and_video_calls">Příchozí hlasové a videohovory</string>
     <string name="invalid_characters_in_address">Adresa obsahuje neplatné znaky</string>
     <string name="invalid_user_id">Neplatné ID uživatele</string>
-    <string name="invite">Pozvánka</string>
+    <string name="invite">Pozvat</string>
     <string name="invite_only">Pouze na pozvání</string>
     <string name="invite_user">Pozvat uživatele</string>
     <string name="invite_user_to_space">Pozvat uživatele do prostoru</string>
@@ -876,7 +877,7 @@
     <string name="knock_required_before_joining">Před připojením je vyžadováno klepnutí</string>
     <string name="knock_restricted">Klepnutí + omezené</string>
     <string name="latest">Nejnovější</string>
-    <string name="leave">Odejít</string>
+    <string name="leave">Opustit</string>
     <string name="leave_room">Opustit místnost?</string>
     <string name="leave_room_action">Opustit místnost</string>
     <string name="leave_space">Opustit prostor</string>
