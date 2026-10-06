@@ -1,3 +1,11 @@
+## v5.1.1
+
+- : opens emotes picker too now
+- Basic image viewer
+- stale moderatioin removal
+- fix user char escapes in pill
+
+
 ## v5.1.0
 
 - Prev. release fixes and new swipe settings for rooms

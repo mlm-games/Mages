@@ -1,0 +1,4 @@
+- : opens emotes picker too now
+- Basic image viewer
+- stale moderatioin removal
+- fix user char escapes in pill

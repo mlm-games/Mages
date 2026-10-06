@@ -46,6 +46,16 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="5.1.1" date="2026-10-06" type="stable">
+      <description>
+        <ul>
+          <li>: opens emotes picker too now</li>
+          <li>Basic image viewer</li>
+          <li>stale moderatioin removal</li>
+          <li>fix user char escapes in pill</li>
+        </ul>
+      </description>
+    </release>
     <release version="5.1.0" date="2026-10-03" type="stable">
       <description>
         <ul>
