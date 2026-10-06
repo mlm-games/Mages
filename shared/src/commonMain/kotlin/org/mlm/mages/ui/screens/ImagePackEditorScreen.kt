@@ -642,14 +642,12 @@ private fun RemoveChip(onClick: () -> Unit, modifier: Modifier = Modifier) {
             .size(Sizes.touchTarget)
             .clip(RoundedCornerShape(percent = 50))
             .clickable(onClick = onClick),
-        contentAlignment = Alignment.TopEnd
+        contentAlignment = Alignment.Center
     ) {
         Surface(
             shape = RoundedCornerShape(percent = 50),
             color = MaterialTheme.colorScheme.errorContainer,
-            modifier = Modifier
-                .padding(2.dp)
-                .size(24.dp)
+            modifier = Modifier.size(24.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
