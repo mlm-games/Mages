@@ -13,7 +13,8 @@ import org.mlm.mages.matrix.ImagePackImageEntry
 private val markdownFlavour = SpoilerFlavour()
 
 /** A mention stands in as a markdown link while composing. */
-val MENTION_MARKDOWN = Regex("""\[([^\]]+)]\(https://matrix\.to/#/(@[^)]+)\)""")
+val MENTION_MARKDOWN =
+    Regex("""\[((?:\\.|[^\]])+)]\(https://matrix\.to/#/(@[^)]+)\)""")
 
 /**
  * The same mention, after [MENTION_MARKDOWN] has turned it into a real anchor
@@ -93,7 +94,7 @@ class OutgoingText(val body: String, val formattedBody: String?)
 fun composerToPlainBody(parsed: ComposerMarkdown, spoilerImage: String? = null): String =
     MENTION_ANCHOR
         .replace(redactSpoilers(parsed.text, parsed.spoilerRanges, spoilerImage)) {
-            unescapeHtml(it.groupValues[1])
+            unescapeHtml(unescapeMarkdown(it.groupValues[1]))
         }
         .replace(EMOTE_MARKDOWN) { unescapeMarkdown(it.groupValues[1]) }
 
@@ -160,7 +161,11 @@ private fun unescapeHtml(text: String): String = text
     .replace("&lt;", "<")
     .replace("&amp;", "&")
 
-/** Drops the escapes [EmoteSuggestion.markdown] adds, recovering the alt text. */
-private fun unescapeMarkdown(text: String): String = MARKDOWN_ESCAPE.replace(text) { it.groupValues[1] }
+internal fun unescapeMarkdown(text: String): String = MARKDOWN_ESCAPE.replace(text) { it.groupValues[1] }
+
+private val LABEL_ESCAPE = Regex("""([\\`*_\[\]])""")
+
+internal fun escapeMarkdown(text: String): String =
+    LABEL_ESCAPE.replace(text) { "\\${it.groupValues[1]}" }
 
 private fun escapeHtmlAttribute(text: String): String = escapeHtml(text)

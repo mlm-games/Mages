@@ -42,7 +42,7 @@ class ComposerVisualTransformation(private val emoteUris: Set<String>) : VisualT
         val found = mutableListOf<Pair<IntRange, String>>()
 
         for (match in MENTION_MARKDOWN.findAll(source)) {
-            val label = match.groupValues[1]
+            val label = unescapeMarkdown(match.groupValues[1])
             found += Pair(match.range, if (label.startsWith("@")) label else "@$label")
         }
 
