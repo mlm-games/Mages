@@ -3,14 +3,23 @@ package org.mlm.mages.ui.components.composer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,8 +28,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
@@ -29,8 +40,12 @@ import mages.shared.generated.resources.*
 import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.emote_pack_unencrypted_notice
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
+import org.mlm.mages.emoji.RecentEmojiStore
 import org.mlm.mages.matrix.ImagePackSummary
 import org.mlm.mages.ui.components.core.EmoteRef
+import org.mlm.mages.ui.components.sheets.EmojiCategory
+import org.mlm.mages.ui.components.sheets.emojiCategories
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 
@@ -43,7 +58,7 @@ import org.mlm.mages.ui.theme.Spacing
 data class EmoteSuggestion(
     val shortcode: String,
     val packName: String? = null,
-    val ref: EmoteRef
+    val ref: EmoteRef,
 ) {
     /** Rewritten into the spec's `data-mx-emoticon` element when the message is sent. */
     val markdown: String
@@ -87,13 +102,15 @@ fun emoteSuggestionsFrom(packs: List<ImagePackSummary>): List<EmoteSuggestion> {
 
 @Composable
 fun ComposerEmotePopup(
-    suggestions: List<EmoteSuggestion>,
+    query: String,
+    emotes: List<EmoteSuggestion>,
     resolvePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String?,
     onEmoteSelected: (EmoteSuggestion) -> Unit,
+    onEmojiSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
     showUnencryptedNotice: Boolean = false,
 ) {
-    if (suggestions.isEmpty()) return
+    if (query.isNotEmpty() && emotes.isEmpty()) return
 
     Surface(
         modifier = modifier,
@@ -117,25 +134,127 @@ fun ComposerEmotePopup(
                 )
             }
 
-            LazyRow(
-                modifier = Modifier.heightIn(max = 96.dp),
-                contentPadding = PaddingValues(
-                    horizontal = Spacing.sm,
-                    vertical = Spacing.xs
-                ),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
-                items(
-                    suggestions,
-                    key = { "${it.shortcode}|${it.ref.mxcUri}|${it.packName.orEmpty()}" }
-                ) { suggestion ->
-                    EmoteSuggestionItem(
-                        suggestion = suggestion,
-                        resolvePreview = resolvePreview,
-                        onClick = { onEmoteSelected(suggestion) }
+            if (query.isNotEmpty()) {
+                EmoteRow(emotes, resolvePreview, onEmoteSelected, rememberLazyListState())
+            } else {
+                EmojiEmoteBrowser(emotes, resolvePreview, onEmoteSelected, onEmojiSelected)
+            }
+        }
+    }
+}
+
+private sealed interface PickerTab {
+    data class Emoji(val category: EmojiCategory) : PickerTab
+    object Emotes : PickerTab
+}
+
+@Composable
+private fun EmojiEmoteBrowser(
+    emotes: List<EmoteSuggestion>,
+    resolvePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String?,
+    onEmoteSelected: (EmoteSuggestion) -> Unit,
+    onEmojiSelected: (String) -> Unit,
+) {
+    val recentStore: RecentEmojiStore = koinInject()
+    val recent by recentStore.recent.collectAsState()
+
+    val tabs = remember(recent, emotes) {
+        buildList {
+            if (recent.isNotEmpty()) add(PickerTab.Emoji(EmojiCategory(Res.string.recent, recent.map { it.emoji })))
+            addAll(emojiCategories.map { PickerTab.Emoji(it) })
+            if (emotes.isNotEmpty()) add(PickerTab.Emotes)
+        }
+    }
+    var selectedTab by remember(tabs) {
+        mutableStateOf(if (emotes.isNotEmpty()) PickerTab.Emotes else tabs.first())
+    }
+    val emojiGridState = rememberLazyGridState()
+    val emoteRowState = rememberLazyListState()
+
+    LaunchedEffect(selectedTab) {
+        emojiGridState.scrollToItem(0)
+        emoteRowState.scrollToItem(0)
+    }
+
+    SecondaryScrollableTabRow(
+        selectedTabIndex = tabs.indexOf(selectedTab),
+        edgePadding = Spacing.md,
+        divider = {},
+    ) {
+        tabs.forEach { tab ->
+            Tab(
+                selected = tab == selectedTab,
+                onClick = { selectedTab = tab },
+                text = {
+                    Text(
+                        text = when (tab) {
+                            is PickerTab.Emoji -> stringResource(tab.category.name)
+                            PickerTab.Emotes -> stringResource(Res.string.emotes)
+                        },
+                        style = MaterialTheme.typography.labelSmall
                     )
                 }
+            )
+        }
+    }
+
+    when (val tab = selectedTab) {
+        is PickerTab.Emoji -> {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 48.dp),
+                state = emojiGridState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 320.dp),
+                contentPadding = PaddingValues(
+                    horizontal = Spacing.md,
+                    vertical = Spacing.xs,
+                ),
+            ) {
+                items(tab.category.emojis) { emoji ->
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clickable {
+                                recentStore.record(emoji)
+                                onEmojiSelected(emoji)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(emoji, fontSize = 24.sp, textAlign = TextAlign.Center)
+                    }
+                }
             }
+        }
+        PickerTab.Emotes -> EmoteRow(emotes, resolvePreview, onEmoteSelected, emoteRowState)
+    }
+}
+
+@Composable
+private fun EmoteRow(
+    emotes: List<EmoteSuggestion>,
+    resolvePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String?,
+    onEmoteSelected: (EmoteSuggestion) -> Unit,
+    state: LazyListState,
+) {
+    LazyRow(
+        modifier = Modifier.heightIn(max = 96.dp),
+        state = state,
+        contentPadding = PaddingValues(
+            horizontal = Spacing.sm,
+            vertical = Spacing.xs
+        ),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        items(
+            emotes,
+            key = { "${it.shortcode}|${it.ref.mxcUri}|${it.packName.orEmpty()}" }
+        ) { suggestion ->
+            EmoteSuggestionItem(
+                suggestion = suggestion,
+                resolvePreview = resolvePreview,
+                onClick = { onEmoteSelected(suggestion) }
+            )
         }
     }
 }

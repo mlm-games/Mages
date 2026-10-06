@@ -468,6 +468,7 @@
     <string name="picker_no_reaction_images">No emotes or stickers to react with</string>
     <string name="picker_search_images">Search emotes and stickers</string>
     <string name="emote_pack_unencrypted_notice">Emotes from image packs are not encrypted and are visible to your homeserver.</string>
+    <string name="emotes">Emotes</string>
     <string name="picker_sticker_pack">Sticker pack</string>
     <string name="picker_sticker_pack_sub">Send a sticker from a pack</string>
     <string name="sticker_pack_unencrypted_notice">Sticker packs are not encrypted. Their images are sent in the clear and are visible to your homeserver, even in encrypted rooms.</string>

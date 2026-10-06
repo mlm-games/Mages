@@ -86,8 +86,11 @@ fun MessageComposer(
 
     val emoteQuery = remember(fieldValue) { findEmoteQueryInternal(fieldValue) }
     val visibleEmotes = remember(emoteQuery, emoteSuggestions) {
-        if (emoteQuery == null) emptyList() else filterEmoteSuggestionsInternal(emoteSuggestions, emoteQuery.query)
+        if (emoteQuery == null) emptyList()
+        else if (emoteQuery.query.isEmpty()) emoteSuggestions
+        else filterEmoteSuggestionsInternal(emoteSuggestions, emoteQuery.query)
     }
+    val emotePickerVisible = emoteQuery != null && (emoteQuery.query.isEmpty() || visibleEmotes.isNotEmpty())
 
     val visualTransformation = remember(emoteSuggestions) {
         ComposerVisualTransformation(emoteSuggestions.mapTo(mutableSetOf<String>()) { it.ref.mxcUri })
@@ -134,14 +137,21 @@ fun MessageComposer(
                 )
             }
 
-            AnimatedVisibility(visible = visibleEmotes.isNotEmpty()) {
+            AnimatedVisibility(visible = emotePickerVisible) {
                 ComposerEmotePopup(
-                    suggestions = visibleEmotes,
+                    query = emoteQuery?.query.orEmpty(),
+                    emotes = visibleEmotes,
                     resolvePreview = resolveEmotePreview,
                     showUnencryptedNotice = isEncryptedRoom,
                     onEmoteSelected = { suggestion ->
                         val query = emoteQuery ?: return@ComposerEmotePopup
                         val updated = insertEmoteInternal(fieldValue, suggestion, query)
+                        fieldValue = updated
+                        onValueChange(updated.text)
+                    },
+                    onEmojiSelected = { emoji ->
+                        val query = emoteQuery ?: return@ComposerEmotePopup
+                        val updated = insertEmojiInternal(fieldValue, emoji, query)
                         fieldValue = updated
                         onValueChange(updated.text)
                     },
@@ -452,5 +462,20 @@ internal fun insertEmoteInternal(
         append(current.text.substring(query.end))
     }
     val newCursor = query.start + emoteText.length
+    return TextFieldValue(newText, selection = TextRange(newCursor))
+}
+
+internal fun insertEmojiInternal(
+    current: TextFieldValue,
+    emoji: String,
+    query: EmoteQueryInternal
+): TextFieldValue {
+    val emojiText = "$emoji "
+    val newText = buildString {
+        append(current.text.substring(0, query.start))
+        append(emojiText)
+        append(current.text.substring(query.end))
+    }
+    val newCursor = query.start + emojiText.length
     return TextFieldValue(newText, selection = TextRange(newCursor))
 }
