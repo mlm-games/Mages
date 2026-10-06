@@ -1777,9 +1777,11 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         mxcUrl: String,
         width: Int,
         height: Int
-    ): Result<String> = Result.failure(
-        UnsupportedOperationException("media cache is not available on web")
-    )
+    ): Result<String> = requireClient()
+        .mxcThumbnailToCache(mxcUrl, width.toDouble(), height.toDouble(), false)
+        .awaitDataUri()
+        ?.let { Result.success(it) }
+        ?: Result.failure(IllegalStateException("pack image fetch failed"))
 
     override suspend fun sendStickerMxc(
         roomId: String,
