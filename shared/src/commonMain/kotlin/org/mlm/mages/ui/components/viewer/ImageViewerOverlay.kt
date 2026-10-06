@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -25,7 +27,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateMapOf
@@ -36,11 +40,25 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isAltPressed
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
@@ -124,7 +142,11 @@ private fun ImageViewerPages(
     val fullMedia = remember { mutableStateMapOf<String, String>() }
     val failed = remember { mutableSetOf<String>() }
     val loads = remember { mutableStateMapOf<String, Deferred<Result<String>>>() }
+    val zooms = remember { HashMap<String, ImageZoomState>() }
+    val contentFocus = remember { FocusRequester() }
     var chromeVisible by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) { contentFocus.requestFocus() }
 
     fun loadFor(event: MessageEvent): Deferred<Result<String>> {
         val id = event.eventId
@@ -168,7 +190,22 @@ private fun ImageViewerPages(
         }
     }
 
-    Box(Modifier.fillMaxSize().background(Color.Black)) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .onPreviewKeyEvent { event ->
+                handleViewerKey(event, zoomForPage(items, pagerState, zooms), pagerState, scope, onDismiss)
+            }
+            .focusRequester(contentFocus)
+            .focusable()
+            .focusProperties {
+                up = FocusRequester.Cancel
+                down = FocusRequester.Cancel
+                left = FocusRequester.Cancel
+                right = FocusRequester.Cancel
+            },
+    ) {
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
@@ -176,8 +213,12 @@ private fun ImageViewerPages(
             key = { items[it].event.itemId },
         ) { page ->
             val item = items[page]
+            val zoom = remember(item.event.eventId) { ImageZoomState() }
+            SideEffect { zooms[item.event.eventId] = zoom }
+            DisposableEffect(item.event.eventId) { onDispose { zooms.remove(item.event.eventId) } }
             ZoomableImage(
                 model = fullMedia[item.event.eventId] ?: item.previewPath,
+                zoom = zoom,
                 contentDescription = item.event.attachment?.fileName,
                 onTap = { chromeVisible = !chromeVisible },
                 onDraggingChange = { dragging -> chromeVisible = !dragging },
@@ -203,6 +244,52 @@ private fun ImageViewerPages(
             )
         }
     }
+}
+
+private const val ViewerKeyZoomStep = 0.25f
+
+private fun zoomForPage(
+    items: List<ImageViewerItem>,
+    pagerState: PagerState,
+    zooms: Map<String, ImageZoomState>,
+): ImageZoomState? = zooms[items.getOrNull(pagerState.currentPage)?.event?.eventId]
+
+private fun handleViewerKey(
+    event: KeyEvent,
+    zoom: ImageZoomState?,
+    pagerState: PagerState,
+    viewerScope: CoroutineScope,
+    onDismiss: () -> Unit,
+): Boolean {
+    if (event.type != KeyEventType.KeyDown) return false
+    if (event.key == Key.Escape || event.key == Key.Back) {
+        onDismiss()
+        return true
+    }
+    if (event.isCtrlPressed || event.isMetaPressed || event.isAltPressed) return false
+    val zoom = zoom ?: return false
+    val page = pagerState.currentPage
+
+    viewerScope.launch {
+        suspend fun panBy(dx: Float, dy: Float, pageAtEdge: Int) {
+            if (zoom.isZoomed) {
+                val step = zoom.panStep()
+                if (zoom.panBy(Offset(step.x * dx, step.y * dy))) return
+            }
+            pagerState.scrollToPage(pageAtEdge.coerceIn(0, pagerState.pageCount - 1))
+        }
+
+        when (event.key) {
+            Key.Plus, Key.NumPadAdd, Key.Equals -> zoom.stepZoom(ViewerKeyZoomStep)
+            Key.Minus, Key.NumPadSubtract -> zoom.stepZoom(-ViewerKeyZoomStep)
+            Key.Enter, Key.NumPadEnter -> zoom.toggleZoom()
+            Key.DirectionLeft -> panBy(1f, 0f, page - 1)
+            Key.DirectionRight -> panBy(-1f, 0f, page + 1)
+            Key.DirectionUp -> panBy(0f, 1f, page)
+            Key.DirectionDown -> panBy(0f, -1f, page)
+        }
+    }
+    return true
 }
 
 private fun MessageEvent.mediaMime(): String? = attachment?.mime ?: sticker?.mime

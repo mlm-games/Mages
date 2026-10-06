@@ -46,7 +46,8 @@ import kotlin.math.sign
 const val ViewerMinScale = 1f
 const val ViewerMaxScale = 5f
 
-private const val DoubleTapScale = 2.5f
+private const val DoubleTapLadderLow = 1.75f
+private const val DoubleTapLadderHigh = 2.75f
 private const val DismissThreshold = 0.12f
 private const val DismissFlingVelocityDp = 900f
 
@@ -96,9 +97,33 @@ class ImageZoomState(private val maxScale: Float = ViewerMaxScale) {
     }
 
     fun doubleTapTarget(tap: Offset): Pair<Float, Offset> {
-        if (isZoomed) return ViewerMinScale to Offset.Zero
-        val target = min(DoubleTapScale, maxScale)
+        val target = when {
+            scale < DoubleTapLadderLow -> 2f
+            scale < DoubleTapLadderHigh -> 3f
+            else -> ViewerMinScale
+        }.coerceAtMost(maxScale)
+        if (target <= ViewerMinScale) return ViewerMinScale to Offset.Zero
         return target to clamp(offset + (tap - center() - offset) * (1f - target), target)
+    }
+
+    fun panStep(): Offset = Offset(containerSize.width * 0.25f, containerSize.height * 0.25f)
+
+    suspend fun stepZoom(delta: Float) {
+        val target = (scale + delta).coerceIn(ViewerMinScale, maxScale)
+        val reset = target <= ViewerMinScale
+        animateTo(target, if (reset) Offset.Zero else offset)
+    }
+
+    suspend fun toggleZoom() {
+        if (isZoomed) animateTo(ViewerMinScale, Offset.Zero)
+        else animateTo(min(2f, maxScale), Offset.Zero)
+    }
+
+    suspend fun panBy(delta: Offset): Boolean {
+        val next = clamp(offset + delta, scale)
+        if (next == offset) return false
+        animateTo(scale, next)
+        return true
     }
 
     suspend fun animateTo(targetScale: Float, targetOffset: Offset) {
@@ -156,13 +181,13 @@ class ImageZoomState(private val maxScale: Float = ViewerMaxScale) {
 @Composable
 internal fun ZoomableImage(
     model: Any?,
+    zoom: ImageZoomState,
     contentDescription: String?,
     onTap: () -> Unit,
     onDismiss: () -> Unit,
     onDraggingChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    val zoom = remember { ImageZoomState() }
     val dismissOffset = remember { mutableFloatStateOf(0f) }
     val scope = rememberCoroutineScope()
     val context = LocalPlatformContext.current
