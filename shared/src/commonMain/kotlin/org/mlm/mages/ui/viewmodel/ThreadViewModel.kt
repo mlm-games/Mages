@@ -630,8 +630,8 @@ class ThreadViewModel(
         currentState.mentionProfilesByUserId[userId]?.let {
             return MemberSummary(userId = it.userId, displayName = it.displayName)
         }
-        val sender = (currentState.rootMessage + currentState.replies).lastOrNull { it.sender == userId }
-            ?: return null
+        val threadEvents = currentState.replies + listOfNotNull(currentState.rootMessage)
+        val sender = threadEvents.lastOrNull { it.sender == userId } ?: return null
         val displayName = sender.senderDisplayName?.takeIf { it.isNotBlank() } ?: return null
         return MemberSummary(userId = userId, displayName = displayName)
     }
