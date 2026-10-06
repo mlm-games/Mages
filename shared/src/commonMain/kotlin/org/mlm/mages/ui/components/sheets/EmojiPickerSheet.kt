@@ -32,7 +32,7 @@ fun EmojiPickerSheet(
         if (recent.isEmpty()) {
             emojiCategories
         } else {
-            listOf(EmojiCategory(Res.string.recent, recent.map { it.emoji })) + emojiCategories
+            listOf(EmojiCategory(Res.string.recent, recent.map { EmojiEntry(it.emoji) })) + emojiCategories
         }
     }
 
@@ -76,14 +76,14 @@ fun EmojiPickerSheet(
                     bottom = Spacing.xl,
                 ),
             ) {
-                items(selectedCategory.emojis) { emoji ->
+                items(selectedCategory.emojis) { entry ->
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .clickable { onEmojiSelected(emoji); onDismiss() },
+                            .clickable { onEmojiSelected(entry.emoji); onDismiss() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(emoji, fontSize = 24.sp, textAlign = TextAlign.Center)
+                        Text(entry.emoji, fontSize = 24.sp, textAlign = TextAlign.Center)
                     }
                 }
             }

@@ -32,6 +32,8 @@ import org.mlm.mages.platform.sendShortcutHandler
 import org.mlm.mages.ui.components.AttachmentData
 import org.mlm.mages.ui.components.AttachmentSourceKind
 import org.mlm.mages.ui.components.toMagesAttachment
+import org.mlm.mages.ui.components.sheets.EmojiEntry
+import org.mlm.mages.ui.components.sheets.emojiCategories
 import org.mlm.mages.ui.components.voice.VoiceRecorderBar
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
@@ -90,7 +92,12 @@ fun MessageComposer(
         else if (emoteQuery.query.isEmpty()) emoteSuggestions
         else filterEmoteSuggestionsInternal(emoteSuggestions, emoteQuery.query)
     }
-    val emotePickerVisible = emoteQuery != null && (emoteQuery.query.isEmpty() || visibleEmotes.isNotEmpty())
+    val visibleEmoji = remember(emoteQuery) {
+        if (emoteQuery == null || emoteQuery.query.isEmpty()) emptyList()
+        else filterEmojiInternal(emoteQuery.query)
+    }
+    val emotePickerVisible = emoteQuery != null &&
+        (emoteQuery.query.isEmpty() || visibleEmotes.isNotEmpty() || visibleEmoji.isNotEmpty())
 
     val visualTransformation = remember(emoteSuggestions) {
         ComposerVisualTransformation(emoteSuggestions.mapTo(mutableSetOf<String>()) { it.ref.mxcUri })
@@ -141,6 +148,7 @@ fun MessageComposer(
                 ComposerEmotePopup(
                     query = emoteQuery?.query.orEmpty(),
                     emotes = visibleEmotes,
+                    emoji = visibleEmoji,
                     resolvePreview = resolveEmotePreview,
                     showUnencryptedNotice = isEncryptedRoom,
                     onEmoteSelected = { suggestion ->
@@ -447,6 +455,22 @@ internal fun filterEmoteSuggestionsInternal(
             normalized.isEmpty() || it.shortcode.trim(':').lowercase().startsWith(normalized)
         }
         .take(24)
+        .toList()
+}
+
+internal fun filterEmojiInternal(query: String): List<EmojiEntry> {
+    val normalized = query.trim(':').lowercase()
+    if (normalized.isEmpty()) return emptyList()
+    return emojiCategories
+        .asSequence()
+        .flatMap { it.emojis.asSequence() }
+        .filter { entry ->
+            val name = entry.name.lowercase()
+            name.startsWith(normalized) ||
+                name.split(Regex("[^a-z0-9]+")).any { it.startsWith(normalized) }
+        }
+        .distinct()
+        .take(48)
         .toList()
 }
 

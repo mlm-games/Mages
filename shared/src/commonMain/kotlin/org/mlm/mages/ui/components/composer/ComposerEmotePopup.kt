@@ -45,6 +45,7 @@ import org.mlm.mages.emoji.RecentEmojiStore
 import org.mlm.mages.matrix.ImagePackSummary
 import org.mlm.mages.ui.components.core.EmoteRef
 import org.mlm.mages.ui.components.sheets.EmojiCategory
+import org.mlm.mages.ui.components.sheets.EmojiEntry
 import org.mlm.mages.ui.components.sheets.emojiCategories
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
@@ -104,13 +105,14 @@ fun emoteSuggestionsFrom(packs: List<ImagePackSummary>): List<EmoteSuggestion> {
 fun ComposerEmotePopup(
     query: String,
     emotes: List<EmoteSuggestion>,
+    emoji: List<EmojiEntry>,
     resolvePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String?,
     onEmoteSelected: (EmoteSuggestion) -> Unit,
     onEmojiSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
     showUnencryptedNotice: Boolean = false,
 ) {
-    if (query.isNotEmpty() && emotes.isEmpty()) return
+    if (query.isNotEmpty() && emotes.isEmpty() && emoji.isEmpty()) return
 
     Surface(
         modifier = modifier,
@@ -135,7 +137,32 @@ fun ComposerEmotePopup(
             }
 
             if (query.isNotEmpty()) {
-                EmoteRow(emotes, resolvePreview, onEmoteSelected, rememberLazyListState())
+                if (emoji.isNotEmpty()) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 48.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 240.dp),
+                        contentPadding = PaddingValues(
+                            horizontal = Spacing.md,
+                            vertical = Spacing.xs,
+                        ),
+                    ) {
+                        items(emoji) { entry ->
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clickable { onEmojiSelected(entry.emoji) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(entry.emoji, fontSize = 24.sp, textAlign = TextAlign.Center)
+                            }
+                        }
+                    }
+                }
+                if (emotes.isNotEmpty()) {
+                    EmoteRow(emotes, resolvePreview, onEmoteSelected, rememberLazyListState())
+                }
             } else {
                 EmojiEmoteBrowser(emotes, resolvePreview, onEmoteSelected, onEmojiSelected)
             }
@@ -160,7 +187,7 @@ private fun EmojiEmoteBrowser(
 
     val tabs = remember(recent, emotes) {
         buildList {
-            if (recent.isNotEmpty()) add(PickerTab.Emoji(EmojiCategory(Res.string.recent, recent.map { it.emoji })))
+            if (recent.isNotEmpty()) add(PickerTab.Emoji(EmojiCategory(Res.string.recent, recent.map { EmojiEntry(it.emoji) })))
             addAll(emojiCategories.map { PickerTab.Emoji(it) })
             if (emotes.isNotEmpty()) add(PickerTab.Emotes)
         }
@@ -211,17 +238,17 @@ private fun EmojiEmoteBrowser(
                     vertical = Spacing.xs,
                 ),
             ) {
-                items(tab.category.emojis) { emoji ->
+                items(tab.category.emojis) { entry ->
                     Box(
                         modifier = Modifier
                             .size(48.dp)
                             .clickable {
-                                recentStore.record(emoji)
-                                onEmojiSelected(emoji)
+                                recentStore.record(entry.emoji)
+                                onEmojiSelected(entry.emoji)
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(emoji, fontSize = 24.sp, textAlign = TextAlign.Center)
+                        Text(entry.emoji, fontSize = 24.sp, textAlign = TextAlign.Center)
                     }
                 }
             }
