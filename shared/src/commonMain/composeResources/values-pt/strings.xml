@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">Nenhum emoji ou adesivo para reagir</string>
     <string name="picker_search_images">Pesquisar emojis e adesivos</string>
     <string name="emote_pack_unencrypted_notice">Os emojis de pacotes de imagens não são criptografados e ficam visíveis para seu servidor doméstico.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">Pesquisar emoji</string>
     <string name="picker_sticker_pack">Pacote de adesivos</string>
     <string name="picker_sticker_pack_sub">Envie um adesivo de um pacote</string>
     <string name="sticker_pack_unencrypted_notice">Os pacotes de adesivos não são criptografados. Suas imagens são enviadas em texto simples e ficam visíveis para seu servidor doméstico, mesmo em salas criptografadas.</string>

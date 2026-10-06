@@ -3,6 +3,7 @@ package org.mlm.mages.ui.components.sheets
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -28,6 +29,9 @@ fun EmojiPickerSheet(
     val recentStore: RecentEmojiStore = koinInject()
     val recent by recentStore.recent.collectAsState()
 
+    var query by remember { mutableStateOf("") }
+    val matches = remember(query) { filterEmojiEntries(query) }
+
     val categories = remember(recent) {
         if (recent.isEmpty()) {
             emojiCategories
@@ -38,6 +42,7 @@ fun EmojiPickerSheet(
 
     var selectedCategory by remember(categories) { mutableStateOf(categories.first()) }
     val gridState = rememberLazyGridState()
+    val searchGridState = rememberLazyGridState()
 
     // Reset grid scroll when category changes
     LaunchedEffect(selectedCategory) { gridState.scrollToItem(0) }
@@ -48,44 +53,77 @@ fun EmojiPickerSheet(
                 .fillMaxWidth()
                 .navigationBarsPadding()
         ) {
-            SecondaryScrollableTabRow(
-                selectedTabIndex = categories.indexOf(selectedCategory),
-                edgePadding = Spacing.md,
-                divider = {},
-            ) {
-                categories.forEach { category ->
-                    Tab(
-                        selected = category == selectedCategory,
-                        onClick = { selectedCategory = category },
-                        text = { Text(stringResource(category.name), style = MaterialTheme.typography.labelSmall) }
-                    )
-                }
-            }
-
-            // Emoji grid
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 48.dp),
-                state = gridState,
+            TextField(
+                value = query,
+                onValueChange = { query = it },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 360.dp),
-                contentPadding = PaddingValues(
-                    start = Spacing.md,
-                    end = Spacing.md,
-                    top = Spacing.sm,
-                    bottom = Spacing.xl,
-                ),
-            ) {
-                items(selectedCategory.emojis) { entry ->
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clickable { onEmojiSelected(entry.emoji); onDismiss() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(entry.emoji, fontSize = 24.sp, textAlign = TextAlign.Center)
+                    .padding(horizontal = Spacing.md),
+                placeholder = { Text(stringResource(Res.string.search_emoji)) },
+                singleLine = true,
+            )
+
+            if (query.isEmpty()) {
+                SecondaryScrollableTabRow(
+                    selectedTabIndex = categories.indexOf(selectedCategory),
+                    edgePadding = Spacing.md,
+                    divider = {},
+                ) {
+                    categories.forEach { category ->
+                        Tab(
+                            selected = category == selectedCategory,
+                            onClick = { selectedCategory = category },
+                            text = { Text(stringResource(category.name), style = MaterialTheme.typography.labelSmall) }
+                        )
                     }
                 }
+
+                EmojiGrid(
+                    emojis = selectedCategory.emojis,
+                    state = gridState,
+                    onEmojiSelected = onEmojiSelected,
+                    onDismiss = onDismiss,
+                )
+            } else {
+                EmojiGrid(
+                    emojis = matches,
+                    state = searchGridState,
+                    onEmojiSelected = onEmojiSelected,
+                    onDismiss = onDismiss,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmojiGrid(
+    emojis: List<EmojiEntry>,
+    state: LazyGridState,
+    onEmojiSelected: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = 48.dp),
+        state = state,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = 360.dp),
+        contentPadding = PaddingValues(
+            start = Spacing.md,
+            end = Spacing.md,
+            top = Spacing.sm,
+            bottom = Spacing.xl,
+        ),
+    ) {
+        items(emojis) { entry ->
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clickable { onEmojiSelected(entry.emoji); onDismiss() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(entry.emoji, fontSize = 24.sp, textAlign = TextAlign.Center)
             }
         }
     }

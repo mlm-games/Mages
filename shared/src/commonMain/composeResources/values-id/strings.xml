@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">Tidak ada emoji atau stiker untuk bereaksi</string>
     <string name="picker_search_images">Cari emoji dan stiker</string>
     <string name="emote_pack_unencrypted_notice">Emoji dari paket gambar tidak dienkripsi dan terlihat oleh server rumah Anda.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">Cari emoji</string>
     <string name="picker_sticker_pack">Paket stiker</string>
     <string name="picker_sticker_pack_sub">Kirim stiker dari paket</string>
     <string name="sticker_pack_unencrypted_notice">Paket stiker tidak dienkripsi. Gambarnya dikirim secara terbuka dan terlihat oleh server rumah Anda, bahkan di ruang terenkripsi.</string>

@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">Brak emotek i naklejek do reagowania</string>
     <string name="picker_search_images">Szukaj emotek i naklejek</string>
     <string name="emote_pack_unencrypted_notice">Emotki z pakietów obrazów nie są szyfrowane i są widoczne dla Twojego serwera domowego.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">Wyszukaj emoji</string>
     <string name="picker_sticker_pack">Pakiet naklejek</string>
     <string name="picker_sticker_pack_sub">Wyślij naklejkę z pakietu</string>
     <string name="sticker_pack_unencrypted_notice">Pakiety naklejek nie są szyfrowane. Ich obrazy są wysyłane jawnie i są widoczne dla Twojego serwera domowego, nawet w szyfrowanych pokojach.</string>

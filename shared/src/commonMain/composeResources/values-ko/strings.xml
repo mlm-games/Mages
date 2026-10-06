@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">반응으로 사용할 이모티콘이나 스티커가 없습니다</string>
     <string name="picker_search_images">이모티콘 및 스티커 검색</string>
     <string name="emote_pack_unencrypted_notice">이미지 팩의 이모티콘은 암호화되지 않으며 홈서버에서 볼 수 있습니다.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">이모지 검색</string>
     <string name="picker_sticker_pack">스티커 팩</string>
     <string name="picker_sticker_pack_sub">팩에서 스티커 보내기</string>
     <string name="sticker_pack_unencrypted_notice">스티커 팩은 암호화되지 않습니다. 이미지는 평문으로 전송되며 암호화된 방에서도 홈서버에서 볼 수 있습니다.</string>

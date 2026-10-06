@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">Không có emoji hay hình dán để phản ứng</string>
     <string name="picker_search_images">Tìm emoji và hình dán</string>
     <string name="emote_pack_unencrypted_notice">Emoji từ gói hình ảnh không được mã hóa và có thể nhìn thấy trên máy chủ gia đình của bạn.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">Tìm kiếm emoji</string>
     <string name="picker_sticker_pack">Gói hình dán</string>
     <string name="picker_sticker_pack_sub">Gửi hình dán từ một gói</string>
     <string name="sticker_pack_unencrypted_notice">Các gói hình dán không được mã hóa. Hình ảnh được gửi ở dạng không mã hóa và có thể nhìn thấy trên máy chủ gia đình của bạn, ngay cả trong phòng đã mã hóa.</string>

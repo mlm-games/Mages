@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">Nema emotikona ni naljepnica za reakcije</string>
     <string name="picker_search_images">Pretraži emotikone i naljepnice</string>
     <string name="emote_pack_unencrypted_notice">Emotikoni iz paketa slika nisu šifrirani i vidljivi su vašem kućnom poslužitelju.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">Traži emoji</string>
     <string name="picker_sticker_pack">Paket naljepnica</string>
     <string name="picker_sticker_pack_sub">Pošalji naljepnicu iz paketa</string>
     <string name="sticker_pack_unencrypted_notice">Paketi naljepnica nisu šifrirani. Njihove se slike šalju u čistom obliku i vidljive su vašem kućnom poslužitelju, čak i u šifriranim sobama.</string>

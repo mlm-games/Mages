@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">Нет эмодзи и стикеров для реакций</string>
     <string name="picker_search_images">Поиск эмодзи и стикеров</string>
     <string name="emote_pack_unencrypted_notice">Эмодзи из пакетов изображений не шифруются и видны вашему домашнему серверу.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">Поиск эмодзи</string>
     <string name="picker_sticker_pack">Набор стикеров</string>
     <string name="picker_sticker_pack_sub">Отправить стикер из набора</string>
     <string name="sticker_pack_unencrypted_notice">Наборы стикеров не шифруются. Их изображения передаются открытым текстом и видны вашему домашнему серверу, даже в зашифрованных комнатах.</string>

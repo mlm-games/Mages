@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">Žádné emotikony ani nálepky na reakce</string>
     <string name="picker_search_images">Hledat emotikony a nálepky</string>
     <string name="emote_pack_unencrypted_notice">Emotikony z obrazových sad nejsou šifrované a jsou viditelné vašemu domovskému serveru.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">Hledat emoji</string>
     <string name="picker_sticker_pack">Sada nálepek</string>
     <string name="picker_sticker_pack_sub">Odeslat nálepku ze sady</string>
     <string name="sticker_pack_unencrypted_notice">Sady nálepek nejsou šifrované. Jeich obrázky se posílají nešifrovaně a jsou viditelné vašemu domovskému serveru i v šifrovaných místnostech.</string>

@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">Keine Emojis oder Aufkleber für Reaktionen</string>
     <string name="picker_search_images">Emojis und Aufkleber suchen</string>
     <string name="emote_pack_unencrypted_notice">Emojis aus Bildpaketen sind nicht verschlüsselt und für Ihren Homeserver sichtbar.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">Emojis durchsuchen</string>
     <string name="picker_sticker_pack">Aufkleberpaket</string>
     <string name="picker_sticker_pack_sub">Einen Aufkleber aus einem Paket senden</string>
     <string name="sticker_pack_unencrypted_notice">Aufkleberpakete sind nicht verschlüsselt. Ihre Bilder werden im Klartext gesendet und sind für Ihren Homeserver sichtbar, auch in verschlüsselten Räumen.</string>

@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">Inga emotes eller klistermärken att reagera med</string>
     <string name="picker_search_images">Sök emotes och klistermärken</string>
     <string name="emote_pack_unencrypted_notice">Emotes från bildpaket är inte krypterade och är synliga för din hemmaserver.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">Sök emoji</string>
     <string name="picker_sticker_pack">Klistermärkespaket</string>
     <string name="picker_sticker_pack_sub">Skicka ett klistermärke från ett paket</string>
     <string name="sticker_pack_unencrypted_notice">Klistermärkespaket är inte krypterade. Bilderna skickas i klartext och är synliga för din hemmaserver, även i krypterade rum.</string>

@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">هیچ ایموجی یا استیکری برای واکنش وجود ندارد</string>
     <string name="picker_search_images">جستجوی ایموجی‌ها و استیکرها</string>
     <string name="emote_pack_unencrypted_notice">ایموجی‌های بسته‌های تصویری رمزگذاری نشده‌اند و برای سرور خانه شما قابل مشاهده‌اند.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">جستجوی ایموجی</string>
     <string name="picker_sticker_pack">بسته استیکر</string>
     <string name="picker_sticker_pack_sub">ارسال استیکر از یک بسته</string>
     <string name="sticker_pack_unencrypted_notice">بسته‌های استیکر رمزگذاری نشده‌اند. تصاویر آن‌ها به‌صورت ساده ارسال می‌شوند و حتی در اتاق‌های رمزگذاری‌شده برای سرور خانه شما قابل مشاهده‌اند.</string>

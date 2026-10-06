@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">אין אימוג׳ים או מדבקות להגיב איתם</string>
     <string name="picker_search_images">חיפוש אימוג׳ים ומדבקות</string>
     <string name="emote_pack_unencrypted_notice">אימוג׳ים מחבילות תמונה אינם מוצפנים וגלויים לשרת הביתי שלך.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">חפש אמוג'י</string>
     <string name="picker_sticker_pack">חבילת מדבקות</string>
     <string name="picker_sticker_pack_sub">שליחת מדבקה מחבילה</string>
     <string name="sticker_pack_unencrypted_notice">חבילות מדבקות אינן מוצפנות. התמונות שלהן נשלחות ללא הצפנה וגלויות לשרת הביתי שלך, גם בחדרים מוצפנים.</string>

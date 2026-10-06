@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">Немає емодзі чи наклейок для реакцій</string>
     <string name="picker_search_images">Пошук емодзі та наклейок</string>
     <string name="emote_pack_unencrypted_notice">Емодзі з наборів зображень не шифруються і видимі вашому домашньому серверу.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">Пошук емодзі</string>
     <string name="picker_sticker_pack">Набір наклейок</string>
     <string name="picker_sticker_pack_sub">Надіслати наклейку з набору</string>
     <string name="sticker_pack_unencrypted_notice">Набори наклейок не шифруються. Їхні зображення надсилаються відкритим текстом і видимі вашому домашньому серверу, навіть у зашифрованих кімнатах.</string>

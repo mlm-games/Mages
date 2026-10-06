@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">لا توجد رموز تعبيرية أو ملصقات للتفاعل بها</string>
     <string name="picker_search_images">البحث عن الرموز التعبيرية والملصقات</string>
     <string name="emote_pack_unencrypted_notice">الرموز التعبيرية من حزم الصور غير مشفرة ومرئية لخادم المنزل الخاص بك.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">بحث في الرموز التعبيرية</string>
     <string name="picker_sticker_pack">حزمة ملصقات</string>
     <string name="picker_sticker_pack_sub">إرسال ملصق من حزمة</string>
     <string name="sticker_pack_unencrypted_notice">حزم الملصقات غير مشفرة. تُرسل صورها كنص واضح ومرئية لخادم المنزل الخاص بك، حتى في الغرف المشفرة.</string>

@@ -720,6 +720,8 @@
     <string name="picker_no_reaction_images">No hay emojis ni stickers para reaccionar</string>
     <string name="picker_search_images">Buscar emojis y stickers</string>
     <string name="emote_pack_unencrypted_notice">Los emojis de los paquetes de imágenes no están cifrados y son visibles para tu servidor de origen.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">Buscar emoji</string>
     <string name="picker_sticker_pack">Paquete de stickers</string>
     <string name="picker_sticker_pack_sub">Enviar un sticker de un paquete</string>
     <string name="sticker_pack_unencrypted_notice">Los paquetes de stickers no están cifrados. Sus imágenes se envían en claro y son visibles para tu servidor de origen, incluso en salas cifradas.</string>

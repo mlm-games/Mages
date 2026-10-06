@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">Δεν υπάρχουν emotes ή αυτοκόλλητα για αντιδράσεις</string>
     <string name="picker_search_images">Αναζήτηση emotes και αυτοκόλλητων</string>
     <string name="emote_pack_unencrypted_notice">Τα emotes από τα πακέτα εικόνων δεν είναι κρυπτογραφημένα και είναι ορατά στον διακομιστή σπιτιού σας.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">Αναζήτηση emoji</string>
     <string name="picker_sticker_pack">Πακέτο αυτοκόλλητων</string>
     <string name="picker_sticker_pack_sub">Αποστολή αυτοκόλλητου από ένα πακέτο</string>
     <string name="sticker_pack_unencrypted_notice">Τα πακέτα αυτοκόλλητων δεν είναι κρυπτογραφημένα. Οι εικόνες τους στέλνονται απροστάτευτες και είναι ορατές στον διακομιστή σπιτιού σας, ακόμη και σε κρυπτογραφημένα δωμάτια.</string>

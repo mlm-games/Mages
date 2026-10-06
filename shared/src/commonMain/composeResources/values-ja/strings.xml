@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">リアクションに使える絵文字やステッカーがありません</string>
     <string name="picker_search_images">絵文字とステッカーを検索</string>
     <string name="emote_pack_unencrypted_notice">画像パックの絵文字は暗号化されておらず、ホームサーバーから閲覧できます。</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">絵文字を検索する</string>
     <string name="picker_sticker_pack">ステッカーパック</string>
     <string name="picker_sticker_pack_sub">パックからステッカーを送信</string>
     <string name="sticker_pack_unencrypted_notice">ステッカーパックは暗号化されません。画像は平文で送信されるため、暗号化されたルームでもホームサーバーから閲覧できます。</string>

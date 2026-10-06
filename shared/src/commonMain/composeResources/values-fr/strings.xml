@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">Aucun émoji ni autocollant pour réagir</string>
     <string name="picker_search_images">Rechercher des émojis et des autocollants</string>
     <string name="emote_pack_unencrypted_notice">Les émojis des paquets d&apos;images ne sont pas cryptés et sont visibles par votre serveur domestique.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">Rechercher des emoji</string>
     <string name="picker_sticker_pack">Paquet d&apos;autocollants</string>
     <string name="picker_sticker_pack_sub">Envoyer un autocollant d&apos;un paquet</string>
     <string name="sticker_pack_unencrypted_notice">Les paquets d&apos;autocollants ne sont pas cryptés. Leurs images sont envoyées en clair et visibles par votre serveur domestique, même dans les salles cryptées.</string>

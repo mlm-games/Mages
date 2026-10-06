@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">沒有可用於反應的表情或貼圖</string>
     <string name="picker_search_images">搜尋表情與貼圖</string>
     <string name="emote_pack_unencrypted_notice">圖像包中的表情未加密，您的家庭伺服器可看見這些內容。</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">搜尋表情符號</string>
     <string name="picker_sticker_pack">貼圖包</string>
     <string name="picker_sticker_pack_sub">從貼圖包傳送貼圖</string>
     <string name="sticker_pack_unencrypted_notice">貼圖包未加密。其圖像以明文傳送，即使在加密房間中，您的家庭伺服器也能看見。</string>

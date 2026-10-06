@@ -8,6 +8,22 @@ data class EmojiEntry(val emoji: String, val name: String = "")
 
 data class EmojiCategory(val name: StringResource, val emojis: List<EmojiEntry>)
 
+fun filterEmojiEntries(query: String): List<EmojiEntry> {
+    val normalized = query.trim(':').lowercase()
+    if (normalized.isEmpty()) return emptyList()
+    return emojiCategories
+        .asSequence()
+        .flatMap { it.emojis.asSequence() }
+        .filter { entry ->
+            val name = entry.name.lowercase()
+            name.startsWith(normalized) ||
+                name.split(Regex("[^a-z0-9]+")).any { it.startsWith(normalized) }
+        }
+        .distinct()
+        .take(48)
+        .toList()
+}
+
 val emojiCategories: List<EmojiCategory> = listOf(
     EmojiCategory(Res.string.smileys, listOf(
         EmojiEntry("😀", "grinning face"), EmojiEntry("😃", "grinning face with big eyes"), EmojiEntry("😄", "grinning face with smiling eyes"), EmojiEntry("😁", "beaming face with smiling eyes"),

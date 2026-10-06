@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">Geen emoticons of stickers om mee te reageren</string>
     <string name="picker_search_images">Zoek emoticons en stickers</string>
     <string name="emote_pack_unencrypted_notice">Emoticons uit afbeeldingspakketten zijn niet gecodeerd en zijn zichtbaar voor uw thuisserver.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">Zoek emoji</string>
     <string name="picker_sticker_pack">Stickerpakket</string>
     <string name="picker_sticker_pack_sub">Stuur een sticker uit een pakket</string>
     <string name="sticker_pack_unencrypted_notice">Stickerpakketten zijn niet gecodeerd. De afbeeldingen worden onversleuteld verzonden en zijn zichtbaar voor uw thuisserver, zelfs in gecodeerde kamers.</string>

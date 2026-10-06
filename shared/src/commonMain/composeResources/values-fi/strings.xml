@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">Ei emoteja eikä tarroja reagoitavaksi</string>
     <string name="picker_search_images">Hae emoteja ja tarroja</string>
     <string name="emote_pack_unencrypted_notice">Emotekuvat eivät ole salattuja ja ovat näkyvissä kotipalvelimellesi.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">Hae emojiä</string>
     <string name="picker_sticker_pack">Tarrapakkaus</string>
     <string name="picker_sticker_pack_sub">Lähetä tarra pakkauksesta</string>
     <string name="sticker_pack_unencrypted_notice">Tarrapakkaukset eivät ole salattuja. Niiden kuvat lähetetään salaamatta ja ovat näkyvissä kotipalvelimellesi myös salatuissa huoneissa.</string>

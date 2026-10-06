@@ -604,6 +604,8 @@
     <string name="picker_no_reaction_images">Nincs reakcióhoz használható emoji vagy matrica</string>
     <string name="picker_search_images">Emojik és matricák keresése</string>
     <string name="emote_pack_unencrypted_notice">A képcsomagok emojii nincsenek titkosítva, és láthatók az otthoni szervere számára.</string>
+    <string name="emotes">Emotes</string>
+    <string name="search_emoji">Emoji keresése</string>
     <string name="picker_sticker_pack">Matricacsomag</string>
     <string name="picker_sticker_pack_sub">Matrica küldése egy csomagból</string>
     <string name="sticker_pack_unencrypted_notice">A matricacsomagok nincsenek titkosítva. Képeik titkosítatlanul kerülnek küldésre, és láthatók az otthoni szervere számára, még a titkosított szobákban is.</string>
