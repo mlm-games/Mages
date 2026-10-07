@@ -563,15 +563,27 @@ data class SpaceDetailUiState(
     val spaceName: String,
     val space: SpaceInfo? = null,
     val hierarchy: List<SpaceChildInfo> = emptyList(),
-    val subspaces: List<SpaceChildInfo> = emptyList(),
-    val rooms: List<SpaceChildInfo> = emptyList(),
+    val sections: List<SpaceSectionEntry> = emptyList(),
     val nextBatch: String? = null,
     val isLoading: Boolean = false,
     val isLoadingMore: Boolean = false,
     val error: String? = null,
     val avatarPathByRoomId: Map<String, String> = emptyMap(),
     val spaceAvatarPath: String? = null,
+    val isSavingSection: Boolean = false,
+    val editingSection: SpaceSectionEntry? = null,
+    val movingRoomId: String? = null,
 )
+
+data class SpaceSectionEntry(
+    val tag: String? = null,
+    val name: String = "",
+    val bornIn: String? = null,
+    val subspaces: List<SpaceChildInfo> = emptyList(),
+    val rooms: List<SpaceChildInfo> = emptyList(),
+) {
+    val isEmpty: Boolean get() = subspaces.isEmpty() && rooms.isEmpty()
+}
 
 data class SpaceSettingsUiState(
     val spaceId: String,

@@ -18,17 +18,23 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.matrix.SpaceInfo
+import org.mlm.mages.matrix.SpaceSection
 import org.koin.compose.koinInject
+import org.mlm.mages.ui.SpaceDetailUiState
+import org.mlm.mages.ui.SpaceSectionEntry
 import org.mlm.mages.ui.components.dialogs.AddRoomToSpaceDialog
 import org.mlm.mages.ui.components.dialogs.CreateRoomInSpaceDialog
+import org.mlm.mages.ui.components.dialogs.DeleteSectionDialog
 import org.mlm.mages.ui.components.dialogs.InviteUserToSpaceDialog
+import org.mlm.mages.ui.components.dialogs.MoveToSectionDialog
+import org.mlm.mages.ui.components.dialogs.SpaceSectionNameDialog
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.components.core.LoadMoreButton
 import org.mlm.mages.ui.components.core.SectionHeader
 import org.mlm.mages.ui.components.sheets.SpaceAddSheet
-import org.mlm.mages.ui.components.snackbar.snackbarHost
+import org.mlm.mages.ui.components.sheets.SpaceSectionsSheet
 import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.SpaceActionsViewModel
@@ -36,6 +42,8 @@ import org.mlm.mages.ui.viewmodel.SpaceDetailViewModel
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.Res
+
+private const val DEFAULT_SECTION_KEY = "__default__"
 
 @Composable
 fun SpaceDetailScreen(
@@ -49,6 +57,7 @@ fun SpaceDetailScreen(
     val snackbarManager: SnackbarManager = koinInject()
     val postError = rememberErrorPoster(snackbarManager)
     var showAddSheet by remember { mutableStateOf(false) }
+    var showSectionsSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.error) {
         state.error?.let { postError(it) }
@@ -91,13 +100,15 @@ fun SpaceDetailScreen(
                     ) {
                         Icon(Icons.Default.Refresh, stringResource(Res.string.refresh))
                     }
+                    IconButton(onClick = { showSectionsSheet = true }) {
+                        Icon(Icons.Default.Tune, stringResource(Res.string.sections))
+                    }
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Default.Settings, stringResource(Res.string.settings))
                     }
                 }
             )
         },
-        snackbarHost = { snackbarManager.snackbarHost() },
         floatingActionButton = {
             if (actionsState.hasAnyAction) {
                 ExtendedFloatingActionButton(
@@ -144,39 +155,42 @@ fun SpaceDetailScreen(
                 }
 
                 else -> {
+                    val visibleSections = state.sections.filter { section ->
+                        !section.isEmpty || section.tag == null || section.bornIn == state.spaceId
+                    }
+
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = Spacing.lg)
                     ) {
-                        if (state.subspaces.isNotEmpty()) {
-                            item(key = "header_subspaces") {
+                        visibleSections.forEach { section ->
+                            item(key = "section_header_${section.tag ?: DEFAULT_SECTION_KEY}") {
+                                val count = section.subspaces.size + section.rooms.size
                                 SectionHeader(
-                                    title = stringResource(Res.string.spaces),
-                                    count = state.subspaces.size
+                                    title = if (section.tag == null) {
+                                        stringResource(Res.string.rooms_and_spaces)
+                                    } else {
+                                        section.name
+                                    },
+                                    count = count
                                 )
                             }
-                            items(state.subspaces, key = { "sub_${it.roomId}" }) { child ->
-                                val resolvedAvatar = state.avatarPathByRoomId[child.roomId] ?: child.avatarUrl
-                                SpaceChildItem(
-                                    child = child.copy(avatarUrl = resolvedAvatar),
-                                    onClick = { viewModel.openChild(child) }
-                                )
-                            }
-                        }
 
-                        if (state.rooms.isNotEmpty()) {
-                            item(key = "header_rooms") {
-                                SectionHeader(
-                                    title = stringResource(Res.string.rooms),
-                                    count = state.rooms.size
-                                )
+                            items(section.subspaces, key = { "sub_${section.tag}_${it.roomId}" }) { child ->
+                                SpaceChildRow(child = child, state = state, viewModel = viewModel)
                             }
-                            items(state.rooms, key = { "room_${it.roomId}" }) { child ->
-                                val resolvedAvatar = state.avatarPathByRoomId[child.roomId] ?: child.avatarUrl
-                                SpaceChildItem(
-                                    child = child.copy(avatarUrl = resolvedAvatar),
-                                    onClick = { viewModel.openChild(child) }
-                                )
+
+                            if (section.subspaces.isNotEmpty() && section.rooms.isNotEmpty()) {
+                                item(key = "rooms_${section.tag ?: DEFAULT_SECTION_KEY}") {
+                                    SectionHeader(
+                                        title = stringResource(Res.string.rooms),
+                                        count = section.rooms.size
+                                    )
+                                }
+                            }
+
+                            items(section.rooms, key = { "room_${section.tag}_${it.roomId}" }) { child ->
+                                SpaceChildRow(child = child, state = state, viewModel = viewModel)
                             }
                         }
 
@@ -241,6 +255,71 @@ fun SpaceDetailScreen(
             isSaving = actionsState.isSaving
         )
     }
+
+    var pendingDeletion by remember { mutableStateOf<SpaceSectionEntry?>(null) }
+
+    if (showSectionsSheet) {
+        SpaceSectionsSheet(
+            sections = state.sections.filter { it.tag != null },
+            isSaving = state.isSavingSection,
+            onCreate = viewModel::showCreateSection,
+            onRename = viewModel::showEditSection,
+            onDelete = { pendingDeletion = it },
+            onMove = viewModel::moveSection,
+            onDismiss = { showSectionsSheet = false }
+        )
+    }
+
+    state.editingSection?.let { editing ->
+        SpaceSectionNameDialog(
+            name = editing.name,
+            isEditing = editing.tag != null,
+            isSaving = state.isSavingSection,
+            onNameChange = viewModel::setSectionName,
+            onSave = viewModel::saveSection,
+            onDelete = editing.tag?.let {
+                { pendingDeletion = editing }
+            },
+            onDismiss = viewModel::hideSectionEditor
+        )
+    }
+
+    pendingDeletion?.let { section ->
+        DeleteSectionDialog(
+            sectionName = section.name,
+            onConfirm = {
+                pendingDeletion = null
+                viewModel.hideSectionEditor()
+                section.tag?.let(viewModel::deleteSection)
+            },
+            onDismiss = { pendingDeletion = null }
+        )
+    }
+
+    state.movingRoomId?.let { roomId ->
+        MoveToSectionDialog(
+            sections = state.sections.mapNotNull { entry ->
+                entry.tag?.let { SpaceSection(it, entry.name, state.spaceId) }
+            },
+            currentTag = state.hierarchy.firstOrNull { it.roomId == roomId }?.sectionTag,
+            onSelect = { tag -> viewModel.setRoomSection(roomId, tag) },
+            onDismiss = viewModel::hideMoveToSection
+        )
+    }
+}
+
+@Composable
+private fun SpaceChildRow(
+    child: SpaceChildInfo,
+    state: SpaceDetailUiState,
+    viewModel: SpaceDetailViewModel
+) {
+    val resolvedAvatar = state.avatarPathByRoomId[child.roomId] ?: child.avatarUrl
+    SpaceChildItem(
+        child = child.copy(avatarUrl = resolvedAvatar),
+        onClick = { viewModel.openChild(child) },
+        onMoreClick = { viewModel.showMoveToSection(child.roomId) }
+    )
 }
 
 @Composable
@@ -310,7 +389,8 @@ private fun SpaceHeaderCard(space: SpaceInfo, avatarPath: String?) {
 @Composable
 private fun SpaceChildItem(
     child: SpaceChildInfo,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onMoreClick: () -> Unit
 ) {
     ListItem(
         headlineContent = {
@@ -339,12 +419,13 @@ private fun SpaceChildItem(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.width(Spacing.xs))
-                Icon(
-                    Icons.Default.ChevronRight,
-                    null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                IconButton(onClick = onMoreClick) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        stringResource(Res.string.move_to_section),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         },
         modifier = Modifier.clickable { onClick() }

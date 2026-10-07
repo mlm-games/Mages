@@ -673,7 +673,8 @@ data class SpaceChildInfo(
     val worldReadable: Boolean,
     val guestCanJoin: Boolean,
     val suggested: Boolean,
-    val membership: RoomListMembership? = null
+    val membership: RoomListMembership? = null,
+    val sectionTag: String? = null
 )
 
 @Serializable
@@ -681,6 +682,13 @@ data class SpaceParentInfo(
     val spaceId: String,
     val name: String? = null,
     val avatarUrl: String? = null
+)
+
+@Serializable
+data class SpaceSection(
+    val tag: String,
+    val name: String,
+    val spaceId: String? = null
 )
 
 @Serializable
@@ -1319,6 +1327,13 @@ interface MatrixPort {
         suggestedOnly: Boolean
     ): SpaceHierarchyPage?
     suspend fun spaceInviteUser(spaceId: String, userId: String): Result<Unit>
+
+    suspend fun listSections(): List<SpaceSection>
+    suspend fun createSection(name: String, spaceId: String): SpaceSection?
+    suspend fun renameSection(tag: String, name: String): Result<Unit>
+    suspend fun deleteSection(tag: String): Result<Unit>
+    suspend fun moveSection(tag: String, index: Int): Result<Unit>
+    suspend fun setRoomSection(roomId: String, tag: String?): Result<Unit>
 
     suspend fun setPresence(presence: Presence, status: String?): Result<Unit>
 

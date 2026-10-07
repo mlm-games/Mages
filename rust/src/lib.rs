@@ -51,6 +51,7 @@ mod image_packs;
 mod macros;
 mod observe;
 mod platform;
+mod sections;
 mod types;
 mod verification_flow;
 #[cfg(target_os = "android")]
@@ -276,6 +277,14 @@ delegate! { result String;
 delegate! { result RoomPreview; room_preview(id_or_alias: String, via: Vec<String>); }
 delegate! { result SpaceHierarchyPage; space_hierarchy(space_id: String, from: Option<String>, limit: u32, max_depth: Option<u32>, suggested_only: bool); }
 delegate! { result Vec<SpaceParentInfo>; room_parent_spaces(room_id: String); }
+delegate! { result Vec<SpaceSection>; list_sections(); }
+delegate! { result SpaceSection; create_section(name: String, space_id: String); }
+delegate! { unit;
+    rename_section(tag: String, name: String);
+    delete_section(tag: String);
+    move_section(tag: String, index: u32);
+    set_room_section(room_id: String, tag: Option<String>);
+}
 delegate! { result Vec<ImagePackSummary>; list_image_packs(room_id: String); list_all_image_packs(refresh: bool); }
 delegate! { result bool; can_edit_image_packs(room_id: String); publish_room_alias(room_id: String, alias: String); unpublish_room_alias(room_id: String, alias: String); }
 delegate! { result Vec<String>; suggest_image_shortcodes(bases: Vec<String>, taken: Vec<String>); }

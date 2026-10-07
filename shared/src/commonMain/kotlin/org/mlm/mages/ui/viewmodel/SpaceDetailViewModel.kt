@@ -10,7 +10,9 @@ import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.RoomListMembership
 import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.matrix.SpaceInfo
+import org.mlm.mages.matrix.SpaceSection
 import org.mlm.mages.ui.SpaceDetailUiState
+import org.mlm.mages.ui.SpaceSectionEntry
 import org.jetbrains.compose.resources.getString
 import mages.shared.generated.resources.Res
 
@@ -23,6 +25,38 @@ private fun mergeSpaceChildren(
     append: Boolean,
 ): List<SpaceChildInfo> =
     if (!append) incoming else (existing + incoming).distinctBy { it.roomId }
+
+private const val HIERARCHY_PAGE_SIZE = 50
+
+private fun groupChildrenIntoSections(
+    children: List<SpaceChildInfo>,
+    sections: List<SpaceSection>,
+    defaultName: String,
+): List<SpaceSectionEntry> {
+    val known = sections.associateBy { it.tag }
+    val entries = sections.map { section ->
+        val (spaces, rooms) = children
+            .filter { it.sectionTag == section.tag }
+            .partition { it.isSpace }
+        SpaceSectionEntry(
+            tag = section.tag,
+            name = section.name,
+            bornIn = section.spaceId,
+            subspaces = spaces,
+            rooms = rooms
+        )
+    }
+
+    val (spaces, rooms) = children
+        .filter { child -> child.sectionTag == null || child.sectionTag !in known }
+        .partition { it.isSpace }
+
+    return entries + SpaceSectionEntry(
+        name = defaultName,
+        subspaces = spaces,
+        rooms = rooms
+    )
+}
 
 class SpaceDetailViewModel(
     private val service: MatrixService,
@@ -46,6 +80,7 @@ class SpaceDetailViewModel(
     init {
         loadSpaceInfo()
         loadHierarchy()
+        loadSections()
     }
 
     //  Public Actions 
@@ -53,6 +88,7 @@ class SpaceDetailViewModel(
     fun refresh() {
         loadSpaceInfo()
         loadHierarchy()
+        loadSections()
     }
 
     fun refreshUntilRoomPresent(roomId: String) {
@@ -85,6 +121,128 @@ class SpaceDetailViewModel(
 
                 else -> joinChild(child, displayName)
             }
+        }
+    }
+
+    fun showCreateSection() = updateState {
+        copy(editingSection = SpaceSectionEntry(name = ""))
+    }
+
+    fun showEditSection(entry: SpaceSectionEntry) = updateState {
+        copy(editingSection = entry)
+    }
+
+    fun hideSectionEditor() = updateState { copy(editingSection = null) }
+
+    fun setSectionName(name: String) = updateState {
+        copy(editingSection = editingSection?.copy(name = name))
+    }
+
+    fun saveSection() {
+        val editing = currentState.editingSection ?: return
+        val name = editing.name.trim()
+        if (name.isBlank()) {
+            launch { _events.send(Event.ShowError(getString(Res.string.give_the_section_a_name))) }
+            return
+        }
+        launch(
+            onError = { t ->
+                updateState { copy(isSavingSection = false, editingSection = editing) }
+                launch {
+                    _events.send(Event.ShowError(t.failureMessage(getString(Res.string.failed_to_save_section))))
+                }
+            }
+        ) {
+            updateState { copy(isSavingSection = true) }
+            if (editing.tag == null) {
+                val created = service.createSection(name, currentState.spaceId)
+                    .getOrElse { error ->
+                        updateState { copy(isSavingSection = false, editingSection = editing) }
+                        _events.send(Event.ShowError(error.failureMessage(getString(Res.string.failed_to_create_section))))
+                        return@launch
+                    }
+                loadSections()
+                _events.send(Event.ShowMessage(getString(Res.string.section_created_named, created.name)))
+            } else {
+                service.renameSection(editing.tag, name)
+                    .onFailure { error ->
+                        updateState { copy(isSavingSection = false, editingSection = editing) }
+                        _events.send(Event.ShowError(error.failureMessage(getString(Res.string.failed_to_save_section))))
+                        return@launch
+                    }
+                loadSections()
+                _events.send(Event.ShowMessage(getString(Res.string.section_renamed_to_named, name)))
+            }
+            updateState { copy(isSavingSection = false, editingSection = null) }
+        }
+    }
+
+    fun deleteSection(tag: String) {
+        launch(
+            onError = { t ->
+                updateState { copy(isSavingSection = false) }
+                launch {
+                    _events.send(Event.ShowError(t.failureMessage(getString(Res.string.failed_to_delete_section))))
+                }
+            }
+        ) {
+            updateState { copy(isSavingSection = true) }
+            service.deleteSection(tag)
+                .onFailure { error ->
+                    updateState { copy(isSavingSection = false) }
+                    _events.send(Event.ShowError(error.failureMessage(getString(Res.string.failed_to_delete_section))))
+                    return@launch
+                }
+            updateState { copy(isSavingSection = false) }
+            loadSections()
+            loadHierarchy(silent = true)
+            _events.send(Event.ShowMessage(getString(Res.string.section_deleted)))
+        }
+    }
+
+    fun moveSection(entry: SpaceSectionEntry, steps: Int) {
+        val tag = entry.tag ?: return
+        val order = allSections.map { it.tag }
+        val from = order.indexOf(tag)
+        if (from == -1) return
+        val to = (from + steps).coerceIn(0, order.lastIndex)
+        if (to == from) return
+        launch {
+            service.moveSection(tag, to)
+                .onFailure {
+                    _events.send(Event.ShowError(it.failureMessage(getString(Res.string.failed_to_reorder_sections))))
+                    return@launch
+                }
+            loadSections()
+        }
+    }
+
+    fun showMoveToSection(roomId: String) = updateState { copy(movingRoomId = roomId) }
+
+    fun hideMoveToSection() = updateState { copy(movingRoomId = null) }
+
+    fun setRoomSection(roomId: String, tag: String?) {
+        launch {
+            service.setRoomSection(roomId, tag)
+                .onFailure {
+                    _events.send(Event.ShowError(it.failureMessage(getString(Res.string.failed_to_move_into_section))))
+                    return@launch
+                }
+            updateState {
+                copy(
+                    movingRoomId = null,
+                    hierarchy = hierarchy.map {
+                        if (it.roomId == roomId) it.copy(sectionTag = tag) else it
+                    }
+                )
+            }
+            regroupHierarchy()
+            _events.send(
+                Event.ShowMessage(
+                    if (tag == null) getString(Res.string.moved_out_of_a_section)
+                    else getString(Res.string.moved_into_section)
+                )
+            )
         }
     }
 
@@ -140,6 +298,24 @@ class SpaceDetailViewModel(
         }
     }
 
+    private var allSections: List<SpaceSection> = emptyList()
+
+    private fun loadSections() {
+        launch {
+            val sections = runSafe { service.listSections() } ?: return@launch
+            allSections = sections
+            regroupHierarchy()
+        }
+    }
+
+    private fun regroupHierarchy() {
+        launch {
+            val defaultName = getString(Res.string.rooms_and_spaces)
+            val entries = groupChildrenIntoSections(currentState.hierarchy, allSections, defaultName)
+            updateState { copy(sections = entries) }
+        }
+    }
+
     private fun loadHierarchy(from: String? = null, silent: Boolean = false): Job =
         launch(
             onError = { t ->
@@ -164,7 +340,7 @@ class SpaceDetailViewModel(
             val result = service.spaceHierarchy(
                 spaceId = currentState.spaceId,
                 from = from,
-                limit = 50,
+                limit = HIERARCHY_PAGE_SIZE,
                 maxDepth = 1,
                 suggestedOnly = false
             )
@@ -182,30 +358,22 @@ class SpaceDetailViewModel(
                             existing
                         }
                     }
-                    val (subspaces, rooms) = updatedHierarchy.partition { it.isSpace }
-                    copy(
-                        hierarchy = updatedHierarchy,
-                        subspaces = subspaces,
-                        rooms = rooms
-                    )
+                    copy(hierarchy = updatedHierarchy)
                 }
 
                 resolveSpaceChildAvatars(service, newHierarchy) { roomId, path ->
                     copy(avatarPathByRoomId = avatarPathByRoomId + (roomId to path))
                 }
 
-                val (subspaces, rooms) = newHierarchy.partition { it.isSpace }
-
                 updateState {
                     copy(
                         hierarchy = newHierarchy,
-                        subspaces = subspaces,
-                        rooms = rooms,
                         nextBatch = page.nextBatch,
                         isLoading = false,
                         isLoadingMore = false
                     )
                 }
+                regroupHierarchy()
             } else if (!silent) {
                 val text = result.toUserMessage(getString(Res.string.failed_to_load_space_contents))
                 updateState {

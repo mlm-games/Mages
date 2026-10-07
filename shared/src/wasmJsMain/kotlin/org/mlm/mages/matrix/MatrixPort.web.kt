@@ -1382,6 +1382,40 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         return unitResult(result.ok, "invite user", result.error)
     }
 
+    override suspend fun listSections(): List<SpaceSection> =
+        runCatching {
+            wasmJson.decodeFromJsonElement<List<SpaceSection>>(
+                requireClient().listSections().await<JsAny?>().toJsonElement()
+            )
+        }.getOrDefault(emptyList())
+
+    override suspend fun createSection(name: String, spaceId: String): SpaceSection? =
+        runCatching {
+            wasmJson.decodeFromJsonElement<SpaceSection>(
+                requireClient().createSection(name, spaceId).await<JsAny?>().toJsonElement()
+            )
+        }.getOrNull()?.takeIf { it.tag.isNotEmpty() }
+
+    override suspend fun renameSection(tag: String, name: String): Result<Unit> {
+        val result = requireClient().renameSection(tag, name).awaitResult()
+        return unitResult(result.ok, "rename section", result.error)
+    }
+
+    override suspend fun deleteSection(tag: String): Result<Unit> {
+        val result = requireClient().deleteSection(tag).awaitResult()
+        return unitResult(result.ok, "delete section", result.error)
+    }
+
+    override suspend fun moveSection(tag: String, index: Int): Result<Unit> {
+        val result = requireClient().moveSection(tag, index.toDouble()).awaitResult()
+        return unitResult(result.ok, "move section", result.error)
+    }
+
+    override suspend fun setRoomSection(roomId: String, tag: String?): Result<Unit> {
+        val result = requireClient().setRoomSection(roomId, tag).awaitResult()
+        return unitResult(result.ok, "move room into section", result.error)
+    }
+
     override suspend fun setPresence(presence: Presence, status: String?): Result<Unit> {
         val result = requireClient().setPresence(presence.name, status).awaitResult()
         return unitResult(result.ok, "set presence", result.error)

@@ -1636,7 +1636,8 @@ class RustMatrixPort : MatrixPort, VerificationService {
                         memberCount = child.memberCount.toLong(),
                         worldReadable = child.worldReadable,
                         guestCanJoin = child.guestCanJoin,
-                        suggested = child.suggested
+                        suggested = child.suggested,
+                        sectionTag = child.sectionTag
                     )
                 },
                 nextBatch = page.nextBatch
@@ -1647,6 +1648,38 @@ class RustMatrixPort : MatrixPort, VerificationService {
     override suspend fun spaceInviteUser(spaceId: String, userId: String): Result<Unit> =
         withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.spaceInviteUser(spaceId, userId) } }
+        }
+
+    override suspend fun listSections(): List<SpaceSection> = withContext(matrixDispatcher) {
+        runWithFfiResult { withClient { it.listSections() } }
+            .getOrDefault(emptyList())
+            .map { SpaceSection(tag = it.tag, name = it.name, spaceId = it.spaceId) }
+    }
+
+    override suspend fun createSection(name: String, spaceId: String): SpaceSection? =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.createSection(name, spaceId) } }.getOrNull()?.let {
+                SpaceSection(tag = it.tag, name = it.name, spaceId = it.spaceId)
+            }
+        }
+
+    override suspend fun renameSection(tag: String, name: String): Result<Unit> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.renameSection(tag, name) } }
+        }
+
+    override suspend fun deleteSection(tag: String): Result<Unit> = withContext(matrixDispatcher) {
+        runWithFfiResult { withClient { it.deleteSection(tag) } }
+    }
+
+    override suspend fun moveSection(tag: String, index: Int): Result<Unit> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.moveSection(tag, index.toUInt()) } }
+        }
+
+    override suspend fun setRoomSection(roomId: String, tag: String?): Result<Unit> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.setRoomSection(roomId, tag) } }
         }
 
     override suspend fun roomTags(roomId: String): Pair<Boolean, Boolean>? = withContext(matrixDispatcher) {

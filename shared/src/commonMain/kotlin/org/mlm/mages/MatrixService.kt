@@ -284,6 +284,25 @@ class MatrixService(
     suspend fun spaceInviteUser(spaceId: String, userId: String): Result<Unit> =
         port.spaceInviteUser(spaceId, userId)
 
+    suspend fun listSections(): List<SpaceSection> = port.listSections()
+
+    suspend fun createSection(name: String, spaceId: String): Result<SpaceSection> {
+        val result = port.createSection(name, spaceId)
+        return result?.let { Result.success(it) }
+            ?: Result.failure(Exception(getString(Res.string.failed_to_create_section)))
+    }
+
+    suspend fun renameSection(tag: String, name: String): Result<Unit> =
+        port.renameSection(tag, name)
+
+    suspend fun deleteSection(tag: String): Result<Unit> = port.deleteSection(tag)
+
+    suspend fun moveSection(tag: String, index: Int): Result<Unit> =
+        port.moveSection(tag, index)
+
+    suspend fun setRoomSection(roomId: String, tag: String?): Result<Unit> =
+        port.setRoomSection(roomId, tag)
+
     // The SDK keeps the space graph live, so this is a cheap in-memory lookup and needs no
     // caching of its own.
     suspend fun roomParentSpaces(roomId: String): List<SpaceParentInfo> =

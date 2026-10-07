@@ -564,12 +564,28 @@ wasm_delegate! { |r: Result<Vec<SpaceParentInfo>, crate::FfiError>| to_json(&r.u
     "roomParentSpaces"  => room_parent_spaces(room_id: String)                     or Ok(Vec::<SpaceParentInfo>::new());
 }
 
+wasm_delegate! { |r: Result<Vec<SpaceSection>, crate::FfiError>| to_json(&r.unwrap_or_default());
+    "listSections"      => list_sections()                                          or Ok(Vec::<SpaceSection>::new());
+}
+
+wasm_delegate! { |r: Result<SpaceSection, crate::FfiError>| to_json(&r.unwrap_or_else(|_| SpaceSection {
+        tag: String::new(), name: String::new(), space_id: None,
+    }));
+    "createSection"     => create_section(name: String, space_id: String)           or Ok(SpaceSection {
+        tag: String::new(), name: String::new(), space_id: None,
+    });
+}
+
 wasm_delegate! { webffi_value;
     "roomPowerLevels"  => room_power_levels(room_id: String);
     "getPresence"      => get_presence(user_id: String);
     "roomPreview"      => room_preview(id_or_alias: String, via: Vec<String>);
     "forwardEvent"     => forward_event(source_room_id: String, event_id: String, target_room_ids: Vec<String>);
     "spaceHierarchy"   => space_hierarchy(space_id: String, from: Option<String>, limit: u32, max_depth: Option<u32>, suggested_only: bool);
+    "renameSection"    => rename_section(tag: String, name: String);
+    "deleteSection"    => delete_section(tag: String);
+    "moveSection"      => move_section(tag: String, index: u32);
+    "setRoomSection"   => set_room_section(room_id: String, tag: Option<String>);
     "threadReplies"    => thread_replies(room_id: String, root_event_id: String, from: Option<String>, limit: u32, forward: bool);
     "threadSummary"    => thread_summary(room_id: String, root_event_id: String, per_page: u32, max_pages: u32);
     "listMembers"      => list_members(room_id: String);

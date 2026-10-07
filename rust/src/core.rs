@@ -73,7 +73,7 @@ use crate::{
     RoomInfoSnapshot, RoomJoinRule, RoomListEntry, RoomListMembership, RoomPowerLevelChanges,
     RoomPowerLevels, RoomPreview, RoomPreviewMembership, RoomSummary, RoomTags, RoomUpgradeLinks,
     SearchHit, SearchPage, SeenByEntry, SendState, SendUpdate, SpaceChildInfo, SpaceHierarchyPage,
-    SpaceInfo, SpaceParentInfo, SpaceUnread, SuccessorRoomInfo, ThreadPage, ThreadSummary,
+    SpaceInfo, SpaceParentInfo, SpaceSection, SpaceUnread, SuccessorRoomInfo, ThreadPage, ThreadSummary,
     UnreadStats,
     ForwardResult, MediaPreviewMode,
     VerificationInboxObserver, build_unstable_poll_content, latest_room_event_for,
@@ -4156,32 +4156,160 @@ impl CoreClient {
             }
         }
 
-        let children = resp
-            .rooms
-            .into_iter()
-            .filter(|chunk| chunk.summary.room_id != rid)
-            .map(|chunk| {
-                let s = chunk.summary;
-                let is_space = matches!(s.room_type, Some(RoomType::Space));
-                SpaceChildInfo {
-                    room_id: s.room_id.to_string(),
-                    name: s.name,
-                    topic: s.topic,
-                    alias: s.canonical_alias.map(|a| a.to_string()),
-                    avatar_url: s.avatar_url.map(|m| m.to_string()),
-                    is_space,
-                    member_count: s.num_joined_members.into(),
-                    world_readable: s.world_readable,
-                    guest_can_join: s.guest_can_join,
-                    suggested: suggested.get(s.room_id.as_str()).copied().unwrap_or(false),
-                    membership: self.sdk.get_room(&s.room_id).map(|room| room_list_membership(&room)),
-                }
-            })
-            .collect();
+        let mut children = Vec::new();
+        for chunk in resp.rooms {
+            if chunk.summary.room_id == rid {
+                continue;
+            }
+            let s = chunk.summary;
+            let is_space = matches!(s.room_type, Some(RoomType::Space));
+            let room = self.sdk.get_room(&s.room_id);
+            let membership = room.as_ref().map(room_list_membership);
+            let section_tag = match &room {
+                Some(room) => self.room_section_tag(room).await,
+                None => None,
+            };
+            children.push(SpaceChildInfo {
+                room_id: s.room_id.to_string(),
+                name: s.name,
+                topic: s.topic,
+                alias: s.canonical_alias.map(|a| a.to_string()),
+                avatar_url: s.avatar_url.map(|m| m.to_string()),
+                is_space,
+                member_count: s.num_joined_members.into(),
+                world_readable: s.world_readable,
+                guest_can_join: s.guest_can_join,
+                suggested: suggested.get(s.room_id.as_str()).copied().unwrap_or(false),
+                membership,
+                section_tag,
+            });
+        }
         Ok(SpaceHierarchyPage {
             children,
             next_batch: resp.next_batch,
         })
+    }
+
+    async fn room_section_tag(&self, room: &Room) -> Option<String> {
+        let tags = room.tags().await.ok().flatten()?;
+        tags.keys()
+            .map(|tag| tag.to_string())
+            .find(|tag| crate::sections::is_section_tag(tag))
+    }
+
+    pub async fn list_sections(&self) -> Result<Vec<SpaceSection>, FfiError> {
+        Ok(crate::sections::sections(&self.read_sections().await?))
+    }
+
+    pub async fn create_section(
+        &self,
+        name: String,
+        space_id: String,
+    ) -> Result<SpaceSection, FfiError> {
+        let section = SpaceSection {
+            tag: crate::sections::new_tag(),
+            name,
+            space_id: Some(space_id),
+        };
+        let mut settings = self.read_sections().await?;
+        crate::sections::insert(&mut settings, &section).map_err(FfiError::Msg)?;
+        self.write_sections(&settings).await?;
+        Ok(section)
+    }
+
+    pub async fn rename_section(&self, tag: String, name: String) -> Result<(), FfiError> {
+        let mut settings = self.read_sections().await?;
+        crate::sections::rename(&mut settings, &tag, &name).map_err(FfiError::Msg)?;
+        self.write_sections(&settings).await
+    }
+
+    pub async fn move_section(&self, tag: String, index: u32) -> Result<(), FfiError> {
+        let mut settings = self.read_sections().await?;
+        crate::sections::move_section(&mut settings, &tag, index as usize)
+            .map_err(FfiError::Msg)?;
+        self.write_sections(&settings).await
+    }
+
+    pub async fn delete_section(&self, tag: String) -> Result<(), FfiError> {
+        let mut settings = self.read_sections().await?;
+        crate::sections::remove(&mut settings, &tag).map_err(FfiError::Msg)?;
+        self.write_sections(&settings).await?;
+
+        for room in self.sdk.joined_rooms() {
+            let tagged = room
+                .tags()
+                .await
+                .ok()
+                .flatten()
+                .is_some_and(|tags| tags.keys().any(|name| name.to_string() == tag));
+            if tagged {
+                room.remove_tag(tag.as_str().into()).await.ffi()?;
+            }
+        }
+        Ok(())
+    }
+
+    pub async fn set_room_section(
+        &self,
+        room_id: String,
+        tag: Option<String>,
+    ) -> Result<(), FfiError> {
+        let room = self.require_room(&room_id)?;
+        let tag_name = match tag.as_deref() {
+            Some(name) => {
+                if !crate::sections::is_section_tag(name) {
+                    return Err(FfiError::Msg("not a section tag".into()));
+                }
+                Some(name.into())
+            }
+            None => None,
+        };
+
+        let existing = room.tags().await.ok().flatten().unwrap_or_default();
+        let stale: Vec<String> = existing
+            .keys()
+            .map(|name| name.to_string())
+            .filter(|name| crate::sections::is_section_tag(name) && Some(name) != tag_name.as_ref())
+            .collect();
+
+        for name in stale {
+            room.remove_tag(name.into()).await.ffi()?;
+        }
+
+        if let Some(name) = tag_name {
+            let wanted = crate::sections::is_section_tag(&name);
+            let already = existing.keys().any(|tag| tag.as_ref() == name);
+            if wanted && !already {
+                let name: matrix_sdk::ruma::events::tag::TagName = name.into();
+                room.set_tag(name, matrix_sdk::ruma::events::tag::TagInfo::new())
+                    .await
+                    .ffi()?;
+            }
+        }
+        Ok(())
+    }
+
+    async fn read_sections(&self) -> Result<crate::sections::WebSettings, FfiError> {
+        let raw = self
+            .sdk
+            .account()
+            .account_data::<crate::sections::WebSettings>()
+            .await
+            .ffi()?;
+        match raw {
+            None => Ok(crate::sections::WebSettings::default()),
+            Some(raw) => raw.deserialize().map_err(|e| {
+                FfiError::Msg(format!("room list settings are malformed, refusing to overwrite: {e}"))
+            }),
+        }
+    }
+
+    async fn write_sections(
+        &self,
+        settings: &crate::sections::WebSettings,
+    ) -> Result<(), FfiError> {
+        self.sdk.account().set_account_data(settings.clone()).await.ffi()?;
+        Ok(())
     }
 
     pub async fn space_invite_user(

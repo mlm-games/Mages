@@ -721,6 +721,14 @@ pub struct SpaceChildInfo {
     pub suggested: bool,
     /// Our own membership, absent when we have no local state for the child.
     pub membership: Option<RoomListMembership>,
+    pub section_tag: Option<String>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Record)]
+pub struct SpaceSection {
+    pub tag: String,
+    pub name: String,
+    pub space_id: Option<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Record)]
