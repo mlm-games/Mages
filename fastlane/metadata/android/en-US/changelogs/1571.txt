@@ -1,0 +1,2 @@
+- space sections (#155)
+- fix wrong padding for the image pack X button

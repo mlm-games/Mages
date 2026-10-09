@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="5.1.2" date="2026-10-09" type="stable">
+      <description>
+        <ul>
+          <li>space sections (#155)</li>
+          <li>fix wrong padding for the image pack X button</li>
+        </ul>
+      </description>
+    </release>
     <release version="5.1.1" date="2026-10-06" type="stable">
       <description>
         <ul>

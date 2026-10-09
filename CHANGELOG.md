@@ -1,3 +1,9 @@
+## v5.1.2
+
+- space sections (#155)
+- fix wrong padding for the image pack X button
+
+
 ## v5.1.1
 
 - : opens emotes picker too now
