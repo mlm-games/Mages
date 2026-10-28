@@ -142,12 +142,12 @@ uniffi = { version = "0.32", features = ["build"] }
 uniffi_bindgen = "0.32.0"
 
 [patch.crates-io]
-matrix-sdk = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-sizes" }
-matrix-sdk-base = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-sizes" }
-matrix-sdk-common = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-sizes" }
-matrix-sdk-crypto = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-sizes" }
-matrix-sdk-sqlite = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-sizes" }
-matrix-sdk-store-encryption = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-sizes" }
-matrix-sdk-ui = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-sizes" }
-matrix-sdk-search = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-sizes" }
-matrix-sdk-indexeddb = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-sizes" }
+matrix-sdk = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-metrics" }
+matrix-sdk-base = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-metrics" }
+matrix-sdk-common = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-metrics" }
+matrix-sdk-crypto = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-metrics" }
+matrix-sdk-sqlite = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-metrics" }
+matrix-sdk-store-encryption = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-metrics" }
+matrix-sdk-ui = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-metrics" }
+matrix-sdk-search = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-metrics" }
+matrix-sdk-indexeddb = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-metrics" }
