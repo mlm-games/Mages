@@ -21,7 +21,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.github.mlmgames.settings.core.annotations.SettingPlatform
 import io.github.mlmgames.settings.core.platform.currentPlatform
 import mages.shared.generated.resources.*
@@ -35,6 +34,7 @@ import org.mlm.mages.matrix.ImagePackSummary
 import org.mlm.mages.matrix.SendState
 import org.mlm.mages.settings.MessageMenuAction
 import org.mlm.mages.settings.defaultQuickReactions
+import org.mlm.mages.ui.components.core.ReactionGlyph
 import org.mlm.mages.ui.displayPreview
 import org.mlm.mages.ui.hasCaption
 import org.mlm.mages.ui.isForwardable
@@ -117,6 +117,7 @@ fun MessageActionSheet(
                 Spacer(Modifier.height(Spacing.sm))
                 QuickReactionsRow(
                     reactions = quickReactions,
+                    resolvePreview = { mxcUrl -> resolveReactionPreview(null, mxcUrl) },
                     onReact = { emoji -> onReact(emoji); onDismiss() },
                     onOpenPicker = { showEmojiPicker = true },
                     onOpenImagePicker = { showImagePicker = true }
@@ -296,6 +297,7 @@ private fun MessagePreview(event: MessageEvent) {
 @Composable
 private fun QuickReactionsRow(
     reactions: List<String>,
+    resolvePreview: suspend (String) -> String?,
     onReact: (String) -> Unit,
     onOpenPicker: () -> Unit,
     onOpenImagePicker: () -> Unit
@@ -303,9 +305,11 @@ private fun QuickReactionsRow(
     Text(stringResource(Res.string.quick_reactions), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = Spacing.lg), fontWeight = FontWeight.Medium)
     Spacer(Modifier.height(Spacing.sm))
     LazyRow(contentPadding = PaddingValues(horizontal = Spacing.lg), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        items(reactions) { emoji ->
-            Surface(onClick = { onReact(emoji) }, shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.size(48.dp)) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(emoji, fontSize = 20.sp) }
+        items(reactions) { key ->
+            Surface(onClick = { onReact(key) }, shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.size(48.dp)) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    ReactionGlyph(key = key, size = 26.dp, resolvePreview = resolvePreview)
+                }
             }
         }
         item {

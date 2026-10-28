@@ -126,6 +126,8 @@ val viewModelModule = module {
     viewModel { MediaCacheViewModel(get()) }
 
     viewModel { params -> ImagePackEditorViewModel(get(), params.get()) }
+
+    viewModel { QuickReactionsViewModel(get()) }
 }
 
 fun appModules(settingsRepository: SettingsRepository<AppSettings>) = listOf(

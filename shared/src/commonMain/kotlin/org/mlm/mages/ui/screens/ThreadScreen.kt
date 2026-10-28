@@ -525,6 +525,9 @@ fun ThreadScreen(
             isMine = isMine,
             menuOrder = menuOrder,
             quickReactions = quickReactions,
+            reactionImagePacks = state.imagePacks,
+            resolveReactionPreview = resolveEmotePreview,
+            isEncryptedRoom = state.isRoomEncrypted,
             onDismiss = { sheetEvent = null },
             onReply = {
                 onStartReply(ev)

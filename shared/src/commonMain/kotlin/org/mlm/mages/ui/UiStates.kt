@@ -821,3 +821,8 @@ data class ImagePackEditorUiState(
     val uploadProgress: Float = 0f,
     val hasUnsavedChanges: Boolean = false
 )
+
+data class QuickReactionsUiState(
+    val packs: List<ImagePackSummary> = emptyList(),
+    val isLoading: Boolean = true
+)

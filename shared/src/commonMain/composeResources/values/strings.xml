@@ -681,6 +681,7 @@
     <string name="setting_message_menu_order_description">Choose the order of actions in the message menu</string>
     <string name="setting_quick_reactions">Quick reactions</string>
     <string name="setting_quick_reactions_description">Choose which reactions appear above the message actions</string>
+    <string name="quick_reactions_from_packs">From packs</string>
     <string name="no_quick_reactions">No quick reactions</string>
     <string name="message_menu_order_hint">Drag the handles to change which actions appear first. Delete and report stay at the bottom.</string>
     <string name="reset">Reset</string>
