@@ -1484,4 +1484,5 @@
     <string name="no_quick_reactions">クイックリアクションはありません</string>
     <string name="sticker_pack_import_zip">.zip をインポート</string>
     <string name="sticker_pack_zip_failed">この .zip に画像が見つかりません</string>
+    <string name="quick_reactions_from_packs">画像パックから</string>
 </resources>

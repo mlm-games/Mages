@@ -1485,4 +1485,5 @@
     <string name="no_quick_reactions">Inga snabbreaktioner</string>
     <string name="sticker_pack_import_zip">Importera .zip</string>
     <string name="sticker_pack_zip_failed">Inga bilder hittades i denna .zip</string>
+    <string name="quick_reactions_from_packs">Från bildpaket</string>
 </resources>

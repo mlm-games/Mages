@@ -1485,4 +1485,5 @@
     <string name="no_quick_reactions">Aucune réaction rapide</string>
     <string name="sticker_pack_import_zip">Importer un .zip</string>
     <string name="sticker_pack_zip_failed">Aucune image trouvée dans ce .zip</string>
+    <string name="quick_reactions_from_packs">Depuis les paquets d'images</string>
 </resources>

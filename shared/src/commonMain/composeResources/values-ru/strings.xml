@@ -1487,4 +1487,5 @@
     <string name="no_quick_reactions">Быстрых реакций нет</string>
     <string name="sticker_pack_import_zip">Импорт .zip</string>
     <string name="sticker_pack_zip_failed">В этом .zip не найдено изображений</string>
+    <string name="quick_reactions_from_packs">Из пакетов изображений</string>
 </resources>

@@ -1485,4 +1485,5 @@
     <string name="no_quick_reactions">هیچ واکنش سریعی وجود ندارد</string>
     <string name="sticker_pack_import_zip">درون‌ریزی .zip</string>
     <string name="sticker_pack_zip_failed">هیچ تصویری در این .zip یافت نشد</string>
+    <string name="quick_reactions_from_packs">از بسته‌های تصویری</string>
 </resources>

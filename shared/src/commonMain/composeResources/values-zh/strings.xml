@@ -1484,4 +1484,5 @@
     <string name="no_quick_reactions">没有快速回应</string>
     <string name="sticker_pack_import_zip">导入 .zip</string>
     <string name="sticker_pack_zip_failed">此 .zip 中未找到图片</string>
+    <string name="quick_reactions_from_packs">从图像包</string>
 </resources>
