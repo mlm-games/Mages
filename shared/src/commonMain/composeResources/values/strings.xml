@@ -751,6 +751,8 @@
     <string name="setting_notification_sound_description">Play sound for notifications (platform support varies)</string>
     <string name="setting_sound_once_per_room">Sound once per room</string>
     <string name="setting_sound_once_per_room_description">Only play sound for first message until you check the room</string>
+    <string name="setting_notify_while_room_open">Notify while room is open</string>
+    <string name="setting_notify_while_room_open_description">Show notifications and bubbles for the room you have open</string>
     <string name="setting_quiet_hours">Quiet hours</string>
     <string name="setting_quiet_hours_description">Suppress audible notifications during quiet hours</string>
     <string name="setting_quiet_hours_start_time">Quiet hours start time</string>

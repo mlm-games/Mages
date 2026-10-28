@@ -2758,7 +2758,10 @@ class RoomViewModel(
     //  Private Helpers
 
     private fun observeTimeline() {
-        Notifier.setCurrentRoom(currentState.roomId)
+        Notifier.setCurrentRoom(
+            currentState.roomId,
+            clearNotifications = !settings.value.notifyWhileRoomOpen,
+        )
         updateState { copy(isCatchingUp = true) }
         scheduleCatchUpTimeout()
 

@@ -853,6 +853,17 @@ data class AppSettings(
     val notifySoundOncePerRoom: Boolean = false,
 
     @Setting(
+        title = "Notify while room is open",
+        titleKey = MagesSettingsKeys.NOTIFY_WHILE_ROOM_OPEN,
+        description = "Show notifications and bubbles for the room you have open",
+        descriptionKey = MagesSettingsKeys.NOTIFY_WHILE_ROOM_OPEN_DESCRIPTION,
+        category = Notifications::class,
+        type = Toggle::class,
+        dependsOn = "notificationsEnabled"
+    )
+    val notifyWhileRoomOpen: Boolean = false,
+
+    @Setting(
         title = "Quiet hours",
         titleKey = MagesSettingsKeys.QUIET_HOURS,
         description = "Suppress audible notifications during quiet hours",

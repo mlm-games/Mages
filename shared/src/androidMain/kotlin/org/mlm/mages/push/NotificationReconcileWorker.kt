@@ -18,6 +18,7 @@ import org.mlm.mages.calls.isRingingCall
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.RoomCallState
 import org.mlm.mages.matrix.MatrixPort.RoomCallStateObserver
+import org.mlm.mages.platform.Notifier as PlatformNotifier
 import kotlin.time.Clock
 
 private const val LIVE_STATE_TIMEOUT_MS = 4_000L
@@ -54,12 +55,15 @@ class NotificationReconcileWorker(
         val hasCounts = inputData.getBoolean(KEY_HAS_COUNTS, false)
         if (hasCounts && unread <= 0 && mentions <= 0) {
             if (targetRoomId != null) {
-                AndroidNotificationHelper.cancelRoomNotification(ctx, targetRoomId)
+                if (!PlatformNotifier.isRoomVisible(targetRoomId)) {
+                    AndroidNotificationHelper.cancelRoomNotification(ctx, targetRoomId)
+                }
             } else {
                 for (notif in mgr.activeNotifications) {
                     val roomId = notif.notification.extras
                         .getString(EXTRA_MATRIX_ROOM_ID)
                         ?: continue
+                    if (PlatformNotifier.isRoomVisible(roomId)) continue
                     AndroidNotificationHelper.cancelRoomNotification(ctx, roomId)
                 }
             }
@@ -85,7 +89,9 @@ class NotificationReconcileWorker(
             // A failed read is not evidence the room is read. Only a real zero retires it.
             val stats = runCatching { port.roomUnreadStats(roomId) }.getOrNull() ?: continue
 
-            if (stats.notifications == 0L && stats.mentions == 0L) {
+            if (stats.notifications == 0L && stats.mentions == 0L &&
+                !PlatformNotifier.isRoomVisible(roomId)
+            ) {
                 AndroidNotificationHelper.cancelRoomNotification(ctx, roomId)
             }
 

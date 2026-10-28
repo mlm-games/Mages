@@ -75,11 +75,18 @@ actual object Notifier {
         mgr.notify((System.currentTimeMillis() % Int.MAX_VALUE).toInt(), n)
     }
 
-    actual fun setCurrentRoom(roomId: String?) {
+    actual fun setCurrentRoom(roomId: String?, clearNotifications: Boolean) {
         currentRoomId = roomId
         if (roomId != null) {
             val ctx = appContextOrNull() ?: return
-            AndroidNotificationHelper.cancelRoomNotification(ctx, roomId, force = true, includeThreads = false)
+            if (clearNotifications) {
+                AndroidNotificationHelper.cancelRoomNotification(
+                    ctx,
+                    roomId,
+                    force = true,
+                    includeThreads = false,
+                )
+            }
             CoroutineScope(Dispatchers.IO).launch {
                 val settingsRepo = SettingsProvider.get(ctx)
                 val settings = settingsRepo.flow.first()
@@ -96,9 +103,12 @@ actual object Notifier {
         windowFocused = focused
     }
 
+    internal fun isRoomVisible(roomId: String): Boolean =
+        windowFocused && currentRoomId == roomId
+
     actual fun shouldNotify(roomId: String, senderIsMe: Boolean): Boolean {
         if (senderIsMe) return false
-        if (windowFocused && currentRoomId == roomId) return false
+        if (isRoomVisible(roomId)) return false
         return true
     }
 
@@ -189,8 +199,9 @@ actual fun BindNotifications(
                     val hasUnread = item.notifications != 0UL || item.mentions != 0UL
                     val prevHadUnread = previousUnreadState.put(item.roomId, hasUnread)
 
-                    // Only cancel on a real non-zero -> zero transition.
-                    if (prevHadUnread == true && !hasUnread) {
+                    // Only cancel on a real non-zero -> zero transition, and never for the
+                    // room on screen: that one was settled when it opened.
+                    if (prevHadUnread == true && !hasUnread && !Notifier.isRoomVisible(item.roomId)) {
                         AndroidNotificationHelper.cancelRoomNotification(context, item.roomId)
                     }
                 }

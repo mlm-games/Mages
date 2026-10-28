@@ -7,7 +7,7 @@ import org.mlm.mages.settings.AppSettings
 
 expect object Notifier {
     fun notifyRoom(title: String, body: String, icon: String? = null)
-    fun setCurrentRoom(roomId: String?)
+    fun setCurrentRoom(roomId: String?, clearNotifications: Boolean = true)
     fun setWindowFocused(focused: Boolean)
     fun shouldNotify(roomId: String, senderIsMe: Boolean): Boolean
     fun clearThreadNotification(roomId: String, threadId: String)

@@ -42,12 +42,14 @@ actual object Notifier {
         NotifierImpl.notify(app = "Mages", title = title, body = body, desktopEntry = "org.mlm.mages")
     }
 
-    actual fun setCurrentRoom(roomId: String?) {
+    actual fun setCurrentRoom(roomId: String?, clearNotifications: Boolean) {
         currentRoomId = roomId
         if (roomId != null) {
             roomsNotifiedWithSound.remove(roomId)
             // Opening the room marks it read here.
-            runCatching { NotifierImpl.closeRoomNotification(roomId) }
+            if (clearNotifications) {
+                runCatching { NotifierImpl.closeRoomNotification(roomId) }
+            }
         }
     }
 
@@ -55,9 +57,11 @@ actual object Notifier {
         windowFocused = focused
     }
 
+    internal fun isRoomVisible(roomId: String): Boolean = windowFocused && currentRoomId == roomId
+
     actual fun shouldNotify(roomId: String, senderIsMe: Boolean): Boolean {
         if (senderIsMe) return false
-        if (windowFocused && currentRoomId == roomId) return false
+        if (isRoomVisible(roomId)) return false
         return true
     }
 
@@ -177,7 +181,7 @@ actual fun BindNotifications(
                 }
 
                 val senderIsMe = me != null && me == n.senderUserId
-                if (!Notifier.shouldNotify(n.roomId, senderIsMe)) continue
+                if (!settings.notifyWhileRoomOpen && !Notifier.shouldNotify(n.roomId, senderIsMe)) continue
 
                 val notifMode = notifModeCache.getOrPut(n.roomId) {
                     runCatching { port.roomNotificationMode(n.roomId) }.getOrNull()
@@ -248,6 +252,7 @@ actual fun BindNotifications(
             }
 
             for (roomId in NotifierImpl.trackedRoomIds()) {
+                if (Notifier.isRoomVisible(roomId)) continue
                 val notifiedTs = lastNotifiedTsByRoom[roomId]
                 val readTs = runCatching { port.ownLastRead(roomId).second }.getOrNull()
                 if (readTs != null && notifiedTs != null && readTs >= notifiedTs) {

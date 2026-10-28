@@ -193,7 +193,11 @@ class NotificationEnrichWorker(
             NotificationKind.Message -> {
                 val me = service.activeAccount.value?.userId
                 val senderIsMe = me != null && me == rendered.senderUserId
-                if (!PlatformNotifier.shouldNotify(roomId, senderIsMe)) return Result.success()
+                if (!settings.notifyWhileRoomOpen &&
+                    !PlatformNotifier.shouldNotify(roomId, senderIsMe)
+                ) {
+                    return Result.success()
+                }
 
                 val inQuietHours = settings.quietHoursEnabled && isInQuietHours(settings)
 

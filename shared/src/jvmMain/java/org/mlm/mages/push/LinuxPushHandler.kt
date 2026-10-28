@@ -101,14 +101,14 @@ class LinuxPushHandler(
 
             val me = port.whoami()
             val senderIsMe = me != null && me == n.senderUserId
-            if (!Notifier.shouldNotify(n.roomId, senderIsMe)) continue
+            val settings = settingsRepository.flow.first()
+            if (!settings.notifyWhileRoomOpen && !Notifier.shouldNotify(n.roomId, senderIsMe)) continue
 
             val notifMode = runCatching { port.roomNotificationMode(n.roomId) }.getOrNull()
             if (notifMode == RoomNotificationMode.Mute) continue
             if (notifMode == RoomNotificationMode.MentionsAndKeywordsOnly && !n.hasMention) continue
 
             if (n.kind == NotificationKind.Invite) {
-                val settings = settingsRepository.flow.first()
                 if (settings.autoJoinInvites) {
                     runCatching { port.acceptInvite(n.roomId) }
                 } else {
@@ -129,7 +129,6 @@ class LinuxPushHandler(
                 service.avatars.resolve(profile?.avatarUrl, px = 96, crop = true)
             }.getOrNull()
 
-            val settings = settingsRepository.flow.first()
             val presentation = NotificationPresentation.of(
                 notification = n,
                 showPreview = settings.notificationShowPreview,

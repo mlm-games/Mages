@@ -45,9 +45,9 @@ actual object Notifier {
         )
     }
 
-    actual fun setCurrentRoom(roomId: String?) {
+    actual fun setCurrentRoom(roomId: String?, clearNotifications: Boolean) {
         currentRoomId = roomId
-        if (roomId != null) {
+        if (roomId != null && clearNotifications) {
             runCatching { closeBrowserNotificationByTag(roomId) }
         }
     }
@@ -56,9 +56,11 @@ actual object Notifier {
         windowFocused = focused
     }
 
+    internal fun isRoomVisible(roomId: String): Boolean = roomId == currentRoomId && windowFocused
+
     actual fun shouldNotify(roomId: String, senderIsMe: Boolean): Boolean {
         if (senderIsMe) return false
-        if (roomId == currentRoomId && windowFocused) return false
+        if (isRoomVisible(roomId)) return false
         return true
     }
 
@@ -167,7 +169,11 @@ actual fun BindNotifications(
                 if (notification.isExpired(now)) continue
 
                 val senderIsMe = ownUserId != null && notification.senderUserId == ownUserId
-                if (!Notifier.shouldNotify(notification.roomId, senderIsMe)) continue
+                if (!settings.notifyWhileRoomOpen &&
+                    !Notifier.shouldNotify(notification.roomId, senderIsMe)
+                ) {
+                    continue
+                }
 
                 val notifMode = notifModeCache.getOrPut(notification.roomId) {
                     runCatching { port.roomNotificationMode(notification.roomId) }.getOrNull()
@@ -247,6 +253,7 @@ actual fun BindNotifications(
             }
 
             for (roomId in lastNotifiedTsByRoom.keys.toList()) {
+                if (Notifier.isRoomVisible(roomId)) continue
                 val notifiedTs = lastNotifiedTsByRoom[roomId] ?: continue
                 val readTs = runCatching { port.ownLastRead(roomId).second }.getOrNull()
                 if (readTs != null && readTs >= notifiedTs) {
