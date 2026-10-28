@@ -55,6 +55,7 @@ sealed interface Route : NavKey {
     @Serializable data object Bookmarks : Route
     @Serializable data object Wallpaper : Route
     @Serializable data object MessageMenu : Route
+    @Serializable data object QuickReactions : Route
     @Serializable data class RoomWallpaper(val roomId: String) : Route
 }
 
@@ -228,6 +229,7 @@ val routeSerializersModule = SerializersModule {
         subclass(Route.NotificationRules::class, Route.NotificationRules.serializer())
         subclass(Route.MediaCache::class, Route.MediaCache.serializer())
         subclass(Route.MessageMenu::class, Route.MessageMenu.serializer())
+        subclass(Route.QuickReactions::class, Route.QuickReactions.serializer())
     }
 }
 

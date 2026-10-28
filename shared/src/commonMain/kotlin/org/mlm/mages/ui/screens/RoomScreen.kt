@@ -118,6 +118,7 @@ import org.mlm.mages.settings.MessageDoubleTapAction
 import org.mlm.mages.settings.MessageRightClickAction
 import org.mlm.mages.settings.MessageSwipeAction
 import org.mlm.mages.settings.parseMessageMenuOrder
+import org.mlm.mages.settings.parseQuickReactions
 import org.mlm.mages.ui.AttachmentUploadStage
 import org.mlm.mages.ui.isEditableBy
 import org.mlm.mages.ui.PinnedMessageUi
@@ -1195,6 +1196,7 @@ fun RoomScreen(
             isPinned = isPinned,
             isBookmarked = isBookmarked,
             menuOrder = parseMessageMenuOrder(settings.messageMenuOrder),
+            quickReactions = parseQuickReactions(settings.quickReactions),
             onDismiss = { sheetEvent = null; viewModel.clearSelectedMessageActions() },
             onReply = { viewModel.startReply(event); sheetEvent = null },
             onEdit = { viewModel.startEdit(event); sheetEvent = null },

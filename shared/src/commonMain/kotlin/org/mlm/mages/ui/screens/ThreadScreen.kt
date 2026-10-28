@@ -75,6 +75,8 @@ import io.github.mlmgames.settings.core.SettingsRepository
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.MessageMenuAction
 import org.mlm.mages.settings.parseMessageMenuOrder
+import org.mlm.mages.settings.parseQuickReactions
+import org.mlm.mages.settings.defaultQuickReactions
 import mages.shared.generated.resources.Res
 import org.jetbrains.compose.resources.pluralStringResource
 
@@ -148,6 +150,7 @@ fun ThreadRoute(
         emoteSuggestions = viewModel.emoteSuggestions,
         resolveEmotePreview = { thumbnail, mxc -> viewModel.emotePreview(thumbnail, mxc) },
         menuOrder = parseMessageMenuOrder(settings.messageMenuOrder),
+        quickReactions = parseQuickReactions(settings.quickReactions),
         reactionShortcodes = viewModel.reactionShortcodes,
         onReactionImages = { chips -> viewModel.ensureReactionImages(chips) },
         previewBlocked = !settings.mediaPreviews.allowsMediaPreviews(null),
@@ -212,6 +215,7 @@ fun ThreadScreen(
     reactionShortcodes: Map<String, String> = emptyMap(),
     onReactionImages: (List<ReactionSummary>) -> Unit = {},
     menuOrder: List<MessageMenuAction> = MessageMenuAction.entries,
+    quickReactions: List<String> = defaultQuickReactions,
     previewBlocked: Boolean = false,
     onShowPreview: ((MessageEvent) -> Unit)? = null,
 ) {
@@ -520,6 +524,7 @@ fun ThreadScreen(
             event = ev,
             isMine = isMine,
             menuOrder = menuOrder,
+            quickReactions = quickReactions,
             onDismiss = { sheetEvent = null },
             onReply = {
                 onStartReply(ev)

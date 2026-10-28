@@ -34,14 +34,13 @@ import org.mlm.mages.matrix.EventType
 import org.mlm.mages.matrix.ImagePackSummary
 import org.mlm.mages.matrix.SendState
 import org.mlm.mages.settings.MessageMenuAction
+import org.mlm.mages.settings.defaultQuickReactions
 import org.mlm.mages.ui.displayPreview
 import org.mlm.mages.ui.hasCaption
 import org.mlm.mages.ui.isForwardable
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.theme.Limits
 import org.mlm.mages.ui.util.formatTime
-
-private val quickReactions = listOf("👍", "❤️", "😂", "😮", "😢", "🎉", "🔥", "💀")
 
 @Composable
 fun MessageActionSheet(
@@ -74,6 +73,7 @@ fun MessageActionSheet(
     isEncryptedRoom: Boolean = false,
     resolveReactionPreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String? = { _, _ -> null },
     menuOrder: List<MessageMenuAction> = MessageMenuAction.entries,
+    quickReactions: List<String> = defaultQuickReactions,
 ) {
     val clipboardManager = LocalClipboardManager.current
     val isRedacted = event.isRedacted
@@ -116,6 +116,7 @@ fun MessageActionSheet(
             if (!isRedacted) {
                 Spacer(Modifier.height(Spacing.sm))
                 QuickReactionsRow(
+                    reactions = quickReactions,
                     onReact = { emoji -> onReact(emoji); onDismiss() },
                     onOpenPicker = { showEmojiPicker = true },
                     onOpenImagePicker = { showImagePicker = true }
@@ -294,6 +295,7 @@ private fun MessagePreview(event: MessageEvent) {
 
 @Composable
 private fun QuickReactionsRow(
+    reactions: List<String>,
     onReact: (String) -> Unit,
     onOpenPicker: () -> Unit,
     onOpenImagePicker: () -> Unit
@@ -301,7 +303,7 @@ private fun QuickReactionsRow(
     Text(stringResource(Res.string.quick_reactions), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = Spacing.lg), fontWeight = FontWeight.Medium)
     Spacer(Modifier.height(Spacing.sm))
     LazyRow(contentPadding = PaddingValues(horizontal = Spacing.lg), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        items(quickReactions) { emoji ->
+        items(reactions) { emoji ->
             Surface(onClick = { onReact(emoji) }, shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.size(48.dp)) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(emoji, fontSize = 20.sp) }
             }

@@ -591,6 +591,20 @@ data class AppSettings(
     val messageMenuOrder: String = "",
 
     @Setting(
+        title = "Quick reactions",
+        titleKey = MagesSettingsKeys.QUICK_REACTIONS,
+        description = "Choose which reactions appear above the message actions",
+        descriptionKey = MagesSettingsKeys.QUICK_REACTIONS_DESCRIPTION,
+        category = Timeline::class,
+        type = Button::class,
+    )
+    @ActionHandler(OpenQuickReactionsAction::class)
+    val openQuickReactionsSettings: Unit = Unit,
+
+    @Persisted
+    val quickReactions: String = "",
+
+    @Setting(
         title = "Split panes",
         titleKey = MagesSettingsKeys.SPLIT_PANES,
         description = "Show the room list and conversation side by side on wide screens",
@@ -1272,6 +1286,7 @@ object CopyUnifiedPushEndpointAction : SettingAction
 object OpenBubbleSettingsAction : SettingAction
 object OpenWallpaperAction : SettingAction
 object OpenMessageMenuSettingsAction : SettingAction
+object OpenQuickReactionsAction : SettingAction
 object OpenNotificationRulesAction : SettingAction
 object OpenMediaCacheAction : SettingAction
 object RequestNotificationPermissionAction : SettingAction

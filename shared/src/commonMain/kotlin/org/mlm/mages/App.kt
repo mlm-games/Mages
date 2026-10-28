@@ -636,6 +636,10 @@ private fun AppContent(
                                             backStack.add(Route.Wallpaper)
                                         }
 
+                                        SecurityViewModel.Event.NavigateToQuickReactions -> {
+                                            backStack.add(Route.QuickReactions)
+                                        }
+
                                         SecurityViewModel.Event.NavigateToMessageMenu -> {
                                             backStack.add(Route.MessageMenu)
                                         }
@@ -1009,6 +1013,12 @@ private fun AppContent(
 
                         entry<Route.MessageMenu> {
                             MessageMenuRoute(
+                                onBack = backStack::popBack
+                            )
+                        }
+
+                        entry<Route.QuickReactions> {
+                            QuickReactionsRoute(
                                 onBack = backStack::popBack
                             )
                         }
