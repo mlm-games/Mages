@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -2165,6 +2166,16 @@ private fun MessageItem(
                         emotePaths = state.emotePathByMxc
                     )
                 }
+            }
+
+            if (state.isSelectionMode) {
+                Box(
+                    Modifier
+                        .matchParentSize()
+                        .pointerInput(event.eventId) {
+                            detectTapGestures { viewModel.toggleSelected(event.eventId) }
+                        }
+                )
             }
         }
 
