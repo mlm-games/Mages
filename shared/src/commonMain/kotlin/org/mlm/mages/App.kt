@@ -435,18 +435,23 @@ private fun AppContent(
                         type = FileKitType.File("zip")
                     ) { file ->
                         val onPicked = pendingPackZipPick ?: return@rememberFilePickerLauncher
+                        pendingPackZipPick = null
                         val picked = file ?: return@rememberFilePickerLauncher
                         packPickScope.launch {
                             val zipPath = picked.toTransferItem().path
                             val extracted = if (zipPath == null) {
-                                emptyList()
+                                null
                             } else {
                                 extractImagePackZip(zipPath, MagesPaths.cacheDir())
                             }
-                            if (extracted.isEmpty()) {
-                                snackbarManager.showError(getString(Res.string.sticker_pack_zip_failed))
-                            } else {
-                                onPicked(extracted)
+                            when {
+                                extracted == null ->
+                                    snackbarManager.showError(getString(Res.string.sticker_pack_zip_unreadable))
+
+                                extracted.isEmpty() ->
+                                    snackbarManager.showError(getString(Res.string.sticker_pack_zip_failed))
+
+                                else -> onPicked(extracted)
                             }
                         }
                     }
