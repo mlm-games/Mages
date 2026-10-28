@@ -29,6 +29,7 @@ This is experimental-stage software. It is still in its early stages, and might 
 
 - **Android**  
   - Signed APKs and AABs are published on GitHub Releases, or are downloadable via F-Droid (does lag behind by a week often).
+  - GitHub and F-Droid builds share one certificate: `org.mlm.mages`, SHA-256 `4A:ED:2F:69:1D:F6:4A:7B:0F:EA:25:A6:B8:C8:01:83:C6:DC:52:0E:04:9D:AC:01:78:DE:FA:1D:64:72:22:8F` (check with `apksigner verify --print-certs <apk>`).
 
 - **Linux desktop**  
   - AppImage builds for x86_64 and aarch64.
