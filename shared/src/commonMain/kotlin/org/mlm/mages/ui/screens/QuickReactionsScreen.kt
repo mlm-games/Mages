@@ -51,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.launch
 import mages.shared.generated.resources.Res
@@ -219,15 +220,10 @@ fun QuickReactionsScreen(
 
             itemsIndexed(reactions, key = { _, key -> key }) { index, key ->
                 val info = imageInfo[key]
-                val title = when {
-                    info != null -> ":${info.first}:"
-                    isImageReaction(key) -> stringResource(Res.string.image)
-                    else -> key
-                }
                 ReactionRow(
                     key = key,
-                    title = title,
-                    subtitle = info?.second,
+                    shortcode = info?.first,
+                    packName = info?.second,
                     canMoveUp = index > 0,
                     canMoveDown = index < reactions.lastIndex,
                     onMoveUp = { onChange(reactions.moved(index, index - 1)) },
@@ -291,8 +287,8 @@ fun QuickReactionsScreen(
 @Composable
 private fun ReactionRow(
     key: String,
-    title: String,
-    subtitle: String?,
+    shortcode: String?,
+    packName: String?,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
     onMoveUp: () -> Unit,
@@ -301,6 +297,8 @@ private fun ReactionRow(
     resolvePreview: suspend (String) -> String?,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    val isImage = isImageReaction(key)
+    val imageTitle = shortcode?.let { ":$it:" } ?: stringResource(Res.string.image)
 
     Surface(
         shape = RoundedCornerShape(14.dp),
@@ -313,29 +311,40 @@ private fun ReactionRow(
                 .padding(start = Spacing.md, end = Spacing.xs, top = Spacing.xs, bottom = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ReactionGlyph(
-                key = key,
-                size = 32.dp,
-                contentDescription = title,
-                resolvePreview = resolvePreview,
-            )
-            Spacer(Modifier.width(Spacing.md))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+            if (isImage) {
+                ReactionGlyph(
+                    key = key,
+                    size = 32.dp,
+                    contentDescription = imageTitle,
+                    resolvePreview = resolvePreview,
                 )
-                if (subtitle != null) {
+                Spacer(Modifier.width(Spacing.md))
+                Column(Modifier.weight(1f)) {
                     Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = imageTitle,
+                        style = MaterialTheme.typography.bodyLarge,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    if (packName != null) {
+                        Text(
+                            text = packName,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
+            } else {
+                Text(
+                    text = key,
+                    fontSize = 24.sp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = Spacing.xs),
+                    maxLines = 1
+                )
             }
             Box {
                 IconButton(onClick = { menuOpen = true }) {
