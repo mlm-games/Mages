@@ -218,26 +218,8 @@ fun QuickReactionsScreen(
                 }
             }
 
-            itemsIndexed(reactions, key = { _, key -> key }) { index, key ->
-                val info = imageInfo[key]
-                ReactionRow(
-                    key = key,
-                    shortcode = info?.first,
-                    packName = info?.second,
-                    canMoveUp = index > 0,
-                    canMoveDown = index < reactions.lastIndex,
-                    onMoveUp = { onChange(reactions.moved(index, index - 1)) },
-                    onMoveDown = { onChange(reactions.moved(index, index + 1)) },
-                    onRemove = { onChange(reactions - key) },
-                    resolvePreview = resolvePreview,
-                )
-            }
-
             item {
-                Row(
-                    modifier = Modifier.padding(top = Spacing.sm),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     FilledTonalButton(
                         onClick = { showEmojiPicker = true },
                         modifier = Modifier.weight(1f)
@@ -256,6 +238,21 @@ fun QuickReactionsScreen(
                         Text(stringResource(Res.string.quick_reactions_from_packs))
                     }
                 }
+            }
+
+            itemsIndexed(reactions, key = { _, key -> key }) { index, key ->
+                val info = imageInfo[key]
+                ReactionRow(
+                    key = key,
+                    shortcode = info?.first,
+                    packName = info?.second,
+                    canMoveUp = index > 0,
+                    canMoveDown = index < reactions.lastIndex,
+                    onMoveUp = { onChange(reactions.moved(index, index - 1)) },
+                    onMoveDown = { onChange(reactions.moved(index, index + 1)) },
+                    onRemove = { onChange(reactions - key) },
+                    resolvePreview = resolvePreview,
+                )
             }
         }
     }
