@@ -437,11 +437,12 @@ private fun AppContent(
                         val onPicked = pendingPackZipPick ?: return@rememberFilePickerLauncher
                         val picked = file ?: return@rememberFilePickerLauncher
                         packPickScope.launch {
-                            val transferred = picked.toTransferItem()
-                            val extracted = extractImagePackZip(
-                                zipPath = transferred.path,
-                                intoDir = MagesPaths.cacheDir(),
-                            )
+                            val zipPath = picked.toTransferItem().path
+                            val extracted = if (zipPath == null) {
+                                emptyList()
+                            } else {
+                                extractImagePackZip(zipPath, MagesPaths.cacheDir())
+                            }
                             if (extracted.isEmpty()) {
                                 snackbarManager.showError(getString(Res.string.sticker_pack_zip_failed))
                             } else {
