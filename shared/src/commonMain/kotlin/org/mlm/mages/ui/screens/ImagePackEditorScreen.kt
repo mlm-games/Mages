@@ -25,7 +25,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.FolderZip
+import androidx.compose.material.icons.filled.FolderZipPhotoAlternate
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
@@ -69,10 +70,12 @@ import org.mlm.mages.ui.PendingPackImage
 import org.mlm.mages.ui.components.core.PackImageTile
 import org.mlm.mages.ui.components.dialogs.ConfirmationDialog
 import org.mlm.mages.ui.theme.Sizes
+import org.mlm.mages.platform.imagePackZipImportSupported
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.ImagePackEditorViewModel
 import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.sticker_pack_add_images
+import mages.shared.generated.resources.sticker_pack_import_zip
 import mages.shared.generated.resources.sticker_pack_discard_cancel
 import mages.shared.generated.resources.sticker_pack_discard_confirm
 import mages.shared.generated.resources.sticker_pack_discard_message
@@ -100,7 +103,8 @@ private val HEADER_FIELD = 56.dp
 fun ImagePackEditorRoute(
     viewModel: ImagePackEditorViewModel,
     onBack: () -> Unit,
-    onPickImages: (onPicked: (List<Pair<String, String>>) -> Unit) -> Unit
+    onPickImages: (onPicked: (List<Pair<String, String>>) -> Unit) -> Unit,
+    onPickZip: (onPicked: (List<Pair<String, String>>) -> Unit) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -136,6 +140,10 @@ fun ImagePackEditorRoute(
             pickTarget = packIndex
             onPickImages { picked -> viewModel.addImages(pickTarget, picked) }
         },
+        onImportZip = { packIndex ->
+            pickTarget = packIndex
+            onPickZip { picked -> viewModel.addImages(pickTarget, picked) }
+        },
         onRenamePack = viewModel::updatePackName,
         onSetUsage = viewModel::updatePackUsage,
         onSetPackGlobal = viewModel::setPackEnabledGlobally,
@@ -154,6 +162,7 @@ fun ImagePackEditorScreen(
     onDiscard: () -> Unit,
     requestPreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String?,
     onAddImages: (packIndex: Int) -> Unit,
+    onImportZip: (packIndex: Int) -> Unit,
     onRenamePack: (index: Int, name: String) -> Unit,
     onSetUsage: (index: Int, usage: List<String>) -> Unit,
     onSetPackGlobal: (index: Int, enabled: Boolean) -> Unit,
@@ -257,6 +266,20 @@ fun ImagePackEditorScreen(
                     Icon(Icons.Default.Add, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(Spacing.sm))
                     Text(stringResource(Res.string.sticker_pack_add_images))
+                }
+                if (imagePackZipImportSupported) {
+                    OutlinedButton(
+                        onClick = {
+                            val target = state.packs.indexOfFirst { !it.isNew }
+                                .takeIf { it >= 0 } ?: state.packs.size
+                            onImportZip(target)
+                        },
+                        enabled = state.canEdit && !state.isUploading
+                    ) {
+                        Icon(Icons.Default.FolderZip, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(Spacing.sm))
+                        Text(stringResource(Res.string.sticker_pack_import_zip))
+                    }
                 }
                 Spacer(Modifier.weight(1f))
                 Button(

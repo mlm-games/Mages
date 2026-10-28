@@ -61,6 +61,8 @@ import org.mlm.mages.platform.BindAutoDownload
 import org.mlm.mages.platform.BindLifecycle
 import org.mlm.mages.platform.BindNotifications
 import org.mlm.mages.platform.BindScreenSecurity
+import org.mlm.mages.platform.MagesPaths
+import org.mlm.mages.platform.extractImagePackZip
 import org.mlm.mages.platform.LocalAppLocale
 import org.mlm.mages.platform.createAppLockController
 import org.jetbrains.compose.resources.stringResource
@@ -404,6 +406,9 @@ private fun AppContent(
                     var pendingPackPick by remember {
                         mutableStateOf<((List<Pair<String, String>>) -> Unit)?>(null)
                     }
+                    var pendingPackZipPick by remember {
+                        mutableStateOf<((List<Pair<String, String>>) -> Unit)?>(null)
+                    }
                     val packImagePicker = rememberFilePickerLauncher(
                         mode = FileKitMode.Multiple(),
                         type = FileKitType.Image
@@ -422,6 +427,26 @@ private fun AppContent(
                                     attachment.path to (file.mimeType()?.toString() ?: "image/png")
                                 }
                             )
+                        }
+                    }
+
+                    val packZipPicker = rememberFilePickerLauncher(
+                        mode = FileKitMode.Single,
+                        type = FileKitType.File("zip")
+                    ) { file ->
+                        val onPicked = pendingPackZipPick ?: return@rememberFilePickerLauncher
+                        val picked = file ?: return@rememberFilePickerLauncher
+                        packPickScope.launch {
+                            val transferred = picked.toTransferItem()
+                            val extracted = extractImagePackZip(
+                                zipPath = transferred.path,
+                                intoDir = MagesPaths.cacheDir(),
+                            )
+                            if (extracted.isEmpty()) {
+                                snackbarManager.showError(getString(Res.string.sticker_pack_zip_failed))
+                            } else {
+                                onPicked(extracted)
+                            }
                         }
                     }
 
@@ -750,6 +775,10 @@ private fun AppContent(
                                 onPickImages = { onPicked ->
                                     pendingPackPick = onPicked
                                     packImagePicker.launch()
+                                },
+                                onPickZip = { onPicked ->
+                                    pendingPackZipPick = onPicked
+                                    packZipPicker.launch()
                                 },
                                 viewModel = viewModel
                             )

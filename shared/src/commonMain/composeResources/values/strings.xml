@@ -535,6 +535,8 @@
     <string name="sticker_pack_new_pack">Image packs</string>
     <string name="sticker_pack_display_name">Pack name</string>
     <string name="sticker_pack_add_images">Add images</string>
+    <string name="sticker_pack_import_zip">Import .zip</string>
+    <string name="sticker_pack_zip_failed">No images found in this .zip</string>
     <string name="sticker_pack_save">Save</string>
     <string name="sticker_pack_remove">Remove</string>
     <string name="sticker_pack_shortcode">Shortcode</string>
