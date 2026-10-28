@@ -1,3 +1,8 @@
+## v5.2.8
+
+- No user-facing changes were mentioned since previous release
+
+
 ## v5.2.7
 
 - search room padding
