@@ -28,7 +28,7 @@ class QuickReactionsViewModel(
         previewLock.withLock {
             if (previewPaths.containsKey(mxcUrl)) return previewPaths[mxcUrl]
         }
-        val path = runSafe { service.port.packImageToCache(mxcUrl, 128, 128) }
+        val path = runSafe { service.port.packImageToCache(mxcUrl, 128, 128).getOrNull() }
         previewLock.withLock { previewPaths[mxcUrl] = path }
         return path
     }
