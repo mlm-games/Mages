@@ -1475,7 +1475,7 @@
     <string name="move_up">Pindahkan ke atas</string>
     <string name="move_down">Pindahkan ke bawah</string>
     <string name="reorder">Atur ulang</string>
-    <string name="reset">Atur ulang</string>
+    <string name="reset">Setel ulang</string>
     <string name="setting_message_menu_order">Menu pesan</string>
     <string name="setting_message_menu_order_description">Pilih urutan tindakan di menu pesan</string>
     <string name="setting_notify_while_room_open">Beri notifikasi saat ruang terbuka</string>

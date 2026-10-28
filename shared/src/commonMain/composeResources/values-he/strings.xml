@@ -1486,5 +1486,5 @@
     <string name="setting_quick_reactions_description">בחרו אילו תגובות יופיעו מעל פעולות ההודעה</string>
     <string name="no_quick_reactions">אין תגובות מהירות</string>
     <string name="sticker_pack_import_zip">ייבוא .zip</string>
-    <string name="sticker_pack_zip_failed">לא נמצאו תמונות ב-.zip הזה</string>
+    <string name="sticker_pack_zip_failed">לא נמצאו תמונות בקובץ ה-.zip הזה</string>
 </resources>

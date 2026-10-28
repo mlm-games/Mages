@@ -1479,7 +1479,7 @@
     <string name="setting_message_menu_order">Nachrichtenmenü</string>
     <string name="setting_message_menu_order_description">Wähle die Reihenfolge der Aktionen im Nachrichtenmenü</string>
     <string name="setting_notify_while_room_open">Benachrichtigen, während der Raum geöffnet ist</string>
-    <string name="setting_notify_while_room_open_description">Benachrichtigungen und Blasen für den geöffneten Raum anzeigen</string>
+    <string name="setting_notify_while_room_open_description">Benachrichtigungen und Chatblasen für den geöffneten Raum anzeigen</string>
     <string name="setting_quick_reactions">Schnelle Reaktionen</string>
     <string name="setting_quick_reactions_description">Wähle, welche Reaktionen über den Nachrichtenaktionen erscheinen</string>
     <string name="no_quick_reactions">Keine schnellen Reaktionen</string>

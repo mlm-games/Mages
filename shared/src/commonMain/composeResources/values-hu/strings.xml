@@ -1476,8 +1476,8 @@
     <string name="move_down">Mozgatás lefelé</string>
     <string name="reorder">Átrendezés</string>
     <string name="reset">Visszaállítás</string>
-    <string name="setting_message_menu_order">Üzenet menü</string>
-    <string name="setting_message_menu_order_description">Válassza ki a műveletek sorrendjét az üzenet menüben</string>
+    <string name="setting_message_menu_order">Üzenetmenü</string>
+    <string name="setting_message_menu_order_description">Válassza ki a műveletek sorrendjét az üzenetmenüben</string>
     <string name="setting_notify_while_room_open">Értesítés nyitott szobánál</string>
     <string name="setting_notify_while_room_open_description">Értesítések és buborékok megjelenítése a nyitott szobához</string>
     <string name="setting_quick_reactions">Gyors reakciók</string>
