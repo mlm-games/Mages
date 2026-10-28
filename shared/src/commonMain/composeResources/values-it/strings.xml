@@ -1471,4 +1471,18 @@
     <string name="setting_split_room_list_percent_description">Percentuale della finestra usata dall'elenco delle stanze con i pannelli affiancati</string>
     <string name="select_conversation_title">Seleziona una conversazione</string>
     <string name="select_conversation_subtitle">Scegli una stanza dall'elenco per vederla qui</string>
+    <string name="message_menu_order_hint">Trascina le maniglie per cambiare quali azioni compaiono per prime. Elimina e segnala restano in fondo.</string>
+    <string name="move_up">Sposta su</string>
+    <string name="move_down">Sposta giù</string>
+    <string name="reorder">Riordina</string>
+    <string name="reset">Reimposta</string>
+    <string name="setting_message_menu_order">Menu del messaggio</string>
+    <string name="setting_message_menu_order_description">Scegli l'ordine delle azioni nel menu del messaggio</string>
+    <string name="setting_notify_while_room_open">Notifica mentre la stanza è aperta</string>
+    <string name="setting_notify_while_room_open_description">Mostra notifiche e bolle per la stanza aperta</string>
+    <string name="setting_quick_reactions">Reazioni rapide</string>
+    <string name="setting_quick_reactions_description">Scegli quali reazioni compaiono sopra le azioni del messaggio</string>
+    <string name="no_quick_reactions">Nessuna reazione rapida</string>
+    <string name="sticker_pack_import_zip">Importa .zip</string>
+    <string name="sticker_pack_zip_failed">Nessuna immagine trovata in questo .zip</string>
 </resources>

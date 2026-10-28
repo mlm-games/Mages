@@ -1470,4 +1470,18 @@
     <string name="setting_split_room_list_percent_description">分栏显示时房间列表占窗口的百分比</string>
     <string name="select_conversation_title">选择一个会话</string>
     <string name="select_conversation_subtitle">从列表中选择一个房间在此查看</string>
+    <string name="message_menu_order_hint">拖动控制柄以更改操作的前后顺序。删除和举报始终位于底部。</string>
+    <string name="move_up">上移</string>
+    <string name="move_down">下移</string>
+    <string name="reorder">重新排序</string>
+    <string name="reset">重置</string>
+    <string name="setting_message_menu_order">消息菜单</string>
+    <string name="setting_message_menu_order_description">选择消息菜单中操作的顺序</string>
+    <string name="setting_notify_while_room_open">房间打开时仍通知</string>
+    <string name="setting_notify_while_room_open_description">为已打开的房间显示通知和气泡</string>
+    <string name="setting_quick_reactions">快速回应</string>
+    <string name="setting_quick_reactions_description">选择显示在消息操作上方的回应</string>
+    <string name="no_quick_reactions">没有快速回应</string>
+    <string name="sticker_pack_import_zip">导入 .zip</string>
+    <string name="sticker_pack_zip_failed">此 .zip 中未找到图片</string>
 </resources>

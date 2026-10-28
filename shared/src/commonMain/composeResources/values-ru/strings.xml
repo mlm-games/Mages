@@ -1473,4 +1473,18 @@
     <string name="setting_split_room_list_percent_description">Процент окна, который занимает список комнат при разделённых панелях</string>
     <string name="select_conversation_title">Выбери беседу</string>
     <string name="select_conversation_subtitle">Выбери комнату из списка, чтобы увидеть её здесь</string>
+    <string name="message_menu_order_hint">Перетаскивайте маркеры, чтобы изменить порядок действий. Удаление и жалоба всегда внизу.</string>
+    <string name="move_up">Переместить вверх</string>
+    <string name="move_down">Переместить вниз</string>
+    <string name="reorder">Изменить порядок</string>
+    <string name="reset">Сбросить</string>
+    <string name="setting_message_menu_order">Меню сообщения</string>
+    <string name="setting_message_menu_order_description">Выберите порядок действий в меню сообщения</string>
+    <string name="setting_notify_while_room_open">Уведомлять, пока комната открыта</string>
+    <string name="setting_notify_while_room_open_description">Показывать уведомления и пузыри для открытой комнаты</string>
+    <string name="setting_quick_reactions">Быстрые реакции</string>
+    <string name="setting_quick_reactions_description">Выберите, какие реакции показывать над действиями с сообщением</string>
+    <string name="no_quick_reactions">Быстрых реакций нет</string>
+    <string name="sticker_pack_import_zip">Импорт .zip</string>
+    <string name="sticker_pack_zip_failed">В этом .zip не найдено изображений</string>
 </resources>

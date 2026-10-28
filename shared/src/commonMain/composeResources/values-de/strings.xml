@@ -1471,4 +1471,18 @@
     <string name="setting_split_room_list_percent_description">Anteil des Fensters, den die Raumliste bei geteilten Bereichen einnimmt</string>
     <string name="select_conversation_title">Unterhaltung auswählen</string>
     <string name="select_conversation_subtitle">Wähle einen Raum aus der Liste, um ihn hier anzuzeigen</string>
+    <string name="message_menu_order_hint">Ziehe die Griffe, um die Reihenfolge der Aktionen zu ändern. Löschen und Melden bleiben unten.</string>
+    <string name="move_up">Nach oben</string>
+    <string name="move_down">Nach unten</string>
+    <string name="reorder">Neu anordnen</string>
+    <string name="reset">Zurücksetzen</string>
+    <string name="setting_message_menu_order">Nachrichtenmenü</string>
+    <string name="setting_message_menu_order_description">Wähle die Reihenfolge der Aktionen im Nachrichtenmenü</string>
+    <string name="setting_notify_while_room_open">Benachrichtigen, während der Raum geöffnet ist</string>
+    <string name="setting_notify_while_room_open_description">Benachrichtigungen und Blasen für den geöffneten Raum anzeigen</string>
+    <string name="setting_quick_reactions">Schnelle Reaktionen</string>
+    <string name="setting_quick_reactions_description">Wähle, welche Reaktionen über den Nachrichtenaktionen erscheinen</string>
+    <string name="no_quick_reactions">Keine schnellen Reaktionen</string>
+    <string name="sticker_pack_import_zip">.zip importieren</string>
+    <string name="sticker_pack_zip_failed">In dieser .zip wurden keine Bilder gefunden</string>
 </resources>

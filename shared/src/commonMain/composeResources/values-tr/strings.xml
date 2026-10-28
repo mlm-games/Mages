@@ -1471,4 +1471,18 @@
     <string name="setting_split_room_list_percent_description">Bölünmüş panellerde oda listesinin kullandığı pencere yüzdesi</string>
     <string name="select_conversation_title">Bir sohbet seç</string>
     <string name="select_conversation_subtitle">Burada görmek için listeden bir oda seç</string>
+    <string name="message_menu_order_hint">Hangi eylemlerin önce görüneceğini değiştirmek için tutamaçları sürükleyin. Sil ve bildir en altta kalır.</string>
+    <string name="move_up">Yukarı taşı</string>
+    <string name="move_down">Aşağı taşı</string>
+    <string name="reorder">Yeniden sırala</string>
+    <string name="reset">Sıfırla</string>
+    <string name="setting_message_menu_order">Mesaj menüsü</string>
+    <string name="setting_message_menu_order_description">Mesaj menüsündeki eylemlerin sırasını seçin</string>
+    <string name="setting_notify_while_room_open">Oda açıkken bildir</string>
+    <string name="setting_notify_while_room_open_description">Açık odanız için bildirimleri ve balonları göster</string>
+    <string name="setting_quick_reactions">Hızlı tepkiler</string>
+    <string name="setting_quick_reactions_description">Mesaj eylemlerinin üzerinde hangi tepkilerin görüneceğini seçin</string>
+    <string name="no_quick_reactions">Hızlı tepki yok</string>
+    <string name="sticker_pack_import_zip">.zip içe aktar</string>
+    <string name="sticker_pack_zip_failed">Bu .zip içinde görsel bulunamadı</string>
 </resources>

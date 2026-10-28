@@ -1471,4 +1471,18 @@
     <string name="setting_split_room_list_percent_description">درصدی از پنجره که فهرست اتاق‌ها هنگام فعال بودن صفحه‌های تقسیم‌شده استفاده می‌کند</string>
     <string name="select_conversation_title">یک گفتگو انتخاب کن</string>
     <string name="select_conversation_subtitle">یک اتاق از فهرست انتخاب کن تا اینجا نمایش داده شود</string>
+    <string name="message_menu_order_hint">برای تغییر ترتیب نمایش کنش‌ها، دستگیره‌ها را بکشید. حذف و گزارش در پایین می‌مانند.</string>
+    <string name="move_up">انتقال به بالا</string>
+    <string name="move_down">انتقال به پایین</string>
+    <string name="reorder">تغییر ترتیب</string>
+    <string name="reset">بازنشانی</string>
+    <string name="setting_message_menu_order">منوی پیام</string>
+    <string name="setting_message_menu_order_description">ترتیب کنش‌ها در منوی پیام را انتخاب کنید</string>
+    <string name="setting_notify_while_room_open">اعلان هنگام باز بودن اتاق</string>
+    <string name="setting_notify_while_room_open_description">نمایش اعلان‌ها و حباب‌ها برای اتاق باز</string>
+    <string name="setting_quick_reactions">واکنش‌های سریع</string>
+    <string name="setting_quick_reactions_description">انتخاب کنید کدام واکنش‌ها بالای کنش‌های پیام نمایش داده شوند</string>
+    <string name="no_quick_reactions">هیچ واکنش سریعی وجود ندارد</string>
+    <string name="sticker_pack_import_zip">درون‌ریزی .zip</string>
+    <string name="sticker_pack_zip_failed">هیچ تصویری در این .zip یافت نشد</string>
 </resources>

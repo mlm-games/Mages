@@ -1471,4 +1471,18 @@
     <string name="setting_split_room_list_percent_description">Ποσοστό του παραθύρου που χρησιμοποιεί η λίστα δωματίων όταν είναι ενεργά τα διαχωρισμένα παράθυρα</string>
     <string name="select_conversation_title">Επίλεξε συνομιλία</string>
     <string name="select_conversation_subtitle">Διάλεξε ένα δωμάτιο από τη λίστα για προβολή εδώ</string>
+    <string name="message_menu_order_hint">Σύρετε τις λαβές για να αλλάξετε ποιες ενέργειες εμφανίζονται πρώτες. Η διαγραφή και η αναφορά παραμένουν στο κάτω μέρος.</string>
+    <string name="move_up">Μετακίνηση πάνω</string>
+    <string name="move_down">Μετακίνηση κάτω</string>
+    <string name="reorder">Αναδιάταξη</string>
+    <string name="reset">Επαναφορά</string>
+    <string name="setting_message_menu_order">Μενού μηνύματος</string>
+    <string name="setting_message_menu_order_description">Επιλέξτε τη σειρά των ενεργειών στο μενού μηνύματος</string>
+    <string name="setting_notify_while_room_open">Ειδοποίηση όσο το δωμάτιο είναι ανοιχτό</string>
+    <string name="setting_notify_while_room_open_description">Εμφάνιση ειδοποιήσεων και φυσαλίδων για το ανοιχτό δωμάτιο</string>
+    <string name="setting_quick_reactions">Γρήγορες αντιδράσεις</string>
+    <string name="setting_quick_reactions_description">Επιλέξτε ποιες αντιδράσεις εμφανίζονται πάνω από τις ενέργειες μηνύματος</string>
+    <string name="no_quick_reactions">Δεν υπάρχουν γρήγορες αντιδράσεις</string>
+    <string name="sticker_pack_import_zip">Εισαγωγή .zip</string>
+    <string name="sticker_pack_zip_failed">Δεν βρέθηκαν εικόνες σε αυτό το .zip</string>
 </resources>

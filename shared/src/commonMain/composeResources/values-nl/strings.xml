@@ -1471,4 +1471,18 @@
     <string name="setting_split_room_list_percent_description">Percentage van het venster dat de kamerlijst gebruikt bij gesplitste panelen</string>
     <string name="select_conversation_title">Kies een gesprek</string>
     <string name="select_conversation_subtitle">Kies een kamer uit de lijst om hier te bekijken</string>
+    <string name="message_menu_order_hint">Sleep de hendels om te wijzigen welke acties eerst verschijnen. Verwijderen en melden blijven onderaan.</string>
+    <string name="move_up">Omhoog verplaatsen</string>
+    <string name="move_down">Omlaag verplaatsen</string>
+    <string name="reorder">Herordenen</string>
+    <string name="reset">Resetten</string>
+    <string name="setting_message_menu_order">Berichtmenu</string>
+    <string name="setting_message_menu_order_description">Kies de volgorde van acties in het berichtmenu</string>
+    <string name="setting_notify_while_room_open">Melden terwijl de kamer open is</string>
+    <string name="setting_notify_while_room_open_description">Meldingen en ballonnen tonen voor de kamer die je hebt geopend</string>
+    <string name="setting_quick_reactions">Snelle reacties</string>
+    <string name="setting_quick_reactions_description">Kies welke reacties boven de berichtacties verschijnen</string>
+    <string name="no_quick_reactions">Geen snelle reacties</string>
+    <string name="sticker_pack_import_zip">.zip importeren</string>
+    <string name="sticker_pack_zip_failed">Geen afbeeldingen gevonden in deze .zip</string>
 </resources>

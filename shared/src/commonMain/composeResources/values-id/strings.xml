@@ -1471,4 +1471,18 @@
     <string name="setting_split_room_list_percent_description">Persentase jendela yang digunakan daftar ruangan saat panel terpisah aktif</string>
     <string name="select_conversation_title">Pilih percakapan</string>
     <string name="select_conversation_subtitle">Pilih ruangan dari daftar untuk melihatnya di sini</string>
+    <string name="message_menu_order_hint">Seret gagang untuk mengubah tindakan mana yang muncul lebih dulu. Hapus dan laporkan tetap di bawah.</string>
+    <string name="move_up">Pindahkan ke atas</string>
+    <string name="move_down">Pindahkan ke bawah</string>
+    <string name="reorder">Atur ulang</string>
+    <string name="reset">Atur ulang</string>
+    <string name="setting_message_menu_order">Menu pesan</string>
+    <string name="setting_message_menu_order_description">Pilih urutan tindakan di menu pesan</string>
+    <string name="setting_notify_while_room_open">Beri notifikasi saat ruang terbuka</string>
+    <string name="setting_notify_while_room_open_description">Tampilkan notifikasi dan gelembung untuk ruang yang terbuka</string>
+    <string name="setting_quick_reactions">Reaksi cepat</string>
+    <string name="setting_quick_reactions_description">Pilih reaksi yang muncul di atas tindakan pesan</string>
+    <string name="no_quick_reactions">Tidak ada reaksi cepat</string>
+    <string name="sticker_pack_import_zip">Impor .zip</string>
+    <string name="sticker_pack_zip_failed">Tidak ada gambar yang ditemukan di .zip ini</string>
 </resources>

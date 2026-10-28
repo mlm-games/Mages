@@ -1475,4 +1475,18 @@
     <string name="setting_split_room_list_percent_description">النسبة المئوية من النافذة التي تستخدمها قائمة الغرف عند تفعيل الأجزاء المقسمة</string>
     <string name="select_conversation_title">اختر محادثة</string>
     <string name="select_conversation_subtitle">اختر غرفة من القائمة لعرضها هنا</string>
+    <string name="message_menu_order_hint">اسحب المقابض لتغيير ترتيب الإجراءات التي تظهر أولاً. يبقى الحذف والإبلاغ في الأسفل.</string>
+    <string name="move_up">نقل لأعلى</string>
+    <string name="move_down">نقل لأسفل</string>
+    <string name="reorder">إعادة الترتيب</string>
+    <string name="reset">إعادة تعيين</string>
+    <string name="setting_message_menu_order">قائمة الرسالة</string>
+    <string name="setting_message_menu_order_description">اختر ترتيب الإجراءات في قائمة الرسالة</string>
+    <string name="setting_notify_while_room_open">الإشعار أثناء فتح الغرفة</string>
+    <string name="setting_notify_while_room_open_description">إظهار الإشعارات والفقاعات للغرفة المفتوحة</string>
+    <string name="setting_quick_reactions">ردود الفعل السريعة</string>
+    <string name="setting_quick_reactions_description">اختر التفاعلات التي تظهر فوق إجراءات الرسالة</string>
+    <string name="no_quick_reactions">لا توجد ردود فعل سريعة</string>
+    <string name="sticker_pack_import_zip">استيراد .zip</string>
+    <string name="sticker_pack_zip_failed">لم يتم العثور على صور في ملف .zip هذا</string>
 </resources>

@@ -1471,4 +1471,18 @@
     <string name="setting_split_room_list_percent_description">Andel av fönstret som rumslistan använder med delade paneler</string>
     <string name="select_conversation_title">Välj en konversation</string>
     <string name="select_conversation_subtitle">Välj ett rum i listan för att visa det här</string>
+    <string name="message_menu_order_hint">Dra i handtagen för att ändra vilka åtgärder som visas först. Ta bort och rapportera ligger kvar längst ned.</string>
+    <string name="move_up">Flytta upp</string>
+    <string name="move_down">Flytta ned</string>
+    <string name="reorder">Ändra ordning</string>
+    <string name="reset">Återställ</string>
+    <string name="setting_message_menu_order">Meddelandemeny</string>
+    <string name="setting_message_menu_order_description">Välj ordning för åtgärderna i meddelandemenyn</string>
+    <string name="setting_notify_while_room_open">Avisera medan rummet är öppet</string>
+    <string name="setting_notify_while_room_open_description">Visa aviseringar och bubblor för rummet du har öppet</string>
+    <string name="setting_quick_reactions">Snabbreaktioner</string>
+    <string name="setting_quick_reactions_description">Välj vilka reaktioner som visas ovanför meddelandeåtgärderna</string>
+    <string name="no_quick_reactions">Inga snabbreaktioner</string>
+    <string name="sticker_pack_import_zip">Importera .zip</string>
+    <string name="sticker_pack_zip_failed">Inga bilder hittades i denna .zip</string>
 </resources>

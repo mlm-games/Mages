@@ -1471,4 +1471,18 @@
     <string name="setting_split_room_list_percent_description">Huonelistan osuus ikkunan leveydestä jaetussa näkymässä</string>
     <string name="select_conversation_title">Valitse keskustelu</string>
     <string name="select_conversation_subtitle">Valitse huone listasta nähdäksesi sen tässä</string>
+    <string name="message_menu_order_hint">Muuta ensimmäisenä näkyviä toimintoja vetämällä kahvoista. Poista ja Ilmoita pysyvät alimpana.</string>
+    <string name="move_up">Siirrä ylös</string>
+    <string name="move_down">Siirrä alas</string>
+    <string name="reorder">Järjestä uudelleen</string>
+    <string name="reset">Palauta</string>
+    <string name="setting_message_menu_order">Viestivalikko</string>
+    <string name="setting_message_menu_order_description">Valitse toimintojen järjestys viestivalikossa</string>
+    <string name="setting_notify_while_room_open">Ilmoita, kun huone on auki</string>
+    <string name="setting_notify_while_room_open_description">Näytä ilmoitukset ja kuplat avoinna olevalle huoneelle</string>
+    <string name="setting_quick_reactions">Pikareaktiot</string>
+    <string name="setting_quick_reactions_description">Valitse, mitkä reaktiot näkyvät viestitoimintojen yläpuolella</string>
+    <string name="no_quick_reactions">Ei pikareaktioita</string>
+    <string name="sticker_pack_import_zip">Tuo .zip</string>
+    <string name="sticker_pack_zip_failed">Tästä .zip-tiedostosta ei löytynyt kuvia</string>
 </resources>

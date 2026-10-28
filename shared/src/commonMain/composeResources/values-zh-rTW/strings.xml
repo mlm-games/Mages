@@ -1470,4 +1470,18 @@
     <string name="setting_split_room_list_percent_description">分割顯示時房間清單佔視窗的百分比</string>
     <string name="select_conversation_title">選擇一個對話</string>
     <string name="select_conversation_subtitle">從清單中選擇一個房間在此檢視</string>
+    <string name="message_menu_order_hint">拖曳控點以變更動作的顯示順序。刪除與檢舉一律位於底部。</string>
+    <string name="move_up">上移</string>
+    <string name="move_down">下移</string>
+    <string name="reorder">重新排序</string>
+    <string name="reset">重設</string>
+    <string name="setting_message_menu_order">訊息選單</string>
+    <string name="setting_message_menu_order_description">選擇訊息選單中動作的順序</string>
+    <string name="setting_notify_while_room_open">房間開啟時仍通知</string>
+    <string name="setting_notify_while_room_open_description">為已開啟的房間顯示通知與氣泡</string>
+    <string name="setting_quick_reactions">快速反應</string>
+    <string name="setting_quick_reactions_description">選擇顯示在訊息動作上方的回應</string>
+    <string name="no_quick_reactions">沒有快速反應</string>
+    <string name="sticker_pack_import_zip">匯入 .zip</string>
+    <string name="sticker_pack_zip_failed">此 .zip 中找不到圖片</string>
 </resources>

@@ -1470,4 +1470,18 @@
     <string name="setting_split_room_list_percent_description">分割表示でルーム一覧が使用するウィンドウの割合</string>
     <string name="select_conversation_title">会話を選択</string>
     <string name="select_conversation_subtitle">一覧からルームを選んでここに表示</string>
+    <string name="message_menu_order_hint">ハンドルをドラッグして、先に表示するアクションを変更します。削除と報告は常に最下部に表示されます。</string>
+    <string name="move_up">上へ移動</string>
+    <string name="move_down">下へ移動</string>
+    <string name="reorder">並べ替え</string>
+    <string name="reset">リセット</string>
+    <string name="setting_message_menu_order">メッセージメニュー</string>
+    <string name="setting_message_menu_order_description">メッセージメニューのアクションの順序を選択します</string>
+    <string name="setting_notify_while_room_open">ルームを開いている間も通知</string>
+    <string name="setting_notify_while_room_open_description">開いているルームの通知とバブルを表示します</string>
+    <string name="setting_quick_reactions">クイックリアクション</string>
+    <string name="setting_quick_reactions_description">メッセージのアクションの上に表示するリアクションを選択します</string>
+    <string name="no_quick_reactions">クイックリアクションはありません</string>
+    <string name="sticker_pack_import_zip">.zip をインポート</string>
+    <string name="sticker_pack_zip_failed">この .zip に画像が見つかりません</string>
 </resources>

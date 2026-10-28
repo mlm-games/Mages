@@ -1471,4 +1471,18 @@
     <string name="setting_split_room_list_percent_description">Porcentagem da janela usada pela lista de salas com os painéis divididos</string>
     <string name="select_conversation_title">Escolhe uma conversa</string>
     <string name="select_conversation_subtitle">Escolhe uma sala da lista para ver aqui</string>
+    <string name="message_menu_order_hint">Arraste as alças para alterar quais ações aparecem primeiro. Excluir e denunciar permanecem no final.</string>
+    <string name="move_up">Mover para cima</string>
+    <string name="move_down">Mover para baixo</string>
+    <string name="reorder">Reordenar</string>
+    <string name="reset">Redefinir</string>
+    <string name="setting_message_menu_order">Menu da mensagem</string>
+    <string name="setting_message_menu_order_description">Escolha a ordem das ações no menu da mensagem</string>
+    <string name="setting_notify_while_room_open">Notificar enquanto a sala estiver aberta</string>
+    <string name="setting_notify_while_room_open_description">Mostrar notificações e balões para a sala aberta</string>
+    <string name="setting_quick_reactions">Reações rápidas</string>
+    <string name="setting_quick_reactions_description">Escolha quais reações aparecem acima das ações da mensagem</string>
+    <string name="no_quick_reactions">Nenhuma reação rápida</string>
+    <string name="sticker_pack_import_zip">Importar .zip</string>
+    <string name="sticker_pack_zip_failed">Nenhuma imagem encontrada neste .zip</string>
 </resources>

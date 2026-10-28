@@ -1471,4 +1471,18 @@
     <string name="setting_split_room_list_percent_description">Pourcentage de la fenêtre utilisé par la liste des salons avec les panneaux divisés</string>
     <string name="select_conversation_title">Choisir une discussion</string>
     <string name="select_conversation_subtitle">Choisis un salon dans la liste pour l'afficher ici</string>
+    <string name="message_menu_order_hint">Faites glisser les poignées pour changer l'ordre des actions affichées. Supprimer et signaler restent en bas.</string>
+    <string name="move_up">Monter</string>
+    <string name="move_down">Descendre</string>
+    <string name="reorder">Réorganiser</string>
+    <string name="reset">Réinitialiser</string>
+    <string name="setting_message_menu_order">Menu du message</string>
+    <string name="setting_message_menu_order_description">Choisissez l'ordre des actions dans le menu du message</string>
+    <string name="setting_notify_while_room_open">Notifier pendant que la salle est ouverte</string>
+    <string name="setting_notify_while_room_open_description">Afficher les notifications et les bulles pour la salle ouverte</string>
+    <string name="setting_quick_reactions">Réactions rapides</string>
+    <string name="setting_quick_reactions_description">Choisissez les réactions affichées au-dessus des actions du message</string>
+    <string name="no_quick_reactions">Aucune réaction rapide</string>
+    <string name="sticker_pack_import_zip">Importer un .zip</string>
+    <string name="sticker_pack_zip_failed">Aucune image trouvée dans ce .zip</string>
 </resources>

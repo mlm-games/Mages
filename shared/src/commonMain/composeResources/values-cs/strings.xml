@@ -1473,4 +1473,18 @@
     <string name="setting_split_room_list_percent_description">Podíl okna, který zabírá seznam místností při rozdělených panelech</string>
     <string name="select_conversation_title">Vyber konverzaci</string>
     <string name="select_conversation_subtitle">Vyber místnost ze seznamu pro zobrazení zde</string>
+    <string name="message_menu_order_hint">Přetažením úchytů změníte, které akce se zobrazí první. Smazat a nahlásit zůstávají dole.</string>
+    <string name="move_up">Přesunout nahoru</string>
+    <string name="move_down">Přesunout dolů</string>
+    <string name="reorder">Změnit pořadí</string>
+    <string name="reset">Obnovit</string>
+    <string name="setting_message_menu_order">Nabídka zprávy</string>
+    <string name="setting_message_menu_order_description">Zvolte pořadí akcí v nabídce zprávy</string>
+    <string name="setting_notify_while_room_open">Upozorňovat při otevřené místnosti</string>
+    <string name="setting_notify_while_room_open_description">Zobrazovat upozornění a bubliny pro otevřenou místnost</string>
+    <string name="setting_quick_reactions">Rychlé reakce</string>
+    <string name="setting_quick_reactions_description">Zvolte, které reakce se zobrazí nad akcemi zprávy</string>
+    <string name="no_quick_reactions">Žádné rychlé reakce</string>
+    <string name="sticker_pack_import_zip">Importovat .zip</string>
+    <string name="sticker_pack_zip_failed">V tomto .zip nebyly nalezeny žádné obrázky</string>
 </resources>

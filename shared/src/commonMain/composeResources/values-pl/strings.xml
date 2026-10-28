@@ -1473,4 +1473,18 @@
     <string name="setting_split_room_list_percent_description">Procent okna używany przez listę pokoi przy podzielonych panelach</string>
     <string name="select_conversation_title">Wybierz konwersację</string>
     <string name="select_conversation_subtitle">Wybierz pokój z listy, aby zobaczyć go tutaj</string>
+    <string name="message_menu_order_hint">Przeciągnij uchwyty, aby zmienić kolejność wyświetlania akcji. Usuń i zgłoś pozostają na dole.</string>
+    <string name="move_up">Przenieś w górę</string>
+    <string name="move_down">Przenieś w dół</string>
+    <string name="reorder">Zmień kolejność</string>
+    <string name="reset">Przywróć</string>
+    <string name="setting_message_menu_order">Menu wiadomości</string>
+    <string name="setting_message_menu_order_description">Wybierz kolejność akcji w menu wiadomości</string>
+    <string name="setting_notify_while_room_open">Powiadamiaj, gdy pokój jest otwarty</string>
+    <string name="setting_notify_while_room_open_description">Pokazuj powiadomienia i bąbelki dla otwartego pokoju</string>
+    <string name="setting_quick_reactions">Szybkie reakcje</string>
+    <string name="setting_quick_reactions_description">Wybierz, które reakcje pojawiają się nad akcjami wiadomości</string>
+    <string name="no_quick_reactions">Brak szybkich reakcji</string>
+    <string name="sticker_pack_import_zip">Importuj .zip</string>
+    <string name="sticker_pack_zip_failed">Nie znaleziono obrazów w tym pliku .zip</string>
 </resources>

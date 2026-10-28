@@ -1473,4 +1473,18 @@
     <string name="setting_split_room_list_percent_description">אחוז החלון שבו משתמשת רשימת החדרים כאשר חלוניות מפוצלות פעילות</string>
     <string name="select_conversation_title">בחר שיחה</string>
     <string name="select_conversation_subtitle">בחר חדר מהרשימה כדי לצפות בו כאן</string>
+    <string name="message_menu_order_hint">גררו את הידיות כדי לשנות אילו פעולות יופיעו קודם. מחיקה ודיווח נשארים בתחתית.</string>
+    <string name="move_up">העברה למעלה</string>
+    <string name="move_down">העברה למטה</string>
+    <string name="reorder">סידור מחדש</string>
+    <string name="reset">איפוס</string>
+    <string name="setting_message_menu_order">תפריט הודעה</string>
+    <string name="setting_message_menu_order_description">בחרו את סדר הפעולות בתפריט ההודעה</string>
+    <string name="setting_notify_while_room_open">התראה כשהחדר פתוח</string>
+    <string name="setting_notify_while_room_open_description">הצגת התראות ובועות עבור החדר הפתוח</string>
+    <string name="setting_quick_reactions">תגובות מהירות</string>
+    <string name="setting_quick_reactions_description">בחרו אילו תגובות יופיעו מעל פעולות ההודעה</string>
+    <string name="no_quick_reactions">אין תגובות מהירות</string>
+    <string name="sticker_pack_import_zip">ייבוא .zip</string>
+    <string name="sticker_pack_zip_failed">לא נמצאו תמונות ב-.zip הזה</string>
 </resources>

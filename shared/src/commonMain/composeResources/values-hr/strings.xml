@@ -1472,4 +1472,18 @@
     <string name="setting_split_room_list_percent_description">Postotak prozora koji koristi popis soba kad su podijeljena okna uključena</string>
     <string name="select_conversation_title">Odaberi razgovor</string>
     <string name="select_conversation_subtitle">Odaberi sobu s popisa za prikaz ovdje</string>
+    <string name="message_menu_order_hint">Povucite ručke da promijenite koje se radnje prikazuju prve. Izbriši i prijavi ostaju na dnu.</string>
+    <string name="move_up">Pomakni gore</string>
+    <string name="move_down">Pomakni dolje</string>
+    <string name="reorder">Promijeni redoslijed</string>
+    <string name="reset">Vrati na zadano</string>
+    <string name="setting_message_menu_order">Izbornik poruke</string>
+    <string name="setting_message_menu_order_description">Odaberite redoslijed radnji u izborniku poruke</string>
+    <string name="setting_notify_while_room_open">Obavijesti dok je soba otvorena</string>
+    <string name="setting_notify_while_room_open_description">Prikaži obavijesti i mjehuriće za otvorenu sobu</string>
+    <string name="setting_quick_reactions">Brze reakcije</string>
+    <string name="setting_quick_reactions_description">Odaberite koje se reakcije prikazuju iznad radnji poruke</string>
+    <string name="no_quick_reactions">Nema brzih reakcija</string>
+    <string name="sticker_pack_import_zip">Uvezi .zip</string>
+    <string name="sticker_pack_zip_failed">U ovom .zip nisu pronađene slike</string>
 </resources>

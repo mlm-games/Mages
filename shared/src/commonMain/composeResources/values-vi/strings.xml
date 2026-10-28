@@ -1471,4 +1471,18 @@
     <string name="setting_split_room_list_percent_description">Phần trăm cửa sổ dành cho danh sách phòng khi bật khung chia đôi</string>
     <string name="select_conversation_title">Chọn một cuộc trò chuyện</string>
     <string name="select_conversation_subtitle">Chọn một phòng từ danh sách để xem tại đây</string>
+    <string name="message_menu_order_hint">Kéo tay cầm để thay đổi thứ tự các hành động hiển thị trước. Xóa và báo cáo luôn ở dưới cùng.</string>
+    <string name="move_up">Di chuyển lên</string>
+    <string name="move_down">Di chuyển xuống</string>
+    <string name="reorder">Sắp xếp lại</string>
+    <string name="reset">Đặt lại</string>
+    <string name="setting_message_menu_order">Menu tin nhắn</string>
+    <string name="setting_message_menu_order_description">Chọn thứ tự các hành động trong menu tin nhắn</string>
+    <string name="setting_notify_while_room_open">Thông báo khi phòng đang mở</string>
+    <string name="setting_notify_while_room_open_description">Hiển thị thông báo và bong bóng cho phòng đang mở</string>
+    <string name="setting_quick_reactions">Phản ứng nhanh</string>
+    <string name="setting_quick_reactions_description">Chọn những cảm xúc hiển thị phía trên hành động tin nhắn</string>
+    <string name="no_quick_reactions">Không có phản ứng nhanh</string>
+    <string name="sticker_pack_import_zip">Nhập .zip</string>
+    <string name="sticker_pack_zip_failed">Không tìm thấy hình ảnh trong tệp .zip này</string>
 </resources>

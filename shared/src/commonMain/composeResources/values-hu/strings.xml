@@ -1471,4 +1471,18 @@
     <string name="setting_split_room_list_percent_description">Az ablak hány százalékát foglalja el a szobalista osztott paneleknél</string>
     <string name="select_conversation_title">Válassz beszélgetést</string>
     <string name="select_conversation_subtitle">Válassz szobát a listából a megtekintéshez</string>
+    <string name="message_menu_order_hint">A fogantyúk húzásával módosíthatja, mely műveletek jelenjenek meg először. A Törlés és a Jelentés alul marad.</string>
+    <string name="move_up">Mozgatás felfelé</string>
+    <string name="move_down">Mozgatás lefelé</string>
+    <string name="reorder">Átrendezés</string>
+    <string name="reset">Visszaállítás</string>
+    <string name="setting_message_menu_order">Üzenet menü</string>
+    <string name="setting_message_menu_order_description">Válassza ki a műveletek sorrendjét az üzenet menüben</string>
+    <string name="setting_notify_while_room_open">Értesítés nyitott szobánál</string>
+    <string name="setting_notify_while_room_open_description">Értesítések és buborékok megjelenítése a nyitott szobához</string>
+    <string name="setting_quick_reactions">Gyors reakciók</string>
+    <string name="setting_quick_reactions_description">Válassza ki, mely reakciók jelenjenek meg az üzenet műveletei felett</string>
+    <string name="no_quick_reactions">Nincsenek gyors reakciók</string>
+    <string name="sticker_pack_import_zip">.zip importálása</string>
+    <string name="sticker_pack_zip_failed">Nem található kép ebben a .zip fájlban</string>
 </resources>
