@@ -2537,31 +2537,19 @@ impl WasmClient {
             return webffi_not_init();
         };
         let client = state.client();
-        let mut kinds: HashMap<String, crate::MediaKind> = HashMap::new();
 
-        if let Ok(guard) = client.event_cache_store().lock().await {
-            let store = match guard {
-                EventCacheStoreLockState::Clean(store)
-                | EventCacheStoreLockState::Dirty(store) => store,
-            };
-            for room in client.rooms() {
-                if let Ok(media) = crate::collect_room_media(&*store, room.room_id()).await {
-                    for (uri, kind) in media.uris {
-                        kinds.entry(uri).or_insert(kind);
-                    }
-                }
-            }
-        }
+        let Ok(metrics) = client.media_metrics().await else {
+            return webffi_value(Ok::<_, crate::FfiError>(MediaTypeUsage::default()));
+        };
 
-        let uris = crate::media_store_uris(kinds.keys().map(String::as_str));
         let mut usage = MediaTypeUsage::default();
-        for (uri, size) in crate::media_sizes_of(client, &uris).await {
-            match kinds.get(uri.as_str()) {
-                Some(crate::MediaKind::Image) => usage.images += size,
-                Some(crate::MediaKind::Video) => usage.videos += size,
-                Some(crate::MediaKind::Audio) => usage.audio += size,
-                Some(crate::MediaKind::File) => usage.files += size,
-                Some(crate::MediaKind::Other) | None => usage.other += size,
+        for (media_type, media_usage) in metrics.by_type {
+            match media_type {
+                matrix_sdk::MediaType::Image => usage.images += media_usage.size,
+                matrix_sdk::MediaType::Video => usage.videos += media_usage.size,
+                matrix_sdk::MediaType::Audio => usage.audio += media_usage.size,
+                matrix_sdk::MediaType::File => usage.files += media_usage.size,
+                matrix_sdk::MediaType::Other => usage.other += media_usage.size,
             }
         }
 

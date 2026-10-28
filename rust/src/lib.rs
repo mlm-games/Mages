@@ -3276,36 +3276,23 @@ impl Client {
 
         #[cfg(not(target_family = "wasm"))]
         {
-            let mut kinds: HashMap<String, MediaKind> = HashMap::new();
+            use matrix_sdk::MediaType;
 
-            let Ok(state) = RT.block_on(self.core.sdk.event_cache_store().lock()) else {
-                return MediaTypeUsage::default();
-            };
-            let store = match state {
-                EventCacheStoreLockState::Clean(store)
-                | EventCacheStoreLockState::Dirty(store) => store,
-            };
-            for room in self.core.sdk.rooms() {
-                let Ok(media) = RT.block_on(collect_room_media(&*store, room.room_id())) else {
-                    continue;
-                };
-                for (uri, kind) in media.uris {
-                    kinds.entry(uri).or_insert(kind);
-                }
-            }
-            drop(store);
-
+            let metrics = RT
+                .block_on(self.core.sdk.media_metrics())
+                .unwrap_or_default();
             let mut usage = MediaTypeUsage::default();
-            let uris = media_store_uris(kinds.keys().map(String::as_str));
-            for (uri, size) in RT.block_on(media_sizes_of(&self.core.sdk, &uris)) {
-                match kinds.get(uri.as_str()) {
-                    Some(MediaKind::Image) => usage.images += size,
-                    Some(MediaKind::Video) => usage.videos += size,
-                    Some(MediaKind::Audio) => usage.audio += size,
-                    Some(MediaKind::File) => usage.files += size,
-                    Some(MediaKind::Other) | None => usage.other += size,
+
+            for (media_type, media_usage) in metrics.by_type {
+                match media_type {
+                    MediaType::Image => usage.images += media_usage.size,
+                    MediaType::Video => usage.videos += media_usage.size,
+                    MediaType::Audio => usage.audio += media_usage.size,
+                    MediaType::File => usage.files += media_usage.size,
+                    MediaType::Other => usage.other += media_usage.size,
                 }
             }
+
             usage
         }
     }
@@ -4539,7 +4526,7 @@ pub(crate) async fn media_sizes_of(
     }
 
     match sdk.media_store().lock().await {
-        Ok(store) => store.media_sizes(uris).await.unwrap_or_default(),
+        Ok(store) => store.media_sizes(uris).await.unwrap_or_default().into_iter().collect(),
         Err(_) => Vec::new(),
     }
 }
