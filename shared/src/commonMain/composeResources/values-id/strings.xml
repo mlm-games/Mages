@@ -1486,4 +1486,5 @@
     <string name="sticker_pack_import_zip">Impor .zip</string>
     <string name="sticker_pack_zip_failed">Tidak ada gambar yang ditemukan di .zip ini</string>
     <string name="quick_reactions_from_packs">Dari paket gambar</string>
+    <string name="sticker_pack_zip_unreadable">Tidak dapat membaca .zip ini</string>
 </resources>

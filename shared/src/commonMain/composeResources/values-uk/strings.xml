@@ -1488,4 +1488,5 @@
     <string name="sticker_pack_import_zip">Імпортувати .zip</string>
     <string name="sticker_pack_zip_failed">У цьому .zip не знайдено зображень</string>
     <string name="quick_reactions_from_packs">З наборів зображень</string>
+    <string name="sticker_pack_zip_unreadable">Не вдалося прочитати цей .zip</string>
 </resources>

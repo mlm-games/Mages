@@ -1486,4 +1486,5 @@
     <string name="sticker_pack_import_zip">.zip importálása</string>
     <string name="sticker_pack_zip_failed">Nem található kép ebben a .zip fájlban</string>
     <string name="quick_reactions_from_packs">Képcsomagokból</string>
+    <string name="sticker_pack_zip_unreadable">Ezt a .zip fájlt nem sikerült beolvasni</string>
 </resources>

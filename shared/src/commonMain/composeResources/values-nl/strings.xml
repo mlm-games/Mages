@@ -1486,4 +1486,5 @@
     <string name="sticker_pack_import_zip">.zip importeren</string>
     <string name="sticker_pack_zip_failed">Geen afbeeldingen gevonden in deze .zip</string>
     <string name="quick_reactions_from_packs">Uit afbeeldingspakketten</string>
+    <string name="sticker_pack_zip_unreadable">Deze .zip kon niet worden gelezen</string>
 </resources>

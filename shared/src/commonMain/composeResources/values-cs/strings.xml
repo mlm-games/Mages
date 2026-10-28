@@ -1488,4 +1488,5 @@
     <string name="sticker_pack_import_zip">Importovat .zip</string>
     <string name="sticker_pack_zip_failed">V tomto .zip nebyly nalezeny žádné obrázky</string>
     <string name="quick_reactions_from_packs">Z obrazových sad</string>
+    <string name="sticker_pack_zip_unreadable">Tento .zip nelze přečíst</string>
 </resources>

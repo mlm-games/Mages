@@ -1486,4 +1486,5 @@
     <string name="sticker_pack_import_zip">Nhập .zip</string>
     <string name="sticker_pack_zip_failed">Không tìm thấy hình ảnh trong tệp .zip này</string>
     <string name="quick_reactions_from_packs">Từ gói hình ảnh</string>
+    <string name="sticker_pack_zip_unreadable">Không thể đọc tệp .zip này</string>
 </resources>

@@ -1486,4 +1486,5 @@
     <string name="sticker_pack_import_zip">Importa .zip</string>
     <string name="sticker_pack_zip_failed">Nessuna immagine trovata in questo .zip</string>
     <string name="quick_reactions_from_packs">Dai pacchetti di immagini</string>
+    <string name="sticker_pack_zip_unreadable">Impossibile leggere questo .zip</string>
 </resources>

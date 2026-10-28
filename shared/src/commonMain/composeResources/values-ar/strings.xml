@@ -1490,4 +1490,5 @@
     <string name="sticker_pack_import_zip">استيراد .zip</string>
     <string name="sticker_pack_zip_failed">لم يتم العثور على صور في ملف .zip هذا</string>
     <string name="quick_reactions_from_packs">من حزم الصور</string>
+    <string name="sticker_pack_zip_unreadable">تعذر قراءة ملف .zip هذا</string>
 </resources>
