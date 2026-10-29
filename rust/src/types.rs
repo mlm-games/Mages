@@ -162,7 +162,7 @@ pub struct SeenByEntry {
     pub ts_ms: Option<u64>,
 }
 
-#[derive(Clone, Serialize, Deserialize, Record)]
+#[derive(Clone, Debug, Serialize, Deserialize, Record)]
 pub struct EncFile {
     pub url: String,
     pub json: String,
@@ -201,7 +201,7 @@ pub struct SendAttachmentRequest {
     pub txn_id: Option<String>,
 }
 
-#[derive(Clone, Serialize, Deserialize, Record)]
+#[derive(Clone, Debug, Serialize, Deserialize, Record)]
 pub struct StickerInfo {
     pub mxc_uri: String,
     pub mime: Option<String>,
@@ -686,6 +686,7 @@ pub struct LatestRoomEvent {
     pub timestamp: i64,
     pub is_redacted: bool,
     pub is_encrypted: bool,
+    pub sticker: Option<StickerInfo>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, uniffi::Record)]

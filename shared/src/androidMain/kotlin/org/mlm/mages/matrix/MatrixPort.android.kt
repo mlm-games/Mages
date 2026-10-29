@@ -2909,7 +2909,8 @@ private fun mages.RoomListEntry.toKotlinRoomListEntry(): RoomListEntry =
                 eventType = e.eventType,
                 timestamp = e.timestamp,
                 isRedacted = e.isRedacted,
-                isEncrypted = e.isEncrypted
+                isEncrypted = e.isEncrypted,
+                sticker = e.sticker?.toModel()
             )
         }
     )

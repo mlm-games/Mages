@@ -14,12 +14,15 @@ import mages.shared.generated.resources.*
 import org.koin.core.component.inject
 import org.mlm.mages.MatrixService
 import org.mlm.mages.RoomSummary
+import org.mlm.mages.StickerInfo
 import org.mlm.mages.matrix.LatestRoomEvent
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.RoomListEntry
 import org.mlm.mages.matrix.RoomNotificationMode
+import org.mlm.mages.matrix.allowsMediaPreviews
 import org.mlm.mages.platform.LiveLocationSharingCoordinator
 import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.settings.MediaPreviewsMode
 import org.mlm.mages.settings.RoomSwipeAction
 import org.mlm.mages.ui.LastMessageType
 import org.mlm.mages.ui.RoomListItemUi
@@ -52,11 +55,15 @@ class RoomsViewModel(
     private var initialized = false
     private var observerJob: Job? = null
     private var subscribePrefetchJob: Job? = null
+    private val stickerPreviewPathByMxc = mutableMapOf<String, String>()
+    private val stickerPreviewFetchInFlight = mutableSetOf<String>()
+    private val latestStickerByRoomId = mutableMapOf<String, StickerInfo>()
 
     init {
         launch {
-            settingsRepo.flow.collect {
+            settingsRepo.flow.collect { current ->
                 recomputeGroupedRooms()
+                prefetchVisibleStickerPreviews(current.mediaPreviews)
             }
         }
 
@@ -390,6 +397,7 @@ class RoomsViewModel(
         val lastType = determineMessageType(lastEvent)
         val lastBody = formatBodyForPreview(lastEvent, lastType)
         val lastLabel = bodyLabelForPreview(lastEvent, lastType)
+        val lastSticker = lastEvent?.sticker
         val spaces = currentState.parentSpaces[entry.roomId].orEmpty()
 
         return RoomListItemUi(
@@ -409,6 +417,8 @@ class RoomsViewModel(
             lastMessageSender = lastEvent?.sender,
             lastMessageType = lastType,
             lastMessageTs = lastEvent?.timestamp,
+            lastMessageStickerMxc = lastSticker?.mxcUri,
+            lastMessageStickerPath = lastSticker?.mxcUri?.let { stickerPreviewPathByMxc[it] },
             isSharingLocation = LiveLocationSharingCoordinator.isSharing(entry.roomId),
             parentSpaces = if (settings.value.showSpaceBadgeInRoomList) {
                 spaces.map { space ->
@@ -543,6 +553,7 @@ class RoomsViewModel(
                         }
 
                         items.forEach { maybePrefetchRoomAvatar(it.roomId, it.avatarUrl) }
+                        items.forEach { maybePrefetchStickerPreview(it) }
                         val domainRooms = items.map(::mapRoomSummary)
                         val uiItems     = items.map(::mapRoomEntryToUi)
 
@@ -561,6 +572,7 @@ class RoomsViewModel(
 
                     override fun onUpdate(item: RoomListEntry) {
                         maybePrefetchRoomAvatar(item.roomId, item.avatarUrl)
+                        maybePrefetchStickerPreview(item)
                         updateState {
                             val updatedRooms = rooms.map { room ->
                                 if (room.id == item.roomId) mapRoomSummary(item) else room
@@ -743,6 +755,64 @@ class RoomsViewModel(
         }
     }
 
+    private fun maybePrefetchStickerPreview(entry: RoomListEntry) {
+        val sticker = entry.latestEvent?.sticker
+        if (sticker == null) {
+            latestStickerByRoomId.remove(entry.roomId)
+            return
+        }
+        latestStickerByRoomId[entry.roomId] = sticker
+        prefetchSticker(sticker, entry.isDm)
+    }
+
+    private fun prefetchSticker(
+        sticker: StickerInfo,
+        isDm: Boolean,
+        mode: MediaPreviewsMode = settings.value.mediaPreviews
+    ) {
+        if (!mode.allowsMediaPreviews(isDm)) return
+        val mxc = sticker.mxcUri
+        if (mxc.isBlank()) return
+        if (stickerPreviewPathByMxc.containsKey(mxc)) return
+        if (!stickerPreviewFetchInFlight.add(mxc)) return
+
+        launch {
+            try {
+                val path = service.downloadStickerToCache(sticker).getOrNull()
+                if (!path.isNullOrBlank()) {
+                    stickerPreviewPathByMxc[mxc] = path
+                    updateState {
+                        fun List<RoomListItemUi>.withStickerPath() = map { item ->
+                            if (item.lastMessageStickerMxc == mxc) {
+                                item.copy(lastMessageStickerPath = path)
+                            } else {
+                                item
+                            }
+                        }
+                        copy(
+                            allItems = allItems.withStickerPath(),
+                            favouriteItems = favouriteItems.withStickerPath(),
+                            normalItems = normalItems.withStickerPath(),
+                            lowPriorityItems = lowPriorityItems.withStickerPath(),
+                            inviteItems = inviteItems.withStickerPath()
+                        )
+                    }
+                }
+            } finally {
+                stickerPreviewFetchInFlight.remove(mxc)
+            }
+        }
+    }
+
+    private fun prefetchVisibleStickerPreviews(mode: MediaPreviewsMode) {
+        currentState.allItems.forEach { item ->
+            val mxc = item.lastMessageStickerMxc ?: return@forEach
+            if (!mode.allowsMediaPreviews(item.isDm)) return@forEach
+            val sticker = latestStickerByRoomId[item.roomId] ?: return@forEach
+            if (sticker.mxcUri == mxc) prefetchSticker(sticker, item.isDm, mode)
+        }
+    }
+
     private fun bootstrapRoomListFromCache() {
         viewModelScope.launch {
             if (initialized) return@launch
@@ -753,6 +823,7 @@ class RoomsViewModel(
 
             if (cached.isEmpty()) return@launch
             cached.forEach { maybePrefetchRoomAvatar(it.roomId, it.avatarUrl) }
+            cached.forEach { maybePrefetchStickerPreview(it) }
 
             val domainRooms = cached.map(::mapRoomSummary)
             val uiItems = cached.map(::mapRoomEntryToUi)

@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -13,10 +14,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
@@ -43,6 +50,7 @@ fun RoomListItem(
     onLongClick: (() -> Unit)? = null,
     showSilentUnreadCount: Boolean = true,
     draft: String? = null,
+    allowMediaPreviews: Boolean = true,
     selectionMode: Boolean = false,
     selected: Boolean = false,
     modifier: Modifier = Modifier
@@ -233,17 +241,33 @@ fun RoomListItem(
                             type = item.lastMessageType,
                             body = item.lastMessageBody ?: item.lastMessageLabel?.let { stringResource(it) },
                             sender = item.lastMessageSender,
-                            isDm = item.isDm
+                            isDm = item.isDm,
+                            stickerPath = item.lastMessageStickerPath.takeIf { allowMediaPreviews }
                         )
 
-                        preview.icon?.let { icon ->
-                            Icon(
-                                icon,
+                        if (preview.imagePath != null) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalPlatformContext.current)
+                                    .data(preview.imagePath)
+                                    .crossfade(true)
+                                    .build(),
                                 contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clip(RoundedCornerShape(4.dp))
                             )
                             Spacer(Modifier.width(4.dp))
+                        } else {
+                            preview.icon?.let { icon ->
+                                Icon(
+                                    icon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(Modifier.width(4.dp))
+                            }
                         }
 
                         Text(
@@ -374,7 +398,8 @@ fun InviteListItem(
 
 private data class MessagePreview(
     val text: String,
-    val icon: ImageVector? = null
+    val icon: ImageVector? = null,
+    val imagePath: String? = null
 )
 
 @Composable
@@ -382,7 +407,8 @@ private fun formatMessagePreview(
     type: LastMessageType,
     body: String?,
     sender: String?,
-    isDm: Boolean
+    isDm: Boolean,
+    stickerPath: String?
 ): MessagePreview {
     val senderPrefix = if (!isDm && sender != null) {
         "${formatSenderName(sender)}: "
@@ -416,7 +442,8 @@ private fun formatMessagePreview(
 
         LastMessageType.Sticker -> MessagePreview(
             text = senderPrefix + stringResource(Res.string.picker_sticker),
-            icon = Icons.Default.EmojiEmotions
+            icon = if (stickerPath == null) Icons.Default.EmojiEmotions else null,
+            imagePath = stickerPath
         )
 
         LastMessageType.Location -> MessagePreview(

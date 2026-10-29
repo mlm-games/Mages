@@ -5000,6 +5000,7 @@ pub(crate) async fn latest_room_event_for(
             timestamp: i64::from(timestamp.get()),
             is_redacted: false,
             is_encrypted: false,
+            sticker: None,
         }),
         LatestEventValue::Local {
             timestamp,
@@ -5023,6 +5024,7 @@ fn map_latest_event_from_content(
     let body: Option<String>;
     let is_redacted: bool;
     let is_encrypted: bool;
+    let mut sticker: Option<StickerInfo> = None;
 
     match content {
         TimelineItemContent::MsgLike(ml) => {
@@ -5068,7 +5070,8 @@ fn map_latest_event_from_content(
                     is_redacted = false;
                     is_encrypted = false;
                 }
-                MsgLikeKind::Sticker(_) => {
+                MsgLikeKind::Sticker(sticker_event) => {
+                    sticker = Some(extract_sticker_info(sticker_event));
                     msgtype = Some("m.sticker".to_owned());
                     body = None;
                     event_type = "m.sticker".to_owned();
@@ -5182,6 +5185,7 @@ fn map_latest_event_from_content(
         timestamp: i64::from(timestamp.get()),
         is_redacted,
         is_encrypted,
+        sticker,
     })
 }
 
@@ -5221,6 +5225,7 @@ fn try_map_timeline_event(
     let mut event_type = "m.room.message".to_owned();
     let mut is_redacted = false;
     let mut is_encrypted = false;
+    let mut sticker: Option<StickerInfo> = None;
     let body: Option<String>;
 
     match ev.content() {
@@ -5247,7 +5252,8 @@ fn try_map_timeline_event(
                     _ => {}
                 }
             }
-            MsgLikeKind::Sticker(_) => {
+            MsgLikeKind::Sticker(sticker_event) => {
+                sticker = Some(extract_sticker_info(sticker_event));
                 msgtype = Some("m.sticker".to_owned());
                 body = None;
             }
@@ -5331,6 +5337,7 @@ fn try_map_timeline_event(
         timestamp: ts as i64,
         is_redacted,
         is_encrypted,
+        sticker,
     })
 }
 

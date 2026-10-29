@@ -588,7 +588,8 @@ data class LatestRoomEvent(
     val eventType: String,
     val timestamp: Long,
     val isRedacted: Boolean,
-    val isEncrypted: Boolean
+    val isEncrypted: Boolean,
+    val sticker: StickerInfo? = null
 )
 
 @Serializable

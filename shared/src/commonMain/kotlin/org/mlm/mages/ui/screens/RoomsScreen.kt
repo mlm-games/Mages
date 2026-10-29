@@ -28,6 +28,7 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.RoomSwipeAction
+import org.mlm.mages.matrix.allowsMediaPreviews
 import org.mlm.mages.ui.util.dragToScrollIfEnabled
 import org.mlm.mages.RoomSummary
 import org.mlm.mages.ui.RoomTypeFilter
@@ -269,7 +270,8 @@ fun RoomsScreen(
                                     selectionMode = state.selectionMode,
                                     selected = item.roomId in state.selectedRoomIds,
                                     showSilentUnreadCount = settings.showSilentUnreadCount,
-                                    draft = drafts[item.roomId]
+                                    draft = drafts[item.roomId],
+                                    allowMediaPreviews = settings.mediaPreviews.allowsMediaPreviews(item.isDm)
                                 )
                             }
                         }
@@ -315,7 +317,8 @@ fun RoomsScreen(
                                     selectionMode = state.selectionMode,
                                     selected = item.roomId in state.selectedRoomIds,
                                     showSilentUnreadCount = settings.showSilentUnreadCount,
-                                    draft = drafts[item.roomId]
+                                    draft = drafts[item.roomId],
+                                    allowMediaPreviews = settings.mediaPreviews.allowsMediaPreviews(item.isDm)
                                 )
                             }
                         }
@@ -360,7 +363,8 @@ fun RoomsScreen(
                                     selectionMode = state.selectionMode,
                                     selected = item.roomId in state.selectedRoomIds,
                                     showSilentUnreadCount = settings.showSilentUnreadCount,
-                                    draft = drafts[item.roomId]
+                                    draft = drafts[item.roomId],
+                                    allowMediaPreviews = settings.mediaPreviews.allowsMediaPreviews(item.isDm)
                                 )
                             }
                         }
