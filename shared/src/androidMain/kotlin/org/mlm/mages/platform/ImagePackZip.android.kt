@@ -9,10 +9,6 @@ import java.io.OutputStream
 import java.util.UUID
 import java.util.zip.ZipFile
 
-private const val MAX_ZIP_IMAGES = 500
-private const val MAX_IMAGE_BYTES = 25L * 1024 * 1024
-private const val MAX_TOTAL_BYTES = 250L * 1024 * 1024
-
 actual val imagePackZipImportSupported: Boolean = true
 
 actual suspend fun extractImagePackZip(
@@ -84,14 +80,3 @@ private fun copyBounded(input: InputStream, output: OutputStream, limit: Long): 
     }
     return total
 }
-
-private fun imageMimeFor(name: String): String? =
-    when (name.substringAfterLast('.', "").lowercase()) {
-        "png" -> "image/png"
-        "apng" -> "image/apng"
-        "jpg", "jpeg" -> "image/jpeg"
-        "gif" -> "image/gif"
-        "webp" -> "image/webp"
-        "avif" -> "image/avif"
-        else -> null
-    }

@@ -147,6 +147,7 @@ kotlin {
             implementation(libs.kotlinx.browser)
             implementation(libs.compass.geolocation)
             implementation(libs.compass.geolocation.browser)
+            implementation(libs.kmp.zip)
         }
 
         commonTest.dependencies {

@@ -156,6 +156,21 @@ actual suspend fun PlatformFile.toTransferItem(): TransferItem {
     )
 }
 
+internal fun stageWebBlob(bytes: ByteArray, mime: String, fileName: String): String {
+    val path = "${generateBlobId()}/${safeBlobFileName(fileName)}"
+    webBlobCache[path] = WebBlob(bytes, mime)
+    return path
+}
+
+private fun safeBlobFileName(name: String): String =
+    name
+        .substringAfterLast('/')
+        .substringAfterLast('\\')
+        .replace(Regex("[^A-Za-z0-9._-]"), "_")
+        .trim('.', '_')
+        .take(96)
+        .ifBlank { "image" }
+
 fun retrieveWebBlob(path: String): ByteArray? = webBlobCache[path]?.bytes
 
 fun retrieveWebBlobMimeType(path: String): String? = webBlobCache[path]?.mimeType
