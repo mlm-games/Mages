@@ -6,6 +6,7 @@ import kotlinx.coroutines.launch
 import org.mlm.mages.MatrixService
 import org.mlm.mages.RoomSummary
 import org.mlm.mages.matrix.MediaCacheOverview
+import org.mlm.mages.matrix.MediaItem
 import org.mlm.mages.matrix.MediaRetentionPolicyInfo
 import org.mlm.mages.matrix.MediaTypeUsage
 import org.mlm.mages.matrix.RoomStorageUsage
@@ -17,6 +18,12 @@ data class MediaCacheUiState(
     val policy: MediaRetentionPolicyInfo? = null,
     val rooms: List<RoomSummary> = emptyList(),
     val usageById: Map<String, RoomStorageUsage> = emptyMap(),
+    val mediaItemsOpen: Boolean = false,
+    val mediaItems: List<MediaItem> = emptyList(),
+    val mediaItemsLoading: Boolean = false,
+    val mediaItemsRoomId: String? = null,
+    val mediaItemsKind: String? = null,
+    val selectedMediaUris: Set<String> = emptySet(),
     val isClearing: Boolean = false,
     val isSavingPolicy: Boolean = false,
     val error: String? = null,
@@ -27,6 +34,7 @@ class MediaCacheViewModel(
 ) : BaseViewModel<MediaCacheUiState>(MediaCacheUiState()) {
 
     private var usagesJob: Job? = null
+    private var mediaItemsJob: Job? = null
 
     init {
         load()
@@ -98,8 +106,120 @@ class MediaCacheViewModel(
                 .onSuccess {
                     updateState { copy(isClearing = false) }
                     load()
+                    reloadMediaItems()
                 }
                 .onFailure { updateState { copy(isClearing = false, error = it.message) } }
+        }
+    }
+
+    fun openMediaList(roomId: String?, kind: String?) {
+        mediaItemsJob?.cancel()
+        updateState {
+            copy(
+                mediaItemsOpen = true,
+                mediaItems = emptyList(),
+                mediaItemsLoading = true,
+                mediaItemsRoomId = roomId,
+                mediaItemsKind = kind,
+                selectedMediaUris = emptySet(),
+                error = null,
+            )
+        }
+        mediaItemsJob = viewModelScope.launch {
+            val items = runCatching { service.port.mediaItems(roomId, kind) }
+                .getOrDefault(emptyList())
+            updateState { copy(mediaItems = items, mediaItemsLoading = false) }
+        }
+    }
+
+    fun closeMediaList() {
+        mediaItemsJob?.cancel()
+        updateState {
+            copy(
+                mediaItemsOpen = false,
+                mediaItems = emptyList(),
+                mediaItemsLoading = false,
+                mediaItemsRoomId = null,
+                mediaItemsKind = null,
+                selectedMediaUris = emptySet(),
+            )
+        }
+    }
+
+    fun toggleMediaSelection(uri: String) {
+        updateState {
+            copy(
+                selectedMediaUris = if (uri in selectedMediaUris) {
+                    selectedMediaUris - uri
+                } else {
+                    selectedMediaUris + uri
+                },
+            )
+        }
+    }
+
+    fun selectAllMedia() {
+        updateState { copy(selectedMediaUris = mediaItems.map { it.uri }.toSet()) }
+    }
+
+    fun clearSelectedMedia() {
+        val state = currentState
+        val selected = state.mediaItems.filter { it.uri in state.selectedMediaUris }
+        if (selected.isEmpty()) return
+
+        val uris = selected.flatMap { item ->
+            listOfNotNull(item.uri, item.thumbnailUri?.takeIf { it != item.uri })
+        }.distinct()
+
+        viewModelScope.launch {
+            updateState { copy(isClearing = true, error = null) }
+            service.port.clearMediaItems(uris)
+                .onSuccess {
+                    updateState { copy(isClearing = false) }
+                    reloadMediaItems()
+                    load()
+                }
+                .onFailure { updateState { copy(isClearing = false, error = it.message) } }
+        }
+    }
+
+    fun clearMediaType(kind: String) {
+        viewModelScope.launch {
+            updateState { copy(isClearing = true, error = null) }
+            service.port.clearMediaType(kind)
+                .onSuccess {
+                    updateState { copy(isClearing = false) }
+                    load()
+                    if (currentState.mediaItemsKind == kind) reloadMediaItems()
+                }
+                .onFailure { updateState { copy(isClearing = false, error = it.message) } }
+        }
+    }
+
+    fun clearMediaAboveSize(minSize: ULong) {
+        viewModelScope.launch {
+            updateState { copy(isClearing = true, error = null) }
+            service.port.clearMediaAboveSize(minSize)
+                .onSuccess {
+                    updateState { copy(isClearing = false) }
+                    load()
+                    reloadMediaItems()
+                }
+                .onFailure { updateState { copy(isClearing = false, error = it.message) } }
+        }
+    }
+
+    private fun reloadMediaItems() {
+        val state = currentState
+        if (!state.mediaItemsOpen) return
+
+        mediaItemsJob?.cancel()
+        updateState { copy(mediaItemsLoading = true, selectedMediaUris = emptySet()) }
+        mediaItemsJob = viewModelScope.launch {
+            val items = runCatching {
+                service.port.mediaItems(state.mediaItemsRoomId, state.mediaItemsKind)
+            }.getOrDefault(emptyList())
+            updateState { copy(mediaItems = items, mediaItemsLoading = false) }
         }
     }
 

@@ -9,6 +9,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.await
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -1788,8 +1789,21 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun mediaTypeUsage(): MediaTypeUsage =
         requireClientOrNull()?.mediaTypeUsage()?.awaitValue() ?: MediaTypeUsage()
 
+    override suspend fun mediaItems(roomId: String?, kind: String?): List<MediaItem> =
+        requireClientOrNull()?.mediaItems(roomId, kind)?.awaitValue<List<MediaItem>>()
+            ?: emptyList()
+
     override suspend fun clearRoomMedia(roomId: String): Result<Unit> =
         requireClient().clearRoomMedia(roomId).awaitUnitResult()
+
+    override suspend fun clearMediaItems(uris: List<String>): Result<Unit> =
+        requireClient().clearMediaItems(wasmJson.encodeToString(uris)).awaitUnitResult()
+
+    override suspend fun clearMediaType(kind: String): Result<Unit> =
+        requireClient().clearMediaType(kind).awaitUnitResult()
+
+    override suspend fun clearMediaAboveSize(minSize: ULong): Result<Unit> =
+        requireClient().clearMediaAboveSize(minSize.toDouble()).awaitUnitResult()
 
     override suspend fun clearMediaCache(): Result<Unit> =
         requireClient().clearMediaCache().awaitUnitResult()

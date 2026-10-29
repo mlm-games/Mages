@@ -639,6 +639,17 @@ pub struct MediaTypeUsage {
     pub other: u64,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, Record)]
+pub struct MediaItem {
+    pub uri: String,
+    #[serde(default)]
+    pub thumbnail_uri: Option<String>,
+    pub kind: String,
+    pub size: u64,
+    pub body: String,
+    pub room_id: String,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Enum)]
 pub enum AutoDownloadNetwork {
     Wifi,

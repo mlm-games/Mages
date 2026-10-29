@@ -485,6 +485,19 @@
     <string name="media_cache_other">Other</string>
     <string name="media_cache_clear_chat_title">Clear media for this chat?</string>
     <string name="media_cache_clear_chat_body">Downloaded media for %1$s will be removed from this device and can download again when needed.</string>
+    <string name="media_cache_clear_type_title">Clear cached %1$s?</string>
+    <string name="media_cache_clear_type_body">Cached media of this type will be removed from this device and can download again when needed.</string>
+    <string name="media_cache_clear_above">Clear media larger than</string>
+    <string name="media_cache_clear_above_title">Clear media larger than %1$s?</string>
+    <string name="media_cache_clear_above_body">Cached media larger than %1$s will be removed from this device and can download again when needed.</string>
+    <string name="media_cache_media_list">Cached media</string>
+    <string name="media_cache_media_list_in_chat">Cached media in %1$s</string>
+    <string name="media_cache_media_list_type">Cached %1$s</string>
+    <string name="media_cache_select_all">Select all</string>
+    <string name="media_cache_delete_selected">Delete selected (%1$s)</string>
+    <string name="media_cache_delete_selected_title">Delete selected media?</string>
+    <string name="media_cache_delete_selected_body">The selected media will be removed from this device and can download again when needed.</string>
+    <string name="media_cache_no_media">No cached media</string>
 
     <string name="local_network_permission_title">Allow local network access</string>
     <string name="local_network_permission_subtitle">Your homeserver appears to be on your local network. Mages needs permission to connect to devices on your LAN.</string>

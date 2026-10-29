@@ -2353,11 +2353,50 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
         }
     }
 
+    override suspend fun mediaItems(roomId: String?, kind: String?): List<MediaItem> =
+        withContext(matrixDispatcher) {
+            withClient {
+                runCatching {
+                    it.mediaItems(roomId, kind).map { item ->
+                        MediaItem(
+                            uri = item.uri,
+                            thumbnailUri = item.thumbnailUri,
+                            kind = item.kind,
+                            size = item.size,
+                            body = item.body,
+                            roomId = item.roomId,
+                        )
+                    }
+                }.getOrDefault(emptyList())
+            }
+        }
+
     override suspend fun clearRoomMedia(roomId: String): Result<Unit> = withContext(matrixDispatcher) {
         withClient {
             runWithFfiResult { it.clearRoomMedia(roomId) }
         }
     }
+
+    override suspend fun clearMediaItems(uris: List<String>): Result<Unit> =
+        withContext(matrixDispatcher) {
+            withClient {
+                runWithFfiResult { it.clearMediaItems(uris) }
+            }
+        }
+
+    override suspend fun clearMediaType(kind: String): Result<Unit> =
+        withContext(matrixDispatcher) {
+            withClient {
+                runWithFfiResult { it.clearMediaType(kind) }
+            }
+        }
+
+    override suspend fun clearMediaAboveSize(minSize: ULong): Result<Unit> =
+        withContext(matrixDispatcher) {
+            withClient {
+                runWithFfiResult { it.clearMediaAboveSize(minSize) }
+            }
+        }
 
     override suspend fun clearMediaCache(): Result<Unit> = withContext(matrixDispatcher) {
         withClient {

@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,15 +19,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -39,6 +44,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -62,6 +68,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import mages.shared.generated.resources.*
 import mages.shared.generated.resources.Res
@@ -97,6 +105,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.mlm.mages.RoomSummary
 import org.mlm.mages.matrix.MediaCacheOverview
+import org.mlm.mages.matrix.MediaItem
 import org.mlm.mages.matrix.MediaRetentionPolicyInfo
 import org.mlm.mages.matrix.MediaTypeUsage
 import org.mlm.mages.matrix.RoomStorageUsage
@@ -120,6 +129,13 @@ fun MediaCacheRoute(onBack: () -> Unit) {
         onKeepMediaChange = viewModel::setKeepMediaFor,
         onCacheLimitChange = viewModel::setCacheLimit,
         onMaxFileSizeChange = viewModel::setMaxFileSize,
+        onOpenMediaList = viewModel::openMediaList,
+        onCloseMediaList = viewModel::closeMediaList,
+        onToggleMediaSelection = viewModel::toggleMediaSelection,
+        onSelectAllMedia = viewModel::selectAllMedia,
+        onClearSelectedMedia = viewModel::clearSelectedMedia,
+        onClearMediaType = viewModel::clearMediaType,
+        onClearMediaAboveSize = viewModel::clearMediaAboveSize,
     )
 }
 
@@ -134,12 +150,22 @@ fun MediaCacheScreen(
     onKeepMediaChange: (Long?) -> Unit,
     onCacheLimitChange: (ULong?) -> Unit,
     onMaxFileSizeChange: (ULong?) -> Unit,
+    onOpenMediaList: (String?, String?) -> Unit,
+    onCloseMediaList: () -> Unit,
+    onToggleMediaSelection: (String) -> Unit,
+    onSelectAllMedia: () -> Unit,
+    onClearSelectedMedia: () -> Unit,
+    onClearMediaType: (String) -> Unit,
+    onClearMediaAboveSize: (ULong) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showConfirm by remember { mutableStateOf(false) }
     var showOlderMenu by remember { mutableStateOf(false) }
+    var showClearAboveMenu by remember { mutableStateOf(false) }
     var pendingOlderThan by remember { mutableStateOf<Long?>(null) }
     var pendingClearRoom by remember { mutableStateOf<RoomSummary?>(null) }
+    var pendingClearType by remember { mutableStateOf<String?>(null) }
+    var pendingClearAboveSize by remember { mutableStateOf<ULong?>(null) }
 
     if (showConfirm) {
         ConfirmationDialog(
@@ -176,6 +202,38 @@ fun MediaCacheScreen(
                 onClearOlderThan(days)
             },
             onDismiss = { pendingOlderThan = null },
+        )
+    }
+
+    pendingClearType?.let { kind ->
+        ConfirmationDialog(
+            title = stringResource(
+                Res.string.media_cache_clear_type_title,
+                mediaKindLabel(kind),
+            ),
+            message = stringResource(Res.string.media_cache_clear_type_body),
+            isDestructive = true,
+            isLoading = state.isClearing,
+            onConfirm = {
+                pendingClearType = null
+                onClearMediaType(kind)
+            },
+            onDismiss = { pendingClearType = null },
+        )
+    }
+
+    pendingClearAboveSize?.let { minSize ->
+        val sizeLabel = formatBytes(minSize.toLong())
+        ConfirmationDialog(
+            title = stringResource(Res.string.media_cache_clear_above_title, sizeLabel),
+            message = stringResource(Res.string.media_cache_clear_above_body, sizeLabel),
+            isDestructive = true,
+            isLoading = state.isClearing,
+            onConfirm = {
+                pendingClearAboveSize = null
+                onClearMediaAboveSize(minSize)
+            },
+            onDismiss = { pendingClearAboveSize = null },
         )
     }
 
@@ -217,6 +275,8 @@ fun MediaCacheScreen(
 
             MediaTypeCard(
                 usage = state.types,
+                onOpen = { kind -> onOpenMediaList(null, kind) },
+                onClear = { pendingClearType = it },
                 modifier = Modifier.padding(top = Spacing.lg),
             )
 
@@ -224,6 +284,7 @@ fun MediaCacheScreen(
                 ByChatCard(
                     rows = chatRows,
                     totalBytes = state.overview?.totalBytes ?: 0uL,
+                    onOpen = { room -> onOpenMediaList(room.id, null) },
                     onClear = { pendingClearRoom = it },
                     modifier = Modifier.padding(top = Spacing.lg),
                 )
@@ -323,6 +384,34 @@ fun MediaCacheScreen(
                     }
                 }
 
+                Box(Modifier.fillMaxWidth()) {
+                    OutlinedButton(
+                        onClick = { showClearAboveMenu = true },
+                        enabled = !state.isClearing && !state.isLoading,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(Res.string.media_cache_clear_above))
+                    }
+
+                    DropdownMenu(
+                        expanded = showClearAboveMenu,
+                        onDismissRequest = { showClearAboveMenu = false },
+                    ) {
+                        listOf(5L, 10L, 25L, 50L, 100L).forEach { megabytes ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(formatBytes(megabytes * 1024 * 1024))
+                                },
+                                onClick = {
+                                    showClearAboveMenu = false
+                                    pendingClearAboveSize =
+                                        megabytes.toULong() * 1024uL * 1024uL
+                                },
+                            )
+                        }
+                    }
+                }
+
                 Button(
                     onClick = { showConfirm = true },
                     enabled = !state.isClearing && !state.isLoading,
@@ -350,6 +439,17 @@ fun MediaCacheScreen(
                 }
             }
         }
+    }
+
+    if (state.mediaItemsOpen) {
+        MediaItemsDialog(
+            state = state,
+            roomName = state.rooms.firstOrNull { it.id == state.mediaItemsRoomId }?.name,
+            onDismiss = onCloseMediaList,
+            onToggle = onToggleMediaSelection,
+            onSelectAll = onSelectAllMedia,
+            onClearSelected = onClearSelectedMedia,
+        )
     }
 }
 
@@ -505,22 +605,29 @@ private fun StorageRing(
 }
 
 @Composable
-private fun MediaTypeCard(usage: MediaTypeUsage, modifier: Modifier = Modifier) {
+private fun MediaTypeCard(
+    usage: MediaTypeUsage,
+    onOpen: (String) -> Unit,
+    onClear: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val entries = listOf(
-        stringResource(Res.string.media_cache_images) to usage.images,
-        stringResource(Res.string.media_cache_videos) to usage.videos,
-        stringResource(Res.string.media_cache_audio) to usage.audio,
-        stringResource(Res.string.files) to usage.files,
-        stringResource(Res.string.media_cache_other) to usage.other,
-    ).filter { it.second > 0uL }
+        Triple(stringResource(Res.string.media_cache_images), "image", usage.images),
+        Triple(stringResource(Res.string.media_cache_videos), "video", usage.videos),
+        Triple(stringResource(Res.string.media_cache_audio), "audio", usage.audio),
+        Triple(stringResource(Res.string.files), "file", usage.files),
+        Triple(stringResource(Res.string.media_cache_other), "other", usage.other),
+    ).filter { it.third > 0uL }
 
     if (entries.isEmpty()) return
+
+    val clearLabel = stringResource(Res.string.media_cache_clear)
 
     BreakdownCard(
         title = stringResource(Res.string.media_cache_by_type),
         modifier = modifier,
     ) {
-        entries.forEachIndexed { index, (label, bytes) ->
+        entries.forEachIndexed { index, (label, kind, bytes) ->
             if (index > 0) {
                 HorizontalDivider(Modifier.padding(start = Spacing.lg))
             }
@@ -529,6 +636,15 @@ private fun MediaTypeCard(usage: MediaTypeUsage, modifier: Modifier = Modifier) 
                 detail = null,
                 bytes = bytes,
                 totalBytes = usage.totalBytes,
+                onClick = { onOpen(kind) },
+                trailing = {
+                    IconButton(onClick = { onClear(kind) }) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = clearLabel,
+                        )
+                    }
+                },
             )
         }
     }
@@ -538,6 +654,7 @@ private fun MediaTypeCard(usage: MediaTypeUsage, modifier: Modifier = Modifier) 
 private fun ByChatCard(
     rows: List<Pair<RoomSummary, RoomStorageUsage>>,
     totalBytes: ULong,
+    onOpen: (RoomSummary) -> Unit,
     onClear: (RoomSummary) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -566,6 +683,7 @@ private fun ByChatCard(
                 }.takeIf { it.isNotEmpty() },
                 bytes = usage.bytes,
                 totalBytes = totalBytes,
+                onClick = { onOpen(room) },
                 trailing = {
                     IconButton(onClick = { onClear(room) }) {
                         Icon(
@@ -577,6 +695,204 @@ private fun ByChatCard(
             )
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MediaItemsDialog(
+    state: MediaCacheUiState,
+    roomName: String?,
+    onDismiss: () -> Unit,
+    onToggle: (String) -> Unit,
+    onSelectAll: () -> Unit,
+    onClearSelected: () -> Unit,
+) {
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    val kind = state.mediaItemsKind
+    val roomId = state.mediaItemsRoomId
+
+    val title = when {
+        kind != null -> stringResource(
+            Res.string.media_cache_media_list_type,
+            mediaKindLabel(kind),
+        )
+        roomId != null -> stringResource(
+            Res.string.media_cache_media_list_in_chat,
+            roomName ?: "",
+        )
+        else -> stringResource(Res.string.media_cache_media_list)
+    }
+
+    val selectedBytes = state.mediaItems
+        .filter { it.uri in state.selectedMediaUris }
+        .fold(0uL) { total, item -> total + item.size }
+
+    if (showDeleteConfirm) {
+        ConfirmationDialog(
+            title = stringResource(Res.string.media_cache_delete_selected_title),
+            message = stringResource(Res.string.media_cache_delete_selected_body),
+            isDestructive = true,
+            isLoading = state.isClearing,
+            onConfirm = {
+                showDeleteConfirm = false
+                onClearSelected()
+            },
+            onDismiss = { showDeleteConfirm = false },
+        )
+    }
+
+    Dialog(
+        onDismissRequest = {
+            if (!state.isClearing) onDismiss()
+        },
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text(title) },
+                        navigationIcon = {
+                            IconButton(onClick = onDismiss, enabled = !state.isClearing) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = stringResource(Res.string.cancel),
+                                )
+                            }
+                        },
+                    )
+                },
+                bottomBar = {
+                    Surface(shadowElevation = 3.dp) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            TextButton(
+                                onClick = onSelectAll,
+                                enabled = !state.mediaItemsLoading && state.mediaItems.isNotEmpty(),
+                            ) {
+                                Text(stringResource(Res.string.media_cache_select_all))
+                            }
+                            Spacer(Modifier.weight(1f))
+                            TextButton(
+                                onClick = { showDeleteConfirm = true },
+                                enabled = state.selectedMediaUris.isNotEmpty() && !state.isClearing,
+                            ) {
+                                Text(
+                                    stringResource(
+                                        Res.string.media_cache_delete_selected,
+                                        formatBytes(selectedBytes.toLong()),
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                },
+            ) { padding ->
+                when {
+                    state.mediaItemsLoading -> Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularWavyProgressIndicator()
+                    }
+
+                    state.mediaItems.isEmpty() -> Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.media_cache_no_media),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    else -> LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                    ) {
+                        items(state.mediaItems, key = { it.uri }) { item ->
+                            MediaItemRow(
+                                item = item,
+                                roomName = if (state.mediaItemsRoomId == null) {
+                                    state.rooms.firstOrNull { it.id == item.roomId }?.name
+                                } else {
+                                    null
+                                },
+                                selected = item.uri in state.selectedMediaUris,
+                                onToggle = { onToggle(item.uri) },
+                            )
+                            HorizontalDivider(Modifier.padding(start = Spacing.lg))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MediaItemRow(
+    item: MediaItem,
+    roomName: String?,
+    selected: Boolean,
+    onToggle: () -> Unit,
+) {
+    val kindLabel = mediaKindLabel(item.kind)
+    val detail = buildString {
+        append(kindLabel)
+        roomName?.let { append(" · ").append(it) }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(checked = selected, onCheckedChange = { onToggle() })
+        Spacer(Modifier.width(Spacing.sm))
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = item.body.ifBlank { kindLabel },
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = detail,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Spacer(Modifier.width(Spacing.md))
+        Text(
+            text = formatBytes(item.size.toLong()),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Medium,
+        )
+    }
+}
+
+@Composable
+private fun mediaKindLabel(kind: String): String = when (kind) {
+    "image" -> stringResource(Res.string.media_cache_images)
+    "video" -> stringResource(Res.string.media_cache_videos)
+    "audio" -> stringResource(Res.string.media_cache_audio)
+    "file" -> stringResource(Res.string.files)
+    else -> stringResource(Res.string.media_cache_other)
 }
 
 @Composable
@@ -611,13 +927,16 @@ private fun BreakdownRow(
     detail: String?,
     bytes: ULong,
     totalBytes: ULong,
+    onClick: (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null,
 ) {
     val total = totalBytes.toFloat().takeIf { it > 0f }
+    val clickModifier = onClick?.let { Modifier.clickable(onClick = it) } ?: Modifier
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .then(clickModifier)
             .padding(horizontal = Spacing.lg, vertical = Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -3329,6 +3329,62 @@ impl Client {
         }
     }
 
+    pub fn media_items(
+        &self,
+        room_id: Option<String>,
+        kind: Option<String>,
+    ) -> Result<Vec<MediaItem>, FfiError> {
+        #[cfg(target_family = "wasm")]
+        return Ok(Vec::new());
+
+        #[cfg(not(target_family = "wasm"))]
+        {
+            let room_id = match room_id {
+                Some(room_id) => Some(OwnedRoomId::try_from(room_id).ffi()?),
+                None => None,
+            };
+            let kind = kind.as_deref().and_then(MediaKind::from_str);
+            RT.block_on(collect_media_items(
+                &self.core.sdk,
+                room_id.as_deref(),
+                kind,
+            ))
+        }
+    }
+
+    pub fn clear_media_items(&self, uris: Vec<String>) -> Result<(), FfiError> {
+        #[cfg(target_family = "wasm")]
+        return Ok(());
+
+        #[cfg(not(target_family = "wasm"))]
+        {
+            RT.block_on(clear_media_uris(&self.core.sdk, &uris))
+        }
+    }
+
+    pub fn clear_media_type(&self, kind: String) -> Result<(), FfiError> {
+        #[cfg(target_family = "wasm")]
+        return Ok(());
+
+        #[cfg(not(target_family = "wasm"))]
+        {
+            let Some(kind) = MediaKind::from_str(&kind) else {
+                return Ok(());
+            };
+            RT.block_on(clear_media_type_for(&self.core.sdk, kind))
+        }
+    }
+
+    pub fn clear_media_above_size(&self, min_size: u64) -> Result<(), FfiError> {
+        #[cfg(target_family = "wasm")]
+        return Ok(());
+
+        #[cfg(not(target_family = "wasm"))]
+        {
+            RT.block_on(clear_media_above_size_for(&self.core.sdk, min_size))
+        }
+    }
+
     pub fn clear_media_cache(&self) -> Result<(), FfiError> {
         let dir = cache_dir(&self.store_dir);
         if dir.exists() {
@@ -4482,10 +4538,41 @@ pub(crate) enum MediaKind {
     Other,
 }
 
+impl MediaKind {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            MediaKind::Image => "image",
+            MediaKind::Video => "video",
+            MediaKind::Audio => "audio",
+            MediaKind::File => "file",
+            MediaKind::Other => "other",
+        }
+    }
+
+    pub(crate) fn from_str(value: &str) -> Option<Self> {
+        match value {
+            "image" => Some(MediaKind::Image),
+            "video" => Some(MediaKind::Video),
+            "audio" => Some(MediaKind::Audio),
+            "file" => Some(MediaKind::File),
+            "other" => Some(MediaKind::Other),
+            _ => None,
+        }
+    }
+}
+
 pub(crate) struct RoomMedia {
     pub(crate) messages: u64,
     pub(crate) files: u64,
     pub(crate) uris: Vec<(String, MediaKind)>,
+}
+
+pub(crate) struct MediaItemSource {
+    uri: String,
+    thumbnail_uri: Option<String>,
+    kind: MediaKind,
+    body: String,
+    room_id: OwnedRoomId,
 }
 
 pub(crate) async fn collect_room_media(
@@ -4508,6 +4595,127 @@ pub(crate) async fn collect_room_media(
     }
 
     Ok(media)
+}
+
+pub(crate) async fn collect_media_items(
+    sdk: &SdkClient,
+    room_id: Option<&RoomId>,
+    kind_filter: Option<MediaKind>,
+) -> Result<Vec<MediaItem>, FfiError> {
+    let room_ids: Vec<OwnedRoomId> = match room_id {
+        Some(room_id) => vec![room_id.to_owned()],
+        None => sdk
+            .rooms()
+            .into_iter()
+            .map(|room| room.room_id().to_owned())
+            .collect(),
+    };
+
+    let mut sources = Vec::new();
+    {
+        let Ok(state) = sdk.event_cache_store().lock().await else {
+            return Ok(Vec::new());
+        };
+        let store = match state {
+            EventCacheStoreLockState::Clean(store)
+            | EventCacheStoreLockState::Dirty(store) => store,
+        };
+
+        for room_id in &room_ids {
+            for event_type in ["m.room.message", "m.sticker"] {
+                let events = store
+                    .get_room_events(room_id, Some(event_type), None)
+                    .await
+                    .ffi()?;
+                for event in &events {
+                    let Some(item) = media_item_of(event, room_id) else {
+                        continue;
+                    };
+                    if kind_filter.map_or(true, |kind| kind == item.kind) {
+                        sources.push(item);
+                    }
+                }
+            }
+        }
+    }
+
+    let mut seen = std::collections::HashSet::new();
+    sources.retain(|item| seen.insert(item.uri.clone()));
+
+    let uris = media_store_uris(sources.iter().flat_map(|item| {
+        std::iter::once(item.uri.as_str()).chain(item.thumbnail_uri.as_deref())
+    }));
+    let sizes: HashMap<String, u64> = media_sizes_of(sdk, &uris)
+        .await
+        .into_iter()
+        .map(|(uri, size)| (uri.to_string(), size))
+        .collect();
+
+    let mut items: Vec<MediaItem> = sources
+        .into_iter()
+        .map(|item| {
+            let main = sizes.get(&item.uri).copied().unwrap_or(0);
+            let thumbnail = item
+                .thumbnail_uri
+                .as_deref()
+                .filter(|thumbnail| *thumbnail != item.uri.as_str())
+                .and_then(|thumbnail| sizes.get(thumbnail).copied())
+                .unwrap_or(0);
+            MediaItem {
+                uri: item.uri,
+                thumbnail_uri: item.thumbnail_uri,
+                kind: item.kind.as_str().to_owned(),
+                size: main + thumbnail,
+                body: item.body,
+                room_id: item.room_id.to_string(),
+            }
+        })
+        .filter(|item| item.size > 0)
+        .collect();
+
+    items.sort_by(|a, b| b.size.cmp(&a.size).then_with(|| a.body.cmp(&b.body)));
+    Ok(items)
+}
+
+pub(crate) async fn clear_media_uris(sdk: &SdkClient, uris: &[String]) -> Result<(), FfiError> {
+    let uris = media_store_uris(uris.iter().map(String::as_str));
+    let media = sdk.media();
+    for uri in &uris {
+        media.remove_media_content_for_uri(uri).await.ffi()?;
+    }
+    Ok(())
+}
+
+fn media_item_uris(item: &MediaItem) -> Vec<String> {
+    let mut uris = vec![item.uri.clone()];
+    if let Some(thumbnail_uri) = &item.thumbnail_uri {
+        if thumbnail_uri != &item.uri {
+            uris.push(thumbnail_uri.clone());
+        }
+    }
+    uris
+}
+
+pub(crate) async fn clear_media_type_for(
+    sdk: &SdkClient,
+    kind: MediaKind,
+) -> Result<(), FfiError> {
+    let items = collect_media_items(sdk, None, Some(kind)).await?;
+    let uris: Vec<String> = items.iter().flat_map(media_item_uris).collect();
+    clear_media_uris(sdk, &uris).await
+}
+
+pub(crate) async fn clear_media_above_size_for(
+    sdk: &SdkClient,
+    min_size: u64,
+) -> Result<(), FfiError> {
+    let items = collect_media_items(sdk, None, None).await?;
+    let uris: Vec<String> = items
+        .iter()
+        .filter(|item| item.size > min_size)
+        .flat_map(media_item_uris)
+        .collect();
+    clear_media_uris(sdk, &uris).await
 }
 
 pub(crate) fn media_store_uris<'a>(uris: impl IntoIterator<Item = &'a str>) -> Vec<OwnedMxcUri> {
@@ -4567,6 +4775,97 @@ fn media_of(
         }
         _ => None,
     }
+}
+
+fn media_item_of(
+    ev: &matrix_sdk_base::deserialized_responses::TimelineEvent,
+    room_id: &RoomId,
+) -> Option<MediaItemSource> {
+    use matrix_sdk::media::MediaEventContent;
+    use matrix_sdk::ruma::events::room::message::MessageType;
+
+    fn source_uri(source: MediaSource) -> String {
+        match source {
+            MediaSource::Plain(uri) => uri.to_string(),
+            MediaSource::Encrypted(file) => file.url.to_string(),
+        }
+    }
+
+    fn media_sources(content: &dyn MediaEventContent) -> Option<(String, Option<String>)> {
+        let source = content.source();
+        let thumbnail = content.thumbnail_source();
+        match (source, thumbnail) {
+            (Some(source), thumbnail) => {
+                let uri = source_uri(source);
+                let thumbnail_uri = thumbnail
+                    .map(source_uri)
+                    .filter(|thumbnail| *thumbnail != uri.as_str());
+                Some((uri, thumbnail_uri))
+            }
+            (None, Some(thumbnail)) => Some((source_uri(thumbnail), None)),
+            (None, None) => None,
+        }
+    }
+
+    let event: AnySyncTimelineEvent = ev.raw().deserialize().ok()?;
+    let (kind, body, (uri, thumbnail_uri)) = match event {
+        AnySyncTimelineEvent::MessageLike(AnySyncMessageLikeEvent::RoomMessage(message)) => {
+            let content = &message.as_original()?.content;
+            let (kind, body, content): (MediaKind, String, &dyn MediaEventContent) =
+                match &content.msgtype {
+                    MessageType::Image(content) => (
+                        MediaKind::Image,
+                        content
+                            .filename
+                            .clone()
+                            .unwrap_or_else(|| content.body.clone()),
+                        content,
+                    ),
+                    MessageType::Video(content) => (
+                        MediaKind::Video,
+                        content
+                            .filename
+                            .clone()
+                            .unwrap_or_else(|| content.body.clone()),
+                        content,
+                    ),
+                    MessageType::Audio(content) => (
+                        MediaKind::Audio,
+                        content
+                            .filename
+                            .clone()
+                            .unwrap_or_else(|| content.body.clone()),
+                        content,
+                    ),
+                    MessageType::File(content) => (
+                        MediaKind::File,
+                        content
+                            .filename
+                            .clone()
+                            .unwrap_or_else(|| content.body.clone()),
+                        content,
+                    ),
+                    MessageType::Location(content) => {
+                        (MediaKind::Other, content.body.clone(), content)
+                    }
+                    _ => return None,
+                };
+            (kind, body, media_sources(content)?)
+        }
+        AnySyncTimelineEvent::MessageLike(AnySyncMessageLikeEvent::Sticker(sticker)) => {
+            let content = &sticker.as_original()?.content;
+            (MediaKind::Image, content.body.clone(), media_sources(content)?)
+        }
+        _ => return None,
+    };
+
+    Some(MediaItemSource {
+        uri,
+        thumbnail_uri,
+        kind,
+        body,
+        room_id: room_id.to_owned(),
+    })
 }
 
 fn room_message_search_body(

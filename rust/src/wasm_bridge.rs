@@ -2592,6 +2592,63 @@ impl WasmClient {
         webffi_unit(outcome)
     }
 
+    #[wasm_bindgen(js_name = mediaItems)]
+    pub async fn media_items(
+        &self,
+        room_id: Option<String>,
+        kind: Option<String>,
+    ) -> JsValue {
+        let Some(state) = self.state() else {
+            return webffi_not_init();
+        };
+        let room_id = match room_id {
+            Some(room_id) => match OwnedRoomId::try_from(room_id) {
+                Ok(room_id) => Some(room_id),
+                Err(_) => return webffi_err("invalid room id"),
+            },
+            None => None,
+        };
+        let kind = kind.as_deref().and_then(crate::MediaKind::from_str);
+        webffi_value(crate::collect_media_items(state.client(), room_id.as_deref(), kind).await)
+    }
+
+    #[wasm_bindgen(js_name = clearMediaItems)]
+    pub async fn clear_media_items(&self, uris_json: String) -> JsValue {
+        let Some(state) = self.state() else {
+            return webffi_not_init();
+        };
+        let uris = match serde_json::from_str::<Vec<String>>(&uris_json) {
+            Ok(uris) => uris,
+            Err(_) => return webffi_err("invalid media list"),
+        };
+        webffi_unit(crate::clear_media_uris(state.client(), &uris).await)
+    }
+
+    #[wasm_bindgen(js_name = clearMediaType)]
+    pub async fn clear_media_type(&self, kind: String) -> JsValue {
+        let Some(state) = self.state() else {
+            return webffi_not_init();
+        };
+        let Some(kind) = crate::MediaKind::from_str(&kind) else {
+            return webffi_err("invalid media type");
+        };
+        webffi_unit(crate::clear_media_type_for(state.client(), kind).await)
+    }
+
+    #[wasm_bindgen(js_name = clearMediaAboveSize)]
+    pub async fn clear_media_above_size(&self, min_size_bytes: f64) -> JsValue {
+        let Some(state) = self.state() else {
+            return webffi_not_init();
+        };
+        webffi_unit(
+            crate::clear_media_above_size_for(
+                state.client(),
+                min_size_bytes.max(0.0) as u64,
+            )
+            .await,
+        )
+    }
+
     #[wasm_bindgen(js_name = mediaRetentionPolicy)]
     pub async fn media_retention_policy(&self) -> JsValue {
         let Some(state) = self.state() else {
