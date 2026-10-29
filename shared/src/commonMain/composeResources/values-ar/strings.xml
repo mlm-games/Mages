@@ -1492,4 +1492,5 @@
     <string name="quick_reactions_from_packs">من حزم الصور</string>
     <string name="sticker_pack_zip_unreadable">تعذر قراءة ملف .zip هذا</string>
     <string name="sticker_pack_create">حزمة جديدة</string>
+    <string name="updated">تم التحديث</string>
 </resources>

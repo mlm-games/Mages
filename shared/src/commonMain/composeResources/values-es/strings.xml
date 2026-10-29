@@ -1604,4 +1604,5 @@
     <string name="quick_reactions_from_packs">De paquetes de imágenes</string>
     <string name="sticker_pack_zip_unreadable">No se pudo leer este .zip</string>
     <string name="sticker_pack_create">Nuevo paquete</string>
+    <string name="updated">Actualizado</string>
 </resources>

@@ -1487,4 +1487,5 @@
     <string name="quick_reactions_from_packs">画像パックから</string>
     <string name="sticker_pack_zip_unreadable">この .zip を読み込めませんでした</string>
     <string name="sticker_pack_create">新しいパック</string>
+    <string name="updated">更新しました</string>
 </resources>

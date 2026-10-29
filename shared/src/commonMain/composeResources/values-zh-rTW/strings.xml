@@ -1487,4 +1487,5 @@
     <string name="quick_reactions_from_packs">從圖像包</string>
     <string name="sticker_pack_zip_unreadable">無法讀取此 .zip</string>
     <string name="sticker_pack_create">新增圖像包</string>
+    <string name="updated">已更新</string>
 </resources>

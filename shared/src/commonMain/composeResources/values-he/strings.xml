@@ -1490,4 +1490,5 @@
     <string name="quick_reactions_from_packs">מחבילות תמונה</string>
     <string name="sticker_pack_zip_unreadable">לא ניתן לקרוא את ה-.zip הזה</string>
     <string name="sticker_pack_create">חבילה חדשה</string>
+    <string name="updated">עודכן</string>
 </resources>

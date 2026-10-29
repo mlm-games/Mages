@@ -1488,4 +1488,5 @@
     <string name="quick_reactions_from_packs">Dari paket gambar</string>
     <string name="sticker_pack_zip_unreadable">Tidak dapat membaca .zip ini</string>
     <string name="sticker_pack_create">Paket baru</string>
+    <string name="updated">Diperbarui</string>
 </resources>

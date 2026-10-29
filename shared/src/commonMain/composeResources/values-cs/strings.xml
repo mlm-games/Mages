@@ -1490,4 +1490,5 @@
     <string name="quick_reactions_from_packs">Z obrazových sad</string>
     <string name="sticker_pack_zip_unreadable">Tento .zip nelze přečíst</string>
     <string name="sticker_pack_create">Nová sada</string>
+    <string name="updated">Aktualizováno</string>
 </resources>

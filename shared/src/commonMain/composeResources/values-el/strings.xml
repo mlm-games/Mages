@@ -1488,4 +1488,5 @@
     <string name="quick_reactions_from_packs">Από πακέτα εικόνων</string>
     <string name="sticker_pack_zip_unreadable">Δεν ήταν δυνατή η ανάγνωση αυτού του .zip</string>
     <string name="sticker_pack_create">Νέο πακέτο</string>
+    <string name="updated">Ενημερώθηκε</string>
 </resources>

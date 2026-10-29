@@ -1488,4 +1488,5 @@
     <string name="quick_reactions_from_packs">Aus Bildpaketen</string>
     <string name="sticker_pack_zip_unreadable">Diese .zip konnte nicht gelesen werden</string>
     <string name="sticker_pack_create">Neues Paket</string>
+    <string name="updated">Aktualisiert</string>
 </resources>

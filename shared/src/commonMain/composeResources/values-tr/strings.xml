@@ -1488,4 +1488,5 @@
     <string name="quick_reactions_from_packs">Görsel paketlerinden</string>
     <string name="sticker_pack_zip_unreadable">Bu .zip okunamadı</string>
     <string name="sticker_pack_create">Yeni paket</string>
+    <string name="updated">Güncellendi</string>
 </resources>

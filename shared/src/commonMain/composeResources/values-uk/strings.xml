@@ -1490,4 +1490,5 @@
     <string name="quick_reactions_from_packs">З наборів зображень</string>
     <string name="sticker_pack_zip_unreadable">Не вдалося прочитати цей .zip</string>
     <string name="sticker_pack_create">Новий набір</string>
+    <string name="updated">Оновлено</string>
 </resources>
