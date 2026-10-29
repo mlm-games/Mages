@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Gesture
 import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.Call
@@ -24,6 +23,7 @@ import androidx.compose.material.icons.filled.Poll
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.outlined.Gesture
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -1192,7 +1192,7 @@ private fun ThreadBadge(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.Gesture,
+                    imageVector = Icons.Outlined.Gesture,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(15.dp)
@@ -1211,7 +1211,7 @@ private fun ThreadBadge(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Gesture,
+                    imageVector = Icons.Outlined.Gesture,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(16.dp)
