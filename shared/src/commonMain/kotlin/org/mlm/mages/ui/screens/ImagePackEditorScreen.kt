@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderZip
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -46,6 +45,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -187,6 +187,14 @@ fun ImagePackEditorScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onDiscard) { Icon(Icons.Default.Close, null) }
+                },
+                actions = {
+                    TextButton(
+                        onClick = onSave,
+                        enabled = state.canEdit && !state.isUploading && state.hasUnsavedChanges
+                    ) {
+                        Text(stringResource(Res.string.sticker_pack_save))
+                    }
                 }
             )
         }
@@ -261,11 +269,16 @@ fun ImagePackEditorScreen(
                             .takeIf { it >= 0 } ?: state.packs.size
                         onAddImages(target)
                     },
-                    enabled = state.canEdit && !state.isUploading
+                    enabled = state.canEdit && !state.isUploading,
+                    modifier = Modifier.weight(1f)
                 ) {
                     Icon(Icons.Default.Add, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(Spacing.sm))
-                    Text(stringResource(Res.string.sticker_pack_add_images))
+                    Text(
+                        stringResource(Res.string.sticker_pack_add_images),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
                 if (imagePackZipImportSupported) {
                     OutlinedButton(
@@ -274,19 +287,17 @@ fun ImagePackEditorScreen(
                                 .takeIf { it >= 0 } ?: state.packs.size
                             onImportZip(target)
                         },
-                        enabled = state.canEdit && !state.isUploading
+                        enabled = state.canEdit && !state.isUploading,
+                        modifier = Modifier.weight(1f)
                     ) {
                         Icon(Icons.Default.FolderZip, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(Spacing.sm))
-                        Text(stringResource(Res.string.sticker_pack_import_zip))
+                        Text(
+                            stringResource(Res.string.sticker_pack_import_zip),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
-                }
-                Spacer(Modifier.weight(1f))
-                Button(
-                    onClick = onSave,
-                    enabled = state.canEdit && !state.isUploading && state.hasUnsavedChanges
-                ) {
-                    Text(stringResource(Res.string.sticker_pack_save))
                 }
             }
         }
