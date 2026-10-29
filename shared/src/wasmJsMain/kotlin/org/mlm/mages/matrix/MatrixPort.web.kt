@@ -866,7 +866,22 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         body: String,
         filename: String?,
         onProgress: ((Long, Long?) -> Unit)?
-    ): Boolean = false
+    ): Boolean {
+        if (!mime.startsWith("image/")) return false
+        val bytes = retrieveWebBlob(path) ?: return false
+        clearWebBlob(path)
+        val total = bytes.size.toLong()
+        onProgress?.invoke(0L, total)
+        val mxc = uploadBytes(bytes, mime).getOrNull() ?: return false
+        onProgress?.invoke(total, total)
+        val infoJson = JsonObject(
+            mapOf(
+                "mimetype" to JsonPrimitive(mime),
+                "size" to JsonPrimitive(bytes.size)
+            )
+        ).toString()
+        return sendStickerMxc(roomId, mxc, body, infoJson, threadRootEventId = null)
+    }
 
 
     override suspend fun downloadAttachmentToCache(
