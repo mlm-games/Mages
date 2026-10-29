@@ -193,6 +193,15 @@ fun ByteArray.toJsUint8Array(): JsAny {
     return base64ToUint8Array(b64)
 }
 
+@OptIn(ExperimentalEncodingApi::class)
+private fun stickerBytesFromWebPath(path: String): ByteArray? {
+    retrieveWebBlob(path)?.let { return it }
+    val comma = path.indexOf(',')
+    if (!path.startsWith("data:") || comma < 0) return null
+    if (!path.substring(5, comma).endsWith(";base64")) return null
+    return runCatching { Base64.decode(path.substring(comma + 1)) }.getOrNull()
+}
+
 
 @JsFun("""(url, redirectOrigin) => new Promise((resolve) => {
     const w = window.open(url, '_blank', 'width=600,height=700,popup=yes');
@@ -868,7 +877,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         onProgress: ((Long, Long?) -> Unit)?
     ): Boolean {
         if (!mime.startsWith("image/")) return false
-        val bytes = retrieveWebBlob(path) ?: return false
+        val bytes = stickerBytesFromWebPath(path) ?: return false
         clearWebBlob(path)
         val total = bytes.size.toLong()
         onProgress?.invoke(0L, total)
