@@ -632,11 +632,17 @@ pub struct RoomStorageUsage {
 
 #[derive(Clone, Copy, Default, Serialize, Deserialize, Record)]
 pub struct MediaTypeUsage {
-    pub images: u64,
-    pub videos: u64,
-    pub audio: u64,
-    pub files: u64,
-    pub other: u64,
+    pub count: u64,
+    pub size: u64,
+}
+
+#[derive(Clone, Copy, Default, Serialize, Deserialize, Record)]
+pub struct MediaTypeMetrics {
+    pub images: MediaTypeUsage,
+    pub videos: MediaTypeUsage,
+    pub audio: MediaTypeUsage,
+    pub files: MediaTypeUsage,
+    pub other: MediaTypeUsage,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Record)]

@@ -479,6 +479,9 @@
     <string name="media_cache_clear_older">Clear older media</string>
     <string name="media_cache_clear_older_confirm">Clear media older than %1$d days?</string>
     <string name="media_cache_by_type">By type</string>
+    <string name="media_cache_by_type_count">By type · %1$s</string>
+    <string name="media_cache_item">1 item</string>
+    <string name="media_cache_items">%1$d items</string>
     <string name="media_cache_images">Images</string>
     <string name="media_cache_videos">Videos</string>
     <string name="media_cache_audio">Audio</string>

@@ -8,13 +8,13 @@ import org.mlm.mages.RoomSummary
 import org.mlm.mages.matrix.MediaCacheOverview
 import org.mlm.mages.matrix.MediaItem
 import org.mlm.mages.matrix.MediaRetentionPolicyInfo
-import org.mlm.mages.matrix.MediaTypeUsage
+import org.mlm.mages.matrix.MediaTypeMetrics
 import org.mlm.mages.matrix.RoomStorageUsage
 
 data class MediaCacheUiState(
     val isLoading: Boolean = true,
     val overview: MediaCacheOverview? = null,
-    val types: MediaTypeUsage = MediaTypeUsage(),
+    val types: MediaTypeMetrics = MediaTypeMetrics(),
     val policy: MediaRetentionPolicyInfo? = null,
     val rooms: List<RoomSummary> = emptyList(),
     val usageById: Map<String, RoomStorageUsage> = emptyMap(),
@@ -46,7 +46,7 @@ class MediaCacheViewModel(
             runCatching { service.port.mediaCacheOverview() }
                 .onSuccess { updateState { copy(isLoading = false, overview = it) } }
                 .onFailure { updateState { copy(isLoading = false, error = it.message) } }
-            runCatching { service.port.mediaTypeUsage() }
+            runCatching { service.port.mediaTypeMetrics() }
                 .onSuccess { usage -> updateState { copy(types = usage) } }
             runCatching { service.port.mediaRetentionPolicy() }
                 .onSuccess { updateState { copy(policy = it) } }

@@ -3270,9 +3270,9 @@ impl Client {
         }
     }
 
-    pub fn media_type_usage(&self) -> MediaTypeUsage {
+    pub fn media_type_metrics(&self) -> MediaTypeMetrics {
         #[cfg(target_family = "wasm")]
-        return MediaTypeUsage::default();
+        return MediaTypeMetrics::default();
 
         #[cfg(not(target_family = "wasm"))]
         {
@@ -3281,16 +3281,18 @@ impl Client {
             let metrics = RT
                 .block_on(self.core.sdk.media_metrics())
                 .unwrap_or_default();
-            let mut usage = MediaTypeUsage::default();
+            let mut usage = MediaTypeMetrics::default();
 
             for (media_type, media_usage) in metrics.by_type {
-                match media_type {
-                    MediaType::Image => usage.images += media_usage.size,
-                    MediaType::Video => usage.videos += media_usage.size,
-                    MediaType::Audio => usage.audio += media_usage.size,
-                    MediaType::File => usage.files += media_usage.size,
-                    MediaType::Other => usage.other += media_usage.size,
-                }
+                let target = match media_type {
+                    MediaType::Image => &mut usage.images,
+                    MediaType::Video => &mut usage.videos,
+                    MediaType::Audio => &mut usage.audio,
+                    MediaType::File => &mut usage.files,
+                    MediaType::Other => &mut usage.other,
+                };
+                target.count += media_usage.count;
+                target.size += media_usage.size;
             }
 
             usage

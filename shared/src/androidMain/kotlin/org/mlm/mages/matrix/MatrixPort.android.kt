@@ -2370,18 +2370,33 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
             }
         }
 
-    override suspend fun mediaTypeUsage(): MediaTypeUsage = withContext(matrixDispatcher) {
+    override suspend fun mediaTypeMetrics(): MediaTypeMetrics = withContext(matrixDispatcher) {
         withClient {
             runCatching {
-                val usage = it.mediaTypeUsage()
-                MediaTypeUsage(
-                    images = usage.images,
-                    videos = usage.videos,
-                    audio = usage.audio,
-                    files = usage.files,
-                    other = usage.other,
+                val metrics = it.mediaTypeMetrics()
+                MediaTypeMetrics(
+                    images = MediaTypeUsage(
+                        count = metrics.images.count,
+                        size = metrics.images.size,
+                    ),
+                    videos = MediaTypeUsage(
+                        count = metrics.videos.count,
+                        size = metrics.videos.size,
+                    ),
+                    audio = MediaTypeUsage(
+                        count = metrics.audio.count,
+                        size = metrics.audio.size,
+                    ),
+                    files = MediaTypeUsage(
+                        count = metrics.files.count,
+                        size = metrics.files.size,
+                    ),
+                    other = MediaTypeUsage(
+                        count = metrics.other.count,
+                        size = metrics.other.size,
+                    ),
                 )
-            }.getOrNull() ?: MediaTypeUsage()
+            }.getOrNull() ?: MediaTypeMetrics()
         }
     }
 

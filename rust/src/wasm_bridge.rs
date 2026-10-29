@@ -2531,26 +2531,28 @@ impl WasmClient {
         }))
     }
 
-    #[wasm_bindgen(js_name = mediaTypeUsage)]
-    pub async fn media_type_usage(&self) -> JsValue {
+    #[wasm_bindgen(js_name = mediaTypeMetrics)]
+    pub async fn media_type_metrics(&self) -> JsValue {
         let Some(state) = self.state() else {
             return webffi_not_init();
         };
         let client = state.client();
 
         let Ok(metrics) = client.media_metrics().await else {
-            return webffi_value(Ok::<_, crate::FfiError>(MediaTypeUsage::default()));
+            return webffi_value(Ok::<_, crate::FfiError>(MediaTypeMetrics::default()));
         };
 
-        let mut usage = MediaTypeUsage::default();
+        let mut usage = MediaTypeMetrics::default();
         for (media_type, media_usage) in metrics.by_type {
-            match media_type {
-                matrix_sdk::MediaType::Image => usage.images += media_usage.size,
-                matrix_sdk::MediaType::Video => usage.videos += media_usage.size,
-                matrix_sdk::MediaType::Audio => usage.audio += media_usage.size,
-                matrix_sdk::MediaType::File => usage.files += media_usage.size,
-                matrix_sdk::MediaType::Other => usage.other += media_usage.size,
-            }
+            let target = match media_type {
+                matrix_sdk::MediaType::Image => &mut usage.images,
+                matrix_sdk::MediaType::Video => &mut usage.videos,
+                matrix_sdk::MediaType::Audio => &mut usage.audio,
+                matrix_sdk::MediaType::File => &mut usage.files,
+                matrix_sdk::MediaType::Other => &mut usage.other,
+            };
+            target.count += media_usage.count;
+            target.size += media_usage.size;
         }
 
         webffi_value(Ok::<_, crate::FfiError>(usage))

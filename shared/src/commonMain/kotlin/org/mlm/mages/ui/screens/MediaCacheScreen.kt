@@ -107,7 +107,7 @@ import org.mlm.mages.RoomSummary
 import org.mlm.mages.matrix.MediaCacheOverview
 import org.mlm.mages.matrix.MediaItem
 import org.mlm.mages.matrix.MediaRetentionPolicyInfo
-import org.mlm.mages.matrix.MediaTypeUsage
+import org.mlm.mages.matrix.MediaTypeMetrics
 import org.mlm.mages.matrix.RoomStorageUsage
 import org.mlm.mages.ui.components.dialogs.ConfirmationDialog
 import org.mlm.mages.ui.theme.Spacing
@@ -604,41 +604,82 @@ private fun StorageRing(
     }
 }
 
+private data class MediaTypeRow(
+    val label: String,
+    val kind: String,
+    val bytes: ULong,
+    val count: ULong,
+)
+
 @Composable
 private fun MediaTypeCard(
-    usage: MediaTypeUsage,
+    usage: MediaTypeMetrics,
     onOpen: (String) -> Unit,
     onClear: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val entries = listOf(
-        Triple(stringResource(Res.string.media_cache_images), "image", usage.images),
-        Triple(stringResource(Res.string.media_cache_videos), "video", usage.videos),
-        Triple(stringResource(Res.string.media_cache_audio), "audio", usage.audio),
-        Triple(stringResource(Res.string.files), "file", usage.files),
-        Triple(stringResource(Res.string.media_cache_other), "other", usage.other),
-    ).filter { it.third > 0uL }
+    val rows = listOf(
+        MediaTypeRow(
+            label = stringResource(Res.string.media_cache_images),
+            kind = "image",
+            bytes = usage.images.size,
+            count = usage.images.count,
+        ),
+        MediaTypeRow(
+            label = stringResource(Res.string.media_cache_videos),
+            kind = "video",
+            bytes = usage.videos.size,
+            count = usage.videos.count,
+        ),
+        MediaTypeRow(
+            label = stringResource(Res.string.media_cache_audio),
+            kind = "audio",
+            bytes = usage.audio.size,
+            count = usage.audio.count,
+        ),
+        MediaTypeRow(
+            label = stringResource(Res.string.files),
+            kind = "file",
+            bytes = usage.files.size,
+            count = usage.files.count,
+        ),
+        MediaTypeRow(
+            label = stringResource(Res.string.media_cache_other),
+            kind = "other",
+            bytes = usage.other.size,
+            count = usage.other.count,
+        ),
+    ).filter { it.bytes > 0uL }
 
-    if (entries.isEmpty()) return
+    if (rows.isEmpty()) return
 
+    val totalCount = rows.fold(0uL) { total, row -> total + row.count }
+    val title = if (totalCount > 0uL) {
+        stringResource(
+            Res.string.media_cache_by_type_count,
+            mediaItemCountLabel(totalCount),
+        )
+    } else {
+        stringResource(Res.string.media_cache_by_type)
+    }
     val clearLabel = stringResource(Res.string.media_cache_clear)
 
     BreakdownCard(
-        title = stringResource(Res.string.media_cache_by_type),
+        title = title,
         modifier = modifier,
     ) {
-        entries.forEachIndexed { index, (label, kind, bytes) ->
+        rows.forEachIndexed { index, row ->
             if (index > 0) {
                 HorizontalDivider(Modifier.padding(start = Spacing.lg))
             }
             BreakdownRow(
-                label = label,
-                detail = null,
-                bytes = bytes,
+                label = row.label,
+                detail = row.count.takeIf { it > 0uL }?.let { mediaItemCountLabel(it) },
+                bytes = row.bytes,
                 totalBytes = usage.totalBytes,
-                onClick = { onOpen(kind) },
+                onClick = { onOpen(row.kind) },
                 trailing = {
-                    IconButton(onClick = { onClear(kind) }) {
+                    IconButton(onClick = { onClear(row.kind) }) {
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = clearLabel,
@@ -649,6 +690,14 @@ private fun MediaTypeCard(
         }
     }
 }
+
+@Composable
+private fun mediaItemCountLabel(count: ULong): String =
+    if (count == 1uL) {
+        stringResource(Res.string.media_cache_item)
+    } else {
+        stringResource(Res.string.media_cache_items, count.toInt())
+    }
 
 @Composable
 private fun ByChatCard(
