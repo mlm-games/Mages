@@ -847,13 +847,7 @@ class RoomsViewModel(
 
         launch {
             try {
-                val path = service.thumbnailToCache(
-                    image,
-                    width = 96,
-                    height = 96,
-                    crop = true,
-                    animated = false
-                ).getOrNull()
+                val path = service.thumbnailToCache(image, 96, 96, true).getOrNull()
                 if (!path.isNullOrBlank()) {
                     imagePreviewPathByMxc[mxc] = path
                     updateState {
