@@ -5001,6 +5001,7 @@ pub(crate) async fn latest_room_event_for(
             is_redacted: false,
             is_encrypted: false,
             sticker: None,
+            attachment: None,
         }),
         LatestEventValue::Local {
             timestamp,
@@ -5025,6 +5026,7 @@ fn map_latest_event_from_content(
     let is_redacted: bool;
     let is_encrypted: bool;
     let mut sticker: Option<StickerInfo> = None;
+    let mut attachment: Option<AttachmentInfo> = None;
 
     match content {
         TimelineItemContent::MsgLike(ml) => {
@@ -5040,6 +5042,7 @@ fn map_latest_event_from_content(
                     }
                     body = Some(text);
                     event_type = "m.room.message".to_owned();
+                    attachment = extract_attachment(m.msgtype());
                     msgtype = Some(match m.msgtype() {
                         matrix_sdk::ruma::events::room::message::MessageType::Image(_) => {
                             "m.image".to_owned()
@@ -5186,6 +5189,7 @@ fn map_latest_event_from_content(
         is_redacted,
         is_encrypted,
         sticker,
+        attachment,
     })
 }
 
@@ -5226,6 +5230,7 @@ fn try_map_timeline_event(
     let mut is_redacted = false;
     let mut is_encrypted = false;
     let mut sticker: Option<StickerInfo> = None;
+    let mut attachment: Option<AttachmentInfo> = None;
     let body: Option<String>;
 
     match ev.content() {
@@ -5240,6 +5245,7 @@ fn try_map_timeline_event(
                 }
                 body = Some(text);
 
+                attachment = extract_attachment(m.msgtype());
                 match m.msgtype() {
                     MessageType::Image(_) => msgtype = Some("m.image".to_owned()),
                     MessageType::Video(_) => msgtype = Some("m.video".to_owned()),
@@ -5338,6 +5344,7 @@ fn try_map_timeline_event(
         is_redacted,
         is_encrypted,
         sticker,
+        attachment,
     })
 }
 

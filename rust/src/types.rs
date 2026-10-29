@@ -168,7 +168,7 @@ pub struct EncFile {
     pub json: String,
 }
 
-#[derive(Clone, Serialize, Deserialize, Record)]
+#[derive(Clone, Debug, Serialize, Deserialize, Record)]
 pub struct AttachmentInfo {
     pub kind: AttachmentKind,
     pub mxc_uri: String,
@@ -687,6 +687,7 @@ pub struct LatestRoomEvent {
     pub is_redacted: bool,
     pub is_encrypted: bool,
     pub sticker: Option<StickerInfo>,
+    pub attachment: Option<AttachmentInfo>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, uniffi::Record)]
@@ -1067,7 +1068,7 @@ pub enum EventType {
     Unsupported,
 }
 
-#[derive(Clone, Serialize, Deserialize, Enum)]
+#[derive(Clone, Debug, Serialize, Deserialize, Enum)]
 pub enum AttachmentKind {
     Image,
     Video,

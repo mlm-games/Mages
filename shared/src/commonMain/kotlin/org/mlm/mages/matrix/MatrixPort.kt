@@ -589,7 +589,8 @@ data class LatestRoomEvent(
     val timestamp: Long,
     val isRedacted: Boolean,
     val isEncrypted: Boolean,
-    val sticker: StickerInfo? = null
+    val sticker: StickerInfo? = null,
+    val attachment: AttachmentInfo? = null
 )
 
 @Serializable

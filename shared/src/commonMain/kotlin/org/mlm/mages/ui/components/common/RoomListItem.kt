@@ -242,7 +242,8 @@ fun RoomListItem(
                             body = item.lastMessageBody ?: item.lastMessageLabel?.let { stringResource(it) },
                             sender = item.lastMessageSender,
                             isDm = item.isDm,
-                            stickerPath = item.lastMessageStickerPath.takeIf { allowMediaPreviews }
+                            stickerPath = item.lastMessageStickerPath.takeIf { allowMediaPreviews },
+                            imagePath = item.lastMessageImagePath.takeIf { allowMediaPreviews }
                         )
 
                         if (preview.imagePath != null) {
@@ -252,7 +253,11 @@ fun RoomListItem(
                                     .crossfade(true)
                                     .build(),
                                 contentDescription = null,
-                                contentScale = ContentScale.Fit,
+                                contentScale = if (item.lastMessageType == LastMessageType.Image) {
+                                    ContentScale.Crop
+                                } else {
+                                    ContentScale.Fit
+                                },
                                 modifier = Modifier
                                     .size(20.dp)
                                     .clip(RoundedCornerShape(4.dp))
@@ -408,7 +413,8 @@ private fun formatMessagePreview(
     body: String?,
     sender: String?,
     isDm: Boolean,
-    stickerPath: String?
+    stickerPath: String?,
+    imagePath: String?
 ): MessagePreview {
     val senderPrefix = if (!isDm && sender != null) {
         "${formatSenderName(sender)}: "
@@ -422,7 +428,8 @@ private fun formatMessagePreview(
 
         LastMessageType.Image -> MessagePreview(
             text = senderPrefix + stringResource(Res.string.photo),
-            icon = Icons.Default.Image
+            icon = if (imagePath == null) Icons.Default.Image else null,
+            imagePath = imagePath
         )
 
         LastMessageType.Video -> MessagePreview(

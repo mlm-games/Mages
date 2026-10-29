@@ -2878,7 +2878,8 @@ private fun mages.RoomListEntry.toKotlinRoomListEntry(): RoomListEntry =
                 timestamp = e.timestamp,
                 isRedacted = e.isRedacted,
                 isEncrypted = e.isEncrypted,
-                sticker = e.sticker?.toModel()
+                sticker = e.sticker?.toModel(),
+                attachment = e.attachment?.toModel()
             )
         }
     )

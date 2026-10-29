@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import mages.shared.generated.resources.*
 import org.koin.core.component.inject
+import org.mlm.mages.AttachmentInfo
+import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MatrixService
 import org.mlm.mages.RoomSummary
 import org.mlm.mages.StickerInfo
@@ -58,12 +60,16 @@ class RoomsViewModel(
     private val stickerPreviewPathByMxc = mutableMapOf<String, String>()
     private val stickerPreviewFetchInFlight = mutableSetOf<String>()
     private val latestStickerByRoomId = mutableMapOf<String, StickerInfo>()
+    private val imagePreviewPathByMxc = mutableMapOf<String, String>()
+    private val imagePreviewFetchInFlight = mutableSetOf<String>()
+    private val latestImageByRoomId = mutableMapOf<String, AttachmentInfo>()
 
     init {
         launch {
             settingsRepo.flow.collect { current ->
                 recomputeGroupedRooms()
                 prefetchVisibleStickerPreviews(current.mediaPreviews)
+                prefetchVisibleImagePreviews(current.mediaPreviews)
             }
         }
 
@@ -398,6 +404,7 @@ class RoomsViewModel(
         val lastBody = formatBodyForPreview(lastEvent, lastType)
         val lastLabel = bodyLabelForPreview(lastEvent, lastType)
         val lastSticker = lastEvent?.sticker
+        val lastImage = lastEvent?.attachment?.takeIf { it.kind == AttachmentKind.Image }
         val spaces = currentState.parentSpaces[entry.roomId].orEmpty()
 
         return RoomListItemUi(
@@ -419,6 +426,8 @@ class RoomsViewModel(
             lastMessageTs = lastEvent?.timestamp,
             lastMessageStickerMxc = lastSticker?.mxcUri,
             lastMessageStickerPath = lastSticker?.mxcUri?.let { stickerPreviewPathByMxc[it] },
+            lastMessageImageMxc = lastImage?.mxcUri,
+            lastMessageImagePath = lastImage?.mxcUri?.let { imagePreviewPathByMxc[it] },
             isSharingLocation = LiveLocationSharingCoordinator.isSharing(entry.roomId),
             parentSpaces = if (settings.value.showSpaceBadgeInRoomList) {
                 spaces.map { space ->
@@ -554,6 +563,7 @@ class RoomsViewModel(
 
                         items.forEach { maybePrefetchRoomAvatar(it.roomId, it.avatarUrl) }
                         items.forEach { maybePrefetchStickerPreview(it) }
+                        items.forEach { maybePrefetchImagePreview(it) }
                         val domainRooms = items.map(::mapRoomSummary)
                         val uiItems     = items.map(::mapRoomEntryToUi)
 
@@ -573,6 +583,7 @@ class RoomsViewModel(
                     override fun onUpdate(item: RoomListEntry) {
                         maybePrefetchRoomAvatar(item.roomId, item.avatarUrl)
                         maybePrefetchStickerPreview(item)
+                        maybePrefetchImagePreview(item)
                         updateState {
                             val updatedRooms = rooms.map { room ->
                                 if (room.id == item.roomId) mapRoomSummary(item) else room
@@ -813,6 +824,70 @@ class RoomsViewModel(
         }
     }
 
+    private fun maybePrefetchImagePreview(entry: RoomListEntry) {
+        val image = entry.latestEvent?.attachment?.takeIf { it.kind == AttachmentKind.Image }
+        if (image == null) {
+            latestImageByRoomId.remove(entry.roomId)
+            return
+        }
+        latestImageByRoomId[entry.roomId] = image
+        prefetchImage(image, entry.isDm)
+    }
+
+    private fun prefetchImage(
+        image: AttachmentInfo,
+        isDm: Boolean,
+        mode: MediaPreviewsMode = settings.value.mediaPreviews
+    ) {
+        if (!mode.allowsMediaPreviews(isDm)) return
+        val mxc = image.mxcUri
+        if (mxc.isBlank()) return
+        if (imagePreviewPathByMxc.containsKey(mxc)) return
+        if (!imagePreviewFetchInFlight.add(mxc)) return
+
+        launch {
+            try {
+                val path = service.thumbnailToCache(
+                    image,
+                    width = 96,
+                    height = 96,
+                    crop = true,
+                    animated = false
+                ).getOrNull()
+                if (!path.isNullOrBlank()) {
+                    imagePreviewPathByMxc[mxc] = path
+                    updateState {
+                        fun List<RoomListItemUi>.withImagePath() = map { item ->
+                            if (item.lastMessageImageMxc == mxc) {
+                                item.copy(lastMessageImagePath = path)
+                            } else {
+                                item
+                            }
+                        }
+                        copy(
+                            allItems = allItems.withImagePath(),
+                            favouriteItems = favouriteItems.withImagePath(),
+                            normalItems = normalItems.withImagePath(),
+                            lowPriorityItems = lowPriorityItems.withImagePath(),
+                            inviteItems = inviteItems.withImagePath()
+                        )
+                    }
+                }
+            } finally {
+                imagePreviewFetchInFlight.remove(mxc)
+            }
+        }
+    }
+
+    private fun prefetchVisibleImagePreviews(mode: MediaPreviewsMode) {
+        currentState.allItems.forEach { item ->
+            val mxc = item.lastMessageImageMxc ?: return@forEach
+            if (!mode.allowsMediaPreviews(item.isDm)) return@forEach
+            val image = latestImageByRoomId[item.roomId] ?: return@forEach
+            if (image.mxcUri == mxc) prefetchImage(image, item.isDm, mode)
+        }
+    }
+
     private fun bootstrapRoomListFromCache() {
         viewModelScope.launch {
             if (initialized) return@launch
@@ -824,6 +899,7 @@ class RoomsViewModel(
             if (cached.isEmpty()) return@launch
             cached.forEach { maybePrefetchRoomAvatar(it.roomId, it.avatarUrl) }
             cached.forEach { maybePrefetchStickerPreview(it) }
+            cached.forEach { maybePrefetchImagePreview(it) }
 
             val domainRooms = cached.map(::mapRoomSummary)
             val uiItems = cached.map(::mapRoomEntryToUi)
