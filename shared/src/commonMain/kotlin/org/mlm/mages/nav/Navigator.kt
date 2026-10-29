@@ -230,6 +230,10 @@ val routeSerializersModule = SerializersModule {
         subclass(Route.MediaCache::class, Route.MediaCache.serializer())
         subclass(Route.MessageMenu::class, Route.MessageMenu.serializer())
         subclass(Route.QuickReactions::class, Route.QuickReactions.serializer())
+        subclass(Route.ImagePackEditor::class, Route.ImagePackEditor.serializer())
+        subclass(Route.Bookmarks::class, Route.Bookmarks.serializer())
+        subclass(Route.Wallpaper::class, Route.Wallpaper.serializer())
+        subclass(Route.RoomWallpaper::class, Route.RoomWallpaper.serializer())
     }
 }
 
