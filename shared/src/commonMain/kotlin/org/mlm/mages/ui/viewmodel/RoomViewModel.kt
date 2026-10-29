@@ -523,21 +523,35 @@ class RoomViewModel(
 
     fun setPackEnabled(pack: ImagePackSummary, enabled: Boolean) {
         val packId = pack.packId
-        updateState { copy(packIdsBeingUpdated = packIdsBeingUpdated + packId) }
+        if (packId in currentState.packIdsBeingUpdated) return
+        updateState {
+            copy(
+                packIdsBeingUpdated = packIdsBeingUpdated + packId,
+                imagePacks = imagePacks.map {
+                    if (it.packId == packId) it.copy(isGlobal = enabled) else it
+                },
+                discoveredPacks = discoveredPacks?.map {
+                    if (it.packId == packId) it.copy(isGlobal = enabled) else it
+                }
+            )
+        }
         launch {
-            val result = service.port.setImagePackEnabled(pack.sourceRoom, pack.stateKey, enabled)
-            if (result.isFailure) {
-                _events.send(Event.ShowError(getString(Res.string.failed_to_update_sticker_pack)))
-            }
-            loadImagePacks()
-            updateState {
-                copy(
-                    discoveredPacks = discoveredPacks?.map {
-                        if (it.packId == packId) it.copy(isGlobal = enabled) else it
-                    },
-                    packIdsBeingUpdated = packIdsBeingUpdated - packId
-                )
-            }
+            service.port.setImagePackEnabled(pack.sourceRoom, pack.stateKey, enabled)
+                .onSuccess { _events.send(Event.ShowSuccess(getString(Res.string.updated))) }
+                .onFailure {
+                    updateState {
+                        copy(
+                            imagePacks = imagePacks.map {
+                                if (it.packId == packId) it.copy(isGlobal = !enabled) else it
+                            },
+                            discoveredPacks = discoveredPacks?.map {
+                                if (it.packId == packId) it.copy(isGlobal = !enabled) else it
+                            }
+                        )
+                    }
+                    _events.send(Event.ShowError(getString(Res.string.failed_to_update_sticker_pack)))
+                }
+            updateState { copy(packIdsBeingUpdated = packIdsBeingUpdated - packId) }
         }
     }
 

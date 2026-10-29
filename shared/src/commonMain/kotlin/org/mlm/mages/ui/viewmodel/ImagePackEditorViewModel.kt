@@ -161,7 +161,7 @@ class ImagePackEditorViewModel(
      */
     fun setPackEnabledGlobally(index: Int, enabled: Boolean) {
         val pack = currentState.packs.getOrNull(index) ?: return
-        if (pack.isNew) return
+        if (pack.isNew || pack.stateKey in currentState.stateKeysBeingSaved) return
         updateState {
             copy(
                 stateKeysBeingSaved = stateKeysBeingSaved + pack.stateKey,
@@ -171,10 +171,22 @@ class ImagePackEditorViewModel(
             )
         }
         launch {
+            // No reload here: the state event can land after the local list is
+            // read back, which is what made the switch jump to its old value.
             service.port.setImagePackEnabled(roomId, pack.stateKey, enabled)
-                .onFailure { _events.send(Event.ShowError(getString(Res.string.could_not_update_this_pack))) }
+                .onSuccess { _events.send(Event.ShowSuccess(getString(Res.string.updated))) }
+                .onFailure {
+                    updateState {
+                        copy(
+                            packs = packs.toMutableList().also { packs ->
+                                val i = packs.indexOfFirst { it.stateKey == pack.stateKey }
+                                if (i >= 0) packs[i] = packs[i].copy(isEnabledGlobally = !enabled)
+                            }
+                        )
+                    }
+                    _events.send(Event.ShowError(getString(Res.string.could_not_update_this_pack)))
+                }
             updateState { copy(stateKeysBeingSaved = stateKeysBeingSaved - pack.stateKey) }
-            load()
         }
     }
 

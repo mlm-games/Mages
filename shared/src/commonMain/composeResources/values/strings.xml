@@ -982,6 +982,7 @@
     <string name="could_not_unban_this_member_try_again">Could not unban this member. Try again.</string>
     <string name="could_not_update_the_space_try_again">Could not update the space. Try again.</string>
     <string name="could_not_update_this_pack">Could not update this pack</string>
+    <string name="updated">Updated</string>
     <string name="could_not_update_who_can_join_try_again">Could not update who can join. Try again.</string>
     <string name="country_code">Country code</string>
     <string name="create">Create</string>
