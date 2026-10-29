@@ -84,6 +84,9 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.coil.compose)
+            implementation(libs.sketch.compose)
+            implementation(libs.sketch.animated.gif)
+            implementation(libs.sketch.animated.webp)
             implementation(libs.koin.compose.navigation3)
 
             implementation(libs.filekit.core)

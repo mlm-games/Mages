@@ -46,6 +46,7 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
 import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -1122,15 +1123,25 @@ private fun StickerMessage(
                     .secondaryClick(onSecondaryClick)
             ) {
                 if (sticker.thumbPath != null) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalPlatformContext.current)
-                            .data(sticker.thumbPath)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = model.body.takeIf { it.isNotBlank() },
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    val mime = sticker.mime?.substringBefore(';')?.trim()?.lowercase()
+                    if (mime == "image/webp" || mime == "image/gif") {
+                        SketchAsyncImage(
+                            uri = sticker.thumbPath,
+                            contentDescription = model.body.takeIf { it.isNotBlank() },
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalPlatformContext.current)
+                                .data(sticker.thumbPath)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = model.body.takeIf { it.isNotBlank() },
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
                 } else {
                     Box(
                         modifier = Modifier
