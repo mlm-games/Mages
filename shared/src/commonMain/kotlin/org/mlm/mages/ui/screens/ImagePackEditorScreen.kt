@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderZip
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -36,7 +37,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -45,7 +45,6 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -151,6 +150,7 @@ fun ImagePackEditorRoute(
         onRemoveImage = viewModel::removeImage,
         onRemovePendingImage = viewModel::removePendingImage,
         onRemovePack = viewModel::removePack,
+        onAddPack = viewModel::addPack,
         onSave = viewModel::save
     )
 }
@@ -170,6 +170,7 @@ fun ImagePackEditorScreen(
     onRemoveImage: (packIndex: Int, shortcode: String) -> Unit,
     onRemovePendingImage: (packIndex: Int, localId: String) -> Unit,
     onRemovePack: (index: Int) -> Unit,
+    onAddPack: () -> Unit,
     onSave: () -> Unit
 ) {
     // Pack images are never encrypted, per the spec, so this caveat is worth
@@ -189,11 +190,14 @@ fun ImagePackEditorScreen(
                     IconButton(onClick = onDiscard) { Icon(Icons.Default.Close, null) }
                 },
                 actions = {
-                    TextButton(
+                    IconButton(
                         onClick = onSave,
                         enabled = state.canEdit && !state.isUploading && state.hasUnsavedChanges
                     ) {
-                        Text(stringResource(Res.string.sticker_pack_save))
+                        Icon(
+                            Icons.Default.Save,
+                            contentDescription = stringResource(Res.string.sticker_pack_save)
+                        )
                     }
                 }
             )
@@ -247,58 +251,21 @@ fun ImagePackEditorScreen(
                     onRemoveImage = onRemoveImage,
                     onRemovePendingImage = onRemovePendingImage,
                     onAddImages = onAddImages,
+                    onImportZip = onImportZip,
                     onRemovePack = onRemovePack
                 )
             }
 
-            Row(
+            Button(
+                onClick = onAddPack,
+                enabled = state.canEdit && !state.isUploading,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    .padding(horizontal = Spacing.lg, vertical = Spacing.md)
             ) {
-                if (state.isUploading) {
-                    CircularWavyProgressIndicator(modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(Spacing.sm))
-                }
-                // With packs already present, target the first one; with none,
-                // this is what starts a new pack.
-                OutlinedButton(
-                    onClick = {
-                        val target = state.packs.indexOfFirst { !it.isNew }
-                            .takeIf { it >= 0 } ?: state.packs.size
-                        onAddImages(target)
-                    },
-                    enabled = state.canEdit && !state.isUploading,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.Add, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text(
-                        stringResource(Res.string.sticker_pack_add_images),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                if (imagePackZipImportSupported) {
-                    OutlinedButton(
-                        onClick = {
-                            val target = state.packs.indexOfFirst { !it.isNew }
-                                .takeIf { it >= 0 } ?: state.packs.size
-                            onImportZip(target)
-                        },
-                        enabled = state.canEdit && !state.isUploading,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.Default.FolderZip, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(Spacing.sm))
-                        Text(
-                            stringResource(Res.string.sticker_pack_import_zip),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
+                Icon(Icons.Default.Add, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(Spacing.sm))
+                Text(stringResource(Res.string.sticker_pack_create))
             }
         }
     }
@@ -316,6 +283,7 @@ private fun PackEditorGrid(
     onRemoveImage: (packIndex: Int, shortcode: String) -> Unit,
     onRemovePendingImage: (packIndex: Int, localId: String) -> Unit,
     onAddImages: (packIndex: Int) -> Unit,
+    onImportZip: (packIndex: Int) -> Unit,
     onRemovePack: (index: Int) -> Unit
 ) {
     val gridState = rememberLazyGridState()
@@ -364,6 +332,7 @@ private fun PackEditorGrid(
                 onRemoveImage = { onRemoveImage(packIndex, it) },
                 onRemovePending = { onRemovePendingImage(packIndex, it) },
                 onAddImages = { onAddImages(packIndex) },
+                onImportZip = { onImportZip(packIndex) },
                 onRemovePack = { onRemovePack(packIndex) }
             )
         }
@@ -434,12 +403,11 @@ private fun PackHeader(
     onSetUsage: (List<String>) -> Unit,
     onSetPackGlobal: (Boolean) -> Unit,
     onAddImages: () -> Unit,
+    onImportZip: () -> Unit,
     onRemovePack: () -> Unit
 ) {
-    // A pack that has never been written has no state key to name in either
-    // `m.room.image_pack` or `m.image_pack.rooms`, so it can be neither removed
-    // nor subscribed until its first save. Adding is still allowed, since a
-    // pack's first save is what creates the key.
+    // A pack that has never been written has no state key to subscribe with,
+    // so the global toggle waits for its first save.
     val isEditable = !isReadOnly && !isSaving && !pack.isNew
 
     Column(
@@ -473,9 +441,21 @@ private fun PackHeader(
                         stringResource(Res.string.sticker_pack_add_images)
                     )
                 }
+                if (imagePackZipImportSupported) {
+                    IconButton(
+                        onClick = onImportZip,
+                        enabled = !isReadOnly && !isSaving,
+                        modifier = Modifier.height(HEADER_FIELD)
+                    ) {
+                        Icon(
+                            Icons.Default.FolderZip,
+                            stringResource(Res.string.sticker_pack_import_zip)
+                        )
+                    }
+                }
                 IconButton(
                     onClick = onRemovePack,
-                    enabled = isEditable,
+                    enabled = !isReadOnly && !isSaving,
                     modifier = Modifier.height(HEADER_FIELD)
                 ) {
                     Icon(

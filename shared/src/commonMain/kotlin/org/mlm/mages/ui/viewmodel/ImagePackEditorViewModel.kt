@@ -214,6 +214,12 @@ class ImagePackEditorViewModel(
         pack.copy(pendingImages = pack.pendingImages.filterNot { it.localId == localId })
     }
 
+    fun addPack() {
+        updateState {
+            copy(packs = packs + PackEditorEntry(), hasUnsavedChanges = true)
+        }
+    }
+
     /**
      * Drops a pack from the editor and empties its `images` server-side, which
      * is the spec's removal: a state event cannot be deleted, only emptied.
