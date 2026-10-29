@@ -1487,4 +1487,5 @@
     <string name="sticker_pack_zip_failed">هیچ تصویری در این .zip یافت نشد</string>
     <string name="quick_reactions_from_packs">از بسته‌های تصویری</string>
     <string name="sticker_pack_zip_unreadable">خواندن این .zip ممکن نشد</string>
+    <string name="sticker_pack_create">بسته جدید</string>
 </resources>

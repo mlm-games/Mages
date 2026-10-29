@@ -1487,4 +1487,5 @@
     <string name="sticker_pack_zip_failed">Tästä .zip-tiedostosta ei löytynyt kuvia</string>
     <string name="quick_reactions_from_packs">Kuvapaketeista</string>
     <string name="sticker_pack_zip_unreadable">Tätä .zip-tiedostoa ei voitu lukea</string>
+    <string name="sticker_pack_create">Uusi paketti</string>
 </resources>

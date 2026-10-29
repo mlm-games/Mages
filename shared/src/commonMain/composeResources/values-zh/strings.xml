@@ -1486,4 +1486,5 @@
     <string name="sticker_pack_zip_failed">此 .zip 中未找到图片</string>
     <string name="quick_reactions_from_packs">从图像包</string>
     <string name="sticker_pack_zip_unreadable">无法读取此 .zip</string>
+    <string name="sticker_pack_create">新建图像包</string>
 </resources>

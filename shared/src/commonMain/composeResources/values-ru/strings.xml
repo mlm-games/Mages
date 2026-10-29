@@ -1489,4 +1489,5 @@
     <string name="sticker_pack_zip_failed">В этом .zip не найдено изображений</string>
     <string name="quick_reactions_from_packs">Из пакетов изображений</string>
     <string name="sticker_pack_zip_unreadable">Не удалось прочитать этот .zip</string>
+    <string name="sticker_pack_create">Новый набор</string>
 </resources>

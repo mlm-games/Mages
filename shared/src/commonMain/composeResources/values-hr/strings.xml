@@ -1488,4 +1488,5 @@
     <string name="sticker_pack_zip_failed">U ovom .zip nisu pronađene slike</string>
     <string name="quick_reactions_from_packs">Iz paketa slika</string>
     <string name="sticker_pack_zip_unreadable">Nije moguće pročitati ovaj .zip</string>
+    <string name="sticker_pack_create">Novi paket</string>
 </resources>

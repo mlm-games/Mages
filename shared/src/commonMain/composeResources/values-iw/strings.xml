@@ -1489,4 +1489,5 @@
     <string name="sticker_pack_zip_failed">לא נמצאו תמונות בקובץ ה-.zip הזה</string>
     <string name="quick_reactions_from_packs">מחבילות תמונה</string>
     <string name="sticker_pack_zip_unreadable">לא ניתן לקרוא את ה-.zip הזה</string>
+    <string name="sticker_pack_create">חבילה חדשה</string>
 </resources>
