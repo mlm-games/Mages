@@ -964,6 +964,7 @@ class RoomViewModel(
 
     /** Caches the images behind MSC4027 image reactions so the chips can render them. */
     fun ensureReactionImages(chips: List<ReactionSummary>) {
+        if (!mediaPreviewsAllowed()) return
         val missing = mxcReactionKeys(chips)
             .filterNot { currentState.reactionImagePathByMxc.containsKey(it) }
             .filter { reactionImageFetchInFlight.add(it) }
@@ -3099,6 +3100,8 @@ class RoomViewModel(
     }
 
     private fun prefetchThumbnailsForEvents(events: List<MessageEvent>) {
+        if (!mediaPreviewsAllowed()) return
+
         events.forEach { ev ->
             ensureThumbnail(ev)
         }
@@ -3193,11 +3196,7 @@ class RoomViewModel(
     fun ensureThumbnail(event: MessageEvent) {
         ensureReplyThumbnail(event)
         ensureEmotes(event)
-        val a = event.attachment
-        val s = event.sticker
-        val previewBlocked = !mediaPreviewsAllowed() &&
-            event.eventId !in currentState.revealedPreviewEventIds
-        if (previewBlocked && s == null) return
+        if (!mediaPreviewsAllowed() && event.eventId !in currentState.revealedPreviewEventIds) return
         val key = event.thumbKey ?: return
         if (currentState.thumbByEvent.containsKey(key)) return
         thumbToBridge(event, currentState.thumbByEvent)?.let {
@@ -3206,6 +3205,8 @@ class RoomViewModel(
         }
         if (key in thumbnailFetchInFlight) return
 
+        val a = event.attachment
+        val s = event.sticker
         if (event.eventId.isBlank() && a?.kind == AttachmentKind.Video) return
         val hasValidMedia = when {
             a != null -> {
@@ -3243,6 +3244,7 @@ class RoomViewModel(
     fun ensureEmotes(event: MessageEvent, attempt: Int = 0) {
         val uris = emoteMxcUrisFrom(event.formattedBody)
         if (uris.isEmpty()) return
+        if (!mediaPreviewsAllowed()) return
         val missing = uris
             .filterNot { currentState.emotePathByMxc.containsKey(it) }
             .filter { emoteFetchInFlight.add(it) }

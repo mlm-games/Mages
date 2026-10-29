@@ -88,6 +88,7 @@ data class MessageStickerUi(
     val height: Int? = null,
     val mime: String? = null,
     val blurhash: String? = null,
+    val previewBlocked: Boolean = false,
 )
 
 data class MessageBubbleRenderContext(

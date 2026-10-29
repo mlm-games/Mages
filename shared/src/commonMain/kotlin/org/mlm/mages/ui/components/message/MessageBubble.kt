@@ -112,6 +112,7 @@ fun MessageBubble(
             onDoubleClick = onDoubleClick,
             onReact = onReact,
             onOpen = onOpenAttachment,
+            onShowPreview = onShowPreview,
             onReplyPreviewClick = onReplyPreviewClick,
             onSenderClick = onSenderClick,
         )
@@ -1032,11 +1033,13 @@ private fun StickerMessage(
     onDoubleClick: (() -> Unit)?,
     onReact: ((String) -> Unit)?,
     onOpen: (() -> Unit)?,
+    onShowPreview: (() -> Unit)?,
     onReplyPreviewClick: (() -> Unit)?,
     onSenderClick: (() -> Unit)?,
 ) {
     val isMine = model.isMine
     val sticker = model.sticker ?: return
+    val previewBlocked = sticker.previewBlocked && sticker.thumbPath == null
     val grouping = model.grouping
 
     Column(
@@ -1110,7 +1113,9 @@ private fun StickerMessage(
                     .aspectRatio(aspectRatio, matchHeightConstraintsFirst = false)
                     .blurHashBackground(blurhashImage)
                     .combinedClickable(
-                        onClick = { onOpen?.invoke() },
+                        onClick = {
+                            if (previewBlocked) onShowPreview?.invoke() else onOpen?.invoke()
+                        },
                         onLongClick = onLongPress,
                         onDoubleClick = onDoubleClick,
                     )
@@ -1138,8 +1143,14 @@ private fun StickerMessage(
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = Icons.Default.EmojiEmotions,
-                            contentDescription = stringResource(Res.string.picker_sticker),
+                            imageVector = if (previewBlocked) {
+                                Icons.Default.Visibility
+                            } else {
+                                Icons.Default.EmojiEmotions
+                            },
+                            contentDescription = stringResource(
+                                if (previewBlocked) Res.string.show else Res.string.picker_sticker
+                            ),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             modifier = Modifier.size(48.dp),
                         )

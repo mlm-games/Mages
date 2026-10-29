@@ -87,15 +87,12 @@ internal fun TimelineContent.Bubble.toBubbleModel(
     val event = event
     val stickerData = event.sticker?.let {
         MessageStickerUi(
-            // The spec calls the flag a hint, not a guarantee, so an animated
-            // sticker that turns out to be static just renders as one. The
-            // thumbnail is a still frame, so preferring it would never animate.
-            thumbPath = ctx.resolvedPreviewPath
-                ?: if (it.isAnimated == true) it.mxcUri else it.thumbnailMxcUri ?: it.mxcUri,
+            thumbPath = ctx.resolvedPreviewPath,
             width = it.width,
             height = it.height,
             mime = it.mime,
             blurhash = it.blurhash,
+            previewBlocked = ctx.previewBlocked,
         )
     }
     val toRedactedEvent = event.replyPreview?.kind == ReplyPreviewKind.Redacted

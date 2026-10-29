@@ -2,6 +2,7 @@ package org.mlm.mages.ui.components.core
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
@@ -11,6 +12,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EmojiEmotions
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -583,7 +587,18 @@ private class Builder(
 
         val path = ref.path
         if (path == null) {
-            if (ref.label.isNotEmpty()) text.append(ref.label)
+            inlineContent.getOrPut(mxcUri) {
+                InlineTextContent(
+                    placeholder = Placeholder(
+                        width = EMOTE_HEIGHT,
+                        height = EMOTE_HEIGHT,
+                        placeholderVerticalAlign = PlaceholderVerticalAlign.Center
+                    )
+                ) {
+                    EmotePlaceholder()
+                }
+            }
+            text.appendInlineContent(mxcUri, alternateText = ref.label)
             atLineStart = false
             return
         }
@@ -601,6 +616,25 @@ private class Builder(
         }
         text.appendInlineContent(mxcUri, alternateText = ref.label)
         atLineStart = false
+    }
+}
+
+@Composable
+private fun EmotePlaceholder() {
+    val size = with(LocalDensity.current) { EMOTE_HEIGHT.toDp() }
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(RoundedCornerShape(4.dp))
+            .background(LocalContentColor.current.copy(alpha = 0.12f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.EmojiEmotions,
+            contentDescription = null,
+            tint = LocalContentColor.current.copy(alpha = 0.5f),
+            modifier = Modifier.size(size * 0.6f)
+        )
     }
 }
 
