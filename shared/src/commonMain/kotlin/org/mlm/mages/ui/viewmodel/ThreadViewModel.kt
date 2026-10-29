@@ -617,7 +617,6 @@ class ThreadViewModel(
         prefs.value.linkPreviews.allowsLinkPreviews(currentState.isRoomEncrypted)
 
     private fun prefetchReplyThumbnails(events: List<MessageEvent>) {
-        if (!mediaPreviewsAllowed()) return
         events.forEach {
             prefetchReplyThumbnail(it)
             prefetchEmotes(it)
@@ -862,7 +861,11 @@ class ThreadViewModel(
     }
 
     fun ensureThumbnail(event: MessageEvent) {
-        if (!mediaPreviewsAllowed() && event.eventId !in currentState.revealedPreviewEventIds) return
+        val attachment = event.attachment
+        val sticker = event.sticker
+        val previewBlocked = !mediaPreviewsAllowed() &&
+            event.eventId !in currentState.revealedPreviewEventIds
+        if (previewBlocked && sticker == null) return
         val key = event.thumbKey ?: return
         if (currentState.thumbByEvent.containsKey(key)) return
         thumbToBridge(event, currentState.thumbByEvent)?.let {
@@ -871,8 +874,6 @@ class ThreadViewModel(
         }
         if (key in thumbnailFetchInFlight) return
 
-        val attachment = event.attachment
-        val sticker = event.sticker
         if (event.eventId.isBlank() && attachment?.kind == AttachmentKind.Video) return
         val hasValidMedia = when {
             attachment != null ->
