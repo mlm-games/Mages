@@ -357,6 +357,7 @@ private fun LazyGridScope.packSection(
     onRemoveImage: (String) -> Unit,
     onRemovePending: (String) -> Unit,
     onAddImages: () -> Unit,
+    onImportZip: () -> Unit,
     onRemovePack: () -> Unit
 ) {
     item(key = "pack_header_$packIndex", span = { GridItemSpan(maxLineSpan) }) {
@@ -368,6 +369,7 @@ private fun LazyGridScope.packSection(
             onSetUsage = onSetUsage,
             onSetPackGlobal = onSetPackGlobal,
             onAddImages = onAddImages,
+            onImportZip = onImportZip,
             onRemovePack = onRemovePack
         )
     }
