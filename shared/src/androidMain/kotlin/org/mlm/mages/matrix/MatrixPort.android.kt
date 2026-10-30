@@ -1661,7 +1661,7 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
 
     override suspend fun isSpace(roomId: String): Boolean =
         withContext(matrixDispatcher) {
-            runWithFfiResult { withClient { it.isSpace(roomId) } }.isSuccess
+            runWithFfiResult { withClient { it.isSpace(roomId) } }.getOrDefault(false)
         }
 
     override suspend fun mySpaces(): List<SpaceInfo> =

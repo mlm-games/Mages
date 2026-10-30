@@ -133,9 +133,18 @@ class RoomsViewModel(
 
     fun openRoom(room: RoomSummary) {
         launch {
-            val joinedSpaceName = spaceName(room.id, room.name)
-            if (joinedSpaceName != null) {
-                _events.send(Event.OpenSpace(room.id, joinedSpaceName))
+            // Trust the row's `isSpace` flag from the room list snapshot rather
+            // than re-querying the SDK: a space is classified by its
+            // `m.room.create` room_type, and that flag is already computed when
+            // the list is built. Re-querying here can race with the snapshot
+            // and reclassify a normal room as a space (or vice versa), which
+            // made rooms open as empty same-named spaces (#187).
+            val isSpace = currentState.allItems
+                .firstOrNull { it.roomId == room.id }
+                ?.isSpace
+                ?: runCatching { service.isSpace(room.id) }.getOrDefault(false)
+            if (isSpace) {
+                _events.send(Event.OpenSpace(room.id, room.name))
             } else {
                 _events.send(Event.OpenRoom(room.id, room.name))
             }

@@ -5494,13 +5494,16 @@ fn _mxc_from_media_source(src: &matrix_sdk::ruma::events::room::MediaSource) -> 
 pub(crate) fn missing_reply_event_id(
     ev: &EventTimelineItem,
 ) -> Option<matrix_sdk::ruma::OwnedEventId> {
-    if let TimelineItemContent::MsgLike(ml) = ev.content() {
-        if let Some(details) = &ml.in_reply_to {
-            use matrix_sdk_ui::timeline::TimelineDetails::*;
-            if !matches!(details.event, Ready(_)) {
-                return Some(details.event_id.clone());
-            }
-        }
+    if !ev.is_remote_event() {
+        return None;
+    }
+    let TimelineItemContent::MsgLike(ml) = ev.content() else {
+        return None;
+    };
+    let details = ml.in_reply_to.as_ref()?;
+    use matrix_sdk_ui::timeline::TimelineDetails;
+    if !matches!(details.event, TimelineDetails::Ready(_)) {
+        return ev.event_id().map(ToOwned::to_owned);
     }
     None
 }
