@@ -38,6 +38,7 @@ data class DiscoverUi(
     val directJoinCandidate: String? = null,
     val directJoinVia: List<String> = emptyList(),
     val directJoinPreview: DirectJoinPreview? = null,
+    val avatarPathByUrl: Map<String, String> = emptyMap(),
 
     val isBusy: Boolean = false,
     val isPaging: Boolean = false,
@@ -137,6 +138,20 @@ class DiscoverViewModel(
                     isBusy = false
                 )
             }
+            resolveAvatars(users, page?.rooms.orEmpty())
+        }
+    }
+
+    private fun resolveAvatars(users: List<DirectoryUser>, rooms: List<PublicRoom>) {
+        val urls = (users.mapNotNull { it.avatarUrl } + rooms.mapNotNull { it.avatarUrl })
+            .filter { it.startsWith("mxc://") }
+            .distinct()
+
+        urls.forEach { url ->
+            if (currentState.avatarPathByUrl.containsKey(url)) return@forEach
+            resolveAvatar(service, url, px = 96) { path ->
+                copy(avatarPathByUrl = avatarPathByUrl + (url to path))
+            }
         }
     }
 
@@ -188,6 +203,7 @@ class DiscoverViewModel(
                     isPaging = false
                 )
             }
+            resolveAvatars(emptyList(), page?.rooms.orEmpty())
         }
     }
 

@@ -20,6 +20,7 @@ import org.mlm.mages.matrix.PublicRoom
 import org.mlm.mages.matrix.PublicRoomTypeFilter
 import org.mlm.mages.ui.components.core.StatusBanner
 import org.mlm.mages.ui.components.core.BannerType
+import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.viewmodel.DirectJoinAction
 import org.mlm.mages.ui.viewmodel.DirectJoinPreview
 import org.mlm.mages.ui.viewmodel.DiscoverUi
@@ -189,6 +190,7 @@ fun DiscoverScreen(
                     items(state.users, key = { it.userId }) { user ->
                         UserListItem(
                             user = user,
+                            avatarPath = user.avatarUrl?.let { state.avatarPathByUrl[it] },
                             onMessage = { onOpenUser(user) }
                         )
                     }
@@ -225,6 +227,7 @@ fun DiscoverScreen(
                     items(state.rooms, key = { it.roomId }) { room ->
                         RoomListItem(
                             room = room,
+                            avatarPath = room.avatarUrl?.let { state.avatarPathByUrl[it] },
                             onJoin = { onOpenRoom(room) },
                             onKnock = { onKnockRoom(room) }
                         )
@@ -365,6 +368,7 @@ private fun DirectJoinCard(
 @Composable
 private fun UserListItem(
     user: DirectoryUser,
+    avatarPath: String?,
     onMessage: () -> Unit
 ) {
     Card(
@@ -378,7 +382,15 @@ private fun UserListItem(
                 }
             },
             leadingContent = {
-                Icon(Icons.Default.Person, contentDescription = null)
+                if (avatarPath != null) {
+                    Avatar(
+                        name = user.displayName ?: user.userId,
+                        avatarPath = avatarPath,
+                        size = 40.dp
+                    )
+                } else {
+                    Icon(Icons.Default.Person, contentDescription = null)
+                }
             },
             trailingContent = {
                 TextButton(onClick = onMessage) {
@@ -392,6 +404,7 @@ private fun UserListItem(
 @Composable
 private fun RoomListItem(
     room: PublicRoom,
+    avatarPath: String?,
     onJoin: () -> Unit,
     onKnock: (() -> Unit)? = null
 ) {
@@ -430,10 +443,18 @@ private fun RoomListItem(
                 }
             },
             leadingContent = {
-                Icon(
-                    if (room.isSpace) Icons.Default.Workspaces else Icons.Default.Group,
-                    contentDescription = null
-                )
+                if (avatarPath != null) {
+                    Avatar(
+                        name = room.name ?: room.alias ?: room.roomId,
+                        avatarPath = avatarPath,
+                        size = 40.dp
+                    )
+                } else {
+                    Icon(
+                        if (room.isSpace) Icons.Default.Workspaces else Icons.Default.Group,
+                        contentDescription = null
+                    )
+                }
             },
             trailingContent = {
                 Row {
