@@ -209,7 +209,7 @@ delegate! { result Vec<String>; ignored_users(); }
 delegate! { result Vec<DirectoryUser>; search_users(search_term: String, limit: u64); }
 delegate! { result DirectoryUser; get_user_profile(user_id: String); }
 delegate! { result MutualRooms; mutual_rooms(user_id: String); }
-delegate! { result PublicRoomsPage; public_rooms(server: Option<String>, search: Option<String>, limit: u32, since: Option<String>); }
+delegate! { result PublicRoomsPage; public_rooms(server: Option<String>, search: Option<String>, limit: u32, since: Option<String>, room_type_filter: Option<String>); }
 delegate! { result RoomPowerLevels; room_power_levels(room_id: String); }
 delegate! { result RoomDirectoryVisibility; room_directory_visibility(room_id: String); }
 delegate! { result RoomJoinRule; room_join_rule(room_id: String); }

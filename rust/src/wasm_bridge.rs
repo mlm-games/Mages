@@ -1649,11 +1649,12 @@ impl WasmClient {
         search: Option<String>,
         limit: u32,
         since: Option<String>,
+        room_type_filter: Option<String>,
     ) -> JsValue {
         let Some(s) = self.state() else {
             return JsValue::NULL;
         };
-        match s.core.public_rooms(server, search, limit, since).await {
+        match s.core.public_rooms(server, search, limit, since, room_type_filter).await {
             Ok(v) => to_json(&v),
             Err(e) => {
                 tracing::warn!("public_rooms failed: {e:?}");

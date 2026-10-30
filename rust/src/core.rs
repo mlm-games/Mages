@@ -20,7 +20,7 @@ use matrix_sdk::{
             room::{Visibility, upgrade_room::v3 as upgrade_room_v3},
             uiaa::{EmailUserIdentifier, MatrixUserIdentifier, PhoneNumberUserIdentifier},
         },
-        directory::{Filter, PublicRoomsChunk},
+        directory::{Filter, PublicRoomsChunk, RoomTypeFilter},
         events::{
             AnyGlobalAccountDataEventContent, AnyMessageLikeEventContent, GlobalAccountDataEventType,
             Mentions,
@@ -3435,10 +3435,18 @@ impl CoreClient {
         search: Option<String>,
         limit: u32,
         since: Option<String>,
+        room_type_filter: Option<String>,
     ) -> Result<PublicRoomsPage, FfiError> {
         let server_name: Option<OwnedServerName> = server
             .map(|s| OwnedServerName::try_from(s).ffi())
             .transpose()?;
+
+        let spaces_only = room_type_filter.as_deref() == Some("spaces");
+        let room_types = match room_type_filter.as_deref() {
+            Some("rooms") => Some(vec![RoomTypeFilter::Default]),
+            Some("spaces") => Some(vec![RoomTypeFilter::Space]),
+            _ => None,
+        };
 
         let map_chunk = |r: PublicRoomsChunk| PublicRoom {
             room_id: r.room_id.to_string(),
@@ -3447,14 +3455,19 @@ impl CoreClient {
             alias: r.canonical_alias.map(|a| a.to_string()),
             avatar_url: r.avatar_url.map(|mxc| mxc.to_string()),
             member_count: r.num_joined_members.into(),
+            is_space: spaces_only || matches!(r.room_type, Some(RoomType::Space)),
             world_readable: r.world_readable,
             guest_can_join: r.guest_can_join,
         };
 
-        if let Some(term) = search.filter(|s| !s.trim().is_empty()) {
+        let term = search.filter(|s| !s.trim().is_empty());
+        if term.is_some() || room_types.is_some() {
             let mut req = get_public_rooms_filtered::v3::Request::new();
             let mut f = Filter::new();
-            f.generic_search_term = Some(term);
+            f.generic_search_term = term;
+            if let Some(room_types) = room_types {
+                f.room_types = room_types;
+            }
             req.filter = f;
             if let Some(s) = since.as_deref() {
                 req.since = Some(s.to_owned());

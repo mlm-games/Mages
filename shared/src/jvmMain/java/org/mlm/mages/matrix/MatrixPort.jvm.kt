@@ -1242,10 +1242,11 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
         server: String?,
         search: String?,
         limit: Int,
-        since: String?
+        since: String?,
+        roomTypeFilter: PublicRoomTypeFilter?
     ): PublicRoomsPage = withContext(matrixDispatcher) {
         val resp = withClient {
-            it.publicRooms(server, search, limit.toUInt(), since)
+            it.publicRooms(server, search, limit.toUInt(), since, roomTypeFilter?.wireValue)
         }
         PublicRoomsPage(
             rooms = resp.rooms.map { r ->
@@ -1256,6 +1257,7 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
                     alias = r.alias,
                     avatarUrl = r.avatarUrl,
                     memberCount = r.memberCount.toLong(),
+                    isSpace = r.isSpace,
                     worldReadable = r.worldReadable,
                     guestCanJoin = r.guestCanJoin
                 )

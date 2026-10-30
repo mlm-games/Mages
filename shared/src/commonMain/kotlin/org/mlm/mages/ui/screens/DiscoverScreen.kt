@@ -1,5 +1,7 @@
 package org.mlm.mages.ui.screens
 
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,6 +17,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.DirectoryUser
 import org.mlm.mages.matrix.PublicRoom
+import org.mlm.mages.matrix.PublicRoomTypeFilter
 import org.mlm.mages.ui.components.core.StatusBanner
 import org.mlm.mages.ui.components.core.BannerType
 import org.mlm.mages.ui.viewmodel.DirectJoinAction
@@ -39,6 +42,7 @@ fun DiscoverRoute(
         onOpenRoom = { r -> viewModel.openRoom(r) },
         onKnockRoom = { r -> viewModel.knockRoom(r) },
         onJoinByIdOrAlias = { idOrAlias -> viewModel.joinDirect(idOrAlias) },
+        onRoomTypeFilterChange = viewModel::setRoomTypeFilter,
         onLoadMore = viewModel::loadMoreRooms
     )
 }
@@ -52,6 +56,7 @@ fun DiscoverScreen(
     onOpenRoom: (PublicRoom) -> Unit,
     onKnockRoom: (PublicRoom) -> Unit,
     onJoinByIdOrAlias: (String) -> Unit,
+    onRoomTypeFilterChange: (PublicRoomTypeFilter?) -> Unit,
     onLoadMore: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -83,7 +88,17 @@ fun DiscoverScreen(
                 value = state.query,
                 onValueChange = onQuery,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(Res.string.search_users_or_rooms)) },
+                label = {
+                    Text(
+                        stringResource(
+                            if (state.roomTypeFilter == PublicRoomTypeFilter.Spaces) {
+                                Res.string.search_spaces
+                            } else {
+                                Res.string.search_users_or_rooms
+                            }
+                        )
+                    )
+                },
                 placeholder = { Text(stringResource(Res.string.search_placeholder)) },
                 singleLine = true,
                 leadingIcon = {
@@ -97,6 +112,50 @@ fun DiscoverScreen(
                     }
                 }
             )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = state.roomTypeFilter == null,
+                    onClick = { onRoomTypeFilterChange(null) },
+                    label = { Text(stringResource(Res.string.rooms_and_spaces)) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Apps,
+                            contentDescription = null,
+                            modifier = Modifier.size(FilterChipDefaults.IconSize)
+                        )
+                    }
+                )
+                FilterChip(
+                    selected = state.roomTypeFilter == PublicRoomTypeFilter.Rooms,
+                    onClick = { onRoomTypeFilterChange(PublicRoomTypeFilter.Rooms) },
+                    label = { Text(stringResource(Res.string.public_rooms)) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Group,
+                            contentDescription = null,
+                            modifier = Modifier.size(FilterChipDefaults.IconSize)
+                        )
+                    }
+                )
+                FilterChip(
+                    selected = state.roomTypeFilter == PublicRoomTypeFilter.Spaces,
+                    onClick = { onRoomTypeFilterChange(PublicRoomTypeFilter.Spaces) },
+                    label = { Text(stringResource(Res.string.spaces)) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Workspaces,
+                            contentDescription = null,
+                            modifier = Modifier.size(FilterChipDefaults.IconSize)
+                        )
+                    }
+                )
+            }
 
             if (state.isBusy && !state.isPaging) {
                 LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -146,7 +205,13 @@ fun DiscoverScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                stringResource(Res.string.public_rooms),
+                                stringResource(
+                                    if (state.roomTypeFilter == PublicRoomTypeFilter.Spaces) {
+                                        Res.string.spaces
+                                    } else {
+                                        Res.string.public_rooms
+                                    }
+                                ),
                                 style = MaterialTheme.typography.titleSmall
                             )
                             Text(
@@ -192,17 +257,29 @@ fun DiscoverScreen(
                 }
 
                 if (!state.isBusy &&
-                    state.query.isNotBlank() &&
                     state.users.isEmpty() &&
                     state.rooms.isEmpty() &&
-                    state.directJoinCandidate == null
+                    state.directJoinCandidate == null &&
+                    (state.query.isNotBlank() || state.roomTypeFilter != null)
                 ) {
                     item(key = "empty") {
-                        EmptySearchState(query = state.query)
+                        if (state.query.isNotBlank()) {
+                            EmptySearchState(query = state.query)
+                        } else {
+                            FilterEmptyState(
+                                title = stringResource(
+                                    if (state.roomTypeFilter == PublicRoomTypeFilter.Spaces) {
+                                        Res.string.no_spaces_found
+                                    } else {
+                                        Res.string.no_rooms_found
+                                    }
+                                )
+                            )
+                        }
                     }
                 }
 
-                if (state.query.isBlank()) {
+                if (state.query.isBlank() && state.roomTypeFilter == null) {
                     item(key = "hint") {
                         SearchHintCard()
                     }
@@ -322,6 +399,13 @@ private fun RoomListItem(
             },
             supportingContent = {
                 Column {
+                    if (room.isSpace) {
+                        Text(
+                            stringResource(Res.string.spaces),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                     room.alias?.let { alias ->
                         if (alias != room.name) {
                             Text(
@@ -341,7 +425,10 @@ private fun RoomListItem(
                 }
             },
             leadingContent = {
-                Icon(Icons.Default.Group, contentDescription = null)
+                Icon(
+                    if (room.isSpace) Icons.Default.Workspaces else Icons.Default.Group,
+                    contentDescription = null
+                )
             },
             trailingContent = {
                 Row {
@@ -389,6 +476,36 @@ private fun EmptySearchState(query: String) {
                 stringResource(Res.string.try_different_search_term),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun FilterEmptyState(title: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                Icons.Default.SearchOff,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Center
             )
         }

@@ -7,6 +7,7 @@ import mages.shared.generated.resources.*
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.DirectoryUser
 import org.mlm.mages.matrix.PublicRoom
+import org.mlm.mages.matrix.PublicRoomTypeFilter
 import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.RoomPreview
 import org.mlm.mages.matrix.RoomPreviewMembership
@@ -32,6 +33,7 @@ data class DiscoverUi(
     val query: String = "",
     val users: List<DirectoryUser> = emptyList(),
     val rooms: List<PublicRoom> = emptyList(),
+    val roomTypeFilter: PublicRoomTypeFilter? = null,
     val nextBatch: String? = null,
     val directJoinCandidate: String? = null,
     val directJoinVia: List<String> = emptyList(),
@@ -63,14 +65,29 @@ class DiscoverViewModel(
         triggerSearch(q)
     }
 
-    private fun triggerSearch(q: String) {
+    fun setRoomTypeFilter(filter: PublicRoomTypeFilter?) {
+        val nextFilter = if (currentState.roomTypeFilter == filter) null else filter
+        updateState {
+            copy(
+                roomTypeFilter = nextFilter,
+                users = emptyList(),
+                rooms = emptyList(),
+                nextBatch = null,
+                error = null
+            )
+        }
+        triggerSearch(currentState.query, debounce = false)
+    }
+
+    private fun triggerSearch(q: String, debounce: Boolean = true) {
         searchJob?.cancel()
 
         searchJob = launch {
-            delay(300)
+            if (debounce) delay(300)
             val term = q.trim()
+            val roomTypeFilter = currentState.roomTypeFilter
 
-            if (term.isBlank()) {
+            if (term.isBlank() && roomTypeFilter == null) {
                 updateState {
                     copy(
                         users = emptyList(),
@@ -100,12 +117,16 @@ class DiscoverViewModel(
                 )
             }
 
-            val users = buildList {
-                if (userLookup != null) {
-                    runSafe { service.port.getUserProfile(userLookup) }?.let(::add)
-                }
-                addAll(runSafe { service.port.searchUsers(term, 20) } ?: emptyList())
-            }.distinctBy { it.userId }
+            val users = if (roomTypeFilter == null && term.isNotBlank()) {
+                buildList {
+                    if (userLookup != null) {
+                        runSafe { service.port.getUserProfile(userLookup) }?.let(::add)
+                    }
+                    addAll(runSafe { service.port.searchUsers(term, 20) } ?: emptyList())
+                }.distinctBy { it.userId }
+            } else {
+                emptyList()
+            }
 
             val searchTerm = extractSearchTerm(term)
 
@@ -114,7 +135,8 @@ class DiscoverViewModel(
                     server = null,
                     search = searchTerm,
                     limit = 50,
-                    since = null
+                    since = null,
+                    roomTypeFilter = roomTypeFilter
                 )
             }
 
@@ -166,7 +188,8 @@ class DiscoverViewModel(
                     server = null,
                     search = searchTerm,
                     limit = 50,
-                    since = since
+                    since = since,
+                    roomTypeFilter = s.roomTypeFilter
                 )
             }
 

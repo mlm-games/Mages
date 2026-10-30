@@ -1172,10 +1172,12 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         server: String?,
         search: String?,
         limit: Int,
-        since: String?
+        since: String?,
+        roomTypeFilter: PublicRoomTypeFilter?
     ): PublicRoomsPage =
         wasmJson.decodeFromJsonElement(
-            requireClient().publicRooms(server, search, limit.toDouble(), since).await<JsAny?>().toJsonElement()
+            requireClient().publicRooms(server, search, limit.toDouble(), since, roomTypeFilter?.wireValue)
+                .await<JsAny?>().toJsonElement()
         )
 
     override suspend fun joinByIdOrAlias(idOrAlias: String, via: List<String>): Result<Unit> {

@@ -466,9 +466,24 @@ data class UnreadStats(val messages: Long, val notifications: Long, val mentions
 @Serializable
 data class DirectoryUser(val userId: String, val displayName: String? = null, val avatarUrl: String? = null)
 @Serializable
-data class PublicRoom(val roomId: String, val name: String? = null, val topic: String? = null, val alias: String? = null, val avatarUrl: String? = null, val memberCount: Long = 0, val worldReadable: Boolean = false, val guestCanJoin: Boolean = false)
+data class PublicRoom(
+    val roomId: String,
+    val name: String? = null,
+    val topic: String? = null,
+    val alias: String? = null,
+    val avatarUrl: String? = null,
+    val memberCount: Long = 0,
+    val isSpace: Boolean = false,
+    val worldReadable: Boolean = false,
+    val guestCanJoin: Boolean = false,
+)
 @Serializable
 data class PublicRoomsPage(val rooms: List<PublicRoom>, val nextBatch: String? = null, val prevBatch: String?)
+
+enum class PublicRoomTypeFilter(val wireValue: String) {
+    Rooms("rooms"),
+    Spaces("spaces"),
+}
 @Serializable
 data class RoomPreview(
     val roomId: String,
@@ -1173,7 +1188,7 @@ interface MatrixPort {
     suspend fun searchUsers(term: String, limit: Int = 20): List<DirectoryUser>
     suspend fun getUserProfile(userId: String): DirectoryUser?
     suspend fun mutualRooms(userId: String): MutualRooms?
-    suspend fun publicRooms(server: String? = null, search: String? = null, limit: Int = 50, since: String? = null): PublicRoomsPage
+    suspend fun publicRooms(server: String? = null, search: String? = null, limit: Int = 50, since: String? = null, roomTypeFilter: PublicRoomTypeFilter? = null): PublicRoomsPage
     suspend fun roomPreview(idOrAlias: String, via: List<String> = emptyList()): Result<RoomPreview>
     suspend fun forwardEvent(sourceRoomId: String, eventId: String, targetRoomIds: List<String>): Result<ForwardResult>
     suspend fun joinByIdOrAlias(idOrAlias: String, via: List<String> = emptyList()): Result<Unit>

@@ -755,6 +755,7 @@ pub struct PublicRoom {
     pub alias: Option<String>,
     pub avatar_url: Option<String>,
     pub member_count: u64,
+    pub is_space: bool,
     pub world_readable: bool,
     pub guest_can_join: bool,
 }
