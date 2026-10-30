@@ -811,6 +811,7 @@ pub struct SpaceChildInfo {
     pub world_readable: bool,
     pub guest_can_join: bool,
     pub suggested: bool,
+    pub via: Vec<String>,
     /// Our own membership, absent when we have no local state for the child.
     pub membership: Option<RoomListMembership>,
     pub section_tag: Option<String>,

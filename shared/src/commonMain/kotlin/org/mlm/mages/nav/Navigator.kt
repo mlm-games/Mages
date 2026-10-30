@@ -90,7 +90,8 @@ data class DeepLinkAction(
     val threadId: String? = null,
     val joinCall: Boolean = false,
     val voiceOnly: Boolean = false,
-    val incoming: Boolean = false
+    val incoming: Boolean = false,
+    val notice: String? = null,
 )
 
 // Deep links: push Room keys when links arrive
@@ -135,18 +136,17 @@ fun BindDeepLinks(
                     }
                 }
             } else {
-                val space = if (action.eventId == null && !action.joinCall) {
-                    runCatching {
-                        service.mySpaces().firstOrNull { it.roomId == action.roomId }
-                    }.getOrNull()
-                } else {
-                    null
-                }
+                val isSpace = action.eventId == null &&
+                    !action.joinCall &&
+                    runCatching { service.isSpace(action.roomId) }.getOrDefault(false)
 
-                if (space != null) {
+                if (isSpace) {
                     val alreadyThere = top is Route.SpaceDetail && top.spaceId == action.roomId
                     if (!alreadyThere) {
-                        backStack.add(Route.SpaceDetail(space.roomId, space.name))
+                        val name = runCatching {
+                            service.mySpaces().firstOrNull { it.roomId == action.roomId }?.name
+                        }.getOrNull() ?: action.roomId
+                        backStack.add(Route.SpaceDetail(action.roomId, name))
                     }
                 } else {
                     val alreadyThere = top is Route.Room && top.roomId == action.roomId

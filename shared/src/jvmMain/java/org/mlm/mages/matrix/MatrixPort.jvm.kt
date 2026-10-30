@@ -1733,6 +1733,7 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
                         worldReadable = child.worldReadable,
                         guestCanJoin = child.guestCanJoin,
                         suggested = child.suggested,
+                        via = child.via,
                         sectionTag = child.sectionTag
                     )
                 },

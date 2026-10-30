@@ -303,10 +303,14 @@ private fun AppContent(
                     service.activeAccount.first { it != null }
 
                     val action = resolveDeepLink(service, raw)
-                    if (action == null) {
-                        snackbarManager.showError(getString(Res.string.could_not_open_link, raw))
-                    } else {
-                        localDeepLinks.emit(action)
+                    when {
+                        action == null ->
+                            snackbarManager.showError(getString(Res.string.could_not_open_link, raw))
+
+                        action.notice != null ->
+                            snackbarManager.show(action.notice)
+
+                        else -> localDeepLinks.emit(action)
                     }
                 }
             }

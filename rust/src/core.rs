@@ -8,6 +8,7 @@ use futures_util::StreamExt;
 
 use matrix_sdk::{
     Client as SdkClient, EncryptionState, Room, RoomDisplayName, RoomMemberships, RoomState,
+    deserialized_responses::SyncOrStrippedState,
     notification_settings::RoomNotificationMode,
     ruma::{
         EventId, OwnedEventId, OwnedRoomAliasId, OwnedRoomId, OwnedRoomOrAliasId, OwnedServerName,
@@ -4277,13 +4278,39 @@ impl CoreClient {
         let resp = self.sdk.send(req).await.ffi()?;
 
         let mut suggested: HashMap<String, bool> = HashMap::new();
+        let mut via_by_child: HashMap<String, Vec<String>> = HashMap::new();
         for chunk in &resp.rooms {
             if chunk.summary.room_id != rid {
                 continue;
             }
             for raw in &chunk.children_state {
                 if let Ok(child) = raw.deserialize() {
-                    suggested.insert(child.state_key.to_string(), child.content.suggested);
+                    let room_id = child.state_key.to_string();
+                    suggested.insert(room_id.clone(), child.content.suggested);
+                    via_by_child.insert(
+                        room_id,
+                        child.content.via.iter().map(ToString::to_string).collect(),
+                    );
+                }
+            }
+        }
+
+        if let Some(space) = self.sdk.get_room(&rid) {
+            if let Ok(events) = space
+                .get_state_events_static::<SpaceChildEventContent>()
+                .await
+            {
+                for raw in events {
+                    if let Ok(SyncOrStrippedState::Sync(event)) = raw.deserialize() {
+                        if let Some(event) = event.as_original() {
+                            let room_id = event.state_key.to_string();
+                            suggested.insert(room_id.clone(), event.content.suggested);
+                            via_by_child.insert(
+                                room_id,
+                                event.content.via.iter().map(ToString::to_string).collect(),
+                            );
+                        }
+                    }
                 }
             }
         }
@@ -4312,6 +4339,7 @@ impl CoreClient {
                 world_readable: s.world_readable,
                 guest_can_join: s.guest_can_join,
                 suggested: suggested.get(s.room_id.as_str()).copied().unwrap_or(false),
+                via: via_by_child.get(s.room_id.as_str()).cloned().unwrap_or_default(),
                 membership,
                 section_tag,
             });

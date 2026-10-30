@@ -678,6 +678,7 @@ data class SpaceChildInfo(
     val worldReadable: Boolean,
     val guestCanJoin: Boolean,
     val suggested: Boolean,
+    val via: List<String> = emptyList(),
     val membership: RoomListMembership? = null,
     val sectionTag: String? = null
 )

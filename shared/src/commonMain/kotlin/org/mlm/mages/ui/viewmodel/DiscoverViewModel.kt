@@ -10,7 +10,7 @@ import org.mlm.mages.matrix.PublicRoom
 import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.RoomPreview
 import org.mlm.mages.matrix.RoomPreviewMembership
-import org.mlm.mages.matrix.SpaceInfo
+import org.mlm.mages.ui.util.decodeUrl
 import org.jetbrains.compose.resources.getString
 import mages.shared.generated.resources.Res
 
@@ -34,6 +34,7 @@ data class DiscoverUi(
     val rooms: List<PublicRoom> = emptyList(),
     val nextBatch: String? = null,
     val directJoinCandidate: String? = null,
+    val directJoinVia: List<String> = emptyList(),
     val directJoinPreview: DirectJoinPreview? = null,
 
     val isBusy: Boolean = false,
@@ -76,6 +77,7 @@ class DiscoverViewModel(
                         rooms = emptyList(),
                         nextBatch = null,
                         directJoinCandidate = null,
+                        directJoinVia = emptyList(),
                         directJoinPreview = null,
                         error = null,
                         isBusy = false
@@ -92,7 +94,8 @@ class DiscoverViewModel(
                 copy(
                     isBusy = true,
                     error = null,
-                    directJoinCandidate = directJoinTarget,
+                    directJoinCandidate = directJoinTarget?.idOrAlias,
+                    directJoinVia = directJoinTarget?.via.orEmpty(),
                     directJoinPreview = null
                 )
             }
@@ -194,13 +197,14 @@ class DiscoverViewModel(
     fun openRoom(room: PublicRoom) {
         launch {
             updateState { copy(isBusy = true, error = null) }
-            val rid = joinRoom(room.alias ?: room.roomId).getOrNull()
+            val target = room.alias ?: room.roomId
+            val rid = joinRoom(target).getOrNull()
             updateState { copy(isBusy = false) }
 
             if (rid != null) {
-                val space = joinedSpace(rid)
-                if (space != null) {
-                    _events.send(Event.OpenSpace(space.roomId, space.name))
+                val joinedSpaceName = spaceName(rid, room.name ?: target)
+                if (joinedSpaceName != null) {
+                    _events.send(Event.OpenSpace(rid, joinedSpaceName))
                 } else {
                     _events.send(
                         Event.OpenRoom(
@@ -218,7 +222,8 @@ class DiscoverViewModel(
     fun knockRoom(room: PublicRoom) {
         launch {
             updateState { copy(isBusy = true, error = null) }
-            val knockSuccess = runSafe { service.port.knock(room.alias ?: room.roomId) }?.isSuccess ?: false
+            val target = room.alias ?: room.roomId
+            val knockSuccess = runSafe { service.port.knock(target, roomVia(target, emptyList())) }?.isSuccess ?: false
             updateState { copy(isBusy = false) }
 
             if (knockSuccess) {
@@ -233,18 +238,19 @@ class DiscoverViewModel(
         launch {
             updateState { copy(isBusy = true, error = null) }
             val preview = currentState.directJoinPreview
+            val via = currentState.directJoinVia
             val result = when (preview?.action) {
-                DirectJoinAction.Knock -> knockAndResolve(idOrAlias)
+                DirectJoinAction.Knock -> knockAndResolve(idOrAlias, via)
                 DirectJoinAction.None -> Result.failure(IllegalStateException(preview.subtitle))
-                else -> joinRoom(idOrAlias)
+                else -> joinRoom(idOrAlias, via)
             }
             updateState { copy(isBusy = false) }
 
             val rid = result.getOrNull()
             if (rid != null) {
-                val space = joinedSpace(rid)
-                if (space != null) {
-                    _events.send(Event.OpenSpace(space.roomId, space.name))
+                val spaceName = spaceName(rid, preview?.title ?: idOrAlias)
+                if (spaceName != null) {
+                    _events.send(Event.OpenSpace(rid, spaceName))
                 } else {
                     _events.send(Event.OpenRoom(rid, idOrAlias))
                 }
@@ -259,17 +265,21 @@ class DiscoverViewModel(
         }
     }
 
-    private suspend fun joinedSpace(roomId: String): SpaceInfo? =
-        runSafe { service.mySpaces() }?.firstOrNull { it.roomId == roomId }
+    private suspend fun spaceName(roomId: String, fallback: String): String? {
+        runSafe { service.mySpaces() }
+            ?.firstOrNull { it.roomId == roomId }
+            ?.let { return it.name }
+        return fallback.takeIf { runSafe { service.isSpace(roomId) } == true }
+    }
 
-    private suspend fun loadDirectJoinPreview(idOrAlias: String): DirectJoinPreview {
-        val result = service.port.roomPreview(idOrAlias, viaServers())
+    private suspend fun loadDirectJoinPreview(target: JoinTarget): DirectJoinPreview {
+        val result = service.port.roomPreview(target.idOrAlias, roomVia(target.idOrAlias, target.via))
         return result.fold(
-            onSuccess = { preview -> preview.toDirectJoinPreview(idOrAlias) },
+            onSuccess = { preview -> preview.toDirectJoinPreview(target.idOrAlias) },
             onFailure = { error ->
                 DirectJoinPreview(
-                    target = idOrAlias,
-                    title = idOrAlias,
+                    target = target.idOrAlias,
+                    title = target.idOrAlias,
                     subtitle = error.message ?: getString(Res.string.room_not_found),
                     action = DirectJoinAction.None,
                     actionLabel = getString(Res.string.unavailable)
@@ -278,13 +288,20 @@ class DiscoverViewModel(
         )
     }
 
-    private suspend fun knockAndResolve(idOrAlias: String): Result<String> {
-        val knockSuccess = runSafe { service.port.knock(idOrAlias, viaServers()) }?.isSuccess ?: false
+    private suspend fun knockAndResolve(idOrAlias: String, via: List<String>): Result<String> {
+        val knockSuccess = runSafe {
+            service.port.knock(idOrAlias, roomVia(idOrAlias, via))
+        }?.isSuccess ?: false
         return if (knockSuccess) {
             Result.failure(IllegalStateException(getString(Res.string.knock_request_sent_waiting_for_approval)))
         } else {
             Result.failure(IllegalStateException(getString(Res.string.failed_to_knock_on_room)))
         }
+    }
+
+    private suspend fun roomVia(idOrAlias: String, linkVia: List<String>): List<String> {
+        val targetServer = idOrAlias.substringAfter(':', "").takeIf { it.isNotBlank() }
+        return (linkVia + listOfNotNull(targetServer) + viaServers()).distinct()
     }
 
     private suspend fun viaServers(): List<String> =
@@ -295,7 +312,7 @@ class DiscoverViewModel(
             }
             .distinct()
 
-    private suspend fun joinRoom(idOrAlias: String): Result<String> {
+    private suspend fun joinRoom(idOrAlias: String, linkVia: List<String> = emptyList()): Result<String> {
         if (!looksLikeRoomIdOrAlias(idOrAlias)) {
             return Result.failure(IllegalArgumentException(getString(Res.string.enter_a_full_room_alias_like_room_server_or_room_id_like_id_server)))
         }
@@ -318,7 +335,7 @@ class DiscoverViewModel(
             }
         }
 
-        val joinResult = service.port.joinByIdOrAlias(idOrAlias, viaServers())
+        val joinResult = service.port.joinByIdOrAlias(idOrAlias, roomVia(idOrAlias, linkVia))
         if (joinResult.isFailure) {
             return Result.failure(joinResult.exceptionOrNull() ?: IllegalStateException(getString(Res.string.failed_to_join_room)))
         }
@@ -387,29 +404,46 @@ class DiscoverViewModel(
         )
     }
 
-    private fun normalizeJoinTarget(input: String): String? {
+    private fun normalizeJoinTarget(input: String): JoinTarget? {
         val t = input.trim()
         if (t.isBlank()) return null
 
-        if (t.startsWith("https://matrix.to/#/")) {
-            val after = t.removePrefix("https://matrix.to/#/")
-                .trim()
-                .substringBefore('?')
-            return after.takeIf { it.startsWith("#") || it.startsWith("!") }
+        val value = when {
+            t.startsWith("https://matrix.to/#/") ->
+                t.removePrefix("https://matrix.to/#/")
+
+            t.contains("app.element.io/#/room/") ->
+                t.substringAfter("app.element.io/#/room/")
+
+            t.startsWith("matrix:", ignoreCase = true) -> {
+                val body = t.substringAfter(':').trimStart('/')
+                when {
+                    body.startsWith("r/") -> body.removePrefix("r/")
+                    body.startsWith("room/") -> body.removePrefix("room/")
+                    body.startsWith("roomid/") -> body.removePrefix("roomid/")
+                    else -> return null
+                }
+            }
+
+            else -> t
         }
 
-        // element.io links
-        if (t.contains("app.element.io/#/room/")) {
-            val after = t.substringAfter("app.element.io/#/room/")
-                .trim()
-                .substringBefore('?')
-            return after.takeIf { it.startsWith("#") || it.startsWith("!") }
-        }
+        val pathAndQuery = value.split('?', limit = 2)
+        val id = decodeUrl(pathAndQuery[0].trim().substringBefore('/'))
+        val via = pathAndQuery.getOrNull(1)?.let(::parseViaQuery).orEmpty()
 
-        return when {
-            t.startsWith("#") && t.contains(":") -> t
-            t.startsWith("!") && t.contains(":") -> t
-            else -> null
-        }
+        return id.takeIf { (it.startsWith("#") || it.startsWith("!")) && it.contains(":") }
+            ?.let { JoinTarget(it, via) }
     }
+
+    private fun parseViaQuery(query: String): List<String> =
+        query.split('&').mapNotNull {
+            val kv = it.split('=', limit = 2)
+            if (kv.size == 2 && kv[0] == "via") decodeUrl(kv[1]) else null
+        }
 }
+
+private data class JoinTarget(
+    val idOrAlias: String,
+    val via: List<String>,
+)

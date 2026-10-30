@@ -82,8 +82,10 @@ private fun parseMatrixTo(u: String): MatrixLink {
         val uri = Uri.parse(u)
         if (!uri.host.equals("matrix.to", true)) return MatrixLink.Unsupported
         val frag = uri.fragment ?: return MatrixLink.Unsupported // after "#/"
-        // trim leading "/"
-        val path = frag.removePrefix("/")
+
+        val fragmentAndQuery = frag.split('?', limit = 2)
+        val path = fragmentAndQuery[0].removePrefix("/")
+        val via = parseViaQuery(fragmentAndQuery.getOrNull(1))
 
         // Split on "/" for optional event id
         val parts = path.split('/').filter { it.isNotBlank() }
@@ -91,8 +93,6 @@ private fun parseMatrixTo(u: String): MatrixLink {
 
         val first = decodeUrl(parts[0])
         val eventId = parts.getOrNull(1)?.let(::decodeUrl)?.takeIf(::looksLikeEvent)
-
-        val via = uri.getQueryParameters("via").map(::decodeUrl)
 
         return when {
             looksLikeUser(first) -> MatrixLink.User(first)
@@ -103,9 +103,15 @@ private fun parseMatrixTo(u: String): MatrixLink {
     }.getOrElse { MatrixLink.Unsupported }
 }
 
+private fun parseViaQuery(query: String?): List<String> =
+    query?.split('&')?.mapNotNull {
+        val kv = it.split('=', limit = 2)
+        if (kv.size == 2 && kv[0] == "via") decodeUrl(kv[1]) else null
+    } ?: emptyList()
+
 private fun parseMatrixScheme(raw: String): MatrixLink {
     // Forms: matrix:u/@user:server  | matrix:r/!room:server[/ $event][?via=...]
-    val body = raw.removePrefix("matrix:") // e.g., "u/@user:domain?via=server"
+    val body = raw.substringAfter(':') // e.g., "u/@user:domain?via=server"
     val pathAndQuery = body.split('?', limit = 2)
     val path = pathAndQuery[0].trimStart('/')
     val query = pathAndQuery.getOrNull(1)
@@ -115,16 +121,11 @@ private fun parseMatrixScheme(raw: String): MatrixLink {
     val kind = segs[0].lowercase()
     val id = segs.getOrNull(1)?.let(::decodeUrl) ?: return MatrixLink.Unsupported
     val eventId = segs.getOrNull(2)?.let(::decodeUrl)?.takeIf(::looksLikeEvent)
-
-    val via = query?.split('&')?.mapNotNull {
-        val kv = it.split('=', limit = 2)
-        if (kv.size == 2 && kv[0] == "via") decodeUrl(kv[1]) else null
-    }
-        ?: emptyList()
+    val via = parseViaQuery(query)
 
     return when (kind) {
         "u", "user" -> if (looksLikeUser(id)) MatrixLink.User(id) else MatrixLink.Unsupported
-        "r", "room" -> if (looksLikeRoomId(id) || looksLikeAlias(id))
+        "r", "room", "roomid" -> if (looksLikeRoomId(id) || looksLikeAlias(id))
             MatrixLink.Room(MatrixRoomTarget(id, eventId, via)) else MatrixLink.Unsupported
         else -> MatrixLink.Unsupported
     }
