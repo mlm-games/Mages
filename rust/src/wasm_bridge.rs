@@ -74,7 +74,9 @@ pub fn init() {
 }
 
 pub fn to_json<T: serde::Serialize>(v: &T) -> JsValue {
-    let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
+    let serializer = serde_wasm_bindgen::Serializer::new()
+        .serialize_maps_as_objects(true)
+        .serialize_missing_as_null(true);
     v.serialize(&serializer).unwrap_or_else(|e| {
         web_sys::console::error_1(&JsValue::from_str(&format!("serialize failed: {e}")));
         JsValue::NULL

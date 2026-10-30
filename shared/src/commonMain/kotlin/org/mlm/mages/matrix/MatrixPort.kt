@@ -478,7 +478,7 @@ data class PublicRoom(
     val guestCanJoin: Boolean = false,
 )
 @Serializable
-data class PublicRoomsPage(val rooms: List<PublicRoom>, val nextBatch: String? = null, val prevBatch: String?)
+data class PublicRoomsPage(val rooms: List<PublicRoom>, val nextBatch: String? = null, val prevBatch: String? = null)
 
 enum class PublicRoomTypeFilter(val wireValue: String) {
     Rooms("rooms"),
