@@ -250,6 +250,7 @@ fun RoomListItem(
 
                         if (
                             item.lastMessageType == LastMessageType.Sticker &&
+                            preview.imagePath != null &&
                             isTgsSticker(item.lastMessageStickerMime, preview.imagePath)
                         ) {
                             TgsSticker(

@@ -106,6 +106,7 @@ import io.github.mlmgames.settings.core.SettingsRepository
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.name
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
@@ -253,11 +254,15 @@ fun RoomScreen(
 
     val stickerPicker = rememberFilePickerLauncher(
         mode = FileKitMode.Multiple(),
-        type = FileKitType.Image
+        type = FileKitType.File("tgs", "png", "apng", "jpg", "jpeg", "gif", "webp", "avif")
     ) { files ->
         scope.launch {
             files?.forEach { file ->
-                viewModel.attachSticker(file.toTransferItem().toMagesAttachment(AttachmentSourceKind.LocalPath))
+                val attachment = file.toTransferItem().toMagesAttachment(AttachmentSourceKind.LocalPath)
+                val isTgs = file.name.endsWith(".tgs", ignoreCase = true)
+                viewModel.attachSticker(
+                    if (isTgs) attachment.copy(mimeType = "application/x-tgsticker") else attachment
+                )
             }
         }
         viewModel.hideAttachmentPicker()

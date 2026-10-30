@@ -10,7 +10,7 @@ internal actual suspend fun readTgsBytes(source: String): ByteArray? = withConte
     }
     val path = source.removePrefix("file://")
     val file = File(path)
-    if (!file.isFile || file.length() > MaxTgsCompressedBytes) return@withContext null
+    if (!file.isFile || file.length() > MaxTgsCompressedBytes.toLong()) return@withContext null
     runCatching { file.readBytes() }
         .getOrNull()
         ?.takeIf { it.size <= MaxTgsCompressedBytes }
