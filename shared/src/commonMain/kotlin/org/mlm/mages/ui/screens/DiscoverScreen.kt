@@ -206,10 +206,10 @@ fun DiscoverScreen(
                         ) {
                             Text(
                                 stringResource(
-                                    if (state.roomTypeFilter == PublicRoomTypeFilter.Spaces) {
-                                        Res.string.spaces
-                                    } else {
-                                        Res.string.public_rooms
+                                    when (state.roomTypeFilter) {
+                                        PublicRoomTypeFilter.Spaces -> Res.string.spaces
+                                        PublicRoomTypeFilter.Rooms -> Res.string.public_rooms
+                                        null -> Res.string.rooms_and_spaces
                                     }
                                 ),
                                 style = MaterialTheme.typography.titleSmall
@@ -279,7 +279,12 @@ fun DiscoverScreen(
                     }
                 }
 
-                if (state.query.isBlank() && state.roomTypeFilter == null) {
+                if (!state.isBusy &&
+                    state.rooms.isEmpty() &&
+                    state.users.isEmpty() &&
+                    state.query.isBlank() &&
+                    state.roomTypeFilter == null
+                ) {
                     item(key = "hint") {
                         SearchHintCard()
                     }

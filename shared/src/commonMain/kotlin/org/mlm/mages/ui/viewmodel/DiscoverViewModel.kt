@@ -60,6 +60,10 @@ class DiscoverViewModel(
 
     private var searchJob: Job? = null
 
+    init {
+        triggerSearch("", debounce = false)
+    }
+
     fun setQuery(q: String) {
         updateState { copy(query = q) }
         triggerSearch(q)
@@ -86,22 +90,6 @@ class DiscoverViewModel(
             if (debounce) delay(300)
             val term = q.trim()
             val roomTypeFilter = currentState.roomTypeFilter
-
-            if (term.isBlank() && roomTypeFilter == null) {
-                updateState {
-                    copy(
-                        users = emptyList(),
-                        rooms = emptyList(),
-                        nextBatch = null,
-                        directJoinCandidate = null,
-                        directJoinVia = emptyList(),
-                        directJoinPreview = null,
-                        error = null,
-                        isBusy = false
-                    )
-                }
-                return@launch
-            }
 
             val directJoinTarget = normalizeJoinTarget(term)
             val userLookup = normalizeUserLookup(term)
