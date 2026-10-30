@@ -111,7 +111,11 @@ class SpaceDetailViewModel(
         launch {
             val displayName = child.name ?: child.alias ?: child.roomId
             if (child.isSpace) {
-                _events.send(Event.OpenSpace(child.roomId, displayName))
+                if (child.membership == RoomListMembership.Joined) {
+                    _events.send(Event.OpenSpace(child.roomId, displayName))
+                } else {
+                    joinChild(child, displayName)
+                }
                 return@launch
             }
             when (child.membership) {
