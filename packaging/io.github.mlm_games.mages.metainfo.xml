@@ -46,6 +46,28 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="5.3.0" date="2026-10-30" type="stable">
+      <description>
+        <ul>
+          <li>fix: joining spaces</li>
+          <li>fix: tgs picking</li>
+          <li>fix: open space children</li>
+          <li>fix: joining spaces</li>
+          <li>feat: support tgs stickers</li>
+          <li>feat: import pack zips on web</li>
+          <li>fix: forward stickers on web</li>
+          <li>fix: send stickers on web</li>
+          <li>feat: image previews in room list</li>
+          <li>feat: manage cached media</li>
+          <li>fix: show stickers with media previews off</li>
+          <li>fix: keep image pack toggle state</li>
+          <li>Second pack creation regression fix</li>
+          <li>fix: register missing nav routes</li>
+          <li>fix: select messages by tapping bubbles</li>
+          <li>feat: custom quick reactions</li>
+        </ul>
+      </description>
+    </release>
     <release version="5.2.8" date="2026-10-28" type="stable">
       <description>
         <ul>

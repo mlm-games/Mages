@@ -1,0 +1,16 @@
+- fix: joining spaces
+- fix: tgs picking
+- fix: open space children
+- fix: joining spaces
+- feat: support tgs stickers
+- feat: import pack zips on web
+- fix: forward stickers on web
+- fix: send stickers on web
+- feat: image previews in room list
+- feat: manage cached media
+- fix: show stickers with media previews off
+- fix: keep image pack toggle state
+- Second pack creation regression fix
+- fix: register missing nav routes
+- fix: select messages by tapping bubbles
+- feat: custom quick reactions
