@@ -126,6 +126,12 @@ where
     }
 }
 
+pub(crate) const INFINITE_POWER_LEVEL: i64 = i32::MAX as i64;
+
+fn ui_power_level(level: i64) -> i64 {
+    level.clamp(i32::MIN as i64, INFINITE_POWER_LEVEL)
+}
+
 /// The power level to treat `user_id` as having in `room`.
 ///
 /// From room version 12 the creator is given infinite power and must not appear in the
@@ -143,7 +149,7 @@ pub(crate) fn effective_user_level(
         .is_some_and(|version| version >= matrix_sdk::ruma::RoomVersionId::V12);
 
     if is_creator && is_modern_version {
-        return i64::MAX;
+        return INFINITE_POWER_LEVEL;
     }
 
     power_levels
@@ -367,14 +373,14 @@ pub(crate) fn map_power_levels(
     let users: HashMap<String, i64> = levels
         .users
         .iter()
-        .map(|(uid, l)| (uid.to_string(), (*l).into()))
+        .map(|(uid, l)| (uid.to_string(), ui_power_level((*l).into())))
         .collect();
     let events: HashMap<String, i64> = levels
         .events
         .iter()
-        .map(|(t, l)| (t.to_string(), (*l).into()))
+        .map(|(t, l)| (t.to_string(), ui_power_level((*l).into())))
         .collect();
-    let state_default: i64 = levels.state_default.into();
+    let state_default: i64 = ui_power_level(levels.state_default.into());
 
     fn el(
         levels: &matrix_sdk::ruma::events::room::power_levels::RoomPowerLevels,
@@ -385,20 +391,20 @@ pub(crate) fn map_power_levels(
         levels
             .events
             .get(&TimelineEventType::from(t))
-            .map(|&l| l.into())
+            .map(|&l| ui_power_level(l.into()))
             .unwrap_or(default)
     }
 
     RoomPowerLevels {
         users,
-        users_default: levels.users_default.into(),
+        users_default: ui_power_level(levels.users_default.into()),
         events,
-        events_default: levels.events_default.into(),
+        events_default: ui_power_level(levels.events_default.into()),
         state_default,
-        ban: levels.ban.into(),
-        kick: levels.kick.into(),
-        redact: levels.redact.into(),
-        invite: levels.invite.into(),
+        ban: ui_power_level(levels.ban.into()),
+        kick: ui_power_level(levels.kick.into()),
+        redact: ui_power_level(levels.redact.into()),
+        invite: ui_power_level(levels.invite.into()),
         room_name: el(levels, "m.room.name", state_default),
         room_avatar: el(levels, "m.room.avatar", state_default),
         room_topic: el(levels, "m.room.topic", state_default),
@@ -423,8 +429,8 @@ pub(crate) fn map_room_power_levels(
     let mut mapped = map_power_levels(levels);
     for creator in room.creators().into_iter().flatten() {
         let level: i64 = match levels.for_user(&creator) {
-            UserPowerLevel::Infinite => i64::MAX,
-            UserPowerLevel::Int(v) => v.into(),
+            UserPowerLevel::Infinite => INFINITE_POWER_LEVEL,
+            UserPowerLevel::Int(v) => ui_power_level(v.into()),
             _ => continue,
         };
         let entry = mapped.users.entry(creator.to_string()).or_insert(0);
@@ -1560,8 +1566,9 @@ impl CoreClient {
                     room.members(RoomMemberships::ACTIVE),
                 )
                 .await
-                .map_err(|_| FfiError::Msg("list_members timed out".into()))?
-                .ffi()?;
+                .ok()
+                .and_then(Result::ok)
+                .unwrap_or_default();
                 if let Some(peer) = members.into_iter().find(|m| m.user_id() != me) {
                     avatar_url = peer.avatar_url().map(|mxc| mxc.to_string());
                 }
@@ -1595,7 +1602,7 @@ impl CoreClient {
     ) -> Result<RoomActionState, FfiError> {
         let me = self.sdk.user_id();
 
-        let power_levels = room.power_levels().await.ffi()?;
+        let power_levels = room.power_levels_or_default().await;
         let my_level: i64 = match me.as_ref() {
             Some(uid) => effective_user_level(room, &power_levels, uid.as_ref()),
             None => 0,
@@ -1764,7 +1771,7 @@ impl CoreClient {
 
         let is_dm = room.is_dm();
 
-        let power_levels = room.power_levels().await.ffi()?;
+        let power_levels = room.power_levels_or_default().await;
         let my_level: i64 = effective_user_level(room, &power_levels, me.as_ref());
 
         let target_user_id = matrix_sdk::ruma::OwnedUserId::try_from(&*user_id)
@@ -1922,7 +1929,7 @@ impl CoreClient {
             .user_id()
             .ok_or_else(|| FfiError::Msg("not logged in".into()))?;
 
-        let power_levels = room.power_levels().await.ffi()?;
+        let power_levels = room.power_levels_or_default().await;
         let my_level: i64 = effective_user_level(room, &power_levels, me.as_ref());
 
         let sender_id = matrix_sdk::ruma::OwnedUserId::try_from(&*sender_user_id)
@@ -2016,7 +2023,10 @@ impl CoreClient {
     pub async fn list_members(&self, room_id: String) -> Result<Vec<MemberSummary>, FfiError> {
         let room = self.require_room(&room_id)?;
         let me = self.sdk.user_id();
-        let members = room.members(RoomMemberships::ACTIVE).await.ffi()?;
+        let members = match room.members(RoomMemberships::ACTIVE).await {
+            Ok(members) => members,
+            Err(_) => room.members_no_sync(RoomMemberships::ACTIVE).await.ffi()?,
+        };
         Ok(members
             .into_iter()
             .map(|m| MemberSummary {
@@ -2037,7 +2047,10 @@ impl CoreClient {
     ) -> Result<Vec<MemberSummary>, FfiError> {
         let room = self.require_room(&room_id)?;
         let me = self.sdk.user_id();
-        let members = room.members(RoomMemberships::BAN).await.ffi()?;
+        let members = match room.members(RoomMemberships::BAN).await {
+            Ok(members) => members,
+            Err(_) => room.members_no_sync(RoomMemberships::BAN).await.ffi()?,
+        };
         Ok(members
             .into_iter()
             .map(|m| MemberSummary {
@@ -2163,7 +2176,7 @@ impl CoreClient {
         room: &Room,
     ) -> Result<RoomInfoSnapshot, FfiError> {
         let profile = self.build_room_profile(room).await?;
-        let levels = room.power_levels().await.ffi()?;
+        let levels = room.power_levels_or_default().await;
         let power_levels = map_room_power_levels(room, &levels);
         let action_state = self.resolve_room_action_state_impl(room).await?;
         let pinned_event_ids = room
@@ -2706,15 +2719,15 @@ impl CoreClient {
             return -1;
         };
         match room.get_user_power_level(&uid).await {
-            Ok(UserPowerLevel::Infinite) => i64::MAX,
-            Ok(UserPowerLevel::Int(v)) => v.into(),
+            Ok(UserPowerLevel::Infinite) => INFINITE_POWER_LEVEL,
+            Ok(UserPowerLevel::Int(v)) => ui_power_level(v.into()),
             _ => -1,
         }
     }
 
     pub async fn room_power_levels(&self, room_id: String) -> Result<RoomPowerLevels, FfiError> {
         let room = self.require_room(&room_id)?;
-        let levels = room.power_levels().await.ffi()?;
+        let levels = room.power_levels_or_default().await;
         Ok(map_room_power_levels(&room, &levels))
     }
 
@@ -2769,7 +2782,7 @@ impl CoreClient {
     pub async fn can_user_ban(&self, room_id: String, user_id: String) -> Result<bool, FfiError> {
         let room = self.require_room(&room_id)?;
         let uid = Self::parse_uid(&user_id)?;
-        let levels = room.power_levels().await.ffi()?;
+        let levels = room.power_levels_or_default().await;
         Ok(levels.user_can_ban(&uid))
     }
 
@@ -2780,7 +2793,7 @@ impl CoreClient {
     ) -> Result<bool, FfiError> {
         let room = self.require_room(&room_id)?;
         let uid = Self::parse_uid(&user_id)?;
-        let levels = room.power_levels().await.ffi()?;
+        let levels = room.power_levels_or_default().await;
         Ok(levels.user_can_invite(&uid))
     }
 
@@ -2791,7 +2804,7 @@ impl CoreClient {
     ) -> Result<bool, FfiError> {
         let room = self.require_room(&room_id)?;
         let uid = Self::parse_uid(&user_id)?;
-        let levels = room.power_levels().await.ffi()?;
+        let levels = room.power_levels_or_default().await;
         Ok(levels.user_can_redact_event_of_other(&uid))
     }
 
@@ -4213,7 +4226,7 @@ impl CoreClient {
 
         // The spec asks for both directions so the relationship is discoverable from either room.
         if let Some(user_id) = self.sdk.user_id() {
-            let child_power_levels = child.power_levels().await.ffi()?;
+            let child_power_levels = child.power_levels_or_default().await;
             if child_power_levels.user_can_send_state(user_id, StateEventType::SpaceParent) {
                 child
                     .send_state_event_for_key(&rid_space, SpaceParentEventContent::new(space_route))

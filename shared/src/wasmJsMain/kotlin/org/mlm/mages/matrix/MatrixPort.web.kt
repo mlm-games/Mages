@@ -371,12 +371,15 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     private inline fun <reified T> decodeValue(value: JsAny?): T =
         wasmJson.decodeFromJsonElement(value.toJsonElement())
 
-    private inline fun <reified T> decodeValueOrNull(value: JsAny?, label: String = "decode"): T? =
-        runCatching {
-            decodeValue<T>(value)
+    private inline fun <reified T> decodeValueOrNull(value: JsAny?, label: String = "decode"): T? {
+        val element = value?.toJsonElement() ?: return null
+        if (element is JsonNull) return null
+        return runCatching {
+            wasmJson.decodeFromJsonElement<T>(element)
         }.onFailure {
             Logger.w("$label failed: ${it.message}")
         }.getOrNull()
+    }
 
     private inline fun <reified T : Enum<T>> decodeEnum(name: JsAny?): T? {
         val str = name?.toString()?.removeSurrounding("\"")?.takeIf { it != "null" && it != "undefined" } ?: return null
