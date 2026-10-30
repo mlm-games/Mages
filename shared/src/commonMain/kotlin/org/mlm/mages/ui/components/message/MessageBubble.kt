@@ -58,7 +58,9 @@ import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.FormattedBodyText
 import org.mlm.mages.ui.components.core.MentionRef
 import org.mlm.mages.ui.components.core.formatDisplayName
+import org.mlm.mages.platform.isTgsSticker
 import org.mlm.mages.ui.components.rememberBlurHashImage
+import org.mlm.mages.ui.components.sticker.TgsSticker
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.components.voice.VoiceMessageBubble
 import org.mlm.mages.ui.theme.Spacing
@@ -592,19 +594,28 @@ private fun ReplyPreviewVisual(preview: ReplyPreview, resolvedPath: String?) {
         contentAlignment = Alignment.Center,
     ) {
         if (imageSource != null) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalPlatformContext.current)
-                    .data(imageSource)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = null,
-                contentScale = if (preview.kind == ReplyPreviewKind.Sticker) {
-                    ContentScale.Fit
-                } else {
-                    ContentScale.Crop
-                },
-                modifier = Modifier.fillMaxSize(),
-            )
+            if (isTgsSticker(preview.sticker?.mime, imageSource)) {
+                TgsSticker(
+                    source = imageSource,
+                    animate = false,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalPlatformContext.current)
+                        .data(imageSource)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    contentScale = if (preview.kind == ReplyPreviewKind.Sticker) {
+                        ContentScale.Fit
+                    } else {
+                        ContentScale.Crop
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         } else if (icon != null) {
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         }
@@ -1123,18 +1134,25 @@ private fun StickerMessage(
                     .secondaryClick(onSecondaryClick)
             ) {
                 if (sticker.thumbPath != null) {
+                    val thumbPath = sticker.thumbPath
                     val mime = sticker.mime?.substringBefore(';')?.trim()?.lowercase()
-                    if (mime == "image/webp" || mime == "image/gif") {
-                        SketchAsyncImage(
-                            uri = sticker.thumbPath,
+                    when {
+                        isTgsSticker(sticker.mime, thumbPath) -> TgsSticker(
+                            source = thumbPath,
+                            contentDescription = model.body.takeIf { it.isNotBlank() },
+                            animate = true,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        mime == "image/webp" || mime == "image/gif" -> SketchAsyncImage(
+                            uri = thumbPath,
                             contentDescription = model.body.takeIf { it.isNotBlank() },
                             contentScale = ContentScale.Fit,
                             modifier = Modifier.fillMaxSize(),
                         )
-                    } else {
-                        AsyncImage(
+                        else -> AsyncImage(
                             model = ImageRequest.Builder(LocalPlatformContext.current)
-                                .data(sticker.thumbPath)
+                                .data(thumbPath)
                                 .crossfade(true)
                                 .build(),
                             contentDescription = model.body.takeIf { it.isNotBlank() },

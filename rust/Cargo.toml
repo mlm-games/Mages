@@ -28,6 +28,7 @@ uuid = { version = "1.26", features = ["v4"] }
 mime = "0.3"
 js_int = "0.2"
 thiserror = "2"
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 # Header-only dimension reads for `info` on uploaded pack images. No decode,
 # no re-encode: the picker already previews through the homeserver's
 # `/thumbnail` endpoint, so nothing here needs pixel data.

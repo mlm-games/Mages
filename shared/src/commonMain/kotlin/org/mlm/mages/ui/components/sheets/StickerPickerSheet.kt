@@ -62,7 +62,7 @@ fun StickerPickerSheet(
     packIdsBeingUpdated: Set<String>,
     discoveredPacks: List<ImagePackSummary>?,
     isDiscoveringPacks: Boolean,
-    requestPreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String?,
+    requestPreview: suspend (thumbnailMxcUri: String?, mxcUrl: String, mime: String?) -> String?,
     onSelect: (ImagePackImageEntry) -> Unit,
     onSetPackEnabled: (ImagePackSummary, Boolean) -> Unit,
     onDiscover: () -> Unit,
@@ -247,7 +247,7 @@ private fun LazyGridScope.packItems(
     isEncryptedRoom: Boolean,
     showSourceRoom: Boolean,
     packIdsBeingUpdated: Set<String>,
-    requestPreview: suspend (String?, String) -> String?,
+    requestPreview: suspend (String?, String, String?) -> String?,
     onSelect: (ImagePackImageEntry) -> Unit,
     onSetPackEnabled: (ImagePackSummary, Boolean) -> Unit,
 ) {
@@ -354,19 +354,20 @@ private fun LazyGridScope.packHeader(
 @Composable
 private fun PackImageCell(
     image: ImagePackImageEntry,
-    requestPreview: suspend (String?, String) -> String?,
+    requestPreview: suspend (String?, String, String?) -> String?,
     onSelect: (ImagePackImageEntry) -> Unit,
 ) {
     var previewPath by remember(image.mxcUrl) { mutableStateOf<String?>(null) }
 
     LaunchedEffect(image.mxcUrl) {
-        previewPath = requestPreview(image.thumbnailMxcUri, image.mxcUrl)
+        previewPath = requestPreview(image.thumbnailMxcUri, image.mxcUrl, image.mime)
     }
 
     PackImageTile(
         path = previewPath,
         contentDescription = image.body ?: image.shortcode,
         modifier = Modifier.size(56.dp),
-        onClick = { onSelect(image) }
+        onClick = { onSelect(image) },
+        mime = image.mime,
     )
 }

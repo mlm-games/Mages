@@ -1082,7 +1082,7 @@ fun RoomScreen(
             packIdsBeingUpdated = state.packIdsBeingUpdated,
             discoveredPacks = state.discoveredPacks,
             isDiscoveringPacks = state.isDiscoveringPacks,
-            requestPreview = viewModel::packImagePreview,
+            requestPreview = { thumbnail, mxc, mime -> viewModel.packImagePreview(thumbnail, mxc, mime) },
             onSelect = viewModel::sendPackSticker,
             onSetPackEnabled = viewModel::setPackEnabled,
             onDiscover = viewModel::discoverPacks,

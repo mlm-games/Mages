@@ -99,6 +99,7 @@ import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.mimeType
+import io.github.vinceglb.filekit.name
 import org.mlm.mages.ui.components.AttachmentSourceKind
 import org.mlm.mages.ui.components.toMagesAttachment
 import org.mlm.mages.ui.theme.MainTheme
@@ -411,7 +412,7 @@ private fun AppContent(
                     }
                     val packImagePicker = rememberFilePickerLauncher(
                         mode = FileKitMode.Multiple(),
-                        type = FileKitType.Image
+                        type = FileKitType.File("tgs", "png", "apng", "jpg", "jpeg", "gif", "webp", "avif")
                     ) { files ->
                         val onPicked = pendingPackPick ?: return@rememberFilePickerLauncher
                         val picked = files.orEmpty()
@@ -424,7 +425,12 @@ private fun AppContent(
                                     val attachment = file.toTransferItem().toMagesAttachment(
                                         AttachmentSourceKind.LocalPath
                                     )
-                                    attachment.path to (file.mimeType()?.toString() ?: "image/png")
+                                    val mime = if (file.name.endsWith(".tgs", ignoreCase = true)) {
+                                        "application/x-tgsticker"
+                                    } else {
+                                        file.mimeType()?.toString() ?: "image/png"
+                                    }
+                                    attachment.path to mime
                                 }
                             )
                         }

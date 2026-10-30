@@ -87,6 +87,8 @@ kotlin {
             implementation(libs.sketch.compose)
             implementation(libs.sketch.animated.gif)
             implementation(libs.sketch.animated.webp)
+            implementation(libs.compottie.lite)
+            implementation(libs.kflate)
             implementation(libs.koin.compose.navigation3)
 
             implementation(libs.filekit.core)

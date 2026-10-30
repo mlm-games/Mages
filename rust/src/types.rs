@@ -854,6 +854,7 @@ pub struct ImagePackImageEntry {
     pub info_json: Option<String>,
     pub thumbnail_mxc_uri: Option<String>,
     pub is_animated: Option<bool>,
+    pub mime: Option<String>,
 }
 
 /// An `m.room.image_pack` visible from some room, with its images resolved.

@@ -2792,7 +2792,7 @@ impl Client {
                 }
             };
             let mime_type: Mime = mime.parse().unwrap_or(mime::IMAGE_PNG);
-            if !mime.starts_with("image/") {
+            if !mime.starts_with("image/") && !crate::image_packs::is_tgs_mime(&mime_type) {
                 return false;
             }
             let data_len = data.len();

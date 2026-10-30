@@ -761,6 +761,7 @@ data class RoomListItemUi(
     val lastMessageTs: Long? = null,
     val lastMessageStickerMxc: String? = null,
     val lastMessageStickerPath: String? = null,
+    val lastMessageStickerMime: String? = null,
     val lastMessageImageMxc: String? = null,
     val lastMessageImagePath: String? = null,
 

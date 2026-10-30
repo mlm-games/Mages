@@ -192,6 +192,7 @@ private fun ReactionImageCell(
         path = previewPath,
         contentDescription = image.body ?: image.shortcode,
         modifier = Modifier.size(64.dp),
-        onClick = onClick
+        onClick = onClick,
+        mime = image.mime,
     )
 }

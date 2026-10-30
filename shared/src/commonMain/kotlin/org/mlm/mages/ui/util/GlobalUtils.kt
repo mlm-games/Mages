@@ -39,6 +39,9 @@ fun mimeToExtension(mime: String?): String = when (mime) {
     "image/gif" -> "gif"
     "image/webp" -> "webp"
     "image/svg+xml" -> "svg"
+    "application/x-tgsticker" -> "tgs"
+    "application/tgs" -> "tgs"
+    "image/tgs" -> "tgs"
     // Audio/Video
     "video/mp4" -> "mp4"
     "video/webm" -> "webm"
@@ -57,6 +60,7 @@ fun guessMimeType(fileName: String): String {
         fileName.endsWith(".png", ignoreCase = true) -> "image/png"
         fileName.endsWith(".gif", ignoreCase = true) -> "image/gif"
         fileName.endsWith(".webp", ignoreCase = true) -> "image/webp"
+        fileName.endsWith(".tgs", ignoreCase = true) -> "application/x-tgsticker"
         fileName.endsWith(".svg", ignoreCase = true) -> "image/svg+xml"
         fileName.endsWith(".mp4", ignoreCase = true) -> "video/mp4"
         fileName.endsWith(".webm", ignoreCase = true) -> "video/webm"

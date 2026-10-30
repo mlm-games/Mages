@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::io::Read;
 use std::time::Duration;
 
 use futures_util::StreamExt;
@@ -30,6 +31,13 @@ use matrix_sdk::{
 use once_cell::sync::Lazy;
 use serde::de::DeserializeOwned;
 use tracing::warn;
+
+const MAX_TGS_COMPRESSED_BYTES: usize = 8 * 1024 * 1024;
+const MAX_TGS_JSON_BYTES: usize = 4 * 1024 * 1024;
+const MAX_TGS_LAYERS: usize = 500;
+const MAX_TGS_ASSETS: usize = 200;
+const MAX_TGS_DIMENSION: u64 = 1024;
+const MAX_TGS_DURATION_SECONDS: f64 = 30.0;
 
 use crate::errors::IntoFfi;
 use crate::{FfiError, ImagePackImageEntry, ImagePackSummary};
@@ -324,10 +332,118 @@ pub(crate) fn parse_image_mime(mime: &str) -> Result<mime::Mime, FfiError> {
     let parsed: mime::Mime = mime
         .parse()
         .map_err(|_| FfiError::Msg(format!("unsupported image type {mime:?}")))?;
-    if parsed.type_() != "image" {
+    if parsed.type_() != "image" && !is_tgs_mime(&parsed) {
         return Err(FfiError::Msg(format!("{mime} is not an image")));
     }
     Ok(parsed)
+}
+
+pub(crate) fn is_tgs_mime(parsed: &mime::Mime) -> bool {
+    (parsed.type_().as_str() == "application"
+        && parsed.subtype().as_str() == "x-tgsticker")
+        || (parsed.type_().as_str() == "image" && parsed.subtype().as_str() == "tgs")
+}
+
+fn tgs_dimensions(bytes: &[u8]) -> Result<(u32, u32), FfiError> {
+    if bytes.len() > MAX_TGS_COMPRESSED_BYTES {
+        return Err(FfiError::Msg("tgs file is too large".into()));
+    }
+    if bytes.len() < 2 || bytes[0] != 0x1f || bytes[1] != 0x8b {
+        return Err(FfiError::Msg("tgs file is not gzip encoded".into()));
+    }
+
+    let mut json = Vec::new();
+    flate2::read::GzDecoder::new(bytes)
+        .take(MAX_TGS_JSON_BYTES as u64 + 1)
+        .read_to_end(&mut json)
+        .map_err(|e| FfiError::Msg(format!("tgs decompression failed: {e}")))?;
+    if json.len() > MAX_TGS_JSON_BYTES {
+        return Err(FfiError::Msg("tgs animation is too large".into()));
+    }
+
+    let value: serde_json::Value = serde_json::from_slice(&json)
+        .map_err(|e| FfiError::Msg(format!("tgs animation is invalid: {e}")))?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| FfiError::Msg("tgs animation is invalid".into()))?;
+
+    if object.get("tgs").and_then(serde_json::Value::as_u64) != Some(1) {
+        return Err(FfiError::Msg("tgs animation is invalid".into()));
+    }
+    let width = object
+        .get("w")
+        .and_then(serde_json::Value::as_u64)
+        .filter(|v| (1..=MAX_TGS_DIMENSION).contains(v))
+        .ok_or_else(|| FfiError::Msg("tgs animation has invalid dimensions".into()))?;
+    let height = object
+        .get("h")
+        .and_then(serde_json::Value::as_u64)
+        .filter(|v| (1..=MAX_TGS_DIMENSION).contains(v))
+        .ok_or_else(|| FfiError::Msg("tgs animation has invalid dimensions".into()))?;
+
+    let frame_rate = object
+        .get("fr")
+        .and_then(serde_json::Value::as_f64)
+        .ok_or_else(|| FfiError::Msg("tgs animation has invalid frame rate".into()))?;
+    let start = object
+        .get("ip")
+        .and_then(serde_json::Value::as_f64)
+        .unwrap_or(0.0);
+    let end = object
+        .get("op")
+        .and_then(serde_json::Value::as_f64)
+        .ok_or_else(|| FfiError::Msg("tgs animation has invalid duration".into()))?;
+    if !(1.0..=120.0).contains(&frame_rate)
+        || end <= start
+        || (end - start) / frame_rate > MAX_TGS_DURATION_SECONDS
+    {
+        return Err(FfiError::Msg("tgs animation has invalid timing".into()));
+    }
+
+    let layers = object
+        .get("layers")
+        .and_then(serde_json::Value::as_array)
+        .filter(|layers| !layers.is_empty() && layers.len() <= MAX_TGS_LAYERS)
+        .ok_or_else(|| FfiError::Msg("tgs animation has invalid layers".into()))?;
+    if layers.iter().any(|layer| {
+        matches!(
+            layer.get("ty").and_then(serde_json::Value::as_u64),
+            Some(2) | Some(5)
+        )
+    }) {
+        return Err(FfiError::Msg(
+            "tgs animation contains unsupported layers".into(),
+        ));
+    }
+
+    if let Some(assets) = object.get("assets").and_then(serde_json::Value::as_array) {
+        if assets.len() > MAX_TGS_ASSETS {
+            return Err(FfiError::Msg("tgs animation has too many assets".into()));
+        }
+        if assets.iter().any(|asset| {
+            asset.get("p").is_some()
+                || asset.get("u").is_some()
+                || asset.get("fFamily").is_some()
+        }) {
+            return Err(FfiError::Msg(
+                "tgs animation references external assets".into(),
+            ));
+        }
+    }
+
+    if object
+        .get("chars")
+        .and_then(serde_json::Value::as_array)
+        .is_some_and(|chars| !chars.is_empty())
+        || object
+            .get("fonts")
+            .and_then(serde_json::Value::as_array)
+            .is_some_and(|fonts| !fonts.is_empty())
+    {
+        return Err(FfiError::Msg("tgs animation contains text".into()));
+    }
+
+    Ok((width as u32, height as u32))
 }
 
 /// Upload one image for a pack and describe it for the pack's `info`.
@@ -346,7 +462,14 @@ pub(crate) async fn upload_pack_image(
     let parsed = parse_image_mime(mime)?;
 
     let byte_len = bytes.len();
-    let dimensions = imagesize::blob_size(&bytes).ok();
+    let is_tgs = is_tgs_mime(&parsed);
+    let dimensions = if is_tgs {
+        Some(tgs_dimensions(&bytes)?)
+    } else {
+        imagesize::blob_size(&bytes)
+            .ok()
+            .map(|d| (d.width as u32, d.height as u32))
+    };
     let upload = client
         .media()
         .upload(&parsed, bytes, None)
@@ -355,9 +478,13 @@ pub(crate) async fn upload_pack_image(
 
     // A client that cannot tell whether an image animates should leave the flag
     // unset, so only the formats that can animate claim to.
-    let is_animated = match parsed.subtype().as_str() {
-        "gif" | "webp" | "apng" => Some(true),
-        _ => None,
+    let is_animated = if is_tgs {
+        Some(true)
+    } else {
+        match parsed.subtype().as_str() {
+            "gif" | "webp" | "apng" => Some(true),
+            _ => None,
+        }
     };
 
     let mut info = ImageInfo::new();
@@ -365,8 +492,8 @@ pub(crate) async fn upload_pack_image(
     // `UInt::new` is fallible for values past 2^53-1; a byte count or pixel
     // dimension can never get there, so a dropped dimension just stays unset.
     info.size = UInt::new(byte_len as u64);
-    info.width = dimensions.and_then(|d| UInt::new(d.width as u64));
-    info.height = dimensions.and_then(|d| UInt::new(d.height as u64));
+    info.width = dimensions.and_then(|(width, _)| UInt::new(width as u64));
+    info.height = dimensions.and_then(|(_, height)| UInt::new(height as u64));
     info.is_animated = is_animated;
 
     Ok(UploadedPackImage {
@@ -660,6 +787,7 @@ fn entry_from(shortcode: String, image: ImagePackImage) -> ImagePackImageEntry {
             .map(|info| serde_json::to_string(info).unwrap_or_default()),
         thumbnail_mxc_uri,
         is_animated: image.info.as_ref().and_then(|info| info.is_animated),
+        mime: image.info.as_ref().and_then(|info| info.mimetype.clone()),
     }
 }
 

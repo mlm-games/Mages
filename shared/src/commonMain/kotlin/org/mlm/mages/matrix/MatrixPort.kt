@@ -717,7 +717,8 @@ data class ImagePackImageEntry(
     /** The pack's own `info` object, forwarded verbatim when sending. */
     val infoJson: String? = null,
     val thumbnailMxcUri: String? = null,
-    val isAnimated: Boolean? = null
+    val isAnimated: Boolean? = null,
+    val mime: String? = null
 )
 
 @Serializable

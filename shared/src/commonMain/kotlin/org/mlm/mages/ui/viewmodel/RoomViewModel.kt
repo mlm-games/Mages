@@ -25,6 +25,7 @@ import org.mlm.mages.platform.LiveLocationProvider
 import org.mlm.mages.platform.LiveLocationSharingCoordinator
 import org.mlm.mages.platform.LocationResult
 import org.mlm.mages.platform.deleteDirectory
+import org.mlm.mages.platform.isTgsSticker
 import org.mlm.mages.platform.platformEmbeddedElementCallParentUrlOrNull
 import org.mlm.mages.platform.platformEmbeddedElementCallUrlOrNull
 import org.mlm.mages.platform.voiceMessageMimeType
@@ -586,20 +587,35 @@ class RoomViewModel(
      * pack author declared. Paths are cached per media URI because the picker
      * re-resolves its grid every time it opens.
      */
-    suspend fun packImagePreview(thumbnailMxcUri: String?, mxcUrl: String): String? {
-        val key = thumbnailMxcUri ?: mxcUrl
+    suspend fun packImagePreview(thumbnailMxcUri: String?, mxcUrl: String): String? =
+        packImagePreview(thumbnailMxcUri, mxcUrl, null)
+
+    suspend fun packImagePreview(
+        thumbnailMxcUri: String?,
+        mxcUrl: String,
+        mime: String?,
+    ): String? {
+        val key = if (isTgsSticker(mime, mxcUrl)) mxcUrl else thumbnailMxcUri ?: mxcUrl
         val request = previewLock.withLock {
             previewPathByMxc[key]?.let { return it }
             previewInFlight.getOrPut(key) {
-                CompletableDeferred<String?>().also { startPreviewFetch(key, it) }
+                CompletableDeferred<String?>().also { startPreviewFetch(key, mime, it) }
             }
         }
         return request.await()
     }
 
-    private fun startPreviewFetch(key: String, request: CompletableDeferred<String?>) {
+    private fun startPreviewFetch(
+        key: String,
+        mime: String?,
+        request: CompletableDeferred<String?>,
+    ) {
         launch {
-            val path = service.port.packImageToCache(key, 128, 128).getOrNull()
+            val path = if (isTgsSticker(mime, key)) {
+                service.downloadStickerToCache(StickerInfo(mxcUri = key, mime = mime)).getOrNull()
+            } else {
+                service.port.packImageToCache(key, 128, 128).getOrNull()
+            }
             previewLock.withLock {
                 if (path != null) previewPathByMxc[key] = path
                 previewInFlight.remove(key)

@@ -39,6 +39,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.mlm.mages.ui.components.sticker.TgsSticker
 import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.sign
@@ -187,6 +188,7 @@ internal fun ZoomableImage(
     onDismiss: () -> Unit,
     onDraggingChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
+    isTgs: Boolean = false,
 ) {
     val dismissOffset = remember { mutableFloatStateOf(0f) }
     val scope = rememberCoroutineScope()
@@ -239,16 +241,26 @@ internal fun ZoomableImage(
                     lockRotationOnZoomPan = true,
                 ),
         ) {
-            AsyncImage(
-                model = request,
-                contentDescription = contentDescription,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize(),
-                onSuccess = { state ->
-                    val image = state.result.image
-                    zoom.onIntrinsicSizeChanged(IntSize(image.width, image.height))
-                },
-            )
+            if (isTgs) {
+                TgsSticker(
+                    source = model as? String,
+                    animate = true,
+                    contentDescription = contentDescription,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                AsyncImage(
+                    model = request,
+                    contentDescription = contentDescription,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize(),
+                    onSuccess = { state ->
+                        val image = state.result.image
+                        zoom.onIntrinsicSizeChanged(IntSize(image.width, image.height))
+                    },
+                )
+            }
         }
     }
 }

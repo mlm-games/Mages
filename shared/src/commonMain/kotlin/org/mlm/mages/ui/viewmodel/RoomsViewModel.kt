@@ -426,6 +426,7 @@ class RoomsViewModel(
             lastMessageTs = lastEvent?.timestamp,
             lastMessageStickerMxc = lastSticker?.mxcUri,
             lastMessageStickerPath = lastSticker?.mxcUri?.let { stickerPreviewPathByMxc[it] },
+            lastMessageStickerMime = lastSticker?.mime,
             lastMessageImageMxc = lastImage?.mxcUri,
             lastMessageImagePath = lastImage?.mxcUri?.let { imagePreviewPathByMxc[it] },
             isSharingLocation = LiveLocationSharingCoordinator.isSharing(entry.roomId),

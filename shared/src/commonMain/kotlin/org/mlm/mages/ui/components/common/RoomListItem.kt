@@ -33,6 +33,8 @@ import mages.shared.generated.resources.*
 import org.mlm.mages.ui.LastMessageType
 import org.mlm.mages.ui.RoomListItemUi
 import org.mlm.mages.ui.components.core.Avatar
+import org.mlm.mages.platform.isTgsSticker
+import org.mlm.mages.ui.components.sticker.TgsSticker
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.theme.Limits
 import org.mlm.mages.ui.util.formatClockTime
@@ -246,7 +248,20 @@ fun RoomListItem(
                             imagePath = item.lastMessageImagePath.takeIf { allowMediaPreviews }
                         )
 
-                        if (preview.imagePath != null) {
+                        if (
+                            item.lastMessageType == LastMessageType.Sticker &&
+                            isTgsSticker(item.lastMessageStickerMime, preview.imagePath)
+                        ) {
+                            TgsSticker(
+                                source = preview.imagePath,
+                                animate = false,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                            )
+                            Spacer(Modifier.width(4.dp))
+                        } else if (preview.imagePath != null) {
                             AsyncImage(
                                 model = ImageRequest.Builder(LocalPlatformContext.current)
                                     .data(preview.imagePath)

@@ -6,10 +6,12 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import mages.shared.generated.resources.*
 import org.mlm.mages.MatrixService
+import org.mlm.mages.StickerInfo
 import org.mlm.mages.matrix.ImagePackImageEntry
 import org.mlm.mages.matrix.ImagePackSummary
 import org.mlm.mages.matrix.PackImageDraft
 import org.mlm.mages.matrix.PackWrite
+import org.mlm.mages.platform.isTgsSticker
 import org.mlm.mages.ui.ImagePackEditorUiState
 import org.mlm.mages.ui.PackEditorEntry
 import org.mlm.mages.ui.PendingPackImage
@@ -84,13 +86,22 @@ class ImagePackEditorViewModel(
      * pack author declared. Cached per media URI because the grid re-resolves
      * on every recomposition.
      */
-    suspend fun packImagePreview(thumbnailMxcUri: String?, mxcUrl: String): String? {
-        val key = thumbnailMxcUri ?: mxcUrl
+    suspend fun packImagePreview(thumbnailMxcUri: String?, mxcUrl: String): String? =
+        packImagePreview(thumbnailMxcUri, mxcUrl, null)
+
+    suspend fun packImagePreview(
+        thumbnailMxcUri: String?,
+        mxcUrl: String,
+        mime: String?,
+    ): String? {
+        val tgs = isTgsSticker(mime, mxcUrl)
+        val key = if (tgs) mxcUrl else thumbnailMxcUri ?: mxcUrl
         previewLock.withLock { previewPathByMxc[key] }?.let { return it }
-        val path = service.port
-            .packImageToCache(thumbnailMxcUri ?: mxcUrl, 128, 128)
-            .getOrNull()
-            ?: return null
+        val path = if (tgs) {
+            service.downloadStickerToCache(StickerInfo(mxcUri = key, mime = mime)).getOrNull()
+        } else {
+            service.port.packImageToCache(key, 128, 128).getOrNull()
+        } ?: return null
         previewLock.withLock { previewPathByMxc[key] = path }
         return path
     }

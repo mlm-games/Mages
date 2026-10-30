@@ -135,7 +135,7 @@ fun ImagePackEditorRoute(
         onDiscard = {
             if (state.hasUnsavedChanges) confirmDiscard = true else onBack()
         },
-        requestPreview = viewModel::packImagePreview,
+        requestPreview = { thumbnail, mxc, mime -> viewModel.packImagePreview(thumbnail, mxc, mime) },
         onAddImages = { packIndex ->
             pickTarget = packIndex
             onPickImages { picked -> viewModel.addImages(pickTarget, picked) }
@@ -161,7 +161,7 @@ fun ImagePackEditorRoute(
 fun ImagePackEditorScreen(
     state: ImagePackEditorUiState,
     onDiscard: () -> Unit,
-    requestPreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String?,
+    requestPreview: suspend (thumbnailMxcUri: String?, mxcUrl: String, mime: String?) -> String?,
     onAddImages: (packIndex: Int) -> Unit,
     onImportZip: (packIndex: Int) -> Unit,
     onRenamePack: (index: Int, name: String) -> Unit,
@@ -276,7 +276,7 @@ fun ImagePackEditorScreen(
 private fun PackEditorGrid(
     modifier: Modifier = Modifier,
     state: ImagePackEditorUiState,
-    requestPreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String?,
+    requestPreview: suspend (thumbnailMxcUri: String?, mxcUrl: String, mime: String?) -> String?,
     onRenamePack: (index: Int, name: String) -> Unit,
     onSetUsage: (index: Int, usage: List<String>) -> Unit,
     onSetPackGlobal: (index: Int, enabled: Boolean) -> Unit,
@@ -349,7 +349,7 @@ private fun LazyGridScope.packSection(
     pack: PackEditorEntry,
     isReadOnly: Boolean,
     isSaving: Boolean,
-    requestPreview: suspend (String?, String) -> String?,
+    requestPreview: suspend (String?, String, String?) -> String?,
     onRename: (String) -> Unit,
     onSetUsage: (List<String>) -> Unit,
     onSetPackGlobal: (Boolean) -> Unit,
@@ -552,12 +552,12 @@ private fun UsageSelector(
 private fun StoredPackImageCell(
     image: ImagePackImageEntry,
     isReadOnly: Boolean,
-    requestPreview: suspend (String?, String) -> String?,
+    requestPreview: suspend (String?, String, String?) -> String?,
     onRemove: () -> Unit
 ) {
     var previewPath by remember(image.mxcUrl) { mutableStateOf<String?>(null) }
     LaunchedEffect(image.mxcUrl) {
-        previewPath = requestPreview(image.thumbnailMxcUri, image.mxcUrl)
+        previewPath = requestPreview(image.thumbnailMxcUri, image.mxcUrl, image.mime)
     }
 
     Column(Modifier.fillMaxWidth()) {
@@ -569,7 +569,8 @@ private fun StoredPackImageCell(
             PackImageTile(
                 path = previewPath,
                 contentDescription = image.body ?: image.shortcode,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                mime = image.mime,
             )
             if (!isReadOnly) {
                 RemoveChip(
@@ -616,7 +617,8 @@ private fun PendingImageCell(
             PackImageTile(
                 path = pending.previewPath ?: pending.path,
                 contentDescription = pending.shortcode,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                mime = pending.mime,
             )
             if (!isReadOnly) {
                 RemoveChip(

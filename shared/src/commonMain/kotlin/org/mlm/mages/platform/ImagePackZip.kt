@@ -12,6 +12,7 @@ internal fun imageMimeFor(name: String): String? =
         "gif" -> "image/gif"
         "webp" -> "image/webp"
         "avif" -> "image/avif"
+        "tgs" -> "application/x-tgsticker"
         else -> null
     }
 

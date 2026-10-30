@@ -637,7 +637,8 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
                 body = entry.body,
                 infoJson = entry.infoJson,
                 thumbnailMxcUri = entry.thumbnailMxcUri,
-                isAnimated = entry.isAnimated
+                isAnimated = entry.isAnimated,
+                mime = entry.mime
             )
         }
     )

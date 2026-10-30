@@ -15,6 +15,8 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import org.mlm.mages.platform.isTgsSticker
+import org.mlm.mages.ui.components.sticker.TgsSticker
 
 @Composable
 fun PackImageTile(
@@ -23,7 +25,8 @@ fun PackImageTile(
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Fit,
     shape: RoundedCornerShape = RoundedCornerShape(8.dp),
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    mime: String? = null,
 ) {
     val base = modifier
         .clip(shape)
@@ -32,6 +35,17 @@ fun PackImageTile(
 
     if (path == null) {
         Box(base)
+        return
+    }
+
+    if (isTgsSticker(mime, path)) {
+        TgsSticker(
+            source = path,
+            contentDescription = contentDescription,
+            animate = false,
+            contentScale = contentScale,
+            modifier = base,
+        )
         return
     }
 

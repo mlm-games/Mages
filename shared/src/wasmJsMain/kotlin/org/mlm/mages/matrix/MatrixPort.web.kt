@@ -26,6 +26,7 @@ import org.mlm.mages.RoomSummary
 import org.mlm.mages.StickerInfo
 import org.mlm.mages.platform.MagesPaths
 import org.mlm.mages.platform.clearWebBlob
+import org.mlm.mages.platform.isTgsSticker
 import org.mlm.mages.platform.retrieveWebBlob
 import org.mlm.mages.platform.navigatorOnLine
 import org.w3c.dom.url.URL
@@ -876,7 +877,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         filename: String?,
         onProgress: ((Long, Long?) -> Unit)?
     ): Boolean {
-        if (!mime.startsWith("image/")) return false
+        if (!mime.startsWith("image/") && !isTgsSticker(mime)) return false
         val bytes = stickerBytesFromWebPath(path) ?: return false
         clearWebBlob(path)
         val total = bytes.size.toLong()

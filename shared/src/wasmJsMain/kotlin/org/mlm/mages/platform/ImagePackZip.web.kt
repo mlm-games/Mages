@@ -28,6 +28,7 @@ actual suspend fun extractImagePackZip(
             if (entry.isDirectory || entry.size <= 0L) continue
             val name = entry.name.substringAfterLast('/').substringAfterLast('\\')
             if (name.startsWith(".")) continue
+            if (name.startsWith("thumbnail.", ignoreCase = true)) continue
             val mime = imageMimeFor(name) ?: continue
             if (entry.size > MAX_IMAGE_BYTES) continue
             if (totalBytes + entry.size > MAX_TOTAL_BYTES) break

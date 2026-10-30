@@ -68,6 +68,7 @@ import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MatrixService
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.captionOr
+import org.mlm.mages.platform.isTgsSticker
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.downloadNameHint
 import org.mlm.mages.ui.util.formatPinnedTimestamp
@@ -223,6 +224,10 @@ private fun ImageViewerPages(
                 onTap = { chromeVisible = !chromeVisible },
                 onDraggingChange = { dragging -> chromeVisible = !dragging },
                 onDismiss = onDismiss,
+                isTgs = isTgsSticker(
+                    item.event.sticker?.mime,
+                    fullMedia[item.event.eventId] ?: item.previewPath,
+                ),
             )
         }
 
