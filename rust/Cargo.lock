@@ -2836,6 +2836,7 @@ dependencies = [
  "blurhash",
  "console_error_panic_hook",
  "dispatch2",
+ "flate2",
  "futures-util",
  "getrandom 0.3.4",
  "getrandom 0.4.3",

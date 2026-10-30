@@ -135,21 +135,36 @@ fun BindDeepLinks(
                     }
                 }
             } else {
-                val alreadyThere = top is Route.Room && top.roomId == action.roomId
-                if (alreadyThere) {
-                    if (action.eventId != null) {
-                        backStack.replaceTop(Route.Room(
+                val space = if (action.eventId == null && !action.joinCall) {
+                    runCatching {
+                        service.mySpaces().firstOrNull { it.roomId == action.roomId }
+                    }.getOrNull()
+                } else {
+                    null
+                }
+
+                if (space != null) {
+                    val alreadyThere = top is Route.SpaceDetail && top.spaceId == action.roomId
+                    if (!alreadyThere) {
+                        backStack.add(Route.SpaceDetail(space.roomId, space.name))
+                    }
+                } else {
+                    val alreadyThere = top is Route.Room && top.roomId == action.roomId
+                    if (alreadyThere) {
+                        if (action.eventId != null) {
+                            backStack.replaceTop(Route.Room(
+                                roomId = action.roomId,
+                                name = action.roomId,
+                                eventId = action.eventId
+                            ))
+                        }
+                    } else {
+                        backStack.openRoom(Route.Room(
                             roomId = action.roomId,
-                            name = action.roomId,
+                            name = action.roomId, // Will be updated by RoomViewModel
                             eventId = action.eventId
                         ))
                     }
-                } else {
-                    backStack.openRoom(Route.Room(
-                        roomId = action.roomId,
-                        name = action.roomId, // Will be updated by RoomViewModel
-                        eventId = action.eventId
-                    ))
                 }
             }
 

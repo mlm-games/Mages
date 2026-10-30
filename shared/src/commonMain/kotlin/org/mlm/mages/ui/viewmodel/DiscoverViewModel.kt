@@ -10,6 +10,7 @@ import org.mlm.mages.matrix.PublicRoom
 import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.RoomPreview
 import org.mlm.mages.matrix.RoomPreviewMembership
+import org.mlm.mages.matrix.SpaceInfo
 import org.jetbrains.compose.resources.getString
 import mages.shared.generated.resources.Res
 
@@ -46,6 +47,7 @@ class DiscoverViewModel(
 
     sealed class Event {
         data class OpenRoom(val roomId: String, val name: String) : Event()
+        data class OpenSpace(val spaceId: String, val name: String) : Event()
         data class ShowError(val message: String) : Event()
         data class ShowSuccess(val message: String) : Event()
     }
@@ -196,12 +198,17 @@ class DiscoverViewModel(
             updateState { copy(isBusy = false) }
 
             if (rid != null) {
-                _events.send(
-                    Event.OpenRoom(
-                        rid,
-                        room.name ?: room.alias ?: room.roomId
+                val space = joinedSpace(rid)
+                if (space != null) {
+                    _events.send(Event.OpenSpace(space.roomId, space.name))
+                } else {
+                    _events.send(
+                        Event.OpenRoom(
+                            rid,
+                            room.name ?: room.alias ?: room.roomId
+                        )
                     )
-                )
+                }
             } else {
                 _events.send(Event.ShowError(getString(Res.string.failed_to_join_room)))
             }
@@ -233,19 +240,30 @@ class DiscoverViewModel(
             }
             updateState { copy(isBusy = false) }
 
-            result.fold(
-                onSuccess = { rid ->
+            val rid = result.getOrNull()
+            if (rid != null) {
+                val space = joinedSpace(rid)
+                if (space != null) {
+                    _events.send(Event.OpenSpace(space.roomId, space.name))
+                } else {
                     _events.send(Event.OpenRoom(rid, idOrAlias))
-                },
-                onFailure = { error ->
-                    _events.send(Event.ShowError(error.message ?: getString(Res.string.failed_to_join_named, idOrAlias)))
                 }
-            )
+            } else {
+                _events.send(
+                    Event.ShowError(
+                        result.exceptionOrNull()?.message
+                            ?: getString(Res.string.failed_to_join_named, idOrAlias)
+                    )
+                )
+            }
         }
     }
 
+    private suspend fun joinedSpace(roomId: String): SpaceInfo? =
+        runSafe { service.mySpaces() }?.firstOrNull { it.roomId == roomId }
+
     private suspend fun loadDirectJoinPreview(idOrAlias: String): DirectJoinPreview {
-        val result = service.port.roomPreview(idOrAlias)
+        val result = service.port.roomPreview(idOrAlias, viaServers())
         return result.fold(
             onSuccess = { preview -> preview.toDirectJoinPreview(idOrAlias) },
             onFailure = { error ->
@@ -261,13 +279,21 @@ class DiscoverViewModel(
     }
 
     private suspend fun knockAndResolve(idOrAlias: String): Result<String> {
-        val knockSuccess = runSafe { service.port.knock(idOrAlias) }?.isSuccess ?: false
+        val knockSuccess = runSafe { service.port.knock(idOrAlias, viaServers()) }?.isSuccess ?: false
         return if (knockSuccess) {
             Result.failure(IllegalStateException(getString(Res.string.knock_request_sent_waiting_for_approval)))
         } else {
             Result.failure(IllegalStateException(getString(Res.string.failed_to_knock_on_room)))
         }
     }
+
+    private suspend fun viaServers(): List<String> =
+        runSafe { service.mySpaces() }
+            .orEmpty()
+            .mapNotNull { space ->
+                space.roomId.substringAfter(':', "").takeIf { it.isNotBlank() }
+            }
+            .distinct()
 
     private suspend fun joinRoom(idOrAlias: String): Result<String> {
         if (!looksLikeRoomIdOrAlias(idOrAlias)) {
@@ -292,7 +318,7 @@ class DiscoverViewModel(
             }
         }
 
-        val joinResult = service.port.joinByIdOrAlias(idOrAlias)
+        val joinResult = service.port.joinByIdOrAlias(idOrAlias, viaServers())
         if (joinResult.isFailure) {
             return Result.failure(joinResult.exceptionOrNull() ?: IllegalStateException(getString(Res.string.failed_to_join_room)))
         }
@@ -333,14 +359,14 @@ class DiscoverViewModel(
         }
 
         val action = when (membership) {
-            RoomPreviewMembership.Joined -> DirectJoinAction.Join
+            RoomPreviewMembership.Joined,
+            RoomPreviewMembership.Invited -> DirectJoinAction.Join
             RoomPreviewMembership.Knocked,
-            RoomPreviewMembership.Banned,
-            RoomPreviewMembership.Invited -> DirectJoinAction.None
+            RoomPreviewMembership.Banned -> DirectJoinAction.None
             else -> when (joinRule) {
-                RoomJoinRule.Public -> DirectJoinAction.Join
+                RoomJoinRule.Public,
+                RoomJoinRule.Restricted -> DirectJoinAction.Join
                 RoomJoinRule.Knock, RoomJoinRule.KnockRestricted -> DirectJoinAction.Knock
-                RoomJoinRule.Restricted,
                 RoomJoinRule.Invite,
                 null -> DirectJoinAction.None
             }

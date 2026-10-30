@@ -45,7 +45,7 @@ fun SpacesScreen(
     val snackbarManager: SnackbarManager = koinInject()
     val listState = rememberLazyListState()
 
-    LaunchedEffect(Unit) { viewModel.refreshUnread() }
+    LaunchedEffect(Unit) { viewModel.refresh() }
 
     Scaffold(
         topBar = {

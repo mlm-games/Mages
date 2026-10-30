@@ -249,11 +249,16 @@ class SpaceDetailViewModel(
     private fun joinChild(child: SpaceChildInfo, displayName: String) {
         launch {
             val target = child.alias ?: child.roomId
-            val joinRule = service.port.roomPreview(target).getOrNull()?.joinRule
+            val via = currentState.spaceId.substringAfter(':', "")
+                .takeIf { it.isNotBlank() }
+                ?.let(::listOf)
+                .orEmpty()
+            val joinRule = service.port.roomPreview(target, via).getOrNull()?.joinRule
 
             val result = when (joinRule) {
-                RoomJoinRule.Knock, RoomJoinRule.KnockRestricted -> service.port.knock(target)
-                else -> service.port.joinByIdOrAlias(target)
+                RoomJoinRule.Knock, RoomJoinRule.KnockRestricted ->
+                    service.port.knock(target, via)
+                else -> service.port.joinByIdOrAlias(target, via)
             }
 
             if (result.isFailure) {
@@ -263,6 +268,8 @@ class SpaceDetailViewModel(
 
             if (joinRule == RoomJoinRule.Knock || joinRule == RoomJoinRule.KnockRestricted) {
                 _events.send(Event.ShowMessage(getString(Res.string.knocked_on_named, displayName)))
+            } else if (child.isSpace) {
+                _events.send(Event.OpenSpace(child.roomId, displayName))
             } else {
                 _events.send(Event.OpenRoom(child.roomId, displayName))
             }

@@ -530,6 +530,10 @@ private fun AppContent(
                                             else backStack.add(Route.Room(event.roomId, event.name))
                                         }
 
+                                        is RoomsViewModel.Event.OpenSpace -> {
+                                            backStack.add(Route.SpaceDetail(event.spaceId, event.name))
+                                        }
+
                                         is RoomsViewModel.Event.ShowError -> {
                                             postError(event.message)
                                         }
@@ -700,6 +704,10 @@ private fun AppContent(
                                     when (event) {
                                         is DiscoverViewModel.Event.OpenRoom -> {
                                             backStack.add(Route.Room(event.roomId, event.name))
+                                        }
+
+                                        is DiscoverViewModel.Event.OpenSpace -> {
+                                            backStack.add(Route.SpaceDetail(event.spaceId, event.name))
                                         }
 
                                         is DiscoverViewModel.Event.ShowError -> {

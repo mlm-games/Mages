@@ -21,6 +21,7 @@ import org.mlm.mages.matrix.LatestRoomEvent
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.RoomListEntry
 import org.mlm.mages.matrix.RoomNotificationMode
+import org.mlm.mages.matrix.SpaceInfo
 import org.mlm.mages.matrix.allowsMediaPreviews
 import org.mlm.mages.platform.LiveLocationSharingCoordinator
 import org.mlm.mages.settings.AppSettings
@@ -46,6 +47,7 @@ class RoomsViewModel(
     // One-time events
     sealed class Event {
         data class OpenRoom(val roomId: String, val name: String) : Event()
+        data class OpenSpace(val spaceId: String, val name: String) : Event()
         data class ShowError(val message: String) : Event()
     }
 
@@ -132,7 +134,12 @@ class RoomsViewModel(
 
     fun openRoom(room: RoomSummary) {
         launch {
-            _events.send(Event.OpenRoom(room.id, room.name))
+            val space = joinedSpace(room.id)
+            if (space != null) {
+                _events.send(Event.OpenSpace(space.roomId, space.name))
+            } else {
+                _events.send(Event.OpenRoom(room.id, room.name))
+            }
         }
     }
 
@@ -142,6 +149,9 @@ class RoomsViewModel(
             val success = result.getOrNull()?.isSuccess == true
             if (success) {
                 recomputeGroupedRooms()
+                joinedSpace(roomId)?.let { space ->
+                    _events.send(Event.OpenSpace(space.roomId, space.name))
+                }
             } else {
                 val message = result.exceptionOrNull()?.message
                     ?: result.getOrNull()?.exceptionOrNull()?.message
@@ -150,6 +160,9 @@ class RoomsViewModel(
             }
         }
     }
+
+    private suspend fun joinedSpace(roomId: String): SpaceInfo? =
+        runSafe { service.mySpaces() }?.firstOrNull { it.roomId == roomId }
 
     fun showDeclineInvite(roomId: String) {
         launch {

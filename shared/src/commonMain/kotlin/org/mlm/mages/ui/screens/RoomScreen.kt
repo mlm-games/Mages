@@ -676,7 +676,7 @@ fun RoomScreen(
                         onCancelVoiceRecording = viewModel::cancelVoiceRecording,
                         onVoiceRecordingComplete = viewModel::onVoiceRecordingComplete,
                         emoteSuggestions = viewModel.emoteSuggestions,
-                        resolveEmotePreview = viewModel::packImagePreview,
+                        resolveEmotePreview = { thumbnail, mxc -> viewModel.packImagePreview(thumbnail, mxc) },
                     )
                 }
             }
@@ -1255,7 +1255,7 @@ fun RoomScreen(
             onSelect = { viewModel.enterSelectionMode(event.eventId) },
             reactionImagePacks = state.imagePacks,
             isEncryptedRoom = state.isRoomEncrypted,
-            resolveReactionPreview = viewModel::packImagePreview,
+            resolveReactionPreview = { thumbnail, mxc -> viewModel.packImagePreview(thumbnail, mxc) },
         )
     }
 
