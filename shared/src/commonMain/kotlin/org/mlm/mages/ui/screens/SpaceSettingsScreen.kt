@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.matrix.SpaceInfo
+import org.mlm.mages.matrix.displayName
 import org.mlm.mages.platform.rememberFileOpener
 import org.koin.compose.koinInject
 import org.mlm.mages.ui.components.dialogs.AddRoomToSpaceDialog
@@ -29,6 +30,7 @@ import org.mlm.mages.ui.components.sheets.JoinRuleSpacePickerSheet
 import org.mlm.mages.ui.components.sheets.MemberActionsSheet
 import org.mlm.mages.ui.components.sheets.MemberListSheet
 import org.mlm.mages.ui.components.sheets.PowerLevelsSheet
+import org.mlm.mages.ui.components.sheets.RoomNotificationSheet
 import org.mlm.mages.ui.ActionAvailabilityUi
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.core.Avatar
@@ -147,6 +149,23 @@ fun SpaceSettingsScreen(
                             Icon(Icons.Default.Group, null, tint = MaterialTheme.colorScheme.primary)
                         },
                         modifier = Modifier.clickable { viewModel.showPeople() }
+                    )
+                }
+
+                item(key = "action_notifications") {
+                    ListItem(
+                        headlineContent = { Text(stringResource(Res.string.notifications)) },
+                        supportingContent = {
+                            Text(state.notificationMode?.displayName() ?: stringResource(Res.string.default))
+                        },
+                        leadingContent = {
+                            Icon(
+                                Icons.Default.Notifications,
+                                null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        modifier = Modifier.clickable { viewModel.showNotificationSettings() }
                     )
                 }
 
@@ -366,6 +385,15 @@ fun SpaceSettingsScreen(
             onInvite = actionsViewModel::inviteUser,
             onDismiss = actionsViewModel::hideInviteDialog,
             isSaving = actionsState.isSaving
+        )
+    }
+
+    if (state.showNotificationSettings) {
+        RoomNotificationSheet(
+            currentMode = state.notificationMode,
+            isLoading = state.isLoadingNotificationMode,
+            onModeChange = viewModel::setNotificationMode,
+            onDismiss = viewModel::hideNotificationSettings
         )
     }
 

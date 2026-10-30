@@ -8,6 +8,7 @@ import mages.shared.generated.resources.*
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.RoomJoinRule
+import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.ui.SpaceSettingsUiState
 import org.jetbrains.compose.resources.getString
@@ -43,6 +44,7 @@ class SpaceSettingsViewModel(
         loadPermissions()
         loadMembers()
         loadJoinRule()
+        loadNotificationMode()
     }
 
     //  Public Actions
@@ -53,6 +55,31 @@ class SpaceSettingsViewModel(
         loadPermissions()
         loadMembers()
         loadJoinRule()
+        loadNotificationMode()
+    }
+
+    fun showNotificationSettings() = updateState { copy(showNotificationSettings = true) }
+
+    fun hideNotificationSettings() = updateState { copy(showNotificationSettings = false) }
+
+    fun setNotificationMode(mode: RoomNotificationMode) {
+        launch {
+            updateState { copy(isLoadingNotificationMode = true) }
+            val result = runSafe { service.port.setRoomNotificationMode(currentState.spaceId, mode) }
+            if (result?.isSuccess == true) {
+                updateState {
+                    copy(
+                        notificationMode = mode,
+                        showNotificationSettings = false,
+                        isLoadingNotificationMode = false
+                    )
+                }
+                _events.send(Event.ShowSuccess(getString(Res.string.notification_updated)))
+            } else {
+                updateState { copy(isLoadingNotificationMode = false) }
+                _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.failed_to_update_notifications))))
+            }
+        }
     }
 
     private fun runSavingBooleanAction(
@@ -329,6 +356,19 @@ class SpaceSettingsViewModel(
     }
 
     //  Private Methods
+
+    private fun loadNotificationMode() {
+        launch {
+            updateState { copy(isLoadingNotificationMode = true) }
+            val mode = runSafe { service.port.roomNotificationMode(currentState.spaceId) }
+            updateState {
+                copy(
+                    notificationMode = mode,
+                    isLoadingNotificationMode = false
+                )
+            }
+        }
+    }
 
     private fun loadPermissions() {
         launch {

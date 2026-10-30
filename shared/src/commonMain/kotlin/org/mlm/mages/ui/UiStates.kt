@@ -622,6 +622,11 @@ data class SpaceSettingsUiState(
     val joinRuleAllowedSpaceIds: List<String> = emptyList(),
     val selectableSpaces: List<SpaceInfo> = emptyList(),
 
+    // Notifications
+    val notificationMode: RoomNotificationMode? = null,
+    val isLoadingNotificationMode: Boolean = false,
+    val showNotificationSettings: Boolean = false,
+
     // Dialogs
     val showLeaveConfirm: Boolean = false,
 
