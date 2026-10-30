@@ -482,7 +482,7 @@ data class AppSettings(
     val showSpaceBadgeInRoomList: Boolean = false,
 
     @Setting(
-        title = "Hide space rooms in room list",
+        title = "Hide rooms in spaces",
         titleKey = MagesSettingsKeys.HIDE_SPACE_ROOMS_IN_ROOM_LIST,
         category = Timeline::class,
         type = Toggle::class,

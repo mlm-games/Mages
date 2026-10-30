@@ -653,7 +653,7 @@
     <string name="setting_include_silent_unread_in_filter_description">When on, the unread filter shows rooms with any unread messages (notifications first). When off, only rooms with notifications are shown.</string>
     <string name="setting_show_space_badge_in_room_list">Show space badge in room list</string>
     <string name="setting_show_space_badge_in_room_list_description">Show a small space avatar next to rooms that belong to a space</string>
-    <string name="setting_hide_space_rooms_in_room_list">Hide space rooms in room list</string>
+    <string name="setting_hide_space_rooms_in_room_list">Hide rooms in spaces</string>
     <string name="setting_room_list_swipe_right">Swipe right action</string>
     <string name="setting_room_list_swipe_right_description">Action performed when swiping a room to the right in the room list</string>
     <string name="setting_room_list_swipe_left">Swipe left action</string>

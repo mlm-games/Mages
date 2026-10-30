@@ -2913,6 +2913,7 @@ private fun mages.RoomListEntry.toKotlinRoomListEntry(): RoomListEntry =
         isFavourite = isFavourite,
         isLowPriority = isLowPriority,
         isInvited = isInvited,
+        isSpace = isSpace,
         membership = membership.toKotlin(),
         avatarUrl = avatarUrl,
         isDm = isDm,

@@ -708,6 +708,8 @@ pub struct RoomListEntry {
     pub is_favourite: bool,
     pub is_low_priority: bool,
     pub is_invited: bool,
+    #[serde(default)]
+    pub is_space: bool,
     pub membership: RoomListMembership,
     pub avatar_url: Option<String>,
     pub is_dm: bool,

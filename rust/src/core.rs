@@ -5169,6 +5169,7 @@ impl CoreClient {
                 is_favourite: room.is_favourite(),
                 is_low_priority: room.is_low_priority(),
                 is_invited: matches!(room.state(), RoomState::Invited),
+                is_space: room.is_space(),
                 membership,
                 avatar_url,
                 is_dm,

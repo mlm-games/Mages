@@ -187,6 +187,7 @@ fun RoomsScreen(
             }
 
             !hasAnyRooms && state.allItems.isNotEmpty() &&
+                    settings.hideSpaceRoomsInRoomList &&
                     state.roomSearchQuery.isBlank() &&
                     !state.unreadOnly &&
                     state.typeFilter == RoomTypeFilter.All -> {

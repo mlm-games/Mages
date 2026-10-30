@@ -753,6 +753,7 @@ data class RoomListItemUi(
     val isFavourite: Boolean = false,
     val isLowPriority: Boolean = false,
     val isInvited: Boolean = false,
+    val isSpace: Boolean = false,
 
     val lastMessageBody: String? = null,
     val lastMessageLabel: StringResource? = null,

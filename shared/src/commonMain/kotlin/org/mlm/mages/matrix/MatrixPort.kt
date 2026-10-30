@@ -620,6 +620,7 @@ data class RoomListEntry(
     val isFavourite: Boolean = false,
     val isLowPriority: Boolean = false,
     val isInvited: Boolean = false,
+    val isSpace: Boolean = false,
     val membership: RoomListMembership = RoomListMembership.Joined,
 
     val avatarUrl: String? = null,

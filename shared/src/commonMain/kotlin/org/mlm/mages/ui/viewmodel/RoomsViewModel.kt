@@ -435,6 +435,7 @@ class RoomsViewModel(
             isFavourite = entry.isFavourite,
             isLowPriority = entry.isLowPriority,
             isInvited = entry.isInvited,
+            isSpace = entry.isSpace,
             lastMessageBody = lastBody,
             lastMessageLabel = lastLabel,
             lastMessageSender = lastEvent?.sender,
@@ -672,12 +673,13 @@ class RoomsViewModel(
         fun RoomListItemUi.hasUnread(): Boolean =
             isMarkedUnread || if (includeSilent) hasUnreadMessages || unreadCount > 0 else unreadCount > 0
 
-        val visibleRooms = if (settings.value.hideSpaceRoomsInRoomList) {
-            s.allItems.filter {
-                it.isInvited || s.parentSpaces[it.roomId].isNullOrEmpty()
+        val visibleRooms = s.allItems.filter { item ->
+            when {
+                item.isInvited -> true
+                item.isSpace -> false
+                settings.value.hideSpaceRoomsInRoomList -> s.parentSpaces[item.roomId].isNullOrEmpty()
+                else -> true
             }
-        } else {
-            s.allItems
         }
 
         var list = visibleRooms
