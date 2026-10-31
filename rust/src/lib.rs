@@ -42,7 +42,7 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tokio::runtime::Runtime;
-use tracing::{info, warn};
+use tracing::{info, trace, warn};
 use uniffi::{Object, export, setup_scaffolding};
 
 #[cfg(target_os = "android")]
@@ -5118,7 +5118,13 @@ fn map_latest_event_from_content(
                         matrix_sdk::ruma::events::room::message::MessageType::Location(_) => {
                             "m.location".to_owned()
                         }
-                        _ => "m.text".to_owned(),
+                        other => {
+                            trace!(
+                                "Unknown m.room.message msgtype (map_latest_event): {}",
+                                other.msgtype()
+                            );
+                            "m.text".to_owned()
+                        }
                     });
                     is_redacted = false;
                     is_encrypted = false;
@@ -5305,7 +5311,12 @@ fn try_map_timeline_event(
                     MessageType::Notice(_) => msgtype = Some("m.notice".to_owned()),
                     MessageType::Emote(_) => msgtype = Some("m.emote".to_owned()),
                     MessageType::Location(_) => msgtype = Some("m.location".to_owned()),
-                    _ => {}
+                    other => {
+                        trace!(
+                            "Unknown m.room.message msgtype: {}",
+                            other.msgtype()
+                        );
+                    }
                 }
             }
             MsgLikeKind::Sticker(sticker_event) => {
