@@ -41,13 +41,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
+import io.github.mlmgames.settings.core.SettingField
 import io.github.mlmgames.settings.core.SettingsSchema
 import io.github.mlmgames.settings.core.annotations.SettingAction
 import io.github.mlmgames.settings.core.annotations.SettingPlatform
 import io.github.mlmgames.settings.core.platform.currentPlatform
 import io.github.mlmgames.settings.core.remote.RemoteFieldState
 import io.github.mlmgames.settings.ui.AutoSettingsScreen
+import io.github.mlmgames.settings.ui.CustomTypeHandler
 import io.github.mlmgames.settings.ui.ProvideStringResources
+import io.github.mlmgames.settings.ui.components.SettingsItem
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.mimeType
@@ -63,6 +66,7 @@ import org.mlm.mages.ui.AvatarEdit
 import org.mlm.mages.ui.components.core.EditableAvatar
 import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.components.QrLinkDeviceDialog
+import org.mlm.mages.ui.components.sheets.EmojiPickerSheet
 import org.mlm.mages.ui.components.sheets.EnterRecoveryKeySheet
 import org.mlm.mages.ui.components.sheets.SetupRecoverySheet
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
@@ -1128,11 +1132,46 @@ private fun SettingsTab(
                         onAction = onSettingAction,
                         modifier = Modifier.fillMaxSize(),
                         snackbarHostState = snackbarHostState,
+                        customTypeHandlers = listOf(
+                            CustomTypeHandler<AppSettings>(
+                                typeClass = ReactionEmojiPicker::class,
+                                render = { field, _, value, enabled, onSet ->
+                                    ReactionEmojiSettingRow(field, value, enabled, onSet)
+                                },
+                            ),
+                        ),
                         remoteStates = remoteStates,
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ReactionEmojiSettingRow(
+    field: SettingField<AppSettings, *>,
+    value: AppSettings,
+    enabled: Boolean,
+    onSet: (String, Any?) -> Unit,
+) {
+    var showPicker by remember { mutableStateOf(false) }
+    val current = field.get(value)?.toString().orEmpty().ifBlank { "👍" }
+    SettingsItem(
+        title = stringResource(Res.string.setting_message_double_tap_reaction),
+        subtitle = current,
+        description = stringResource(Res.string.setting_message_double_tap_reaction_description),
+        enabled = enabled,
+        onClick = { showPicker = true },
+    )
+    if (showPicker) {
+        EmojiPickerSheet(
+            onDismiss = { showPicker = false },
+            onEmojiSelected = { emoji ->
+                showPicker = false
+                onSet(field.name, emoji)
+            },
+        )
     }
 }
 

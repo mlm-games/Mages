@@ -28,6 +28,8 @@ object Storage
 @CategoryDefinition(order = 7, titleKey = MagesSettingsKeys.CATEGORY_ADVANCED)
 object Advanced
 
+object ReactionEmojiPicker : SettingTypeMarker
+
 @Serializable
 enum class ThemeMode { System, Light, Dark }
 
@@ -555,9 +557,7 @@ data class AppSettings(
         description = "Reaction sent when the double-tap action is React",
         descriptionKey = MagesSettingsKeys.MESSAGE_DOUBLE_TAP_REACTION_DESCRIPTION,
         category = Timeline::class,
-        type = Dropdown::class,
-        options = ["❤️", "👍", "😂", "😮", "😢", "🎉", "🔥", "💯"],
-        optionsKey = MagesSettingsKeys.MESSAGE_DOUBLE_TAP_REACTION_OPTIONS,
+        type = ReactionEmojiPicker::class,
         dependsOn = "messageDoubleTapAction",
         dependsOnValue = "React",
     )
