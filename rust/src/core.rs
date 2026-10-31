@@ -544,8 +544,12 @@ async fn room_topic_html(room: &Room) -> Option<String> {
         .flatten()?;
     let state = raw.deserialize().ok()?;
     state
-        .original_content()
-        .and_then(|content| content.topic_block.text.find_html())
+        .as_sync()?
+        .as_original()?
+        .content
+        .topic_block
+        .text
+        .find_html()
         .filter(|html| !html.trim().is_empty())
         .map(ToOwned::to_owned)
 }
