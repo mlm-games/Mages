@@ -61,6 +61,13 @@ fun thumbToBridge(event: MessageEvent, thumbs: Map<String, String>): String? {
     return thumbs["pending:$txn"]
 }
 
+fun MessageEvent.withBridgedThumb(thumbs: Map<String, String>): Map<String, String>? {
+    val path = thumbToBridge(this, thumbs) ?: return null
+    val pendingKey = txnId?.let { "pending:$it" }
+    val bridged = thumbs + (eventId to path)
+    return if (pendingKey != null) bridged - pendingKey else bridged
+}
+
 @Serializable
 enum class ReplyPreviewKind {
     Text,

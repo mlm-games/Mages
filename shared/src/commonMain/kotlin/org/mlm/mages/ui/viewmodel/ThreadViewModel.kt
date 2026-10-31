@@ -17,7 +17,7 @@ import org.mlm.mages.MatrixService
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.ReplyPreviewKind
 import org.mlm.mages.thumbKey
-import org.mlm.mages.thumbToBridge
+import org.mlm.mages.withBridgedThumb
 import org.mlm.mages.matrix.ImagePackSummary
 import org.mlm.mages.matrix.ActionPresentation
 import org.mlm.mages.matrix.LINK_PREVIEW_IMAGE_PX
@@ -44,8 +44,7 @@ import org.mlm.mages.ui.components.core.emoteMxcUrisFrom
 import org.mlm.mages.ui.components.core.firstLinkIn
 import org.mlm.mages.ui.components.message.mxcReactionKeys
 import org.mlm.mages.ui.components.message.reactionShortcodesFrom
-import org.mlm.mages.ui.util.PREVIEW_THUMBNAIL_PX
-import org.mlm.mages.ui.util.isAnimatedImage
+import org.mlm.mages.ui.util.previewThumbnail
 import org.mlm.mages.ui.util.downloadNameHint
 import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.platform.Notifier
@@ -298,7 +297,7 @@ class ThreadViewModel(
 
             var thumbs = thumbByEvent
             events.forEach { ev ->
-                thumbToBridge(ev, thumbs)?.let { thumbs = thumbs + (ev.eventId to it) }
+                thumbs = ev.withBridgedThumb(thumbs) ?: thumbs
             }
 
             copy(
@@ -342,7 +341,7 @@ class ThreadViewModel(
         prefetchLinkPreviews(listOf(event))
 
         updateState {
-            val bridge = thumbToBridge(event, thumbByEvent)
+            val bridged = event.withBridgedThumb(thumbByEvent)
             val base = when {
                 event.eventId == rootEventId -> {
                     copy(rootMessage = event)
@@ -356,8 +355,8 @@ class ThreadViewModel(
                     }
                 }
             }
-            if (bridge == null) base
-            else base.copy(thumbByEvent = thumbByEvent + (event.eventId to bridge))
+            if (bridged == null) base
+            else base.copy(thumbByEvent = bridged)
         }
     }
 
@@ -370,7 +369,7 @@ class ThreadViewModel(
         prefetchLinkPreviews(listOf(event))
 
         updateState {
-            val bridge = thumbToBridge(event, thumbByEvent)
+            val bridged = event.withBridgedThumb(thumbByEvent)
             val base = when {
                 event.eventId == rootEventId -> {
                     copy(rootMessage = event)
@@ -388,8 +387,8 @@ class ThreadViewModel(
                     }
                 }
             }
-            if (bridge == null) base
-            else base.copy(thumbByEvent = thumbByEvent + (event.eventId to bridge))
+            if (bridged == null) base
+            else base.copy(thumbByEvent = bridged)
         }
     }
 
@@ -867,8 +866,9 @@ class ThreadViewModel(
         if (!mediaPreviewsAllowed() && event.eventId !in currentState.revealedPreviewEventIds) return
         val key = event.thumbKey ?: return
         if (currentState.thumbByEvent.containsKey(key)) return
-        thumbToBridge(event, currentState.thumbByEvent)?.let {
-            updateState { copy(thumbByEvent = thumbByEvent + (event.eventId to it)) }
+        val bridged = event.withBridgedThumb(currentState.thumbByEvent)
+        if (bridged != null) {
+            updateState { copy(thumbByEvent = bridged) }
             return
         }
         if (key in thumbnailFetchInFlight) return
@@ -889,10 +889,8 @@ class ThreadViewModel(
 
         launch {
             try {
-                val path = attachment?.let {
-                    if (it.isAnimatedImage()) service.port.downloadAttachmentToCache(it).getOrNull()
-                    else service.thumbnailToCache(it, PREVIEW_THUMBNAIL_PX, PREVIEW_THUMBNAIL_PX, crop = false).getOrNull()
-                } ?: sticker?.let { service.port.downloadStickerToCache(it).getOrNull() }
+                val path = attachment?.let { service.previewThumbnail(it).getOrNull() }
+                    ?: sticker?.let { service.port.downloadStickerToCache(it).getOrNull() }
                 if (!path.isNullOrBlank()) {
                     updateState { copy(thumbByEvent = thumbByEvent + (key to path)) }
                 }

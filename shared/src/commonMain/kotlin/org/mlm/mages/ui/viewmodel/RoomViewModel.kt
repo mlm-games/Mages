@@ -60,8 +60,7 @@ import org.mlm.mages.ui.components.message.mxcReactionKeys
 import org.mlm.mages.ui.components.message.reactionShortcodesFrom
 import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.matrix.ImagePackSummary
-import org.mlm.mages.ui.util.PREVIEW_THUMBNAIL_PX
-import org.mlm.mages.ui.util.isAnimatedImage
+import org.mlm.mages.ui.util.previewThumbnail
 import org.mlm.mages.ui.util.mimeToExtension
 import org.mlm.mages.ui.util.nowMs
 import org.mlm.mages.ui.viewmodel.RoomViewModel.Event.*
@@ -2867,7 +2866,7 @@ class RoomViewModel(
 
             var thumbs = thumbByEvent
             newAll.forEach { ev ->
-                thumbToBridge(ev, thumbs)?.let { thumbs = thumbs + (ev.eventId to it) }
+                thumbs = ev.withBridgedThumb(thumbs) ?: thumbs
             }
 
             copy(
@@ -3217,8 +3216,9 @@ class RoomViewModel(
         if (!mediaPreviewsAllowed() && event.eventId !in currentState.revealedPreviewEventIds) return
         val key = event.thumbKey ?: return
         if (currentState.thumbByEvent.containsKey(key)) return
-        thumbToBridge(event, currentState.thumbByEvent)?.let {
-            updateState { copy(thumbByEvent = thumbByEvent + (event.eventId to it)) }
+        val bridged = event.withBridgedThumb(currentState.thumbByEvent)
+        if (bridged != null) {
+            updateState { copy(thumbByEvent = bridged) }
             return
         }
         if (key in thumbnailFetchInFlight) return
@@ -3239,10 +3239,8 @@ class RoomViewModel(
 
         launch {
             try {
-                val thumbRequest = a?.let {
-                    if (it.isAnimatedImage()) service.port.downloadAttachmentToCache(it)
-                    else service.thumbnailToCache(it, PREVIEW_THUMBNAIL_PX, PREVIEW_THUMBNAIL_PX, crop = false)
-                } ?: s?.let { service.downloadStickerToCache(it) }
+                val thumbRequest = a?.let { service.previewThumbnail(it) }
+                    ?: s?.let { service.downloadStickerToCache(it) }
                 thumbRequest?.onSuccess { path ->
                     updateState {
                         copy(thumbByEvent = thumbByEvent + (key to path))
