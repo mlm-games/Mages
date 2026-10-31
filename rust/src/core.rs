@@ -35,6 +35,7 @@ use matrix_sdk::{
             relation::Thread as ThreadRel,
             room::{
                 EncryptedFile, ImageInfo, MediaSource,
+                avatar::{ImageInfo as AvatarImageInfo, RoomAvatarEventContent},
                 message::{
                     AudioInfo, AudioMessageEventContent, FileMessageEventContent,
                     ImageMessageEventContent, LocationMessageEventContent, MessageType,
@@ -1667,6 +1668,20 @@ impl CoreClient {
             }
         };
 
+        let edit_avatar = {
+            let min_level: i64 = power_levels
+                .events
+                .get(&matrix_sdk::ruma::events::TimelineEventType::RoomAvatar)
+                .copied()
+                .map(|v| v.into())
+                .unwrap_or(state_default);
+            if my_level >= min_level {
+                ActionAvailability::enabled()
+            } else {
+                ActionAvailability::disabled("You don't have permission to change the room avatar")
+            }
+        };
+
         let invite = {
             let min_level: i64 = power_levels.invite.into();
             if my_level >= min_level {
@@ -1751,6 +1766,7 @@ impl CoreClient {
             send_reaction,
             edit_name,
             edit_topic,
+            edit_avatar,
             invite,
             manage_settings,
             space_child,
@@ -2525,6 +2541,53 @@ impl CoreClient {
             .room(&room_id)
             .ok_or_else(|| FfiError::Msg("room not found".into()))?;
         room.send_state_event(RoomTopicEventContent::new(topic))
+            .await
+            .ffi()
+            .map(|_| ())
+    }
+
+    pub async fn set_room_avatar(
+        &self,
+        room_id: String,
+        bytes: Vec<u8>,
+        mime: String,
+    ) -> Result<String, FfiError> {
+        let parsed = crate::image_packs::parse_avatar_mime(&mime)?;
+        let room = self
+            .room(&room_id)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+
+        let byte_len = bytes.len();
+        let dimensions = imagesize::blob_size(&bytes)
+            .ok()
+            .map(|d| (d.width as u32, d.height as u32));
+
+        let upload = self
+            .sdk
+            .media()
+            .upload(&parsed, bytes, None)
+            .await
+            .map_err(FfiError::from)?;
+
+        let mut info = AvatarImageInfo::new();
+        info.mimetype = Some(parsed.to_string());
+        info.size = UInt::new(byte_len as u64);
+        info.width = dimensions.and_then(|(width, _)| UInt::new(width as u64));
+        info.height = dimensions.and_then(|(_, height)| UInt::new(height as u64));
+
+        let mut content = RoomAvatarEventContent::new();
+        content.url = Some(upload.content_uri.clone());
+        content.info = Some(Box::new(info));
+
+        room.send_state_event(content).await.ffi()?;
+        Ok(upload.content_uri.to_string())
+    }
+
+    pub async fn remove_room_avatar(&self, room_id: String) -> Result<(), FfiError> {
+        let room = self
+            .room(&room_id)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        room.send_state_event(RoomAvatarEventContent::new())
             .await
             .ffi()
             .map(|_| ())
@@ -4729,7 +4792,7 @@ impl CoreClient {
     }
 
     pub async fn set_avatar(&self, bytes: Vec<u8>, mime: String) -> Result<String, FfiError> {
-        let parsed = crate::image_packs::parse_image_mime(&mime)?;
+        let parsed = crate::image_packs::parse_avatar_mime(&mime)?;
 
         let mxc = self
             .sdk

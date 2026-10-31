@@ -201,6 +201,10 @@
     <string name="profile_display_name_placeholder">Your name</string>
     <string name="profile_change_photo">Change photo</string>
     <string name="profile_remove_photo">Remove photo</string>
+    <string name="avatar_updated">Avatar updated</string>
+    <string name="failed_to_update_avatar">Failed to update avatar</string>
+    <string name="you_don_t_have_permission_to_change_the_room_avatar">You don\'t have permission to change the room avatar</string>
+    <string name="you_don_t_have_permission_to_change_the_space_avatar">You don\'t have permission to change the space avatar</string>
     <string name="profile_load_failed">Could not load your profile</string>
     <string name="profile_fields">Profile fields</string>
     <string name="add_profile_field">Add profile field</string>

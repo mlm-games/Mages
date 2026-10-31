@@ -97,6 +97,7 @@ data class RoomActionState(
     val sendReaction: ActionAvailability,
     val editName: ActionAvailability,
     val editTopic: ActionAvailability,
+    val editAvatar: ActionAvailability,
     val invite: ActionAvailability,
     val manageSettings: ActionAvailability,
     val spaceChild: ActionAvailability,
@@ -1413,6 +1414,10 @@ interface MatrixPort {
     suspend fun uploadImageFromPath(path: String, mime: String): Result<String>
 
     suspend fun removeAvatar(): Result<Unit>
+
+    suspend fun setRoomAvatarFromPath(roomId: String, path: String, mime: String): Result<String>
+
+    suspend fun removeRoomAvatar(roomId: String): Result<Unit>
 
     /** MSC4133: false when the homeserver has no `m.profile_fields` capability. */
     suspend fun canSetProfileFields(): Boolean

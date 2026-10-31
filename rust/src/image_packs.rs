@@ -338,6 +338,19 @@ pub(crate) fn parse_image_mime(mime: &str) -> Result<mime::Mime, FfiError> {
     Ok(parsed)
 }
 
+pub(crate) fn parse_avatar_mime(mime: &str) -> Result<mime::Mime, FfiError> {
+    let parsed = parse_image_mime(mime)?;
+    if !matches!(
+        parsed.subtype().as_str(),
+        "png" | "jpeg" | "jpg" | "webp" | "gif"
+    ) {
+        return Err(FfiError::Msg(
+            "unsupported avatar image type; use PNG, JPEG, WebP or GIF".into(),
+        ));
+    }
+    Ok(parsed)
+}
+
 pub(crate) fn is_tgs_mime(parsed: &mime::Mime) -> bool {
     (parsed.type_().as_str() == "application"
         && parsed.subtype().as_str() == "x-tgsticker")

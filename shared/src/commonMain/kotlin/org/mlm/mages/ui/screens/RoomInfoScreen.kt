@@ -37,6 +37,7 @@ import org.mlm.mages.ui.components.sheets.RoomAliasesSheet
 import org.mlm.mages.ui.components.sheets.RoomNotificationSheet
 import org.mlm.mages.ui.components.settings.*
 import org.mlm.mages.ui.components.core.Avatar
+import org.mlm.mages.ui.components.core.EditableAvatar
 import org.mlm.mages.ui.theme.AppColors
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
@@ -50,6 +51,11 @@ import org.mlm.mages.verification.VerificationCoordinator
 import org.mlm.mages.matrix.displayName
 import io.github.mlmgames.settings.core.annotations.SettingPlatform
 import io.github.mlmgames.settings.core.platform.currentPlatform
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.mimeType
+import kotlinx.coroutines.launch
+import org.mlm.mages.platform.toTransferItem
 import org.mlm.mages.platform.RoomPlatformShortcuts
 import org.mlm.mages.platform.rememberFileOpener
 import org.mlm.mages.ui.util.dragToScrollIfEnabled
@@ -106,6 +112,8 @@ fun RoomInfoRoute(
         onTopicChange = viewModel::updateTopic,
         onSaveName = viewModel::saveName,
         onSaveTopic = viewModel::saveTopic,
+        onSetAvatar = viewModel::setAvatar,
+        onRemoveAvatar = viewModel::removeAvatar,
         onToggleFavourite = viewModel::toggleFavourite,
         onToggleLowPriority = viewModel::toggleLowPriority,
         onLeave = viewModel::leave,
@@ -160,6 +168,8 @@ fun RoomInfoScreen(
     onTopicChange: (String) -> Unit,
     onSaveName: () -> Unit,
     onSaveTopic: () -> Unit,
+    onSetAvatar: (String, String) -> Unit,
+    onRemoveAvatar: () -> Unit,
     onToggleFavourite: () -> Unit,
     onToggleLowPriority: () -> Unit,
     onLeave: () -> Unit,
@@ -214,6 +224,26 @@ fun RoomInfoScreen(
     val clipboard = LocalClipboardManager.current
     val dmPartner = state.dmPartner
 
+    val pickScope = rememberCoroutineScope()
+    var pendingAvatarPick by remember { mutableStateOf<((String, String) -> Unit)?>(null) }
+    val avatarPicker = rememberFilePickerLauncher(type = FileKitType.Image) { file ->
+        val onPicked = pendingAvatarPick ?: return@rememberFilePickerLauncher
+        pendingAvatarPick = null
+        val picked = file ?: return@rememberFilePickerLauncher
+        pickScope.launch {
+            val path = picked.toTransferItem().path ?: return@launch
+            onPicked(path, picked.mimeType()?.toString() ?: "image/png")
+        }
+    }
+    val pickRoomAvatar: (() -> Unit)? = if (state.canEditAvatar) {
+        {
+            pendingAvatarPick = { path, mime -> onSetAvatar(path, mime) }
+            avatarPicker.launch()
+        }
+    } else {
+        null
+    }
+
     LaunchedEffect(state.error) { state.error?.let { postError(it) } }
 
     Scaffold(
@@ -244,7 +274,10 @@ fun RoomInfoScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 item {
-                    ProfileHeader(state)
+                    ProfileHeader(
+                        state = state,
+                        onPickAvatar = pickRoomAvatar,
+                    )
                 }
 
                 state.successor?.let { successor ->
@@ -330,6 +363,19 @@ fun RoomInfoScreen(
                                     singleLine = false
                                 )
                             }
+                        }
+                    }
+                }
+
+                if (state.canEditAvatar && state.profile?.avatarUrl != null) {
+                    item {
+                        SettingsGroup {
+                            SettingsActionRow(
+                                icon = Icons.Default.DeleteOutline,
+                                title = stringResource(Res.string.profile_remove_photo),
+                                enabled = !state.isSavingAvatar,
+                                onClick = onRemoveAvatar
+                            )
                         }
                     }
                 }
@@ -718,7 +764,10 @@ fun RoomInfoScreen(
 
 
 @Composable
-private fun ProfileHeader(state: RoomInfoUiState) {
+private fun ProfileHeader(
+    state: RoomInfoUiState,
+    onPickAvatar: (() -> Unit)? = null,
+) {
     val profile = state.profile ?: return
 
     Column(
@@ -727,11 +776,13 @@ private fun ProfileHeader(state: RoomInfoUiState) {
             .padding(vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Avatar(
+        EditableAvatar(
             name = profile.name,
             avatarPath = profile.avatarUrl,
             size = 80.dp,
-            shape = MaterialTheme.shapes.large
+            shape = MaterialTheme.shapes.large,
+            isSaving = state.isSavingAvatar,
+            onClick = onPickAvatar,
         )
         Spacer(Modifier.height(Spacing.md))
         Row(

@@ -186,6 +186,79 @@ class SpaceSettingsViewModel(
     fun setEditTopic(value: String) = updateState { copy(editTopic = value) }
     fun setEditAlias(value: String) = updateState { copy(editAlias = value.trim()) }
 
+    fun setAvatar(path: String, mime: String) {
+        if (currentState.isSavingAvatar) return
+        if (!currentState.canEditAvatar) {
+            launch {
+                _events.send(
+                    Event.ShowError(
+                        getString(Res.string.you_don_t_have_permission_to_change_the_space_avatar)
+                    )
+                )
+            }
+            return
+        }
+        launch(
+            onError = { t ->
+                updateState { copy(isSavingAvatar = false) }
+                launch { _events.send(Event.ShowError(t.message ?: getString(Res.string.failed_to_update_avatar))) }
+            }
+        ) {
+            updateState { copy(isSavingAvatar = true) }
+            val result = runSafe { service.port.setRoomAvatarFromPath(currentState.spaceId, path, mime) }
+            val mxc = result?.getOrNull()
+            if (mxc == null) {
+                updateState { copy(isSavingAvatar = false) }
+                _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.failed_to_update_avatar))))
+                return@launch
+            }
+            val resolved = runSafe { service.avatars.resolve(mxc, px = 96) }
+            updateState {
+                copy(
+                    isSavingAvatar = false,
+                    spaceAvatarPath = resolved,
+                    space = space?.copy(avatarUrl = mxc)
+                )
+            }
+            _events.send(Event.ShowSuccess(getString(Res.string.avatar_updated)))
+        }
+    }
+
+    fun removeAvatar() {
+        if (currentState.isSavingAvatar) return
+        if (!currentState.canEditAvatar) {
+            launch {
+                _events.send(
+                    Event.ShowError(
+                        getString(Res.string.you_don_t_have_permission_to_change_the_space_avatar)
+                    )
+                )
+            }
+            return
+        }
+        launch(
+            onError = { t ->
+                updateState { copy(isSavingAvatar = false) }
+                launch { _events.send(Event.ShowError(t.message ?: getString(Res.string.failed_to_update_avatar))) }
+            }
+        ) {
+            updateState { copy(isSavingAvatar = true) }
+            val result = service.port.removeRoomAvatar(currentState.spaceId)
+            updateState { copy(isSavingAvatar = false) }
+            if (result.isSuccess) {
+                updateState {
+                    copy(
+                        spaceAvatarPath = null,
+                        space = space?.copy(avatarUrl = null)
+                    )
+                }
+                _events.send(Event.ShowSuccess(getString(Res.string.avatar_updated)))
+            } else {
+                _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.failed_to_update_avatar))))
+            }
+        }
+    }
+
     fun saveEditDetails() {
         val name = currentState.editName.trim()
         val topic = currentState.editTopic.trim()
@@ -386,6 +459,7 @@ class SpaceSettingsViewModel(
                 copy(
                     canManageSettings = snapshot?.actionState?.manageSettings?.isEnabled == true,
                     canEditDetails = snapshot?.actionState?.editName?.isEnabled == true,
+                    canEditAvatar = snapshot?.actionState?.editAvatar?.isEnabled == true,
                     powerLevels = snapshot?.powerLevels ?: powerLevels,
                     myUserId = me ?: myUserId,
                     myPowerLevel = myLevel

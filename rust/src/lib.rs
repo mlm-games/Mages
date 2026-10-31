@@ -157,6 +157,7 @@ delegate! { unit;
     enable_room_encryption(room_id: String);
     set_room_name(room_id: String, name: String);
     set_room_topic(room_id: String, topic: String);
+    remove_room_avatar(room_id: String);
     set_pinned_events(room_id: String, event_ids: Vec<String>);
     set_room_favourite(room_id: String, fav: bool);
     set_room_low_priority(room_id: String, low: bool);
@@ -1131,6 +1132,26 @@ impl Client {
             let bytes = std::fs::read(&path)
                 .map_err(|e| FfiError::Msg(format!("cannot read {path}: {e}")))?;
             RT.block_on(self.core.set_avatar(bytes, mime))
+        }
+    }
+
+    #[cfg_attr(target_family = "wasm", allow(unused_variables))]
+    pub fn set_room_avatar_from_path(
+        &self,
+        room_id: String,
+        path: String,
+        mime: String,
+    ) -> Result<String, FfiError> {
+        crate::check_not_on_runtime(stringify!(set_room_avatar_from_path))?;
+        #[cfg(target_family = "wasm")]
+        return Err(FfiError::Msg(
+            "set_room_avatar_from_path: not supported on web".into(),
+        ));
+        #[cfg(not(target_family = "wasm"))]
+        {
+            let bytes = std::fs::read(&path)
+                .map_err(|e| FfiError::Msg(format!("cannot read {path}: {e}")))?;
+            RT.block_on(self.core.set_room_avatar(room_id, bytes, mime))
         }
     }
 

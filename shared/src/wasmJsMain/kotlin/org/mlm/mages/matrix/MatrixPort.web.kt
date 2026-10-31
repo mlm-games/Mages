@@ -1521,6 +1521,23 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         return unitResult(result.ok, "remove avatar", result.error)
     }
 
+    override suspend fun setRoomAvatarFromPath(
+        roomId: String,
+        path: String,
+        mime: String
+    ): Result<String> {
+        val bytes = retrieveWebBlob(path)
+            ?: return Result.failure(IllegalStateException("image no longer available"))
+        return requireClient()
+            .setRoomAvatarBytes(roomId, bytes.toJsUint8Array(), mime)
+            .awaitStringResult()
+    }
+
+    override suspend fun removeRoomAvatar(roomId: String): Result<Unit> {
+        val result = requireClient().removeRoomAvatar(roomId).awaitResult()
+        return unitResult(result.ok, "remove room avatar", result.error)
+    }
+
     override suspend fun canSetProfileFields(): Boolean =
         requireClient().canSetProfileFields().awaitBool()
 

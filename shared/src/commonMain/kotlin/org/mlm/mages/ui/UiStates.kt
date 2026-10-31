@@ -609,6 +609,8 @@ data class SpaceSettingsUiState(
     // Permissions (from roomInfoSnapshot on the space)
     val canManageSettings: Boolean = false,
     val canEditDetails: Boolean = false,
+    val canEditAvatar: Boolean = false,
+    val isSavingAvatar: Boolean = false,
 
     // People & roles
     val members: List<MemberSummary> = emptyList(),

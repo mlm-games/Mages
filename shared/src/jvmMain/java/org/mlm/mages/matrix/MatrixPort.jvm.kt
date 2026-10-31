@@ -1324,6 +1324,7 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
         sendReaction = sendReaction.toModel(),
         editName = editName.toModel(),
         editTopic = editTopic.toModel(),
+        editAvatar = editAvatar.toModel(),
         invite = invite.toModel(),
         manageSettings = manageSettings.toModel(),
         spaceChild = spaceChild.toModel(),
@@ -1846,6 +1847,20 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
     override suspend fun removeAvatar(): Result<Unit> =
         withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.removeAvatar() } }.map { }
+        }
+
+    override suspend fun setRoomAvatarFromPath(
+        roomId: String,
+        path: String,
+        mime: String
+    ): Result<String> =
+        withContext(mediaDispatcher) {
+            runWithFfiResult { withClient { it.setRoomAvatarFromPath(roomId, path, mime) } }
+        }
+
+    override suspend fun removeRoomAvatar(roomId: String): Result<Unit> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.removeRoomAvatar(roomId) } }.map { }
         }
 
     override suspend fun canSetProfileFields(): Boolean =

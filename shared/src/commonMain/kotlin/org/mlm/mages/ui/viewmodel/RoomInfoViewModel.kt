@@ -69,6 +69,8 @@ data class RoomInfoUiState(
     val powerLevels: RoomPowerLevels? = null,
     val canEditName: Boolean = false,
     val canEditTopic: Boolean = false,
+    val canEditAvatar: Boolean = false,
+    val isSavingAvatar: Boolean = false,
     val canManageSettings: Boolean = false,
     val canBan: Boolean = false,
     val canInvite: Boolean = false,
@@ -147,6 +149,7 @@ class RoomInfoViewModel(
                 historyVisibility = snapshot.historyVisibility ?: historyVisibility,
                 canEditName = actionState.editName.isEnabled,
                 canEditTopic = actionState.editTopic.isEnabled,
+                canEditAvatar = actionState.editAvatar.isEnabled,
                 canManageSettings = actionState.manageSettings.isEnabled,
                 canBan = myPowerLevel >= powerLevels.ban,
                 canInvite = actionState.invite.isEnabled,
@@ -269,6 +272,7 @@ class RoomInfoViewModel(
                     powerLevels = powerLevels,
                     canEditName = actionState?.editName?.isEnabled == true,
                     canEditTopic = actionState?.editTopic?.isEnabled == true,
+                    canEditAvatar = actionState?.editAvatar?.isEnabled == true,
                     canManageSettings = actionState?.manageSettings?.isEnabled == true,
                     canBan = powerLevel >= (powerLevels?.ban ?: 50),
                     canInvite = canInvite,
@@ -458,6 +462,56 @@ class RoomInfoViewModel(
         ) {
             val topic = currentState.editedTopic.trim()
             runSafe { service.port.setRoomTopic(roomId, topic) }
+        }
+    }
+
+    fun setAvatar(path: String, mime: String) {
+        if (currentState.isSavingAvatar) return
+        if (!currentState.canEditAvatar) {
+            launch { _events.send(Event.ShowError(getString(Res.string.you_don_t_have_permission_to_change_the_room_avatar))) }
+            return
+        }
+        launch {
+            val errorText = getString(Res.string.failed_to_update_avatar)
+            updateState { copy(isSavingAvatar = true) }
+            val result = runSafe { service.port.setRoomAvatarFromPath(roomId, path, mime) }
+            val mxc = result?.getOrNull()
+            if (mxc == null) {
+                updateState { copy(isSavingAvatar = false) }
+                _events.send(Event.ShowError(result.toUserMessage(errorText)))
+                return@launch
+            }
+            val resolved = runSafe { service.avatars.resolve(mxc, px = 160, crop = true) }
+            updateState {
+                copy(
+                    isSavingAvatar = false,
+                    profile = profile?.copy(avatarUrl = resolved),
+                )
+            }
+            _events.send(Event.ShowSuccess(getString(Res.string.avatar_updated)))
+        }
+    }
+
+    fun removeAvatar() {
+        if (currentState.isSavingAvatar) return
+        if (!currentState.canEditAvatar) {
+            launch { _events.send(Event.ShowError(getString(Res.string.you_don_t_have_permission_to_change_the_room_avatar))) }
+            return
+        }
+        launch {
+            updateState { copy(isSavingAvatar = true) }
+            val result = runSafe { service.port.removeRoomAvatar(roomId) }
+            updateState { copy(isSavingAvatar = false) }
+            if (result?.isSuccess != true) {
+                _events.send(
+                    Event.ShowError(
+                        result.toUserMessage(getString(Res.string.failed_to_update_avatar))
+                    )
+                )
+                return@launch
+            }
+            updateState { copy(profile = profile?.copy(avatarUrl = null)) }
+            _events.send(Event.ShowSuccess(getString(Res.string.avatar_updated)))
         }
     }
 

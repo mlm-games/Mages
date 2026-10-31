@@ -541,6 +541,7 @@ pub struct RoomActionState {
     pub send_reaction: ActionAvailability,
     pub edit_name: ActionAvailability,
     pub edit_topic: ActionAvailability,
+    pub edit_avatar: ActionAvailability,
     pub invite: ActionAvailability,
     pub manage_settings: ActionAvailability,
     pub space_child: ActionAvailability,

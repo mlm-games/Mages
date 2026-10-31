@@ -17,11 +17,16 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.mimeType
+import kotlinx.coroutines.launch
 import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.matrix.SpaceInfo
 import org.mlm.mages.matrix.displayName
 import org.mlm.mages.platform.rememberFileOpener
+import org.mlm.mages.platform.toTransferItem
 import org.koin.compose.koinInject
 import org.mlm.mages.ui.components.dialogs.AddRoomToSpaceDialog
 import org.mlm.mages.ui.components.dialogs.CreateRoomInSpaceDialog
@@ -34,6 +39,7 @@ import org.mlm.mages.ui.components.sheets.RoomNotificationSheet
 import org.mlm.mages.ui.ActionAvailabilityUi
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.core.Avatar
+import org.mlm.mages.ui.components.core.EditableAvatar
 import org.mlm.mages.ui.components.snackbar.snackbarHost
 import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
 import org.mlm.mages.ui.theme.Spacing
@@ -56,6 +62,20 @@ fun SpaceSettingsScreen(
     val snackbarManager: SnackbarManager = koinInject()
     val postError = rememberErrorPoster(snackbarManager)
     val openExternal = rememberFileOpener()
+
+    val pickScope = rememberCoroutineScope()
+    val avatarPicker = rememberFilePickerLauncher(type = FileKitType.Image) { file ->
+        val picked = file ?: return@rememberFilePickerLauncher
+        pickScope.launch {
+            val path = picked.toTransferItem().path ?: return@launch
+            viewModel.setAvatar(path, picked.mimeType()?.toString() ?: "image/png")
+        }
+    }
+    val pickSpaceAvatar: (() -> Unit)? = if (state.canEditAvatar) {
+        { avatarPicker.launch() }
+    } else {
+        null
+    }
 
     LaunchedEffect(state.error) {
         state.error?.let {
@@ -117,7 +137,12 @@ fun SpaceSettingsScreen(
                 // Space info header
                 state.space?.let { space ->
                     item(key = "header") {
-                        SpaceInfoHeader(space = space, avatarPath = state.spaceAvatarPath)
+                        SpaceInfoHeader(
+                            space = space,
+                            avatarPath = state.spaceAvatarPath,
+                            isSavingAvatar = state.isSavingAvatar,
+                            onPickAvatar = pickSpaceAvatar
+                        )
                     }
                 }
 
@@ -136,6 +161,24 @@ fun SpaceSettingsScreen(
                             },
                             modifier = Modifier.clickable(enabled = !state.isSaving) {
                                 viewModel.showEditDetailsDialog()
+                            }
+                        )
+                    }
+                }
+
+                if (state.canEditAvatar && (state.space?.avatarUrl != null || state.spaceAvatarPath != null)) {
+                    item(key = "action_remove_avatar") {
+                        ListItem(
+                            headlineContent = { Text(stringResource(Res.string.profile_remove_photo)) },
+                            leadingContent = {
+                                Icon(
+                                    Icons.Default.DeleteOutline,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            },
+                            modifier = Modifier.clickable(enabled = !state.isSavingAvatar) {
+                                viewModel.removeAvatar()
                             }
                         )
                     }
@@ -566,7 +609,12 @@ fun SpaceSettingsScreen(
 }
 
 @Composable
-private fun SpaceInfoHeader(space: SpaceInfo, avatarPath: String?) {
+private fun SpaceInfoHeader(
+    space: SpaceInfo,
+    avatarPath: String?,
+    isSavingAvatar: Boolean,
+    onPickAvatar: (() -> Unit)?,
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -581,10 +629,12 @@ private fun SpaceInfoHeader(space: SpaceInfo, avatarPath: String?) {
                 .padding(Spacing.lg),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Avatar(
+            EditableAvatar(
                 name = space.name,
                 avatarPath = avatarPath,
-                size = 48.dp
+                size = 48.dp,
+                isSaving = isSavingAvatar,
+                onClick = onPickAvatar
             )
             Spacer(Modifier.width(Spacing.lg))
             Column(modifier = Modifier.weight(1f)) {
