@@ -131,11 +131,13 @@ import org.mlm.mages.ui.components.message.toBubbleModel
 import org.mlm.mages.ui.components.timeline.TimelineContent
 import org.mlm.mages.ui.components.timeline.TimelineEventItem
 import org.mlm.mages.ui.components.timeline.toTimelineContent
+import org.mlm.mages.ui.components.viewer.AvatarViewerHost
 import org.mlm.mages.ui.components.viewer.ImageViewerOverlay
 import org.mlm.mages.ui.components.viewer.ImageViewerItem
 import org.mlm.mages.ui.components.viewer.imageViewerItems
 import org.mlm.mages.ui.components.viewer.isViewableImage
 import org.mlm.mages.ui.components.viewer.loadImageForViewing
+import org.mlm.mages.ui.components.viewer.rememberAvatarViewerState
 import org.jetbrains.compose.resources.getString
 import kotlin.math.abs
 
@@ -203,6 +205,7 @@ fun RoomScreen(
     var seekingUnread by rememberSaveable { mutableStateOf(false) }
     var seekUnreadAttempts by remember { mutableIntStateOf(0) }
     val openExternal = rememberFileOpener()
+    val avatarViewer = rememberAvatarViewerState()
 
     val imagePicker = rememberFilePickerLauncher(
         mode = FileKitMode.Multiple(),
@@ -1336,7 +1339,11 @@ fun RoomScreen(
             onBan = { reason -> viewModel.banUser(member.userId, reason) },
             onUnban = { reason -> viewModel.unbanUser(member.userId, reason) },
             onIgnore = { viewModel.ignoreUser(member.userId) },
-            onAvatarClick = { viewModel.openAvatarExternally(member) { path, mime -> openExternal(path, mime) } },
+            onAvatarClick = {
+                viewModel.openAvatarExternally(member) { path, _ ->
+                    avatarViewer.show(path, member.displayName ?: member.userId)
+                }
+            },
             isBanned = member.membership == "ban"
         )
     }
@@ -1413,6 +1420,8 @@ fun RoomScreen(
             onLoadFailed = { postError(downloadFailedLabel) },
         )
     }
+
+    AvatarViewerHost(avatarViewer)
 }
 
 @Composable

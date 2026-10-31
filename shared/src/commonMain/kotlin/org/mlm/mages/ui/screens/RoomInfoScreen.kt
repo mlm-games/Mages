@@ -58,7 +58,8 @@ import io.github.vinceglb.filekit.mimeType
 import kotlinx.coroutines.launch
 import org.mlm.mages.platform.toTransferItem
 import org.mlm.mages.platform.RoomPlatformShortcuts
-import org.mlm.mages.platform.rememberFileOpener
+import org.mlm.mages.ui.components.viewer.AvatarViewerHost
+import org.mlm.mages.ui.components.viewer.rememberAvatarViewerState
 import org.mlm.mages.ui.util.dragToScrollIfEnabled
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -80,7 +81,7 @@ fun RoomInfoRoute(
     val verification: VerificationCoordinator = koinInject()
     val verState by verification.state.collectAsState()
     val postError = rememberErrorPoster(snackbarManager)
-    val openExternal = rememberFileOpener()
+    val avatarViewer = rememberAvatarViewerState()
 
     LaunchedEffect(verState.sasFlowId) {
         viewModel.refreshVerificationState()
@@ -153,11 +154,17 @@ fun RoomInfoRoute(
         onAcceptKnockRequest = viewModel::acceptKnockRequest,
         onDeclineKnockRequest = viewModel::declineKnockRequest,
         onClearSelectedMember = viewModel::clearSelectedMember,
-        onOpenAvatar = { viewModel.openAvatarExternally(it) { path, mime -> openExternal(path, mime) } },
+        onOpenAvatar = { member ->
+            viewModel.openAvatarExternally(member) { path, _ ->
+                avatarViewer.show(path, member.displayName ?: member.userId)
+            }
+        },
 
         showHomeScreenShortcut = currentPlatform == SettingPlatform.ANDROID && shortcutSupport.homeScreenShortcut,
         onAddHomeScreenShortcut = ::addHomeShortcut,
     )
+
+    AvatarViewerHost(avatarViewer)
 }
 
 @Composable

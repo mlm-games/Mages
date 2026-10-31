@@ -64,11 +64,13 @@ import org.mlm.mages.platform.rememberFileOpener
 import org.mlm.mages.platform.rememberShareHandler
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.secondaryClick
+import org.mlm.mages.ui.components.viewer.AvatarViewerHost
 import org.mlm.mages.ui.components.viewer.ImageViewerOverlay
 import org.mlm.mages.ui.components.viewer.ImageViewerItem
 import org.mlm.mages.ui.components.viewer.imageViewerItems
 import org.mlm.mages.ui.components.viewer.isViewableImage
 import org.mlm.mages.ui.components.viewer.loadImageForViewing
+import org.mlm.mages.ui.components.viewer.rememberAvatarViewerState
 import org.mlm.mages.ui.viewmodel.ThreadViewModel
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -92,6 +94,7 @@ fun ThreadRoute(
     val postError = rememberErrorPoster(snackbarManager)
     val openExternal = rememberFileOpener()
     val shareHandler = rememberShareHandler()
+    val avatarViewer = rememberAvatarViewerState()
     val service: MatrixService = koinInject()
     val settingsRepository: SettingsRepository<AppSettings> = koinInject()
     val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
@@ -151,7 +154,9 @@ fun ThreadRoute(
         onUnban = viewModel::unbanUser,
         onIgnore = viewModel::ignoreUser,
         onOpenAvatar = { member ->
-            viewModel.openAvatarExternally(member) { path, mime -> openExternal(path, mime) }
+            viewModel.openAvatarExternally(member) { path, _ ->
+                avatarViewer.show(path, member.displayName ?: member.userId)
+            }
         },
         emoteSuggestions = viewModel.emoteSuggestions,
         resolveEmotePreview = { thumbnail, mxc -> viewModel.emotePreview(thumbnail, mxc) },
@@ -187,6 +192,8 @@ fun ThreadRoute(
             onLoadFailed = { postError(downloadFailedLabel) },
         )
     }
+
+    AvatarViewerHost(avatarViewer)
 }
 
 @Composable

@@ -25,12 +25,13 @@ import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.matrix.SpaceInfo
 import org.mlm.mages.matrix.displayName
-import org.mlm.mages.platform.rememberFileOpener
 import org.mlm.mages.platform.toTransferItem
 import org.koin.compose.koinInject
 import org.mlm.mages.ui.components.dialogs.AddRoomToSpaceDialog
 import org.mlm.mages.ui.components.dialogs.CreateRoomInSpaceDialog
 import org.mlm.mages.ui.components.dialogs.InviteUserToSpaceDialog
+import org.mlm.mages.ui.components.viewer.AvatarViewerHost
+import org.mlm.mages.ui.components.viewer.rememberAvatarViewerState
 import org.mlm.mages.ui.components.sheets.JoinRuleSpacePickerSheet
 import org.mlm.mages.ui.components.sheets.MemberActionsSheet
 import org.mlm.mages.ui.components.sheets.MemberListSheet
@@ -61,7 +62,7 @@ fun SpaceSettingsScreen(
     val actionsState by actionsViewModel.state.collectAsState()
     val snackbarManager: SnackbarManager = koinInject()
     val postError = rememberErrorPoster(snackbarManager)
-    val openExternal = rememberFileOpener()
+    val avatarViewer = rememberAvatarViewerState()
 
     val pickScope = rememberCoroutineScope()
     val avatarPicker = rememberFilePickerLauncher(type = FileKitType.Image) { file ->
@@ -578,7 +579,11 @@ fun SpaceSettingsScreen(
             onBan = { reason -> viewModel.banMember(member.userId, reason) },
             onUnban = { reason -> viewModel.unbanMember(member.userId, reason) },
             onIgnore = { viewModel.ignoreMember(member.userId) },
-            onAvatarClick = { viewModel.openAvatarExternally(member) { path, mime -> openExternal(path, mime) } },
+            onAvatarClick = {
+                viewModel.openAvatarExternally(member) { path, _ ->
+                    avatarViewer.show(path, member.displayName ?: member.userId)
+                }
+            },
             isBanned = member.membership == "ban"
         )
     }
@@ -606,6 +611,8 @@ fun SpaceSettingsScreen(
             )
         }
     }
+
+    AvatarViewerHost(avatarViewer)
 }
 
 @Composable
