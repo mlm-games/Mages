@@ -786,16 +786,13 @@ private fun ImageAttachmentBubble(
 
     val previewPath = attachment.previewPath
     val hasCaption = !attachment.caption.isNullOrBlank()
-    val isShortCaption = hasCaption && (attachment.caption!!.length < 30)
     val blurhashImage = rememberBlurHashImage(attachment.blurhash)
-    val maxMediaWidth = if (isShortCaption) 240.dp else 320.dp
     val previewBlocked = attachment.previewBlocked && previewPath == null
 
     Column(horizontalAlignment = horizontalAlignment) {
         MediaTile(
             width = attachment.width,
             height = attachment.height,
-            maxWidth = maxMediaWidth,
             blurhashImage = blurhashImage,
             onOpen = onOpen,
             onLongPress = onLongPress,
@@ -809,9 +806,7 @@ private fun ImageAttachmentBubble(
                             .build(),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 120.dp, max = 268.dp)
+                        modifier = Modifier.fillMaxWidth()
                     )
                 } else if (!previewBlocked) {
                     MediaTilePlaceholder(
@@ -860,11 +855,14 @@ private fun ImageAttachmentBubble(
     }
 }
 
+private val MEDIA_MAX_WIDTH = 560.dp
+private val MEDIA_MIN_HEIGHT = 100.dp
+private val MEDIA_MAX_HEIGHT = 360.dp
+
 @Composable
 private fun MediaTile(
     width: Int?,
     height: Int?,
-    maxWidth: Dp,
     blurhashImage: ImageBitmap?,
     onOpen: (() -> Unit)?,
     onLongPress: (() -> Unit)?,
@@ -876,9 +874,8 @@ private fun MediaTile(
 
     Box(
         modifier = Modifier
-            .widthIn(max = maxWidth)
-            .heightIn(min = 120.dp, max = 268.dp)
-            .sizeIn(maxHeight = 268.dp)
+            .widthIn(max = MEDIA_MAX_WIDTH)
+            .heightIn(min = MEDIA_MIN_HEIGHT, max = MEDIA_MAX_HEIGHT)
             .aspectRatio(aspectRatio, matchHeightConstraintsFirst = false)
             .clip(RoundedCornerShape(8.dp))
             .blurHashBackground(blurhashImage)
@@ -958,16 +955,13 @@ private fun VideoAttachmentBubble(
 
     val previewPath = attachment.previewPath
     val hasCaption = !attachment.caption.isNullOrBlank()
-    val isShortCaption = hasCaption && (attachment.caption!!.length < 30)
     val blurhashImage = rememberBlurHashImage(attachment.blurhash)
-    val maxMediaWidth = if (isShortCaption) 240.dp else 320.dp
     val previewBlocked = attachment.previewBlocked && previewPath == null
 
     Column(horizontalAlignment = horizontalAlignment) {
         MediaTile(
             width = attachment.width,
             height = attachment.height,
-            maxWidth = maxMediaWidth,
             blurhashImage = blurhashImage,
             onOpen = onOpen,
             onLongPress = onLongPress,
@@ -981,9 +975,7 @@ private fun VideoAttachmentBubble(
                             .build(),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 120.dp, max = 268.dp)
+                        modifier = Modifier.fillMaxWidth()
                     )
                 } else if (!previewBlocked) {
                     MediaTilePlaceholder(

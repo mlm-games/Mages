@@ -44,6 +44,7 @@ import org.mlm.mages.ui.components.core.emoteMxcUrisFrom
 import org.mlm.mages.ui.components.core.firstLinkIn
 import org.mlm.mages.ui.components.message.mxcReactionKeys
 import org.mlm.mages.ui.components.message.reactionShortcodesFrom
+import org.mlm.mages.ui.util.PREVIEW_THUMBNAIL_PX
 import org.mlm.mages.ui.util.downloadNameHint
 import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.platform.Notifier
@@ -887,8 +888,9 @@ class ThreadViewModel(
 
         launch {
             try {
-                val path = attachment?.let { service.thumbnailToCache(it, 320, 320, true).getOrNull() }
-                    ?: sticker?.let { service.port.downloadStickerToCache(it).getOrNull() }
+                val path = attachment?.let {
+                    service.thumbnailToCache(it, PREVIEW_THUMBNAIL_PX, PREVIEW_THUMBNAIL_PX, crop = false).getOrNull()
+                } ?: sticker?.let { service.port.downloadStickerToCache(it).getOrNull() }
                 if (!path.isNullOrBlank()) {
                     updateState { copy(thumbByEvent = thumbByEvent + (key to path)) }
                 }
