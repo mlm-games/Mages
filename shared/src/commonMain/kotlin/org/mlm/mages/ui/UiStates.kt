@@ -24,6 +24,7 @@ import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.OwnProfile
 import org.mlm.mages.matrix.ProfileField
+import org.mlm.mages.matrix.QrMatrix
 import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.matrix.RoomPowerLevels
 import org.mlm.mages.matrix.RoomJoinRule
@@ -51,6 +52,11 @@ data class LoginUiState(
     val isBusy: Boolean = false,
     val ssoInProgress: Boolean = false,
     val oauthInProgress: Boolean = false,
+    val qrInProgress: Boolean = false,
+    val qrPhase: QrLoginPhase = QrLoginPhase.Idle,
+    val qrMatrix: QrMatrix? = null,
+    val qrCheckCode: String = "",
+    val qrUserCode: String? = null,
     val error: String? = null,
     val loginDetails: HomeserverLoginDetails? = null,
     val showPasswordLogin: Boolean = false,
@@ -61,6 +67,16 @@ data class LoginUiState(
 ) {
     val effectiveHomeserver: String
         get() = loginDetails?.homeserverUrl ?: homeserver
+}
+
+enum class QrLoginPhase {
+    Idle,
+    Starting,
+    Ready,
+    Scanned,
+    Confirming,
+    WaitingForToken,
+    SyncingSecrets,
 }
 
 data class RoomsUiState(
@@ -543,7 +559,25 @@ data class SecurityUiState(
     val canSetProfileFields: Boolean = false,
     val profileFields: List<ProfileField> = emptyList(),
     val isSavingProfileField: Boolean = false,
+
+    val qrGrantActive: Boolean = false,
+    val qrGrantPhase: QrGrantPhase = QrGrantPhase.Idle,
+    val qrGrantCheckCode: Int? = null,
+    val qrGrantVerificationUri: String? = null,
+    val qrGrantError: String? = null,
 )
+
+enum class QrGrantPhase {
+    Idle,
+    Scanning,
+    Starting,
+    CheckCode,
+    WaitingForAuth,
+    Confirming,
+    SyncingSecrets,
+    Done,
+    Error,
+}
 
 sealed interface AvatarEdit {
     data object None : AvatarEdit

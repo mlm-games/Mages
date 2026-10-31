@@ -67,6 +67,7 @@ filekit = "0.16.0"
 maplibreCompose = "0.19.0"
 kermit = "2.2.0"
 kmpZip = "2.0.0"
+zxing = "3.5.3"
 
 
 [libraries]
@@ -162,6 +163,7 @@ gadulka = { module = "eu.iamkonstantin.kotlin:gadulka", version = "1.14.0" }
 
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 kmp-zip = { module = "no.synth:kmp-zip", version.ref = "kmpZip" }
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 maplibre-compose = { module = "org.maplibre.compose:maplibre-compose", version.ref = "maplibreCompose" }
 maplibre-runtime-vulkan-linux-x64 = { module = "org.maplibre.compose:maplibre-compose-runtime-vulkan-linux-x64", version.ref = "maplibreCompose" }
 maplibre-runtime-vulkan-linux-arm64 = { module = "org.maplibre.compose:maplibre-compose-runtime-vulkan-linux-arm64", version.ref = "maplibreCompose" }

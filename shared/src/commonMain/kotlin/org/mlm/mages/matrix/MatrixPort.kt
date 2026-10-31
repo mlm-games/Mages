@@ -879,6 +879,16 @@ data class HomeserverLoginDetails(
     val supportsPassword: Boolean,
 )
 
+data class QrMatrix(
+    val size: Int,
+    val modules: ByteArray,
+) {
+    fun isDark(x: Int, y: Int): Boolean {
+        val index = y * size + x
+        return index in modules.indices && modules[index] != 0.toByte()
+    }
+}
+
 interface MatrixPort {
     sealed interface OauthLoginResult {
         data object Completed : OauthLoginResult
@@ -993,6 +1003,31 @@ interface MatrixPort {
     interface BackupStateObserver {
         fun onUpdate(state: BackupState)
     }
+
+    interface QrLoginObserver {
+        fun onQrReady(matrix: QrMatrix)
+        fun onScanned()
+        fun onWaitingForToken(userCode: String)
+        fun onSyncingSecrets()
+        fun onDone()
+        fun onError(message: String)
+    }
+
+    interface QrGrantObserver {
+        fun onCheckCode(code: Int)
+        fun onWaitingForAuth(verificationUri: String)
+        fun onSyncingSecrets()
+        fun onDone()
+        fun onError(message: String)
+    }
+
+    suspend fun startQrLogin(deviceName: String?, observer: QrLoginObserver)
+    suspend fun submitQrLoginCheckCode(code: Int)
+    fun cancelQrLogin(): Boolean
+
+    suspend fun startQrGrant(qrBytes: ByteArray, observer: QrGrantObserver)
+    suspend fun confirmQrGrant()
+    fun cancelQrGrant(): Boolean
 
     suspend fun observeConnection(observer: ConnectionObserver): ULong
     fun stopConnectionObserver(token: ULong)

@@ -27,6 +27,7 @@ import org.mlm.mages.settings.RequestNotificationPermissionAction
 import org.mlm.mages.settings.SelectUnifiedPushDistributorAction
 import org.mlm.mages.settings.TestNotificationAction
 import org.mlm.mages.ui.AvatarEdit
+import org.mlm.mages.ui.QrGrantPhase
 import org.mlm.mages.ui.SecurityUiState
 import org.mlm.mages.verification.VerificationCoordinator
 import kotlin.reflect.KClass
@@ -175,6 +176,9 @@ class SecurityViewModel(
     }
 
     override fun onCleared() {
+        if (currentState.qrGrantActive) {
+            service.portOrNull?.let { runCatching { it.cancelQrGrant() } }
+        }
         unsubscribeRecoveryState()
         super.onCleared()
     }
@@ -224,6 +228,108 @@ class SecurityViewModel(
             } else {
                 refreshKeyStorageState(forceFetch = true)
             }
+        }
+    }
+
+    fun openQrGrant() {
+        updateState {
+            copy(
+                qrGrantActive = true,
+                qrGrantPhase = QrGrantPhase.Scanning,
+                qrGrantCheckCode = null,
+                qrGrantVerificationUri = null,
+                qrGrantError = null,
+            )
+        }
+    }
+
+    fun closeQrGrant() {
+        service.portOrNull?.let { runCatching { it.cancelQrGrant() } }
+        updateState {
+            copy(
+                qrGrantActive = false,
+                qrGrantPhase = QrGrantPhase.Idle,
+                qrGrantCheckCode = null,
+                qrGrantVerificationUri = null,
+                qrGrantError = null,
+            )
+        }
+    }
+
+    fun startQrGrant(qrBytes: ByteArray) {
+        val port = service.portOrNull ?: return
+        updateState {
+            copy(
+                qrGrantActive = true,
+                qrGrantPhase = QrGrantPhase.Starting,
+                qrGrantCheckCode = null,
+                qrGrantVerificationUri = null,
+                qrGrantError = null,
+            )
+        }
+
+        launch(onError = { t ->
+            updateState {
+                copy(
+                    qrGrantPhase = QrGrantPhase.Error,
+                    qrGrantError = t.message ?: getString(Res.string.qr_grant_failed),
+                )
+            }
+        }) {
+            port.startQrGrant(
+                qrBytes,
+                object : MatrixPort.QrGrantObserver {
+                    override fun onCheckCode(code: Int) {
+                        if (!currentState.qrGrantActive) return
+                        updateState {
+                            copy(qrGrantPhase = QrGrantPhase.CheckCode, qrGrantCheckCode = code)
+                        }
+                    }
+
+                    override fun onWaitingForAuth(verificationUri: String) {
+                        if (!currentState.qrGrantActive) return
+                        updateState {
+                            copy(
+                                qrGrantPhase = QrGrantPhase.WaitingForAuth,
+                                qrGrantVerificationUri = verificationUri,
+                            )
+                        }
+                    }
+
+                    override fun onSyncingSecrets() {
+                        if (!currentState.qrGrantActive) return
+                        updateState { copy(qrGrantPhase = QrGrantPhase.SyncingSecrets) }
+                    }
+
+                    override fun onDone() {
+                        if (!currentState.qrGrantActive) return
+                        updateState { copy(qrGrantPhase = QrGrantPhase.Done) }
+                        refreshDevices()
+                    }
+
+                    override fun onError(message: String) {
+                        if (!currentState.qrGrantActive) return
+                        updateState {
+                            copy(qrGrantPhase = QrGrantPhase.Error, qrGrantError = message)
+                        }
+                    }
+                },
+            )
+        }
+    }
+
+    fun confirmQrGrant() {
+        val port = service.portOrNull ?: return
+        updateState { copy(qrGrantPhase = QrGrantPhase.Confirming) }
+        launch(onError = { t ->
+            updateState {
+                copy(
+                    qrGrantPhase = QrGrantPhase.Error,
+                    qrGrantError = t.message ?: getString(Res.string.qr_grant_failed),
+                )
+            }
+        }) {
+            port.confirmQrGrant()
         }
     }
 

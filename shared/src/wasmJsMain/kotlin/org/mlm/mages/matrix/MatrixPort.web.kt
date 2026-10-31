@@ -588,6 +588,26 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         requireClientOrNull()?.unobserveBackupState(subId.toDouble())
     }
 
+    override suspend fun startQrLogin(
+        deviceName: String?,
+        observer: MatrixPort.QrLoginObserver,
+    ): Unit = throw UnsupportedOperationException("QR login is not supported on web")
+
+    override suspend fun submitQrLoginCheckCode(code: Int): Unit =
+        throw UnsupportedOperationException("QR login is not supported on web")
+
+    override fun cancelQrLogin(): Boolean = false
+
+    override suspend fun startQrGrant(
+        qrBytes: ByteArray,
+        observer: MatrixPort.QrGrantObserver,
+    ): Unit = throw UnsupportedOperationException("QR login is not supported on web")
+
+    override suspend fun confirmQrGrant(): Unit =
+        throw UnsupportedOperationException("QR login is not supported on web")
+
+    override fun cancelQrGrant(): Boolean = false
+
     override suspend fun backupExistsOnServer(fetch: Boolean): Boolean =
         requireClient().backupExistsOnServer(fetch).awaitPlainBool()
 

@@ -1618,4 +1618,35 @@
     <string name="close_live_location_viewer">Close live location viewer</string>
     <string name="call_downloading_webview">Downloading webview for calls (first time only)...</string>
     <string name="call_downloading_webview_note">This may take a minute</string>
+
+    <string name="qr_sign_in">Sign in with QR code</string>
+    <string name="qr_login_requires_oauth">QR sign-in needs a homeserver that supports OAuth.</string>
+    <string name="qr_login_failed">Could not sign in with the QR code.</string>
+    <string name="qr_login_failed_no_user_id">The server did not return a user ID. Try again.</string>
+    <string name="qr_login_title">Link this device</string>
+    <string name="qr_login_instruction">Open Mages on a device where you are signed in, then go to Settings, Security, Link a new device and scan this code.</string>
+    <string name="qr_login_waiting">Waiting for your other device…</string>
+    <string name="qr_login_scanned_title">Confirm the link</string>
+    <string name="qr_login_enter_code">Enter the 2-digit code shown on your other device.</string>
+    <string name="qr_login_code_label">Code</string>
+    <string name="qr_login_link_device">Link device</string>
+    <string name="qr_login_user_code">Confirm this code in the browser on your other device: %1$s</string>
+    <string name="qr_login_syncing">Syncing encryption keys…</string>
+    <string name="qr_link_device">Link a new device</string>
+    <string name="qr_link_device_subtitle">Scan a QR code shown on a new device to sign it in without a password.</string>
+    <string name="qr_scan_title">Scan the new device\'s code</string>
+    <string name="qr_scan_hint">Point your camera at the QR code shown on the new device, or choose a screenshot of it.</string>
+    <string name="qr_scan_camera">Take photo</string>
+    <string name="qr_scan_choose_image">Choose image</string>
+    <string name="qr_scan_no_code">No QR code was found in that image.</string>
+    <string name="qr_grant_check_code">Enter this code on the new device: %1$s</string>
+    <string name="qr_grant_approve_title">Approve the new device</string>
+    <string name="qr_grant_open_browser">Open browser to approve</string>
+    <string name="qr_grant_approved">I approved the login</string>
+    <string name="qr_grant_waiting">Waiting for the new device…</string>
+    <string name="qr_grant_syncing">Sending encryption keys…</string>
+    <string name="qr_grant_done">Device linked</string>
+    <string name="qr_grant_done_body">The new device is signed in and verified.</string>
+    <string name="qr_grant_failed">Could not link the new device.</string>
+    <string name="qr_scan_again">Scan again</string>
 </resources>

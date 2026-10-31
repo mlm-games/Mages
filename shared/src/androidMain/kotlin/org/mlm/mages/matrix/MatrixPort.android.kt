@@ -409,6 +409,62 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
         withClientOrNull { it.unobserveBackupState(subId) }
     }
 
+    override suspend fun startQrLogin(
+        deviceName: String?,
+        observer: MatrixPort.QrLoginObserver,
+    ) = withContext(matrixDispatcher) {
+        val callback = object : mages.QrLoginObserver {
+            override fun onQrReady(matrix: mages.QrMatrix) {
+                observer.onQrReady(QrMatrix(matrix.size.toInt(), matrix.modules))
+            }
+
+            override fun onScanned() = observer.onScanned()
+
+            override fun onWaitingForToken(userCode: String) =
+                observer.onWaitingForToken(userCode)
+
+            override fun onSyncingSecrets() = observer.onSyncingSecrets()
+
+            override fun onDone() = observer.onDone()
+
+            override fun onError(message: String) = observer.onError(message)
+        }
+        runWithFfiResult { withClient { it.startQrLogin(deviceName, callback) } }.getOrThrow()
+    }
+
+    override suspend fun submitQrLoginCheckCode(code: Int) = withContext(matrixDispatcher) {
+        runWithFfiResult { withClient { it.submitQrLoginCheckCode(code.toUByte()) } }.getOrThrow()
+    }
+
+    override fun cancelQrLogin(): Boolean =
+        withClientOrNull { it.cancelQrLogin() } ?: false
+
+    override suspend fun startQrGrant(
+        qrBytes: ByteArray,
+        observer: MatrixPort.QrGrantObserver,
+    ) = withContext(matrixDispatcher) {
+        val callback = object : mages.QrGrantObserver {
+            override fun onCheckCode(code: UByte) = observer.onCheckCode(code.toInt())
+
+            override fun onWaitingForAuth(verificationUri: String) =
+                observer.onWaitingForAuth(verificationUri)
+
+            override fun onSyncingSecrets() = observer.onSyncingSecrets()
+
+            override fun onDone() = observer.onDone()
+
+            override fun onError(message: String) = observer.onError(message)
+        }
+        runWithFfiResult { withClient { it.startQrGrant(qrBytes, callback) } }.getOrThrow()
+    }
+
+    override suspend fun confirmQrGrant() = withContext(matrixDispatcher) {
+        runWithFfiResult { withClient { it.confirmQrGrant() } }.getOrThrow()
+    }
+
+    override fun cancelQrGrant(): Boolean =
+        withClientOrNull { it.cancelQrGrant() } ?: false
+
     override suspend fun backupExistsOnServer(fetch: Boolean): Boolean =
         withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.backupExistsOnServer(fetch) } }.isSuccess

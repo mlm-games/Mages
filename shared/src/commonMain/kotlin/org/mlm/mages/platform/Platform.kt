@@ -36,6 +36,8 @@ expect fun rememberCameraPickerLauncher(
 
 expect suspend fun PlatformFile.toTransferItem(): TransferItem
 
+expect suspend fun decodeQrImage(bytes: ByteArray): ByteArray?
+
 expect val audioPlayerDispatcher: CoroutineDispatcher
 
 internal expect fun platformPreparePlaybackUrl(input: String): String

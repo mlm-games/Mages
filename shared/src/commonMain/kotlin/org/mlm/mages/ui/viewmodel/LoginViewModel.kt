@@ -12,11 +12,13 @@ import org.mlm.mages.accounts.MatrixAccount
 import org.mlm.mages.accounts.MatrixClients
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.PasswordLoginKind
+import org.mlm.mages.matrix.QrMatrix
 import org.mlm.mages.matrix.createMatrixPort
 import org.mlm.mages.platform.getDeviceDisplayName
 import org.mlm.mages.platform.shouldRequestLocalNetworkPermission
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.LoginUiState
+import org.mlm.mages.ui.QrLoginPhase
 import kotlin.random.Random
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -31,6 +33,14 @@ class LoginViewModel(
     private var ssoJob: Job? = null
     private var oauthJob: Job? = null
     private var serverCheckJob: Job? = null
+    private var qrSession: QrSession? = null
+
+    private data class QrSession(
+        val port: MatrixPort,
+        val accountId: String,
+        val homeserver: String,
+        val proxyUrl: String?,
+    )
 
     init {
         launch {
@@ -148,6 +158,7 @@ class LoginViewModel(
         if (s.isBusy || s.user.isBlank() || s.pass.isBlank()) return
         cancelSso()
         cancelOauth()
+        cancelQrLogin()
 
         val hs = s.effectiveHomeserver
         if (hs.isBlank()) {
@@ -253,6 +264,7 @@ class LoginViewModel(
         if (s.isBusy) return
         cancelSso()
         cancelOauth()
+        cancelQrLogin()
 
         val hs = s.effectiveHomeserver
         if (hs.isBlank()) {
@@ -347,6 +359,7 @@ class LoginViewModel(
         if (s.isBusy) return
         cancelSso()
         cancelOauth()
+        cancelQrLogin()
 
         val hs = s.effectiveHomeserver
         if (hs.isBlank()) {
@@ -445,6 +458,214 @@ class LoginViewModel(
         updateState { copy(isBusy = false, oauthInProgress = false) }
     }
 
+    fun setQrCheckCode(value: String) {
+        updateState { copy(qrCheckCode = value.filter { it.isDigit() }.take(2)) }
+    }
+
+    fun startQrLogin() {
+        val s = currentState
+        if (s.isBusy || s.qrInProgress) return
+        cancelSso()
+        cancelOauth()
+
+        val hs = s.effectiveHomeserver
+        if (hs.isBlank()) {
+            launch {
+                updateState { copy(error = getString(Res.string.please_enter_a_server)) }
+            }
+            return
+        }
+        if (s.loginDetails?.supportsOauth != true) {
+            launch {
+                updateState { copy(error = getString(Res.string.qr_login_requires_oauth)) }
+            }
+            return
+        }
+
+        launch(onError = { t ->
+            if (t !is CancellationException) {
+                failQrLogin(t.message ?: getString(Res.string.qr_login_failed))
+            }
+        }) {
+            updateState {
+                copy(
+                    qrInProgress = true,
+                    qrPhase = QrLoginPhase.Starting,
+                    qrMatrix = null,
+                    qrCheckCode = "",
+                    qrUserCode = null,
+                    error = null,
+                )
+            }
+
+            val accountId = newAccountId()
+            val port = createMatrixPort()
+            val settings = settingsRepository.flow.first()
+            val proxyUrl = if (settings.proxyEnabled) settings.proxyUrl.takeIf { it.isNotBlank() } else null
+
+            try {
+                port.init(hs, accountId, proxyUrl)
+            } catch (e: Exception) {
+                runCatching { port.close() }
+                failQrLogin(e.message ?: getString(Res.string.qr_login_failed))
+                return@launch
+            }
+
+            qrSession = QrSession(port, accountId, hs, proxyUrl)
+
+            try {
+                port.startQrLogin(
+                    getDeviceDisplayName(),
+                    object : MatrixPort.QrLoginObserver {
+                        override fun onQrReady(matrix: QrMatrix) {
+                            launch {
+                                if (isActiveQr(port)) {
+                                    updateState {
+                                        copy(qrPhase = QrLoginPhase.Ready, qrMatrix = matrix)
+                                    }
+                                }
+                            }
+                        }
+
+                        override fun onScanned() {
+                            launch {
+                                if (isActiveQr(port)) {
+                                    updateState { copy(qrPhase = QrLoginPhase.Scanned, qrMatrix = null) }
+                                }
+                            }
+                        }
+
+                        override fun onWaitingForToken(userCode: String) {
+                            launch {
+                                if (isActiveQr(port)) {
+                                    updateState {
+                                        copy(qrPhase = QrLoginPhase.WaitingForToken, qrUserCode = userCode)
+                                    }
+                                }
+                            }
+                        }
+
+                        override fun onSyncingSecrets() {
+                            launch {
+                                if (isActiveQr(port)) {
+                                    updateState { copy(qrPhase = QrLoginPhase.SyncingSecrets) }
+                                }
+                            }
+                        }
+
+                        override fun onDone() {
+                            launch(onError = { t ->
+                                failQrLogin(t.message ?: getString(Res.string.qr_login_failed))
+                            }) {
+                                if (isActiveQr(port)) completeQrLogin(port)
+                            }
+                        }
+
+                        override fun onError(message: String) {
+                            launch {
+                                if (isActiveQr(port)) failQrLogin(message)
+                            }
+                        }
+                    },
+                )
+            } catch (e: Exception) {
+                failQrLogin(e.message ?: getString(Res.string.qr_login_failed))
+            }
+        }
+    }
+
+    fun submitQrCheckCode() {
+        val session = qrSession ?: return
+        if (currentState.qrPhase != QrLoginPhase.Scanned) return
+        val code = currentState.qrCheckCode.toIntOrNull() ?: return
+        updateState { copy(qrPhase = QrLoginPhase.Confirming) }
+        launch(onError = { t ->
+            failQrLogin(t.message ?: getString(Res.string.qr_login_failed))
+        }) {
+            session.port.submitQrLoginCheckCode(code)
+            updateState { copy(qrCheckCode = "") }
+        }
+    }
+
+    fun cancelQrLogin() {
+        val session = qrSession ?: return
+        qrSession = null
+        runCatching { session.port.cancelQrLogin() }
+        runCatching { session.port.close() }
+        updateState {
+            copy(
+                qrInProgress = false,
+                qrPhase = QrLoginPhase.Idle,
+                qrMatrix = null,
+                qrCheckCode = "",
+                qrUserCode = null,
+            )
+        }
+    }
+
+    private fun isActiveQr(port: MatrixPort): Boolean = qrSession?.port === port
+
+    private suspend fun completeQrLogin(port: MatrixPort) {
+        val session = qrSession?.takeIf { it.port === port } ?: return
+        val userId = port.whoami()
+        if (userId.isNullOrBlank()) {
+            failQrLogin(getString(Res.string.qr_login_failed_no_user_id))
+            return
+        }
+
+        val resolvedHs = resolvedHomeserver(port, session.homeserver)
+        val account = MatrixAccount(
+            id = session.accountId,
+            userId = userId,
+            homeserver = resolvedHs,
+            deviceId = "",
+            accessToken = "",
+            addedAtMs = Clock.System.now().toEpochMilliseconds(),
+            proxyUrl = session.proxyUrl,
+        )
+
+        matrixClients.addLoggedInAccount(account, port)
+        qrSession = null
+
+        settingsRepository.update {
+            it.copy(
+                homeserver = resolvedHs,
+                androidNotifBaselineMs = Clock.System.now().toEpochMilliseconds()
+            )
+        }
+
+        updateState {
+            copy(
+                qrInProgress = false,
+                qrPhase = QrLoginPhase.Idle,
+                qrMatrix = null,
+                qrCheckCode = "",
+                qrUserCode = null,
+                error = null,
+            )
+        }
+        _events.send(Event.LoginSuccess)
+    }
+
+    private fun failQrLogin(message: String) {
+        val session = qrSession
+        qrSession = null
+        session?.let {
+            runCatching { it.port.cancelQrLogin() }
+            runCatching { it.port.close() }
+        }
+        updateState {
+            copy(
+                qrInProgress = false,
+                qrPhase = QrLoginPhase.Idle,
+                qrMatrix = null,
+                qrCheckCode = "",
+                qrUserCode = null,
+                error = message,
+            )
+        }
+    }
+
     fun clearError() = updateState { copy(error = null) }
 
     fun onLocalNetworkPermissionGranted() {
@@ -459,6 +680,7 @@ class LoginViewModel(
         serverCheckJob?.cancel()
         cancelSso()
         cancelOauth()
+        cancelQrLogin()
         super.onCleared()
     }
 }

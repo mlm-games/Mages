@@ -56,6 +56,8 @@ mod image_packs;
 mod macros;
 mod observe;
 mod platform;
+#[cfg(not(target_family = "wasm"))]
+mod qr_login;
 mod sections;
 mod types;
 mod verification_flow;
@@ -340,6 +342,8 @@ pub struct Client {
     widget_handles: Mutex<HashMap<u64, Arc<WidgetDriverHandle>>>,
     widget_driver_tasks: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     widget_recv_tasks: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
+    #[cfg(not(target_family = "wasm"))]
+    qr: qr_login::QrState,
 }
 
 fn mages_client_metadata(redirect_uri: &Url) -> Raw<ClientMetadata> {
@@ -885,6 +889,8 @@ impl Client {
             widget_driver_tasks: Mutex::new(HashMap::new()),
             widget_recv_tasks: Mutex::new(HashMap::new()),
             app_in_foreground: Arc::new(AtomicUsize::new(0)),
+            #[cfg(not(target_family = "wasm"))]
+            qr: qr_login::QrState::default(),
         };
 
         // send observer fan-out task
@@ -3613,6 +3619,27 @@ impl Client {
             beacon_subs, recovery_state_subs, backup_state_subs,
             widget_driver_tasks, widget_recv_tasks
         );
+        #[cfg(not(target_family = "wasm"))]
+        {
+            if let Some(task) = self
+                .qr
+                .login_task
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .take()
+            {
+                task.abort();
+            }
+            if let Some(task) = self
+                .qr
+                .grant_task
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .take()
+            {
+                task.abort();
+            }
+        }
     }
 
     async fn maybe_update_device_name(client: &Client, device_name: Option<String>) {

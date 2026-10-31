@@ -156,6 +156,8 @@ actual suspend fun PlatformFile.toTransferItem(): TransferItem {
     )
 }
 
+actual suspend fun decodeQrImage(bytes: ByteArray): ByteArray? = null
+
 internal fun stageWebBlob(bytes: ByteArray, mime: String, fileName: String): String {
     val path = "${generateBlobId()}/${safeBlobFileName(fileName)}"
     webBlobCache[path] = WebBlob(bytes, mime)

@@ -123,6 +123,7 @@ kotlin {
                 implementation(libs.embedded.fcm.distributor)
                 implementation(libs.androidx.biometric)
                 implementation(libs.androidx.lifecycle.process)
+                implementation(libs.zxing.core)
 
                 runtimeOnly(libs.maplibre.runtime.vulkan.android)
                 runtimeOnly(libs.coil.gif)
@@ -143,6 +144,7 @@ kotlin {
                 implementation(libs.systemtray)
                 implementation(libs.jcefmaven)
                 implementation(libs.json)
+                implementation(libs.zxing.core)
             }
         }
 

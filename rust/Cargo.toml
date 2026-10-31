@@ -59,12 +59,14 @@ async-stream = "0.3.6"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 log-panics = { version = "2", features = ["with-backtrace"] }
+qrcode = { version = "0.14", default-features = false }
 matrix-sdk = { version = "0.19.0", default-features = false, features = [
     "e2e-encryption",
     "sqlite",
     "bundled-sqlite",
     "sso-login",
     "socks",
+    "qrcode",
     "automatic-room-key-forwarding",
     "experimental-search",
     "experimental-widgets",

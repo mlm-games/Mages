@@ -43,6 +43,8 @@ import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import io.github.mlmgames.settings.core.SettingsSchema
 import io.github.mlmgames.settings.core.annotations.SettingAction
+import io.github.mlmgames.settings.core.annotations.SettingPlatform
+import io.github.mlmgames.settings.core.platform.currentPlatform
 import io.github.mlmgames.settings.core.remote.RemoteFieldState
 import io.github.mlmgames.settings.ui.AutoSettingsScreen
 import io.github.mlmgames.settings.ui.ProvideStringResources
@@ -60,6 +62,7 @@ import org.mlm.mages.settings.*
 import org.mlm.mages.ui.AvatarEdit
 import org.mlm.mages.ui.components.core.EditableAvatar
 import org.mlm.mages.ui.components.core.EmptyState
+import org.mlm.mages.ui.components.QrLinkDeviceDialog
 import org.mlm.mages.ui.components.sheets.EnterRecoveryKeySheet
 import org.mlm.mages.ui.components.sheets.SetupRecoverySheet
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
@@ -272,7 +275,8 @@ fun SecurityScreen(
                     onChangeRecovery = { activeSheet = SecuritySheet.SetupRecovery(isChange = true) },
                     onEnterRecoveryKey = { activeSheet = SecuritySheet.EnterRecoveryKey },
                     onToggleKeyStorage = viewModel::toggleKeyStorage,
-                    onSetEnableShareHistoryOnInvite = viewModel::setEnableShareHistoryOnInvite
+                    onSetEnableShareHistoryOnInvite = viewModel::setEnableShareHistoryOnInvite,
+                    onLinkDevice = viewModel::openQrGrant,
                 )
 
                 1 -> ProfileTab(
@@ -337,6 +341,19 @@ fun SecurityScreen(
                 )
             }
         }
+    }
+
+    if (state.qrGrantActive) {
+        QrLinkDeviceDialog(
+            phase = state.qrGrantPhase,
+            checkCode = state.qrGrantCheckCode,
+            verificationUri = state.qrGrantVerificationUri,
+            error = state.qrGrantError,
+            onQrDecoded = viewModel::startQrGrant,
+            onConfirm = viewModel::confirmQrGrant,
+            onRetry = viewModel::openQrGrant,
+            onCancel = viewModel::closeQrGrant,
+        )
     }
 
     if (showVerifyUserDialog) {
@@ -722,7 +739,8 @@ private fun DevicesTab(
     onChangeRecovery: () -> Unit,
     onEnterRecoveryKey: () -> Unit,
     onToggleKeyStorage: () -> Unit,
-    onSetEnableShareHistoryOnInvite: (Boolean) -> Unit
+    onSetEnableShareHistoryOnInvite: (Boolean) -> Unit,
+    onLinkDevice: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -863,6 +881,29 @@ private fun DevicesTab(
                     )
                 }
             )
+        }
+
+        if (currentPlatform != SettingPlatform.WEB) {
+            item {
+                HorizontalDivider()
+                ListItem(
+                    headlineContent = { Text(stringResource(Res.string.qr_link_device)) },
+                    supportingContent = {
+                        Text(
+                            stringResource(Res.string.qr_link_device_subtitle),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    },
+                    leadingContent = {
+                        Icon(
+                            Icons.Default.QrCode2,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    modifier = Modifier.clickable { onLinkDevice() }
+                )
+            }
         }
 
         item {

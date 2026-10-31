@@ -35,6 +35,7 @@ import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.matrix.PasswordLoginKind
 import org.mlm.mages.ui.components.LocalNetworkPermissionDialogHost
+import org.mlm.mages.ui.components.QrLoginDialog
 import org.mlm.mages.ui.components.rememberLocalNetworkPermissionGate
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.LoginViewModel
@@ -65,6 +66,7 @@ fun LoginScreen(
     val ssoAvailable = details?.supportsSso == true
     val passwordAvailable = details?.supportsPassword == true
     val serverKnown = details != null
+    val qrAvailable = oauthAvailable && currentPlatform != SettingPlatform.WEB
 
     val identifierLabel = when (state.passwordLoginKind) {
         PasswordLoginKind.Username -> stringResource(Res.string.username)
@@ -271,6 +273,18 @@ fun LoginScreen(
                                 Spacer(Modifier.width(Spacing.sm))
                                 Text(stringResource(Res.string.continue_with_oauth))
                             }
+                        }
+                    }
+
+                    if (qrAvailable) {
+                        OutlinedButton(
+                            onClick = { gate.runWithPermission(state.effectiveHomeserver) { viewModel.startQrLogin() } },
+                            enabled = !state.isBusy && !state.qrInProgress,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.QrCode2, null)
+                            Spacer(Modifier.width(Spacing.sm))
+                            Text(stringResource(Res.string.qr_sign_in))
                         }
                     }
 
@@ -551,6 +565,15 @@ fun LoginScreen(
 
             Spacer(Modifier.height(24.dp))
         }
+    }
+
+    if (state.qrInProgress) {
+        QrLoginDialog(
+            state = state,
+            onCodeChange = viewModel::setQrCheckCode,
+            onSubmit = viewModel::submitQrCheckCode,
+            onCancel = viewModel::cancelQrLogin,
+        )
     }
 
     LocalNetworkPermissionDialogHost(gate)
