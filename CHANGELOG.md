@@ -1,3 +1,19 @@
+## v5.3.2
+
+- fix: media preview fallback
+- fix: grouping and media bounds
+- fix: timeline grouping and room upgrades
+- fix: reaction preview signature
+- fix: timeline media sizing
+- fix: message search paging
+- feat: space unread badges
+- feat: in-app avatar viewer
+- feat: double tap reaction picker
+- fix: trace unknown m.room.message msgtype
+- prevent wrong image on thumbnail reload (#190)
+- fix: qr login
+
+
 ## v5.3.1
 
 - No user-facing changes were mentioned since previous release

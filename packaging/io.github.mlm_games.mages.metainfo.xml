@@ -46,6 +46,24 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="5.3.2" date="2026-10-31" type="stable">
+      <description>
+        <ul>
+          <li>fix: media preview fallback</li>
+          <li>fix: grouping and media bounds</li>
+          <li>fix: timeline grouping and room upgrades</li>
+          <li>fix: reaction preview signature</li>
+          <li>fix: timeline media sizing</li>
+          <li>fix: message search paging</li>
+          <li>feat: space unread badges</li>
+          <li>feat: in-app avatar viewer</li>
+          <li>feat: double tap reaction picker</li>
+          <li>fix: trace unknown m.room.message msgtype</li>
+          <li>prevent wrong image on thumbnail reload (#190)</li>
+          <li>fix: qr login</li>
+        </ul>
+      </description>
+    </release>
     <release version="5.3.1" date="2026-10-30" type="stable">
       <description>
         <ul>
