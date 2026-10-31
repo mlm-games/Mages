@@ -127,7 +127,16 @@ private val UNDERLINE_TAGS = setOf("u", "ins")
 private val STRIKE_TAGS = setOf("s", "del", "strike")
 
 /** Block elements that start on their own line. Lists break lines per item instead. */
-private val BLOCK_TAGS = setOf("p", "blockquote", "pre", "h1", "h2", "h3", "h4", "h5", "h6")
+private val BLOCK_TAGS = setOf("p", "blockquote", "h1", "h2", "h3", "h4", "h5", "h6")
+
+/** Table parts that only group rows or cells, so they contribute no text of their own. */
+private val TABLE_CONTAINER_TAGS = setOf("thead", "tbody", "tfoot")
+
+/** Separates the cells of one row once a table is flattened to text. */
+private const val TABLE_CELL_SEPARATOR = " · "
+
+/** A cell holds one row of text, so even its source line breaks collapse. */
+private val TABLE_CELL_WHITESPACE = Regex("[ \t\r\n\u000B\u000C]+")
 
 /** Trailing whitespace that runs into a block boundary, which HTML treats as nothing. */
 private val TRAILING_BLOCK_WS = Regex("""[ \t\r]*(?:\r?\n[ \t\r]*)+\z""")
@@ -292,6 +301,11 @@ private class Builder(
     private val listStack = ArrayDeque<ListContext>()
     private var atLineStart = true
 
+    private var tableRowStart = 0
+    private var tableCellStart = 0
+    private var inTableCell = false
+    private var preDepth = 0
+
     fun build() = FormattedBody(text.toAnnotatedString(), inlineContent)
 
     fun walk(node: Node, linkify: Boolean = true) {
@@ -317,12 +331,16 @@ private class Builder(
     private fun walkBlockChildren(element: Element, linkify: Boolean) {
         val tag = element.normalName()
         val childLinkify = linkify && tag != "a" && tag !in CODE_TAGS
+        if (preDepth > 0) {
+            element.childNodes().forEach { walk(it, childLinkify) }
+            return
+        }
         element.childNodes().forEach { child ->
             if (child is TextNode) {
                 val raw = child.getWholeText()
                 if ('\n' in raw) {
                     if (raw.all { it.isWhitespace() }) return@forEach
-                    val trimmed = raw.replace(TRAILING_BLOCK_WS, "")
+                    val trimmed = if (inTableCell) raw else raw.replace(TRAILING_BLOCK_WS, "")
                     if (trimmed.isEmpty()) return@forEach
                     if (trimmed.length != raw.length) {
                         appendText(trimmed, childLinkify)
@@ -389,8 +407,50 @@ private class Builder(
             atLineStart = false
             return
         }
-        if (tag in BLOCK_TAGS) {
+        if (tag == "table") {
             ensureLineStart()
+            walkBlockChildren(element, linkify)
+            return
+        }
+        if (tag == "tr") {
+            ensureLineStart()
+            tableRowStart = text.length
+            walkBlockChildren(element, linkify)
+            return
+        }
+        if (tag in TABLE_CONTAINER_TAGS) {
+            walkBlockChildren(element, linkify)
+            return
+        }
+        if (tag == "caption") {
+            ensureLineStart()
+            walkBlockChildren(element, linkify)
+            return
+        }
+        if (tag == "td" || tag == "th") {
+            if (text.length > tableRowStart) text.append(TABLE_CELL_SEPARATOR)
+            tableCellStart = text.length
+            val wasInTableCell = inTableCell
+            inTableCell = true
+            if (tag == "th") text.pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
+            walkBlockChildren(element, linkify)
+            if (tag == "th") text.pop()
+            inTableCell = wasInTableCell
+            return
+        }
+        if (tag == "pre") {
+            ensureLineStart()
+            preDepth++
+            walkBlockChildren(element, linkify)
+            preDepth--
+            return
+        }
+        if (tag in BLOCK_TAGS) {
+            if (inTableCell) {
+                if (!atLineStart && text.length > tableCellStart) text.append(" ")
+            } else {
+                ensureLineStart()
+            }
             walkBlockChildren(element, linkify)
             return
         }
@@ -500,7 +560,11 @@ private class Builder(
     }
 
     private fun appendText(raw: String, linkify: Boolean) {
-        val collapsed = raw.replace(WHITESPACE_RUN, " ")
+        val collapsed = when {
+            preDepth > 0 -> raw
+            inTableCell -> raw.replace(TABLE_CELL_WHITESPACE, " ")
+            else -> raw.replace(WHITESPACE_RUN, " ")
+        }
         if (collapsed.isEmpty()) return
 
         val roomWidth = pillLayout?.roomWidth
