@@ -1002,7 +1002,7 @@ private fun VideoAttachmentBubble(
             }
 
             attachment.durationMs?.let { duration ->
-                DurationBadge(duration, Modifier.align(Alignment.BottomEnd).padding(6.dp))
+                DurationBadge(duration, Modifier.align(Alignment.BottomStart).padding(6.dp))
             }
 
             if (!hasCaption) {

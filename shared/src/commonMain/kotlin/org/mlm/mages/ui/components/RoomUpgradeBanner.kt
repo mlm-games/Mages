@@ -25,6 +25,10 @@ fun RoomUpgradeBanner(
 ) {
     when {
         successor != null -> {
+            val title = stringResource(Res.string.this_room_has_been_upgraded)
+            val reason = successor.reason?.takeIf {
+                !it.trim().trimEnd('.').equals(title.trim().trimEnd('.'), ignoreCase = true)
+            }
             Surface(
                 color = MaterialTheme.colorScheme.primaryContainer,
                 modifier = modifier.fillMaxWidth()
@@ -43,13 +47,13 @@ fun RoomUpgradeBanner(
                     Spacer(Modifier.width(Spacing.sm))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            stringResource(Res.string.this_room_has_been_upgraded),
+                            title,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
-                        if (successor.reason != null) {
+                        if (reason != null) {
                             Text(
-                                successor.reason,
+                                reason,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                             )

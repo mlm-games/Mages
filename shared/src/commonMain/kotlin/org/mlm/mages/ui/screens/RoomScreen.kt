@@ -93,6 +93,7 @@ import org.mlm.mages.ui.util.formatDate
 import org.mlm.mages.ui.util.formatTime
 import org.mlm.mages.ui.util.formatTimelineDate
 import org.mlm.mages.ui.util.formatTypingText
+import org.mlm.mages.ui.util.isSameMessageGroup
 import org.mlm.mages.ui.util.rememberTopVisibleRoomEventTimestamp
 import org.mlm.mages.ui.util.nowMs
 import org.mlm.mages.verification.VerificationCoordinator
@@ -1919,9 +1920,7 @@ private fun MessageItem(
             state.avatarByUserId[userId]
         }.filterValues { it != null }.mapValues { it.value!! }
         val prevEvent = events.getOrNull(index - 1)
-        val shouldGroup = prevEvent != null &&
-                prevEvent.sender == event.sender &&
-                prevDate == eventDate
+        val shouldGroup = prevEvent != null && isSameMessageGroup(prevEvent, event)
         val nextEvent = events.getOrNull(index + 1)
 
         val isMine = event.sender == state.myUserId
@@ -2134,9 +2133,7 @@ private fun MessageItem(
                             isDm = state.isDm,
                             avatarPath = state.avatarByUserId[event.sender],
                             groupedWithPrev = shouldGroup,
-                            groupedWithNext = nextEvent != null &&
-                                    nextEvent.sender == event.sender &&
-                                    formatDate(nextEvent.timestampMs) == eventDate,
+                            groupedWithNext = nextEvent != null && isSameMessageGroup(event, nextEvent),
                             showMessageAvatars = showMessageAvatars,
                             showUsernameInDms = showUsernameInDms,
                             reactions = chips,

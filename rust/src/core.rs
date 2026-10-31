@@ -47,6 +47,7 @@ use matrix_sdk::{
                 name::RoomNameEventContent,
                 pinned_events::RoomPinnedEventsEventContent,
                 power_levels::UserPowerLevel,
+                tombstone::RoomTombstoneEventContent,
                 topic::RoomTopicEventContent,
             },
             space::child::SpaceChildEventContent,
@@ -4445,6 +4446,18 @@ impl CoreClient {
             let s = chunk.summary;
             let is_space = matches!(s.room_type, Some(RoomType::Space));
             let room = self.sdk.get_room(&s.room_id);
+            let is_upgraded = match room.as_ref() {
+                Some(room) => room
+                    .get_state_event_static::<RoomTombstoneEventContent>()
+                    .await
+                    .ok()
+                    .flatten()
+                    .is_some(),
+                None => false,
+            };
+            if is_upgraded {
+                continue;
+            }
             let membership = room.as_ref().map(room_list_membership);
             let section_tag = match &room {
                 Some(room) => self.room_section_tag(room).await,

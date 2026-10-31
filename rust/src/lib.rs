@@ -5518,6 +5518,11 @@ fn render_other_state(ev: &EventTimelineItem, s: &matrix_sdk_ui::timeline::Other
         return String::new();
     }
 
+    // The room upgrade banner already covers this
+    if ty == "m.room.tombstone" {
+        return String::new();
+    }
+
     match s.content() {
         A::RoomName(c) => {
             let mut name = "";

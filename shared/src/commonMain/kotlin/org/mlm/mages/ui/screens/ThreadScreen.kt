@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.mlm.mages.ui.util.dragToScrollIfEnabled
+import org.mlm.mages.ui.util.isSameMessageGroup
 import org.mlm.mages.LinkPreview
 import org.mlm.mages.MatrixService
 import org.mlm.mages.MessageEvent
@@ -411,14 +412,10 @@ fun ThreadScreen(
                             val replyIndex = state.replies.lastIndex - dslIndex
                             val event = state.replies[replyIndex]
                             val prevEvent = state.replies.getOrNull(replyIndex - 1)
-                            val shouldGroup = prevEvent != null &&
-                                    prevEvent.sender == event.sender &&
-                                    (event.timestampMs - prevEvent.timestampMs) < 300_000
+                            val shouldGroup = prevEvent != null && isSameMessageGroup(prevEvent, event)
 
                             val nextEvent = state.replies.getOrNull(replyIndex + 1)
-                            val groupedWithNext = nextEvent != null &&
-                                    nextEvent.sender == event.sender &&
-                                    (nextEvent.timestampMs - event.timestampMs) < 300_000
+                            val groupedWithNext = nextEvent != null && isSameMessageGroup(event, nextEvent)
 
                             TimelineEventItem(
                                 item = event.toTimelineContent(),

@@ -61,6 +61,7 @@ import org.mlm.mages.ui.components.message.reactionShortcodesFrom
 import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.matrix.ImagePackSummary
 import org.mlm.mages.ui.util.PREVIEW_THUMBNAIL_PX
+import org.mlm.mages.ui.util.isAnimatedImage
 import org.mlm.mages.ui.util.mimeToExtension
 import org.mlm.mages.ui.util.nowMs
 import org.mlm.mages.ui.viewmodel.RoomViewModel.Event.*
@@ -3238,8 +3239,10 @@ class RoomViewModel(
 
         launch {
             try {
-                val thumbRequest = a?.let { service.thumbnailToCache(it, PREVIEW_THUMBNAIL_PX, PREVIEW_THUMBNAIL_PX, crop = false) }
-                    ?: s?.let { service.downloadStickerToCache(it) }
+                val thumbRequest = a?.let {
+                    if (it.isAnimatedImage()) service.port.downloadAttachmentToCache(it)
+                    else service.thumbnailToCache(it, PREVIEW_THUMBNAIL_PX, PREVIEW_THUMBNAIL_PX, crop = false)
+                } ?: s?.let { service.downloadStickerToCache(it) }
                 thumbRequest?.onSuccess { path ->
                     updateState {
                         copy(thumbByEvent = thumbByEvent + (key to path))
