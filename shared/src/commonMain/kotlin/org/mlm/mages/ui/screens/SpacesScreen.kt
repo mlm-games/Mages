@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.SpaceInfo
 import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.components.core.ShimmerList
+import org.mlm.mages.ui.components.core.TopicText
 import org.koin.compose.koinInject
 import org.mlm.mages.ui.util.dragToScrollIfEnabled
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
@@ -260,11 +261,11 @@ private fun SpaceCard(
                     }
                 }
 
-                space.topic?.let { topic ->
-                    Text(
-                        topic,
+                if (space.topic?.isNotBlank() == true || space.topicHtml?.isNotBlank() == true) {
+                    TopicText(
+                        topic = space.topic,
+                        topicHtml = space.topicHtml,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )

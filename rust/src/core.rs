@@ -27,6 +27,7 @@ use matrix_sdk::{
             ignored_user_list::IgnoredUserListEventContent,
             invite_permission_config::InvitePermissionConfigEventContent,
             key::verification::request::ToDeviceKeyVerificationRequestEvent,
+            key_backup::KeyBackupEventContent,
             poll::{
                 unstable_end::UnstablePollEndEventContent,
                 unstable_response::UnstablePollResponseEventContent,
@@ -533,6 +534,20 @@ pub struct CoreClient {
     pub timeline_mgr: TimelineManager,
     pub sync_service: Arc<Mutex<Option<Arc<SyncService>>>>,
     pub space_service: Arc<SpaceService>,
+}
+
+async fn room_topic_html(room: &Room) -> Option<String> {
+    let raw = room
+        .get_state_event_static::<RoomTopicEventContent>()
+        .await
+        .ok()
+        .flatten()?;
+    let state = raw.deserialize().ok()?;
+    state
+        .original_content()
+        .and_then(|content| content.topic_block.text.find_html())
+        .filter(|html| !html.trim().is_empty())
+        .map(ToOwned::to_owned)
 }
 
 impl CoreClient {
@@ -1551,6 +1566,7 @@ impl CoreClient {
             .map(|d| d.to_string())
             .unwrap_or_else(|_| rid.to_string());
         let topic = room.topic();
+        let topic_html = room_topic_html(room).await;
         let member_count = human_member_count(room, room.joined_members_count());
         let is_encrypted = matches!(room.encryption_state(), EncryptionState::Encrypted);
         let is_dm = room.is_dm();
@@ -1580,6 +1596,7 @@ impl CoreClient {
             room_id: rid.to_string(),
             name,
             topic,
+            topic_html,
             member_count,
             is_encrypted,
             is_dm,
@@ -2891,11 +2908,22 @@ impl CoreClient {
 
     pub async fn set_key_backup_enabled(&self, enabled: bool) -> bool {
         let backups = self.sdk.encryption().backups();
-        if enabled {
+        let updated = if enabled {
             backups.create().await.is_ok()
         } else {
             backups.disable().await.is_ok()
+        };
+        if updated {
+            if let Err(e) = self
+                .sdk
+                .account()
+                .set_account_data(KeyBackupEventContent::new(enabled))
+                .await
+            {
+                warn!("failed to record key backup preference: {e:?}");
+            }
         }
+        updated
     }
 
     pub async fn room_send_queue_set_enabled(&self, room_id: String, enabled: bool) -> bool {
@@ -4195,6 +4223,7 @@ impl CoreClient {
                 room_id: rid.to_string(),
                 name,
                 topic: room.topic(),
+                topic_html: room_topic_html(&room).await,
                 member_count: human_member_count(&room, room.joined_members_count()),
                 is_encrypted: matches!(room.encryption_state(), EncryptionState::Encrypted),
                 is_public: room.is_public().unwrap_or(false),

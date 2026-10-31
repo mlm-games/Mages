@@ -38,6 +38,7 @@ import org.mlm.mages.ui.components.sheets.RoomNotificationSheet
 import org.mlm.mages.ui.components.settings.*
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.EditableAvatar
+import org.mlm.mages.ui.components.core.TopicText
 import org.mlm.mages.ui.theme.AppColors
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
@@ -808,15 +809,15 @@ private fun ProfileHeader(
                 textAlign = TextAlign.Center
             )
         }
-        if (profile.topic?.isNotBlank() == true) {
+        if (profile.topic?.isNotBlank() == true || profile.topicHtml?.isNotBlank() == true) {
             Spacer(Modifier.height(Spacing.sm))
-            Text(
-                text = profile.topic,
+            TopicText(
+                topic = profile.topic,
+                topicHtml = profile.topicHtml,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 32.dp)
             )
         }

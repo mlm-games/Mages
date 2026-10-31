@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
@@ -360,7 +361,12 @@ private class Builder(
         }
 
         if (tag == "ul" || tag == "ol") {
-            listStack.addLast(if (tag == "ol") ListContext.Ordered() else ListContext.Unordered)
+            val context = if (tag == "ol") {
+                ListContext.Ordered(element.attr("start").trim().toIntOrNull() ?: 1)
+            } else {
+                ListContext.Unordered
+            }
+            listStack.addLast(context)
             walkBlockChildren(element, linkify)
             listStack.removeLastOrNull()
             return
@@ -721,6 +727,7 @@ private fun MentionPill(
 fun FormattedBodyText(
     formattedBody: String?,
     fallbackBody: String,
+    modifier: Modifier = Modifier,
     emotePaths: Map<String, String> = emptyMap(),
     color: Color = LocalContentColor.current,
     containerColor: Color = MaterialTheme.colorScheme.surface,
@@ -729,8 +736,16 @@ fun FormattedBodyText(
     mentionRefs: Map<String, MentionRef> = emptyMap(),
     mentionsRoom: Boolean = false,
     onMentionClick: ((String) -> Unit)? = null,
+    maxLines: Int = Int.MAX_VALUE,
+    overflow: TextOverflow = TextOverflow.Clip,
+    textAlign: TextAlign? = null,
+    useMessageFontSize: Boolean = true,
 ) {
-    val baseStyle = style.copy(fontSize = LocalMessageFontSize.current.sp)
+    val baseStyle = if (useMessageFontSize) {
+        style.copy(fontSize = LocalMessageFontSize.current.sp)
+    } else {
+        style
+    }
     val revealed = remember { mutableStateSetOf<Int>() }
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
@@ -771,20 +786,63 @@ fun FormattedBodyText(
     }
 
     if (parsed == null) {
-        MarkdownText(
-            text = fallbackBody,
-            color = color,
-            style = baseStyle,
-            onLinkClick = onLinkClick
-        )
+        if (useMessageFontSize) {
+            MarkdownText(
+                text = fallbackBody,
+                modifier = modifier,
+                color = color,
+                style = baseStyle,
+                onLinkClick = onLinkClick
+            )
+        } else {
+            Text(
+                text = fallbackBody,
+                modifier = modifier,
+                color = color,
+                style = baseStyle,
+                maxLines = maxLines,
+                overflow = overflow,
+                textAlign = textAlign
+            )
+        }
         return
     }
 
     Text(
         text = parsed.text,
+        modifier = modifier,
         color = color,
         style = baseStyle,
-        inlineContent = parsed.inlineContent
+        inlineContent = parsed.inlineContent,
+        maxLines = maxLines,
+        overflow = overflow,
+        textAlign = textAlign
+    )
+}
+
+@Composable
+fun TopicText(
+    topic: String?,
+    topicHtml: String?,
+    modifier: Modifier = Modifier,
+    style: TextStyle = MaterialTheme.typography.bodyMedium,
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    maxLines: Int = Int.MAX_VALUE,
+    overflow: TextOverflow = TextOverflow.Clip,
+    textAlign: TextAlign? = null,
+) {
+    if (topic.isNullOrBlank() && topicHtml.isNullOrBlank()) return
+    FormattedBodyText(
+        formattedBody = topicHtml?.takeIf { it.isNotBlank() },
+        fallbackBody = topic.orEmpty(),
+        modifier = modifier,
+        color = color,
+        containerColor = MaterialTheme.colorScheme.surface,
+        style = style,
+        maxLines = maxLines,
+        overflow = overflow,
+        textAlign = textAlign,
+        useMessageFontSize = false
     )
 }
 

@@ -33,6 +33,7 @@ import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.components.core.LoadMoreButton
 import org.mlm.mages.ui.components.core.SectionHeader
+import org.mlm.mages.ui.components.core.TopicText
 import org.mlm.mages.ui.components.sheets.SpaceAddSheet
 import org.mlm.mages.ui.components.sheets.SpaceSectionsSheet
 import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
@@ -374,12 +375,12 @@ private fun SpaceHeaderCard(space: SpaceInfo, avatarPath: String?) {
                 }
             }
 
-            space.topic?.let { topic ->
+            if (space.topic?.isNotBlank() == true || space.topicHtml?.isNotBlank() == true) {
                 Spacer(Modifier.height(Spacing.md))
-                Text(
-                    topic,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                TopicText(
+                    topic = space.topic,
+                    topicHtml = space.topicHtml,
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
         }
