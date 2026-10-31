@@ -132,6 +132,7 @@ import org.mlm.mages.ui.components.timeline.TimelineContent
 import org.mlm.mages.ui.components.timeline.TimelineEventItem
 import org.mlm.mages.ui.components.timeline.toTimelineContent
 import org.mlm.mages.ui.components.viewer.ImageViewerOverlay
+import org.mlm.mages.ui.components.viewer.ImageViewerItem
 import org.mlm.mages.ui.components.viewer.imageViewerItems
 import org.mlm.mages.ui.components.viewer.isViewableImage
 import org.mlm.mages.ui.components.viewer.loadImageForViewing
@@ -312,6 +313,7 @@ fun RoomScreen(
     var isDragging by remember { mutableStateOf(false) }
     var sheetEvent by remember { mutableStateOf<MessageEvent?>(null) }
     var openedImageKey by remember { mutableStateOf<String?>(null) }
+    var openedImageItems by remember { mutableStateOf<List<ImageViewerItem>?>(null) }
     var jumpPickerDateMs by remember { mutableStateOf<Long?>(null) }
 
     var didInitialScroll by rememberSaveable { mutableStateOf(false) }
@@ -322,9 +324,10 @@ fun RoomScreen(
     val events = state.events
 
     val service: MatrixService = koinInject()
-    val viewerItems = remember(state.allEvents, state.thumbByEvent) {
+    val liveViewerItems = remember(state.allEvents, state.thumbByEvent) {
         imageViewerItems(state.allEvents) { event -> event.thumbKey?.let { state.thumbByEvent[it] } }
     }
+    val viewerItems = openedImageItems ?: liveViewerItems
     val viewerStartIndex = viewerItems.indexOfFirst { it.event.itemId == openedImageKey }
 
     val todayLabel = stringResource(Res.string.timeline_date_today)
@@ -887,6 +890,7 @@ fun RoomScreen(
                                                     if (state.isSelectionMode) {
                                                         viewModel.toggleSelected(event.eventId)
                                                     } else if (event.isViewableImage()) {
+                                                        openedImageItems = imageViewerItems(state.allEvents) { e -> e.thumbKey?.let { state.thumbByEvent[it] } }
                                                         openedImageKey = event.itemId
                                                     } else {
                                                         viewModel.openAttachment(event) { path, mime ->
@@ -1391,7 +1395,10 @@ fun RoomScreen(
             items = viewerItems,
             startKey = openedImage,
             startIndex = viewerStartIndex.coerceAtLeast(0),
-            onDismiss = { openedImageKey = null },
+            onDismiss = {
+                openedImageKey = null
+                openedImageItems = null
+            },
             loadFullMedia = { event -> service.loadImageForViewing(event) },
             onOpenMedia = { path, mime -> openExternal(path, mime) },
             onShareMedia = { path, mime ->

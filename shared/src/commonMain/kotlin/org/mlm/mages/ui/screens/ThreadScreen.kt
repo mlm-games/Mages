@@ -65,6 +65,7 @@ import org.mlm.mages.platform.rememberShareHandler
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.secondaryClick
 import org.mlm.mages.ui.components.viewer.ImageViewerOverlay
+import org.mlm.mages.ui.components.viewer.ImageViewerItem
 import org.mlm.mages.ui.components.viewer.imageViewerItems
 import org.mlm.mages.ui.components.viewer.isViewableImage
 import org.mlm.mages.ui.components.viewer.loadImageForViewing
@@ -102,9 +103,11 @@ fun ThreadRoute(
     LaunchedEffect(Unit) { viewModel.refreshImagePacks() }
 
     var openedImageKey by remember { mutableStateOf<String?>(null) }
-    val viewerItems = remember(state.allMessages, state.thumbByEvent) {
+    var openedImageItems by remember { mutableStateOf<List<ImageViewerItem>?>(null) }
+    val liveViewerItems = remember(state.allMessages, state.thumbByEvent) {
         imageViewerItems(state.allMessages) { event -> event.thumbKey?.let { state.thumbByEvent[it] } }
     }
+    val viewerItems = openedImageItems ?: liveViewerItems
     val viewerStartIndex = viewerItems.indexOfFirst { it.event.itemId == openedImageKey }
 
     val messageNotFound = stringResource(Res.string.message_not_found)
@@ -132,7 +135,10 @@ fun ThreadRoute(
         onCancelEdit = viewModel::cancelEdit,
         onDelete = { ev -> viewModel.delete(ev) },
         onOpenAttachment = { ev -> viewModel.openAttachment(ev) { path, mime -> openExternal(path, mime) } },
-        onOpenImage = { ev -> openedImageKey = ev.itemId },
+        onOpenImage = { ev ->
+        openedImageItems = imageViewerItems(state.allMessages) { e -> e.thumbKey?.let { state.thumbByEvent[it] } }
+        openedImageKey = ev.itemId
+    },
         enterSendsMessage = settings.enterSendsMessage,
         showReactionAvatars = settings.showReactionAvatars,
         canEditLatest = settings.editLatestWithUpArrow && state.editingEvent == null && viewModel.hasEditableLatest(),
@@ -163,7 +169,10 @@ fun ThreadRoute(
             items = viewerItems,
             startKey = openedImage,
             startIndex = viewerStartIndex.coerceAtLeast(0),
-            onDismiss = { openedImageKey = null },
+            onDismiss = {
+            openedImageKey = null
+            openedImageItems = null
+        },
             loadFullMedia = { event -> service.loadImageForViewing(event) },
             onOpenMedia = { path, mime -> openExternal(path, mime) },
             onShareMedia = { path, mime ->
