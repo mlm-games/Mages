@@ -806,7 +806,7 @@ private fun ImageAttachmentBubble(
                             .build(),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxSize()
                     )
                 } else if (!previewBlocked) {
                     MediaTilePlaceholder(
@@ -975,7 +975,7 @@ private fun VideoAttachmentBubble(
                             .build(),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxSize()
                     )
                 } else if (!previewBlocked) {
                     MediaTilePlaceholder(

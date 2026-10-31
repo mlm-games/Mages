@@ -877,7 +877,9 @@ private fun ThreadReplyMessage(
                     variant = MessageBubbleVariant.ThreadReply,
                     previewBlocked = previewBlocked,
                     resolvedPreviewPath = event.thumbKey?.let { thumbByEvent[it] },
-                    resolvedReplyPreviewPath = event.replyToEventId?.let { replyThumbByEvent[it] },
+                    resolvedReplyPreviewPath = event.replyToEventId?.let {
+                        replyThumbByEvent[it] ?: thumbByEvent[it]
+                    },
                     resolvedLinkPreview = linkPreviewByEvent[event.eventId],
                     resolvedLinkPreviewImage = linkPreviewImageByEvent[event.eventId],
                     resolvedMentions = mentionsOf(event, mentionProfilesByUserId),
