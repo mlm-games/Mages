@@ -58,7 +58,7 @@ import org.mlm.mages.matrix.ProfileField
 import org.mlm.mages.platform.toTransferItem
 import org.mlm.mages.settings.*
 import org.mlm.mages.ui.AvatarEdit
-import org.mlm.mages.ui.components.core.Avatar
+import org.mlm.mages.ui.components.core.EditableAvatar
 import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.components.sheets.EnterRecoveryKeySheet
 import org.mlm.mages.ui.components.sheets.SetupRecoverySheet
@@ -502,21 +502,17 @@ private fun ProfileTab(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                Box {
-                    Avatar(
-                        name = displayName.ifBlank { current.userId },
-                        avatarPath = previewPath,
-                        size = Sizes.avatarLarge * 2,
-                    )
-                    if (current.canChangeAvatar) {
-                        FilledIconButton(
-                            onClick = { onPickAvatar { path, mime -> avatarEdit = AvatarEdit.Replace(path, mime) } },
-                            modifier = Modifier.align(Alignment.BottomEnd)
-                        ) {
-                            Icon(Icons.Default.PhotoCamera, stringResource(Res.string.profile_change_photo))
-                        }
-                    }
-                }
+                EditableAvatar(
+                    name = displayName.ifBlank { current.userId },
+                    avatarPath = previewPath,
+                    size = Sizes.avatarLarge * 2,
+                    isSaving = isSaving,
+                    onClick = if (current.canChangeAvatar) {
+                        { onPickAvatar { path, mime -> avatarEdit = AvatarEdit.Replace(path, mime) } }
+                    } else {
+                        null
+                    },
+                )
                 Text(
                     current.userId,
                     style = MaterialTheme.typography.bodySmall,

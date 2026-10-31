@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -55,7 +54,8 @@ fun Avatar(
     shape: Shape = CircleShape,
     containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
     contentColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    onClickLabel: String? = null,
 ) {
     val initials = rememberSaveable(name) { extractInitials(name) }
     val ctx = LocalPlatformContext.current
@@ -72,7 +72,7 @@ fun Avatar(
             } else {
                 Modifier
                     .fillMaxSize()
-                    .clickable { onClick?.invoke() }
+                    .clickable(onClickLabel = onClickLabel) { onClick?.invoke() }
             },
             contentAlignment = Alignment.Center
         ) {
@@ -121,12 +121,15 @@ fun EditableAvatar(
     isSaving: Boolean = false,
     onClick: (() -> Unit)? = null,
 ) {
+    val changePhotoLabel = stringResource(Res.string.profile_change_photo)
     Box {
         Avatar(
             name = name,
             avatarPath = avatarPath,
             size = size,
-            shape = shape
+            shape = shape,
+            onClick = onClick,
+            onClickLabel = changePhotoLabel,
         )
         if (isSaving) {
             Box(
@@ -141,33 +144,20 @@ fun EditableAvatar(
                 )
             }
         } else if (onClick != null) {
-            val badgeSize = if (size >= 64.dp) 40.dp else 20.dp
-            if (badgeSize >= 32.dp) {
-                FilledIconButton(
-                    onClick = onClick,
-                    modifier = Modifier.align(Alignment.BottomEnd)
-                ) {
-                    Icon(
-                        Icons.Default.PhotoCamera,
-                        contentDescription = stringResource(Res.string.profile_change_photo)
-                    )
-                }
-            } else {
-                Surface(
-                    onClick = onClick,
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .size(badgeSize)
-                ) {
-                    Icon(
-                        Icons.Default.PhotoCamera,
-                        contentDescription = stringResource(Res.string.profile_change_photo),
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.padding(badgeSize * 0.2f)
-                    )
-                }
+            val badgeSize = (size * 0.32f).coerceIn(20.dp, 40.dp)
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(badgeSize)
+            ) {
+                Icon(
+                    Icons.Default.PhotoCamera,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(badgeSize * 0.2f)
+                )
             }
         }
     }
