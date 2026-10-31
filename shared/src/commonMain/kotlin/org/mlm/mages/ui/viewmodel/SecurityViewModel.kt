@@ -269,10 +269,11 @@ class SecurityViewModel(
         }
 
         launch(onError = { t ->
+            val message = t.message ?: getString(Res.string.qr_grant_failed)
             updateState {
                 copy(
                     qrGrantPhase = QrGrantPhase.Error,
-                    qrGrantError = t.message ?: getString(Res.string.qr_grant_failed),
+                    qrGrantError = message,
                 )
             }
         }) {
@@ -322,10 +323,11 @@ class SecurityViewModel(
         val port = service.portOrNull ?: return
         updateState { copy(qrGrantPhase = QrGrantPhase.Confirming) }
         launch(onError = { t ->
+            val message = t.message ?: getString(Res.string.qr_grant_failed)
             updateState {
                 copy(
                     qrGrantPhase = QrGrantPhase.Error,
-                    qrGrantError = t.message ?: getString(Res.string.qr_grant_failed),
+                    qrGrantError = message,
                 )
             }
         }) {

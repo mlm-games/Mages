@@ -33,6 +33,7 @@ class LoginViewModel(
     private var ssoJob: Job? = null
     private var oauthJob: Job? = null
     private var serverCheckJob: Job? = null
+    private var qrJob: Job? = null
     private var qrSession: QrSession? = null
 
     private data class QrSession(
@@ -471,18 +472,20 @@ class LoginViewModel(
         val hs = s.effectiveHomeserver
         if (hs.isBlank()) {
             launch {
-                updateState { copy(error = getString(Res.string.please_enter_a_server)) }
+                val message = getString(Res.string.please_enter_a_server)
+                updateState { copy(error = message) }
             }
             return
         }
         if (s.loginDetails?.supportsOauth != true) {
             launch {
-                updateState { copy(error = getString(Res.string.qr_login_requires_oauth)) }
+                val message = getString(Res.string.qr_login_requires_oauth)
+                updateState { copy(error = message) }
             }
             return
         }
 
-        launch(onError = { t ->
+        qrJob = launch(onError = { t ->
             if (t !is CancellationException) {
                 failQrLogin(t.message ?: getString(Res.string.qr_login_failed))
             }
@@ -499,9 +502,11 @@ class LoginViewModel(
             }
 
             val accountId = newAccountId()
-            val port = createMatrixPort()
             val settings = settingsRepository.flow.first()
             val proxyUrl = if (settings.proxyEnabled) settings.proxyUrl.takeIf { it.isNotBlank() } else null
+            val port = createMatrixPort()
+
+            qrSession = QrSession(port, accountId, hs, proxyUrl)
 
             try {
                 port.init(hs, accountId, proxyUrl)
@@ -511,7 +516,10 @@ class LoginViewModel(
                 return@launch
             }
 
-            qrSession = QrSession(port, accountId, hs, proxyUrl)
+            if (qrSession?.port !== port) {
+                runCatching { port.close() }
+                return@launch
+            }
 
             try {
                 port.startQrLogin(
@@ -588,10 +596,14 @@ class LoginViewModel(
     }
 
     fun cancelQrLogin() {
-        val session = qrSession ?: return
+        qrJob?.cancel()
+        qrJob = null
+        val session = qrSession
         qrSession = null
-        runCatching { session.port.cancelQrLogin() }
-        runCatching { session.port.close() }
+        session?.let {
+            runCatching { it.port.cancelQrLogin() }
+            runCatching { it.port.close() }
+        }
         updateState {
             copy(
                 qrInProgress = false,

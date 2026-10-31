@@ -1806,7 +1806,7 @@ impl Client {
             .push(h);
     }
 
-    fn ensure_send_queue_supervision(&self) {
+    pub(crate) fn ensure_send_queue_supervision(&self) {
         if self.send_queue_supervised.swap(true, Ordering::AcqRel) {
             return;
         }

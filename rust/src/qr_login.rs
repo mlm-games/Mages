@@ -43,18 +43,18 @@ pub trait QrGrantObserver: Send + Sync {
 
 pub(crate) struct QrState {
     pub(crate) login_task: Mutex<Option<JoinHandle<()>>>,
-    pub(crate) login_check_code: tokio::sync::Mutex<Option<CheckCodeSender>>,
+    pub(crate) login_check_code: Arc<tokio::sync::Mutex<Option<CheckCodeSender>>>,
     pub(crate) grant_task: Mutex<Option<JoinHandle<()>>>,
-    pub(crate) grant_continuation: tokio::sync::Mutex<Option<ContinuationMessageSender>>,
+    pub(crate) grant_continuation: Arc<tokio::sync::Mutex<Option<ContinuationMessageSender>>>,
 }
 
 impl Default for QrState {
     fn default() -> Self {
         Self {
             login_task: Mutex::new(None),
-            login_check_code: tokio::sync::Mutex::new(None),
+            login_check_code: Arc::new(tokio::sync::Mutex::new(None)),
             grant_task: Mutex::new(None),
-            grant_continuation: tokio::sync::Mutex::new(None),
+            grant_continuation: Arc::new(tokio::sync::Mutex::new(None)),
         }
     }
 }
@@ -103,6 +103,8 @@ impl Client {
     ) -> Result<(), FfiError> {
         check_not_on_runtime("start_qr_login")?;
 
+        self.ensure_send_queue_supervision();
+
         let sdk = self.core.sdk.clone();
         let core = self.core.clone();
         let store_dir = self.store_dir.clone();
@@ -121,10 +123,8 @@ impl Client {
         }
 
         let task = spawn_task!(async move {
-            let login = sdk
-                .oauth()
-                .login_with_qr_code(Some(&registration))
-                .generate();
+            let oauth = sdk.oauth();
+            let login = oauth.login_with_qr_code(Some(&registration)).generate();
             let mut progress = login.subscribe_to_progress();
 
             let progress_observer = observer.clone();
@@ -253,7 +253,8 @@ impl Client {
                 }
             };
 
-            let grant = sdk.oauth().grant_login_with_qr_code().scan(&data);
+            let oauth = sdk.oauth();
+            let grant = oauth.grant_login_with_qr_code().scan(&data);
             let mut progress = grant.subscribe_to_progress();
 
             let progress_observer = observer.clone();
