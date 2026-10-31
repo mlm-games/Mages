@@ -2,10 +2,10 @@ package org.mlm.mages.ui.viewmodel
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
+import kotlinx.coroutines.CancellationException
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.SearchHit
 
-private const val ROOM_BATCH = 10
 private const val HITS_PER_ROOM = 20
 
 class SearchPagingSource(
@@ -16,14 +16,12 @@ class SearchPagingSource(
 
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, SearchHit> {
         return try {
-            val offset = params.key
-
             if (roomId != null) {
                 val page = service.port.searchRoom(
                     roomId = roomId,
                     query = query,
-                    limit = params.loadSize,
-                    offset = offset
+                    limit = HITS_PER_ROOM,
+                    offset = params.key
                 )
                 LoadResult.Page(
                     data = page.hits,
@@ -32,35 +30,27 @@ class SearchPagingSource(
                 )
             } else {
                 val rooms = service.port.listRooms()
-                val startIndex = offset ?: 0
-                if (startIndex >= rooms.size) {
-                    return LoadResult.Page(data = emptyList(), prevKey = null, nextKey = null)
-                }
+                val index = (params.key ?: 0).coerceAtLeast(0)
+                val room = rooms.getOrNull(index)
+                    ?: return LoadResult.Page(data = emptyList(), prevKey = null, nextKey = null)
 
-                val hits = mutableListOf<SearchHit>()
-                var index = startIndex
-                while (hits.size < params.loadSize && index < rooms.size) {
-                    val batchEnd = minOf(index + ROOM_BATCH, rooms.size)
-                    for (room in rooms.subList(index, batchEnd)) {
-                        val page = runCatching {
-                            service.port.searchRoom(
-                                roomId = room.id,
-                                query = query,
-                                limit = HITS_PER_ROOM,
-                                offset = null
-                            )
-                        }.getOrNull()
-                        if (page != null) hits.addAll(page.hits)
-                    }
-                    index = batchEnd
-                }
+                val page = runCatching {
+                    service.port.searchRoom(
+                        roomId = room.id,
+                        query = query,
+                        limit = HITS_PER_ROOM,
+                        offset = null
+                    )
+                }.getOrNull()
 
                 LoadResult.Page(
-                    data = hits.sortedByDescending { it.timestampMs.toLong() },
-                    prevKey = (startIndex - ROOM_BATCH).takeIf { it >= 0 },
-                    nextKey = if (index < rooms.size) index else null
+                    data = page?.hits.orEmpty().sortedByDescending { it.timestampMs.toLong() },
+                    prevKey = (index - 1).takeIf { it >= 0 },
+                    nextKey = (index + 1).takeIf { it < rooms.size }
                 )
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             LoadResult.Error(e)
         }
