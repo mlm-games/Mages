@@ -14,6 +14,7 @@ import org.mlm.mages.matrix.SpaceInfo
 import org.mlm.mages.matrix.SpaceSection
 import org.mlm.mages.ui.SpaceDetailUiState
 import org.mlm.mages.ui.SpaceSectionEntry
+import org.mlm.mages.ui.UnreadBadgeUi
 import org.jetbrains.compose.resources.getString
 import mages.shared.generated.resources.Res
 
@@ -90,6 +91,11 @@ class SpaceDetailViewModel(
         loadSpaceInfo()
         loadHierarchy()
         loadSections()
+        loadUnread()
+    }
+
+    fun refreshUnread() {
+        loadUnread()
     }
 
     fun refreshUntilRoomPresent(roomId: String) {
@@ -319,6 +325,30 @@ class SpaceDetailViewModel(
     }
 
     //  Private Methods 
+
+    private fun loadUnread() {
+        launch {
+            val rooms = runSafe { service.port.loadRoomListCache() }.orEmpty()
+                .map { entry ->
+                    entry.roomId to UnreadBadgeUi(
+                        messages = entry.messages.toInt(),
+                        notifications = entry.notifications.toInt(),
+                        markedUnread = entry.markedUnread
+                    )
+                }
+            val spaces = runSafe { service.spaceUnreadCounts() }.orEmpty()
+                .map { unread ->
+                    unread.spaceId to UnreadBadgeUi(
+                        messages = unread.unreadMessages.toInt(),
+                        notifications = unread.unreadNotifications.toInt()
+                    )
+                }
+            val unreadByRoomId = (rooms + spaces)
+                .filter { (_, unread) -> unread.hasUnread }
+                .toMap()
+            updateState { copy(unreadByRoomId = unreadByRoomId) }
+        }
+    }
 
     private fun loadSpaceInfo() {
         launch {

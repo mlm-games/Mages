@@ -1,28 +1,19 @@
 package org.mlm.mages.ui.viewmodel
 
-import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
-import io.github.mlmgames.settings.core.SettingsRepository
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.stateIn
 import mages.shared.generated.resources.*
-import org.koin.core.component.inject
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.SpaceInfo
 import org.mlm.mages.matrix.SpaceUnread
-import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.SpacesUiState
+import org.mlm.mages.ui.UnreadBadgeUi
 import org.jetbrains.compose.resources.getString
 import mages.shared.generated.resources.Res
 
 class SpacesViewModel(
     private val service: MatrixService
 ) : BaseViewModel<SpacesUiState>(SpacesUiState(isLoading = true)) {
-
-    private val settingsRepo: SettingsRepository<AppSettings> by inject()
-    private val settings = settingsRepo.flow
-        .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
 
     private var spaceUnread: Map<String, SpaceUnread> = emptyMap()
 
@@ -39,7 +30,6 @@ class SpacesViewModel(
 
     init {
         loadSpaces()
-        launch { settingsRepo.flow.collect { applyUnread() } }
     }
 
     //  Public Actions 
@@ -175,13 +165,17 @@ class SpacesViewModel(
     //  Private Methods 
 
     private fun applyUnread() {
-        val includeSilent = settings.value.includeSilentUnreadInFilter
         updateState {
             copy(
-                unreadSpaceIds = spaceUnread.filterValues { unread ->
-                    if (includeSilent) unread.unreadMessages > 0uL || unread.unreadNotifications > 0uL
-                    else unread.unreadNotifications > 0uL
-                }.keys
+                unreadBySpaceId = spaceUnread.values
+                    .map { unread ->
+                        unread.spaceId to UnreadBadgeUi(
+                            messages = unread.unreadMessages.toInt(),
+                            notifications = unread.unreadNotifications.toInt()
+                        )
+                    }
+                    .filter { (_, unread) -> unread.hasUnread }
+                    .toMap()
             )
         }
     }

@@ -16,12 +16,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.github.mlmgames.settings.core.SettingsRepository
 import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.matrix.SpaceInfo
 import org.mlm.mages.matrix.SpaceSection
+import org.mlm.mages.settings.AppSettings
 import org.koin.compose.koinInject
 import org.mlm.mages.ui.SpaceDetailUiState
 import org.mlm.mages.ui.SpaceSectionEntry
+import org.mlm.mages.ui.UnreadBadgeUi
 import org.mlm.mages.ui.components.dialogs.AddRoomToSpaceDialog
 import org.mlm.mages.ui.components.dialogs.CreateRoomInSpaceDialog
 import org.mlm.mages.ui.components.dialogs.DeleteSectionDialog
@@ -34,6 +37,7 @@ import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.components.core.LoadMoreButton
 import org.mlm.mages.ui.components.core.SectionHeader
 import org.mlm.mages.ui.components.core.TopicText
+import org.mlm.mages.ui.components.core.UnreadBadge
 import org.mlm.mages.ui.components.sheets.SpaceAddSheet
 import org.mlm.mages.ui.components.sheets.SpaceSectionsSheet
 import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
@@ -55,10 +59,14 @@ fun SpaceDetailScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val actionsState by actionsViewModel.state.collectAsState()
+    val settingsRepository: SettingsRepository<AppSettings> = koinInject()
+    val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
     val snackbarManager: SnackbarManager = koinInject()
     val postError = rememberErrorPoster(snackbarManager)
     var showAddSheet by remember { mutableStateOf(false) }
     var showSectionsSheet by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) { viewModel.refreshUnread() }
 
     LaunchedEffect(state.error) {
         state.error?.let { postError(it) }
@@ -178,7 +186,12 @@ fun SpaceDetailScreen(
                             }
 
                             items(section.subspaces, key = { "sub_${section.tag}_${it.roomId}" }) { child ->
-                                SpaceChildRow(child = child, state = state, viewModel = viewModel)
+                                SpaceChildRow(
+                                    child = child,
+                                    state = state,
+                                    viewModel = viewModel,
+                                    showSilentCount = settings.showSilentUnreadCount
+                                )
                             }
 
                             if (section.subspaces.isNotEmpty() && section.rooms.isNotEmpty()) {
@@ -191,7 +204,12 @@ fun SpaceDetailScreen(
                             }
 
                             items(section.rooms, key = { "room_${section.tag}_${it.roomId}" }) { child ->
-                                SpaceChildRow(child = child, state = state, viewModel = viewModel)
+                                SpaceChildRow(
+                                    child = child,
+                                    state = state,
+                                    viewModel = viewModel,
+                                    showSilentCount = settings.showSilentUnreadCount
+                                )
                             }
                         }
 
@@ -313,11 +331,14 @@ fun SpaceDetailScreen(
 private fun SpaceChildRow(
     child: SpaceChildInfo,
     state: SpaceDetailUiState,
-    viewModel: SpaceDetailViewModel
+    viewModel: SpaceDetailViewModel,
+    showSilentCount: Boolean
 ) {
     val resolvedAvatar = state.avatarPathByRoomId[child.roomId] ?: child.avatarUrl
     SpaceChildItem(
         child = child.copy(avatarUrl = resolvedAvatar),
+        unread = state.unreadByRoomId[child.roomId],
+        showSilentCount = showSilentCount,
         onClick = { viewModel.openChild(child) },
         onMoreClick = { viewModel.showMoveToSection(child.roomId) }
     )
@@ -390,6 +411,8 @@ private fun SpaceHeaderCard(space: SpaceInfo, avatarPath: String?) {
 @Composable
 private fun SpaceChildItem(
     child: SpaceChildInfo,
+    unread: UnreadBadgeUi?,
+    showSilentCount: Boolean,
     onClick: () -> Unit,
     onMoreClick: () -> Unit
 ) {
@@ -398,7 +421,8 @@ private fun SpaceChildItem(
             Text(
                 child.name ?: child.alias ?: child.roomId,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = if (unread?.hasUnread == true) FontWeight.Bold else null
             )
         },
         supportingContent = child.topic?.let {
@@ -406,12 +430,21 @@ private fun SpaceChildItem(
         },
         leadingContent = {
             val displayName = child.name ?: child.alias ?: child.roomId
-            Avatar(
-                name = displayName,
-                avatarPath = child.avatarUrl,
-                size = 40.dp,
-                shape = MaterialTheme.shapes.small
-            )
+            Box {
+                Avatar(
+                    name = displayName,
+                    avatarPath = child.avatarUrl,
+                    size = 40.dp,
+                    shape = MaterialTheme.shapes.small
+                )
+                UnreadBadge(
+                    unread = unread,
+                    showSilentCount = showSilentCount,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 4.dp, y = (-4).dp)
+                )
+            }
         },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {

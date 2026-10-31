@@ -592,7 +592,7 @@ data class SpacesUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val avatarPathByRoomId: Map<String, String> = emptyMap(),
-    val unreadSpaceIds: Set<String> = emptySet(),
+    val unreadBySpaceId: Map<String, UnreadBadgeUi> = emptyMap(),
 
     // Create space
     val showCreateSpace: Boolean = false,
@@ -615,6 +615,7 @@ data class SpaceDetailUiState(
     val error: String? = null,
     val avatarPathByRoomId: Map<String, String> = emptyMap(),
     val spaceAvatarPath: String? = null,
+    val unreadByRoomId: Map<String, UnreadBadgeUi> = emptyMap(),
     val isSavingSection: Boolean = false,
     val editingSection: SpaceSectionEntry? = null,
     val movingRoomId: String? = null,
@@ -817,6 +818,22 @@ data class SpaceBadgeUi(
     val name: String? = null,
     val avatarUrl: String? = null,
 )
+
+data class UnreadBadgeUi(
+    val messages: Int = 0,
+    val notifications: Int = 0,
+    val markedUnread: Boolean = false,
+) {
+    val hasUnread: Boolean get() = messages > 0 || notifications > 0 || markedUnread
+
+    val count: Int get() = when {
+        notifications > 0 -> notifications
+        markedUnread -> maxOf(messages, 1)
+        else -> messages
+    }
+
+    val highlighted: Boolean get() = notifications > 0 || markedUnread
+}
 
 data class SearchUiState(
     val query: String = "",

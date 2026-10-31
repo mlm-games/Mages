@@ -25,12 +25,16 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.SpaceInfo
+import org.mlm.mages.ui.UnreadBadgeUi
 import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.components.core.ShimmerList
 import org.mlm.mages.ui.components.core.TopicText
+import org.mlm.mages.ui.components.core.UnreadBadge
 import org.koin.compose.koinInject
 import org.mlm.mages.ui.util.dragToScrollIfEnabled
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
+import org.mlm.mages.settings.AppSettings
+import io.github.mlmgames.settings.core.SettingsRepository
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.SpacesViewModel
 import org.jetbrains.compose.resources.stringResource
@@ -43,6 +47,8 @@ fun SpacesScreen(
     onBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+    val settingsRepository: SettingsRepository<AppSettings> = koinInject()
+    val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
     val snackbarManager: SnackbarManager = koinInject()
     val listState = rememberLazyListState()
 
@@ -132,7 +138,8 @@ fun SpacesScreen(
                             SpaceCard(
                                 space = space,
                                 avatarPath = state.avatarPathByRoomId[space.roomId],
-                                hasUnread = space.roomId in state.unreadSpaceIds,
+                                unread = state.unreadBySpaceId[space.roomId],
+                                showSilentCount = settings.showSilentUnreadCount,
                                 onClick = { viewModel.openSpace(space) }
                             )
                         }
@@ -165,7 +172,8 @@ fun SpacesScreen(
 private fun SpaceCard(
     space: SpaceInfo,
     avatarPath: String?,
-    hasUnread: Boolean,
+    unread: UnreadBadgeUi?,
+    showSilentCount: Boolean,
     onClick: () -> Unit
 ) {
     Card(
@@ -213,19 +221,13 @@ private fun SpaceCard(
                     }
                 }
 
-                if (hasUnread) {
-                    Badge(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .offset(x = 4.dp, y = (-4).dp),
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    ) {
-                        Text(
-                            "•",
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                }
+                UnreadBadge(
+                    unread = unread,
+                    showSilentCount = showSilentCount,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 4.dp, y = (-4).dp)
+                )
             }
 
             Spacer(Modifier.width(Spacing.lg))
@@ -238,7 +240,7 @@ private fun SpaceCard(
                     Text(
                         space.name,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = if (unread?.hasUnread == true) FontWeight.Bold else FontWeight.Medium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false)
