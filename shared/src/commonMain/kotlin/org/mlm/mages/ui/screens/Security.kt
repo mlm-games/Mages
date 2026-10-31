@@ -56,6 +56,7 @@ import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.mimeType
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 import org.mlm.mages.matrix.DeviceSummary
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.OwnProfile
@@ -65,9 +66,11 @@ import org.mlm.mages.settings.*
 import org.mlm.mages.ui.AvatarEdit
 import org.mlm.mages.ui.components.core.EditableAvatar
 import org.mlm.mages.ui.components.core.EmptyState
+import org.mlm.mages.ui.components.core.ReactionGlyph
 import org.mlm.mages.ui.components.QrLinkDeviceDialog
 import org.mlm.mages.ui.components.sheets.EmojiPickerSheet
 import org.mlm.mages.ui.components.sheets.EnterRecoveryKeySheet
+import org.mlm.mages.ui.components.sheets.ReactionImagePickerSheet
 import org.mlm.mages.ui.components.sheets.SetupRecoverySheet
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.snackbar.snackbarHost
@@ -77,6 +80,7 @@ import org.mlm.mages.ui.theme.AppColors
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.popBack
+import org.mlm.mages.ui.viewmodel.QuickReactionsViewModel
 import org.mlm.mages.ui.viewmodel.SecurityViewModel
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.*
@@ -1155,14 +1159,43 @@ private fun ReactionEmojiSettingRow(
     enabled: Boolean,
     onSet: (String, Any?) -> Unit,
 ) {
+    val pickerViewModel: QuickReactionsViewModel = koinViewModel()
+    val pickerState by pickerViewModel.state.collectAsState()
+    val packs = pickerState.packs
     var showPicker by remember { mutableStateOf(false) }
+    var showPackPicker by remember { mutableStateOf(false) }
     val current = field.get(value)?.toString().orEmpty().ifBlank { "👍" }
+    val isImage = isImageReaction(current)
+    val imageLabel = remember(packs, current) {
+        packs.flatMap { it.images }.firstOrNull { it.mxcUrl == current }?.shortcode
+    }
+    val trailingGlyph: (@Composable () -> Unit)? = if (isImage) {
+        ({
+            ReactionGlyph(
+                key = current,
+                size = 24.dp,
+                resolvePreview = { pickerViewModel.preview(it) },
+            )
+        })
+    } else {
+        null
+    }
+    val openPacks: (() -> Unit)? = if (packs.isEmpty()) {
+        null
+    } else {
+        ({
+            showPicker = false
+            showPackPicker = true
+        })
+    }
+
     SettingsItem(
         title = stringResource(Res.string.setting_message_double_tap_reaction),
-        subtitle = current,
+        subtitle = imageLabel ?: if (isImage) stringResource(Res.string.quick_reactions_from_packs) else current,
         description = stringResource(Res.string.setting_message_double_tap_reaction_description),
         enabled = enabled,
         onClick = { showPicker = true },
+        trailingContent = trailingGlyph,
     )
     if (showPicker) {
         EmojiPickerSheet(
@@ -1171,6 +1204,19 @@ private fun ReactionEmojiSettingRow(
                 showPicker = false
                 onSet(field.name, emoji)
             },
+            onOpenPacks = openPacks,
+        )
+    }
+    if (showPackPicker) {
+        ReactionImagePickerSheet(
+            packs = packs,
+            isEncryptedRoom = false,
+            resolvePreview = { _, mxcUrl, mime, full -> pickerViewModel.preview(mxcUrl, mime, full) },
+            onImageSelected = { image ->
+                showPackPicker = false
+                onSet(field.name, image.mxcUri)
+            },
+            onDismiss = { showPackPicker = false },
         )
     }
 }

@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +27,7 @@ import mages.shared.generated.resources.Res
 fun EmojiPickerSheet(
     onDismiss: () -> Unit,
     onEmojiSelected: (String) -> Unit,
+    onOpenPacks: (() -> Unit)? = null,
 ) {
     val recentStore: RecentEmojiStore = koinInject()
     val recent by recentStore.recent.collectAsState()
@@ -54,6 +57,23 @@ fun EmojiPickerSheet(
                 .fillMaxWidth()
                 .navigationBarsPadding()
         ) {
+            if (onOpenPacks != null) {
+                TextButton(
+                    onClick = onOpenPacks,
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(horizontal = Spacing.md)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Image,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(Spacing.xs))
+                    Text(stringResource(Res.string.quick_reactions_from_packs))
+                }
+            }
+
             TextField(
                 value = query,
                 onValueChange = { query = it },
