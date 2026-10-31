@@ -1211,7 +1211,7 @@ private fun ReactionEmojiSettingRow(
         ReactionImagePickerSheet(
             packs = packs,
             isEncryptedRoom = false,
-            resolvePreview = { _, mxcUrl, mime, full -> pickerViewModel.preview(mxcUrl, mime, full) },
+            resolvePreview = { _, mxcUrl -> pickerViewModel.preview(mxcUrl) },
             onImageSelected = { image ->
                 showPackPicker = false
                 onSet(field.name, image.mxcUri)
