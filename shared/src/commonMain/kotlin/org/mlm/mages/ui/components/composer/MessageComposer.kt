@@ -25,7 +25,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import mages.shared.generated.resources.*
 import org.mlm.mages.MessageEvent
+import org.mlm.mages.matrix.MEMBER_SUGGESTION_LIMIT
 import org.mlm.mages.matrix.MemberSummary
+import org.mlm.mages.matrix.matchesMemberQuery
+import org.mlm.mages.matrix.normalizeMemberQuery
 import org.mlm.mages.platform.ClipboardAttachmentHandler
 import org.mlm.mages.platform.editLatestShortcutHandler
 import org.mlm.mages.platform.pasteInterceptor
@@ -393,16 +396,13 @@ private fun findMentionQueryInternal(value: TextFieldValue): MentionQueryInterna
 }
 
 private fun filterMentionSuggestionsInternal(members: List<MemberSummary>, query: String): List<MemberSummary> {
-    val normalized = query.trim().lowercase()
+    val blank = normalizeMemberQuery(query).isEmpty()
     return members
         .asSequence()
         .filter { it.membership.equals("join", ignoreCase = true) }
         .sortedWith(compareByDescending<MemberSummary> { it.isMe }.thenBy { (it.displayName ?: it.userId).lowercase() })
-        .filter {
-            if (normalized.isBlank()) return@filter true
-            it.displayName.orEmpty().lowercase().contains(normalized) || it.userId.lowercase().contains(normalized)
-        }
-        .take(5)
+        .filter { blank || it.matchesMemberQuery(query) }
+        .take(MEMBER_SUGGESTION_LIMIT)
         .toList()
 }
 

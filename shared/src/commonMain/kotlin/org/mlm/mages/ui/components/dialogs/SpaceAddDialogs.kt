@@ -13,7 +13,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.RoomSummary
+import org.mlm.mages.matrix.MEMBER_SUGGESTION_LIMIT
+import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.SpaceSection
+import org.mlm.mages.matrix.memberSuggestions
+import org.mlm.mages.ui.components.common.MemberSuggestionGroup
+import org.mlm.mages.ui.components.common.MemberSuggestionList
+import org.mlm.mages.ui.components.common.rememberDirectoryMembers
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.*
@@ -105,25 +111,49 @@ fun InviteUserToSpaceDialog(
     onUserIdChange: (String) -> Unit,
     onInvite: () -> Unit,
     onDismiss: () -> Unit,
-    isSaving: Boolean
+    isSaving: Boolean,
+    suggestions: List<MemberSummary> = emptyList(),
+    suggestionsLabel: String? = null,
 ) {
     val isValid = userId.startsWith("@") && ":" in userId && userId.length > 3
+    val localMatches = remember(suggestions, userId) {
+        suggestions.memberSuggestions(userId)
+    }
+    val directoryBudget = (MEMBER_SUGGESTION_LIMIT - localMatches.size).coerceAtLeast(0)
+    val directoryMatches = rememberDirectoryMembers(
+        query = userId,
+        enabled = directoryBudget > 0,
+        limit = directoryBudget,
+    ).filter { candidate -> localMatches.none { it.userId == candidate.userId } }
+
+    val localLabel = suggestionsLabel ?: stringResource(Res.string.space_members_of_any)
+    val directoryLabel = stringResource(Res.string.people_on_your_server)
 
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.PersonAdd, null) },
         title = { Text(stringResource(Res.string.invite_user_to_space)) },
         text = {
-            OutlinedTextField(
-                value = userId,
-                onValueChange = onUserIdChange,
-                label = { Text(stringResource(Res.string.user_id)) },
-                placeholder = { Text(stringResource(Res.string.user_id_placeholder)) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                enabled = !isSaving,
-                isError = userId.isNotBlank() && !isValid
-            )
+            Column {
+                OutlinedTextField(
+                    value = userId,
+                    onValueChange = onUserIdChange,
+                    label = { Text(stringResource(Res.string.user_id)) },
+                    placeholder = { Text(stringResource(Res.string.user_id_placeholder)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !isSaving,
+                    isError = userId.isNotBlank() && !isValid
+                )
+                MemberSuggestionList(
+                    groups = listOf(
+                        MemberSuggestionGroup(label = localLabel, members = localMatches),
+                        MemberSuggestionGroup(label = directoryLabel, members = directoryMatches),
+                    ),
+                    onPick = { onUserIdChange(it.userId) },
+                    modifier = Modifier.padding(top = Spacing.xs),
+                )
+            }
         },
         confirmButton = {
             Button(

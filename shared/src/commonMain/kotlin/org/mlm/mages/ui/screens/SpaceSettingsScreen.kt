@@ -433,7 +433,9 @@ fun SpaceSettingsScreen(
             onUserIdChange = actionsViewModel::setInviteUserId,
             onInvite = actionsViewModel::inviteUser,
             onDismiss = actionsViewModel::hideInviteDialog,
-            isSaving = actionsState.isSaving
+            isSaving = actionsState.isSaving,
+            suggestions = actionsState.inviteSuggestions,
+            suggestionsLabel = stringResource(Res.string.people_in_space_rooms),
         )
     }
 

@@ -8,8 +8,11 @@ import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.StringResource
 import mages.shared.generated.resources.Res
 import org.mlm.mages.MatrixService
+import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.isInviteBlocked
 import org.mlm.mages.ui.SpaceActionsUiState
+
+private const val SUGGESTION_CHILD_ROOM_LIMIT = 10
 
 class SpaceActionsViewModel(
     private val service: MatrixService,
@@ -137,7 +140,10 @@ class SpaceActionsViewModel(
             denyInviteAction()
             return
         }
-        updateState { copy(showInviteUser = true, inviteUserId = "") }
+        updateState {
+            copy(showInviteUser = true, inviteUserId = "", inviteSuggestions = emptyList())
+        }
+        loadInviteSuggestions()
     }
 
     fun hideInviteDialog() = updateState { copy(showInviteUser = false) }
@@ -166,6 +172,42 @@ class SpaceActionsViewModel(
     }
 
     //  Private Methods
+
+    private fun loadInviteSuggestions() {
+        launch {
+            val spaceId = currentState.spaceId
+            val spaceMembers = runSafe { service.port.listMembers(spaceId) }.orEmpty()
+            val excluded = spaceMembers.mapTo(HashSet()) { it.userId }
+            service.port.whoami()?.let { excluded += it }
+
+            val children = runSafe {
+                service.port.spaceHierarchy(
+                    spaceId = spaceId,
+                    from = null,
+                    limit = SUGGESTION_CHILD_ROOM_LIMIT,
+                    maxDepth = 1,
+                    suggestedOnly = false
+                )
+            }?.children.orEmpty()
+                .filterNot { it.isSpace }
+                .take(SUGGESTION_CHILD_ROOM_LIMIT)
+
+            val seen = HashSet<String>()
+            val found = mutableListOf<MemberSummary>()
+            for (child in children) {
+                val roomMembers = runSafe { service.port.listMembers(child.roomId) }.orEmpty()
+                for (member in roomMembers) {
+                    if (member.membership != "join") continue
+                    if (member.isMe || member.userId in excluded) continue
+                    if (seen.add(member.userId)) found += member
+                }
+            }
+
+            updateState {
+                copy(inviteSuggestions = found.sortedBy { (it.displayName ?: it.userId).lowercase() })
+            }
+        }
+    }
 
     private fun loadPermissions() {
         launch {

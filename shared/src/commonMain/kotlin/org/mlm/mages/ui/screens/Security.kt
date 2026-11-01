@@ -67,6 +67,9 @@ import org.mlm.mages.ui.AvatarEdit
 import org.mlm.mages.ui.components.core.EditableAvatar
 import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.components.core.ReactionGlyph
+import org.mlm.mages.ui.components.common.MemberSuggestionGroup
+import org.mlm.mages.ui.components.common.MemberSuggestionList
+import org.mlm.mages.ui.components.common.rememberDirectoryMembers
 import org.mlm.mages.ui.components.QrLinkDeviceDialog
 import org.mlm.mages.ui.components.sheets.EmojiPickerSheet
 import org.mlm.mages.ui.components.sheets.EnterRecoveryKeySheet
@@ -387,14 +390,27 @@ fun SecurityScreen(
             icon = { Icon(Icons.Default.VerifiedUser, null) },
             title = { Text(stringResource(Res.string.verify_user)) },
             text = {
-                OutlinedTextField(
-                    value = verifyUserId,
-                    onValueChange = { verifyUserId = it },
-                    label = { Text(stringResource(Res.string.user_id)) },
-                    placeholder = { Text(stringResource(Res.string.user_id_placeholder)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                val directoryMembers = rememberDirectoryMembers(verifyUserId)
+                Column {
+                    OutlinedTextField(
+                        value = verifyUserId,
+                        onValueChange = { verifyUserId = it },
+                        label = { Text(stringResource(Res.string.user_id)) },
+                        placeholder = { Text(stringResource(Res.string.user_id_placeholder)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    MemberSuggestionList(
+                        groups = listOf(
+                            MemberSuggestionGroup(
+                                label = stringResource(Res.string.people_on_your_server),
+                                members = directoryMembers
+                            )
+                        ),
+                        onPick = { verifyUserId = it.userId },
+                        modifier = Modifier.padding(top = Spacing.xs),
+                    )
+                }
             },
             confirmButton = {
                 Button(

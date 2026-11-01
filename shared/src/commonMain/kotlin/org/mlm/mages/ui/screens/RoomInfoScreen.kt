@@ -774,7 +774,9 @@ fun RoomInfoScreen(
                 onInvite = onInviteUser,
                 onDismiss = onHideInviteDialog,
                 suggestions = state.inviteSuggestions,
-                suggestionsSourceName = state.parentSpaces.singleOrNull()?.name,
+                suggestionsLabel = state.parentSpaces.singleOrNull()?.name?.let {
+                    stringResource(Res.string.space_members_of, it)
+                } ?: stringResource(Res.string.space_members_of_any),
             )
         }
     }

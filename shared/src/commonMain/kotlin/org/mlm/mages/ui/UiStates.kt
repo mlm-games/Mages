@@ -710,6 +710,7 @@ data class SpaceActionsUiState(
     // Invite user
     val showInviteUser: Boolean = false,
     val inviteUserId: String = "",
+    val inviteSuggestions: List<MemberSummary> = emptyList(),
 ) {
     val addableRooms: List<RoomSummary>
         get() = joinedRooms.filter { it.id !in excludedChildIds && it.id != spaceId }
