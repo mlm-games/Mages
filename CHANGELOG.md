@@ -1,3 +1,8 @@
+## v5.3.5
+
+- fix: atomic thumbnail cache writes
+
+
 ## v5.3.4
 
 - fix: media cache collisions

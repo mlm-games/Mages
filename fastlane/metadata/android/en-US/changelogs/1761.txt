@@ -1,0 +1,1 @@
+- fix: atomic thumbnail cache writes
