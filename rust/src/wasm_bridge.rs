@@ -143,6 +143,13 @@ fn sniff_image_mime(data: &[u8]) -> &'static str {
     }
 }
 
+fn thumbnail_method(
+    crop: bool,
+) -> matrix_sdk::ruma::api::client::media::get_content_thumbnail::v3::Method {
+    use matrix_sdk::ruma::api::client::media::get_content_thumbnail::v3::Method;
+    if crop { Method::Crop } else { Method::Scale }
+}
+
 async fn media_data_url<F, M>(
     client: &SdkClient,
     req: &MediaRequestParameters,
@@ -2401,7 +2408,7 @@ impl WasmClient {
         att_json: String,
         width: u32,
         height: u32,
-        _use_crop: bool,
+        use_crop: bool,
         animated: bool,
     ) -> JsValue {
         let Some(state) = self.state() else {
@@ -2431,7 +2438,11 @@ impl WasmClient {
         };
         let settings = MediaThumbnailSettings {
             animated,
-            ..MediaThumbnailSettings::new(width.into(), height.into())
+            ..MediaThumbnailSettings::with_method(
+                thumbnail_method(use_crop),
+                width.into(),
+                height.into(),
+            )
         };
         let req = MediaRequestParameters {
             source,
@@ -2449,16 +2460,17 @@ impl WasmClient {
         mxc_uri: String,
         width: u32,
         height: u32,
-        _crop: bool,
+        crop: bool,
     ) -> JsValue {
         let Some(state) = self.state() else {
             return webffi_err("not initialized");
         };
         let uri = matrix_sdk::ruma::OwnedMxcUri::from(mxc_uri);
-        let settings = MediaThumbnailSettings {
-            animated: true,
-            ..MediaThumbnailSettings::new(width.into(), height.into())
-        };
+        let settings = MediaThumbnailSettings::with_method(
+            thumbnail_method(crop),
+            width.into(),
+            height.into(),
+        );
         let req = MediaRequestParameters {
             source: MediaSource::Plain(uri),
             format: MediaFormat::Thumbnail(settings),
