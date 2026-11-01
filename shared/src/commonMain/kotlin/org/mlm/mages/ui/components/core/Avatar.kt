@@ -38,6 +38,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.profile_change_photo
+import mages.shared.generated.resources.profile_view_photo
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.ui.theme.Sizes
 
