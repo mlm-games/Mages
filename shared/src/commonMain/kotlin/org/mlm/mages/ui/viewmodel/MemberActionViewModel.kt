@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.viewmodel
 
+import mages.shared.generated.resources.*
 import mages.shared.generated.resources.Res
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString

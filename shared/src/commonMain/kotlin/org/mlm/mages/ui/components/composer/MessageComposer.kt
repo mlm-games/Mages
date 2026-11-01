@@ -399,9 +399,9 @@ private fun findMentionQueryInternal(value: TextFieldValue): MentionQueryInterna
 private fun filterMentionSuggestionsInternal(members: List<MemberSummary>, query: String): List<MemberSummary> {
     val blank = normalizeMemberQuery(query).isEmpty()
     return members
+        .sortedForDisplay()
         .asSequence()
         .filter { it.membership.equals("join", ignoreCase = true) }
-        .sortedForDisplay()
         .filter { blank || it.matchesMemberQuery(query) }
         .take(MEMBER_SUGGESTION_LIMIT)
         .toList()
