@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -38,12 +39,13 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
+import com.github.panpf.sketch.rememberAsyncImagePainter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.mlm.mages.ui.components.sticker.TgsSticker
 import kotlin.math.abs
 import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.math.sign
 
 const val ViewerMinScale = 1f
@@ -192,8 +194,6 @@ internal fun ZoomableImage(
     modifier: Modifier = Modifier,
     isTgs: Boolean = false,
     isAnimated: Boolean = false,
-    intrinsicWidth: Int? = null,
-    intrinsicHeight: Int? = null,
 ) {
     val dismissOffset = remember { mutableFloatStateOf(0f) }
     val scope = rememberCoroutineScope()
@@ -255,15 +255,17 @@ internal fun ZoomableImage(
                     modifier = Modifier.fillMaxSize(),
                 )
             } else if (isAnimated) {
-                LaunchedEffect(intrinsicWidth, intrinsicHeight) {
-                    if (intrinsicWidth != null && intrinsicHeight != null &&
-                        intrinsicWidth > 0 && intrinsicHeight > 0
-                    ) {
-                        zoom.onIntrinsicSizeChanged(IntSize(intrinsicWidth, intrinsicHeight))
+                val painter = rememberAsyncImagePainter(uri = model as? String)
+                val intrinsic = painter.intrinsicSize
+                LaunchedEffect(intrinsic) {
+                    if (intrinsic.width > 0f && intrinsic.height > 0f) {
+                        zoom.onIntrinsicSizeChanged(
+                            IntSize(intrinsic.width.roundToInt(), intrinsic.height.roundToInt())
+                        )
                     }
                 }
-                SketchAsyncImage(
-                    uri = model as? String,
+                Image(
+                    painter = painter,
                     contentDescription = contentDescription,
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.fillMaxSize(),

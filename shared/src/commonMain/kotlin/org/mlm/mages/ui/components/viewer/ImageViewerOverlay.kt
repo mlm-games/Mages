@@ -231,10 +231,8 @@ private fun ImageViewerPages(
                     item.event.sticker?.mime,
                     fullMedia[item.event.eventId] ?: item.previewPath,
                 ),
-                isAnimated = isAnimatedImageMime(item.event.attachment?.mime) &&
+                isAnimated = isAnimatedImageMime(item.event.mediaMime()) &&
                     currentPlatform != SettingPlatform.ANDROID,
-                intrinsicWidth = item.event.attachment?.width,
-                intrinsicHeight = item.event.attachment?.height,
             )
         }
 

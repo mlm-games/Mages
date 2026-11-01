@@ -1150,7 +1150,7 @@ private fun StickerMessage(
                             contentScale = ContentScale.Fit,
                             modifier = Modifier.fillMaxSize(),
                         )
-                        mime == "image/webp" || mime == "image/gif" -> SketchAsyncImage(
+                        isAnimatedImageMime(mime) -> SketchAsyncImage(
                             uri = thumbPath,
                             contentDescription = model.body.takeIf { it.isNotBlank() },
                             contentScale = ContentScale.Fit,
