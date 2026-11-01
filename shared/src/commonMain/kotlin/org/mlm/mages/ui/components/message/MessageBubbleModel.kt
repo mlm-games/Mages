@@ -50,6 +50,7 @@ sealed interface MessageAttachmentUi {
         val captionFormattedBody: String? = null,
         val blurhash: String? = null,
         val previewBlocked: Boolean = false,
+        val mime: String? = null,
     ) : MessageAttachmentUi
 
     data class Video(

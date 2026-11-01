@@ -51,6 +51,7 @@ private fun MessageEvent.toAttachmentUi(
             captionFormattedBody = captionFormattedBody,
             blurhash = info.blurhash,
             previewBlocked = previewBlocked,
+            mime = info.mime,
         )
         AttachmentKind.Video -> MessageAttachmentUi.Video(
             previewPath = resolvedPreviewPath,

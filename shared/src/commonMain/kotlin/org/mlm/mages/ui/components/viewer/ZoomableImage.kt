@@ -14,6 +14,7 @@ import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -37,6 +38,7 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.mlm.mages.ui.components.sticker.TgsSticker
@@ -189,6 +191,9 @@ internal fun ZoomableImage(
     onDraggingChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
     isTgs: Boolean = false,
+    isAnimated: Boolean = false,
+    intrinsicWidth: Int? = null,
+    intrinsicHeight: Int? = null,
 ) {
     val dismissOffset = remember { mutableFloatStateOf(0f) }
     val scope = rememberCoroutineScope()
@@ -245,6 +250,20 @@ internal fun ZoomableImage(
                 TgsSticker(
                     source = model as? String,
                     animate = true,
+                    contentDescription = contentDescription,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else if (isAnimated) {
+                LaunchedEffect(intrinsicWidth, intrinsicHeight) {
+                    if (intrinsicWidth != null && intrinsicHeight != null &&
+                        intrinsicWidth > 0 && intrinsicHeight > 0
+                    ) {
+                        zoom.onIntrinsicSizeChanged(IntSize(intrinsicWidth, intrinsicHeight))
+                    }
+                }
+                SketchAsyncImage(
+                    uri = model as? String,
                     contentDescription = contentDescription,
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.fillMaxSize(),

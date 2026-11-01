@@ -63,6 +63,8 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import mages.shared.generated.resources.*
+import io.github.mlmgames.settings.core.annotations.SettingPlatform
+import io.github.mlmgames.settings.core.platform.currentPlatform
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MatrixService
@@ -72,6 +74,7 @@ import org.mlm.mages.platform.isTgsSticker
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.downloadNameHint
 import org.mlm.mages.ui.util.formatPinnedTimestamp
+import org.mlm.mages.ui.util.isAnimatedImageMime
 
 data class ImageViewerItem(
     val event: MessageEvent,
@@ -228,6 +231,10 @@ private fun ImageViewerPages(
                     item.event.sticker?.mime,
                     fullMedia[item.event.eventId] ?: item.previewPath,
                 ),
+                isAnimated = isAnimatedImageMime(item.event.attachment?.mime) &&
+                    currentPlatform != SettingPlatform.ANDROID,
+                intrinsicWidth = item.event.attachment?.width,
+                intrinsicHeight = item.event.attachment?.height,
             )
         }
 

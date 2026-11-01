@@ -9,10 +9,12 @@ private const val MAX_ORIGINAL_PREVIEW_BYTES = 16L * 1024 * 1024
 
 private val ANIMATED_IMAGE_MIMES = setOf("image/gif", "image/webp", "image/apng")
 
-fun AttachmentInfo.isAnimatedImage(): Boolean {
+internal fun isAnimatedImageMime(mime: String?): Boolean {
     val normalized = mime?.substringBefore(';')?.trim()?.lowercase() ?: return false
     return normalized in ANIMATED_IMAGE_MIMES
 }
+
+fun AttachmentInfo.isAnimatedImage(): Boolean = isAnimatedImageMime(mime)
 
 suspend fun MatrixService.previewThumbnail(attachment: AttachmentInfo): Result<String> {
     if (attachment.isAnimatedImage()) return port.downloadAttachmentToCache(attachment)

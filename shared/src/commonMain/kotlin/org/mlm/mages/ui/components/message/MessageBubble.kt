@@ -47,6 +47,8 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
+import io.github.mlmgames.settings.core.annotations.SettingPlatform
+import io.github.mlmgames.settings.core.platform.currentPlatform
 import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -66,6 +68,7 @@ import org.mlm.mages.ui.components.voice.VoiceMessageBubble
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatDuration
 import org.mlm.mages.ui.util.formatTime
+import org.mlm.mages.ui.util.isAnimatedImageMime
 import org.mlm.mages.ui.util.secondaryClick
 import kotlin.math.min
 import org.jetbrains.compose.resources.pluralStringResource
@@ -799,15 +802,26 @@ private fun ImageAttachmentBubble(
         ) {
             Box(modifier = Modifier.matchParentSize()) {
                 if (previewPath != null) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalPlatformContext.current)
-                            .data(previewPath)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    if (isAnimatedImageMime(attachment.mime) &&
+                        currentPlatform != SettingPlatform.ANDROID
+                    ) {
+                        SketchAsyncImage(
+                            uri = previewPath,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalPlatformContext.current)
+                                .data(previewPath)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 } else if (!previewBlocked) {
                     MediaTilePlaceholder(
                         label = stringResource(Res.string.image),
