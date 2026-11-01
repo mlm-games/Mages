@@ -109,7 +109,7 @@ class RoomViewModel(
                 copy(
                     isDm = profile.isDm,
                     memberCount = profile.memberCount,
-                    roomAvatarUrl = profile.avatarUrl,
+                    roomAvatarUrl = if (profile.avatarUrl == null) null else roomAvatarUrl,
                     roomName = profile.name
                 )
             }
@@ -2974,7 +2974,9 @@ class RoomViewModel(
                             val avatarMxc = snapshot.profile.avatarUrl
                             if (lastRoomAvatarMxc != avatarMxc) {
                                 lastRoomAvatarMxc = avatarMxc
-                                if (avatarMxc != null) {
+                                if (avatarMxc == null) {
+                                    updateState { copy(roomAvatarUrl = null) }
+                                } else {
                                     launch {
                                         val path = service.avatars.resolve(avatarMxc, px = 96, crop = true)
                                         if (path != null && currentState.roomId == snapshot.roomId) {

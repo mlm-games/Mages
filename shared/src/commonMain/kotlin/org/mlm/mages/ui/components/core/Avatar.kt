@@ -60,7 +60,8 @@ fun Avatar(
 ) {
     val initials = rememberSaveable(name) { extractInitials(name) }
     val ctx = LocalPlatformContext.current
-    var showImage by remember(avatarPath) { mutableStateOf(!avatarPath.isNullOrBlank()) }
+    var failedPath by remember { mutableStateOf<String?>(null) }
+    val path = avatarPath
 
     Surface(
         color = containerColor,
@@ -77,16 +78,18 @@ fun Avatar(
             },
             contentAlignment = Alignment.Center
         ) {
-            if (showImage && !avatarPath.isNullOrBlank()) {
+            if (!path.isNullOrBlank() && failedPath != path) {
                 AsyncImage(
                     model = ImageRequest.Builder(ctx)
-                        .data(avatarPath)
+                        .data(path)
                         .crossfade(true)
                         .build(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = modifier.fillMaxSize(),
-                    onError = { showImage = false },
+                    onError = { error ->
+                        if (error.result.request.data == path) failedPath = path
+                    },
                 )
             } else {
                 val style: TextStyle = when {
