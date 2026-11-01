@@ -1298,6 +1298,12 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         return runCatching { enumValueOf<RoomNotificationMode>(name) }.getOrNull()
     }
 
+    override suspend fun userDefinedRoomNotificationMode(roomId: String): RoomNotificationMode? {
+        val name = requireClient().userDefinedRoomNotificationMode(roomId).awaitStringValue()
+            ?: return null
+        return runCatching { enumValueOf<RoomNotificationMode>(name) }.getOrNull()
+    }
+
     override suspend fun setRoomNotificationMode(
         roomId: String,
         mode: RoomNotificationMode

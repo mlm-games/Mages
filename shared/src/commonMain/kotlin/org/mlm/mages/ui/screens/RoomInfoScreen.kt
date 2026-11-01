@@ -678,7 +678,8 @@ fun RoomInfoScreen(
                 currentMode = state.notificationMode,
                 isLoading = state.isLoadingNotificationMode,
                 onModeChange = onSetNotificationMode,
-                onDismiss = onHideNotificationSettings
+                onDismiss = onHideNotificationSettings,
+                inheritanceLabel = state.notificationInheritedFrom
             )
         }
         if (showAliasesSheet) {

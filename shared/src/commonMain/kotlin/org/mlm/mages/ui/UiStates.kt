@@ -379,6 +379,7 @@ data class RoomUiState(
     val liveLocationSubToken: ULong? = null,
 
     val notificationMode: RoomNotificationMode = RoomNotificationMode.AllMessages,
+    val notificationInheritedFrom: String? = null,
     val isLoadingNotificationMode: Boolean = false,
 
     val successor: RoomUpgradeInfo? = null,

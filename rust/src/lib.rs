@@ -229,6 +229,7 @@ delegate! { result Vec<KnockRequestSummary>; list_knock_requests(room_id: String
 delegate! { result bool; can_user_ban(room_id: String, user_id: String); can_user_invite(room_id: String, user_id: String); can_user_redact_other(room_id: String, user_id: String); }
 
 delegate! { option FfiRoomNotificationMode; room_notification_mode(room_id: String); }
+delegate! { option FfiRoomNotificationMode; user_defined_room_notification_mode(room_id: String); }
 delegate! { result bool; is_push_rule_enabled(kind: FfiPushRuleKind, rule_id: String); }
 delegate! { result Vec<String>; get_notification_keywords(); }
 delegate! { unit; add_notification_keyword(keyword: String); remove_notification_keyword(keyword: String); }

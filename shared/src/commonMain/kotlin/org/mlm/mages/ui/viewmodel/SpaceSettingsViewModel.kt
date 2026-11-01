@@ -1,6 +1,7 @@
 package org.mlm.mages.ui.viewmodel
 
 import co.touchlab.kermit.Logger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
@@ -15,6 +16,8 @@ import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.matrix.SpaceChildInfo
+import org.mlm.mages.notifications.SpaceNotificationScope
+import org.mlm.mages.notifications.SpaceNotificationScopeStore
 import org.mlm.mages.ui.SpaceSettingsUiState
 import org.jetbrains.compose.resources.getString
 import mages.shared.generated.resources.Res
@@ -28,6 +31,7 @@ internal const val CHILDREN_RELOAD_DELAY_MS = 1_500L
 
 class SpaceSettingsViewModel(
     private val service: MatrixService,
+    private val scopeStore: SpaceNotificationScopeStore,
     spaceId: String
 ) : BaseViewModel<SpaceSettingsUiState>(
     SpaceSettingsUiState(spaceId = spaceId, isLoading = true)
@@ -71,6 +75,9 @@ class SpaceSettingsViewModel(
         launch {
             updateState { copy(isLoadingNotificationMode = true) }
             val spaceId = currentState.spaceId
+            val accountId = service.activeAccount.value?.id
+            val previous = scopeStore.get(accountId, spaceId)
+            val previousMode = previous?.mode ?: currentState.notificationMode
             val descendants = descendantRoomIds(spaceId)
             if (descendants == null) {
                 updateState { copy(isLoadingNotificationMode = false) }
@@ -81,7 +88,8 @@ class SpaceSettingsViewModel(
             val spaceUpdated = runSafe {
                 service.port.setRoomNotificationMode(spaceId, mode).isSuccess
             } == true
-            val failed = applyNotificationMode(descendants, mode)
+            val applied = applyNotificationMode(descendants, mode, previousMode)
+            scopeStore.put(accountId, spaceId, SpaceNotificationScope(mode, applied.rooms))
 
             updateState {
                 copy(
@@ -94,11 +102,13 @@ class SpaceSettingsViewModel(
                 !spaceUpdated -> _events.send(
                     Event.ShowError(getString(Res.string.failed_to_update_notifications))
                 )
-                failed == 0 -> _events.send(
+                applied.failed == 0 -> _events.send(
                     Event.ShowSuccess(getString(Res.string.notification_updated))
                 )
                 else -> _events.send(
-                    Event.ShowError(getString(Res.string.notifications_partially_updated, failed))
+                    Event.ShowError(
+                        getString(Res.string.notifications_partially_updated, applied.failed)
+                    )
                 )
             }
         }
@@ -130,19 +140,93 @@ class SpaceSettingsViewModel(
         return seen.toList()
     }
 
+    private data class NotificationApplyResult(val rooms: List<String>, val failed: Int)
+
+    private data class RoomApplyOutcome(val owned: Boolean, val failed: Boolean)
+
     private suspend fun applyNotificationMode(
         roomIds: List<String>,
         mode: RoomNotificationMode,
-    ): Int = coroutineScope {
+        previousMode: RoomNotificationMode?,
+    ): NotificationApplyResult = coroutineScope {
         val permits = Semaphore(4)
-        roomIds.map { roomId ->
+        val outcomes = roomIds.map { roomId ->
             async {
-                permits.withPermit {
-                    runSafe { service.port.setRoomNotificationMode(roomId, mode).isFailure } ?: true
-                }
+                permits.withPermit { applyRoomNotificationMode(roomId, mode, previousMode) }
             }
-        }.awaitAll().count { it }
+        }.awaitAll()
+        NotificationApplyResult(
+            rooms = roomIds.filterIndexed { index, _ -> outcomes[index].owned },
+            failed = outcomes.count { it.failed },
+        )
     }
+
+    private suspend fun applyRoomNotificationMode(
+        roomId: String,
+        mode: RoomNotificationMode,
+        previousMode: RoomNotificationMode?,
+    ): RoomApplyOutcome {
+        val currentResult = readUserDefinedMode(roomId)
+        if (currentResult.isFailure) return RoomApplyOutcome(owned = false, failed = true)
+        val current = currentResult.getOrNull()
+        val ownedBefore = previousMode != null && current == previousMode
+        if (!ownedBefore && current != null) {
+            return RoomApplyOutcome(owned = false, failed = false)
+        }
+        val updated = applyRoomMode(roomId, mode)
+        return RoomApplyOutcome(owned = updated || ownedBefore, failed = !updated)
+    }
+
+    private suspend fun readUserDefinedMode(roomId: String): Result<RoomNotificationMode?> =
+        try {
+            Result.success(service.port.userDefinedRoomNotificationMode(roomId))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            Result.failure(e)
+        }
+
+    private var scopeReconcileInFlight = false
+
+    private fun reconcileNotificationScope() {
+        if (scopeReconcileInFlight) return
+        val spaceId = currentState.spaceId
+        val accountId = service.activeAccount.value?.id
+        scopeReconcileInFlight = true
+        launch {
+            try {
+                val scope = scopeStore.get(accountId, spaceId)
+                val spaceMode = readUserDefinedMode(spaceId).getOrNull() ?: return@launch
+                val descendants = descendantRoomIds(spaceId) ?: return@launch
+                val known = scope?.rooms?.toSet().orEmpty()
+                val scopeMode = scope?.mode ?: spaceMode
+                val owned = mutableListOf<String>()
+                for (roomId in descendants) {
+                    val currentResult = readUserDefinedMode(roomId)
+                    if (currentResult.isFailure) {
+                        if (roomId in known) owned += roomId
+                        continue
+                    }
+                    val current = currentResult.getOrNull()
+                    when {
+                        current == null -> if (applyRoomMode(roomId, spaceMode)) owned += roomId
+                        current == spaceMode -> owned += roomId
+                        current == scopeMode -> if (applyRoomMode(roomId, spaceMode)) {
+                            owned += roomId
+                        }
+                    }
+                }
+                if (owned != scope?.rooms || spaceMode != scope?.mode) {
+                    scopeStore.put(accountId, spaceId, SpaceNotificationScope(spaceMode, owned))
+                }
+            } finally {
+                scopeReconcileInFlight = false
+            }
+        }
+    }
+
+    private suspend fun applyRoomMode(roomId: String, mode: RoomNotificationMode): Boolean =
+        runSafe { service.port.setRoomNotificationMode(roomId, mode).isSuccess } == true
 
     private fun runSavingBooleanAction(
         successMessage: StringResource,
@@ -610,6 +694,7 @@ class SpaceSettingsViewModel(
             }
 
             updateState { copy(children = children, isLoading = false) }
+            reconcileNotificationScope()
         } else if (!silent) {
             val message = result.toUserMessage(getString(Res.string.failed_to_load_children))
             updateState { copy(isLoading = false, error = message) }

@@ -12,6 +12,7 @@ import org.mlm.mages.bookmarks.BookmarksStore
 import org.mlm.mages.calls.CallManager
 import org.mlm.mages.calls.IncomingCallTracker
 import org.mlm.mages.emoji.RecentEmojiStore
+import org.mlm.mages.notifications.SpaceNotificationScopeStore
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.viewmodel.*
@@ -65,6 +66,7 @@ val viewModelModule = module {
     viewModel { (spaceId: String) ->
         SpaceSettingsViewModel(
             service = get(),
+            scopeStore = get(),
             spaceId = spaceId
         )
     }
@@ -96,6 +98,7 @@ val viewModelModule = module {
     viewModel { (roomId: String) ->
         RoomInfoViewModel(
             service = get(),
+            scopeStore = get(),
             roomId = roomId
         )
     }
@@ -131,7 +134,10 @@ val viewModelModule = module {
 }
 
 fun appModules(settingsRepository: SettingsRepository<AppSettings>) = listOf(
-    module { single { settingsRepository } },
+    module {
+        single { settingsRepository }
+        single { SpaceNotificationScopeStore(get()) }
+    },
     coreModule,
     accountModule,
     viewModelModule

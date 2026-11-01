@@ -654,6 +654,7 @@ wasm_delegate! { webffi_value;
 wasm_delegate! { webffi_option;
     "roomTags"           => room_tags(room_id: String);
     "roomNotificationMode" => room_notification_mode(room_id: String);
+    "userDefinedRoomNotificationMode" => user_defined_room_notification_mode(room_id: String);
 }
 
 wasm_delegate! { |r| to_json(&r);

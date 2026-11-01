@@ -24,6 +24,7 @@ fun RoomNotificationSheet(
     onModeChange: (RoomNotificationMode) -> Unit,
     onDismiss: () -> Unit,
     isSpace: Boolean = false,
+    inheritanceLabel: String? = null,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -41,6 +42,19 @@ fun RoomNotificationSheet(
             if (isSpace) {
                 Text(
                     text = stringResource(Res.string.space_notifications_scope),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(
+                        start = Spacing.lg,
+                        end = Spacing.lg,
+                        bottom = Spacing.sm
+                    )
+                )
+            }
+
+            if (inheritanceLabel != null) {
+                Text(
+                    text = inheritanceLabel,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(

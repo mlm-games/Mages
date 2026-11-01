@@ -27,6 +27,8 @@ import org.mlm.mages.ui.ActionAvailabilityUi
 import org.mlm.mages.ui.toUi
 import org.mlm.mages.matrix.RoomUpgradeInfo
 import org.mlm.mages.matrix.SpaceInfo
+import org.mlm.mages.notifications.SpaceNotificationScopeStore
+import org.mlm.mages.notifications.spaceInheritanceLabel
 import org.jetbrains.compose.resources.getString
 import mages.shared.generated.resources.Res
 import org.jetbrains.compose.resources.StringResource
@@ -62,6 +64,7 @@ data class RoomInfoUiState(
     val predecessor: RoomPredecessorInfo? = null,
 
     val notificationMode: RoomNotificationMode? = null,
+    val notificationInheritedFrom: String? = null,
     val isLoadingNotificationMode: Boolean = false,
     val showNotificationSettings: Boolean = false,
 
@@ -94,6 +97,7 @@ data class RoomInfoUiState(
 
 class RoomInfoViewModel(
     private val service: MatrixService,
+    private val scopeStore: SpaceNotificationScopeStore,
     private val roomId: String
 ) : BaseViewModel<RoomInfoUiState>(RoomInfoUiState()) {
 
@@ -185,9 +189,12 @@ class RoomInfoViewModel(
             updateState { copy(isLoadingNotificationMode = true) }
             val result = runSafe { service.port.setRoomNotificationMode(roomId, mode) }
             if (result?.isSuccess == true) {
+                val accountId = service.activeAccount.value?.id
+                scopeStore.disown(accountId, currentState.parentSpaces.map { it.spaceId }, roomId)
                 updateState {
                     copy(
                         notificationMode = mode,
+                        notificationInheritedFrom = null,
                         showNotificationSettings = false,
                         isLoadingNotificationMode = false
                     )
@@ -314,6 +321,14 @@ class RoomInfoViewModel(
             val spaces = runSafe { service.roomParentSpaces(roomId) }.orEmpty()
             if (spaces.isEmpty()) return@launch
             updateState { copy(parentSpaces = spaces) }
+            val inheritedFrom = spaceInheritanceLabel(
+                store = scopeStore,
+                accountId = service.activeAccount.value?.id,
+                roomId = roomId,
+                mode = currentState.notificationMode,
+                parents = spaces,
+            )
+            updateState { copy(notificationInheritedFrom = inheritedFrom) }
             spaces.forEach { space ->
                 val path = space.avatarUrl?.let { runSafe { service.avatars.resolve(it, px = 64) } }
                 if (path == null) return@forEach

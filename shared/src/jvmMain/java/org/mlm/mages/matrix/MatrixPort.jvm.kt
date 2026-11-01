@@ -1021,6 +1021,13 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
             runWithFfiResult { withClient { it.roomNotificationMode(roomId)?.toKotlin() } }.getOrNull()
         }
 
+    override suspend fun userDefinedRoomNotificationMode(roomId: String): RoomNotificationMode? =
+        withContext(matrixDispatcher) {
+            runWithFfiResult {
+                withClient { it.userDefinedRoomNotificationMode(roomId)?.toKotlin() }
+            }.getOrNull()
+        }
+
     override suspend fun setRoomNotificationMode(
         roomId: String,
         mode: RoomNotificationMode

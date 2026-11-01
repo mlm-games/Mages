@@ -1183,7 +1183,8 @@ fun RoomScreen(
             currentMode = state.notificationMode,
             isLoading = state.isLoadingNotificationMode,
             onModeChange = viewModel::setNotificationMode,
-            onDismiss = viewModel::hideNotificationSettings
+            onDismiss = viewModel::hideNotificationSettings,
+            inheritanceLabel = state.notificationInheritedFrom
         )
     }
 

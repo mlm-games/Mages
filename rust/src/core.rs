@@ -555,6 +555,16 @@ async fn room_topic_html(room: &Room) -> Option<String> {
         .map(ToOwned::to_owned)
 }
 
+fn ffi_notification_mode(mode: RoomNotificationMode) -> FfiRoomNotificationMode {
+    match mode {
+        RoomNotificationMode::AllMessages => FfiRoomNotificationMode::AllMessages,
+        RoomNotificationMode::MentionsAndKeywordsOnly => {
+            FfiRoomNotificationMode::MentionsAndKeywordsOnly
+        }
+        RoomNotificationMode::Mute => FfiRoomNotificationMode::Mute,
+    }
+}
+
 impl CoreClient {
     pub async fn new(sdk: SdkClient) -> Self {
         let timeline_mgr = TimelineManager::new(sdk.clone());
@@ -2288,13 +2298,21 @@ impl CoreClient {
             .notification_mode()
             .await
             .ok_or_else(|| FfiError::Msg("notification mode unavailable".into()))?;
-        Ok(Some(match mode {
-            RoomNotificationMode::AllMessages => FfiRoomNotificationMode::AllMessages,
-            RoomNotificationMode::MentionsAndKeywordsOnly => {
-                FfiRoomNotificationMode::MentionsAndKeywordsOnly
-            }
-            RoomNotificationMode::Mute => FfiRoomNotificationMode::Mute,
-        }))
+        Ok(Some(ffi_notification_mode(mode)))
+    }
+
+    pub async fn user_defined_room_notification_mode(
+        &self,
+        room_id: String,
+    ) -> Result<Option<FfiRoomNotificationMode>, FfiError> {
+        let rid = Self::parse_rid(&room_id)?;
+        let mode = self
+            .sdk
+            .notification_settings()
+            .await
+            .get_user_defined_room_notification_mode(rid.as_ref())
+            .await;
+        Ok(mode.map(ffi_notification_mode))
     }
 
     pub async fn set_room_notification_mode(

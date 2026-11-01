@@ -1253,6 +1253,7 @@ interface MatrixPort {
     suspend fun roomProfile(roomId: String): RoomProfile?
 
     suspend fun roomNotificationMode(roomId: String): RoomNotificationMode?
+    suspend fun userDefinedRoomNotificationMode(roomId: String): RoomNotificationMode?
     suspend fun setRoomNotificationMode(roomId: String, mode: RoomNotificationMode): Result<Unit>
 
     suspend fun isPushRuleEnabled(kind: PushRuleKind, ruleId: String): Result<Boolean>

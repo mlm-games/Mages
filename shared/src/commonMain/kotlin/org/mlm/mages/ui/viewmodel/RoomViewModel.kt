@@ -16,6 +16,8 @@ import org.koin.core.component.inject
 import org.mlm.mages.*
 import org.mlm.mages.calls.CallManager
 import org.mlm.mages.emoji.RecentEmojiStore
+import org.mlm.mages.notifications.SpaceNotificationScopeStore
+import org.mlm.mages.notifications.spaceInheritanceLabel
 import org.mlm.mages.matrix.*
 import org.mlm.mages.matrix.MatrixPort.RoomCallStateObserver
 import org.mlm.mages.platform.Notifier
@@ -256,6 +258,8 @@ class RoomViewModel(
     private val callManager: CallManager by inject()
 
     private val recentEmoji: RecentEmojiStore by inject()
+
+    private val spaceNotificationScopes: SpaceNotificationScopeStore by inject()
 
     private val liveLocationSession = LiveLocationSession()
     private val syncedActiveBeaconIds = MutableStateFlow<Set<String>>(emptySet())
@@ -2084,7 +2088,18 @@ class RoomViewModel(
         launch {
             val result = service.port.setRoomNotificationMode(currentState.roomId, mode)
             if (result.isSuccess) {
-                updateState { copy(notificationMode = mode, showNotificationSettings = false) }
+                val accountId = service.activeAccount.value?.id
+                val parents = runSafe { service.port.roomParentSpaces(currentState.roomId) }
+                    .orEmpty()
+                    .map { it.spaceId }
+                spaceNotificationScopes.disown(accountId, parents, currentState.roomId)
+                updateState {
+                    copy(
+                        notificationMode = mode,
+                        notificationInheritedFrom = null,
+                        showNotificationSettings = false
+                    )
+                }
                 _events.send(Event.ShowSuccess(getString(Res.string.notification_updated)))
             } else {
                 _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.failed_to_update_notifications))))
@@ -2096,9 +2111,18 @@ class RoomViewModel(
         launch {
             updateState { copy(isLoadingNotificationMode = true) }
             val mode = runSafe { service.port.roomNotificationMode(currentState.roomId) }
+            val parents = runSafe { service.roomParentSpaces(currentState.roomId) }.orEmpty()
+            val inheritedFrom = spaceInheritanceLabel(
+                store = spaceNotificationScopes,
+                accountId = service.activeAccount.value?.id,
+                roomId = currentState.roomId,
+                mode = mode,
+                parents = parents,
+            )
             updateState {
                 copy(
                     notificationMode = mode ?: RoomNotificationMode.AllMessages,
+                    notificationInheritedFrom = inheritedFrom,
                     isLoadingNotificationMode = false
                 )
             }
