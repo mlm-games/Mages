@@ -1,9 +1,14 @@
 package org.mlm.mages.ui.viewmodel
 
 import co.touchlab.kermit.Logger
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import mages.shared.generated.resources.*
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.MemberSummary
@@ -65,21 +70,78 @@ class SpaceSettingsViewModel(
     fun setNotificationMode(mode: RoomNotificationMode) {
         launch {
             updateState { copy(isLoadingNotificationMode = true) }
-            val result = runSafe { service.port.setRoomNotificationMode(currentState.spaceId, mode) }
-            if (result?.isSuccess == true) {
-                updateState {
-                    copy(
-                        notificationMode = mode,
-                        showNotificationSettings = false,
-                        isLoadingNotificationMode = false
-                    )
-                }
-                _events.send(Event.ShowSuccess(getString(Res.string.notification_updated)))
-            } else {
+            val spaceId = currentState.spaceId
+            val descendants = descendantRoomIds(spaceId)
+            if (descendants == null) {
                 updateState { copy(isLoadingNotificationMode = false) }
-                _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.failed_to_update_notifications))))
+                _events.send(Event.ShowError(getString(Res.string.failed_to_update_notifications)))
+                return@launch
+            }
+
+            val spaceUpdated = runSafe {
+                service.port.setRoomNotificationMode(spaceId, mode).isSuccess
+            } == true
+            val failed = applyNotificationMode(descendants, mode)
+
+            updateState {
+                copy(
+                    notificationMode = if (spaceUpdated) mode else notificationMode,
+                    showNotificationSettings = false,
+                    isLoadingNotificationMode = false
+                )
+            }
+            when {
+                !spaceUpdated -> _events.send(
+                    Event.ShowError(getString(Res.string.failed_to_update_notifications))
+                )
+                failed == 0 -> _events.send(
+                    Event.ShowSuccess(getString(Res.string.notification_updated))
+                )
+                else -> _events.send(
+                    Event.ShowError(getString(Res.string.notifications_partially_updated, failed))
+                )
             }
         }
+    }
+
+    /**
+     * Every room below [spaceId], including nested spaces. A null result means
+     * the hierarchy could not be read completely, so the caller must not claim
+     * the space was muted.
+     */
+    private suspend fun descendantRoomIds(spaceId: String): List<String>? {
+        val seen = LinkedHashSet<String>()
+        val pending = ArrayDeque<String>().apply { add(spaceId) }
+        while (pending.isNotEmpty()) {
+            val id = pending.removeFirst()
+            var from: String? = null
+            while (true) {
+                val page = service.spaceHierarchy(id, from, 100, 1, false).getOrNull()
+                    ?: return null
+                for (child in page.children) {
+                    if (child.roomId == id || !seen.add(child.roomId)) continue
+                    if (child.isSpace) pending.add(child.roomId)
+                }
+                val next = page.nextBatch
+                if (next == null || next == from) break
+                from = next
+            }
+        }
+        return seen.toList()
+    }
+
+    private suspend fun applyNotificationMode(
+        roomIds: List<String>,
+        mode: RoomNotificationMode,
+    ): Int = coroutineScope {
+        val permits = Semaphore(4)
+        roomIds.map { roomId ->
+            async {
+                permits.withPermit {
+                    runSafe { service.port.setRoomNotificationMode(roomId, mode).isFailure } ?: true
+                }
+            }
+        }.awaitAll().count { it }
     }
 
     private fun runSavingBooleanAction(

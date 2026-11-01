@@ -437,7 +437,8 @@ fun SpaceSettingsScreen(
             currentMode = state.notificationMode,
             isLoading = state.isLoadingNotificationMode,
             onModeChange = viewModel::setNotificationMode,
-            onDismiss = viewModel::hideNotificationSettings
+            onDismiss = viewModel::hideNotificationSettings,
+            isSpace = true,
         )
     }
 

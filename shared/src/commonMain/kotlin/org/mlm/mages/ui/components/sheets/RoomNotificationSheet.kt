@@ -22,7 +22,8 @@ fun RoomNotificationSheet(
     currentMode: RoomNotificationMode?,
     isLoading: Boolean,
     onModeChange: (RoomNotificationMode) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    isSpace: Boolean = false,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -36,6 +37,19 @@ fun RoomNotificationSheet(
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md)
             )
+
+            if (isSpace) {
+                Text(
+                    text = stringResource(Res.string.space_notifications_scope),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(
+                        start = Spacing.lg,
+                        end = Spacing.lg,
+                        bottom = Spacing.sm
+                    )
+                )
+            }
 
             if (isLoading) {
                 Box(
@@ -66,7 +80,10 @@ fun RoomNotificationSheet(
                 NotificationOption(
                     icon = Icons.Default.NotificationsOff,
                     title = stringResource(Res.string.mute),
-                    subtitle = stringResource(Res.string.no_notifications_from_this_room),
+                    subtitle = stringResource(
+                        if (isSpace) Res.string.no_notifications_from_this_space
+                        else Res.string.no_notifications_from_this_room
+                    ),
                     isSelected = currentMode == RoomNotificationMode.Mute,
                     onClick = { onModeChange(RoomNotificationMode.Mute); onDismiss() }
                 )

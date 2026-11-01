@@ -1219,6 +1219,9 @@
     <string name="show">Show</string>
     <string name="no_messages_available_to_forward">No messages available to forward</string>
     <string name="no_notifications_from_this_room">No notifications from this room</string>
+    <string name="no_notifications_from_this_space">No notifications from this space or its rooms</string>
+    <string name="space_notifications_scope">Applies to every room in this space</string>
+    <string name="notifications_partially_updated">Updated, but %1$d rooms could not be changed</string>
     <string name="no_pending_knock_requests">No pending knock requests</string>
     <string name="no_pending_requests">No pending requests</string>
     <string name="no_pinned_messages">No pinned messages</string>
