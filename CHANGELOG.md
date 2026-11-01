@@ -1,3 +1,9 @@
+## v5.3.3
+
+- feat: animated pack previews
+- fix: html table rows
+
+
 ## v5.3.2
 
 - fix: media preview fallback

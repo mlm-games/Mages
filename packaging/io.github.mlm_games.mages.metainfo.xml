@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="5.3.3" date="2026-11-01" type="stable">
+      <description>
+        <ul>
+          <li>feat: animated pack previews</li>
+          <li>fix: html table rows</li>
+        </ul>
+      </description>
+    </release>
     <release version="5.3.2" date="2026-10-31" type="stable">
       <description>
         <ul>
