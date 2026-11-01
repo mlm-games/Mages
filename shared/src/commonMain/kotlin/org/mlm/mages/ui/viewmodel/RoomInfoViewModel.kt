@@ -93,6 +93,7 @@ data class RoomInfoUiState(
     val selectedMemberBanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
     val selectedMemberUnbanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
     val showInviteDialog: Boolean = false,
+    val inviteSuggestions: List<MemberSummary> = emptyList(),
 )
 
 class RoomInfoViewModel(
@@ -775,9 +776,49 @@ class RoomInfoViewModel(
         )
     }
 
-    fun showInviteDialog() = updateState { copy(showInviteDialog = true) }
+    fun showInviteDialog() {
+        updateState { copy(showInviteDialog = true) }
+        loadInviteSuggestions()
+    }
 
     fun hideInviteDialog() = updateState { copy(showInviteDialog = false) }
+
+    /**
+     * People already in the spaces this room belongs to, minus everyone already
+     * in the room. They are the natural invite pool: the room sits inside their
+     * space, so a name is enough to find them.
+     */
+    private fun loadInviteSuggestions() {
+        launch {
+            val spaces = currentState.parentSpaces.ifEmpty {
+                runSafe { service.roomParentSpaces(roomId) }.orEmpty()
+            }
+            if (spaces.isEmpty()) {
+                updateState { copy(inviteSuggestions = emptyList()) }
+                return@launch
+            }
+
+            val roomMembers = currentState.members.ifEmpty {
+                runSafe { service.port.listMembers(roomId) }.orEmpty()
+            }
+            val excluded = roomMembers.mapTo(HashSet<String>()) { it.userId }
+            currentState.myUserId?.let { excluded += it }
+
+            val seen = HashSet<String>()
+            val found = mutableListOf<MemberSummary>()
+            for (space in spaces) {
+                val members = runSafe { service.port.listMembers(space.spaceId) }.orEmpty()
+                for (member in members) {
+                    if (member.membership != "join") continue
+                    if (member.isMe || member.userId in excluded) continue
+                    if (seen.add(member.userId)) found += member
+                }
+            }
+
+            val sorted = found.sortedBy { (it.displayName ?: it.userId).lowercase() }
+            updateState { copy(inviteSuggestions = sorted) }
+        }
+    }
 
     fun kickUser(userId: String, reason: String? = null) {
         runAction(

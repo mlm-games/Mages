@@ -772,7 +772,9 @@ fun RoomInfoScreen(
         if (state.showInviteDialog) {
             InviteUserDialog(
                 onInvite = onInviteUser,
-                onDismiss = onHideInviteDialog
+                onDismiss = onHideInviteDialog,
+                suggestions = state.inviteSuggestions,
+                suggestionsSourceName = state.parentSpaces.singleOrNull()?.name,
             )
         }
     }
