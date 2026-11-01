@@ -61,7 +61,7 @@ fun Avatar(
     val initials = rememberSaveable(name) { extractInitials(name) }
     val ctx = LocalPlatformContext.current
     var failedPath by remember { mutableStateOf<String?>(null) }
-    val path = avatarPath
+    val path = avatarPath?.takeUnless { it.startsWith("mxc://") }
 
     Surface(
         color = containerColor,

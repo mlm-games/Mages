@@ -334,7 +334,7 @@ private fun SpaceChildRow(
     viewModel: SpaceDetailViewModel,
     showSilentCount: Boolean
 ) {
-    val resolvedAvatar = state.avatarPathByRoomId[child.roomId] ?: child.avatarUrl
+    val resolvedAvatar = state.avatarPathByRoomId[child.roomId]
     SpaceChildItem(
         child = child.copy(avatarUrl = resolvedAvatar),
         unread = state.unreadByRoomId[child.roomId],

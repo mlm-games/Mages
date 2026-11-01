@@ -405,7 +405,7 @@ fun SpaceSettingsScreen(
                 }
 
                 items(state.children, key = { it.roomId }) { child ->
-                    val resolvedAvatar = state.avatarPathByRoomId[child.roomId] ?: child.avatarUrl
+                    val resolvedAvatar = state.avatarPathByRoomId[child.roomId]
                     ChildRoomItem(
                         child = child.copy(avatarUrl = resolvedAvatar),
                         onRemove = { viewModel.removeChild(child.roomId) },

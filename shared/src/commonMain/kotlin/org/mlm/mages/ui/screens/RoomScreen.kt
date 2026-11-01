@@ -945,7 +945,7 @@ fun RoomScreen(
                                                     }
                                                 },
                                                 senderDisplayName = locItem.event.senderDisplayName,
-                                                senderAvatarPath = state.avatarByUserId[locItem.event.sender] ?: locItem.event.senderAvatarUrl,
+                                                senderAvatarPath = state.avatarByUserId[locItem.event.sender],
                                             )
                                         },
                                         liveLocation = { locItem ->
@@ -974,7 +974,7 @@ fun RoomScreen(
                                                 },
                                                 onStopLiveLocation = if (locItem.event.sender == state.myUserId) viewModel::stopLiveLocation else null,
                                                 senderDisplayName = locItem.event.senderDisplayName,
-                                                senderAvatarPath = state.avatarByUserId[locItem.event.sender] ?: locItem.event.senderAvatarUrl,
+                                                senderAvatarPath = state.avatarByUserId[locItem.event.sender],
                                             )
                                         },
                                     )

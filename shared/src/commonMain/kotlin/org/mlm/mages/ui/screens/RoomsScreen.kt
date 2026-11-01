@@ -251,7 +251,7 @@ fun RoomsScreen(
                                     color = MaterialTheme.colorScheme.outlineVariant
                                 )
                             }
-                            val resolved = state.roomAvatarPath[item.roomId] ?: item.avatarUrl
+                            val resolved = state.roomAvatarPath[item.roomId]
                             SwipeActionRow(
                                 swipeRightAction = if (state.selectionMode) RoomSwipeAction.Nothing else settings.swipeRightAction,
                                 swipeLeftAction = if (state.selectionMode) RoomSwipeAction.Nothing else settings.swipeLeftAction,
@@ -298,7 +298,7 @@ fun RoomsScreen(
                                     color = MaterialTheme.colorScheme.outlineVariant
                                 )
                             }
-                            val resolved = state.roomAvatarPath[item.roomId] ?: item.avatarUrl
+                            val resolved = state.roomAvatarPath[item.roomId]
                             SwipeActionRow(
                                 swipeRightAction = if (state.selectionMode) RoomSwipeAction.Nothing else settings.swipeRightAction,
                                 swipeLeftAction = if (state.selectionMode) RoomSwipeAction.Nothing else settings.swipeLeftAction,
@@ -343,7 +343,7 @@ fun RoomsScreen(
                                     color = MaterialTheme.colorScheme.outlineVariant
                                 )
                             }
-                            val resolved = state.roomAvatarPath[item.roomId] ?: item.avatarUrl
+                            val resolved = state.roomAvatarPath[item.roomId]
                             SwipeActionRow(
                                 swipeRightAction = if (state.selectionMode) RoomSwipeAction.Nothing else settings.swipeRightAction,
                                 swipeLeftAction = if (state.selectionMode) RoomSwipeAction.Nothing else settings.swipeLeftAction,

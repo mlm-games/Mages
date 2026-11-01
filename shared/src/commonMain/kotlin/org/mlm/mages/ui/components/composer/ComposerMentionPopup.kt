@@ -42,7 +42,7 @@ fun ComposerMentionPopup(
             items(members, key = { it.userId }) { member ->
                 MentionSuggestionItem(
                     member = member,
-                    avatarPath = avatarPathByUserId[member.userId] ?: member.avatarUrl,
+                    avatarPath = avatarPathByUserId[member.userId],
                     onClick = { onMemberSelected(member) }
                 )
             }
