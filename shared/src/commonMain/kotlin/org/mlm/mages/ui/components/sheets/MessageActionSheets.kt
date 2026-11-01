@@ -71,7 +71,7 @@ fun MessageActionSheet(
     onRetry: (() -> Unit)? = null,
     reactionImagePacks: List<ImagePackSummary> = emptyList(),
     isEncryptedRoom: Boolean = false,
-    resolveReactionPreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String? = { _, _ -> null },
+    resolveReactionPreview: suspend (thumbnailMxcUri: String?, mxcUrl: String, mime: String?, full: Boolean) -> String? = { _, _, _, _ -> null },
     menuOrder: List<MessageMenuAction> = MessageMenuAction.entries,
     quickReactions: List<String> = defaultQuickReactions,
 ) {
@@ -115,9 +115,14 @@ fun MessageActionSheet(
             MessagePreview(event)
             if (!isRedacted) {
                 Spacer(Modifier.height(Spacing.sm))
+                val reactionMimes = remember(reactionImagePacks) {
+                    reactionImagePacks.flatMap { it.images }.associate { it.mxcUrl to it.mime }
+                }
                 QuickReactionsRow(
                     reactions = quickReactions,
-                    resolvePreview = { mxcUrl -> resolveReactionPreview(null, mxcUrl) },
+                    resolvePreview = { mxcUrl ->
+                        resolveReactionPreview(null, mxcUrl, reactionMimes[mxcUrl], false)
+                    },
                     onReact = { emoji -> onReact(emoji); onDismiss() },
                     onOpenPicker = { showEmojiPicker = true },
                     onOpenImagePicker = { showImagePicker = true }

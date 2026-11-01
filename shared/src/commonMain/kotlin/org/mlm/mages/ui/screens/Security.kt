@@ -1166,15 +1166,16 @@ private fun ReactionEmojiSettingRow(
     var showPackPicker by remember { mutableStateOf(false) }
     val current = field.get(value)?.toString().orEmpty().ifBlank { "👍" }
     val isImage = isImageReaction(current)
-    val imageLabel = remember(packs, current) {
-        packs.flatMap { it.images }.firstOrNull { it.mxcUrl == current }?.shortcode
+    val currentImage = remember(packs, current) {
+        packs.flatMap { it.images }.firstOrNull { it.mxcUrl == current }
     }
+    val imageLabel = currentImage?.shortcode
     val trailingGlyph: (@Composable () -> Unit)? = if (isImage) {
         ({
             ReactionGlyph(
                 key = current,
                 size = 24.dp,
-                resolvePreview = { pickerViewModel.preview(it) },
+                resolvePreview = { pickerViewModel.preview(it, currentImage?.mime, false) },
             )
         })
     } else {
@@ -1211,7 +1212,9 @@ private fun ReactionEmojiSettingRow(
         ReactionImagePickerSheet(
             packs = packs,
             isEncryptedRoom = false,
-            resolvePreview = { _, mxcUrl -> pickerViewModel.preview(mxcUrl) },
+            resolvePreview = { _, mxcUrl, mime, full ->
+                pickerViewModel.preview(mxcUrl, mime, full)
+            },
             onImageSelected = { image ->
                 showPackPicker = false
                 onSet(field.name, image.mxcUri)

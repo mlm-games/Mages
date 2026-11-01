@@ -30,6 +30,7 @@ import mages.shared.generated.resources.try_different_search
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.matrix.ImagePackImageEntry
 import org.mlm.mages.matrix.ImagePackSummary
+import org.mlm.mages.platform.isAnimatedSticker
 import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.components.core.EmoteRef
 import org.mlm.mages.ui.components.core.PackImageTile
@@ -49,7 +50,7 @@ private val GRID_MAX_HEIGHT = 400.dp
 fun ReactionImagePickerSheet(
     packs: List<ImagePackSummary>,
     isEncryptedRoom: Boolean,
-    resolvePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String?,
+    resolvePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String, mime: String?, full: Boolean) -> String?,
     onImageSelected: (EmoteRef) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -137,7 +138,9 @@ fun ReactionImagePickerSheet(
                                     EmoteRef(
                                         mxcUri = image.mxcUrl,
                                         alt = image.body ?: image.shortcode,
-                                        title = image.shortcode
+                                        title = image.shortcode,
+                                        mime = image.mime,
+                                        isAnimated = image.isAnimated
                                     )
                                 )
                             }
@@ -179,13 +182,13 @@ private fun filterImagePacks(
 @Composable
 private fun ReactionImageCell(
     image: ImagePackImageEntry,
-    resolvePreview: suspend (String?, String) -> String?,
+    resolvePreview: suspend (String?, String, String?, Boolean) -> String?,
     onClick: () -> Unit
 ) {
     var previewPath by remember(image.mxcUrl) { mutableStateOf<String?>(null) }
 
     LaunchedEffect(image.mxcUrl) {
-        previewPath = resolvePreview(image.thumbnailMxcUri, image.mxcUrl)
+        previewPath = resolvePreview(image.thumbnailMxcUri, image.mxcUrl, image.mime, false)
     }
 
     PackImageTile(
@@ -194,5 +197,7 @@ private fun ReactionImageCell(
         modifier = Modifier.size(64.dp),
         onClick = onClick,
         mime = image.mime,
+        animated = isAnimatedSticker(image.mime, image.isAnimated),
+        resolveFull = { resolvePreview(image.thumbnailMxcUri, image.mxcUrl, image.mime, true) },
     )
 }

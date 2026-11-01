@@ -1,7 +1,8 @@
 package org.mlm.mages.ui.components.composer
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
@@ -26,16 +27,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil3.compose.AsyncImage
-import coil3.compose.LocalPlatformContext
-import coil3.request.ImageRequest
-import coil3.request.crossfade
 import mages.shared.generated.resources.*
 import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.emote_pack_unencrypted_notice
@@ -43,7 +38,9 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.mlm.mages.emoji.RecentEmojiStore
 import org.mlm.mages.matrix.ImagePackSummary
+import org.mlm.mages.platform.isAnimatedSticker
 import org.mlm.mages.ui.components.core.EmoteRef
+import org.mlm.mages.ui.components.core.PackImageTile
 import org.mlm.mages.ui.components.sheets.EmojiCategory
 import org.mlm.mages.ui.components.sheets.EmojiEntry
 import org.mlm.mages.ui.components.sheets.emojiCategories
@@ -88,7 +85,9 @@ fun emoteSuggestionsFrom(packs: List<ImagePackSummary>): List<EmoteSuggestion> {
                 ref = EmoteRef(
                     mxcUri = image.mxcUrl,
                     alt = image.body?.takeIf { it.isNotBlank() } ?: image.shortcode,
-                    title = image.shortcode
+                    title = image.shortcode,
+                    mime = image.mime,
+                    isAnimated = image.isAnimated,
                 )
             )
         }
@@ -106,7 +105,7 @@ fun ComposerEmotePopup(
     query: String,
     emotes: List<EmoteSuggestion>,
     emoji: List<EmojiEntry>,
-    resolvePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String?,
+    resolvePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String, mime: String?, full: Boolean) -> String?,
     onEmoteSelected: (EmoteSuggestion) -> Unit,
     onEmojiSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -186,7 +185,7 @@ private sealed interface PickerTab {
 @Composable
 private fun EmojiEmoteBrowser(
     emotes: List<EmoteSuggestion>,
-    resolvePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String?,
+    resolvePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String, mime: String?, full: Boolean) -> String?,
     onEmoteSelected: (EmoteSuggestion) -> Unit,
     onEmojiSelected: (String) -> Unit,
     recentStore: RecentEmojiStore,
@@ -268,7 +267,7 @@ private fun EmojiEmoteBrowser(
 @Composable
 private fun EmoteRow(
     emotes: List<EmoteSuggestion>,
-    resolvePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String?,
+    resolvePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String, mime: String?, full: Boolean) -> String?,
     onEmoteSelected: (EmoteSuggestion) -> Unit,
     state: LazyListState,
 ) {
@@ -297,43 +296,38 @@ private fun EmoteRow(
 @Composable
 private fun EmoteSuggestionItem(
     suggestion: EmoteSuggestion,
-    resolvePreview: suspend (String?, String) -> String?,
+    resolvePreview: suspend (String?, String, String?, Boolean) -> String?,
     onClick: () -> Unit
 ) {
     var previewPath by remember(suggestion.ref.mxcUri) { mutableStateOf<String?>(null) }
+    val interactionSource = remember { MutableInteractionSource() }
 
     LaunchedEffect(suggestion.ref.mxcUri) {
-        previewPath = resolvePreview(null, suggestion.ref.mxcUri)
+        previewPath = resolvePreview(null, suggestion.ref.mxcUri, suggestion.ref.mime, false)
     }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .widthIn(min = 56.dp, max = 76.dp)
-            .clickable { onClick() }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClick = onClick
+            )
     ) {
-        val path = previewPath
-        if (path != null) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalPlatformContext.current)
-                    .data(path)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = suggestion.ref.label,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier
-                    .size(Sizes.iconLarge)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .size(Sizes.iconLarge)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            )
-        }
+        PackImageTile(
+            path = previewPath,
+            contentDescription = suggestion.ref.label,
+            modifier = Modifier.size(Sizes.iconLarge),
+            shape = RoundedCornerShape(8.dp),
+            mime = suggestion.ref.mime,
+            animated = isAnimatedSticker(suggestion.ref.mime, suggestion.ref.isAnimated),
+            resolveFull = {
+                resolvePreview(null, suggestion.ref.mxcUri, suggestion.ref.mime, true)
+            },
+            interactionSource = interactionSource,
+        )
 
         Text(
             text = suggestion.packName ?: suggestion.shortcode,

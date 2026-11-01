@@ -688,7 +688,9 @@ fun RoomScreen(
                         onCancelVoiceRecording = viewModel::cancelVoiceRecording,
                         onVoiceRecordingComplete = viewModel::onVoiceRecordingComplete,
                         emoteSuggestions = viewModel.emoteSuggestions,
-                        resolveEmotePreview = { thumbnail, mxc -> viewModel.packImagePreview(thumbnail, mxc) },
+                        resolveEmotePreview = { thumbnail, mxc, mime, full ->
+                            viewModel.packImagePreview(thumbnail, mxc, mime, full)
+                        },
                     )
                 }
             }
@@ -1095,7 +1097,9 @@ fun RoomScreen(
             packIdsBeingUpdated = state.packIdsBeingUpdated,
             discoveredPacks = state.discoveredPacks,
             isDiscoveringPacks = state.isDiscoveringPacks,
-            requestPreview = { thumbnail, mxc, mime -> viewModel.packImagePreview(thumbnail, mxc, mime) },
+            requestPreview = { thumbnail, mxc, mime, full ->
+                viewModel.packImagePreview(thumbnail, mxc, mime, full)
+            },
             onSelect = viewModel::sendPackSticker,
             onSetPackEnabled = viewModel::setPackEnabled,
             onDiscover = viewModel::discoverPacks,
@@ -1268,7 +1272,9 @@ fun RoomScreen(
             onSelect = { viewModel.enterSelectionMode(event.eventId) },
             reactionImagePacks = state.imagePacks,
             isEncryptedRoom = state.isRoomEncrypted,
-            resolveReactionPreview = { thumbnail, mxc -> viewModel.packImagePreview(thumbnail, mxc) },
+            resolveReactionPreview = { thumbnail, mxc, mime, full ->
+                viewModel.packImagePreview(thumbnail, mxc, mime, full)
+            },
         )
     }
 
@@ -1695,7 +1701,7 @@ private fun RoomBottomBar(
     onCancelVoiceRecording: () -> Unit = {},
     onVoiceRecordingComplete: (filePath: String, durationMs: Long, waveform: List<Float>) -> Unit = { _, _, _ -> },
     emoteSuggestions: List<EmoteSuggestion> = emptyList(),
-    resolveEmotePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String? = { _, _ -> null },
+    resolveEmotePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String, mime: String?, full: Boolean) -> String? = { _, _, _, _ -> null },
 ) {
     Column(modifier = Modifier.navigationBarsPadding().imePadding()) {
         ActionBanner(

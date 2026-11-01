@@ -16,6 +16,7 @@ import org.mlm.mages.LinkPreview
 import org.mlm.mages.MatrixService
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.ReplyPreviewKind
+import org.mlm.mages.StickerInfo
 import org.mlm.mages.thumbKey
 import org.mlm.mages.withBridgedThumb
 import org.mlm.mages.matrix.ImagePackSummary
@@ -48,6 +49,7 @@ import org.mlm.mages.ui.util.previewThumbnail
 import org.mlm.mages.ui.util.downloadNameHint
 import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.platform.Notifier
+import org.mlm.mages.platform.isTgsSticker
 import org.mlm.mages.AttachmentKind
 import kotlin.getValue
 import org.jetbrains.compose.resources.getString
@@ -172,10 +174,23 @@ class ThreadViewModel(
         }
 
     /** Caches an emote referenced by a message in this thread for inline display. */
-    suspend fun emotePreview(thumbnailMxcUri: String?, mxcUrl: String): String? {
-        val key = thumbnailMxcUri ?: mxcUrl
+    suspend fun emotePreview(
+        thumbnailMxcUri: String?,
+        mxcUrl: String,
+        mime: String? = null,
+        full: Boolean = false,
+    ): String? {
+        val original = full || isTgsSticker(mime, mxcUrl)
+        val source = if (original) mxcUrl else thumbnailMxcUri ?: mxcUrl
+        val key = if (original) "full:$source" else source
         currentState.emotePathByMxc[key]?.let { return it }
-        val path = runSafe { service.port.mxcThumbnailToCache(key, 128, 128, false) } ?: return null
+        val path = if (original) {
+            runSafe {
+                service.downloadStickerToCache(StickerInfo(mxcUri = source, mime = mime)).getOrNull()
+            }
+        } else {
+            runSafe { service.port.mxcThumbnailToCache(key, 128, 128, false) }
+        } ?: return null
         updateState { copy(emotePathByMxc = emotePathByMxc + (key to path)) }
         return path
     }

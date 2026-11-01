@@ -114,7 +114,7 @@ fun QuickReactionsScreen(
     packsLoading: Boolean,
     onChange: (List<String>) -> Unit,
     onReset: () -> Unit,
-    resolvePreview: suspend (String) -> String?,
+    resolvePreview: suspend (mxcUrl: String, mime: String?, full: Boolean) -> String?,
     onBack: () -> Unit,
 ) {
     var showEmojiPicker by remember { mutableStateOf(false) }
@@ -127,6 +127,9 @@ fun QuickReactionsScreen(
                 pack.images.map { it.mxcUrl to (it.shortcode to packName) }
             }
             .toMap()
+    }
+    val mimeByMxc = remember(packs) {
+        packs.flatMap { it.images }.associate { it.mxcUrl to it.mime }
     }
 
     Scaffold(
@@ -207,7 +210,7 @@ fun QuickReactionsScreen(
                                             ReactionGlyph(
                                                 key = key,
                                                 size = 26.dp,
-                                                resolvePreview = resolvePreview,
+                                                resolvePreview = { mxc -> resolvePreview(mxc, mimeByMxc[mxc], false) },
                                             )
                                         }
                                     }
@@ -251,7 +254,7 @@ fun QuickReactionsScreen(
                     onMoveUp = { onChange(reactions.moved(index, index - 1)) },
                     onMoveDown = { onChange(reactions.moved(index, index + 1)) },
                     onRemove = { onChange(reactions - key) },
-                    resolvePreview = resolvePreview,
+                    resolvePreview = { mxc -> resolvePreview(mxc, mimeByMxc[mxc], false) },
                 )
             }
         }
@@ -271,7 +274,7 @@ fun QuickReactionsScreen(
         ReactionImagePickerSheet(
             packs = packs,
             isEncryptedRoom = false,
-            resolvePreview = { _, mxcUrl -> resolvePreview(mxcUrl) },
+            resolvePreview = { _, mxcUrl, mime, full -> resolvePreview(mxcUrl, mime, full) },
             onImageSelected = { ref ->
                 showPackPicker = false
                 if (ref.mxcUri !in reactions) onChange(reactions + ref.mxcUri)

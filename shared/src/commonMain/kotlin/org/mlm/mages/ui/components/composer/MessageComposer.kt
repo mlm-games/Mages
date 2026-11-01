@@ -69,7 +69,7 @@ fun MessageComposer(
     onCancelVoiceRecording: (() -> Unit)? = null,
     onVoiceRecordingComplete: ((filePath: String, durationMs: Long, waveform: List<Float>) -> Unit)? = null,
     emoteSuggestions: List<EmoteSuggestion> = emptyList(),
-    resolveEmotePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String? = { _, _ -> null },
+    resolveEmotePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String, mime: String?, full: Boolean) -> String? = { _, _, _, _ -> null },
     isEncryptedRoom: Boolean = false,
     maxLines: Int = 5,
     maxLinesUnfocused: Int = 5,

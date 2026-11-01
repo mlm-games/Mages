@@ -12,6 +12,14 @@ internal fun isTgsMime(mime: String?): Boolean {
         normalized == "image/tgs"
 }
 
+private val animatedStickerMimes = setOf("image/gif", "image/webp", "image/apng")
+
+internal fun isAnimatedSticker(mime: String?, isAnimated: Boolean? = null): Boolean {
+    if (isAnimated == true || isTgsMime(mime)) return true
+    val normalized = mime?.substringBefore(';')?.trim()?.lowercase() ?: return false
+    return normalized in animatedStickerMimes
+}
+
 internal fun isTgsSticker(mime: String?, source: String? = null): Boolean {
     if (isTgsMime(mime)) return true
     val value = source ?: return false

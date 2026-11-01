@@ -595,12 +595,15 @@ class RoomViewModel(
         thumbnailMxcUri: String?,
         mxcUrl: String,
         mime: String?,
+        full: Boolean = false,
     ): String? {
-        val key = if (isTgsSticker(mime, mxcUrl)) mxcUrl else thumbnailMxcUri ?: mxcUrl
+        val original = full || isTgsSticker(mime, mxcUrl)
+        val source = if (original) mxcUrl else thumbnailMxcUri ?: mxcUrl
+        val key = if (original) "full:$source" else source
         val request = previewLock.withLock {
             previewPathByMxc[key]?.let { return it }
             previewInFlight.getOrPut(key) {
-                CompletableDeferred<String?>().also { startPreviewFetch(key, mime, it) }
+                CompletableDeferred<String?>().also { startPreviewFetch(key, source, mime, original, it) }
             }
         }
         return request.await()
@@ -608,14 +611,16 @@ class RoomViewModel(
 
     private fun startPreviewFetch(
         key: String,
+        source: String,
         mime: String?,
+        original: Boolean,
         request: CompletableDeferred<String?>,
     ) {
         launch {
-            val path = if (isTgsSticker(mime, key)) {
-                service.downloadStickerToCache(StickerInfo(mxcUri = key, mime = mime)).getOrNull()
+            val path = if (original) {
+                service.downloadStickerToCache(StickerInfo(mxcUri = source, mime = mime)).getOrNull()
             } else {
-                service.port.packImageToCache(key, 128, 128).getOrNull()
+                service.port.packImageToCache(source, 128, 128).getOrNull()
             }
             previewLock.withLock {
                 if (path != null) previewPathByMxc[key] = path

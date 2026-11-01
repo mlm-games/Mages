@@ -175,7 +175,9 @@ data class EmoteRef(
     val mxcUri: String,
     val alt: String?,
     val title: String?,
-    val path: String? = null
+    val path: String? = null,
+    val mime: String? = null,
+    val isAnimated: Boolean? = null
 ) {
     val label: String get() = alt?.takeIf { it.isNotBlank() } ?: title?.takeIf { it.isNotBlank() } ?: ""
 }

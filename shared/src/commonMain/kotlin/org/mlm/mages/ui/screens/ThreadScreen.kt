@@ -160,7 +160,9 @@ fun ThreadRoute(
             }
         },
         emoteSuggestions = viewModel.emoteSuggestions,
-        resolveEmotePreview = { thumbnail, mxc -> viewModel.emotePreview(thumbnail, mxc) },
+        resolveEmotePreview = { thumbnail, mxc, mime, full ->
+            viewModel.emotePreview(thumbnail, mxc, mime, full)
+        },
         menuOrder = parseMessageMenuOrder(settings.messageMenuOrder),
         quickReactions = parseQuickReactions(settings.quickReactions),
         reactionShortcodes = viewModel.reactionShortcodes,
@@ -228,7 +230,7 @@ fun ThreadScreen(
     onOpenAvatar: (MemberSummary) -> Unit = { },
     showReactionAvatars: Boolean = true,
     emoteSuggestions: List<EmoteSuggestion> = emptyList(),
-    resolveEmotePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String) -> String? = { _, _ -> null },
+    resolveEmotePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String, mime: String?, full: Boolean) -> String? = { _, _, _, _ -> null },
     reactionShortcodes: Map<String, String> = emptyMap(),
     onReactionImages: (List<ReactionSummary>) -> Unit = {},
     menuOrder: List<MessageMenuAction> = MessageMenuAction.entries,

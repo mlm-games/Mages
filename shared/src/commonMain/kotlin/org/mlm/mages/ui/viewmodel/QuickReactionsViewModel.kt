@@ -3,13 +3,15 @@ package org.mlm.mages.ui.viewmodel
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.mlm.mages.MatrixService
+import org.mlm.mages.StickerInfo
+import org.mlm.mages.platform.isTgsSticker
 import org.mlm.mages.ui.QuickReactionsUiState
 
 class QuickReactionsViewModel(
     private val service: MatrixService,
 ) : BaseViewModel<QuickReactionsUiState>(QuickReactionsUiState()) {
 
-    private val previewPaths = mutableMapOf<String, String?>()
+    private val previewPaths = mutableMapOf<String, String>()
     private val previewLock = Mutex()
 
     init {
@@ -24,12 +26,17 @@ class QuickReactionsViewModel(
         }
     }
 
-    suspend fun preview(mxcUrl: String): String? {
-        previewLock.withLock {
-            if (previewPaths.containsKey(mxcUrl)) return previewPaths[mxcUrl]
+    suspend fun preview(mxcUrl: String, mime: String? = null, full: Boolean = false): String? {
+        val animated = full || isTgsSticker(mime, mxcUrl)
+        val key = if (animated) "full:$mxcUrl" else mxcUrl
+        previewLock.withLock { previewPaths[key]?.let { return it } }
+        val path = if (animated) {
+            runSafe { service.downloadStickerToCache(StickerInfo(mxcUri = mxcUrl, mime = mime)) }
+                ?.getOrNull()
+        } else {
+            runSafe { service.port.packImageToCache(mxcUrl, 128, 128).getOrNull() }
         }
-        val path = runSafe { service.port.packImageToCache(mxcUrl, 128, 128).getOrNull() }
-        previewLock.withLock { previewPaths[mxcUrl] = path }
+        if (path != null) previewLock.withLock { previewPaths[key] = path }
         return path
     }
 }

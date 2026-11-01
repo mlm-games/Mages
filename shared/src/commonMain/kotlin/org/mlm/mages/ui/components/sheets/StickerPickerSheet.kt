@@ -38,6 +38,7 @@ import mages.shared.generated.resources.sticker_picker_discover_refresh
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.matrix.ImagePackImageEntry
 import org.mlm.mages.matrix.ImagePackSummary
+import org.mlm.mages.platform.isAnimatedSticker
 import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.components.core.PackImageTile
 import org.mlm.mages.ui.theme.Sizes
@@ -62,7 +63,7 @@ fun StickerPickerSheet(
     packIdsBeingUpdated: Set<String>,
     discoveredPacks: List<ImagePackSummary>?,
     isDiscoveringPacks: Boolean,
-    requestPreview: suspend (thumbnailMxcUri: String?, mxcUrl: String, mime: String?) -> String?,
+    requestPreview: suspend (thumbnailMxcUri: String?, mxcUrl: String, mime: String?, full: Boolean) -> String?,
     onSelect: (ImagePackImageEntry) -> Unit,
     onSetPackEnabled: (ImagePackSummary, Boolean) -> Unit,
     onDiscover: () -> Unit,
@@ -247,7 +248,7 @@ private fun LazyGridScope.packItems(
     isEncryptedRoom: Boolean,
     showSourceRoom: Boolean,
     packIdsBeingUpdated: Set<String>,
-    requestPreview: suspend (String?, String, String?) -> String?,
+    requestPreview: suspend (String?, String, String?, Boolean) -> String?,
     onSelect: (ImagePackImageEntry) -> Unit,
     onSetPackEnabled: (ImagePackSummary, Boolean) -> Unit,
 ) {
@@ -354,13 +355,13 @@ private fun LazyGridScope.packHeader(
 @Composable
 private fun PackImageCell(
     image: ImagePackImageEntry,
-    requestPreview: suspend (String?, String, String?) -> String?,
+    requestPreview: suspend (String?, String, String?, Boolean) -> String?,
     onSelect: (ImagePackImageEntry) -> Unit,
 ) {
     var previewPath by remember(image.mxcUrl) { mutableStateOf<String?>(null) }
 
     LaunchedEffect(image.mxcUrl) {
-        previewPath = requestPreview(image.thumbnailMxcUri, image.mxcUrl, image.mime)
+        previewPath = requestPreview(image.thumbnailMxcUri, image.mxcUrl, image.mime, false)
     }
 
     PackImageTile(
@@ -369,5 +370,7 @@ private fun PackImageCell(
         modifier = Modifier.size(56.dp),
         onClick = { onSelect(image) },
         mime = image.mime,
+        animated = isAnimatedSticker(image.mime, image.isAnimated),
+        resolveFull = { requestPreview(image.thumbnailMxcUri, image.mxcUrl, image.mime, true) },
     )
 }
