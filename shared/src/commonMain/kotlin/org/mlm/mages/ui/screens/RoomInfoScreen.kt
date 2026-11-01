@@ -116,6 +116,11 @@ fun RoomInfoRoute(
         onSaveTopic = viewModel::saveTopic,
         onSetAvatar = viewModel::setAvatar,
         onRemoveAvatar = viewModel::removeAvatar,
+        onViewAvatar = {
+            viewModel.openRoomAvatarExternally { path, _ ->
+                avatarViewer.show(path, state.profile?.name)
+            }
+        },
         onToggleFavourite = viewModel::toggleFavourite,
         onToggleLowPriority = viewModel::toggleLowPriority,
         onLeave = viewModel::leave,
@@ -178,6 +183,7 @@ fun RoomInfoScreen(
     onSaveTopic: () -> Unit,
     onSetAvatar: (String, String) -> Unit,
     onRemoveAvatar: () -> Unit,
+    onViewAvatar: () -> Unit,
     onToggleFavourite: () -> Unit,
     onToggleLowPriority: () -> Unit,
     onLeave: () -> Unit,
@@ -285,6 +291,7 @@ fun RoomInfoScreen(
                     ProfileHeader(
                         state = state,
                         onPickAvatar = pickRoomAvatar,
+                        onViewAvatar = onViewAvatar,
                     )
                 }
 
@@ -775,6 +782,7 @@ fun RoomInfoScreen(
 private fun ProfileHeader(
     state: RoomInfoUiState,
     onPickAvatar: (() -> Unit)? = null,
+    onViewAvatar: () -> Unit,
 ) {
     val profile = state.profile ?: return
 
@@ -790,7 +798,8 @@ private fun ProfileHeader(
             size = 80.dp,
             shape = MaterialTheme.shapes.large,
             isSaving = state.isSavingAvatar,
-            onClick = onPickAvatar,
+            onAvatarClick = onViewAvatar.takeIf { profile.avatarUrl != null },
+            onEditClick = onPickAvatar,
         )
         Spacer(Modifier.height(Spacing.md))
         Row(

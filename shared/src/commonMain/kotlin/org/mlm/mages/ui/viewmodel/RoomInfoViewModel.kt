@@ -482,6 +482,7 @@ class RoomInfoViewModel(
                 return@launch
             }
             val resolved = runSafe { service.avatars.resolve(mxc, px = 160, crop = true) }
+            lastAvatarMxc = mxc
             updateState {
                 copy(
                     isSavingAvatar = false,
@@ -511,6 +512,7 @@ class RoomInfoViewModel(
                 return@launch
             }
             updateState { copy(profile = profile?.copy(avatarUrl = null)) }
+            lastAvatarMxc = null
             _events.send(Event.ShowSuccess(getString(Res.string.avatar_updated)))
         }
     }
@@ -802,6 +804,15 @@ class RoomInfoViewModel(
             service = service,
             userId = member.userId,
             fallbackAvatarUrl = member.avatarUrl,
+            onOpen = onOpen,
+            onError = { _events.send(Event.ShowError(getString(Res.string.download_failed))) },
+        )
+    }
+
+    fun openRoomAvatarExternally(onOpen: (String, String?) -> Unit) {
+        openAvatarSourceForViewing(
+            service = service,
+            source = lastAvatarMxc,
             onOpen = onOpen,
             onError = { _events.send(Event.ShowError(getString(Res.string.download_failed))) },
         )

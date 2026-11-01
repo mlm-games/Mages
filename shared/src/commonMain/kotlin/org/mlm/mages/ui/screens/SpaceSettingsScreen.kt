@@ -142,7 +142,12 @@ fun SpaceSettingsScreen(
                             space = space,
                             avatarPath = state.spaceAvatarPath,
                             isSavingAvatar = state.isSavingAvatar,
-                            onPickAvatar = pickSpaceAvatar
+                            onPickAvatar = pickSpaceAvatar,
+                            onViewAvatar = {
+                                viewModel.openSpaceAvatarExternally { path, _ ->
+                                    avatarViewer.show(path, space.name)
+                                }
+                            }
                         )
                     }
                 }
@@ -622,6 +627,7 @@ private fun SpaceInfoHeader(
     avatarPath: String?,
     isSavingAvatar: Boolean,
     onPickAvatar: (() -> Unit)?,
+    onViewAvatar: () -> Unit,
 ) {
     Card(
         modifier = Modifier
@@ -642,7 +648,8 @@ private fun SpaceInfoHeader(
                 avatarPath = avatarPath,
                 size = 48.dp,
                 isSaving = isSavingAvatar,
-                onClick = onPickAvatar
+                onAvatarClick = onViewAvatar.takeIf { avatarPath != null },
+                onEditClick = onPickAvatar
             )
             Spacer(Modifier.width(Spacing.lg))
             Column(modifier = Modifier.weight(1f)) {

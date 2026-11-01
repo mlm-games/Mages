@@ -200,6 +200,7 @@
     <string name="profile_display_name">Display name</string>
     <string name="profile_display_name_placeholder">Your name</string>
     <string name="profile_change_photo">Change photo</string>
+    <string name="profile_view_photo">View photo</string>
     <string name="profile_remove_photo">Remove photo</string>
     <string name="avatar_updated">Avatar updated</string>
     <string name="failed_to_update_avatar">Failed to update avatar</string>

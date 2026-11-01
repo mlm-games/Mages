@@ -75,6 +75,8 @@ import org.mlm.mages.ui.components.sheets.SetupRecoverySheet
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.snackbar.snackbarHost
 import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
+import org.mlm.mages.ui.components.viewer.AvatarViewerHost
+import org.mlm.mages.ui.components.viewer.rememberAvatarViewerState
 import org.mlm.mages.nav.Route
 import org.mlm.mages.ui.theme.AppColors
 import org.mlm.mages.ui.theme.Sizes
@@ -110,6 +112,7 @@ fun SecurityScreen(
     val postError = rememberErrorPoster(snackbarManager)
     val settingsSnackbarHostState = remember { SnackbarHostState() }
     val uriHandler = LocalUriHandler.current
+    val avatarViewer = rememberAvatarViewerState()
 
     var verifyUserId by remember { mutableStateOf("") }
     var showVerifyUserDialog by remember { mutableStateOf(false) }
@@ -299,6 +302,20 @@ fun SecurityScreen(
                         pendingAvatarPick = onPicked
                         avatarPicker.launch()
                     },
+                    onViewAvatar = {
+                        viewModel.openOwnAvatarExternally { path, _ ->
+                            avatarViewer.show(
+                                path,
+                                state.ownProfile?.displayName ?: state.ownProfile?.userId,
+                            )
+                        }
+                    },
+                    onViewLocalAvatar = { path ->
+                        avatarViewer.show(
+                            path,
+                            state.ownProfile?.displayName ?: state.ownProfile?.userId,
+                        )
+                    },
                     onSave = viewModel::saveProfile,
                     onRetry = viewModel::loadProfile,
                     onUnignore = viewModel::unignoreUser,
@@ -400,6 +417,8 @@ fun SecurityScreen(
             }
         )
     }
+
+    AvatarViewerHost(avatarViewer)
 }
 
 @Composable
@@ -412,6 +431,8 @@ private fun ProfileTab(
     accountId: String?,
     ignoredUsers: List<String>,
     onPickAvatar: ((String, String) -> Unit) -> Unit,
+    onViewAvatar: () -> Unit,
+    onViewLocalAvatar: (String) -> Unit,
     onSave: (String, AvatarEdit) -> Unit,
     onRetry: () -> Unit,
     onUnignore: (String) -> Unit,
@@ -450,12 +471,19 @@ private fun ProfileTab(
         return
     }
 
+    val pickedAvatarPath = (avatarEdit as? AvatarEdit.Replace)?.path
+
     val nameChanged = displayName.trim() != current.displayName.orEmpty().trim()
     val canSave = !isSaving && (nameChanged || avatarEdit != AvatarEdit.None)
     val previewPath = when (val edit = avatarEdit) {
         is AvatarEdit.Replace -> edit.path
         AvatarEdit.Remove -> null
         AvatarEdit.None -> avatarPath
+    }
+    val viewAvatar: (() -> Unit)? = when {
+        pickedAvatarPath != null -> ({ onViewLocalAvatar(pickedAvatarPath) })
+        previewPath != null -> onViewAvatar
+        else -> null
     }
 
     if (fieldEditorOpen) {
@@ -532,7 +560,8 @@ private fun ProfileTab(
                     avatarPath = previewPath,
                     size = Sizes.avatarLarge * 2,
                     isSaving = isSaving,
-                    onClick = if (current.canChangeAvatar) {
+                    onAvatarClick = viewAvatar,
+                    onEditClick = if (current.canChangeAvatar) {
                         { onPickAvatar { path, mime -> avatarEdit = AvatarEdit.Replace(path, mime) } }
                     } else {
                         null

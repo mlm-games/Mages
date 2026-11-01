@@ -447,6 +447,15 @@ class SecurityViewModel(
         launch { fetchProfileFields(version) }
     }
 
+    fun openOwnAvatarExternally(onOpen: (String, String?) -> Unit) {
+        openAvatarSourceForViewing(
+            service = service,
+            source = currentState.ownProfile?.avatarUrl,
+            onOpen = onOpen,
+            onError = { _events.send(Event.ShowError(getString(Res.string.download_failed))) },
+        )
+    }
+
     private suspend fun fetchProfile(version: Long) {
         val port = service.portOrNull ?: return
         updateStateIfCurrent(version) { copy(isLoadingProfile = true) }

@@ -120,7 +120,7 @@ abstract class BaseViewModel<S>(initialState: S) : ViewModel(), KoinComponent {
             val source = fallbackAvatarUrl?.takeIf { it.startsWith("mxc://") }
                 ?: runSafe { service.port.getUserProfile(userId)?.avatarUrl }
                 ?: fallbackAvatarUrl
-            val path = source?.let { runSafe { service.avatars.resolve(it, px = VIEWING_AVATAR_PX, crop = false) } }
+            val path = resolveAvatarForViewing(service, source)
             if (path.isNullOrBlank()) {
                 onError()
                 return@launch
@@ -128,6 +128,26 @@ abstract class BaseViewModel<S>(initialState: S) : ViewModel(), KoinComponent {
             onOpen(path, avatarMimeFor(path))
         }
     }
+
+    protected fun openAvatarSourceForViewing(
+        service: MatrixService,
+        source: String?,
+        onOpen: (String, String?) -> Unit,
+        onError: suspend () -> Unit = {},
+    ) {
+        launch {
+            val path = resolveAvatarForViewing(service, source)
+            if (path.isNullOrBlank()) {
+                onError()
+                return@launch
+            }
+            onOpen(path, avatarMimeFor(path))
+        }
+    }
+
+    private suspend fun resolveAvatarForViewing(service: MatrixService, source: String?): String? =
+        source?.takeIf { it.isNotBlank() }
+            ?.let { runSafe { service.avatars.resolve(it, px = VIEWING_AVATAR_PX, crop = false) } }
 
     protected fun hydrateMissingSpaceChildNames(
         service: MatrixService,

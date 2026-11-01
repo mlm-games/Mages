@@ -119,17 +119,19 @@ fun EditableAvatar(
     size: Dp,
     shape: Shape = CircleShape,
     isSaving: Boolean = false,
-    onClick: (() -> Unit)? = null,
+    onAvatarClick: (() -> Unit)? = null,
+    onEditClick: (() -> Unit)? = null,
 ) {
     val changePhotoLabel = stringResource(Res.string.profile_change_photo)
+    val viewPhotoLabel = stringResource(Res.string.profile_view_photo)
     Box {
         Avatar(
             name = name,
             avatarPath = avatarPath,
             size = size,
             shape = shape,
-            onClick = onClick,
-            onClickLabel = changePhotoLabel,
+            onClick = onAvatarClick,
+            onClickLabel = viewPhotoLabel,
         )
         if (isSaving) {
             Box(
@@ -143,7 +145,7 @@ fun EditableAvatar(
                     color = Color.White
                 )
             }
-        } else if (onClick != null) {
+        } else if (onEditClick != null) {
             val badgeSize = (size * 0.32f).coerceIn(20.dp, 40.dp)
             Surface(
                 shape = CircleShape,
@@ -151,6 +153,7 @@ fun EditableAvatar(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .size(badgeSize)
+                    .clickable(onClickLabel = changePhotoLabel) { onEditClick() }
             ) {
                 Icon(
                     Icons.Default.PhotoCamera,
