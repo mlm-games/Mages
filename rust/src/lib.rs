@@ -653,6 +653,41 @@ pub(crate) fn sanitize_filename(name: &str) -> String {
     s.trim_matches('_').to_string()
 }
 
+/// Cache path for a media download. The name is content-addressed: two
+/// downloads that start in the same millisecond must not write to one file,
+/// which a clock-derived name cannot guarantee.
+pub(crate) fn download_cache_file(
+    dir: &std::path::Path,
+    identity: &str,
+    hint: Option<&str>,
+    fallback: &str,
+) -> PathBuf {
+    let hint = hint
+        .map(sanitize_filename)
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| fallback.to_string());
+    let key = blake3::hash(identity.as_bytes()).to_hex().to_string();
+    dir.join(format!("dl_{key}_{hint}"))
+}
+
+/// Writes through a sibling temp file so a crash mid-write cannot leave a
+/// truncated file under the name the cache reuses.
+pub(crate) fn write_cache_file(
+    dir: &std::path::Path,
+    out: &std::path::Path,
+    data: &[u8],
+) -> Result<(), FfiError> {
+    static SEQ: AtomicU64 = AtomicU64::new(0);
+    let seq = SEQ.fetch_add(1, Ordering::Relaxed);
+    let tmp = dir.join(format!("write-{}-{seq}.part", now_ms()));
+    std::fs::write(&tmp, data).ffi()?;
+    if let Err(error) = std::fs::rename(&tmp, out) {
+        std::fs::remove_file(&tmp).ok();
+        return Err(FfiError::Msg(format!("cache write failed: {error}")));
+    }
+    Ok(())
+}
+
 pub(crate) fn safe_call<F: FnOnce()>(f: F) {
     let _ = catch_unwind(AssertUnwindSafe(f));
 }
@@ -2871,12 +2906,21 @@ impl Client {
         {
             let dir = cache_dir(&self.store_dir);
             platform::ensure_dir(&dir);
-            let hint = filename_hint
-                .as_deref()
-                .map(sanitize_filename)
-                .filter(|s| !s.is_empty())
-                .unwrap_or_else(|| "sticker.bin".into());
-            let out = dir.join(format!("dl_{}_{}", now_ms(), hint));
+            let identity = format!(
+                "{}|{}",
+                info.mxc_uri,
+                info.encrypted
+                    .as_ref()
+                    .map(|enc| enc.json.as_str())
+                    .unwrap_or_default()
+            );
+            let out = download_cache_file(&dir, &identity, filename_hint.as_deref(), "sticker.bin");
+            if let Ok(meta) = std::fs::metadata(&out) {
+                return Ok(DownloadResult {
+                    path: out.to_string_lossy().to_string(),
+                    bytes: meta.len(),
+                });
+            }
 
             RT.block_on(async {
                 let source = if let Some(enc) = info.encrypted.as_ref() {
@@ -2897,7 +2941,7 @@ impl Client {
                     .get_media_content(&req, true)
                     .await
                     .ffi()?;
-                std::fs::write(&out, &data).ffi()?;
+                write_cache_file(&dir, &out, &data)?;
                 Ok(DownloadResult {
                     path: out.to_string_lossy().to_string(),
                     bytes: data.len() as u64,
@@ -2918,12 +2962,21 @@ impl Client {
         {
             let dir = cache_dir(&self.store_dir);
             platform::ensure_dir(&dir);
-            let hint = filename_hint
-                .as_deref()
-                .map(sanitize_filename)
-                .filter(|s| !s.is_empty())
-                .unwrap_or_else(|| "file.bin".into());
-            let out = dir.join(format!("dl_{}_{}", now_ms(), hint));
+            let identity = format!(
+                "{}|{}",
+                att.mxc_uri,
+                att.encrypted
+                    .as_ref()
+                    .map(|enc| enc.json.as_str())
+                    .unwrap_or_default()
+            );
+            let out = download_cache_file(&dir, &identity, filename_hint.as_deref(), "file.bin");
+            if let Ok(meta) = std::fs::metadata(&out) {
+                return Ok(DownloadResult {
+                    path: out.to_string_lossy().to_string(),
+                    bytes: meta.len(),
+                });
+            }
 
             RT.block_on(async {
                 let source = if let Some(enc) = att.encrypted.as_ref() {
@@ -2944,7 +2997,7 @@ impl Client {
                     .get_media_content(&req, true)
                     .await
                     .ffi()?;
-                std::fs::write(&out, &data).ffi()?;
+                write_cache_file(&dir, &out, &data)?;
                 Ok(DownloadResult {
                     path: out.to_string_lossy().to_string(),
                     bytes: data.len() as u64,
@@ -6188,5 +6241,27 @@ impl CapabilitiesProvider for ElementCallCapabilitiesProvider {
         requested: Capabilities,
     ) -> impl Future<Output = Capabilities> + Send {
         async move { requested }
+    }
+}
+
+#[cfg(test)]
+mod media_cache_naming_tests {
+    use super::download_cache_file;
+    use std::path::Path;
+
+    #[test]
+    fn different_media_never_share_a_cache_path() {
+        let dir = Path::new("/cache");
+        let first = download_cache_file(dir, "mxc://server/a", Some("sticker.bin"), "sticker.bin");
+        let second = download_cache_file(dir, "mxc://server/b", Some("sticker.bin"), "sticker.bin");
+        assert_ne!(first, second);
+    }
+
+    #[test]
+    fn one_media_keeps_one_cache_path() {
+        let dir = Path::new("/cache");
+        let first = download_cache_file(dir, "mxc://server/a", None, "sticker.bin");
+        let again = download_cache_file(dir, "mxc://server/a", None, "sticker.bin");
+        assert_eq!(first, again);
     }
 }
