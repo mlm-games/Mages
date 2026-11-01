@@ -240,5 +240,16 @@
       "file": "mages-5.3.3-x86_64.AppImage",
       "hash": "sha256-EVPGNqhm52A4Cjzln4gOWsD8KCSJSk+zAxEy9bX16as="
     }
+  },
+  "5.3.4": {
+    "tag": "5.3.4",
+    "aarch64-linux": {
+      "file": "mages-5.3.4-aarch64.AppImage",
+      "hash": "sha256-IwEIeXBIZBNiBRhOCmiw/f6xjw3mPpu22L2e+17v9R8="
+    },
+    "x86_64-linux": {
+      "file": "mages-5.3.4-x86_64.AppImage",
+      "hash": "sha256-n/s8SIorilCBCH6wPsY83SHW6k1nUygKmI1ZpdKPydA="
+    }
   }
 }
