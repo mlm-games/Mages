@@ -74,18 +74,6 @@ fun InviteUserDialog(
                     supportingText = error?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
                     modifier = Modifier.fillMaxWidth()
                 )
-                if (suggestions.isNotEmpty()) {
-                    Text(
-                        text = if (suggestionsSourceName != null) {
-                            stringResource(Res.string.space_members_of, suggestionsSourceName)
-                        } else {
-                            stringResource(Res.string.space_members_of_any)
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = Spacing.sm)
-                    )
-                }
                 if (matches.isNotEmpty()) {
                     Spacer(Modifier.height(Spacing.xs))
                     Surface(
@@ -94,6 +82,19 @@ fun InviteUserDialog(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(vertical = Spacing.xs)) {
+                            Text(
+                                text = if (suggestionsSourceName != null) {
+                                    stringResource(Res.string.space_members_of, suggestionsSourceName)
+                                } else {
+                                    stringResource(Res.string.space_members_of_any)
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(
+                                    horizontal = Spacing.md,
+                                    vertical = Spacing.xs
+                                )
+                            )
                             matches.forEach { member ->
                                 SpaceMemberRow(member = member, onPick = { userId = it.userId })
                             }
