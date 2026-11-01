@@ -28,6 +28,7 @@ import org.mlm.mages.matrix.displayName
 import org.mlm.mages.platform.toTransferItem
 import org.koin.compose.koinInject
 import org.mlm.mages.ui.components.dialogs.AddRoomToSpaceDialog
+import org.mlm.mages.ui.components.dialogs.ConfirmationDialog
 import org.mlm.mages.ui.components.dialogs.CreateRoomInSpaceDialog
 import org.mlm.mages.ui.components.dialogs.InviteUserToSpaceDialog
 import org.mlm.mages.ui.components.viewer.AvatarViewerHost
@@ -450,19 +451,14 @@ fun SpaceSettingsScreen(
     }
 
     if (state.showLeaveConfirm) {
-        AlertDialog(
-            onDismissRequest = viewModel::hideLeaveConfirm,
-            title = { Text(stringResource(Res.string.leave_space)) },
-            text = { Text(stringResource(Res.string.are_you_sure_you_want_to_leave_this_space)) },
-            confirmButton = {
-                TextButton(
-                    onClick = viewModel::leaveSpace,
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) { Text(stringResource(Res.string.leave)) }
-            },
-            dismissButton = {
-                TextButton(onClick = viewModel::hideLeaveConfirm) { Text(stringResource(Res.string.cancel)) }
-            }
+        ConfirmationDialog(
+            title = stringResource(Res.string.leave_space),
+            message = stringResource(Res.string.are_you_sure_you_want_to_leave_this_space),
+            confirmText = stringResource(Res.string.leave),
+            isDestructive = true,
+            isLoading = state.isSaving,
+            onConfirm = viewModel::leaveSpace,
+            onDismiss = viewModel::hideLeaveConfirm,
         )
     }
 

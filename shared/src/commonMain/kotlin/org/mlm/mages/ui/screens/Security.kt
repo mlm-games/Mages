@@ -61,6 +61,7 @@ import org.mlm.mages.matrix.DeviceSummary
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.OwnProfile
 import org.mlm.mages.matrix.ProfileField
+import org.mlm.mages.matrix.isMatrixUserId
 import org.mlm.mages.platform.toTransferItem
 import org.mlm.mages.settings.*
 import org.mlm.mages.ui.AvatarEdit
@@ -421,7 +422,7 @@ fun SecurityScreen(
                             verifyUserId = ""
                         }
                     },
-                    enabled = verifyUserId.startsWith("@") && ":" in verifyUserId
+                    enabled = isMatrixUserId(verifyUserId)
                 ) {
                     Text(stringResource(Res.string.verify))
                 }

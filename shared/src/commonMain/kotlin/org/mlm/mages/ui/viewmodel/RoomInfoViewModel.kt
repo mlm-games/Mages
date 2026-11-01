@@ -11,6 +11,7 @@ import mages.shared.generated.resources.*
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.isInviteBlocked
 import org.mlm.mages.matrix.MemberSummary
+import org.mlm.mages.matrix.sortedForDisplay
 import org.mlm.mages.matrix.KnockRequestSummary
 import org.mlm.mages.matrix.RoomDirectoryVisibility
 import org.mlm.mages.matrix.RoomHistoryVisibility
@@ -219,14 +220,11 @@ class RoomInfoViewModel(
             val members = service.port.listMembers(roomId)
             val tags = service.port.roomTags(roomId)
 
-            val sorted = members.sortedWith(
-                compareByDescending<MemberSummary> { it.isMe }
-                    .thenBy { it.displayName ?: it.userId }
-            )
+            val sorted = members.sortedForDisplay()
 
             val banned = runSafe { service.port.listBannedMembers(roomId) }
                 .orEmpty()
-                .sortedBy { it.displayName ?: it.userId }
+                .sortedForDisplay()
 
             val vis = runSafe { service.port.roomDirectoryVisibility(roomId) }
             val joinRule = runSafe { service.port.roomJoinRule(roomId) }
@@ -815,7 +813,7 @@ class RoomInfoViewModel(
                 }
             }
 
-            val sorted = found.sortedBy { (it.displayName ?: it.userId).lowercase() }
+            val sorted = found.sortedForDisplay()
             updateState { copy(inviteSuggestions = sorted) }
         }
     }

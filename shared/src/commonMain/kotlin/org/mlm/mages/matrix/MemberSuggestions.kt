@@ -29,3 +29,9 @@ fun List<MemberSummary>.memberSuggestions(
 
 fun DirectoryUser.toMemberSummary(): MemberSummary =
     MemberSummary(userId = userId, displayName = displayName, avatarUrl = avatarUrl)
+
+fun List<MemberSummary>.sortedForDisplay(): List<MemberSummary> =
+    sortedWith(
+        compareByDescending<MemberSummary> { it.isMe }
+            .thenBy { (it.displayName ?: it.userId).lowercase() }
+    )

@@ -82,20 +82,6 @@ abstract class BaseViewModel<S>(initialState: S) : ViewModel(), KoinComponent {
         return null
     }
 
-    /**
-     * Returns [userMessage] if successful, otherwise returns the exception message, or a
-     * localized explanation for failures that carry no usable message of their own.
-     */
-    protected suspend fun Result<*>.toUserMessage(userMessage: String): String =
-        exceptionOrNull()?.failureMessage(userMessage) ?: userMessage
-
-    protected suspend fun Result<*>?.toUserMessage(userMessage: String): String =
-        this?.exceptionOrNull()?.failureMessage(userMessage) ?: userMessage
-
-    /** Text to show for [this] failed operation, or [fallback] when it has none. */
-    protected suspend fun Throwable.failureMessage(fallback: String): String =
-        if (isUserLimitExceeded()) getString(Res.string.user_limit_exceeded) else message ?: fallback
-
     protected fun resolveAvatar(
         service: MatrixService,
         avatarUrl: String?,
@@ -175,3 +161,16 @@ abstract class BaseViewModel<S>(initialState: S) : ViewModel(), KoinComponent {
         }
     }
 }
+
+/**
+ * Returns [userMessage] if successful, otherwise the exception message, or a
+ * localized explanation for failures that carry no usable message of their own.
+ */
+internal suspend fun Result<*>.toUserMessage(userMessage: String): String =
+    exceptionOrNull()?.failureMessage(userMessage) ?: userMessage
+
+internal suspend fun Result<*>?.toUserMessage(userMessage: String): String =
+    this?.exceptionOrNull()?.failureMessage(userMessage) ?: userMessage
+
+internal suspend fun Throwable.failureMessage(fallback: String): String =
+    if (isUserLimitExceeded()) getString(Res.string.user_limit_exceeded) else message ?: fallback

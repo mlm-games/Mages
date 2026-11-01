@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,6 +41,8 @@ import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.profile_change_photo
 import mages.shared.generated.resources.profile_view_photo
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
+import org.mlm.mages.MatrixService
 import org.mlm.mages.ui.theme.Sizes
 
 private const val InitialsFontSizeRatio = 0.45f
@@ -201,4 +204,23 @@ fun extractInitials(name: String): String {
 fun formatDisplayName(mxid: String): String {
     return mxid.substringAfter("@").substringBefore(":")
         .replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+}
+
+@Composable
+fun rememberResolvedAvatar(
+    avatarUrl: String?,
+    px: Int,
+    crop: Boolean = true,
+): String? {
+    val service: MatrixService = koinInject()
+    var path by remember(avatarUrl, px, crop) {
+        mutableStateOf(avatarUrl?.takeIf { !it.startsWith("mxc://") })
+    }
+
+    LaunchedEffect(avatarUrl, px, crop) {
+        val source = avatarUrl?.takeIf { it.startsWith("mxc://") } ?: return@LaunchedEffect
+        path = runCatching { service.avatars.resolve(source, px = px, crop = crop) }.getOrNull()
+    }
+
+    return path
 }

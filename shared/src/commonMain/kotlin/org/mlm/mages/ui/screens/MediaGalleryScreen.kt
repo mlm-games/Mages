@@ -49,6 +49,8 @@ import org.mlm.mages.ui.components.viewer.ImageViewerOverlay
 import org.mlm.mages.ui.components.viewer.imageViewerItems
 import org.mlm.mages.ui.components.viewer.loadImageForViewing
 import org.mlm.mages.ui.theme.Spacing
+import org.mlm.mages.ui.util.formatBytes
+import org.mlm.mages.ui.util.formatDuration
 import org.mlm.mages.ui.util.monthYearLabel
 import org.mlm.mages.ui.util.secondaryClick
 import org.mlm.mages.ui.viewmodel.ExtractedLink
@@ -621,20 +623,6 @@ private fun MediaGridItem(
     }
 }
 
-private fun formatDuration(ms: Long): String {
-    val totalSeconds = ms / 1000
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    return if (minutes >= 60) {
-        val hours = minutes / 60
-        val mins = minutes % 60
-        "$hours:${mins.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}"
-    } else {
-        "$minutes:${seconds.toString().padStart(2, '0')}"
-    }
-}
-
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FilesList(
@@ -788,7 +776,7 @@ private fun FileListItem(
                     )
                     event.attachment?.sizeBytes?.let { size ->
                         Text(
-                            text = formatFileSize(size),
+                            text = formatBytes(size),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -993,10 +981,3 @@ private fun EmptyTabContent(
     }
 }
 
-private fun formatFileSize(bytes: Long): String {
-    return when {
-        bytes < 1024 -> "$bytes B"
-        bytes < 1024 * 1024 -> "${bytes / 1024} KB"
-        else -> "${bytes / (1024 * 1024)} MB"
-    }
-}

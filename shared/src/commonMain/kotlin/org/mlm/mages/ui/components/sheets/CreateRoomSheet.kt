@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.getString
 import org.mlm.mages.matrix.MatrixPort
+import org.mlm.mages.matrix.isMatrixUserId
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.Res
@@ -219,12 +220,12 @@ fun CreateRoomSheet(
                     IconButton(
                         onClick = {
                             val v = inviteeInput.trim()
-                            if (isValidMxid(v) && v !in invitees) {
+                            if (isMatrixUserId(v) && v !in invitees) {
                                 invitees = invitees + v
                                 inviteeInput = ""
                             }
                         },
-                        enabled = isValidMxid(inviteeInput.trim())
+                        enabled = isMatrixUserId(inviteeInput)
                     ) {
                         Icon(Icons.Default.Add, stringResource(Res.string.add))
                     }
@@ -303,7 +304,6 @@ fun CreateRoomSheet(
     }
 }
 
-private fun isValidMxid(s: String) = s.startsWith("@") && ":" in s && s.length > 3
 
 private fun isValidAlias(alias: String): Boolean {
     // Room aliases should only contain lowercase letters, numbers, hyphens, and underscores

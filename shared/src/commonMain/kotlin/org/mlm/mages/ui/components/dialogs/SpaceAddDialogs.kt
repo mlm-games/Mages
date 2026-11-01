@@ -17,6 +17,7 @@ import org.mlm.mages.matrix.MEMBER_SUGGESTION_LIMIT
 import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.SpaceSection
 import org.mlm.mages.matrix.memberSuggestions
+import org.mlm.mages.matrix.isMatrixUserId
 import org.mlm.mages.ui.components.common.MemberSuggestionGroup
 import org.mlm.mages.ui.components.common.MemberSuggestionList
 import org.mlm.mages.ui.components.common.rememberDirectoryMembers
@@ -115,7 +116,7 @@ fun InviteUserToSpaceDialog(
     suggestions: List<MemberSummary> = emptyList(),
     suggestionsLabel: String? = null,
 ) {
-    val isValid = userId.startsWith("@") && ":" in userId && userId.length > 3
+    val isValid = isMatrixUserId(userId)
     val localMatches = remember(suggestions, userId) {
         suggestions.memberSuggestions(userId)
     }
@@ -284,26 +285,13 @@ fun DeleteSectionDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.delete_section)) },
-        text = { Text(stringResource(Res.string.delete_section_warning_named, sectionName)) },
-        confirmButton = {
-            Button(
-                onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError
-                )
-            ) {
-                Text(stringResource(Res.string.delete))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.cancel))
-            }
-        }
+    ConfirmationDialog(
+        title = stringResource(Res.string.delete_section),
+        message = stringResource(Res.string.delete_section_warning_named, sectionName),
+        confirmText = stringResource(Res.string.delete),
+        isDestructive = true,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
     )
 }
 

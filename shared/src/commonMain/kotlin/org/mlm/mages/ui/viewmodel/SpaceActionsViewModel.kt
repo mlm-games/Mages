@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.viewmodel
 
+import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -10,6 +11,7 @@ import mages.shared.generated.resources.Res
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.isInviteBlocked
+import org.mlm.mages.matrix.isMatrixUserId
 import org.mlm.mages.ui.SpaceActionsUiState
 
 private const val SUGGESTION_CHILD_ROOM_LIMIT = 10
@@ -156,7 +158,7 @@ class SpaceActionsViewModel(
             return
         }
         val userId = currentState.inviteUserId.trim()
-        if (userId.isBlank() || !userId.startsWith("@") || ":" !in userId) {
+        if (!isMatrixUserId(userId)) {
             launch { _events.send(Event.ShowError(getString(Res.string.invalid_user_id))) }
             return
         }
@@ -251,54 +253,24 @@ class SpaceActionsViewModel(
         }
     }
 
+    private val saving = SavingActionRunner(
+        scope = viewModelScope,
+        setSaving = { value -> updateState { copy(isSaving = value) } },
+        emitError = { _events.send(Event.ShowError(it)) },
+        emitSuccess = { _events.send(Event.ShowSuccess(it)) },
+    )
+
     private fun runSavingBooleanAction(
         successMessage: StringResource,
         errorMessage: StringResource,
         onSuccess: (suspend () -> Unit)? = null,
         block: suspend () -> Boolean,
-    ) {
-        launch(
-            onError = { t ->
-                updateState { copy(isSaving = false) }
-                launch { _events.send(Event.ShowError(t.message ?: getString(errorMessage))) }
-            }
-        ) {
-            updateState { copy(isSaving = true) }
-            val ok = block()
-            updateState { copy(isSaving = false) }
-
-            if (ok) {
-                onSuccess?.invoke()
-                _events.send(Event.ShowSuccess(getString(successMessage)))
-            } else {
-                _events.send(Event.ShowError(getString(errorMessage)))
-            }
-        }
-    }
+    ) = saving.runBoolean(successMessage, errorMessage, onSuccess, block)
 
     private fun runSavingResultAction(
         errorMessage: StringResource,
         errorMessageFor: suspend (Throwable) -> String? = { null },
         onSuccess: (suspend () -> Unit)? = null,
         block: suspend () -> Result<Unit>?,
-    ) {
-        launch(
-            onError = { t ->
-                updateState { copy(isSaving = false) }
-                val message = errorMessageFor(t) ?: t.failureMessage(getString(errorMessage))
-                launch { _events.send(Event.ShowError(message)) }
-            }
-        ) {
-            updateState { copy(isSaving = true) }
-            val result = block()
-            updateState { copy(isSaving = false) }
-
-            if (result?.isSuccess == true) {
-                onSuccess?.invoke()
-            } else {
-                val specific = result?.exceptionOrNull()?.let { errorMessageFor(it) }
-                _events.send(Event.ShowError(specific ?: result.toUserMessage(getString(errorMessage))))
-            }
-        }
-    }
+    ) = saving.runResult(errorMessage, errorMessageFor, onSuccess, block)
 }

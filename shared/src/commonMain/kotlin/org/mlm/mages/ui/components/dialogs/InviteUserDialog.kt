@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
 import org.mlm.mages.matrix.MEMBER_SUGGESTION_LIMIT
 import org.mlm.mages.matrix.MemberSummary
+import org.mlm.mages.matrix.isMatrixUserId
 import org.mlm.mages.matrix.memberSuggestions
 import org.mlm.mages.ui.components.common.MemberSuggestionGroup
 import org.mlm.mages.ui.components.common.MemberSuggestionList
@@ -85,7 +86,7 @@ fun InviteUserDialog(
         confirmButton = {
             Button(
                 onClick = { onInvite(userId.trim()) },
-                enabled = userId.isNotBlank() && userId.contains("@") && userId.contains(":") && !isLoading
+                enabled = isMatrixUserId(userId) && !isLoading
             ) {
                 if (isLoading) {
                     LoadingIndicator(

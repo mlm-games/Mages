@@ -11,6 +11,7 @@ import org.mlm.mages.matrix.PublicRoomTypeFilter
 import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.RoomPreview
 import org.mlm.mages.matrix.RoomPreviewMembership
+import org.mlm.mages.matrix.isMatrixUserId
 import org.mlm.mages.ui.util.decodeUrl
 import org.jetbrains.compose.resources.getString
 import mages.shared.generated.resources.Res
@@ -155,15 +156,8 @@ class DiscoverViewModel(
         }
     }
 
-    private fun normalizeUserLookup(input: String): String? {
-        val t = input.trim()
-        if (t.isBlank()) return null
-
-        return when {
-            t.startsWith("@") && t.contains(":") -> t
-            else -> null
-        }
-    }
+    private fun normalizeUserLookup(input: String): String? =
+        input.trim().takeIf(::isMatrixUserId)
 
     private fun extractSearchTerm(term: String): String {
         return when {

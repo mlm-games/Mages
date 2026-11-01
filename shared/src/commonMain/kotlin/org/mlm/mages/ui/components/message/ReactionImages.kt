@@ -15,6 +15,14 @@ fun reactionShortcodesFrom(packs: List<ImagePackSummary>): Map<String, String> =
         .flatMap { it.images }
         .associate { it.mxcUrl to it.shortcode }
 
+/** MSC4027's shortcode for an mxc reaction key, when it is a known pack image. */
+fun List<ImagePackSummary>.reactionShortcodeFor(key: String): String? {
+    if (!key.startsWith("mxc://")) return null
+    return flatMap { it.images }
+        .firstOrNull { it.mxcUrl == key }
+        ?.shortcode
+}
+
 /** The mxc reaction keys in [chips] that need a local image to render. */
 fun mxcReactionKeys(chips: List<ReactionSummary>): List<String> =
     chips.map { it.key }.filter { it.startsWith("mxc://") }.distinct()

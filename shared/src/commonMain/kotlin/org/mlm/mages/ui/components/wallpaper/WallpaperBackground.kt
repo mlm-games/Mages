@@ -2,19 +2,13 @@ package org.mlm.mages.ui.components.wallpaper
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import org.koin.compose.koinInject
-import org.mlm.mages.MatrixService
+import org.mlm.mages.ui.components.core.rememberResolvedAvatar
 import org.mlm.mages.wallpaper.WallpaperConfig
 
 /** Server-side thumbnail size, which doubles as the cached copy's size. */
@@ -32,14 +26,7 @@ fun WallpaperBackground(
     modifier: Modifier = Modifier,
 ) {
     val url = config?.url?.takeIf { it.isNotBlank() } ?: return
-    val service: MatrixService = koinInject()
-    var path by remember(url) { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(url) {
-        path = runCatching { service.avatars.resolve(url, px = WALLPAPER_PX, crop = false) }.getOrNull()
-    }
-
-    val resolved = path ?: return
+    val resolved = rememberResolvedAvatar(url, px = WALLPAPER_PX, crop = false) ?: return
     AsyncImage(
         model = resolved,
         contentDescription = null,

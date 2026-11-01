@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.viewmodel
 
+import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
@@ -13,6 +14,7 @@ import kotlinx.coroutines.sync.withPermit
 import mages.shared.generated.resources.*
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.MemberSummary
+import org.mlm.mages.matrix.sortedForDisplay
 import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.matrix.SpaceChildInfo
@@ -228,56 +230,25 @@ class SpaceSettingsViewModel(
     private suspend fun applyRoomMode(roomId: String, mode: RoomNotificationMode): Boolean =
         runSafe { service.port.setRoomNotificationMode(roomId, mode).isSuccess } == true
 
+    private val saving = SavingActionRunner(
+        scope = viewModelScope,
+        setSaving = { value -> updateState { copy(isSaving = value) } },
+        emitError = { _events.send(Event.ShowError(it)) },
+        emitSuccess = { _events.send(Event.ShowSuccess(it)) },
+    )
+
     private fun runSavingBooleanAction(
         successMessage: StringResource,
         errorMessage: StringResource,
-        onErrorMessage: StringResource = errorMessage,
         onSuccess: (() -> Unit)? = null,
         block: suspend () -> Boolean,
-    ) {
-        launch(
-            onError = { t ->
-                updateState { copy(isSaving = false) }
-                launch { _events.send(Event.ShowError(t.message ?: getString(onErrorMessage))) }
-            }
-        ) {
-            updateState { copy(isSaving = true) }
-            val ok = block()
-
-            if (ok) {
-                updateState { copy(isSaving = false) }
-                onSuccess?.invoke()
-                _events.send(Event.ShowSuccess(getString(successMessage)))
-            } else {
-                updateState { copy(isSaving = false) }
-                _events.send(Event.ShowError(getString(errorMessage)))
-            }
-        }
-    }
+    ) = saving.runBoolean(successMessage, errorMessage, onSuccess = { onSuccess?.invoke() }, block = block)
 
     private fun runSavingResultAction(
         errorMessage: StringResource,
-        onErrorMessage: StringResource = errorMessage,
         onSuccess: (suspend () -> Unit)? = null,
         block: suspend () -> Result<Unit>?,
-    ) {
-        launch(
-            onError = { t ->
-                updateState { copy(isSaving = false) }
-                launch { _events.send(Event.ShowError(t.message ?: getString(onErrorMessage))) }
-            }
-        ) {
-            updateState { copy(isSaving = true) }
-            val result = block()
-            updateState { copy(isSaving = false) }
-
-            if (result?.isSuccess == true) {
-                onSuccess?.invoke()
-            } else {
-                _events.send(Event.ShowError(result.toUserMessage(getString(errorMessage))))
-            }
-        }
-    }
+    ) = saving.runResult(errorMessage, onSuccess = onSuccess, block = block)
 
     fun removeChild(childRoomId: String) {
         runSavingBooleanAction(
@@ -629,7 +600,9 @@ class SpaceSettingsViewModel(
         launch {
             val members = runSafe { service.port.listMembers(currentState.spaceId) }.orEmpty()
             val banned = runSafe { service.port.listBannedMembers(currentState.spaceId) }.orEmpty()
-            updateState { copy(members = members, bannedMembers = banned) }
+            updateState {
+                copy(members = members.sortedForDisplay(), bannedMembers = banned.sortedForDisplay())
+            }
         }
     }
 

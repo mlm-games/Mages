@@ -38,6 +38,7 @@ import org.mlm.mages.matrix.SendState
 import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.matrix.SpaceInfo
 import org.mlm.mages.ui.components.AttachmentData
+import org.mlm.mages.ui.viewmodel.MemberActionState
 import org.mlm.mages.ui.util.nowMs
 import androidx.compose.runtime.Composable
 import org.jetbrains.compose.resources.stringResource
@@ -363,7 +364,7 @@ data class RoomUiState(
     val revealedPreviewEventIds: Set<String> = emptySet(),
     val avatarByUserId: Map<String, String> = emptyMap(),
     val avatarUrlByUserId: Map<String, String> = emptyMap(),
-    val roomMembers: List<MemberSummary> = emptyList(),
+    override val roomMembers: List<MemberSummary> = emptyList(),
     val threadCount: Map<String, Int> = emptyMap(),
     val audioFileByEvent: Map<String, String> = emptyMap(),
     val waveformByEvent: Map<String, List<Float>> = emptyMap(),
@@ -373,7 +374,7 @@ data class RoomUiState(
     val linkPreviewImageByEvent: Map<String, String> = emptyMap(),
 
     /** Resolved `m.mentions.user_ids` for the visible events, keyed by user ID. */
-    val mentionProfilesByUserId: Map<String, MentionProfileUi> = emptyMap(),
+    override val mentionProfilesByUserId: Map<String, MentionProfileUi> = emptyMap(),
 
     val liveLocationShares: Map<String, LiveLocationShare> = emptyMap(),
     val liveLocationSubToken: ULong? = null,
@@ -467,11 +468,11 @@ data class RoomUiState(
     val showReadReceiptsSheet: Boolean = false,
     val readReceiptsForEvent: List<SeenByEntry> = emptyList(),
     val highlightedEventId: String? = null,
-    val selectedMemberForAction: MemberSummary? = null,
-    val selectedMemberDmAction: ActionAvailabilityUi = ActionAvailabilityUi(),
-    val selectedMemberKickAction: ActionAvailabilityUi = ActionAvailabilityUi(),
-    val selectedMemberBanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
-    val selectedMemberUnbanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    override val selectedMemberForAction: MemberSummary? = null,
+    override val selectedMemberDmAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    override val selectedMemberKickAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    override val selectedMemberBanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    override val selectedMemberUnbanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
 
     // Voice recording
     val isRecordingVoice: Boolean = false,
@@ -479,7 +480,22 @@ data class RoomUiState(
     val voiceRecordingDurationMs: Long = 0L,
     val voiceRecordingWaveform: List<Float> = emptyList(),
     val showVoicePreview: Boolean = false,
-) {
+) : MemberActionState<RoomUiState> {
+    override fun withSelectedMember(member: MemberSummary?): RoomUiState =
+        copy(selectedMemberForAction = member)
+
+    override fun withMemberActions(
+        dm: ActionAvailabilityUi,
+        kick: ActionAvailabilityUi,
+        ban: ActionAvailabilityUi,
+        unban: ActionAvailabilityUi,
+    ): RoomUiState = copy(
+        selectedMemberDmAction = dm,
+        selectedMemberKickAction = kick,
+        selectedMemberBanAction = ban,
+        selectedMemberUnbanAction = unban,
+    )
+
     val pinnedMessages: List<PinnedMessageUi> by derivedStateOf {
         if (pinnedEventIds.isEmpty()) return@derivedStateOf emptyList()
         val eventsById = allEvents.associateBy { it.eventId }
@@ -742,7 +758,7 @@ data class ThreadUiState(
     val replyThumbByEvent: Map<String, String> = emptyMap(),
     val thumbByEvent: Map<String, String> = emptyMap(),
     val revealedPreviewEventIds: Set<String> = emptySet(),
-    val roomMembers: List<MemberSummary> = emptyList(),
+    override val roomMembers: List<MemberSummary> = emptyList(),
     val focusedEventId: String? = null,
     val focusedEventMissing: Boolean = false,
     val imagePacks: List<ImagePackSummary> = emptyList(),
@@ -753,13 +769,28 @@ data class ThreadUiState(
     val linkPreviewImageByEvent: Map<String, String> = emptyMap(),
     val isRoomEncrypted: Boolean = false,
     /** See [RoomUiState.mentionProfilesByUserId]. */
-    val mentionProfilesByUserId: Map<String, MentionProfileUi> = emptyMap(),
-    val selectedMemberForAction: MemberSummary? = null,
-    val selectedMemberDmAction: ActionAvailabilityUi = ActionAvailabilityUi(),
-    val selectedMemberKickAction: ActionAvailabilityUi = ActionAvailabilityUi(),
-    val selectedMemberBanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
-    val selectedMemberUnbanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
-) {
+    override val mentionProfilesByUserId: Map<String, MentionProfileUi> = emptyMap(),
+    override val selectedMemberForAction: MemberSummary? = null,
+    override val selectedMemberDmAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    override val selectedMemberKickAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    override val selectedMemberBanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+    override val selectedMemberUnbanAction: ActionAvailabilityUi = ActionAvailabilityUi(),
+) : MemberActionState<ThreadUiState> {
+    override fun withSelectedMember(member: MemberSummary?): ThreadUiState =
+        copy(selectedMemberForAction = member)
+
+    override fun withMemberActions(
+        dm: ActionAvailabilityUi,
+        kick: ActionAvailabilityUi,
+        ban: ActionAvailabilityUi,
+        unban: ActionAvailabilityUi,
+    ): ThreadUiState = copy(
+        selectedMemberDmAction = dm,
+        selectedMemberKickAction = kick,
+        selectedMemberBanAction = ban,
+        selectedMemberUnbanAction = unban,
+    )
+
     val messageCount: Int get() = (if (rootMessage != null) 1 else 0) + replies.size
 
     val allMessages: List<MessageEvent> get() = listOfNotNull(rootMessage) + replies

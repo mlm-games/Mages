@@ -47,6 +47,7 @@ import org.jetbrains.compose.resources.StringResource
 import mages.shared.generated.resources.*
 import org.mlm.mages.ui.components.common.InviteListItem
 import org.mlm.mages.ui.components.common.SwipeActionRow
+import org.mlm.mages.ui.components.dialogs.ConfirmationDialog
 import org.mlm.mages.ui.components.dialogs.DeclineInviteDialog
 import mages.shared.generated.resources.Res
 
@@ -426,25 +427,16 @@ fun RoomsScreen(
     }
 
     if (showLeaveConfirm) {
-        AlertDialog(
-            onDismissRequest = { showLeaveConfirm = false },
-            title = { Text(stringResource(Res.string.leave_rooms_confirm_title)) },
-            text = { Text(stringResource(Res.string.leave_rooms_warning)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showLeaveConfirm = false
-                        viewModel.bulkLeaveRooms()
-                    },
-                ) {
-                    Text(stringResource(Res.string.leave))
-                }
+        ConfirmationDialog(
+            title = stringResource(Res.string.leave_rooms_confirm_title),
+            message = stringResource(Res.string.leave_rooms_warning),
+            confirmText = stringResource(Res.string.leave),
+            isDestructive = true,
+            onConfirm = {
+                showLeaveConfirm = false
+                viewModel.bulkLeaveRooms()
             },
-            dismissButton = {
-                TextButton(onClick = { showLeaveConfirm = false }) {
-                    Text(stringResource(Res.string.cancel))
-                }
-            },
+            onDismiss = { showLeaveConfirm = false },
         )
     }
 }

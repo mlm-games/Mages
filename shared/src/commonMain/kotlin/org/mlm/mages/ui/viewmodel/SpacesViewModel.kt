@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import mages.shared.generated.resources.*
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.SpaceInfo
+import org.mlm.mages.matrix.isMatrixUserId
 import org.mlm.mages.matrix.SpaceUnread
 import org.mlm.mages.ui.SpacesUiState
 import org.mlm.mages.ui.UnreadBadgeUi
@@ -117,7 +118,7 @@ class SpacesViewModel(
 
     fun addCreateInvitee(mxid: String) {
         val trimmed = mxid.trim()
-        if (isValidMxid(trimmed) && trimmed !in currentState.createInvitees) {
+        if (isMatrixUserId(trimmed) && trimmed !in currentState.createInvitees) {
             updateState { copy(createInvitees = createInvitees + trimmed) }
         }
     }
@@ -197,5 +198,4 @@ class SpacesViewModel(
         updateState { copy(filteredSpaces = filtered) }
     }
 
-    private fun isValidMxid(s: String) = s.startsWith("@") && ":" in s && s.length > 3
 }

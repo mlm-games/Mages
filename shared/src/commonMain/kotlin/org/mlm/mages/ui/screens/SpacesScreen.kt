@@ -25,6 +25,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.SpaceInfo
+import org.mlm.mages.matrix.isMatrixUserId
 import org.mlm.mages.ui.UnreadBadgeUi
 import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.components.core.ShimmerList
@@ -426,7 +427,7 @@ private fun CreateSpaceSheet(
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(
                         onDone = {
-                            if (inviteeInput.startsWith("@") && ":" in inviteeInput) {
+                            if (isMatrixUserId(inviteeInput)) {
                                 onAddInvitee(inviteeInput)
                                 inviteeInput = ""
                             }
@@ -438,7 +439,7 @@ private fun CreateSpaceSheet(
                         onAddInvitee(inviteeInput)
                         inviteeInput = ""
                     },
-                    enabled = inviteeInput.startsWith("@") && ":" in inviteeInput && !isCreating
+                    enabled = isMatrixUserId(inviteeInput) && !isCreating
                 ) {
                     Icon(Icons.Default.Add, stringResource(Res.string.add))
                 }

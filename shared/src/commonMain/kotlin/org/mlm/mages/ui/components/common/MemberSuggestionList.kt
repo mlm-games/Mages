@@ -30,6 +30,7 @@ import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.memberSuggestions
 import org.mlm.mages.matrix.toMemberSummary
 import org.mlm.mages.ui.components.core.Avatar
+import org.mlm.mages.ui.components.core.rememberResolvedAvatar
 import org.mlm.mages.ui.theme.Spacing
 
 private const val DIRECTORY_SEARCH_DEBOUNCE_MS = 300L
@@ -105,19 +106,9 @@ fun rememberDirectoryMembers(
 
 @Composable
 private fun MemberSuggestionAvatar(member: MemberSummary) {
-    val service: MatrixService = koinInject()
-    var avatarPath by remember(member.avatarUrl) {
-        mutableStateOf(member.avatarUrl?.takeIf { !it.startsWith("mxc://") })
-    }
-
-    LaunchedEffect(member.avatarUrl) {
-        val source = member.avatarUrl?.takeIf { it.startsWith("mxc://") } ?: return@LaunchedEffect
-        avatarPath = runCatching { service.avatars.resolve(source, px = 32) }.getOrNull()
-    }
-
     Avatar(
         name = member.displayName ?: member.userId,
-        avatarPath = avatarPath,
+        avatarPath = rememberResolvedAvatar(member.avatarUrl, px = 32),
         size = 28.dp,
     )
 }

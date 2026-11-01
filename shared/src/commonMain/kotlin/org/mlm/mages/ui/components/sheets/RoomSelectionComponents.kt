@@ -10,11 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,10 +18,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
-import org.koin.compose.koinInject
-import org.mlm.mages.MatrixService
 import org.mlm.mages.ui.ForwardableRoom
 import org.mlm.mages.ui.components.core.Avatar
+import org.mlm.mages.ui.components.core.rememberResolvedAvatar
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.Res
@@ -186,19 +180,9 @@ fun RoomAvatar(
     modifier: Modifier = Modifier,
     size: Dp = 48.dp
 ) {
-    val service: MatrixService = koinInject()
-    var avatarPath by remember(room.avatarUrl) {
-        mutableStateOf(room.avatarUrl?.takeIf { !it.startsWith("mxc://") })
-    }
-
-    LaunchedEffect(room.avatarUrl) {
-        val source = room.avatarUrl?.takeIf { it.startsWith("mxc://") } ?: return@LaunchedEffect
-        avatarPath = runCatching { service.avatars.resolve(source, px = ROOM_AVATAR_PX) }.getOrNull()
-    }
-
     Avatar(
         name = room.name,
-        avatarPath = avatarPath,
+        avatarPath = rememberResolvedAvatar(room.avatarUrl, px = ROOM_AVATAR_PX),
         size = size,
         modifier = modifier
     )

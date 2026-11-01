@@ -29,6 +29,7 @@ import org.mlm.mages.matrix.MEMBER_SUGGESTION_LIMIT
 import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.matchesMemberQuery
 import org.mlm.mages.matrix.normalizeMemberQuery
+import org.mlm.mages.matrix.sortedForDisplay
 import org.mlm.mages.platform.ClipboardAttachmentHandler
 import org.mlm.mages.platform.editLatestShortcutHandler
 import org.mlm.mages.platform.pasteInterceptor
@@ -400,7 +401,7 @@ private fun filterMentionSuggestionsInternal(members: List<MemberSummary>, query
     return members
         .asSequence()
         .filter { it.membership.equals("join", ignoreCase = true) }
-        .sortedWith(compareByDescending<MemberSummary> { it.isMe }.thenBy { (it.displayName ?: it.userId).lowercase() })
+        .sortedForDisplay()
         .filter { blank || it.matchesMemberQuery(query) }
         .take(MEMBER_SUGGESTION_LIMIT)
         .toList()
