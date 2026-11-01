@@ -3201,7 +3201,7 @@ impl Client {
                 })
                 .map_err(|e| FfiError::Msg(format!("thumbnail fetch: {e}")))?;
 
-            std::fs::write(&out, &bytes)?;
+            write_cache_file(&dir, &out, &bytes)?;
             Ok(out.to_string_lossy().to_string())
         }
         #[cfg(target_family = "wasm")]
