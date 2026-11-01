@@ -1,3 +1,8 @@
+## v5.3.4
+
+- fix: media cache collisions
+
+
 ## v5.3.3
 
 - feat: animated pack previews

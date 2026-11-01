@@ -46,6 +46,13 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="5.3.4" date="2026-11-01" type="stable">
+      <description>
+        <ul>
+          <li>fix: media cache collisions</li>
+        </ul>
+      </description>
+    </release>
     <release version="5.3.3" date="2026-11-01" type="stable">
       <description>
         <ul>
