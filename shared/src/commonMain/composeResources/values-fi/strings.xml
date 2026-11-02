@@ -437,6 +437,7 @@
     <string name="send_failed">Lähetys epäonnistui</string>
     <string name="edit_failed">Muokkaus epäonnistui</string>
     <string name="delete_failed">Poistaminen epäonnistui</string>
+    <string name="cancel_send_failed">Viestin peruuttaminen epäonnistui</string>
     <string name="retry_failed">Uudelleenyritys epäonnistui</string>
     <string name="no_permission_pin">Sinulla ei ole lupaa kiinnittää viestejä</string>
     <string name="message_pinned">Viesti kiinnitetty</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">Poista alias</string>
     <string name="remove_attachment">Poista liite</string>
     <string name="remove_caption">Poista kuvateksti</string>
+    <string name="remove_message">Poista viesti</string>
+    <string name="cancel_sending">Peruuta lähetys</string>
     <string name="remove_from_favorites">Poista suosikeista</string>
     <string name="remove_from_low_priority">Poista matalan prioriteetin luettelosta</string>
     <string name="remove_from_room">Poista huoneesta</string>

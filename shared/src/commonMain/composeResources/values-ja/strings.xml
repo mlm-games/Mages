@@ -437,6 +437,7 @@
     <string name="send_failed">送信に失敗しました</string>
     <string name="edit_failed">編集に失敗しました</string>
     <string name="delete_failed">削除に失敗しました</string>
+    <string name="cancel_send_failed">メッセージをキャンセルできませんでした</string>
     <string name="retry_failed">再試行に失敗しました</string>
     <string name="no_permission_pin">メッセージを固定する権限がありません</string>
     <string name="message_pinned">メッセージがピン留めされました</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">エイリアスを削除</string>
     <string name="remove_attachment">添付を削除</string>
     <string name="remove_caption">キャプションを削除</string>
+    <string name="remove_message">メッセージを削除</string>
+    <string name="cancel_sending">送信をキャンセル</string>
     <string name="remove_from_favorites">お気に入りから削除</string>
     <string name="remove_from_low_priority">低優先度から削除</string>
     <string name="remove_from_room">ルームから削除</string>

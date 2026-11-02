@@ -437,6 +437,7 @@
     <string name="send_failed">A küldés sikertelen</string>
     <string name="edit_failed">A szerkesztés sikertelen</string>
     <string name="delete_failed">A törlés nem sikerült</string>
+    <string name="cancel_send_failed">Az üzenet visszavonása nem sikerült</string>
     <string name="retry_failed">Újrapróbálkozás sikertelen</string>
     <string name="no_permission_pin">Nincs engedélye üzenetek rögzítésére</string>
     <string name="message_pinned">Üzenet rögzítve</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">Álnév eltávolítása</string>
     <string name="remove_attachment">Melléklet eltávolítása</string>
     <string name="remove_caption">Felirat eltávolítása</string>
+    <string name="remove_message">Üzenet eltávolítása</string>
+    <string name="cancel_sending">Küldés visszavonása</string>
     <string name="remove_from_favorites">Eltávolítás a kedvencek közül</string>
     <string name="remove_from_low_priority">Eltávolítás az alacsony prioritásból</string>
     <string name="remove_from_room">Eltávolítás a szobából</string>

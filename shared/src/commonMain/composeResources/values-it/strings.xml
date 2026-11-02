@@ -437,6 +437,7 @@
     <string name="send_failed">Invio non riuscito</string>
     <string name="edit_failed">Modifica non riuscita</string>
     <string name="delete_failed">Eliminazione non riuscita</string>
+    <string name="cancel_send_failed">Impossibile annullare il messaggio</string>
     <string name="retry_failed">Nuovo tentativo fallito</string>
     <string name="no_permission_pin">Non hai l'autorizzazione per fissare i messaggi</string>
     <string name="message_pinned">Messaggio bloccato</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">Rimuovi alias</string>
     <string name="remove_attachment">Rimuovi allegato</string>
     <string name="remove_caption">Rimuovi didascalia</string>
+    <string name="remove_message">Rimuovi messaggio</string>
+    <string name="cancel_sending">Annulla invio</string>
     <string name="remove_from_favorites">Rimuovi dai preferiti</string>
     <string name="remove_from_low_priority">Rimuovi dalla priorità bassa</string>
     <string name="remove_from_room">Rimuovi dalla stanza</string>

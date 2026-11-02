@@ -437,6 +437,7 @@
     <string name="send_failed">Skicka misslyckades</string>
     <string name="edit_failed">Redigeringen misslyckades</string>
     <string name="delete_failed">Det gick inte att ta bort</string>
+    <string name="cancel_send_failed">Det gick inte att avbryta meddelandet</string>
     <string name="retry_failed">Försök igen misslyckades</string>
     <string name="no_permission_pin">Du har inte behörighet att fästa meddelanden</string>
     <string name="message_pinned">Meddelandet har fästs</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">Ta bort alias</string>
     <string name="remove_attachment">Ta bort bilaga</string>
     <string name="remove_caption">Ta bort bildtext</string>
+    <string name="remove_message">Ta bort meddelande</string>
+    <string name="cancel_sending">Avbryt sändning</string>
     <string name="remove_from_favorites">Ta bort från favoriter</string>
     <string name="remove_from_low_priority">Ta bort från låg prioritet</string>
     <string name="remove_from_room">Ta bort från rummet</string>

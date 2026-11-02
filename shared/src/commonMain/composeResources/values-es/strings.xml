@@ -282,6 +282,7 @@
     <string name="send_failed">Error al enviar</string>
     <string name="edit_failed">Error al editar</string>
     <string name="delete_failed">Error al eliminar</string>
+    <string name="cancel_send_failed">Error al cancelar el mensaje</string>
     <string name="retry_failed">Error al reintentar</string>
     <string
         name="no_permission_pin"
@@ -1208,6 +1209,8 @@
     <string name="remove_alias">Eliminar alias</string>
     <string name="remove_attachment">Eliminar adjunto</string>
     <string name="remove_caption">Eliminar pie de foto</string>
+    <string name="remove_message">Eliminar mensaje</string>
+    <string name="cancel_sending">Cancelar envío</string>
     <string name="remove_from_favorites">Quitar de favoritos</string>
     <string name="remove_from_low_priority">Quitar de baja prioridad</string>
     <string name="remove_from_room">Eliminar de la sala</string>

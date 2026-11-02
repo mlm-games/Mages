@@ -437,6 +437,7 @@
     <string name="send_failed">보내기 실패</string>
     <string name="edit_failed">수정 실패</string>
     <string name="delete_failed">삭제 실패</string>
+    <string name="cancel_send_failed">메시지를 취소하지 못했습니다</string>
     <string name="retry_failed">재시도 실패</string>
     <string name="no_permission_pin">메시지를 고정할 권한이 없습니다.</string>
     <string name="message_pinned">메시지가 고정되었습니다.</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">별칭 제거</string>
     <string name="remove_attachment">첨부파일 제거</string>
     <string name="remove_caption">캡션 제거</string>
+    <string name="remove_message">메시지 제거</string>
+    <string name="cancel_sending">전송 취소</string>
     <string name="remove_from_favorites">즐겨찾기에서 제거</string>
     <string name="remove_from_low_priority">낮은 우선순위에서 제거</string>
     <string name="remove_from_room">방에서 제거</string>

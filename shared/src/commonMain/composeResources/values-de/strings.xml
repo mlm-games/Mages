@@ -437,6 +437,7 @@
     <string name="send_failed">Senden fehlgeschlagen</string>
     <string name="edit_failed">Die Bearbeitung ist fehlgeschlagen</string>
     <string name="delete_failed">Das Löschen ist fehlgeschlagen</string>
+    <string name="cancel_send_failed">Die Nachricht konnte nicht storniert werden</string>
     <string name="retry_failed">Wiederholungsversuch fehlgeschlagen</string>
     <string name="no_permission_pin">Sie sind nicht berechtigt, Nachrichten anzupinnen</string>
     <string name="message_pinned">Nachricht angeheftet</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">Alias entfernen</string>
     <string name="remove_attachment">Anhang entfernen</string>
     <string name="remove_caption">Untertitel entfernen</string>
+    <string name="remove_message">Nachricht entfernen</string>
+    <string name="cancel_sending">Senden abbrechen</string>
     <string name="remove_from_favorites">Aus Favoriten entfernen</string>
     <string name="remove_from_low_priority">Aus niedriger Priorität entfernen</string>
     <string name="remove_from_room">Aus dem Raum entfernen</string>

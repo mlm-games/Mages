@@ -437,6 +437,7 @@
     <string name="send_failed">השליחה נכשלה</string>
     <string name="edit_failed">העריכה נכשלה</string>
     <string name="delete_failed">המחיקה נכשלה</string>
+    <string name="cancel_send_failed">ביטול ההודעה נכשל</string>
     <string name="retry_failed">ניסיון חוזר נכשל</string>
     <string name="no_permission_pin">אין לך הרשאה להצמיד הודעות</string>
     <string name="message_pinned">ההודעה הוצמדה</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">הסרת כינוי</string>
     <string name="remove_attachment">הסרת קובץ מצורף</string>
     <string name="remove_caption">הסרת כותרת</string>
+    <string name="remove_message">הסרת ההודעה</string>
+    <string name="cancel_sending">ביטול השליחה</string>
     <string name="remove_from_favorites">הסרה מהמועדפים</string>
     <string name="remove_from_low_priority">הסרה מהעדיפות הנמוכה</string>
     <string name="remove_from_room">הסרה מהחדר</string>

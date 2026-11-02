@@ -437,6 +437,7 @@
     <string name="send_failed">Gönderim başarısız oldu</string>
     <string name="edit_failed">Düzenleme başarısız oldu</string>
     <string name="delete_failed">Silinemedi</string>
+    <string name="cancel_send_failed">Mesaj iptal edilemedi</string>
     <string name="retry_failed">Yeniden deneme başarısız oldu</string>
     <string name="no_permission_pin">Mesajları sabitleme izniniz yok</string>
     <string name="message_pinned">Mesaj sabitlendi</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">Takma adı kaldır</string>
     <string name="remove_attachment">Eki kaldır</string>
     <string name="remove_caption">Altyazıyı kaldır</string>
+    <string name="remove_message">Mesajı kaldır</string>
+    <string name="cancel_sending">Göndermeyi iptal et</string>
     <string name="remove_from_favorites">Favorilerden kaldır</string>
     <string name="remove_from_low_priority">Düşük öncelikten kaldır</string>
     <string name="remove_from_room">Odadan kaldır</string>

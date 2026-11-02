@@ -437,6 +437,7 @@
     <string name="send_failed">Отправить не удалось</string>
     <string name="edit_failed">Изменить не удалось</string>
     <string name="delete_failed">Удаление не удалось</string>
+    <string name="cancel_send_failed">Не удалось отменить сообщение</string>
     <string name="retry_failed">Повторная попытка не удалась</string>
     <string name="no_permission_pin">У вас недостаточно прав для закрепления сообщений</string>
     <string name="message_pinned">Сообщение закреплено</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">Удалить алиас</string>
     <string name="remove_attachment">Удалить вложение</string>
     <string name="remove_caption">Удалить подпись</string>
+    <string name="remove_message">Удалить сообщение</string>
+    <string name="cancel_sending">Отменить отправку</string>
     <string name="remove_from_favorites">Убрать из избранного</string>
     <string name="remove_from_low_priority">Убрать из низкого приоритета</string>
     <string name="remove_from_room">Удалить из комнаты</string>

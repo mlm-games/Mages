@@ -437,6 +437,7 @@
     <string name="send_failed">發送失敗</string>
     <string name="edit_failed">編輯失敗</string>
     <string name="delete_failed">刪除失敗</string>
+    <string name="cancel_send_failed">無法取消訊息</string>
     <string name="retry_failed">重試失敗</string>
     <string name="no_permission_pin">您無權固定訊息</string>
     <string name="message_pinned">訊息已置頂</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">移除別名</string>
     <string name="remove_attachment">移除附件</string>
     <string name="remove_caption">移除標題</string>
+    <string name="remove_message">移除訊息</string>
+    <string name="cancel_sending">取消發送</string>
     <string name="remove_from_favorites">從收藏中移除</string>
     <string name="remove_from_low_priority">從低優先級移除</string>
     <string name="remove_from_room">從房間中移除</string>

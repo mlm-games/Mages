@@ -437,6 +437,7 @@
     <string name="send_failed">فشل الإرسال</string>
     <string name="edit_failed">فشل التعديل</string>
     <string name="delete_failed">فشل الحذف</string>
+    <string name="cancel_send_failed">تعذّر إلغاء الرسالة</string>
     <string name="retry_failed">فشلت إعادة المحاولة</string>
     <string name="no_permission_pin">ليس لديك إذن بتثبيت الرسائل</string>
     <string name="message_pinned">تم تثبيت الرسالة</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">إزالة الاسم المستعار</string>
     <string name="remove_attachment">إزالة المرفق</string>
     <string name="remove_caption">إزالة التسمية التوضيحية</string>
+    <string name="remove_message">إزالة الرسالة</string>
+    <string name="cancel_sending">إلغاء الإرسال</string>
     <string name="remove_from_favorites">إزالة من المفضلة</string>
     <string name="remove_from_low_priority">إزالة من الأولوية المنخفضة</string>
     <string name="remove_from_room">إزالة من الغرفة</string>

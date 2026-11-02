@@ -437,6 +437,7 @@
     <string name="send_failed">Verzenden mislukt</string>
     <string name="edit_failed">Bewerken mislukt</string>
     <string name="delete_failed">Verwijderen is mislukt</string>
+    <string name="cancel_send_failed">Het bericht kon niet worden geannuleerd</string>
     <string name="retry_failed">Opnieuw proberen mislukt</string>
     <string name="no_permission_pin">Je hebt geen toestemming om berichten vast te zetten</string>
     <string name="message_pinned">Bericht vastgezet</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">Alias verwijderen</string>
     <string name="remove_attachment">Bijlage verwijderen</string>
     <string name="remove_caption">Bijschrift verwijderen</string>
+    <string name="remove_message">Bericht verwijderen</string>
+    <string name="cancel_sending">Verzenden annuleren</string>
     <string name="remove_from_favorites">Verwijderen uit favorieten</string>
     <string name="remove_from_low_priority">Verwijderen uit lage prioriteit</string>
     <string name="remove_from_room">Uit kamer verwijderen</string>

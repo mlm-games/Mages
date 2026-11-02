@@ -437,6 +437,7 @@
     <string name="send_failed">Gửi không thành công</string>
     <string name="edit_failed">Chỉnh sửa không thành công</string>
     <string name="delete_failed">Xóa không thành công</string>
+    <string name="cancel_send_failed">Không thể hủy tin nhắn</string>
     <string name="retry_failed">Thử lại không thành công</string>
     <string name="no_permission_pin">Bạn không có quyền ghim tin nhắn</string>
     <string name="message_pinned">Đã ghim tin nhắn</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">Xóa bí danh</string>
     <string name="remove_attachment">Xóa tệp đính kèm</string>
     <string name="remove_caption">Xóa chú thích</string>
+    <string name="remove_message">Xóa tin nhắn</string>
+    <string name="cancel_sending">Hủy gửi</string>
     <string name="remove_from_favorites">Xóa khỏi yêu thích</string>
     <string name="remove_from_low_priority">Xóa khỏi ưu tiên thấp</string>
     <string name="remove_from_room">Xóa khỏi phòng</string>

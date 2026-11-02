@@ -437,6 +437,7 @@
     <string name="send_failed">Slanje nije uspjelo</string>
     <string name="edit_failed">Uređivanje nije uspjelo</string>
     <string name="delete_failed">Brisanje nije uspjelo</string>
+    <string name="cancel_send_failed">Otkazivanje poruke nije uspjelo</string>
     <string name="retry_failed">Ponovni pokušaj nije uspio</string>
     <string name="no_permission_pin">Nemate dopuštenje za prikvačivanje poruka</string>
     <string name="message_pinned">Poruka prikvačena</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">Ukloni alias</string>
     <string name="remove_attachment">Ukloni privitak</string>
     <string name="remove_caption">Ukloni natpis</string>
+    <string name="remove_message">Ukloni poruku</string>
+    <string name="cancel_sending">Otkaži slanje</string>
     <string name="remove_from_favorites">Ukloni iz favorita</string>
     <string name="remove_from_low_priority">Ukloni iz niskog prioriteta</string>
     <string name="remove_from_room">Ukloni iz sobe</string>

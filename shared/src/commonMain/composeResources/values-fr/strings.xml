@@ -437,6 +437,7 @@
     <string name="send_failed">Échec de l'envoi</string>
     <string name="edit_failed">Échec de la modification</string>
     <string name="delete_failed">Échec de la suppression</string>
+    <string name="cancel_send_failed">Impossible d'annuler le message</string>
     <string name="retry_failed">La nouvelle tentative a échoué</string>
     <string name="no_permission_pin">Vous n'êtes pas autorisé à épingler des messages</string>
     <string name="message_pinned">Message épinglé</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">Supprimer l&apos;alias</string>
     <string name="remove_attachment">Supprimer la pièce jointe</string>
     <string name="remove_caption">Supprimer la légende</string>
+    <string name="remove_message">Supprimer le message</string>
+    <string name="cancel_sending">Annuler l'envoi</string>
     <string name="remove_from_favorites">Retirer des favoris</string>
     <string name="remove_from_low_priority">Retirer de la faible priorité</string>
     <string name="remove_from_room">Retirer de la salle</string>

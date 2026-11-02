@@ -437,6 +437,7 @@
     <string name="send_failed">Η αποστολή απέτυχε</string>
     <string name="edit_failed">Η επεξεργασία απέτυχε</string>
     <string name="delete_failed">Η διαγραφή απέτυχε</string>
+    <string name="cancel_send_failed">Η ακύρωση του μηνύματος απέτυχε</string>
     <string name="retry_failed">Η επανάληψη απέτυχε</string>
     <string name="no_permission_pin">Δεν έχετε άδεια να καρφιτσώσετε μηνύματα</string>
     <string name="message_pinned">Το μήνυμα καρφιτσώθηκε</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">Αφαίρεση ψευδωνύμου</string>
     <string name="remove_attachment">Αφαίρεση συνημμένου</string>
     <string name="remove_caption">Αφαίρεση λεζάντας</string>
+    <string name="remove_message">Αφαίρεση μηνύματος</string>
+    <string name="cancel_sending">Ακύρωση αποστολής</string>
     <string name="remove_from_favorites">Αφαίρεση από τα αγαπημένα</string>
     <string name="remove_from_low_priority">Αφαίρεση από τη χαμηλή προτεραιότητα</string>
     <string name="remove_from_room">Αφαίρεση από το δωμάτιο</string>

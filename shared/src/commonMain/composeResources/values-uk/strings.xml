@@ -437,6 +437,7 @@
     <string name="send_failed">Не вдалося надіслати</string>
     <string name="edit_failed">Помилка редагування</string>
     <string name="delete_failed">Не вдалося видалити</string>
+    <string name="cancel_send_failed">Не вдалося скасувати повідомлення</string>
     <string name="retry_failed">Повторна спроба не вдалася</string>
     <string name="no_permission_pin">Ви не маєте дозволу закріплювати повідомлення</string>
     <string name="message_pinned">Повідомлення закріплено</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">Видалити псевдонім</string>
     <string name="remove_attachment">Видалити вкладення</string>
     <string name="remove_caption">Видалити підпис</string>
+    <string name="remove_message">Видалити повідомлення</string>
+    <string name="cancel_sending">Скасувати надсилання</string>
     <string name="remove_from_favorites">Видалити з вибраного</string>
     <string name="remove_from_low_priority">Видалити з низького пріоритету</string>
     <string name="remove_from_room">Видалити з кімнати</string>

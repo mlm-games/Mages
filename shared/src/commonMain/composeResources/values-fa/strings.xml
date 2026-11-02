@@ -437,6 +437,7 @@
     <string name="send_failed">ارسال ناموفق بود</string>
     <string name="edit_failed">ویرایش انجام نشد</string>
     <string name="delete_failed">حذف نشد</string>
+    <string name="cancel_send_failed">لغو پیام ناموفق بود</string>
     <string name="retry_failed">تلاش مجدد ناموفق بود</string>
     <string name="no_permission_pin">شما اجازه پین ​​کردن پیام ها را ندارید</string>
     <string name="message_pinned">پیام پین شد</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">حذف نام مستعار</string>
     <string name="remove_attachment">حذف پیوست</string>
     <string name="remove_caption">حذف عنوان</string>
+    <string name="remove_message">حذف پیام</string>
+    <string name="cancel_sending">لغو ارسال</string>
     <string name="remove_from_favorites">حذف از موارد دلخواه</string>
     <string name="remove_from_low_priority">حذف از اولویت پایین</string>
     <string name="remove_from_room">حذف از اتاق</string>

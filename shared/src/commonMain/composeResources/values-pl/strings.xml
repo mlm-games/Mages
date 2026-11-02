@@ -437,6 +437,7 @@
     <string name="send_failed">Wysyłanie nie powiodło się</string>
     <string name="edit_failed">Edycja nie powiodła się</string>
     <string name="delete_failed">Usunięcie nie powiodło się</string>
+    <string name="cancel_send_failed">Nie udało się anulować wiadomości</string>
     <string name="retry_failed">Ponowna próba nie powiodła się</string>
     <string name="no_permission_pin">Nie masz uprawnień do przypinania wiadomości</string>
     <string name="message_pinned">Wiadomość przypięta</string>
@@ -1092,6 +1093,8 @@
     <string name="remove_alias">Usuń alias</string>
     <string name="remove_attachment">Usuń załącznik</string>
     <string name="remove_caption">Usuń podpis</string>
+    <string name="remove_message">Usuń wiadomość</string>
+    <string name="cancel_sending">Anuluj wysyłanie</string>
     <string name="remove_from_favorites">Usuń z ulubionych</string>
     <string name="remove_from_low_priority">Usuń z niskiego priorytetu</string>
     <string name="remove_from_room">Usuń z pokoju</string>
