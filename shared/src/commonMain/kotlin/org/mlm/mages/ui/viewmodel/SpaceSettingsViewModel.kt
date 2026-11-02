@@ -16,6 +16,7 @@ import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.sortedForDisplay
 import org.mlm.mages.matrix.RoomJoinRule
+import org.mlm.mages.matrix.RoomListMembership
 import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.notifications.SpaceNotificationScope
@@ -515,15 +516,15 @@ class SpaceSettingsViewModel(
     // Leave with children
 
     fun showLeaveWithChildren() {
-        launch {
-            val joined = currentState.children.filter { it.roomId != currentState.spaceId }
-            updateState {
-                copy(
-                    showLeaveWithChildren = true,
-                    joinedChildren = joined,
-                    selectedChildIds = emptySet()
-                )
-            }
+        val joined = currentState.children.filter {
+            it.roomId != currentState.spaceId && it.membership == RoomListMembership.Joined
+        }
+        updateState {
+            copy(
+                showLeaveWithChildren = true,
+                joinedChildren = joined,
+                selectedChildIds = emptySet()
+            )
         }
     }
 
@@ -544,13 +545,10 @@ class SpaceSettingsViewModel(
             errorMessage = Res.string.could_not_leave_try_again,
             onSuccess = { _events.send(Event.LeaveSuccess) }
         ) {
-            var allOk = true
             for (childId in childIds) {
-                if (service.port.leaveRoom(childId).isFailure) allOk = false
+                service.port.leaveRoom(childId)
             }
-            val spaceResult = service.port.leaveRoom(currentState.spaceId)
-            if (spaceResult.isFailure) allOk = false
-            if (allOk) Result.success(Unit) else null
+            service.port.leaveRoom(currentState.spaceId)
         }
     }
 

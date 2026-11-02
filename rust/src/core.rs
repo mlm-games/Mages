@@ -2775,7 +2775,10 @@ impl CoreClient {
     }
 
     pub async fn leave_room(&self, room_id: String) -> Result<(), FfiError> {
-        let room = self.require_room(&room_id)?;
+        let rid = Self::parse_rid(&room_id)?;
+        let Some(room) = self.sdk.get_room(&rid) else {
+            return Ok(());
+        };
         room.leave().await.ffi()?;
         let server_forgets = self
             .sdk
