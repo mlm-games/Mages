@@ -250,6 +250,17 @@ private fun ComposerInputRow(
             editing == null && replyingTo == null &&
             fieldValue.text.isEmpty() && attachments.isEmpty()
 
+        val canSend = enabled && (fieldValue.text.isNotBlank() || attachments.isNotEmpty()) && !isUploadingAttachment
+        val canRecordVoice = enabled && !isUploadingAttachment && fieldValue.text.isBlank() && attachments.isEmpty() && onStartVoiceRecording != null
+
+        // The field keeps its own buffer, so a sent caption is cleared here too.
+        val submit: () -> Unit = {
+            if (canSend) {
+                onSend()
+                if (editing == null) onValueChange(TextFieldValue(""))
+            }
+        }
+
         val textFieldModifier = Modifier
             .weight(1f)
             .then(
@@ -273,7 +284,7 @@ private fun ComposerInputRow(
                     val newValue = insertNewlineInternal(fieldValue)
                     onValueChange(newValue)
                 },
-                onSend = onSend
+                onSend = submit
             )
             .editLatestShortcutHandler(
                 enabled = editLatestShortcutEnabled,
@@ -285,7 +296,8 @@ private fun ComposerInputRow(
             value = fieldValue,
             onValueChange = onValueChange,
             modifier = textFieldModifier,
-            enabled = enabled && !isUploadingAttachment,
+            // Disabling a focused field lets the IME commit a caption that was just cleared.
+            enabled = enabled,
             visualTransformation = visualTransformation,
             placeholder = {
                 ComposerPlaceholder(isUploadingAttachment, isOffline, editing, replyingTo)
@@ -300,22 +312,19 @@ private fun ComposerInputRow(
             maxLines = if (fieldFocused) maxLines else maxLinesUnfocused,
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Sentences,
-                imeAction = if (enterSendsMessage) ImeAction.Send else ImeAction.Default
+                imeAction = if (enterSendsMessage && !isUploadingAttachment) ImeAction.Send else ImeAction.Default
             ),
             keyboardActions = KeyboardActions(
-                onSend = { if (enabled && !isUploadingAttachment) onSend() }
+                onSend = { submit() }
             )
         )
 
         Spacer(Modifier.width(Spacing.sm))
 
-        val canSend = enabled && (fieldValue.text.isNotBlank() || attachments.isNotEmpty()) && !isUploadingAttachment
-        val canRecordVoice = enabled && !isUploadingAttachment && fieldValue.text.isBlank() && attachments.isEmpty() && onStartVoiceRecording != null
-
         FilledIconButton(
             onClick = {
                 if (canSend) {
-                    onSend()
+                    submit()
                 } else if (canRecordVoice) {
                     onStartVoiceRecording()
                 }

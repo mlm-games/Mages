@@ -242,6 +242,7 @@ class RoomViewModel(
     private var uploadTxnId: String? = null
     private var typingJob: Job? = null
     private var draftJob: Job? = null
+    private var composerTouched = false
     private var hasTimelineSnapshot = false
     private var searchJob: Job? = null
     private var paginationRecomputeJob: Job? = null
@@ -453,7 +454,13 @@ class RoomViewModel(
 
             val savedDraft = loadDraft(roomId)
             if (!savedDraft.isNullOrBlank()) {
-                updateState { copy(input = savedDraft) }
+                updateState {
+                    val pristine = !composerTouched &&
+                        input.isEmpty() &&
+                        editing == null &&
+                        attachments.isEmpty()
+                    if (pristine) copy(input = savedDraft) else this
+                }
             }
 
             refreshRoomActionState()
@@ -710,6 +717,7 @@ class RoomViewModel(
     fun hideNotificationSettings() = updateState { copy(showNotificationSettings = false) }
 
     fun setInput(value: String) {
+        composerTouched = true
         updateState { copy(input = value) }
 
         // Text typed for an edit belongs to that message, never to the room draft.
@@ -743,6 +751,7 @@ class RoomViewModel(
         val hasText = s.input.isNotBlank()
 
         if (!hasText && pending.isEmpty()) return
+        composerTouched = true
 
         if (settings.value.autoMarkReadTrigger == AutoMarkReadTrigger.OnSend) markRoomSeen()
 
