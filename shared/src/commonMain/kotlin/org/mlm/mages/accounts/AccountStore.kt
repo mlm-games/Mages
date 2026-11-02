@@ -20,11 +20,15 @@ class AccountStore(
     private val _activeAccountId = MutableStateFlow<String?>(null)
     val activeAccountId: StateFlow<String?> = _activeAccountId.asStateFlow()
 
+    private val _isInitialized = MutableStateFlow(false)
+    val isInitialized: StateFlow<Boolean> = _isInitialized.asStateFlow()
+
     suspend fun init() {
         val settings = settingsRepository.flow.first()
 
         _accounts.value = decodeAccounts(settings.accountsJson)
         _activeAccountId.value = settings.activeAccountId
+        _isInitialized.value = true
     }
 
     private fun decodeAccounts(raw: String?): List<MatrixAccount> {

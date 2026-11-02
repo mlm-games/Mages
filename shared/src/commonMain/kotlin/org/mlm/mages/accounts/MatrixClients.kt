@@ -227,7 +227,13 @@ class MatrixClients(
     }
 
     private suspend fun applyStoredPresence(port: MatrixPort) {
-        runCatching { port.applySyncPresence(settingsRepository.flow.first().presence.toPresence()) }
+        try {
+            port.applySyncPresence(settingsRepository.flow.first().presence.toPresence())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.w(e) { "MatrixClients: presence restore skipped" }
+        }
     }
 
     private fun accountStoreDir(accountId: String): String {

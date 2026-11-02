@@ -1,14 +1,20 @@
 package org.mlm.mages
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -136,6 +142,25 @@ fun App(
     }
 }
 
+@Composable
+private fun SessionRestoreScreen(onRetry: () -> Unit) {
+    Surface(color = darkColorScheme().background) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            CircularWavyProgressIndicator()
+            Spacer(Modifier.height(16.dp))
+            Text(stringResource(Res.string.connecting))
+            Spacer(Modifier.height(8.dp))
+            TextButton(onClick = onRetry) {
+                Text(stringResource(Res.string.retry))
+            }
+        }
+    }
+}
+
 @Suppress("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 private fun AppContent(
@@ -161,7 +186,11 @@ private fun AppContent(
     BindAutoDownload(service = service, settingsRepository = settingsRepository)
 
     var initDone by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
+    var restoreFailed by remember { mutableStateOf(false) }
+    var restoreAttempt by remember { mutableStateOf(0) }
+    LaunchedEffect(restoreAttempt) {
+        initDone = false
+        restoreFailed = false
         val proxyUrl = if (settings.proxyEnabled) settings.proxyUrl.takeIf { it.isNotBlank() } else null
 
         suspend fun restoreSession(): Boolean = try {
@@ -176,17 +205,20 @@ private fun AppContent(
         var restored = withTimeoutOrNull(SESSION_INIT_TIMEOUT_MS) { restoreSession() } ?: false
         if (!restored) {
             delay(SESSION_RETRY_DELAY_MS)
-            withTimeoutOrNull(SESSION_INIT_TIMEOUT_MS) { restoreSession() }
+            restored = withTimeoutOrNull(SESSION_INIT_TIMEOUT_MS) { restoreSession() } ?: false
         }
 
         val oauthCompleted = runCatching { service.port.maybeFinishOauthRedirect() }.getOrDefault(false)
         if (oauthCompleted) {
             runCatching { service.initFromDisk(proxyUrl) }
         }
+        restoreFailed = !restored
         initDone = true
     }
 
     val activeAccount by service.activeAccount.collectAsState()
+    val savedAccounts by accountStore.accounts.collectAsState()
+    val accountsLoaded by accountStore.isInitialized.collectAsState()
     val activeId = activeAccount?.id
 
     val verification: VerificationCoordinator = koinInject()
@@ -199,6 +231,11 @@ private fun AppContent(
                 contentAlignment = Alignment.Center
             ) { CircularWavyProgressIndicator() }
         }
+        return
+    }
+
+    if (restoreFailed && activeAccount == null && (savedAccounts.isNotEmpty() || !accountsLoaded)) {
+        SessionRestoreScreen(onRetry = { restoreAttempt++ })
         return
     }
 
