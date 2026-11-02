@@ -4,7 +4,6 @@ import co.touchlab.kermit.Logger
 import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,8 +27,6 @@ internal fun Throwable.isTlsUnavailable(): Boolean {
     }
     return false
 }
-
-private const val RESUME_RETRY_DELAY_MS = 750L
 
 class MatrixClients(
     private val accountStore: AccountStore,
@@ -57,9 +54,9 @@ class MatrixClients(
      */
     suspend fun initFromDisk(proxyUrl: String? = null): Boolean = mutex.withLock {
         // Already initialized
-        _activePort?.let { existing ->
+        _activePort?.let {
             _isReady.value = true
-            return@withLock existing.isLoggedIn()
+            return@withLock hasActiveClient()
         }
 
         accountStore.init()
@@ -72,9 +69,6 @@ class MatrixClients(
         }
 
         if (account != null) {
-            if (initAccountInternal(account, proxyUrl)) return@withLock true
-            if (accountStore.getAccountById(account.id) == null) return@withLock false
-            delay(RESUME_RETRY_DELAY_MS)
             return@withLock initAccountInternal(account, proxyUrl)
         }
 
@@ -98,16 +92,15 @@ class MatrixClients(
      * The port should already be logged in.
      */
     suspend fun addLoggedInAccount(account: MatrixAccount, port: MatrixPort) = mutex.withLock {
+        accountStore.init()
         _activePort?.let { runCatching { it.release() } }
 
         val existing = accountStore.getAccountByUserId(account.userId)
+        accountStore.addAccount(account)
         if (existing != null && existing.id != account.id) {
-            accountStore.removeAccount(existing.id)
             runCatching { deleteDirectory(accountStoreDir(existing.id)) }
             deleteSessionFiles(existing.id)
         }
-
-        accountStore.addAccount(account)
         accountStore.setActiveAccountId(account.id)
 
         _activePort = port
@@ -205,7 +198,6 @@ class MatrixClients(
                 _isReady.value = true
                 true
             } else {
-                accountStore.removeAccount(account.id)
                 runCatching { port.release() }
                 _isReady.value = true
                 false

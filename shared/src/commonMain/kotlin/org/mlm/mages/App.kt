@@ -4,6 +4,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -143,7 +144,7 @@ fun App(
 }
 
 @Composable
-private fun SessionRestoreScreen(onRetry: () -> Unit) {
+private fun SessionRestoreScreen(onRetry: () -> Unit, onSignIn: () -> Unit) {
     Surface(color = darkColorScheme().background) {
         Column(
             modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -154,8 +155,13 @@ private fun SessionRestoreScreen(onRetry: () -> Unit) {
             Spacer(Modifier.height(16.dp))
             Text(stringResource(Res.string.connecting))
             Spacer(Modifier.height(8.dp))
-            TextButton(onClick = onRetry) {
-                Text(stringResource(Res.string.retry))
+            Row {
+                TextButton(onClick = onRetry) {
+                    Text(stringResource(Res.string.retry))
+                }
+                TextButton(onClick = onSignIn) {
+                    Text(stringResource(Res.string.sign_in))
+                }
             }
         }
     }
@@ -188,6 +194,7 @@ private fun AppContent(
     var initDone by remember { mutableStateOf(false) }
     var restoreFailed by remember { mutableStateOf(false) }
     var restoreAttempt by remember { mutableStateOf(0) }
+    var showLogin by remember { mutableStateOf(false) }
     LaunchedEffect(restoreAttempt) {
         initDone = false
         restoreFailed = false
@@ -210,7 +217,7 @@ private fun AppContent(
 
         val oauthCompleted = runCatching { service.port.maybeFinishOauthRedirect() }.getOrDefault(false)
         if (oauthCompleted) {
-            runCatching { service.initFromDisk(proxyUrl) }
+            restored = runCatching { service.initFromDisk(proxyUrl) }.getOrDefault(false) || restored
         }
         restoreFailed = !restored
         initDone = true
@@ -234,8 +241,11 @@ private fun AppContent(
         return
     }
 
-    if (restoreFailed && activeAccount == null && (savedAccounts.isNotEmpty() || !accountsLoaded)) {
-        SessionRestoreScreen(onRetry = { restoreAttempt++ })
+    if (!showLogin && restoreFailed && activeAccount == null && (savedAccounts.isNotEmpty() || !accountsLoaded)) {
+        SessionRestoreScreen(
+            onRetry = { restoreAttempt++ },
+            onSignIn = { showLogin = true }
+        )
         return
     }
 
