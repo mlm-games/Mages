@@ -248,7 +248,7 @@ class MatrixService(
 
     suspend fun cancelSend(roomId: String, txnId: String): Result<Unit> = runCatching {
         val ok = port.cancelByTxn(roomId, txnId)
-        check(ok) { getString(Res.string.delete_failed) }
+        check(ok) { getString(Res.string.cancel_send_failed) }
     }
 
     suspend fun isSpace(roomId: String): Boolean =

@@ -173,6 +173,9 @@ fun MessageEvent.isForwardable(): Boolean = when (eventType) {
     else -> false
 }
 
+fun MessageEvent.canCancelSend(): Boolean =
+    eventId.isBlank() && !txnId.isNullOrBlank()
+
 fun MessageEvent.isEditableBy(myUserId: String?): Boolean {
     if (myUserId == null || sender != myUserId) return false
     if (isRedacted || sendState == SendState.Failed || eventId.isBlank()) return false

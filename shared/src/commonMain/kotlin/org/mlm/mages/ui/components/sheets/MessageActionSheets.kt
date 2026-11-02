@@ -34,6 +34,7 @@ import org.mlm.mages.matrix.ImagePackSummary
 import org.mlm.mages.matrix.SendState
 import org.mlm.mages.settings.MessageMenuAction
 import org.mlm.mages.settings.defaultQuickReactions
+import org.mlm.mages.ui.canCancelSend
 import org.mlm.mages.ui.components.core.ReactionGlyph
 import org.mlm.mages.ui.displayPreview
 import org.mlm.mages.ui.hasCaption
@@ -69,6 +70,7 @@ fun MessageActionSheet(
     onShare: (() -> Unit)? = null,
     onForward: (() -> Unit)? = null,
     onRetry: (() -> Unit)? = null,
+    onCancelSend: (() -> Unit)? = null,
     reactionImagePacks: List<ImagePackSummary> = emptyList(),
     isEncryptedRoom: Boolean = false,
     resolveReactionPreview: suspend (thumbnailMxcUri: String?, mxcUrl: String, mime: String?, full: Boolean) -> String? = { _, _, _, _ -> null },
@@ -135,6 +137,14 @@ fun MessageActionSheet(
             val actions = buildList {
                 if (isMine && event.sendState == SendState.Failed && onRetry != null) {
                     add(MenuEntry(Icons.Default.Refresh, stringResource(Res.string.retry)) { onRetry(); onDismiss() })
+                }
+                if (isMine && event.canCancelSend() && onCancelSend != null) {
+                    val label = if (event.sendState == SendState.Failed) {
+                        stringResource(Res.string.remove_message)
+                    } else {
+                        stringResource(Res.string.cancel_sending)
+                    }
+                    add(MenuEntry(Icons.Default.Close, label) { onCancelSend(); onDismiss() })
                 }
                 menuOrder.forEach { action ->
                     when (action) {
@@ -251,7 +261,7 @@ fun MessageActionSheet(
                 )
             }
 
-            val canDelete = isMine || (canDeleteOthers && event.eventId.isNotBlank())
+            val canDelete = event.eventId.isNotBlank() && (isMine || canDeleteOthers)
             val canReport = onReport != null && event.eventId.isNotBlank()
             if (canDelete || canReport) {
                 HorizontalDivider(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.xs))

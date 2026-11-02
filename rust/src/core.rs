@@ -949,19 +949,37 @@ impl CoreClient {
             return false;
         };
 
-        let Ok((local_echoes, _)) = room.send_queue().subscribe().await else {
+        if let Ok((local_echoes, _)) = room.send_queue().subscribe().await {
+            for local in local_echoes.iter().rev() {
+                if local.transaction_id.as_str() != txn_id {
+                    continue;
+                }
+                if let matrix_sdk::send_queue::LocalEchoContent::Event { send_handle, .. } =
+                    &local.content
+                {
+                    if matches!(send_handle.abort().await, Ok(true)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // A failed send leaves the queue but stays as a local echo in the timeline,
+        // and that one still has to be abortable.
+        let Some(tl) = self.timeline(&room_id).await else {
             return false;
         };
-        for local in local_echoes.iter().rev() {
-            if local.transaction_id.as_str() != txn_id {
+
+        for item in tl.items().await.iter().rev() {
+            let Some(event) = item.as_event() else {
+                continue;
+            };
+            if event.transaction_id().map(|id| id.as_str()) != Some(txn_id.as_str()) {
                 continue;
             }
-            if let matrix_sdk::send_queue::LocalEchoContent::Event { send_handle, .. } =
-                &local.content
-            {
-                return matches!(send_handle.abort().await, Ok(true));
+            if let Some(handle) = event.local_echo_send_handle() {
+                return matches!(handle.abort().await, Ok(true));
             }
-            return false;
         }
 
         false

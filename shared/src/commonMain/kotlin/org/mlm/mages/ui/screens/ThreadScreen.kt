@@ -566,6 +566,14 @@ fun ThreadScreen(
                     }
                 } else null
             },
+            onCancelSend = {
+                if (isMine) {
+                    scope.launch {
+                        onDelete(ev)
+                        sheetEvent = null
+                    }
+                } else null
+            },
             onReact = { emoji -> onReact(ev, emoji) },
             onMarkReadHere = { sheetEvent = null },
             onSelect = { }// viewModel.enterSelectionMode(event.eventId) },

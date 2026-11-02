@@ -314,6 +314,7 @@
     <string name="send_failed">Send failed</string>
     <string name="edit_failed">Edit failed</string>
     <string name="delete_failed">Delete failed</string>
+    <string name="cancel_send_failed">Could not cancel the message</string>
     <string name="retry_failed">Retry failed</string>
     <string
         name="no_permission_pin"
@@ -1317,6 +1318,8 @@
     <string name="remove_alias">Remove alias</string>
     <string name="remove_attachment">Remove attachment</string>
     <string name="remove_caption">Remove caption</string>
+    <string name="remove_message">Remove message</string>
+    <string name="cancel_sending">Cancel sending</string>
     <string name="remove_from_favorites">Remove from favorites</string>
     <string name="remove_from_low_priority">Remove from low priority</string>
     <string name="remove_from_room">Remove from room</string>

@@ -45,6 +45,7 @@ import org.mlm.mages.ui.theme.Durations
 import org.mlm.mages.ui.RoomUiState
 import org.mlm.mages.ui.components.AttachmentData
 import org.mlm.mages.ui.isEditableBy
+import org.mlm.mages.ui.canCancelSend
 import org.mlm.mages.ui.mediaCaption
 import org.mlm.mages.ui.components.OutgoingMediaMode
 import org.mlm.mages.ui.components.composer.EmoteSuggestion
@@ -1020,6 +1021,19 @@ class RoomViewModel(
     }
 
     //  Delete/Retry
+
+    fun cancelSend(event: MessageEvent) {
+        if (!event.canCancelSend()) return
+        val txnId = event.txnId ?: return
+        launch {
+            val result = service.cancelSend(currentState.roomId, txnId)
+            if (result.isFailure) {
+                _events.send(
+                    Event.ShowError(result.toUserMessage(getString(Res.string.cancel_send_failed)))
+                )
+            }
+        }
+    }
 
     fun delete(event: MessageEvent) {
         if (event.eventId.isBlank()) {

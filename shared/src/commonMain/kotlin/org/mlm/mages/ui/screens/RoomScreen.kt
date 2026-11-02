@@ -1263,6 +1263,10 @@ fun RoomScreen(
                 viewModel.retry(event)
                 sheetEvent = null
             },
+            onCancelSend = {
+                viewModel.cancelSend(event)
+                sheetEvent = null
+            },
             onShare = { viewModel.shareMessage(event) },
             onForward = {
                 sheetEvent = null
