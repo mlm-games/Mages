@@ -1,3 +1,20 @@
+## v5.3.6
+
+- fix: recover failed restore
+- fix: retry failed session restore
+- fix: retry session restore
+- fix: leave space and rooms
+- feat: cancel sending
+- fix: clear caption after send
+- fix: blockquote formatting
+- fix: missing resource imports
+- fix: missing resource import
+- fix: animated viewer sizing
+- fix: avatar view and replace
+- feat: animate gif attachments
+- fix: atomic thumbnail cache writes
+
+
 ## v5.3.5
 
 - fix: atomic thumbnail cache writes

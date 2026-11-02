@@ -46,6 +46,25 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="5.3.6" date="2026-11-02" type="stable">
+      <description>
+        <ul>
+          <li>fix: recover failed restore</li>
+          <li>fix: retry failed session restore</li>
+          <li>fix: retry session restore</li>
+          <li>fix: leave space and rooms</li>
+          <li>feat: cancel sending</li>
+          <li>fix: clear caption after send</li>
+          <li>fix: blockquote formatting</li>
+          <li>fix: missing resource imports</li>
+          <li>fix: missing resource import</li>
+          <li>fix: animated viewer sizing</li>
+          <li>fix: avatar view and replace</li>
+          <li>feat: animate gif attachments</li>
+          <li>fix: atomic thumbnail cache writes</li>
+        </ul>
+      </description>
+    </release>
     <release version="5.3.5" date="2026-11-01" type="stable">
       <description>
         <ul>
