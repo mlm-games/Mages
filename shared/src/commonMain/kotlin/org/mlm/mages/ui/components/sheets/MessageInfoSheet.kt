@@ -43,6 +43,7 @@ import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.SeenByEntry
 import org.mlm.mages.ui.components.core.Avatar
+import org.mlm.mages.ui.components.core.FormattedBodyText
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatAbsoluteDateTime
 import org.mlm.mages.ui.util.formatBytes
@@ -441,11 +442,13 @@ private fun MessageInfoPreview(
             )
             if (preview.isNotBlank()) {
                 Spacer(Modifier.height(Spacing.xs))
-                Text(
-                    text = preview,
+                FormattedBodyText(
+                    formattedBody = event.formattedBody,
+                    fallbackBody = preview,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
+                    useMessageFontSize = false,
                 )
             }
         }

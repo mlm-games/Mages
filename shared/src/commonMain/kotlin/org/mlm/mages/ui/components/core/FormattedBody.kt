@@ -127,7 +127,13 @@ private val UNDERLINE_TAGS = setOf("u", "ins")
 private val STRIKE_TAGS = setOf("s", "del", "strike")
 
 /** Block elements that start on their own line. Lists break lines per item instead. */
-private val BLOCK_TAGS = setOf("p", "blockquote", "h1", "h2", "h3", "h4", "h5", "h6")
+private val BLOCK_TAGS = setOf("p", "h1", "h2", "h3", "h4", "h5", "h6")
+
+/** The bar that marks a quoted line; one per level of nesting. */
+private const val QUOTE_RAIL = "▏"
+
+/** Bounds the indentation a hostile message can ask a quote for. */
+private const val MAX_QUOTE_DEPTH = 3
 
 /** Table parts that only group rows or cells, so they contribute no text of their own. */
 private val TABLE_CONTAINER_TAGS = setOf("thead", "tbody", "tfoot")
@@ -225,10 +231,11 @@ fun parseFormattedBody(
     onReveal: (Int) -> Unit = {},
     mentionRefs: Map<String, MentionRef> = emptyMap(),
     pillLayout: MentionPillLayout? = null,
-    onMentionClick: (String) -> Unit = {}
+    onMentionClick: (String) -> Unit = {},
+    quoteRailColor: Color? = null,
 ): FormattedBody {
     val builder = Builder(
-        emotePaths, conceal, revealed, onReveal, mentionRefs, pillLayout, onMentionClick
+        emotePaths, conceal, revealed, onReveal, mentionRefs, pillLayout, onMentionClick, quoteRailColor
     )
     builder.walk(Ksoup.parse(html).body())
     return builder.build()
@@ -296,12 +303,15 @@ private class Builder(
     private val mentionRefs: Map<String, MentionRef> = emptyMap(),
     private val pillLayout: MentionPillLayout? = null,
     private val onMentionClick: (String) -> Unit = {},
+    private val quoteRailColor: Color? = null,
 ) {
     private val text = AnnotatedString.Builder()
     private val inlineContent = mutableMapOf<String, InlineTextContent>()
     private var spoilers = 0
     private val listStack = ArrayDeque<ListContext>()
     private var atLineStart = true
+    private var quoteDepth = 0
+    private var quoteRails = 0
 
     private var tableRowStart = 0
     private var tableCellStart = 0
@@ -319,10 +329,25 @@ private class Builder(
     }
 
     private fun ensureLineStart() {
-        if (!atLineStart) {
-            text.append('\n')
-            atLineStart = true
-        }
+        if (!atLineStart) appendLineBreak()
+    }
+
+    private fun appendLineBreak() {
+        text.append('\n')
+        atLineStart = true
+        quoteRails = 0
+    }
+
+    /** Added lazily, so an empty blockquote leaves no rail behind. */
+    private fun appendQuoteRail() {
+        if (!atLineStart || quoteDepth == 0 || inTableCell) return
+        val levels = quoteDepth.coerceAtMost(MAX_QUOTE_DEPTH)
+        if (quoteRails >= levels) return
+        if (quoteRailColor != null) text.pushStyle(SpanStyle(color = quoteRailColor))
+        repeat(levels - quoteRails) { text.append(QUOTE_RAIL) }
+        if (quoteRailColor != null) text.pop()
+        text.append(' ')
+        quoteRails = levels
     }
 
     /**
@@ -359,8 +384,7 @@ private class Builder(
 
         if (tag in DROPPED_TAGS) return
         if (tag in BREAK_TAGS) {
-            text.append('\n')
-            atLineStart = true
+            appendLineBreak()
             return
         }
         if (tag == "img") {
@@ -393,6 +417,7 @@ private class Builder(
         }
         if (tag == "li") {
             ensureLineStart()
+            appendQuoteRail()
             val depth = listStack.size.coerceAtLeast(1)
             repeat(depth - 1) { text.append("  ") }
             when (val context = listStack.lastOrNull()) {
@@ -445,6 +470,17 @@ private class Builder(
             preDepth++
             walkBlockChildren(element, linkify)
             preDepth--
+            return
+        }
+        if (tag == "blockquote") {
+            if (inTableCell) {
+                if (!atLineStart && text.length > tableCellStart) text.append(" ")
+            } else {
+                ensureLineStart()
+            }
+            quoteDepth++
+            walkBlockChildren(element, linkify)
+            quoteDepth--
             return
         }
         if (tag in BLOCK_TAGS) {
@@ -529,6 +565,7 @@ private class Builder(
         val layout = pillLayout ?: return
         val width = layout.widthByUserId[ref.userId] ?: return
         val id = MENTION_KEY_PREFIX + ref.userId
+        appendQuoteRail()
 
         inlineContent.getOrPut(id) {
             InlineTextContent(
@@ -568,6 +605,7 @@ private class Builder(
             else -> raw.replace(WHITESPACE_RUN, " ")
         }
         if (collapsed.isEmpty()) return
+        appendQuoteRail()
 
         val roomWidth = pillLayout?.roomWidth
         if (roomWidth != null) {
@@ -594,6 +632,7 @@ private class Builder(
     private fun appendRoomPill(width: TextUnit) {
         val layout = pillLayout ?: return
         val id = MENTION_ROOM_KEY
+        appendQuoteRail()
         inlineContent.getOrPut(id) {
             InlineTextContent(
                 placeholder = Placeholder(
@@ -614,6 +653,7 @@ private class Builder(
         if (!linkify) {
             text.append(collapsed)
             atLineStart = collapsed.endsWith('\n')
+            if (atLineStart) quoteRails = 0
             return
         }
 
@@ -637,12 +677,14 @@ private class Builder(
         }
         if (cursor < collapsed.length) text.append(collapsed.substring(cursor))
         atLineStart = cursor < collapsed.length && collapsed.endsWith('\n')
+        if (atLineStart) quoteRails = 0
     }
 
     private fun isAsciiLetterOrDigit(c: Char): Boolean =
         c in 'a'..'z' || c in 'A'..'Z' || c in '0'..'9'
 
     private fun appendEmote(element: Element) {
+        appendQuoteRail()
         val mxcUri = element.attr("src").trim()
         if (!mxcUri.startsWith("mxc://")) {
             element.attr("alt").trim().ifEmpty { null }?.let { text.append(it) }
@@ -835,7 +877,7 @@ fun FormattedBodyText(
     // A concealed spoiler carries a clickable annotation that reveals it, so
     // the parse only has to be redone when the set of revealed ones changes.
     val parsed = remember(
-        formattedBody, emotePaths, containerColor, revealed.toList(), pillLayout
+        formattedBody, emotePaths, containerColor, color, revealed.toList(), pillLayout
     ) {
         formattedBody?.takeIf { it.isNotBlank() }?.let { html ->
             parseFormattedBody(
@@ -847,6 +889,7 @@ fun FormattedBodyText(
                 mentionRefs = mentionRefs,
                 pillLayout = pillLayout,
                 onMentionClick = { userId -> onMentionClick?.invoke(userId) },
+                quoteRailColor = color.copy(alpha = 0.45f),
             )
         }
     }
