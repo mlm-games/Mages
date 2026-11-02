@@ -2,12 +2,16 @@ package org.mlm.mages.accounts
 
 import co.touchlab.kermit.Logger
 import io.github.mlmgames.settings.core.SettingsRepository
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.createMatrixPort
 import org.mlm.mages.platform.MagesPaths
@@ -24,6 +28,8 @@ internal fun Throwable.isTlsUnavailable(): Boolean {
     }
     return false
 }
+
+private const val RESUME_RETRY_DELAY_MS = 750L
 
 class MatrixClients(
     private val accountStore: AccountStore,
@@ -66,6 +72,9 @@ class MatrixClients(
         }
 
         if (account != null) {
+            if (initAccountInternal(account, proxyUrl)) return@withLock true
+            if (accountStore.getAccountById(account.id) == null) return@withLock false
+            delay(RESUME_RETRY_DELAY_MS)
             return@withLock initAccountInternal(account, proxyUrl)
         }
 
@@ -181,6 +190,8 @@ class MatrixClients(
 
             val loggedIn = try {
                 port.isLoggedInSuspend()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 false
             }
@@ -199,6 +210,10 @@ class MatrixClients(
                 _isReady.value = true
                 false
             }
+        } catch (e: CancellationException) {
+            withContext(NonCancellable) { runCatching { port.release() } }
+            _isReady.value = true
+            throw e
         } catch (e: Exception) {
             if (e.isTlsUnavailable()) {
                 Logger.e(e) { "MatrixClients: TLS unavailable, session resume failed for ${account.userId}" }

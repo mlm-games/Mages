@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -109,6 +110,7 @@ import org.mlm.mages.verification.VerificationCoordinator
 import org.mlm.mages.matrix.CallIntent
 
 private const val SESSION_INIT_TIMEOUT_MS = 20_000L
+private const val SESSION_RETRY_DELAY_MS = 750L
 
 val LocalMessageFontSize = staticCompositionLocalOf { 16f }
 
@@ -161,7 +163,22 @@ private fun AppContent(
     var initDone by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         val proxyUrl = if (settings.proxyEnabled) settings.proxyUrl.takeIf { it.isNotBlank() } else null
-        withTimeoutOrNull(SESSION_INIT_TIMEOUT_MS) { service.initFromDisk(proxyUrl) }
+
+        suspend fun restoreSession(): Boolean = try {
+            service.initFromDisk(proxyUrl)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.w(e) { "App: session restore failed" }
+            false
+        }
+
+        var restored = withTimeoutOrNull(SESSION_INIT_TIMEOUT_MS) { restoreSession() } ?: false
+        if (!restored) {
+            delay(SESSION_RETRY_DELAY_MS)
+            withTimeoutOrNull(SESSION_INIT_TIMEOUT_MS) { restoreSession() }
+        }
+
         val oauthCompleted = runCatching { service.port.maybeFinishOauthRedirect() }.getOrDefault(false)
         if (oauthCompleted) {
             runCatching { service.initFromDisk(proxyUrl) }
