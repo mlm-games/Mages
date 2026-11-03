@@ -148,10 +148,10 @@ fun MessageBubble(
         MaterialTheme.colorScheme.secondaryContainer
     }
 
-    val bubbleTextColor = when {
-        isRedacted -> MaterialTheme.colorScheme.onSurfaceVariant
-        isMine -> MaterialTheme.colorScheme.onPrimaryContainer
-        else -> MaterialTheme.colorScheme.onSecondaryContainer
+    val bubbleTextColor = if (!isRedacted && isMine) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
     }
 
     Column(
@@ -225,11 +225,11 @@ fun MessageBubble(
                 shape = bubbleShape(isMine, grouping.groupedWithPrev, grouping.groupedWithNext),
                 tonalElevation = if (isRedacted) 0.dp else if (isMine) 3.dp else 1.dp,
             ) {
-                val timestampContent = @Composable { textColor: Color ->
+                val timestampContent = @Composable {
                     MessageTimeAndStatus(
                         timestamp = model.timestamp,
                         isEdited = model.isEdited,
-                        textColor = textColor,
+                        textColor = bubbleTextColor,
                         isPinned = model.isPinned,
                         isMine = isMine
                     )
@@ -268,7 +268,7 @@ fun MessageBubble(
                                         Spacer(Modifier.height(Spacing.xs))
                                         TimestampLayout(
                                             position = TimestampPosition.Aligned,
-                                            timestamp = { timestampContent(bubbleTextColor) },
+                                            timestamp = timestampContent,
                                         ) {
                                             FormattedBodyText(
                                                 formattedBody = attachment.captionFormattedBody,
@@ -339,7 +339,7 @@ fun MessageBubble(
                                         Spacer(Modifier.height(Spacing.xs))
                                         TimestampLayout(
                                             position = TimestampPosition.Aligned,
-                                            timestamp = { timestampContent(bubbleTextColor) },
+                                            timestamp = timestampContent,
                                         ) {
                                             FormattedBodyText(
                                                 formattedBody = attachment.captionFormattedBody,
@@ -385,7 +385,7 @@ fun MessageBubble(
                             } else if (isRedacted) {
                                 TimestampLayout(
                                     position = TimestampPosition.Aligned,
-                                    timestamp = { timestampContent(bubbleTextColor) },
+                                    timestamp = timestampContent,
                                 ) {
                                     RedactedBody(
                                         text = model.body,
@@ -395,7 +395,7 @@ fun MessageBubble(
                             } else if (model.attachment == null && model.body.isNotBlank()) {
                                 TimestampLayout(
                                     position = TimestampPosition.Aligned,
-                                    timestamp = { timestampContent(bubbleTextColor) },
+                                    timestamp = timestampContent,
                                 ) {
                                     FormattedBodyText(
                                         formattedBody = model.formattedBody,
@@ -775,7 +775,7 @@ private fun ImageAttachmentBubble(
     isMine: Boolean,
     onOpen: (() -> Unit)?,
     onLongPress: (() -> Unit)? = null,
-    timestamp: @Composable (Color) -> Unit,
+    timestamp: @Composable () -> Unit,
     containerColor: Color,
     emotePaths: Map<String, String> = emptyMap(),
     mentionRefs: Map<String, MentionRef> = emptyMap(),
@@ -846,13 +846,13 @@ private fun ImageAttachmentBubble(
                 }
             }
             if (!hasCaption) {
-                TimestampBadge(timestamp, contentColor = MaterialTheme.colorScheme.onSurface)
+                TimestampBadge(timestamp)
             }
         }
         if (hasCaption) {
             TimestampLayout(
                 position = TimestampPosition.Aligned,
-                timestamp = { timestamp(contentColor) },
+                timestamp = timestamp,
             ) {
                 FormattedBodyText(
                     formattedBody = attachment.captionFormattedBody,
@@ -934,10 +934,7 @@ private fun BoxScope.MediaTilePlaceholder(
 }
 
 @Composable
-private fun BoxScope.TimestampBadge(
-    timestamp: @Composable (Color) -> Unit,
-    contentColor: Color,
-) {
+private fun BoxScope.TimestampBadge(timestamp: @Composable () -> Unit) {
     Box(
         modifier = Modifier
             .align(Alignment.BottomEnd)
@@ -948,7 +945,7 @@ private fun BoxScope.TimestampBadge(
             )
             .padding(horizontal = 4.dp, vertical = 2.dp)
     ) {
-        timestamp(contentColor)
+        timestamp()
     }
 }
 
@@ -958,7 +955,7 @@ private fun VideoAttachmentBubble(
     isMine: Boolean,
     onOpen: (() -> Unit)?,
     onLongPress: (() -> Unit)? = null,
-    timestamp: @Composable (Color) -> Unit,
+    timestamp: @Composable () -> Unit,
     containerColor: Color,
     emotePaths: Map<String, String> = emptyMap(),
     mentionRefs: Map<String, MentionRef> = emptyMap(),
@@ -1023,13 +1020,13 @@ private fun VideoAttachmentBubble(
             }
 
             if (!hasCaption) {
-                TimestampBadge(timestamp, contentColor = MaterialTheme.colorScheme.onSurface)
+                TimestampBadge(timestamp)
             }
         }
         if (hasCaption) {
             TimestampLayout(
                 position = TimestampPosition.Aligned,
-                timestamp = { timestamp(contentColor) },
+                timestamp = timestamp,
             ) {
                 FormattedBodyText(
                     formattedBody = attachment.captionFormattedBody,

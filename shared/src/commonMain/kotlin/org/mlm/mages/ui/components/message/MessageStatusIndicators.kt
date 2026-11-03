@@ -47,7 +47,7 @@ fun MessageStatusLine(
                 text = text,
                 style = MaterialTheme.typography.labelSmall,
                 color = if (isMine)
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                 else
                     MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)

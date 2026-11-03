@@ -38,7 +38,7 @@ fun PollBubble(
     val showResults = poll.isEnded || poll.kind == PollKind.Disclosed
 
     val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
-    else MaterialTheme.colorScheme.onSecondaryContainer
+    else MaterialTheme.colorScheme.onSurfaceVariant
     val accentColor = if (isMine) MaterialTheme.colorScheme.primary
     else MaterialTheme.colorScheme.secondary
     val winnerColor = MaterialTheme.colorScheme.tertiary
@@ -142,7 +142,7 @@ private fun PollOptionItem(
     onClick: () -> Unit
 ) {
     val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
-    else MaterialTheme.colorScheme.onSecondaryContainer
+    else MaterialTheme.colorScheme.onSurfaceVariant
     val accentColor = if (isMine) MaterialTheme.colorScheme.primary
     else MaterialTheme.colorScheme.secondary
     val winnerColor = MaterialTheme.colorScheme.tertiary
