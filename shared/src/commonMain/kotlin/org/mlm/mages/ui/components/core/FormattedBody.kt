@@ -63,6 +63,9 @@ private val MXC_SRC_ATTR = Regex("""\ssrc\s*=\s*["']?(mxc://[^"'\s>]+)""", Regex
 /** Bounds the work a single hostile message can ask a client to do. */
 private const val MAX_EMOTES_PER_MESSAGE = 32
 
+private const val MAX_LINK_MENTIONS = 32
+private const val MAX_LINK_MENTION_LABEL = 128
+
 /**
  * The mxc URIs of the inline images a `formatted_body` references.
  *
@@ -857,15 +860,19 @@ fun FormattedBodyText(
     val revealed = remember { mutableStateSetOf<Int>() }
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
+    val linkedMentionRefs = remember(formattedBody) { mentionRefsFromLinks(formattedBody) }
+    val allMentionRefs = remember(linkedMentionRefs, mentionRefs) {
+        linkedMentionRefs + mentionRefs
+    }
 
     // The pill is tinted from the bubble's own text colour, the way the file-attachment box
     // is, so it reads as an inset of the bubble instead of a themed block laid over it. That
     // keeps it legible on both the sent and received bubbles without a colour per variant.
     val pillLayout = remember(
-        mentionRefs, mentionsRoom, measurer, density, color, baseStyle
+        allMentionRefs, mentionsRoom, measurer, density, color, baseStyle
     ) {
         measureMentionPills(
-            refs = mentionRefs,
+            refs = allMentionRefs,
             mentionsRoom = mentionsRoom,
             measurer = measurer,
             style = baseStyle,
@@ -886,7 +893,7 @@ fun FormattedBodyText(
                 conceal = containerColor,
                 revealed = revealed.toSet(),
                 onReveal = { revealed.add(it) },
-                mentionRefs = mentionRefs,
+                mentionRefs = allMentionRefs,
                 pillLayout = pillLayout,
                 onMentionClick = { userId -> onMentionClick?.invoke(userId) },
                 quoteRailColor = color.copy(alpha = 0.45f),
@@ -953,6 +960,26 @@ fun TopicText(
         textAlign = textAlign,
         useMessageFontSize = false
     )
+}
+
+private fun mentionRefsFromLinks(html: String?): Map<String, MentionRef> {
+    if (html == null) return emptyMap()
+    val hasUserLink = html.contains("matrix.to/#/@", ignoreCase = true) ||
+        html.contains("matrix.to/#/%40", ignoreCase = true) ||
+        html.contains("matrix:u/", ignoreCase = true) ||
+        html.contains("matrix:user/", ignoreCase = true)
+    if (!hasUserLink) return emptyMap()
+
+    val refs = LinkedHashMap<String, MentionRef>()
+    for (anchor in Ksoup.parse(html).body().getElementsByTag("a")) {
+        if (refs.size >= MAX_LINK_MENTIONS) break
+        val userId = matrixUserIdFromLink(anchor.attr("href").trim()) ?: continue
+        if (userId in refs) continue
+        val label = anchor.text().replace(WHITESPACE_RUN, " ").trim()
+        if (label.isEmpty() || label.length > MAX_LINK_MENTION_LABEL) continue
+        refs[userId] = MentionRef(userId, label)
+    }
+    return refs
 }
 
 private fun measureMentionPills(

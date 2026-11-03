@@ -1063,11 +1063,10 @@ impl CoreClient {
             .item_by_event_id(&eid)
             .await
             .ok_or_else(|| FfiError::Msg("event not found".into()))?;
-        let edited = EditedContent::RoomMessage(if let Some(fmt) = formatted_body {
-            MsgNoRel::text_html(new_body, fmt)
-        } else {
-            MsgNoRel::text_plain(new_body)
-        });
+        let edited = EditedContent::RoomMessage(text_content_no_rel(
+            &new_body,
+            formatted_body.as_deref(),
+        ));
         tl.edit(&item.identifier(), edited).await.ffi()
     }
 
@@ -1090,10 +1089,14 @@ impl CoreClient {
             .item_by_event_id(&eid)
             .await
             .ok_or_else(|| FfiError::Msg("event not found".into()))?;
+        let mentions = mentions_for(
+            caption.as_deref().unwrap_or(""),
+            formatted_caption.as_deref(),
+        );
         let edited = EditedContent::MediaCaption {
             caption,
             formatted_caption: formatted_caption.map(FormattedBody::html),
-            mentions: None,
+            mentions,
         };
         tl.edit(&item.identifier(), edited).await.ffi()
     }
