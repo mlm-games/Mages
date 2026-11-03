@@ -1,15 +1,18 @@
 package org.mlm.mages.matrix
 
 const val MEMBER_SUGGESTION_LIMIT = 5
+const val MEMBER_SUGGESTION_CANDIDATES = 50
 
 fun normalizeMemberQuery(query: String): String =
     query.trim().removePrefix("@").trim().lowercase()
 
-fun MemberSummary.matchesMemberQuery(query: String): Boolean {
-    val needle = normalizeMemberQuery(query)
+fun MemberSummary.matchesMemberQuery(query: String): Boolean =
+    matchesNormalizedMemberQuery(normalizeMemberQuery(query))
+
+fun MemberSummary.matchesNormalizedMemberQuery(needle: String): Boolean {
     if (needle.isEmpty()) return false
-    return userId.lowercase().contains(needle) ||
-        displayName?.lowercase()?.contains(needle) == true
+    return userId.contains(needle, ignoreCase = true) ||
+        displayName?.contains(needle, ignoreCase = true) == true
 }
 
 fun List<MemberSummary>.memberSuggestions(

@@ -470,8 +470,7 @@ class RoomViewModel(
 
             val members = runSafe { service.port.listMembers(roomId) }.orEmpty()
             if (members.isNotEmpty()) {
-                val capped = if (members.size <= 200) members else emptyList()
-                updateState { copy(roomMembers = capped) }
+                updateState { copy(roomMembers = members) }
             }
         }
 
@@ -3060,9 +3059,12 @@ class RoomViewModel(
         if (wanted.isEmpty()) return
 
         launch {
-            service.profiles.rememberAll(seen + currentState.roomMembers.mapNotNull { member ->
-                member.displayName?.let { member.userId to UserProfile(it, member.avatarUrl) }
-            }.toMap())
+            service.profiles.rememberAll(seen + currentState.roomMembers
+                .filter { it.userId in wanted }
+                .mapNotNull { member ->
+                    member.displayName?.let { member.userId to UserProfile(it, member.avatarUrl) }
+                }
+                .toMap())
 
             val resolved = LinkedHashMap<String, MentionProfileUi>()
             wanted.take(24).forEach { userId ->
