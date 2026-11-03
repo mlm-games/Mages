@@ -1,3 +1,13 @@
+## v5.3.8
+
+- fix: reaction loading
+- fix: mention ranking
+- feat: reactors in message info
+- fix: mentions in large rooms
+- fix: mention pills
+- fix: pure black contrast (#198)
+
+
 ## v5.3.7
 
 - fix: strip reply fallback (#196)
