@@ -82,7 +82,7 @@ fun ReactionChipsRow(
  * standing in for an image.
  */
 @Composable
-private fun ReactionKeyLabel(
+internal fun ReactionKeyLabel(
     key: String,
     imagePath: String?,
     shortcode: String?

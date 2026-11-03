@@ -426,6 +426,14 @@
     <string
         name="showing_first_read_receipts"
     >Showing the first %1$d receipts</string>
+    <string name="loading_reactions">Loading reactions…</string>
+    <string
+        name="failed_to_load_reactions"
+    >Failed to load reactions</string>
+    <string name="no_reactions_yet">No reactions yet</string>
+    <string
+        name="showing_first_reactors"
+    >Showing the first %1$d reactors</string>
     <string name="sender_name">Sender</string>
     <string name="sender_id">Sender ID</string>
     <string name="sent_at">Sent at</string>

@@ -317,6 +317,19 @@ data class MessageActionStateUi(
     val react: ActionAvailabilityUi = ActionAvailabilityUi(),
 )
 
+data class ReactionUser(
+    val userId: String,
+    val displayName: String? = null,
+    val avatarUrl: String? = null,
+    val avatarPath: String? = null,
+)
+
+data class ReactionDetail(
+    val key: String,
+    val count: Int,
+    val users: List<ReactionUser> = emptyList(),
+)
+
 /** A mentioned user, resolved far enough to draw a pill. */
 data class MentionProfileUi(
     val userId: String,
@@ -468,6 +481,9 @@ data class RoomUiState(
     val messageInfoError: String? = null,
     val messageInfoEntries: List<SeenByEntry> = emptyList(),
     val messageInfoReadersTruncated: Boolean = false,
+    val messageInfoReactions: List<ReactionDetail> = emptyList(),
+    val isLoadingMessageInfoReactions: Boolean = false,
+    val messageInfoReactionsError: String? = null,
     val showReadReceiptsSheet: Boolean = false,
     val readReceiptsForEvent: List<SeenByEntry> = emptyList(),
     val highlightedEventId: String? = null,

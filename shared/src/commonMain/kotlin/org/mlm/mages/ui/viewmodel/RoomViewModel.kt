@@ -41,6 +41,8 @@ import org.mlm.mages.ui.loadForwardableRooms
 import org.mlm.mages.ui.AttachmentUploadStage
 import org.mlm.mages.ui.MessageActionStateUi
 import org.mlm.mages.ui.MentionProfileUi
+import org.mlm.mages.ui.ReactionDetail
+import org.mlm.mages.ui.ReactionUser
 import org.mlm.mages.ui.theme.Durations
 import org.mlm.mages.ui.RoomUiState
 import org.mlm.mages.ui.components.AttachmentData
@@ -1205,6 +1207,9 @@ class RoomViewModel(
                 messageInfoError = null,
                 messageInfoEntries = emptyList(),
                 messageInfoReadersTruncated = false,
+                isLoadingMessageInfoReactions = canLoadReceipts,
+                messageInfoReactionsError = null,
+                messageInfoReactions = emptyList(),
             )
         }
 
@@ -1242,6 +1247,10 @@ class RoomViewModel(
                     }
                 }
         }
+
+        launch {
+            loadMessageInfoReactions(requestVersion, roomId, eventId)
+        }
     }
 
     fun retryMessageInfo() {
@@ -1258,6 +1267,9 @@ class RoomViewModel(
                 messageInfoError = null,
                 messageInfoEntries = emptyList(),
                 messageInfoReadersTruncated = false,
+                isLoadingMessageInfoReactions = false,
+                messageInfoReactionsError = null,
+                messageInfoReactions = emptyList(),
             )
         }
     }
@@ -3013,6 +3025,90 @@ class RoomViewModel(
                 copy(
                     messageInfoEntries = messageInfoEntries.map { current ->
                         if (current.userId == entry.userId) current.copy(avatarUrl = path) else current
+                    }
+                )
+            }
+        }
+    }
+
+    private suspend fun loadMessageInfoReactions(
+        requestVersion: Long,
+        roomId: String,
+        eventId: String,
+    ) {
+        val summaries = runSafe { service.port.reactions(roomId, eventId) }
+        if (summaries == null) {
+            if (isCurrentMessageInfoRequest(requestVersion, eventId)) {
+                updateState {
+                    copy(
+                        isLoadingMessageInfoReactions = false,
+                        messageInfoReactionsError = getString(Res.string.failed_to_load_reactions),
+                    )
+                }
+            }
+            return
+        }
+
+        if (!isCurrentMessageInfoRequest(requestVersion, eventId)) return
+
+        val members = currentState.roomMembers.associateBy { it.userId }
+        val unknown = summaries
+            .flatMap { it.userIds }
+            .distinct()
+            .filterNot(members::containsKey)
+        val profiles = coroutineScope {
+            unknown.map { userId ->
+                async { userId to service.profiles.resolve(userId) }
+            }.awaitAll()
+        }.toMap()
+
+        if (!isCurrentMessageInfoRequest(requestVersion, eventId)) return
+
+        val details = summaries.map { summary ->
+            ReactionDetail(
+                key = summary.key,
+                count = summary.count,
+                users = summary.userIds.map { userId ->
+                    val member = members[userId]
+                    val profile = profiles[userId]
+                    ReactionUser(
+                        userId = userId,
+                        displayName = member?.displayName?.takeIf { it.isNotBlank() }
+                            ?: profile?.displayName,
+                        avatarUrl = member?.avatarUrl ?: profile?.avatarUrl,
+                    )
+                },
+            )
+        }
+
+        updateState {
+            copy(
+                isLoadingMessageInfoReactions = false,
+                messageInfoReactionsError = null,
+                messageInfoReactions = details,
+            )
+        }
+        resolveMessageInfoReactionAvatars()
+    }
+
+    private fun resolveMessageInfoReactionAvatars() {
+        val users = currentState.messageInfoReactions
+            .flatMap { it.users }
+            .filter { it.avatarUrl != null && it.avatarPath == null }
+            .distinctBy { it.userId }
+        users.forEach { user ->
+            resolveAvatar(service, user.avatarUrl, 64) { path ->
+                copy(
+                    messageInfoReactions = messageInfoReactions.map { detail ->
+                        detail.copy(
+                            users = detail.users.map { current ->
+                                if (current.userId == user.userId) {
+                                    current.copy(avatarPath = path)
+                                } else {
+                                    current
+                                }
+                            }
+                        )
                     }
                 )
             }

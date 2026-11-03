@@ -1197,7 +1197,13 @@ fun RoomScreen(
             readersError = state.messageInfoError,
             readersTruncated = state.messageInfoReadersTruncated,
             onRetryReaders = viewModel::retryMessageInfo,
-            onDismiss = viewModel::hideMessageInfo
+            onDismiss = viewModel::hideMessageInfo,
+            reactions = state.messageInfoReactions,
+            isLoadingReactions = state.isLoadingMessageInfoReactions,
+            reactionsError = state.messageInfoReactionsError,
+            reactionImagePaths = state.reactionImagePathByMxc,
+            reactionShortcodes = viewModel.reactionShortcodes,
+            onRetryReactions = viewModel::retryMessageInfo
         )
     }
 

@@ -42,8 +42,10 @@ import org.mlm.mages.AttachmentInfo
 import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.SeenByEntry
+import org.mlm.mages.ui.ReactionDetail
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.FormattedBodyText
+import org.mlm.mages.ui.components.message.ReactionKeyLabel
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatAbsoluteDateTime
 import org.mlm.mages.ui.util.formatBytes
@@ -61,6 +63,12 @@ fun MessageInfoSheet(
     readersTruncated: Boolean,
     onRetryReaders: () -> Unit,
     onDismiss: () -> Unit,
+    reactions: List<ReactionDetail> = emptyList(),
+    isLoadingReactions: Boolean = false,
+    reactionsError: String? = null,
+    reactionImagePaths: Map<String, String> = emptyMap(),
+    reactionShortcodes: Map<String, String> = emptyMap(),
+    onRetryReactions: () -> Unit = {},
 ) {
     val clipboardManager = LocalClipboardManager.current
     val attachment = event.attachment
@@ -165,6 +173,56 @@ fun MessageInfoSheet(
                         attachment = attachment,
                         onCopy = ::copy,
                     )
+                }
+            }
+
+            item {
+                SectionCard(title = stringResource(Res.string.reactions)) {
+                    when {
+                        isLoadingReactions -> {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularWavyProgressIndicator(modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(Spacing.md))
+                                Text(
+                                    text = stringResource(Res.string.loading_reactions),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+
+                        reactionsError != null -> {
+                            Text(
+                                text = reactionsError.ifBlank {
+                                    stringResource(Res.string.failed_to_load_reactions)
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                            Spacer(Modifier.height(Spacing.xs))
+                            TextButton(onClick = onRetryReactions) {
+                                Text(stringResource(Res.string.retry))
+                            }
+                        }
+
+                        reactions.isEmpty() -> {
+                            Text(
+                                text = stringResource(Res.string.no_reactions_yet),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+
+                        else -> {
+                            reactions.forEach { detail ->
+                                ReactionGroup(
+                                    detail = detail,
+                                    imagePaths = reactionImagePaths,
+                                    shortcodes = reactionShortcodes,
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -454,6 +512,60 @@ private fun MessageInfoPreview(
         }
     }
 }
+
+@Composable
+private fun ReactionGroup(
+    detail: ReactionDetail,
+    imagePaths: Map<String, String>,
+    shortcodes: Map<String, String>,
+) {
+    val shown = detail.users.take(MAX_REACTORS_SHOWN)
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ReactionKeyLabel(
+                key = detail.key,
+                imagePath = imagePaths[detail.key],
+                shortcode = shortcodes[detail.key],
+            )
+            Spacer(Modifier.width(Spacing.sm))
+            Text(
+                text = detail.count.toString(),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        shown.forEach { user ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Avatar(
+                    name = user.displayName ?: user.userId,
+                    avatarPath = user.avatarPath,
+                    size = 28.dp,
+                )
+                Spacer(Modifier.width(Spacing.md))
+                Text(
+                    text = user.displayName ?: user.userId,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+        val hidden = detail.count - shown.size
+        if (hidden > 0) {
+            Text(
+                text = stringResource(Res.string.showing_first_reactors, shown.size),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+private const val MAX_REACTORS_SHOWN = 100
 
 @Composable
 private fun MessageInfoReaderRow(entry: SeenByEntry) {

@@ -3181,7 +3181,7 @@ impl CoreClient {
                     .map(|u| live.iter().any(|(sender, _)| *sender == u))
                     .unwrap_or(false);
                 let user_ids: Vec<String> =
-                    live.iter().take(3).map(|(u, _)| u.to_string()).collect();
+                    live.iter().map(|(u, _)| u.to_string()).collect();
                 out.push(ReactionSummary {
                     key: key.to_string(),
                     count,
