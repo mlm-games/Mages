@@ -310,6 +310,8 @@ class RoomViewModel(
 
     private companion object {
         const val MESSAGE_INFO_READERS_LIMIT = 100
+        const val MAX_REACTION_PROFILE_FETCHES = 50
+        const val MAX_REACTION_AVATARS = 100
         const val JUMP_SYNC_SETTLE_MS = 120L
         const val JUMP_SYNC_SETTLE_CYCLES = 18
         const val JUMP_MAX_PAGES = 30
@@ -3036,46 +3038,34 @@ class RoomViewModel(
         roomId: String,
         eventId: String,
     ) {
-        val summaries = runSafe { service.port.reactions(roomId, eventId) }
-        if (summaries == null) {
+        val loaded = runSafe { service.port.reactions(roomId, eventId) }
+        if (loaded == null) {
             if (isCurrentMessageInfoRequest(requestVersion, eventId)) {
+                val text = getString(Res.string.failed_to_load_reactions)
                 updateState {
                     copy(
                         isLoadingMessageInfoReactions = false,
-                        messageInfoReactionsError = getString(Res.string.failed_to_load_reactions),
+                        messageInfoReactionsError = text,
                     )
                 }
             }
             return
         }
+        val summaries = loaded.ifEmpty { currentState.messageInfoEvent?.reactions.orEmpty() }
 
         if (!isCurrentMessageInfoRequest(requestVersion, eventId)) return
 
         val members = currentState.roomMembers.associateBy { it.userId }
-        val unknown = summaries
-            .flatMap { it.userIds }
-            .distinct()
-            .filterNot(members::containsKey)
-        val profiles = coroutineScope {
-            unknown.map { userId ->
-                async { userId to service.profiles.resolve(userId) }
-            }.awaitAll()
-        }.toMap()
-
-        if (!isCurrentMessageInfoRequest(requestVersion, eventId)) return
-
         val details = summaries.map { summary ->
             ReactionDetail(
                 key = summary.key,
                 count = summary.count,
                 users = summary.userIds.map { userId ->
                     val member = members[userId]
-                    val profile = profiles[userId]
                     ReactionUser(
                         userId = userId,
-                        displayName = member?.displayName?.takeIf { it.isNotBlank() }
-                            ?: profile?.displayName,
-                        avatarUrl = member?.avatarUrl ?: profile?.avatarUrl,
+                        displayName = member?.displayName?.takeIf { it.isNotBlank() },
+                        avatarUrl = member?.avatarUrl,
                     )
                 },
             )
@@ -3088,30 +3078,78 @@ class RoomViewModel(
                 messageInfoReactions = details,
             )
         }
-        resolveMessageInfoReactionAvatars()
-    }
 
-    private fun resolveMessageInfoReactionAvatars() {
-        val users = currentState.messageInfoReactions
-            .flatMap { it.users }
-            .filter { it.avatarUrl != null && it.avatarPath == null }
-            .distinctBy { it.userId }
-        users.forEach { user ->
-            resolveAvatar(service, user.avatarUrl, 64) { path ->
+        val unknown = summaries
+            .flatMap { it.userIds }
+            .distinct()
+            .filterNot(members::containsKey)
+            .take(MAX_REACTION_PROFILE_FETCHES)
+        if (unknown.isNotEmpty()) {
+            val profiles = coroutineScope {
+                unknown.map { userId ->
+                    async { userId to service.profiles.resolve(userId) }
+                }.awaitAll()
+            }.toMap()
+
+            if (!isCurrentMessageInfoRequest(requestVersion, eventId)) return
+
+            updateState {
                 copy(
                     messageInfoReactions = messageInfoReactions.map { detail ->
                         detail.copy(
-                            users = detail.users.map { current ->
-                                if (current.userId == user.userId) {
-                                    current.copy(avatarPath = path)
+                            users = detail.users.map { user ->
+                                val profile = profiles[user.userId]
+                                if (profile == null) {
+                                    user
                                 } else {
-                                    current
+                                    user.copy(
+                                        displayName = user.displayName ?: profile.displayName,
+                                        avatarUrl = user.avatarUrl ?: profile.avatarUrl,
+                                    )
                                 }
                             }
                         )
                     }
                 )
             }
+        }
+
+        applyReactionAvatars(requestVersion, eventId)
+    }
+
+    private suspend fun applyReactionAvatars(requestVersion: Long, eventId: String) {
+        if (!isCurrentMessageInfoRequest(requestVersion, eventId)) return
+        val users = currentState.messageInfoReactions
+            .flatMap { it.users }
+            .filter { !it.avatarUrl.isNullOrBlank() && it.avatarPath == null }
+            .distinctBy { it.userId }
+            .take(MAX_REACTION_AVATARS)
+        if (users.isEmpty()) return
+
+        val paths = coroutineScope {
+            users.map { user ->
+                async {
+                    val url = user.avatarUrl ?: return@async null
+                    val path = runSafe { service.avatars.resolve(url, px = 64, crop = true) }
+                    if (path != null) user.userId to path else null
+                }
+            }.awaitAll()
+        }.filterNotNull().toMap()
+
+        if (paths.isEmpty()) return
+        if (!isCurrentMessageInfoRequest(requestVersion, eventId)) return
+
+        updateState {
+            copy(
+                messageInfoReactions = messageInfoReactions.map { detail ->
+                    detail.copy(
+                        users = detail.users.map { user ->
+                            val path = paths[user.userId]
+                            if (path != null) user.copy(avatarPath = path) else user
+                        }
+                    )
+                }
+            )
         }
     }
 
