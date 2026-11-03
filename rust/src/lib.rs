@@ -3856,7 +3856,7 @@ fn map_reply_preview(
                     MessageType::Location(_) => ReplyPreviewKind::Location,
                     _ => ReplyPreviewKind::Text,
                 };
-                let body = strip_reply_fallback(msg.body());
+                let body = reply_body(msg.body(), ml.in_reply_to.is_some());
                 let body = body.trim();
                 let text = if is_voice {
                     Some("Voice message".to_owned())
@@ -4097,11 +4097,7 @@ fn map_timeline_event(
                     attachment = extract_attachment(msg.msgtype());
                     is_edited = msg.is_edited();
                     let raw = msg.body();
-                    body = if reply_to_event_id.is_some() {
-                        strip_reply_fallback(raw)
-                    } else {
-                        raw.to_owned()
-                    };
+                    body = reply_body(raw, reply_to_event_id.is_some());
 
                     use matrix_sdk::ruma::events::room::message::MessageType;
                     match msg.msgtype() {
@@ -4619,7 +4615,9 @@ fn search_hit_from_event(
     let event: AnySyncTimelineEvent = ev.raw().deserialize().ok()?;
     let body = match event {
         AnySyncTimelineEvent::MessageLike(AnySyncMessageLikeEvent::RoomMessage(message)) => {
-            room_message_search_body(&message.as_original()?.content.msgtype)
+            let content = &message.as_original()?.content;
+            let body = room_message_search_body(&content.msgtype)?;
+            Some(reply_body(&body, is_reply_content(content)))
         }
         AnySyncTimelineEvent::MessageLike(AnySyncMessageLikeEvent::Sticker(sticker)) => {
             let body = sticker.as_original()?.content.body.trim().to_owned();
@@ -5034,7 +5032,7 @@ fn render_timeline_text(ev: &EventTimelineItem) -> String {
 fn render_msg_like(_ev: &EventTimelineItem, ml: &MsgLikeContent) -> String {
     use MsgLikeKind::*;
     match &ml.kind {
-        Message(m) => render_message_text(m),
+        Message(m) => render_message_text(m, ml.in_reply_to.is_some()),
         Sticker(_s) => "sent a sticker".to_string(),
         Poll(_p) => "started a poll".to_string(),
         Redacted => "Message deleted".to_string(),
@@ -5044,8 +5042,8 @@ fn render_msg_like(_ev: &EventTimelineItem, ml: &MsgLikeContent) -> String {
     }
 }
 
-fn render_message_text(msg: &matrix_sdk_ui::timeline::Message) -> String {
-    let s = msg.body().to_owned();
+fn render_message_text(msg: &matrix_sdk_ui::timeline::Message, is_reply: bool) -> String {
+    let s = reply_body(msg.body(), is_reply);
     if s.trim().is_empty() {
         "Encrypted or unsupported message. Verify this session or restore keys to view.".to_owned()
     } else {
@@ -5144,7 +5142,7 @@ fn map_latest_event_from_content(
                     if is_verification_request(m.msgtype()) {
                         return None;
                     }
-                    let text = render_message_text(m);
+                    let text = render_message_text(m, ml.in_reply_to.is_some());
                     if text.trim().is_empty() {
                         return None;
                     }
@@ -5353,7 +5351,7 @@ fn try_map_timeline_event(
                 if is_verification_request(m.msgtype()) {
                     return None;
                 }
-                let text = render_message_text(m);
+                let text = render_message_text(m, ml.in_reply_to.is_some());
                 if text.trim().is_empty() {
                     return None;
                 }
@@ -5468,49 +5466,96 @@ fn try_map_timeline_event(
 }
 
 fn strip_reply_fallback_html(html: &str) -> String {
-    const OPEN: &str = "<blockquote>";
-    const CLOSE: &str = "</blockquote>";
+    let mut current = html.to_owned();
+    loop {
+        let next = strip_reply_fallback_html_once(&current);
+        if next == current {
+            return current;
+        }
+        current = next;
+    }
+}
 
-    let Some(rest) = html.trim_start().strip_prefix(OPEN) else {
+fn strip_reply_fallback_html_once(html: &str) -> String {
+    const REPLY_OPEN: &str = "<mx-reply>";
+    const REPLY_CLOSE: &str = "</mx-reply>";
+    const QUOTE_OPEN: &str = "<blockquote>";
+    const QUOTE_CLOSE: &str = "</blockquote>";
+
+    let trimmed = html.trim_start();
+
+    if let Some(rest) = trimmed.strip_prefix(REPLY_OPEN) {
+        let Some(end) = rest.find(REPLY_CLOSE) else {
+            return html.to_owned();
+        };
+        return rest[end + REPLY_CLOSE.len()..].trim_start().to_owned();
+    }
+
+    let Some(rest) = trimmed.strip_prefix(QUOTE_OPEN) else {
         return html.to_owned();
     };
-    let Some(end) = rest.find(CLOSE) else {
+    let Some(end) = blockquote_end(rest) else {
         return html.to_owned();
     };
     if !rest[..end].contains("In reply to") {
         return html.to_owned();
     }
-    rest[end + CLOSE.len()..].trim_start().to_owned()
+    rest[end + QUOTE_CLOSE.len()..].trim_start().to_owned()
+}
+
+fn blockquote_end(rest: &str) -> Option<usize> {
+    const OPEN: &str = "<blockquote>";
+    const CLOSE: &str = "</blockquote>";
+
+    let mut depth = 1usize;
+    let mut offset = 0usize;
+    loop {
+        let open = rest[offset..].find(OPEN).map(|index| offset + index);
+        let close = rest[offset..].find(CLOSE).map(|index| offset + index);
+        let (index, opening) = match (open, close) {
+            (Some(open), Some(close)) if open < close => (open, true),
+            (Some(_), Some(close)) => (close, false),
+            (Some(open), None) => (open, true),
+            (None, Some(close)) => (close, false),
+            (None, None) => return None,
+        };
+        if opening {
+            depth += 1;
+            offset = index + OPEN.len();
+        } else {
+            depth -= 1;
+            if depth == 0 {
+                return Some(index);
+            }
+            offset = index + CLOSE.len();
+        }
+    }
+}
+
+fn reply_body(body: &str, is_reply: bool) -> String {
+    if is_reply {
+        strip_reply_fallback(body)
+    } else {
+        body.to_owned()
+    }
+}
+
+fn is_reply_content(
+    content: &matrix_sdk::ruma::events::room::message::RoomMessageEventContent,
+) -> bool {
+    matches!(
+        &content.relates_to,
+        Some(matrix_sdk::ruma::events::room::message::Relation::Reply(_))
+    )
 }
 
 fn strip_reply_fallback(body: &str) -> String {
-    let _lines = body.lines();
-    let mut consumed = 0usize;
-    // Consume leading quoted lines (starting with '>')
-    for l in body.lines() {
-        if l.starts_with('>') {
-            consumed += 1;
-        } else {
-            break;
-        }
-    }
-    // Optionally consume a single blank line after the quote block
-    let remaining: Vec<&str> = body.lines().collect();
-    let mut start = consumed;
-    if start < remaining.len() && remaining[start].trim().is_empty() && consumed > 0 {
-        start += 1;
-    }
-    remaining[start..]
-        .join("\n")
-        .if_empty_then(|| body.to_owned())
-}
-
-trait IfEmptyThen {
-    fn if_empty_then<F: FnOnce() -> String>(self, f: F) -> String;
-}
-impl IfEmptyThen for String {
-    fn if_empty_then<F: FnOnce() -> String>(self, f: F) -> String {
-        if self.trim().is_empty() { f() } else { self }
+    let stripped =
+        matrix_sdk::ruma::events::room::message::sanitize::remove_plain_reply_fallback(body);
+    if stripped.trim().is_empty() {
+        body.to_owned()
+    } else {
+        stripped.to_owned()
     }
 }
 
@@ -6075,6 +6120,7 @@ fn classify_notification_content(
             let Some(orig) = ev.as_original() else {
                 return NotificationContent::unknown();
             };
+            let is_reply = is_reply_content(&orig.content);
 
             if let Some(attachment) = extract_attachment(&orig.content.msgtype) {
                 let is_voice = attachment.is_voice.unwrap_or(false)
@@ -6085,7 +6131,10 @@ fn classify_notification_content(
                     );
                 let mut attachment = attachment;
                 attachment.is_voice = Some(is_voice);
-                return NotificationContent::media(&attachment, orig.content.body().to_owned());
+                return NotificationContent::media(
+                    &attachment,
+                    reply_body(orig.content.body(), is_reply),
+                );
             }
 
             if let matrix_sdk::ruma::events::room::message::MessageType::Location(loc) =
@@ -6106,8 +6155,13 @@ fn classify_notification_content(
                 }
                 _ => None,
             };
+            let formatted_body = if is_reply {
+                formatted_body.map(|html| strip_reply_fallback_html(&html))
+            } else {
+                formatted_body
+            };
 
-            NotificationContent::text(orig.content.body().to_owned(), formatted_body)
+            NotificationContent::text(reply_body(orig.content.body(), is_reply), formatted_body)
         }
         AnySyncMessageLikeEvent::Reaction(ev) => {
             let Some(orig) = ev.as_original() else {
@@ -6289,11 +6343,51 @@ mod media_cache_naming_tests {
 
 #[cfg(test)]
 mod reply_fallback_tests {
-    use super::strip_reply_fallback_html;
+    use super::{reply_body, strip_reply_fallback_html};
 
     #[test]
-    fn leaked_reply_fallback_is_removed() {
-        let html = "<blockquote><a href=\"https://matrix.to/#/!r/$e\">In reply to</a> <a href=\"https://matrix.to/#/@a:b\">A</a><br>quoted</blockquote>answer";
+    fn edited_reply_fallback_is_removed() {
+        let html = "<mx-reply><blockquote><a href=\"https://matrix.to/#/!r/$e?via=x\">In reply to</a> <a href=\"https://matrix.to/#/@a:b\">A</a><br>quoted</blockquote></mx-reply>answer";
+        assert_eq!(strip_reply_fallback_html(html), "answer");
+    }
+
+    #[test]
+    fn stacked_reply_fallback_is_removed() {
+        let html = "<mx-reply><blockquote>In reply to</blockquote></mx-reply><mx-reply><blockquote>In reply to</blockquote></mx-reply>answer";
+        assert_eq!(strip_reply_fallback_html(html), "answer");
+    }
+
+    #[test]
+    fn localized_wrapped_fallback_is_removed() {
+        let html = "<mx-reply><blockquote><a href=\"https://matrix.to/#/!r/$e\">Als Antwort auf</a><br>zitiert</blockquote></mx-reply>antwort";
+        assert_eq!(strip_reply_fallback_html(html), "antwort");
+    }
+
+    #[test]
+    fn sanitized_edit_fallback_is_removed() {
+        use matrix_sdk::ruma::events::room::message::{MessageType, RoomMessageEventContent};
+        use matrix_sdk::ruma::html::{HtmlSanitizerMode, RemoveReplyFallback};
+
+        let mut content: RoomMessageEventContent = serde_json::from_value(serde_json::json!({
+            "msgtype": "m.text",
+            "body": "> <@a101.b202:matrix.org> quoted\n\nanswer",
+            "format": "org.matrix.custom.html",
+            "formatted_body": "<mx-reply><blockquote><a href=\"https://matrix.to/#/!r/$e\">In reply to</a> <a href=\"https://matrix.to/#/@a101.b202:matrix.org\">A101</a><br />quoted</blockquote></mx-reply>answer"
+        }))
+        .unwrap();
+
+        content.sanitize(HtmlSanitizerMode::Compat, RemoveReplyFallback::No);
+
+        let MessageType::Text(text) = &content.msgtype else {
+            panic!("expected a text message");
+        };
+        let html = &text.formatted.as_ref().unwrap().body;
+        assert_eq!(strip_reply_fallback_html(html), "answer");
+    }
+
+    #[test]
+    fn nested_blockquote_fallback_is_removed() {
+        let html = "<blockquote><a href=\"https://matrix.to/#/!r/$e\">In reply to</a><br><blockquote>older</blockquote></blockquote>answer";
         assert_eq!(strip_reply_fallback_html(html), "answer");
     }
 
@@ -6301,5 +6395,17 @@ mod reply_fallback_tests {
     fn user_blockquote_is_kept() {
         let html = "<blockquote>quoted</blockquote>answer";
         assert_eq!(strip_reply_fallback_html(html), html);
+    }
+
+    #[test]
+    fn quote_is_kept_for_non_replies() {
+        let body = "> quoted\nanswer";
+        assert_eq!(reply_body(body, false), body);
+    }
+
+    #[test]
+    fn fallback_is_removed_for_replies() {
+        let body = "> <@a:b> quoted\n> lines\n\nanswer";
+        assert_eq!(reply_body(body, true), "answer");
     }
 }
