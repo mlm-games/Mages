@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.Placeholder
@@ -46,6 +47,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.takeOrElse
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
@@ -55,8 +57,10 @@ import com.fleeksoft.ksoup.nodes.Element
 import com.fleeksoft.ksoup.nodes.Node
 import com.fleeksoft.ksoup.nodes.TextNode
 import org.mlm.mages.LocalMessageFontSize
+import org.mlm.mages.nav.MatrixLink
 import org.mlm.mages.nav.isMatrixPermalink
 import org.mlm.mages.nav.matrixUserIdFromLink
+import org.mlm.mages.nav.parseMatrixLink
 
 private val MXC_SRC_ATTR = Regex("""\ssrc\s*=\s*["']?(mxc://[^"'\s>]+)""", RegexOption.IGNORE_CASE)
 
@@ -165,11 +169,17 @@ private const val SPOILER_TAG = "mages-spoiler"
 /** Inline-content key prefix for a mention pill, which is keyed by user ID. */
 private const val MENTION_KEY_PREFIX = "mention:"
 
+/** Inline-content key prefix for a room pill, which is keyed by target and label. */
+private const val ROOM_KEY_PREFIX = "mention:room:"
+
+/** Bounds the room pills one message can ask a client to measure and lay out. */
+private const val MAX_ROOM_PILLS = 32
+
 /** Inline-content key for the `@room` pill, which has no user behind it. */
-private const val MENTION_ROOM_KEY = "mention:@room"
+private const val EVERYONE_KEY = "mention:@room"
 
 /** What `@room` is labelled with, which the spec fixes. */
-private const val ROOM_LABEL = "@room"
+private const val EVERYONE_LABEL = "@room"
 
 /** Schemes a link may not point at (anything else renders as plain text) */
 private val BLOCKED_SCHEMES = listOf("javascript:", "data:", "vbscript:", "file:")
@@ -177,7 +187,12 @@ private val BLOCKED_SCHEMES = listOf("javascript:", "data:", "vbscript:", "file:
 private val WHITESPACE_RUN = Regex("[ \\t\\u000B\\u000C\\r]+")
 
 /** `@room` as a standalone word, which is what `m.mentions.room` refers to. */
-private val ROOM_MENTION = Regex("(?<![\\w@])@room(?![\\w@])")
+private val EVERYONE_MENTION = Regex("(?<![\\w@])@room(?![\\w@])")
+
+/** A room alias in plain text, which Element X also renders as a pill. */
+private val ROOM_ALIAS = Regex(
+    """(?<![\w#/])#[A-Za-z0-9._=\-/+]+:[A-Za-z0-9](?:[A-Za-z0-9.\-]*[A-Za-z0-9])?(?::[0-9]{2,5})?"""
+)
 
 /** An inline `<img src="mxc://…">`. [path] is the resolved local file, if fetched. */
 data class EmoteRef(
@@ -197,12 +212,21 @@ data class MentionRef(
     val avatarPath: String? = null,
 )
 
+/** A room link or alias shown as a pill rather than as a link. */
+data class RoomMentionRef(
+    val target: String,
+    val label: String,
+    val permalink: String,
+)
+
 class MentionPillLayout(
     val widthByUserId: Map<String, TextUnit>,
+    val widthByRoomLabel: Map<String, TextUnit> = emptyMap(),
     val height: TextUnit,
     val background: Color,
     val content: Color,
-    val roomWidth: TextUnit? = null,
+    val fontSize: TextUnit,
+    val everyoneWidth: TextUnit? = null,
 )
 
 /** A run of text the sender marked as hidden, addressed by its position in the body. */
@@ -233,16 +257,41 @@ fun parseFormattedBody(
     revealed: Set<Int> = emptySet(),
     onReveal: (Int) -> Unit = {},
     mentionRefs: Map<String, MentionRef> = emptyMap(),
+    roomRefs: Map<String, RoomMentionRef> = emptyMap(),
     pillLayout: MentionPillLayout? = null,
     onMentionClick: (String) -> Unit = {},
     quoteRailColor: Color? = null,
 ): FormattedBody {
     val builder = Builder(
-        emotePaths, conceal, revealed, onReveal, mentionRefs, pillLayout, onMentionClick, quoteRailColor
+        emotePaths, conceal, revealed, onReveal, mentionRefs, roomRefs, pillLayout, onMentionClick, quoteRailColor
     )
     builder.walk(Ksoup.parse(html).body())
     return builder.build()
 }
+
+/** A pill found in a text node: `@room` when [roomAlias] is null, else a room alias. */
+private class TextPillMatch(val range: IntRange, val roomAlias: String?)
+
+private fun roomAliasRef(alias: String) = RoomMentionRef(
+    target = alias,
+    label = alias,
+    permalink = roomPermalink(alias),
+)
+
+private fun roomPermalink(target: String, via: List<String> = emptyList()): String {
+    val base = "https://matrix.to/#/" + target
+    if (via.isEmpty()) return base
+    return base + "?via=" + via.joinToString("&via=")
+}
+
+private const val ROOM_REF_SEPARATOR = '\u0000'
+
+private fun isMatrixHref(href: String): Boolean =
+    href.startsWith("matrix:", ignoreCase = true) || href.contains("://")
+
+private fun anchorLabel(element: Element): String? =
+    element.text().replace(WHITESPACE_RUN, " ").trim()
+        .takeIf { it.isNotEmpty() && it.length <= MAX_LINK_MENTION_LABEL }
 
 private fun trimUrlTail(url: String): String {
     var end = url.length
@@ -304,6 +353,7 @@ private class Builder(
     private val revealed: Set<Int>,
     private val onReveal: (Int) -> Unit,
     private val mentionRefs: Map<String, MentionRef> = emptyMap(),
+    private val roomRefs: Map<String, RoomMentionRef> = emptyMap(),
     private val pillLayout: MentionPillLayout? = null,
     private val onMentionClick: (String) -> Unit = {},
     private val quoteRailColor: Color? = null,
@@ -320,6 +370,7 @@ private class Builder(
     private var tableCellStart = 0
     private var inTableCell = false
     private var preDepth = 0
+    private var roomPills = 0
 
     fun build() = FormattedBody(text.toAnnotatedString(), inlineContent)
 
@@ -405,6 +456,8 @@ private class Builder(
                 appendMention(mention)
                 return
             }
+            val room = roomMentionOf(element)
+            if (room != null && appendRoomMention(room)) return
         }
 
         if (tag == "ul" || tag == "ol") {
@@ -564,6 +617,18 @@ private class Builder(
         return if (pillLayout.widthByUserId.containsKey(userId)) ref else null
     }
 
+    private fun roomMentionOf(element: Element): RoomMentionRef? {
+        if (roomRefs.isEmpty() || pillLayout == null) return null
+        val href = element.attr("href").trim()
+        if (href.isEmpty() || !isMatrixHref(href)) return null
+        val link = parseMatrixLink(href)
+        if (link !is MatrixLink.Room || link.target.eventId != null) return null
+        val label = anchorLabel(element) ?: return null
+        val key = link.target.roomIdOrAlias + ROOM_REF_SEPARATOR + label
+        val ref = roomRefs[key] ?: return null
+        return if (pillLayout.widthByRoomLabel.containsKey(label)) ref else null
+    }
+
     private fun appendMention(ref: MentionRef) {
         val layout = pillLayout ?: return
         val width = layout.widthByUserId[ref.userId] ?: return
@@ -583,12 +648,45 @@ private class Builder(
                     avatarPath = ref.avatarPath,
                     background = layout.background,
                     content = layout.content,
+                    fontSize = layout.fontSize,
                     onClick = { onMentionClick(ref.userId) },
                 )
             }
         }
         text.appendInlineContent(id, alternateText = ref.label)
         atLineStart = false
+    }
+
+    private fun appendRoomMention(ref: RoomMentionRef): Boolean {
+        val layout = pillLayout ?: return false
+        if (roomPills >= MAX_ROOM_PILLS) return false
+        val width = layout.widthByRoomLabel[ref.label] ?: return false
+        roomPills++
+        val id = ROOM_KEY_PREFIX + ref.target + ':' + ref.label
+        appendQuoteRail()
+
+        inlineContent.getOrPut(id) {
+            InlineTextContent(
+                placeholder = Placeholder(
+                    width = width,
+                    height = layout.height,
+                    placeholderVerticalAlign = PlaceholderVerticalAlign.Center,
+                )
+            ) {
+                MentionPill(
+                    label = ref.label,
+                    avatarPath = null,
+                    background = layout.background,
+                    content = layout.content,
+                    fontSize = layout.fontSize,
+                    onClick = null,
+                    url = ref.permalink,
+                )
+            }
+        }
+        text.appendInlineContent(id, alternateText = ref.label)
+        atLineStart = false
+        return true
     }
 
     private fun styleFor(tag: String, isLink: Boolean): SpanStyle? = when {
@@ -610,31 +708,56 @@ private class Builder(
         if (collapsed.isEmpty()) return
         appendQuoteRail()
 
-        val roomWidth = pillLayout?.roomWidth
-        if (roomWidth != null) {
-            var roomCursor = 0
-            for (match in ROOM_MENTION.findAll(collapsed)) {
-                if (match.range.first > roomCursor) {
-                    appendPlain(collapsed.substring(roomCursor, match.range.first), linkify)
-                }
-                appendRoomPill(roomWidth)
-                roomCursor = match.range.last + 1
-            }
-            if (roomCursor == 0) {
-                appendPlain(collapsed, linkify)
-                return
-            }
-            if (roomCursor < collapsed.length) appendPlain(collapsed.substring(roomCursor), linkify)
-            else atLineStart = false
+        val matches = if (linkify) textPillMatches(collapsed) else emptyList()
+        if (matches.isEmpty()) {
+            appendPlain(collapsed, linkify)
             return
         }
 
-        appendPlain(collapsed, linkify)
+        var cursor = 0
+        for (match in matches) {
+            if (match.range.first > cursor) {
+                appendPlain(collapsed.substring(cursor, match.range.first), linkify)
+            }
+            if (match.roomAlias != null) {
+                if (!appendRoomMention(roomAliasRef(match.roomAlias))) {
+                    appendPlain(match.roomAlias, linkify)
+                }
+            } else {
+                appendEveryonePill()
+            }
+            cursor = match.range.last + 1
+        }
+        if (cursor < collapsed.length) {
+            appendPlain(collapsed.substring(cursor), linkify)
+        } else {
+            atLineStart = false
+        }
     }
 
-    private fun appendRoomPill(width: TextUnit) {
+    private fun textPillMatches(text: String): List<TextPillMatch> {
+        val layout = pillLayout ?: return emptyList()
+        val out = mutableListOf<TextPillMatch>()
+        if (layout.everyoneWidth != null) {
+            EVERYONE_MENTION.findAll(text).forEach { out += TextPillMatch(it.range, null) }
+        }
+        if (layout.widthByRoomLabel.isNotEmpty()) {
+            val urls = BARE_URL.findAll(text).map { it.range }.toList()
+            ROOM_ALIAS.findAll(text).forEach { match ->
+                if (urls.any { match.range.first in it }) return@forEach
+                if (!layout.widthByRoomLabel.containsKey(match.value)) return@forEach
+                out += TextPillMatch(match.range, match.value)
+            }
+        }
+        if (out.size < 2) return out
+        out.sortBy { it.range.first }
+        return out
+    }
+
+    private fun appendEveryonePill() {
         val layout = pillLayout ?: return
-        val id = MENTION_ROOM_KEY
+        val width = layout.everyoneWidth ?: return
+        val id = EVERYONE_KEY
         appendQuoteRail()
         inlineContent.getOrPut(id) {
             InlineTextContent(
@@ -644,10 +767,12 @@ private class Builder(
                     placeholderVerticalAlign = PlaceholderVerticalAlign.Center,
                 )
             ) {
-                MentionPill(ROOM_LABEL, null, layout.background, layout.content, null)
+                MentionPill(
+                    EVERYONE_LABEL, null, layout.background, layout.content, layout.fontSize, null
+                )
             }
         }
-        text.appendInlineContent(id, alternateText = ROOM_LABEL)
+        text.appendInlineContent(id, alternateText = EVERYONE_LABEL)
         atLineStart = false
     }
 
@@ -789,15 +914,20 @@ private fun MentionPill(
     avatarPath: String?,
     background: Color,
     content: Color,
+    fontSize: TextUnit,
     onClick: (() -> Unit)?,
+    url: String? = null,
 ) {
-    val fontSize = LocalMessageFontSize.current
+    val uriHandler = LocalUriHandler.current
+    val click: (() -> Unit)? = onClick ?: url?.let { target ->
+        { runCatching { uriHandler.openUri(target) } }
+    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .clip(RoundedCornerShape(mentionCornerRadius))
             .background(background, RoundedCornerShape(mentionCornerRadius))
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(if (click != null) Modifier.clickable(onClick = click) else Modifier)
             .padding(horizontal = mentionPaddingHorizontal, vertical = mentionPaddingVertical),
     ) {
         avatarPath?.let { path ->
@@ -820,7 +950,7 @@ private fun MentionPill(
             maxLines = 1,
             softWrap = false,
             overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.bodyMedium.copy(fontSize = fontSize.sp)
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = fontSize)
         )
     }
 }
@@ -860,24 +990,37 @@ fun FormattedBodyText(
     val revealed = remember { mutableStateSetOf<Int>() }
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
-    val linkedMentionRefs = remember(formattedBody) { mentionRefsFromLinks(formattedBody) }
-    val allMentionRefs = remember(linkedMentionRefs, mentionRefs) {
-        linkedMentionRefs + mentionRefs
+    val linkedMentions = remember(formattedBody) { linkedMentionsFrom(formattedBody) }
+    val allMentionRefs = remember(linkedMentions, mentionRefs) {
+        linkedMentions.users + mentionRefs
+    }
+    val pillFontSize = baseStyle.fontSize.takeOrElse { LocalMessageFontSize.current.sp }
+    val rawRoomLabels = remember(fallbackBody) {
+        buildSet {
+            for (match in ROOM_ALIAS.findAll(fallbackBody)) {
+                add(match.value)
+                if (size >= MAX_ROOM_PILLS) break
+            }
+        }
     }
 
     // The pill is tinted from the bubble's own text colour, the way the file-attachment box
     // is, so it reads as an inset of the bubble instead of a themed block laid over it. That
     // keeps it legible on both the sent and received bubbles without a colour per variant.
     val pillLayout = remember(
-        allMentionRefs, mentionsRoom, measurer, density, color, baseStyle
+        allMentionRefs, linkedMentions.rooms, rawRoomLabels, mentionsRoom,
+        measurer, density, color, baseStyle
     ) {
         measureMentionPills(
             refs = allMentionRefs,
+            roomRefs = linkedMentions.rooms,
+            rawRoomLabels = rawRoomLabels,
             mentionsRoom = mentionsRoom,
             measurer = measurer,
             style = baseStyle,
             density = density,
             content = color,
+            fontSize = pillFontSize,
         )
     }
 
@@ -894,6 +1037,7 @@ fun FormattedBodyText(
                 revealed = revealed.toSet(),
                 onReveal = { revealed.add(it) },
                 mentionRefs = allMentionRefs,
+                roomRefs = linkedMentions.rooms,
                 pillLayout = pillLayout,
                 onMentionClick = { userId -> onMentionClick?.invoke(userId) },
                 quoteRailColor = color.copy(alpha = 0.45f),
@@ -962,40 +1106,69 @@ fun TopicText(
     )
 }
 
-private fun mentionRefsFromLinks(html: String?): Map<String, MentionRef> {
-    if (html == null) return emptyMap()
-    val hasUserLink = html.contains("matrix.to/#/@", ignoreCase = true) ||
-        html.contains("matrix.to/#/%40", ignoreCase = true) ||
-        html.contains("matrix:u/", ignoreCase = true) ||
-        html.contains("matrix:user/", ignoreCase = true)
-    if (!hasUserLink) return emptyMap()
+private class LinkedMentions(
+    val users: Map<String, MentionRef> = emptyMap(),
+    val rooms: Map<String, RoomMentionRef> = emptyMap(),
+)
 
-    val refs = LinkedHashMap<String, MentionRef>()
+private fun linkedMentionsFrom(html: String?): LinkedMentions {
+    if (html == null) return LinkedMentions()
+    val hasMatrixLink = html.contains("matrix.to/", ignoreCase = true) ||
+        html.contains("matrix:", ignoreCase = true)
+    if (!hasMatrixLink) return LinkedMentions()
+
+    val users = LinkedHashMap<String, MentionRef>()
+    val rooms = LinkedHashMap<String, RoomMentionRef>()
     for (anchor in Ksoup.parse(html).body().getElementsByTag("a")) {
-        if (refs.size >= MAX_LINK_MENTIONS) break
-        val userId = matrixUserIdFromLink(anchor.attr("href").trim()) ?: continue
-        if (userId in refs) continue
-        val label = anchor.text().replace(WHITESPACE_RUN, " ").trim()
-        if (label.isEmpty() || label.length > MAX_LINK_MENTION_LABEL) continue
-        refs[userId] = MentionRef(userId, label)
+        if (users.size + rooms.size >= MAX_LINK_MENTIONS) break
+        val href = anchor.attr("href").trim()
+        if (href.isEmpty() || !isMatrixHref(href)) continue
+        val label = anchorLabel(anchor) ?: continue
+        when (val link = parseMatrixLink(href)) {
+            is MatrixLink.User -> if (link.mxid !in users) {
+                users[link.mxid] = MentionRef(link.mxid, label)
+            }
+
+            is MatrixLink.Room -> {
+                val target = link.target
+                if (target.eventId == null) {
+                    val key = target.roomIdOrAlias + ROOM_REF_SEPARATOR + label
+                    if (key !in rooms) {
+                        rooms[key] = RoomMentionRef(
+                            target = target.roomIdOrAlias,
+                            label = label,
+                            permalink = roomPermalink(target.roomIdOrAlias, target.via),
+                        )
+                    }
+                }
+            }
+
+            MatrixLink.Unsupported -> Unit
+        }
     }
-    return refs
+    return LinkedMentions(users, rooms)
 }
 
 private fun measureMentionPills(
     refs: Map<String, MentionRef>,
+    roomRefs: Map<String, RoomMentionRef>,
+    rawRoomLabels: Set<String>,
     mentionsRoom: Boolean,
     measurer: TextMeasurer,
     style: TextStyle,
     density: Density,
     content: Color,
+    fontSize: TextUnit,
 ): MentionPillLayout? {
-    if (refs.isEmpty() && !mentionsRoom) return null
+    val anchorLabels = roomRefs.values.map { it.label }.distinct().take(MAX_ROOM_PILLS)
+    val roomLabels = (anchorLabels + rawRoomLabels.take(MAX_ROOM_PILLS)).distinct()
+    if (refs.isEmpty() && !mentionsRoom && roomLabels.isEmpty()) return null
 
     // A placeholder is sized in sp, which the layouter converts back to px with the same
     // density and font scale the measurement used, so the reserved box matches what the
     // pill then draws.
     val widths = LinkedHashMap<String, TextUnit>(refs.size)
+    val roomLabelWidths = LinkedHashMap<String, TextUnit>(roomLabels.size)
     with(density) {
         refs.forEach { (userId, ref) ->
             val labelPx = measurer.measure(ref.label, style).size.width
@@ -1008,20 +1181,30 @@ private fun measureMentionPills(
             widths[userId] = (labelPx + chromePx + MENTION_PLACEHOLDER_SLACK_PX).toSp()
         }
 
+        roomLabels.forEach { label ->
+            val labelPx = measurer.measure(label, style).size.width
+            roomLabelWidths[label] = (
+                labelPx + mentionPaddingHorizontal.roundToPx() * 2 +
+                    MENTION_PLACEHOLDER_SLACK_PX
+                ).toSp()
+        }
+
         val lineHeightPx = measurer.measure("Ag", style).size.height.toFloat()
         val heightPx = maxOf(mentionChromeHeight.toPx(), lineHeightPx)
-        val roomWidth = if (mentionsRoom) {
-            val labelPx = measurer.measure(ROOM_LABEL, style).size.width
+        val everyoneWidth = if (mentionsRoom) {
+            val labelPx = measurer.measure(EVERYONE_LABEL, style).size.width
             (labelPx + mentionPaddingHorizontal.roundToPx() * 2 + MENTION_PLACEHOLDER_SLACK_PX).toSp()
         } else {
             null
         }
         return MentionPillLayout(
             widthByUserId = widths,
+            widthByRoomLabel = roomLabelWidths,
             height = heightPx.toSp(),
             background = content.copy(alpha = MENTION_TINT_ALPHA),
             content = content,
-            roomWidth = roomWidth,
+            fontSize = fontSize,
+            everyoneWidth = everyoneWidth,
         )
     }
 }
