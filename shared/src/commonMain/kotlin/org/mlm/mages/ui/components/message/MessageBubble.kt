@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.contentDescription
@@ -143,15 +144,19 @@ fun MessageBubble(
     val bubbleContainerColor = if (isRedacted) {
         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
     } else if (isMine) {
-        MaterialTheme.colorScheme.primaryContainer
+        lerp(
+            MaterialTheme.colorScheme.primaryContainer,
+            MaterialTheme.colorScheme.surface,
+            0.45f
+        )
     } else {
-        MaterialTheme.colorScheme.secondaryContainer
+        MaterialTheme.colorScheme.surfaceContainerHigh
     }
 
-    val bubbleTextColor = if (!isRedacted && isMine) {
-        MaterialTheme.colorScheme.onPrimaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
+    val bubbleTextColor = when {
+        isRedacted -> MaterialTheme.colorScheme.onSurfaceVariant
+        isMine -> MaterialTheme.colorScheme.onPrimaryContainer
+        else -> MaterialTheme.colorScheme.onSurface
     }
 
     Column(

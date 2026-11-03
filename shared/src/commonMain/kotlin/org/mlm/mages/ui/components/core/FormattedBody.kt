@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
@@ -107,9 +108,12 @@ private const val MENTION_PLACEHOLDER_SLACK_PX = 1f
 /** Matches the tint the file-attachment box uses, so both inset elements agree. */
 private const val MENTION_TINT_ALPHA = 0.15f
 
-private val LINK_COLOR = Color(0xFF1A73E8)
+private val LINK_ON_LIGHT = Color(0xFF0B57D0)
+private val LINK_ON_DARK = Color(0xFF8AB4F8)
 
-private val LINK_STYLE = SpanStyle(color = LINK_COLOR, textDecoration = TextDecoration.Underline)
+/** The link blue that stays legible on [background]. */
+fun linkColorOn(background: Color): Color =
+    if (background.luminance() > 0.5f) LINK_ON_LIGHT else LINK_ON_DARK
 
 private val BARE_URL = Regex(
     """(?:https?://|www\.)[0-9A-Za-z][^\s<>"']*""",
@@ -261,9 +265,11 @@ fun parseFormattedBody(
     pillLayout: MentionPillLayout? = null,
     onMentionClick: (String) -> Unit = {},
     quoteRailColor: Color? = null,
+    linkColor: Color = LINK_ON_LIGHT,
 ): FormattedBody {
     val builder = Builder(
-        emotePaths, conceal, revealed, onReveal, mentionRefs, roomRefs, pillLayout, onMentionClick, quoteRailColor
+        emotePaths, conceal, revealed, onReveal, mentionRefs, roomRefs, pillLayout, onMentionClick,
+        quoteRailColor, linkColor
     )
     builder.walk(Ksoup.parse(html).body())
     return builder.build()
@@ -357,9 +363,11 @@ private class Builder(
     private val pillLayout: MentionPillLayout? = null,
     private val onMentionClick: (String) -> Unit = {},
     private val quoteRailColor: Color? = null,
+    private val linkColor: Color = LINK_ON_LIGHT,
 ) {
     private val text = AnnotatedString.Builder()
     private val inlineContent = mutableMapOf<String, InlineTextContent>()
+    private val linkStyle = SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)
     private var spoilers = 0
     private val listStack = ArrayDeque<ListContext>()
     private var atLineStart = true
@@ -564,7 +572,7 @@ private class Builder(
             text.pushLink(
                 LinkAnnotation.Url(
                     url = link,
-                    styles = TextLinkStyles(SpanStyle(color = LINK_COLOR))
+                    styles = TextLinkStyles(SpanStyle(color = linkColor))
                 )
             )
         }
@@ -702,7 +710,7 @@ private class Builder(
         tag in UNDERLINE_TAGS -> SpanStyle(textDecoration = TextDecoration.Underline)
         tag in STRIKE_TAGS -> SpanStyle(textDecoration = TextDecoration.LineThrough)
         tag == "code" -> SpanStyle(fontFamily = FontFamily.Monospace)
-        isLink -> LINK_STYLE
+        isLink -> linkStyle
         else -> null
     }
 
@@ -798,11 +806,11 @@ private class Builder(
             if (start > 0 && isAsciiLetterOrDigit(collapsed[start - 1])) continue
             val url = trimUrlTail(match.value)
             if (start > cursor) text.append(collapsed.substring(cursor, start))
-            text.pushStyle(LINK_STYLE)
+            text.pushStyle(linkStyle)
             text.pushLink(
                 LinkAnnotation.Url(
                     url = absoluteUrl(url),
-                    styles = TextLinkStyles(SpanStyle(color = LINK_COLOR))
+                    styles = TextLinkStyles(SpanStyle(color = linkColor))
                 )
             )
             text.append(url)
@@ -1048,6 +1056,7 @@ fun FormattedBodyText(
                 pillLayout = pillLayout,
                 onMentionClick = { userId -> onMentionClick?.invoke(userId) },
                 quoteRailColor = color.copy(alpha = 0.45f),
+                linkColor = linkColorOn(containerColor),
             )
         }
     }

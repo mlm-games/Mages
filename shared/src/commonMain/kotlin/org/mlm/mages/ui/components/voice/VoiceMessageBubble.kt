@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import mages.shared.generated.resources.*
@@ -61,8 +62,15 @@ fun VoiceMessageBubble(
     }
     val displayDuration = playingDuration ?: lastKnownDuration
 
-    val bubbleColor = if (isMine) MaterialTheme.colorScheme.primaryContainer
-    else MaterialTheme.colorScheme.surfaceVariant
+    val bubbleColor = if (isMine) {
+        lerp(
+            MaterialTheme.colorScheme.primaryContainer,
+            MaterialTheme.colorScheme.surface,
+            0.45f
+        )
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
     val onBubble = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
     else MaterialTheme.colorScheme.onSurfaceVariant
 
