@@ -28,6 +28,7 @@ import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.MEMBER_SUGGESTION_CANDIDATES
 import org.mlm.mages.matrix.MEMBER_SUGGESTION_LIMIT
 import org.mlm.mages.matrix.MemberSummary
+import org.mlm.mages.matrix.matchesNormalizedMemberPrefix
 import org.mlm.mages.matrix.matchesNormalizedMemberQuery
 import org.mlm.mages.matrix.normalizeMemberQuery
 import org.mlm.mages.matrix.sortedForDisplay
@@ -408,15 +409,29 @@ private fun findMentionQueryInternal(value: TextFieldValue): MentionQueryInterna
 
 private fun filterMentionSuggestionsInternal(members: List<MemberSummary>, query: String): List<MemberSummary> {
     val needle = normalizeMemberQuery(query)
-    val matches = members.asSequence()
-        .filter { it.membership.equals("join", ignoreCase = true) }
-        .filter { needle.isEmpty() || it.matchesNormalizedMemberQuery(needle) }
-    val candidates = if (members.size <= MEMBER_SUGGESTION_CANDIDATES) {
-        matches.toList()
-    } else {
-        matches.take(MEMBER_SUGGESTION_CANDIDATES).toList()
+    if (needle.isEmpty()) {
+        return members
+            .filter { it.membership.equals("join", ignoreCase = true) }
+            .sortedForDisplay()
+            .take(MEMBER_SUGGESTION_LIMIT)
     }
-    return candidates.sortedForDisplay().take(MEMBER_SUGGESTION_LIMIT)
+    val prefix = ArrayList<MemberSummary>()
+    val contains = ArrayList<MemberSummary>()
+    for (member in members) {
+        if (!member.membership.equals("join", ignoreCase = true)) continue
+        if (member.matchesNormalizedMemberPrefix(needle)) {
+            if (prefix.size < MEMBER_SUGGESTION_CANDIDATES) prefix += member
+        } else if (member.matchesNormalizedMemberQuery(needle)) {
+            if (contains.size < MEMBER_SUGGESTION_CANDIDATES) contains += member
+        }
+        if (prefix.size >= MEMBER_SUGGESTION_CANDIDATES &&
+            contains.size >= MEMBER_SUGGESTION_CANDIDATES
+        ) {
+            break
+        }
+    }
+    return (prefix.sortedForDisplay() + contains.sortedForDisplay())
+        .take(MEMBER_SUGGESTION_LIMIT)
 }
 
 private fun insertMentionInternal(current: TextFieldValue, member: MemberSummary, mentionQuery: MentionQueryInternal): TextFieldValue {

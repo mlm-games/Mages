@@ -15,6 +15,12 @@ fun MemberSummary.matchesNormalizedMemberQuery(needle: String): Boolean {
         displayName?.contains(needle, ignoreCase = true) == true
 }
 
+fun MemberSummary.matchesNormalizedMemberPrefix(needle: String): Boolean {
+    if (needle.isEmpty()) return false
+    return userId.removePrefix("@").startsWith(needle, ignoreCase = true) ||
+        displayName?.startsWith(needle, ignoreCase = true) == true
+}
+
 fun List<MemberSummary>.memberSuggestions(
     query: String,
     limit: Int = MEMBER_SUGGESTION_LIMIT,

@@ -669,9 +669,12 @@ class ThreadViewModel(
         if (wanted.isEmpty()) return
 
         launch {
-            service.profiles.rememberAll(seen + currentState.roomMembers.mapNotNull { member ->
-                member.displayName?.let { member.userId to UserProfile(it, member.avatarUrl) }
-            }.toMap())
+            service.profiles.rememberAll(seen + currentState.roomMembers
+                .filter { it.userId in wanted }
+                .mapNotNull { member ->
+                    member.displayName?.let { member.userId to UserProfile(it, member.avatarUrl) }
+                }
+                .toMap())
 
             val resolved = LinkedHashMap<String, MentionProfileUi>()
             wanted.take(24).forEach { userId ->
