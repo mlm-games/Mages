@@ -148,10 +148,10 @@ fun MessageBubble(
         MaterialTheme.colorScheme.secondaryContainer
     }
 
-    val bubbleTextColor = if (!isRedacted && isMine) {
-        MaterialTheme.colorScheme.onPrimaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
+    val bubbleTextColor = when {
+        isRedacted -> MaterialTheme.colorScheme.onSurfaceVariant
+        isMine -> MaterialTheme.colorScheme.onPrimaryContainer
+        else -> MaterialTheme.colorScheme.onSecondaryContainer
     }
 
     Column(
@@ -225,11 +225,11 @@ fun MessageBubble(
                 shape = bubbleShape(isMine, grouping.groupedWithPrev, grouping.groupedWithNext),
                 tonalElevation = if (isRedacted) 0.dp else if (isMine) 3.dp else 1.dp,
             ) {
-                val timestampContent = @Composable {
+                val timestampContent = @Composable { textColor: Color ->
                     MessageTimeAndStatus(
                         timestamp = model.timestamp,
                         isEdited = model.isEdited,
-                        textColor = bubbleTextColor,
+                        textColor = textColor,
                         isPinned = model.isPinned,
                         isMine = isMine
                     )
@@ -268,7 +268,7 @@ fun MessageBubble(
                                         Spacer(Modifier.height(Spacing.xs))
                                         TimestampLayout(
                                             position = TimestampPosition.Aligned,
-                                            timestamp = timestampContent,
+                                            timestamp = { timestampContent(bubbleTextColor) },
                                         ) {
                                             FormattedBodyText(
                                                 formattedBody = attachment.captionFormattedBody,
@@ -339,7 +339,7 @@ fun MessageBubble(
                                         Spacer(Modifier.height(Spacing.xs))
                                         TimestampLayout(
                                             position = TimestampPosition.Aligned,
-                                            timestamp = timestampContent,
+                                            timestamp = { timestampContent(bubbleTextColor) },
                                         ) {
                                             FormattedBodyText(
                                                 formattedBody = attachment.captionFormattedBody,
@@ -385,7 +385,7 @@ fun MessageBubble(
                             } else if (isRedacted) {
                                 TimestampLayout(
                                     position = TimestampPosition.Aligned,
-                                    timestamp = timestampContent,
+                                    timestamp = { timestampContent(bubbleTextColor) },
                                 ) {
                                     RedactedBody(
                                         text = model.body,
@@ -395,7 +395,7 @@ fun MessageBubble(
                             } else if (model.attachment == null && model.body.isNotBlank()) {
                                 TimestampLayout(
                                     position = TimestampPosition.Aligned,
-                                    timestamp = timestampContent,
+                                    timestamp = { timestampContent(bubbleTextColor) },
                                 ) {
                                     FormattedBodyText(
                                         formattedBody = model.formattedBody,
@@ -775,7 +775,7 @@ private fun ImageAttachmentBubble(
     isMine: Boolean,
     onOpen: (() -> Unit)?,
     onLongPress: (() -> Unit)? = null,
-    timestamp: @Composable () -> Unit,
+    timestamp: @Composable (Color) -> Unit,
     containerColor: Color,
     emotePaths: Map<String, String> = emptyMap(),
     mentionRefs: Map<String, MentionRef> = emptyMap(),
@@ -846,13 +846,13 @@ private fun ImageAttachmentBubble(
                 }
             }
             if (!hasCaption) {
-                TimestampBadge(timestamp)
+                TimestampBadge(timestamp, contentColor = MaterialTheme.colorScheme.onSurface)
             }
         }
         if (hasCaption) {
             TimestampLayout(
                 position = TimestampPosition.Aligned,
-                timestamp = timestamp,
+                timestamp = { timestamp(contentColor) },
             ) {
                 FormattedBodyText(
                     formattedBody = attachment.captionFormattedBody,
@@ -934,7 +934,10 @@ private fun BoxScope.MediaTilePlaceholder(
 }
 
 @Composable
-private fun BoxScope.TimestampBadge(timestamp: @Composable () -> Unit) {
+private fun BoxScope.TimestampBadge(
+    timestamp: @Composable (Color) -> Unit,
+    contentColor: Color,
+) {
     Box(
         modifier = Modifier
             .align(Alignment.BottomEnd)
@@ -945,7 +948,7 @@ private fun BoxScope.TimestampBadge(timestamp: @Composable () -> Unit) {
             )
             .padding(horizontal = 4.dp, vertical = 2.dp)
     ) {
-        timestamp()
+        timestamp(contentColor)
     }
 }
 
@@ -955,7 +958,7 @@ private fun VideoAttachmentBubble(
     isMine: Boolean,
     onOpen: (() -> Unit)?,
     onLongPress: (() -> Unit)? = null,
-    timestamp: @Composable () -> Unit,
+    timestamp: @Composable (Color) -> Unit,
     containerColor: Color,
     emotePaths: Map<String, String> = emptyMap(),
     mentionRefs: Map<String, MentionRef> = emptyMap(),
@@ -1020,13 +1023,13 @@ private fun VideoAttachmentBubble(
             }
 
             if (!hasCaption) {
-                TimestampBadge(timestamp)
+                TimestampBadge(timestamp, contentColor = MaterialTheme.colorScheme.onSurface)
             }
         }
         if (hasCaption) {
             TimestampLayout(
                 position = TimestampPosition.Aligned,
-                timestamp = timestamp,
+                timestamp = { timestamp(contentColor) },
             ) {
                 FormattedBodyText(
                     formattedBody = attachment.captionFormattedBody,
