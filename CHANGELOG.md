@@ -1,3 +1,8 @@
+## v5.3.9
+
+- No user-facing changes were mentioned since previous release
+
+
 ## v5.3.8
 
 - fix: reaction loading
