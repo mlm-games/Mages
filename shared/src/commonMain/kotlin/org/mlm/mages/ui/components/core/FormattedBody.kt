@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.ParagraphStyle
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
@@ -41,6 +42,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -113,7 +115,7 @@ private val LINK_ON_DARK = Color(0xFF8AB4F8)
 
 /** The link blue that stays legible on [background]. */
 fun linkColorOn(background: Color): Color =
-    if (background.luminance() > 0.5f) LINK_ON_LIGHT else LINK_ON_DARK
+    if (background.luminance() > 0.24f) LINK_ON_LIGHT else LINK_ON_DARK
 
 private val BARE_URL = Regex(
     """(?:https?://|www\.)[0-9A-Za-z][^\s<>"']*""",
@@ -139,6 +141,22 @@ private val STRIKE_TAGS = setOf("s", "del", "strike")
 
 /** Block elements that start on their own line. Lists break lines per item instead. */
 private val BLOCK_TAGS = setOf("p", "div", "h1", "h2", "h3", "h4", "h5", "h6")
+
+/** Heading sizes relative to the message font size, matching the plain-markdown renderer. */
+private val HEADING_SCALES = mapOf(
+    "h1" to 2.0f,
+    "h2" to 1.8f,
+    "h3" to 1.6f,
+    "h4" to 1.4f,
+    "h5" to 1.2f,
+    "h6" to 1.1f,
+)
+
+/** Sub- and superscripts shrink as well as shift, which is what HTML and Android do. */
+private const val SCRIPT_SCALE = 0.75f
+
+/** Leading for a heading line, since the body's line height is too short for it. */
+private const val HEADING_LINE_HEIGHT = 1.15f
 
 /** The bar that marks a quoted line; one per level of nesting. */
 private const val QUOTE_RAIL = "▏"
@@ -265,11 +283,12 @@ fun parseFormattedBody(
     pillLayout: MentionPillLayout? = null,
     onMentionClick: (String) -> Unit = {},
     quoteRailColor: Color? = null,
+    baseFontSize: TextUnit? = null,
     linkColor: Color = LINK_ON_LIGHT,
 ): FormattedBody {
     val builder = Builder(
         emotePaths, conceal, revealed, onReveal, mentionRefs, roomRefs, pillLayout, onMentionClick,
-        quoteRailColor, linkColor
+        quoteRailColor, baseFontSize, linkColor
     )
     builder.walk(Ksoup.parse(html).body())
     return builder.build()
@@ -363,6 +382,7 @@ private class Builder(
     private val pillLayout: MentionPillLayout? = null,
     private val onMentionClick: (String) -> Unit = {},
     private val quoteRailColor: Color? = null,
+    private val baseFontSize: TextUnit? = null,
     private val linkColor: Color = LINK_ON_LIGHT,
 ) {
     private val text = AnnotatedString.Builder()
@@ -379,6 +399,8 @@ private class Builder(
     private var inTableCell = false
     private var preDepth = 0
     private var roomPills = 0
+    private var concealedDepth = 0
+    private var fontScale = 1f
 
     fun build() = FormattedBody(text.toAnnotatedString(), inlineContent)
 
@@ -450,7 +472,11 @@ private class Builder(
             return
         }
         if (tag == "img") {
-            appendEmote(element)
+            if (concealedDepth > 0) {
+                element.attr("alt").takeIf { it.isNotBlank() }?.let { appendText(it, false) }
+            } else {
+                appendEmote(element)
+            }
             return
         }
         if (isSpoiler(element)) {
@@ -458,7 +484,7 @@ private class Builder(
             return
         }
 
-        if (tag == "a") {
+        if (tag == "a" && concealedDepth == 0) {
             val mention = mentionedUserOf(element)
             if (mention != null) {
                 appendMention(mention)
@@ -560,11 +586,39 @@ private class Builder(
             } else {
                 ensureLineStart()
             }
+            val scale = HEADING_SCALES[tag]
+            val previousScale = fontScale
+            val start = text.length
+            val heading = scale?.let {
+                fontScale *= it
+                headingStyle()
+            }
+            if (heading != null) text.pushStyle(heading)
             walkBlockChildren(element, linkify)
+            if (heading != null) text.pop()
+            if (scale != null) {
+                if (text.length > start) {
+                    baseFontSize?.let { base ->
+                        text.addStyle(
+                            ParagraphStyle(lineHeight = base * fontScale * HEADING_LINE_HEIGHT),
+                            start,
+                            text.length,
+                        )
+                    }
+                }
+                fontScale = previousScale
+            }
+            return
+        }
+        if (tag == "sub" || tag == "sup") {
+            val script = scriptStyle(tag == "sup")
+            text.pushStyle(script)
+            element.childNodes().forEach { walk(it, linkify) }
+            text.pop()
             return
         }
 
-        val link = if (tag == "a") linkFor(element) else null
+        val link = if (tag == "a" && concealedDepth == 0) linkFor(element) else null
         val style = styleFor(tag, link != null)
 
         if (style != null) text.pushStyle(style)
@@ -608,9 +662,14 @@ private class Builder(
             )
         }
 
+        if (concealed) {
+            concealedDepth++
+        }
+
         element.childNodes().forEach { walk(it, linkify && !concealed) }
 
         if (concealed) {
+            concealedDepth--
             text.pop()
             text.pop()
         }
@@ -713,6 +772,17 @@ private class Builder(
         isLink -> linkStyle
         else -> null
     }
+
+    /** Headings are bold and scaled off the body size, the way markdown bodies render. */
+    private fun headingStyle(): SpanStyle {
+        val size = baseFontSize?.let { it * fontScale } ?: TextUnit.Unspecified
+        return SpanStyle(fontSize = size, fontWeight = FontWeight.Bold)
+    }
+
+    private fun scriptStyle(superscript: Boolean): SpanStyle = SpanStyle(
+        baselineShift = if (superscript) BaselineShift.Superscript else BaselineShift.Subscript,
+        fontSize = baseFontSize?.let { it * fontScale * SCRIPT_SCALE } ?: TextUnit.Unspecified,
+    )
 
     private fun appendText(raw: String, linkify: Boolean) {
         val collapsed = when {
@@ -1002,14 +1072,14 @@ fun FormattedBodyText(
     } else {
         style
     }
-    val revealed = remember { mutableStateSetOf<Int>() }
+    val revealed = remember(formattedBody) { mutableStateSetOf<Int>() }
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
     val linkedMentions = remember(formattedBody) { linkedMentionsFrom(formattedBody) }
     val allMentionRefs = remember(linkedMentions, mentionRefs) {
         linkedMentions.users + mentionRefs
     }
-    val pillFontSize = baseStyle.fontSize.takeOrElse { LocalMessageFontSize.current.sp }
+    val bodyFontSize = baseStyle.fontSize.takeOrElse { LocalMessageFontSize.current.sp }
     val rawRoomLabels = remember(fallbackBody) {
         buildSet {
             for (match in ROOM_ALIAS.findAll(fallbackBody)) {
@@ -1035,14 +1105,14 @@ fun FormattedBodyText(
             style = baseStyle,
             density = density,
             content = color,
-            fontSize = pillFontSize,
+            fontSize = bodyFontSize,
         )
     }
 
     // A concealed spoiler carries a clickable annotation that reveals it, so
     // the parse only has to be redone when the set of revealed ones changes.
     val parsed = remember(
-        formattedBody, emotePaths, containerColor, color, revealed.toList(), pillLayout
+        formattedBody, emotePaths, containerColor, color, bodyFontSize, revealed.toList(), pillLayout
     ) {
         formattedBody?.takeIf { it.isNotBlank() }?.let { html ->
             parseFormattedBody(
@@ -1056,6 +1126,7 @@ fun FormattedBodyText(
                 pillLayout = pillLayout,
                 onMentionClick = { userId -> onMentionClick?.invoke(userId) },
                 quoteRailColor = color.copy(alpha = 0.45f),
+                baseFontSize = bodyFontSize,
                 linkColor = linkColorOn(containerColor),
             )
         }

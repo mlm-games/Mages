@@ -746,6 +746,10 @@ private fun ThreadRootMessage(
                             MaterialTheme.colorScheme.onPrimaryContainer
                         else
                             MaterialTheme.colorScheme.onSurface,
+                        containerColor = if (isMine)
+                            MaterialTheme.colorScheme.primaryContainer
+                        else
+                            MaterialTheme.colorScheme.surface,
                     )
                 }
             }

@@ -144,4 +144,15 @@ class SpoilerRenderTest {
         val parsed = parseFormattedBody("a<span data-mx-spoiler></span>b", conceal = Color.Black)
         assertEquals("ab", parsed.text.text)
     }
+
+    @Test
+    fun aLinkInsideASpoilerIsNotClickable() {
+        val parsed = parseFormattedBody(
+            "<span data-mx-spoiler><a href=\"https://example.org\">x</a></span>",
+            conceal = Color.Black
+        )
+        assertEquals("x", parsed.text.text)
+        val links = parsed.text.getLinkAnnotations(0, parsed.text.length)
+        assertTrue(links.none { it.item is LinkAnnotation.Url })
+    }
 }
