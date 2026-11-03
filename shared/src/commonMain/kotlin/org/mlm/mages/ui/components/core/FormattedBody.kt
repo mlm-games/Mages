@@ -134,7 +134,7 @@ private val UNDERLINE_TAGS = setOf("u", "ins")
 private val STRIKE_TAGS = setOf("s", "del", "strike")
 
 /** Block elements that start on their own line. Lists break lines per item instead. */
-private val BLOCK_TAGS = setOf("p", "h1", "h2", "h3", "h4", "h5", "h6")
+private val BLOCK_TAGS = setOf("p", "div", "h1", "h2", "h3", "h4", "h5", "h6")
 
 /** The bar that marks a quoted line; one per level of nesting. */
 private const val QUOTE_RAIL = "▏"
@@ -537,6 +537,13 @@ private class Builder(
             quoteDepth++
             walkBlockChildren(element, linkify)
             quoteDepth--
+            return
+        }
+        if (tag == "hr") {
+            if (!inTableCell) {
+                ensureLineStart()
+                appendLineBreak()
+            }
             return
         }
         if (tag in BLOCK_TAGS) {

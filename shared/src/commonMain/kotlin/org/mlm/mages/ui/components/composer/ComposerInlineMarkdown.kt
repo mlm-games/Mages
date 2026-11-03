@@ -45,18 +45,41 @@ internal object SpoilerSyntax {
     val SPOILER: IElementType = MarkdownElementType("MAGES_SPOILER")
 }
 
+/**
+ * GFM's strikethrough, which every other Matrix client already sends as
+ * `<del>`. Only the two-tilde spelling is a delimiter: a lone `~` stays prose,
+ * because `~` is ordinary punctuation in chat text.
+ */
+internal object StrikeSyntax {
+    /** The `~` itself, split out of `TEXT` so a delimiter parser can see it. */
+    val TILDE: IElementType = MarkdownElementType("MAGES_STRIKE_TILDE", true)
+
+    /** A matched pair of delimiters, wrapping whatever was between them. */
+    val STRIKE: IElementType = MarkdownElementType("MAGES_STRIKE")
+}
+
 internal const val PIPE_CHAR = '|'
+internal const val TILDE_CHAR = '~'
+
+/** The number of tildes a strikethrough is spelled with. */
+private const val STRIKE_DELIMITERS = 2
+
+/** The characters the composer splits out of `TEXT` for [PairedMarkerDelimiterParser]. */
+private val INLINE_MARKERS = charArrayOf(PIPE_CHAR, TILDE_CHAR)
 
 /**
- * Splits `|` out of the `TEXT` runs the CommonMark lexer produces.
+ * Splits the inline markers out of the `TEXT` runs the CommonMark lexer
+ * produces.
  *
  * The delimiter machinery works on token boundaries, and CommonMark lexes a
  * run of prose as one `TEXT` token with no delimiter tokens of its own, so the
- * pipes have to be carved out before a [DelimiterParser] can pair them up. Only
- * `TEXT` is touched, which leaves code spans (`CODE_SPAN`), links and raw HTML
- * alone, so a `|` in backticks stays literal.
+ * markers have to be carved out before a [DelimiterParser] can pair them up.
+ * Only `TEXT` is touched, which leaves code spans (`CODE_SPAN`), links and raw
+ * HTML alone, so a `|` or `~` in backticks stays literal. A marker escaped with
+ * a backslash stays in the `TEXT` run, which is what keeps `\~` and `\|`
+ * literal.
  */
-internal class SpoilerPipeLexer(private val base: GeneratedLexer) : GeneratedLexer {
+internal class ComposerMarkerLexer(private val base: GeneratedLexer) : GeneratedLexer {
     private var text: CharSequence = ""
     private val queue = ArrayDeque<Token>()
     private var exhausted = false
@@ -122,18 +145,35 @@ internal class SpoilerPipeLexer(private val base: GeneratedLexer) : GeneratedLex
                 continue
             }
             var pos = start
-            while (pos < end) {
-                val pipe = text.indexOf(PIPE_CHAR, pos)
-                if (pipe < 0 || pipe >= end) {
-                    queue.addLast(Token(type, pos, end))
-                    break
+            var search = start
+            while (search < end) {
+                val marker = text.indexOfAny(INLINE_MARKERS, search)
+                if (marker < 0 || marker >= end) break
+                if (isEscaped(marker)) {
+                    search = marker + 1
+                    continue
                 }
-                if (pipe > pos) queue.addLast(Token(type, pos, pipe))
-                queue.addLast(Token(SpoilerSyntax.PIPE, pipe, pipe + 1))
-                pos = pipe + 1
+                if (marker > pos) queue.addLast(Token(type, pos, marker))
+                queue.addLast(Token(markerType(text[marker]), marker, marker + 1))
+                pos = marker + 1
+                search = pos
             }
+            if (pos < end) queue.addLast(Token(type, pos, end))
         }
     }
+
+    private fun isEscaped(index: Int): Boolean {
+        var backslashes = 0
+        var i = index - 1
+        while (i >= 0 && text[i] == '\\') {
+            backslashes++
+            i--
+        }
+        return backslashes % 2 == 1
+    }
+
+    private fun markerType(char: Char): IElementType =
+        if (char == PIPE_CHAR) SpoilerSyntax.PIPE else StrikeSyntax.TILDE
 
     private fun flushPending() {
         val held = pending
@@ -147,45 +187,55 @@ internal class SpoilerPipeLexer(private val base: GeneratedLexer) : GeneratedLex
 }
 
 /**
- * Pairs `|spoiler|` delimiters, the way the CommonMark flavour pairs `*` and
- * `_` for emphasis.
+ * Pairs a run of one marker character into a node, the way the CommonMark
+ * flavour pairs `*` and `_` for emphasis.
+ *
+ * [runLength] pins the exact number of markers a delimiter is spelled with;
+ * null accepts any run. A run of the wrong length is left alone, so it falls
+ * through to the HTML as literal text.
  */
-internal class SpoilerDelimiterParser : DelimiterParser() {
+internal class PairedMarkerDelimiterParser(
+    private val tokenType: IElementType,
+    private val nodeType: IElementType,
+    private val marker: Char,
+    private val runLength: Int? = null,
+) : DelimiterParser() {
     override fun scan(
         tokens: TokensCache,
         iterator: TokensCache.Iterator,
         delimiters: MutableList<Info>
     ): Int {
-        if (iterator.type != SpoilerSyntax.PIPE) return 0
+        if (iterator.type != tokenType) return 0
 
-        // A run of pipes is one delimiter, so `||` can wrap a spoiler the same
-        // way `|spoiler|` does.
-        var runLength = 1
+        // A run of markers is one delimiter, so `||` can wrap a spoiler the
+        // same way `|spoiler|` does.
+        var length = 1
         var last = iterator
-        while (last.rawLookup(1) == SpoilerSyntax.PIPE) {
+        while (last.rawLookup(1) == tokenType) {
             last = last.advance()
-            runLength += 1
+            length += 1
         }
+        if (runLength != null && length != runLength) return length
 
         // A delimiter has to hug its content, so whitespace on either side rules
         // it out. That is what keeps `a | b` literal while still allowing a
         // spoiler to sit at the very start or end of the message.
-        val canOpen = !isWhitespace(last, 1) && last.charLookup(1) != PIPE_CHAR
-        val canClose = !isWhitespace(iterator, -1) && iterator.charLookup(-1) != PIPE_CHAR
+        val canOpen = !isWhitespace(last, 1) && last.charLookup(1) != marker
+        val canClose = !isWhitespace(iterator, -1) && iterator.charLookup(-1) != marker
 
-        for (offset in 0 until runLength) {
+        for (offset in 0 until length) {
             delimiters.add(
                 Info(
-                    tokenType = SpoilerSyntax.PIPE,
+                    tokenType = tokenType,
                     position = iterator.index + offset,
                     length = 0,
                     canOpen = canOpen,
                     canClose = canClose,
-                    marker = PIPE_CHAR
+                    marker = marker
                 )
             )
         }
-        return runLength
+        return length
     }
 
     override fun process(
@@ -194,14 +244,14 @@ internal class SpoilerDelimiterParser : DelimiterParser() {
         delimiters: MutableList<Info>,
         result: SequentialParser.ParsingResultBuilder
     ) {
-        // Each pipe in a run gets balanced against the one opposite it, so `||`
-        // arrives here as two nested pairs. Widening adjacent same-marker pairs
-        // back into the run they came from is what stops the shorthand from
-        // producing nested spans.
+        // Each marker in a run gets balanced against the one opposite it, so
+        // `||` arrives here as two nested pairs. Widening adjacent same-marker
+        // pairs back into the run they came from is what stops the shorthand
+        // from producing nested spans.
         var index = delimiters.size - 1
         while (index >= 0) {
             val first = delimiters[index]
-            if (first.tokenType != SpoilerSyntax.PIPE || first.closerIndex == -1) {
+            if (first.tokenType != tokenType || first.closerIndex == -1) {
                 index -= 1
                 continue
             }
@@ -216,7 +266,7 @@ internal class SpoilerDelimiterParser : DelimiterParser() {
             result.withNode(
                 SequentialParser.Node(
                     range = delimiters[openerIndex].position..delimiters[closerIndex].position + 1,
-                    type = SpoilerSyntax.SPOILER
+                    type = nodeType
                 )
             )
             index = openerIndex - 1
@@ -225,16 +275,16 @@ internal class SpoilerDelimiterParser : DelimiterParser() {
 }
 
 /**
- * CommonMark plus spoilers.
+ * CommonMark plus spoilers and strikethrough.
  *
  * The parser sequence is spelled out rather than inherited because
  * `EmphasisLikeParser` reports no ranges for further processing, so it has to
- * stay last in the sequence and spoilers therefore have to share its one pass
- * with emphasis instead of running as a separate parser.
+ * stay last in the sequence and every delimiter therefore has to share its one
+ * pass with emphasis instead of running as a separate parser.
  */
 internal class SpoilerFlavour : CommonMarkFlavourDescriptor() {
     override fun createInlinesLexer(): MarkdownLexer =
-        MarkdownLexer(SpoilerPipeLexer(_MarkdownLexer()))
+        MarkdownLexer(ComposerMarkerLexer(_MarkdownLexer()))
 
     override val sequentialParserManager: SequentialParserManager =
         object : SequentialParserManager() {
@@ -244,7 +294,20 @@ internal class SpoilerFlavour : CommonMarkFlavourDescriptor() {
                 ImageParser(),
                 InlineLinkParser(),
                 ReferenceLinkParser(),
-                EmphasisLikeParser(EmphStrongDelimiterParser(), SpoilerDelimiterParser())
+                EmphasisLikeParser(
+                    EmphStrongDelimiterParser(),
+                    PairedMarkerDelimiterParser(
+                        tokenType = SpoilerSyntax.PIPE,
+                        nodeType = SpoilerSyntax.SPOILER,
+                        marker = PIPE_CHAR
+                    ),
+                    PairedMarkerDelimiterParser(
+                        tokenType = StrikeSyntax.TILDE,
+                        nodeType = StrikeSyntax.STRIKE,
+                        marker = TILDE_CHAR,
+                        runLength = STRIKE_DELIMITERS
+                    )
+                )
             )
         }
 
@@ -253,7 +316,7 @@ internal class SpoilerFlavour : CommonMarkFlavourDescriptor() {
         baseURI: URI?
     ): Map<IElementType, GeneratingProvider> =
         super.createHtmlGeneratingProviders(linkMap, baseURI) + mapOf(
-            // The trimming provider strips the pipes off the ends, and being an
+            // The trimming provider strips the markers off the ends, and being an
             // inline holder is what routes the leaf text inside through
             // `visitLeaf`; a bare holder would drop it.
             SpoilerSyntax.SPOILER to object : EqualDelimiterTrimmingInlineTagProvider(
@@ -267,6 +330,10 @@ internal class SpoilerFlavour : CommonMarkFlavourDescriptor() {
                 ) {
                     visitor.consumeTagOpen(node, tagName, SpoilerSyntax.SPOILER_ATTR)
                 }
-            }
+            },
+            StrikeSyntax.STRIKE to EqualDelimiterTrimmingInlineTagProvider(
+                "del",
+                StrikeSyntax.TILDE
+            )
         )
 }
