@@ -46,6 +46,14 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="5.3.7" date="2026-11-03" type="stable">
+      <description>
+        <ul>
+          <li>fix: strip reply fallback (#196)</li>
+          <li>fix: strip reply fallback</li>
+        </ul>
+      </description>
+    </release>
     <release version="5.3.6" date="2026-11-02" type="stable">
       <description>
         <ul>

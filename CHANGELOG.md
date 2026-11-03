@@ -1,3 +1,9 @@
+## v5.3.7
+
+- fix: strip reply fallback (#196)
+- fix: strip reply fallback
+
+
 ## v5.3.6
 
 - fix: recover failed restore
