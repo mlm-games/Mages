@@ -4138,6 +4138,10 @@ fn map_timeline_event(
                         }
                         _ => {}
                     }
+                    if reply_to_event_id.is_some() {
+                        formatted_body =
+                            formatted_body.map(|html| strip_reply_fallback_html(&html));
+                    }
                 }
                 MsgLikeKind::Poll(poll_state) => {
                     let data = map_poll_state(poll_state, me);
@@ -5463,6 +5467,22 @@ fn try_map_timeline_event(
     })
 }
 
+fn strip_reply_fallback_html(html: &str) -> String {
+    const OPEN: &str = "<blockquote>";
+    const CLOSE: &str = "</blockquote>";
+
+    let Some(rest) = html.trim_start().strip_prefix(OPEN) else {
+        return html.to_owned();
+    };
+    let Some(end) = rest.find(CLOSE) else {
+        return html.to_owned();
+    };
+    if !rest[..end].contains("In reply to") {
+        return html.to_owned();
+    }
+    rest[end + CLOSE.len()..].trim_start().to_owned()
+}
+
 fn strip_reply_fallback(body: &str) -> String {
     let _lines = body.lines();
     let mut consumed = 0usize;
@@ -6264,5 +6284,22 @@ mod media_cache_naming_tests {
         let first = download_cache_file(dir, "mxc://server/a", None, "sticker.bin");
         let again = download_cache_file(dir, "mxc://server/a", None, "sticker.bin");
         assert_eq!(first, again);
+    }
+}
+
+#[cfg(test)]
+mod reply_fallback_tests {
+    use super::strip_reply_fallback_html;
+
+    #[test]
+    fn leaked_reply_fallback_is_removed() {
+        let html = "<blockquote><a href=\"https://matrix.to/#/!r/$e\">In reply to</a> <a href=\"https://matrix.to/#/@a:b\">A</a><br>quoted</blockquote>answer";
+        assert_eq!(strip_reply_fallback_html(html), "answer");
+    }
+
+    #[test]
+    fn user_blockquote_is_kept() {
+        let html = "<blockquote>quoted</blockquote>answer";
+        assert_eq!(strip_reply_fallback_html(html), html);
     }
 }
