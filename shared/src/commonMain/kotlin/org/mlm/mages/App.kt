@@ -111,6 +111,7 @@ import io.github.vinceglb.filekit.name
 import org.mlm.mages.ui.components.AttachmentSourceKind
 import org.mlm.mages.ui.components.toMagesAttachment
 import org.mlm.mages.ui.theme.MainTheme
+import org.mlm.mages.ui.theme.appFontFamily
 import org.mlm.mages.ui.util.popBack
 import org.mlm.mages.ui.viewmodel.*
 import org.mlm.mages.verification.VerificationCoordinator
@@ -277,7 +278,8 @@ private fun AppContent(
             darkTheme = isDark,
             dynamicColors = settings.dynamicColors,
             oledBlack = settings.oledBlack,
-            use24HourTime = settings.use24HourTime
+            use24HourTime = settings.use24HourTime,
+            fontFamily = appFontFamily(settings.appFont, settings.appFontWidth, settings.appFontRoundness),
         ) {
             val languageTag = LocalAppLocale.current
             val scope = rememberCoroutineScope()

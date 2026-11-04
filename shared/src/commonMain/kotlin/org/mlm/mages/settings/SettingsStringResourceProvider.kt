@@ -55,6 +55,9 @@ private val titleResources: Map<String, StringResource> = mapOf(
     MagesSettingsKeys.USE_24_HOUR_TIME to Res.string.setting_use_24_hour_time,
     MagesSettingsKeys.CHAT_WALLPAPER to Res.string.setting_chat_wallpaper,
     MagesSettingsKeys.LANGUAGE to Res.string.setting_language,
+    MagesSettingsKeys.APP_FONT to Res.string.setting_app_font,
+    MagesSettingsKeys.APP_FONT_WIDTH to Res.string.setting_app_font_width,
+    MagesSettingsKeys.APP_FONT_ROUNDNESS to Res.string.setting_app_font_roundness,
     MagesSettingsKeys.FONT_SIZE to Res.string.setting_font_size,
     MagesSettingsKeys.UI_SCALE to Res.string.setting_ui_scale,
     MagesSettingsKeys.DRAG_TO_SCROLL to Res.string.setting_drag_to_scroll,
@@ -158,6 +161,9 @@ private val descriptionResources: Map<String, StringResource> = mapOf(
     MagesSettingsKeys.USE_24_HOUR_TIME_DESCRIPTION to Res.string.setting_use_24_hour_time_description,
     MagesSettingsKeys.CHAT_WALLPAPER_DESCRIPTION to Res.string.setting_chat_wallpaper_description,
     MagesSettingsKeys.LANGUAGE_DESCRIPTION to Res.string.setting_language_description,
+    MagesSettingsKeys.APP_FONT_DESCRIPTION to Res.string.setting_app_font_description,
+    MagesSettingsKeys.APP_FONT_WIDTH_DESCRIPTION to Res.string.setting_app_font_width_description,
+    MagesSettingsKeys.APP_FONT_ROUNDNESS_DESCRIPTION to Res.string.setting_app_font_roundness_description,
     MagesSettingsKeys.FONT_SIZE_DESCRIPTION to Res.string.setting_font_size_description,
     MagesSettingsKeys.UI_SCALE_DESCRIPTION to Res.string.setting_ui_scale_description,
     MagesSettingsKeys.DRAG_TO_SCROLL_DESCRIPTION to Res.string.setting_drag_to_scroll_description,
@@ -254,6 +260,7 @@ private val descriptionResources: Map<String, StringResource> = mapOf(
 )
 
 private val arrayResources: Map<String, StringArrayResource> = mapOf(
+    MagesSettingsKeys.APP_FONT_OPTIONS to Res.array.setting_app_font_options,
     MagesSettingsKeys.THEME_OPTIONS to Res.array.setting_theme_options,
     MagesSettingsKeys.LANGUAGE_OPTIONS to Res.array.setting_language_options,
     MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS to Res.array.setting_hide_in_rooms_options,

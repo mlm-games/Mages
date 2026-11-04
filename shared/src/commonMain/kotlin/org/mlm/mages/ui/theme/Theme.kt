@@ -5,7 +5,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -79,11 +81,14 @@ private val LightColorScheme = lightColorScheme(
     onTertiaryContainer = Color(0xFF31111D)
 )
 
-val AppTypography = Typography(
-    headlineLarge = Typography().headlineLarge.copy(fontWeight = FontWeight.Bold),
-    titleLarge = Typography().titleLarge.copy(fontWeight = FontWeight.SemiBold),
-    bodyLarge = Typography().bodyLarge.copy(letterSpacing = 0.5.sp)
-)
+fun appTypography(fontFamily: FontFamily): Typography {
+    val base = Typography(fontFamily = fontFamily)
+    return base.copy(
+        headlineLarge = base.headlineLarge.copy(fontWeight = FontWeight.Bold),
+        titleLarge = base.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+        bodyLarge = base.bodyLarge.copy(letterSpacing = 0.5.sp)
+    )
+}
 
 val AppShapes = Shapes(
     extraSmall = RoundedCornerShape(4.dp),
@@ -99,6 +104,7 @@ fun MainTheme(
     dynamicColors: Boolean = true,
     oledBlack: Boolean = false,
     use24HourTime: Boolean = true,
+    fontFamily: FontFamily = FontFamily.Default,
     content: @Composable () -> Unit
 ) {
     val baseScheme = getDynamicColorScheme(darkTheme, dynamicColors)
@@ -127,7 +133,7 @@ fun MainTheme(
 
     MaterialExpressiveTheme(
         colorScheme = colorScheme,
-        typography = AppTypography,
+        typography = remember(fontFamily) { appTypography(fontFamily) },
         shapes = AppShapes,
     ) {
         CompositionLocalProvider(LocalUse24HourTime provides use24HourTime) {

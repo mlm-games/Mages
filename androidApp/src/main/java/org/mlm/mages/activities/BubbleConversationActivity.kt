@@ -33,6 +33,7 @@ import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.ThemeMode
 import org.mlm.mages.ui.screens.RoomScreen
 import org.mlm.mages.ui.theme.MainTheme
+import org.mlm.mages.ui.theme.appFontFamily
 import org.mlm.mages.ui.viewmodel.RoomViewModel
 
 private const val SESSION_READY_ATTEMPTS = 10
@@ -104,7 +105,12 @@ class BubbleConversationActivity : ComponentActivity() {
                 ThemeMode.Light -> false
             }
 
-            MainTheme(isDark, settings.dynamicColors, settings.oledBlack) {
+            MainTheme(
+                darkTheme = isDark,
+                dynamicColors = settings.dynamicColors,
+                oledBlack = settings.oledBlack,
+                fontFamily = appFontFamily(settings.appFont, settings.appFontWidth, settings.appFontRoundness),
+            ) {
                 if (!ready) {
                     LoadingIndicator()
                 } else {

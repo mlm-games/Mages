@@ -614,6 +614,12 @@
     <string name="setting_chat_wallpaper_description">Set a background image for the message list</string>
     <string name="setting_language">Language</string>
     <string name="setting_language_description">Application language</string>
+    <string name="setting_app_font">Font</string>
+    <string name="setting_app_font_description">System font, or Google Sans Flex for Latin text</string>
+    <string name="setting_app_font_width">Font width</string>
+    <string name="setting_app_font_width_description">Width of Google Sans Flex. 100 is normal</string>
+    <string name="setting_app_font_roundness">Font roundness</string>
+    <string name="setting_app_font_roundness_description">Roundness of Google Sans Flex. 0 is normal</string>
     <string name="setting_font_size">Font size</string>
     <string name="setting_font_size_description">Message font size</string>
     <string name="setting_ui_scale">UI scale</string>
@@ -855,6 +861,10 @@
     <string name="setting_live_location_update_interval">Live location update interval</string>
     <string name="setting_live_location_update_interval_description">Minimum distance (in meters) traveled before sending a location update</string>
 
+    <string-array name="setting_app_font_options">
+        <item>System</item>
+        <item>Google Sans Flex</item>
+    </string-array>
     <string-array name="setting_theme_options">
         <item>System</item>
         <item>Light</item>

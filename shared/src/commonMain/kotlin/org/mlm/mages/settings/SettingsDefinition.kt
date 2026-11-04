@@ -34,6 +34,9 @@ object ReactionEmojiPicker : SettingTypeMarker
 enum class ThemeMode { System, Light, Dark }
 
 @Serializable
+enum class AppFontFamily { System, GoogleSansFlex }
+
+@Serializable
 enum class PresenceMode { Online, Offline, Unavailable }
 
 @Serializable
@@ -171,6 +174,48 @@ data class AppSettings(
         optionsKey = MagesSettingsKeys.LANGUAGE_OPTIONS,
     )
     val language: AppLanguage = AppLanguage.System,
+
+    @Setting(
+        title = "Font",
+        titleKey = MagesSettingsKeys.APP_FONT,
+        description = "System font or Google Sans Flex",
+        descriptionKey = MagesSettingsKeys.APP_FONT_DESCRIPTION,
+        category = Appearance::class,
+        type = Dropdown::class,
+        options = ["System", "Google Sans Flex"],
+        optionsKey = MagesSettingsKeys.APP_FONT_OPTIONS,
+    )
+    val appFont: AppFontFamily = AppFontFamily.System,
+
+    @Setting(
+        title = "Font width",
+        titleKey = MagesSettingsKeys.APP_FONT_WIDTH,
+        description = "Width axis of Google Sans Flex",
+        descriptionKey = MagesSettingsKeys.APP_FONT_WIDTH_DESCRIPTION,
+        category = Appearance::class,
+        type = Slider::class,
+        min = 85f,
+        max = 115f,
+        step = 5f,
+        dependsOn = "appFont",
+        dependsOnValue = "GoogleSansFlex",
+    )
+    val appFontWidth: Float = 100f,
+
+    @Setting(
+        title = "Font roundness",
+        titleKey = MagesSettingsKeys.APP_FONT_ROUNDNESS,
+        description = "Roundness axis of Google Sans Flex",
+        descriptionKey = MagesSettingsKeys.APP_FONT_ROUNDNESS_DESCRIPTION,
+        category = Appearance::class,
+        type = Slider::class,
+        min = 0f,
+        max = 100f,
+        step = 25f,
+        dependsOn = "appFont",
+        dependsOnValue = "GoogleSansFlex",
+    )
+    val appFontRoundness: Float = 0f,
 
     @Setting(
         title = "Font size",
