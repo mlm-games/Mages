@@ -1248,6 +1248,9 @@
     <string name="verification_service_unavailable">Usluga provjere nije dostupna</string>
     <string name="verified">Verificirano</string>
     <string name="video_call">Video poziv</string>
+    <string name="call_declined">Poziv odbijen</string>
+    <string name="voice_call_declined">Glasovni poziv odbijen</string>
+    <string name="video_call_declined">Videopoziv odbijen</string>
     <string name="view_all">Prikaži sve</string>
     <string name="view_old_room">Prikaži staru sobu</string>
     <string name="visibility_updated">Vidljivost ažurirana</string>

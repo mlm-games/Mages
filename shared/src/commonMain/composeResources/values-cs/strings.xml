@@ -1248,6 +1248,9 @@
     <string name="verification_service_unavailable">Služba ověření není k dispozici</string>
     <string name="verified">Ověřeno</string>
     <string name="video_call">Videohovor</string>
+    <string name="call_declined">Hovor odmítnut</string>
+    <string name="voice_call_declined">Hlasový hovor odmítnut</string>
+    <string name="video_call_declined">Videohovor odmítnut</string>
     <string name="view_all">Zobrazit vše</string>
     <string name="view_old_room">Zobrazit starou místnost</string>
     <string name="visibility_updated">Viditelnost byla aktualizována</string>

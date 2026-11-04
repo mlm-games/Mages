@@ -1248,6 +1248,9 @@
     <string name="verification_service_unavailable">שירות האימות אינו זמין</string>
     <string name="verified">מאומת</string>
     <string name="video_call">שיחת וידאו</string>
+    <string name="call_declined">השיחה נדחתה</string>
+    <string name="voice_call_declined">השיחה הקולית נדחתה</string>
+    <string name="video_call_declined">שיחת הווידאו נדחתה</string>
     <string name="view_all">הצגת הכל</string>
     <string name="view_old_room">הצגת החדר הישן</string>
     <string name="visibility_updated">הנראות עודכנה</string>

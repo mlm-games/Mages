@@ -1248,6 +1248,9 @@
     <string name="verification_service_unavailable">Verifieringstjänsten inte tillgänglig</string>
     <string name="verified">Verifierad</string>
     <string name="video_call">Videosamtal</string>
+    <string name="call_declined">Samtal avvisat</string>
+    <string name="voice_call_declined">Röstsamtal avvisat</string>
+    <string name="video_call_declined">Videosamtal avvisat</string>
     <string name="view_all">Visa alla</string>
     <string name="view_old_room">Visa det gamla rummet</string>
     <string name="visibility_updated">Synlighet uppdaterad</string>

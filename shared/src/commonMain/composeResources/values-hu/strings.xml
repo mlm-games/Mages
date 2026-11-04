@@ -1248,6 +1248,9 @@
     <string name="verification_service_unavailable">Az ellenőrzési szolgáltatás nem érhető el</string>
     <string name="verified">Ellenőrizve</string>
     <string name="video_call">Videohívás</string>
+    <string name="call_declined">Hívás elutasítva</string>
+    <string name="voice_call_declined">Hanghívás elutasítva</string>
+    <string name="video_call_declined">Videohívás elutasítva</string>
     <string name="view_all">Összes megtekintése</string>
     <string name="view_old_room">Régi szoba megtekintése</string>
     <string name="visibility_updated">A láthatóság frissítve</string>

@@ -1248,6 +1248,9 @@
     <string name="verification_service_unavailable">인증 서비스를 사용할 수 없습니다</string>
     <string name="verified">검증됨</string>
     <string name="video_call">영상 통화</string>
+    <string name="call_declined">통화가 거절되었습니다</string>
+    <string name="voice_call_declined">음성 통화가 거절되었습니다</string>
+    <string name="video_call_declined">영상 통화가 거절되었습니다</string>
     <string name="view_all">모두 보기</string>
     <string name="view_old_room">이전 방 보기</string>
     <string name="visibility_updated">가시성이 업데이트되었습니다</string>

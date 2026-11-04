@@ -1496,6 +1496,9 @@
     <string name="verification_service_unavailable">Verification service unavailable</string>
     <string name="verified">Verified</string>
     <string name="video_call">Video call</string>
+    <string name="call_declined">Call declined</string>
+    <string name="voice_call_declined">Voice call declined</string>
+    <string name="video_call_declined">Video call declined</string>
     <string name="view_all">View all</string>
     <string name="view_old_room">View old room</string>
     <string name="visibility_updated">Visibility updated</string>

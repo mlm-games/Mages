@@ -1248,6 +1248,9 @@
     <string name="verification_service_unavailable">Служба перевірки недоступна</string>
     <string name="verified">Перевірено</string>
     <string name="video_call">Відеодзвінок</string>
+    <string name="call_declined">Виклик відхилено</string>
+    <string name="voice_call_declined">Голосовий виклик відхилено</string>
+    <string name="video_call_declined">Відеовиклик відхилено</string>
     <string name="view_all">Переглянути все</string>
     <string name="view_old_room">Переглянути стару кімнату</string>
     <string name="visibility_updated">Видимість оновлено</string>

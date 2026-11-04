@@ -1248,6 +1248,9 @@
     <string name="verification_service_unavailable">Usługa weryfikacji niedostępna</string>
     <string name="verified">Zweryfikowany</string>
     <string name="video_call">Połączenie wideo</string>
+    <string name="call_declined">Połączenie odrzucone</string>
+    <string name="voice_call_declined">Połączenie głosowe odrzucone</string>
+    <string name="video_call_declined">Połączenie wideo odrzucone</string>
     <string name="view_all">Zobacz wszystko</string>
     <string name="view_old_room">Zobacz stary pokój</string>
     <string name="visibility_updated">Widoczność została zaktualizowana</string>

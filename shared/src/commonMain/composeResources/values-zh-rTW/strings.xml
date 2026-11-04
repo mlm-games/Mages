@@ -1248,6 +1248,9 @@
     <string name="verification_service_unavailable">驗證服務無法使用</string>
     <string name="verified">已驗證</string>
     <string name="video_call">視訊通話</string>
+    <string name="call_declined">通話已被拒絕</string>
+    <string name="voice_call_declined">語音通話已被拒絕</string>
+    <string name="video_call_declined">視訊通話已被拒絕</string>
     <string name="view_all">檢視全部</string>
     <string name="view_old_room">檢視舊房間</string>
     <string name="visibility_updated">可見性已更新</string>

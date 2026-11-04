@@ -4063,6 +4063,8 @@ fn map_timeline_event(
     let content = ev.content();
     let is_redacted = content.is_redacted();
     let mut state_event_type: Option<String> = None;
+    let mut call_type: Option<String> = None;
+    let mut call_declined = false;
     let mut live_location: Option<LiveLocationEvent> = None;
     let mut mentioned_user_ids: Vec<String> = Vec::new();
     let mut mentions_room = false;
@@ -4200,7 +4202,13 @@ fn map_timeline_event(
             body = String::new();
             event_type = EventType::CallInvite;
         }
-        TimelineItemContent::RtcNotification { call_intent, .. } => {
+        TimelineItemContent::RtcNotification { call_intent, declined_by, .. } => {
+            call_type = match call_intent {
+                Some(CallIntent::Video) => Some("video".to_owned()),
+                Some(CallIntent::Audio) => Some("audio".to_owned()),
+                Some(_) | None => None,
+            };
+            call_declined = !declined_by.is_empty();
             body = match call_intent {
                 Some(CallIntent::Video) => "Video Call started".to_string(),
                 Some(CallIntent::Audio) => "Audio Call started".to_string(),
@@ -4267,6 +4275,8 @@ fn map_timeline_event(
         event_type,
         is_redacted,
         state_event_type,
+        call_type,
+        call_declined,
         live_location,
         raw_json,
         shield,

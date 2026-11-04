@@ -1248,6 +1248,9 @@
     <string name="verification_service_unavailable">Служба проверки недоступна</string>
     <string name="verified">Подтверждено</string>
     <string name="video_call">Видеозвонок</string>
+    <string name="call_declined">Вызов отклонён</string>
+    <string name="voice_call_declined">Голосовой вызов отклонён</string>
+    <string name="video_call_declined">Видеовызов отклонён</string>
     <string name="view_all">Показать все</string>
     <string name="view_old_room">Открыть старую комнату</string>
     <string name="visibility_updated">Видимость обновлена</string>

@@ -1248,6 +1248,9 @@
     <string name="verification_service_unavailable">Doğrulama hizmeti kullanılamıyor</string>
     <string name="verified">Doğrulandı</string>
     <string name="video_call">Görüntülü arama</string>
+    <string name="call_declined">Arama reddedildi</string>
+    <string name="voice_call_declined">Sesli arama reddedildi</string>
+    <string name="video_call_declined">Görüntülü arama reddedildi</string>
     <string name="view_all">Tümünü görüntüle</string>
     <string name="view_old_room">Eski odayı görüntüle</string>
     <string name="visibility_updated">Görünürlük güncellendi</string>

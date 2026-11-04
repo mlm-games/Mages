@@ -1248,6 +1248,9 @@
     <string name="verification_service_unavailable">Verificatiedienst niet beschikbaar</string>
     <string name="verified">Geverifieerd</string>
     <string name="video_call">Videogesprek</string>
+    <string name="call_declined">Oproep geweigerd</string>
+    <string name="voice_call_declined">Spraakoproep geweigerd</string>
+    <string name="video_call_declined">Videogesprek geweigerd</string>
     <string name="view_all">Alles bekijken</string>
     <string name="view_old_room">Oude kamer bekijken</string>
     <string name="visibility_updated">Zichtbaarheid bijgewerkt</string>

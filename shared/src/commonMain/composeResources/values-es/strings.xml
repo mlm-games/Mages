@@ -1364,6 +1364,9 @@
     <string name="verification_service_unavailable">Servicio de verificación no disponible</string>
     <string name="verified">Verificado</string>
     <string name="video_call">Videollamada</string>
+    <string name="call_declined">Llamada rechazada</string>
+    <string name="voice_call_declined">Llamada de voz rechazada</string>
+    <string name="video_call_declined">Videollamada rechazada</string>
     <string name="view_all">Ver todo</string>
     <string name="view_old_room">Ver sala antigua</string>
     <string name="visibility_updated">Visibilidad actualizada</string>

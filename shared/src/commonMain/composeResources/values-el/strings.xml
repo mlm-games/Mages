@@ -1248,6 +1248,9 @@
     <string name="verification_service_unavailable">Η υπηρεσία επαλήθευσης δεν είναι διαθέσιμη</string>
     <string name="verified">Επαληθευμένο</string>
     <string name="video_call">Βίντεο κλήση</string>
+    <string name="call_declined">Απορρίφθηκε η κλήση</string>
+    <string name="voice_call_declined">Η φωνητική κλήση απορρίφθηκε</string>
+    <string name="video_call_declined">Η βιντεοκλήση απορρίφθηκε</string>
     <string name="view_all">Προβολή όλων</string>
     <string name="view_old_room">Προβολή παλιού δωματίου</string>
     <string name="visibility_updated">Η ορατότητα ενημερώθηκε</string>

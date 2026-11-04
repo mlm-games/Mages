@@ -109,6 +109,10 @@ pub struct MessageEvent {
     pub event_type: EventType,
     pub is_redacted: bool,
     pub state_event_type: Option<String>,
+    /// `"audio"`/`"video"` for a `m.rtc.notification`, otherwise `None`.
+    pub call_type: Option<String>,
+    /// At least one member declined the call this notification refers to.
+    pub call_declined: bool,
     pub live_location: Option<LiveLocationEvent>,
     pub raw_json: Option<String>,
     pub shield: Option<MessageShield>,

@@ -1248,6 +1248,9 @@
     <string name="verification_service_unavailable">Dịch vụ xác minh không khả dụng</string>
     <string name="verified">Đã xác minh</string>
     <string name="video_call">Cuộc gọi video</string>
+    <string name="call_declined">Cuộc gọi bị từ chối</string>
+    <string name="voice_call_declined">Cuộc gọi thoại bị từ chối</string>
+    <string name="video_call_declined">Cuộc gọi video bị từ chối</string>
     <string name="view_all">Xem tất cả</string>
     <string name="view_old_room">Xem phòng cũ</string>
     <string name="visibility_updated">Đã cập nhật khả năng hiển thị</string>

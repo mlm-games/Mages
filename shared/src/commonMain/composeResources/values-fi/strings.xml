@@ -1248,6 +1248,9 @@
     <string name="verification_service_unavailable">Vahvistuspalvelu ei ole käytettävissä</string>
     <string name="verified">Vahvistettu</string>
     <string name="video_call">Videopuhelu</string>
+    <string name="call_declined">Puhelu hylätty</string>
+    <string name="voice_call_declined">Äänipuhelu hylätty</string>
+    <string name="video_call_declined">Videopuhelu hylätty</string>
     <string name="view_all">Näytä kaikki</string>
     <string name="view_old_room">Näytä vanha huone</string>
     <string name="visibility_updated">Näkyvyys päivitetty</string>

@@ -1248,6 +1248,9 @@
     <string name="verification_service_unavailable">検証サービスは利用できません</string>
     <string name="verified">検証済み</string>
     <string name="video_call">ビデオ通話</string>
+    <string name="call_declined">通話が拒否されました</string>
+    <string name="voice_call_declined">音声通話が拒否されました</string>
+    <string name="video_call_declined">ビデオ通話が拒否されました</string>
     <string name="view_all">すべて表示</string>
     <string name="view_old_room">古いルームを表示</string>
     <string name="visibility_updated">表示設定が更新されました</string>

@@ -1248,6 +1248,9 @@
     <string name="verification_service_unavailable">Layanan verifikasi tidak tersedia</string>
     <string name="verified">Terverifikasi</string>
     <string name="video_call">Panggilan video</string>
+    <string name="call_declined">Panggilan ditolak</string>
+    <string name="voice_call_declined">Panggilan suara ditolak</string>
+    <string name="video_call_declined">Panggilan video ditolak</string>
     <string name="view_all">Lihat semua</string>
     <string name="view_old_room">Lihat ruang lama</string>
     <string name="visibility_updated">Visibilitas diperbarui</string>

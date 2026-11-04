@@ -1248,6 +1248,9 @@
     <string name="verification_service_unavailable">خدمة التحقق غير متاحة</string>
     <string name="verified">تم التحقق</string>
     <string name="video_call">مكالمة فيديو</string>
+    <string name="call_declined">تم رفض المكالمة</string>
+    <string name="voice_call_declined">تم رفض المكالمة الصوتية</string>
+    <string name="video_call_declined">تم رفض مكالمة الفيديو</string>
     <string name="view_all">عرض الكل</string>
     <string name="view_old_room">عرض الغرفة القديمة</string>
     <string name="visibility_updated">تم تحديث الظهور</string>

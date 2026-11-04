@@ -38,6 +38,8 @@ data class MessageEvent(
     var eventType: EventType = EventType.Message,
     var isRedacted: Boolean = false,
     var stateEventType: String? = null,
+    var callType: String? = null,
+    var callDeclined: Boolean = false,
     var liveLocation: LiveLocationEvent? = null,
     var rawJson: String? = null,
     var shield: MessageShield? = null,

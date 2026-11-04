@@ -1248,6 +1248,9 @@
     <string name="verification_service_unavailable">سرویس تأیید در دسترس نیست</string>
     <string name="verified">تأیید شده</string>
     <string name="video_call">تماس تصویری</string>
+    <string name="call_declined">تماس رد شد</string>
+    <string name="voice_call_declined">تماس صوتی رد شد</string>
+    <string name="video_call_declined">تماس تصویری رد شد</string>
     <string name="view_all">نمایش همه</string>
     <string name="view_old_room">نمایش اتاق قدیمی</string>
     <string name="visibility_updated">نمایانی به‌روزرسانی شد</string>
