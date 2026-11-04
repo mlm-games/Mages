@@ -475,7 +475,7 @@ fun MessageBubble(
                         val spacing = 8.dp.roundToPx()
                         val totalHeight = replyPlaceable.height + spacing + mainPlaceable.height
 
-                        layout(maxOf(contentWidth, constraints.minWidth), totalHeight) {
+                        layout(contentWidth, totalHeight) {
                             replyPlaceable.place(0, 0)
                             mainPlaceable.place(
                                 x = 0,
@@ -484,8 +484,7 @@ fun MessageBubble(
                         }
                     } else {
                         val mainPlaceable = measurables[0].measure(looseConstraints)
-                        val width = maxOf(mainPlaceable.width, constraints.minWidth)
-                        layout(width, mainPlaceable.height) {
+                        layout(mainPlaceable.width, mainPlaceable.height) {
                             mainPlaceable.place(0, 0)
                         }
                     }
