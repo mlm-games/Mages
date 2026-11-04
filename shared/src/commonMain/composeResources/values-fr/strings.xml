@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">Délai de verrouillage de l’application</string>
     <string name="setting_screen_security">Sécurité de l’écran</string>
     <string name="setting_show_call_screen">Afficher l’écran d’appel</string>
+    <string name="setting_answer_calls_when_locked">Répondre aux appels en mode verrouillé</string>
     <string name="setting_call_notifications">Notifications d’appel</string>
     <string name="setting_select_unified_push_distributor">Sélectionner le fournisseur UnifiedPush</string>
     <string name="setting_re_register_unified_push">Réenregistrer UnifiedPush</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">Verrouiller après autant de temps en arrière-plan</string>
     <string name="setting_screen_security_description">Bloquer les captures d'écran et masquer le contenu dans le sélecteur d'applications</string>
     <string name="setting_show_call_screen_description">Afficher l'interface utilisateur des appels entrants en plein écran</string>
+    <string name="setting_answer_calls_when_locked_description">Exiger le déverrouillage de l’appareil avant de répondre à un appel entrant</string>
     <string name="setting_call_notifications_description">Notifications d'appels entrants</string>
     <string name="setting_select_unified_push_distributor_description">Choisissez l'application qui fournit des push (gcompat/sunup/ntfy/etc.)</string>
     <string name="setting_re_register_unified_push_description">Résoudre les problèmes de push après la mise à jour/redémarrage ou le distributeur change</string>

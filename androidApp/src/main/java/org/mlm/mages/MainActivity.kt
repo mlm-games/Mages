@@ -355,7 +355,7 @@ class MainActivity : AppCompatActivity() {
         if (roomId.isNullOrBlank()) return
 
         if (joinCall) {
-            AndroidNotificationHelper.dismissCallUi(this, roomId, eventId, silent = true)
+            AndroidNotificationHelper.dismissCallUi(this, roomId, eventId, silent = true, retireTelecom = false)
 
             if (!eventId.isNullOrBlank()) {
                 val notificationManager =

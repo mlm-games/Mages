@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
@@ -24,8 +25,10 @@ import org.mlm.mages.activities.CallActivity
 import org.koin.core.context.GlobalContext
 import org.koin.core.qualifier.named
 import org.koin.java.KoinJavaComponent
+import org.mlm.mages.calls.CallEntryPoint
 import org.mlm.mages.calls.CallManager
 import org.mlm.mages.calls.IncomingCallTracker
+import org.mlm.mages.calls.declineIncomingCall
 import org.mlm.mages.di.appModules
 import org.mlm.mages.platform.CurrentActivityHolder
 import org.mlm.mages.platform.MagesPaths
@@ -41,6 +44,7 @@ import org.mlm.mages.push.LiveLocationSharingForegroundService
 import org.mlm.mages.push.PREF_INSTANCE
 import org.mlm.mages.push.PushManager.getEndpoint
 import org.mlm.mages.push.PusherReconciler
+import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.CopyUnifiedPushEndpointAction
 import org.mlm.mages.settings.OpenBubbleSettingsAction
 import org.mlm.mages.settings.OpenSystemNotificationSettingsAction
@@ -136,6 +140,33 @@ class MagesApp : Application() {
             chainTelecom { MagesTelecomCalls.removeCallSync("in:$roomId") }
         }
 
+        CallTelecomBridge.onIncomingRinging = { roomId, eventId, roomName, isVideo ->
+            chainTelecom {
+                MagesTelecomCalls.addIncomingCall(
+                    appContext = this@MagesApp,
+                    roomId = roomId,
+                    roomName = roomName,
+                    isVideo = isVideo,
+                    onAnswered = { answerFromSystem(roomId, roomName, isVideo) },
+                    onDeclined = {
+                        appScope.launch {
+                            val koin = GlobalContext.getOrNull()
+                            val tracker = koin?.get<IncomingCallTracker>()
+                            val port = koin?.get<MatrixService>()?.portOrNull
+                            if (tracker != null) {
+                                declineIncomingCall(
+                                    port = port,
+                                    tracker = tracker,
+                                    roomId = roomId,
+                                    eventId = eventId,
+                                )
+                            }
+                        }
+                    },
+                )
+            }
+        }
+
         val koin = GlobalContext.getOrNull()
         if (koin != null) {
             observeNetworkMetering(this, appScope, koin.get<MatrixService>())
@@ -228,6 +259,30 @@ class MagesApp : Application() {
 
         appScope.launch {
             runCatching { PusherReconciler.ensureServerPusherRegistered(this@MagesApp) }
+        }
+    }
+
+    private fun answerFromSystem(roomId: String, roomName: String, isVideo: Boolean) {
+        val koin = GlobalContext.getOrNull() ?: return
+        val service = koin.get<MatrixService>()
+        @Suppress("UNCHECKED_CAST")
+        val callManager = koin.get<CallManager>()
+        appScope.launch {
+            val settings = runCatching { SettingsProvider.get(this@MagesApp).flow.first() }
+                .getOrDefault(AppSettings())
+            val started = CallEntryPoint.start(
+                context = this@MagesApp,
+                service = service,
+                callManager = callManager,
+                settings = settings,
+                roomId = roomId,
+                roomName = roomName.ifBlank { null },
+                isVoiceOnly = !isVideo,
+                incoming = true,
+            )
+            if (!started) {
+                MagesTelecomCalls.removeCallSync("in:$roomId")
+            }
         }
     }
 }

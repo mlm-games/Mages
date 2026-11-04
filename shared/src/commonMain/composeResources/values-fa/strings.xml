@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">مهلت قفل برنامه</string>
     <string name="setting_screen_security">امنیت صفحه</string>
     <string name="setting_show_call_screen">نمایش صفحه تماس</string>
+    <string name="setting_answer_calls_when_locked">پاسخ به تماس‌ها در حالت قفل</string>
     <string name="setting_call_notifications">اعلان‌های تماس</string>
     <string name="setting_select_unified_push_distributor">انتخاب توزیع‌کننده UnifiedPush</string>
     <string name="setting_re_register_unified_push">ثبت دوباره UnifiedPush</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">پس از این مدت در پس‌زمینه قفل کن</string>
     <string name="setting_screen_security_description">جلوگیری از اسکرین‌شات و پنهان کردن محتوا در جابه‌جاگر اپ</string>
     <string name="setting_show_call_screen_description">نمایش رابط تمام‌صفحه تماس ورودی</string>
+    <string name="setting_answer_calls_when_locked_description">پیش از پاسخ به تماس ورودی، قفل دستگاه را باز کنید</string>
     <string name="setting_call_notifications_description">اعلان تماس‌های ورودی</string>
     <string name="setting_select_unified_push_distributor_description">برنامه‌ای را انتخاب کنید که push را تحویل می‌دهد (gcompat/sunup/ntfy و غیره)</string>
     <string name="setting_re_register_unified_push_description">رفع مشکلات push پس از به‌روزرسانی، راه‌اندازی مجدد یا تغییر توزیع‌کننده</string>

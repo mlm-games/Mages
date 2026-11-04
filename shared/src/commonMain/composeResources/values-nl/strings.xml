@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">Time-out appvergrendeling</string>
     <string name="setting_screen_security">Schermbeveiliging</string>
     <string name="setting_show_call_screen">Oproepscherm tonen</string>
+    <string name="setting_answer_calls_when_locked">Oproepen aannemen bij vergrendeling</string>
     <string name="setting_call_notifications">Oproepmeldingen</string>
     <string name="setting_select_unified_push_distributor">UnifiedPush-provider selecteren</string>
     <string name="setting_re_register_unified_push">UnifiedPush opnieuw registreren</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">Vergrendel na zoveel tijd op de achtergrond</string>
     <string name="setting_screen_security_description">Blokkeer schermafbeeldingen en verberg inhoud in de app-switcher</string>
     <string name="setting_show_call_screen_description">Toon schermvullende inkomende oproep-UI</string>
+    <string name="setting_answer_calls_when_locked_description">Vereis ontgrendeling van het apparaat voordat een inkomende oproep wordt aangenomen</string>
     <string name="setting_call_notifications_description">Inkomende oproepmeldingen</string>
     <string name="setting_select_unified_push_distributor_description">Kies de app die pushes levert (gcompat/sunup/ntfy/etc.)</string>
     <string name="setting_re_register_unified_push_description">Push-problemen oplossen na bijwerken/herstarten of distributeur wijzigen</string>

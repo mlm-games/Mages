@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">앱 잠금 시간 초과</string>
     <string name="setting_screen_security">화면 보안</string>
     <string name="setting_show_call_screen">통화 화면 표시</string>
+    <string name="setting_answer_calls_when_locked">잠금 상태에서 통화 받기</string>
     <string name="setting_call_notifications">통화 알림</string>
     <string name="setting_select_unified_push_distributor">UnifiedPush 제공자 선택</string>
     <string name="setting_re_register_unified_push">UnifiedPush 다시 등록</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">이 시간 이후 백그라운드에서 잠금</string>
     <string name="setting_screen_security_description">스크린샷 차단 및 앱 전환기에서 콘텐츠 숨기기</string>
     <string name="setting_show_call_screen_description">수신 전화 전체 화면 표시 UI</string>
+    <string name="setting_answer_calls_when_locked_description">수신 전화를 받기 전에 기기 잠금 해제를 요구</string>
     <string name="setting_call_notifications_description">수신 전화 알림</string>
     <string name="setting_select_unified_push_distributor_description">푸시를 전달하는 앱 선택(gcompat/sunup/ntfy/etc.)</string>
     <string name="setting_re_register_unified_push_description">업데이트/재부팅 또는 배포자 후 푸시 문제 해결 Change</string>

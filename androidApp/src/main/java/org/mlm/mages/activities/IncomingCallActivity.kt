@@ -1,21 +1,24 @@
 package org.mlm.mages.activities
 
+import android.Manifest
 import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.net.Uri
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.WindowManager
+import android.widget.Toast
 import co.touchlab.kermit.Logger
 import android.view.accessibility.AccessibilityManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -37,9 +40,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import io.github.mlmgames.settings.core.SettingsRepository
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.mlm.mages.MatrixService
+import org.mlm.mages.R as AppR
+import org.mlm.mages.calls.CallEntryPoint
 import org.mlm.mages.calls.CallManager
 import org.mlm.mages.calls.IncomingCallTracker
 import org.mlm.mages.calls.formatCallElapsed
@@ -49,6 +56,7 @@ import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.RoomCallState
 import org.mlm.mages.push.AndroidNotificationHelper
 import org.mlm.mages.push.CallTelecomBridge
+import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.theme.MainTheme
 import org.mlm.mages.ui.components.core.Avatar
 import androidx.activity.compose.BackHandler
@@ -110,6 +118,36 @@ class IncomingCallActivity : ComponentActivity() {
     private val service: MatrixService by inject()
     private val incomingCalls: IncomingCallTracker by inject()
     private val callManager: CallManager by inject()
+    private val settingsRepository: SettingsRepository<AppSettings> by inject()
+
+    private var pendingAccept: (() -> Unit)? = null
+    private var pendingUnlock: (() -> Unit)? = null
+    private var accepting = false
+
+    private val credentialLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            runPendingUnlock()
+        } else {
+            pendingUnlock = null
+        }
+    }
+
+    private val callPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants ->
+        if (grants[Manifest.permission.RECORD_AUDIO] == true) {
+            pendingAccept?.invoke()
+        } else {
+            Toast.makeText(
+                this,
+                getString(AppR.string.mic_permission_required),
+                Toast.LENGTH_LONG
+            ).show()
+        }
+        pendingAccept = null
+    }
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(ContextCompat.getContextForLanguage(newBase))
@@ -132,8 +170,6 @@ class IncomingCallActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
-            val keyguardManager = getSystemService(KEYGUARD_SERVICE) as KeyguardManager
-            keyguardManager.requestDismissKeyguard(this, null)
         } else {
             @Suppress("DEPRECATION")
             window.addFlags(
@@ -147,6 +183,12 @@ class IncomingCallActivity : ComponentActivity() {
 
         applyIntent(intent)
         startRemoteHangupWatchdogs()
+
+        if (intent?.getBooleanExtra(EXTRA_ANSWER_IMMEDIATELY, false) == true) {
+            window.decorView.post {
+                uiState?.let { acceptCall(it.roomId, it.eventId, it.isVoiceOnly) }
+            }
+        }
 
         setContent {
             MainTheme {
@@ -181,6 +223,11 @@ class IncomingCallActivity : ComponentActivity() {
         remoteFinished = false
         applyIntent(intent)
         startRemoteHangupWatchdogs()
+        if (intent.getBooleanExtra(EXTRA_ANSWER_IMMEDIATELY, false)) {
+            window.decorView.post {
+                uiState?.let { acceptCall(it.roomId, it.eventId, it.isVoiceOnly) }
+            }
+        }
     }
 
     override fun onResume() {
@@ -209,34 +256,119 @@ class IncomingCallActivity : ComponentActivity() {
     }
 
     private fun acceptCall(roomId: String, eventId: String?, isVoiceOnly: Boolean) {
+        if (accepting || isFinishing || isDestroyed) return
+        lifecycleScope.launch {
+            val settings = runCatching { settingsRepository.flow.first() }
+                .getOrDefault(AppSettings())
+            val requiresUnlock = isDeviceLocked() &&
+                (!settings.answerCallsWhenLocked || missingPermissions(isVoiceOnly).isNotEmpty())
+            if (requiresUnlock) {
+                requestUnlock { continueAccept(roomId, eventId, isVoiceOnly, settings) }
+            } else {
+                continueAccept(roomId, eventId, isVoiceOnly, settings)
+            }
+        }
+    }
+
+    private fun missingPermissions(isVoiceOnly: Boolean): List<String> = buildList {
+        if (ContextCompat.checkSelfPermission(
+                this@IncomingCallActivity,
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            add(Manifest.permission.RECORD_AUDIO)
+        }
+        if (!isVoiceOnly && ContextCompat.checkSelfPermission(
+                this@IncomingCallActivity,
+                Manifest.permission.CAMERA
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            add(Manifest.permission.CAMERA)
+        }
+    }
+
+    private fun continueAccept(
+        roomId: String,
+        eventId: String?,
+        isVoiceOnly: Boolean,
+        settings: AppSettings,
+    ) {
+        if (accepting) return
+
+        val needed = missingPermissions(isVoiceOnly)
+        if (needed.isEmpty()) {
+            joinCall(roomId, eventId, isVoiceOnly, settings)
+        } else {
+            pendingAccept = { joinCall(roomId, eventId, isVoiceOnly, settings) }
+            callPermissionLauncher.launch(needed.toTypedArray())
+        }
+    }
+
+    private fun isDeviceLocked(): Boolean =
+        (getSystemService(KEYGUARD_SERVICE) as? KeyguardManager)?.isDeviceLocked == true
+
+    private fun requestUnlock(onUnlocked: () -> Unit) {
+        val keyguard = getSystemService(KEYGUARD_SERVICE) as? KeyguardManager
+        if (keyguard == null || !keyguard.isDeviceLocked) {
+            pendingUnlock = null
+            onUnlocked()
+            return
+        }
+
+        pendingUnlock = onUnlocked
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            keyguard.requestDismissKeyguard(
+                this,
+                object : KeyguardManager.KeyguardDismissCallback() {
+                    override fun onDismissSucceeded() = runPendingUnlock()
+                    override fun onDismissCancelled() { pendingUnlock = null }
+                    override fun onDismissError() { pendingUnlock = null }
+                }
+            )
+        } else {
+            val intent = runCatching {
+                keyguard.createConfirmDeviceCredentialIntent(null, null)
+            }.getOrNull()
+            if (intent == null) {
+                runPendingUnlock()
+            } else {
+                runCatching { credentialLauncher.launch(intent) }
+                    .onFailure { pendingUnlock = null }
+            }
+        }
+    }
+
+    private fun runPendingUnlock() {
+        val action = pendingUnlock ?: return
+        pendingUnlock = null
+        action()
+    }
+
+    private fun joinCall(
+        roomId: String,
+        eventId: String?,
+        isVoiceOnly: Boolean,
+        settings: AppSettings,
+    ) {
+        if (accepting) return
+        accepting = true
         lifecycleScope.launch {
             AndroidNotificationHelper.dismissCallUi(
-                this@IncomingCallActivity, roomId, eventId, silent = true
+                this@IncomingCallActivity, roomId, eventId, silent = true, retireTelecom = false
             )
 
-            val uri = Uri.Builder()
-                .scheme("mages")
-                .authority("room")
-                .appendQueryParameter("id", roomId)
-                .appendQueryParameter("join_call", "1")
-                .appendQueryParameter("incoming", "1")
-                .appendQueryParameter("voice_only", if (isVoiceOnly) "1" else "0")
-                .apply {
-                    eventId?.let { appendQueryParameter("event", it) }
-                }
-                .build()
-
-            val intent = Intent(Intent.ACTION_VIEW, uri).apply {
-                setPackage(packageName)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP
-            }
-
-            Logger.i("Accept pressed; launching call deep link roomId=$roomId eventId=$eventId uri=$uri")
-
-            startActivity(intent)
-            finish()
+            Logger.i("Accept pressed; joining call directly roomId=$roomId eventId=$eventId")
+            val started = CallEntryPoint.start(
+                context = this@IncomingCallActivity,
+                service = service,
+                callManager = callManager,
+                settings = settings,
+                roomId = roomId,
+                roomName = uiState?.roomName,
+                isVoiceOnly = isVoiceOnly,
+                incoming = true,
+            )
+            if (started) finish() else accepting = false
         }
     }
 
@@ -460,7 +592,7 @@ class IncomingCallActivity : ComponentActivity() {
                 }
             }
             stopRemoteHangupWatchdogs()
-            finishAndRemoveTask()
+            finish()
         }
     }
 
@@ -470,6 +602,7 @@ class IncomingCallActivity : ComponentActivity() {
     }
 
     companion object {
+        const val EXTRA_ANSWER_IMMEDIATELY = "answer_immediately"
         const val EXTRA_ROOM_ID = "room_id"
         const val EXTRA_ROOM_NAME = "room_name"
         const val EXTRA_CALLER_NAME = "caller_name"

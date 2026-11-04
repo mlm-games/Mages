@@ -29,8 +29,13 @@ object MagesTelecomCalls {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val setupMutex = Mutex()
     private val sessions = mutableMapOf<String, CallControlScope?>()
-    private val jobs = mutableMapOf<String, kotlinx.coroutines.Job>()
+    private val jobs = mutableMapOf<String, Job>()
+    private val disconnectHandlers = mutableMapOf<String, () -> Unit>()
+    private val bridges = mutableMapOf<String, RouteBridge>()
     @Volatile private var registered = false
+
+    private fun ringingKey(roomId: String): String =
+        if (roomId.startsWith("in:")) roomId else "in:$roomId"
 
     @SuppressLint("MissingPermission")
     fun register(appContext: Context) {
@@ -52,6 +57,40 @@ object MagesTelecomCalls {
         }
     }
 
+    suspend fun addIncomingCall(
+        appContext: Context,
+        roomId: String,
+        roomName: String,
+        isVideo: Boolean,
+        onAnswered: () -> Unit,
+        onDeclined: () -> Unit,
+    ) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val key = ringingKey(roomId)
+        setupMutex.withLock {
+            if (jobs.containsKey(key)) return
+            if (sessions.containsKey(roomId) || jobs.containsKey(roomId)) return
+            disconnectHandlers[roomId] = onDeclined
+            val bridge = RouteBridge()
+            bridges[roomId] = bridge
+            jobs[key] = scope.launch {
+                runCall(
+                    appContext = appContext.applicationContext,
+                    keys = listOf(key, roomId),
+                    sessionKey = key,
+                    roomId = roomId,
+                    roomName = roomName,
+                    isVideo = isVideo,
+                    isIncoming = true,
+                    answerOnStart = false,
+                    installRoute = false,
+                    onAnswer = onAnswered,
+                    bridge = bridge,
+                )
+            }
+        }
+    }
+
     suspend fun addOngoingCallSync(
         appContext: Context,
         roomId: String,
@@ -61,22 +100,38 @@ object MagesTelecomCalls {
         onRemoteDisconnect: (() -> Unit)? = null,
     ) {
         setupMutex.withLock {
-            for (key in (sessions.keys + jobs.keys).toSet()) {
-                if (!key.startsWith("in:") && key != roomId) {
-                    val swept = runCatching {
-                        sessions.remove(key)?.disconnect(
-                            android.telecom.DisconnectCause(
-                                android.telecom.DisconnectCause.LOCAL
-                            )
-                        )
-                    }
-                    Logger.i { "Telecom: sweep-disconnect $key -> $swept" }
-                    jobs.remove(key)?.cancel()
+            val callType = if (isVideo) CallAttributesCompat.CALL_TYPE_VIDEO_CALL
+            else CallAttributesCompat.CALL_TYPE_AUDIO_CALL
+            sweep(roomId)
+            val promoted = promoteRinging(roomId = roomId, callType = callType)
+            if (promoted) {
+                if (onRemoteDisconnect != null) {
+                    disconnectHandlers[roomId] = onRemoteDisconnect
+                } else {
+                    disconnectHandlers.remove(roomId)
                 }
+                return
             }
             if (jobs.containsKey(roomId)) return
+            if (onRemoteDisconnect != null) {
+                disconnectHandlers[roomId] = onRemoteDisconnect
+            }
+            val bridge = RouteBridge()
+            bridges[roomId] = bridge
             jobs[roomId] = scope.launch {
-                runOngoingCall(appContext, roomId, roomName, isVideo, isIncoming, onRemoteDisconnect)
+                runCall(
+                    appContext = appContext.applicationContext,
+                    keys = listOf(roomId, ringingKey(roomId)),
+                    sessionKey = roomId,
+                    roomId = roomId,
+                    roomName = roomName,
+                    isVideo = isVideo,
+                    isIncoming = isIncoming,
+                    answerOnStart = true,
+                    installRoute = true,
+                    onAnswer = null,
+                    bridge = bridge,
+                )
             }
         }
     }
@@ -84,110 +139,179 @@ object MagesTelecomCalls {
     suspend fun removeCallSync(sessionKey: String) {
         val self = coroutineContext[Job]
         val child: Job? = setupMutex.withLock {
+            val key = when {
+                sessions.containsKey(sessionKey) || jobs.containsKey(sessionKey) -> sessionKey
+                else -> ringingKey(sessionKey)
+            }
+            disconnectHandlers.remove(key.removePrefix("in:"))
             val told = runCatching {
-                sessions.remove(sessionKey)?.disconnect(
+                sessions.remove(key)?.disconnect(
                     android.telecom.DisconnectCause(
                         android.telecom.DisconnectCause.LOCAL
                     )
                 )
             }
-            Logger.i { "Telecom: remove-disconnect $sessionKey -> $told" }
-            jobs.remove(sessionKey)?.also { it.cancel() }
+            Logger.i { "Telecom: remove-disconnect $key -> $told" }
+            jobs.remove(key)?.also { it.cancel() }
         }
         if (child != null && child !== self) {
             runCatching { withTimeoutOrNull(8_000) { child.join() } }
         }
     }
 
-    private suspend fun runOngoingCall(
+    private suspend fun sweep(keepRoomId: String) {
+        for (key in (sessions.keys + jobs.keys).toSet()) {
+            if (key.startsWith("in:")) continue
+            if (key == keepRoomId) continue
+            disconnectHandlers.remove(key)
+            val told = runCatching {
+                sessions.remove(key)?.disconnect(
+                    android.telecom.DisconnectCause(
+                        android.telecom.DisconnectCause.LOCAL
+                    )
+                )
+            }
+            Logger.i { "Telecom: sweep-disconnect $key -> $told" }
+            jobs.remove(key)?.cancel()
+        }
+    }
+
+    private fun promoteRinging(roomId: String, callType: Int): Boolean {
+        val key = ringingKey(roomId)
+        val control = sessions.remove(key) ?: return false
+        sessions[roomId] = control
+        jobs.remove(key)?.let { jobs[roomId] = it }
+        bridges[roomId]?.install(control)
+        scope.launch {
+            val result = runCatching { control.answer(callType) }
+            Logger.i { "Telecom: answer(ringing) $roomId -> $result" }
+        }
+        return true
+    }
+
+    private suspend fun runCall(
         appContext: Context,
+        keys: List<String>,
+        sessionKey: String,
         roomId: String,
         roomName: String,
         isVideo: Boolean,
         isIncoming: Boolean,
-        onRemoteDisconnect: (() -> Unit)?,
+        answerOnStart: Boolean,
+        installRoute: Boolean,
+        onAnswer: (() -> Unit)?,
+        bridge: RouteBridge,
     ) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-
-        val mgr = try {
-            CallsManager(appContext.applicationContext)
-        } catch (e: Exception) {
-            Logger.w(e) { "Telecom: CallsManager() failed" }
-            return
-        }
-        val attrs = CallAttributesCompat(
-            displayName = roomName,
-            address = Uri.parse("mages:$roomId"),
-            direction = if (isIncoming) CallAttributesCompat.DIRECTION_INCOMING
-            else CallAttributesCompat.DIRECTION_OUTGOING,
-            callType = if (isVideo) CallAttributesCompat.CALL_TYPE_VIDEO_CALL
-            else CallAttributesCompat.CALL_TYPE_AUDIO_CALL,
-            callCapabilities = CallAttributesCompat.SUPPORTS_SET_INACTIVE,
-        )
-        var routeHandler: CallAudioRouteHandler? = null
-        var endpointsJob: Job? = null
         try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+
+            val mgr = try {
+                CallsManager(appContext.applicationContext)
+            } catch (e: Exception) {
+                Logger.w(e) { "Telecom: CallsManager() failed" }
+                return
+            }
+            val attrs = CallAttributesCompat(
+                displayName = roomName,
+                address = Uri.parse("mages:$roomId"),
+                direction = if (isIncoming) CallAttributesCompat.DIRECTION_INCOMING
+                else CallAttributesCompat.DIRECTION_OUTGOING,
+                callType = if (isVideo) CallAttributesCompat.CALL_TYPE_VIDEO_CALL
+                else CallAttributesCompat.CALL_TYPE_AUDIO_CALL,
+                callCapabilities = CallAttributesCompat.SUPPORTS_SET_INACTIVE,
+            )
             mgr.addCall(
                 attrs,
-                { _: Int -> /* onAnswer (already active) */ },
+                {
+                    Logger.i { "Telecom: system answer $roomId" }
+                    val handler = onAnswer
+                    if (handler != null) {
+                        runCatching { handler() }
+                            .onFailure { Logger.w(it) { "Telecom: answer handler failed $roomId" } }
+                    }
+                },
                 {
                     Logger.i { "Telecom: remote disconnect $roomId" }
-                    onRemoteDisconnect?.invoke()
-                    sessions.remove(roomId)
+                    scope.launch {
+                        val handler = setupMutex.withLock {
+                            for (key in keys) sessions.remove(key)
+                            disconnectHandlers.remove(roomId)
+                        }
+                        runCatching { handler?.invoke() }
+                    }
                 },
                 { /* onActive */ },
                 { /* onInactive (hold) */ },
             ) {
-                val control = this
-                sessions[roomId] = control
-                val endpoints = AtomicReference<List<CallEndpointCompat>>(emptyList())
-                val pendingRouteType = AtomicReference<Int?>(null)
-                endpointsJob = launch {
-                    control.availableEndpoints.collect { available ->
-                        endpoints.set(available)
-                        val pending = pendingRouteType.getAndSet(null) ?: return@collect
-                        available.firstOrNull { it.type == pending }?.let { endpoint ->
-                            control.requestEndpointChange(endpoint)
-                        }
-                    }
-                }
-                val handler = CallAudioRouteHandler { device ->
-                    val type = device.type.toCallEndpointType()
-                    if (type == CallEndpointCompat.TYPE_UNKNOWN) return@CallAudioRouteHandler false
-                    val available = endpoints.get()
-                    if (available.isEmpty()) {
-                        pendingRouteType.set(type)
-                        return@CallAudioRouteHandler false
-                    }
-                    val endpoint = available.firstOrNull { it.type == type }
-                        ?: return@CallAudioRouteHandler false
+                sessions[sessionKey] = this
+                if (installRoute) bridge.install(this)
+                if (answerOnStart) {
                     scope.launch {
-                        val result = control.requestEndpointChange(endpoint)
-                        Logger.i { "Telecom: route ${device.type} -> $result" }
+                        val result = runCatching {
+                            if (isIncoming) answer(attrs.callType) else setActive()
+                        }
+                        Logger.i { "Telecom: ${if (isIncoming) "answer" else "setActive"} $roomId -> $result" }
                     }
-                    true
-                }
-                routeHandler = handler
-                CallAudioRouteBridge.handler = handler
-                scope.launch {
-                    val result = runCatching {
-                        if (isIncoming) control.answer(attrs.callType) else control.setActive()
-                    }
-                    Logger.i { "Telecom: ${if (isIncoming) "answer" else "setActive"} $roomId -> $result" }
                 }
             }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Logger.w(e) { "Telecom: addCall(ongoing) failed, FGS fallback covers bg" }
+            Logger.w(e) { "Telecom: addCall failed, FGS fallback covers bg" }
         } finally {
+            bridge.clear()
+            if (bridges[roomId] === bridge) bridges.remove(roomId)
+            setupMutex.withLock {
+                for (key in keys) {
+                    sessions.remove(key)
+                    jobs.remove(key)
+                }
+                disconnectHandlers.remove(roomId)
+            }
+        }
+    }
+
+    private class RouteBridge {
+        var routeHandler: CallAudioRouteHandler? = null
+        var endpointsJob: Job? = null
+
+        fun install(control: CallControlScope) {
+            if (routeHandler != null) return
+            val endpoints = AtomicReference<List<CallEndpointCompat>>(emptyList())
+            val pendingRouteType = AtomicReference<Int?>(null)
+            endpointsJob = MagesTelecomCalls.scope.launch {
+                control.availableEndpoints.collect { available ->
+                    endpoints.set(available)
+                    val pending = pendingRouteType.getAndSet(null) ?: return@collect
+                    available.firstOrNull { it.type == pending }?.let { endpoint ->
+                        control.requestEndpointChange(endpoint)
+                    }
+                }
+            }
+            val handler = CallAudioRouteHandler { device ->
+                val type = device.type.toCallEndpointType()
+                if (type == CallEndpointCompat.TYPE_UNKNOWN) return@CallAudioRouteHandler false
+                val available = endpoints.get()
+                if (available.isEmpty()) {
+                    pendingRouteType.set(type)
+                    return@CallAudioRouteHandler false
+                }
+                val endpoint = available.firstOrNull { it.type == type }
+                    ?: return@CallAudioRouteHandler false
+                MagesTelecomCalls.scope.launch {
+                    val result = control.requestEndpointChange(endpoint)
+                    Logger.i { "Telecom: route ${device.type} -> $result" }
+                }
+                true
+            }
+            routeHandler = handler
+            CallAudioRouteBridge.handler = handler
+        }
+
+        fun clear() {
             endpointsJob?.cancel()
             if (routeHandler != null && CallAudioRouteBridge.handler === routeHandler) {
                 CallAudioRouteBridge.handler = null
-            }
-            setupMutex.withLock {
-                sessions.remove(roomId)
-                jobs.remove(roomId)
             }
         }
     }

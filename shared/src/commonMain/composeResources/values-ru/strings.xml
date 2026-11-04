@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">Тайм-аут блокировки приложения</string>
     <string name="setting_screen_security">Безопасность экрана</string>
     <string name="setting_show_call_screen">Показывать экран звонка</string>
+    <string name="setting_answer_calls_when_locked">Отвечать на звонки при блокировке</string>
     <string name="setting_call_notifications">Уведомления о звонках</string>
     <string name="setting_select_unified_push_distributor">Выбрать поставщика UnifiedPush</string>
     <string name="setting_re_register_unified_push">Повторно зарегистрировать UnifiedPush</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">Блокировать после этого времени в фоне</string>
     <string name="setting_screen_security_description">Блокировать снимки экрана и скрывать содержимое в списке приложений</string>
     <string name="setting_show_call_screen_description">Показывать полноэкранный интерфейс входящего звонка</string>
+    <string name="setting_answer_calls_when_locked_description">Требовать разблокировку устройства перед ответом на входящий звонок</string>
     <string name="setting_call_notifications_description">Уведомления о входящих звонках</string>
     <string name="setting_select_unified_push_distributor_description">Выберите приложение, доставляющее push (gcompat/sunup/ntfy и др.)</string>
     <string name="setting_re_register_unified_push_description">Исправлять проблемы с push после обновления, перезагрузки или смены поставщика</string>

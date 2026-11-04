@@ -601,7 +601,9 @@
     <string name="setting_screen_security">Seguridad de la pantalla</string>
     <string name="setting_screen_security_description">Bloquear capturas de pantalla y ocultar el contenido en el conmutador de aplicaciones</string>
     <string name="setting_show_call_screen">Mostrar pantalla de llamada</string>
+    <string name="setting_answer_calls_when_locked">Responder llamadas con el dispositivo bloqueado</string>
     <string name="setting_show_call_screen_description">Mostrar la interfaz de llamada entrante a pantalla completa</string>
+    <string name="setting_answer_calls_when_locked_description">Requerir el desbloqueo del dispositivo antes de responder una llamada entrante</string>
     <string name="setting_call_notifications">Notificaciones de llamadas</string>
     <string name="setting_call_notifications_description">Notificaciones de llamadas entrantes</string>
     <string name="setting_select_unified_push_distributor">Seleccionar distribuidor de UnifiedPush</string>

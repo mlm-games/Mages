@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">Timeout del blocco app</string>
     <string name="setting_screen_security">Sicurezza dello schermo</string>
     <string name="setting_show_call_screen">Mostra schermata di chiamata</string>
+    <string name="setting_answer_calls_when_locked">Rispondi alle chiamate a schermo bloccato</string>
     <string name="setting_call_notifications">Notifiche di chiamata</string>
     <string name="setting_select_unified_push_distributor">Seleziona distributore UnifiedPush</string>
     <string name="setting_re_register_unified_push">Registra di nuovo UnifiedPush</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">Blocca dopo questo tempo in background</string>
     <string name="setting_screen_security_description">Blocca gli screenshot e nascondi il contenuto nel selettore delle app</string>
     <string name="setting_show_call_screen_description">Mostra l’interfaccia a schermo intero per le chiamate in arrivo</string>
+    <string name="setting_answer_calls_when_locked_description">Richiedi lo sblocco del dispositivo prima di rispondere a una chiamata in arrivo</string>
     <string name="setting_call_notifications_description">Notifiche delle chiamate in arrivo</string>
     <string name="setting_select_unified_push_distributor_description">Scegli l’app che distribuisce le notifiche push (gcompat/sunup/ntfy ecc.)</string>
     <string name="setting_re_register_unified_push_description">Risolvi i problemi push dopo aggiornamento, riavvio o cambio distributore</string>

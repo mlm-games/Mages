@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">Limit czasu blokady aplikacji</string>
     <string name="setting_screen_security">Bezpieczeństwo ekranu</string>
     <string name="setting_show_call_screen">Pokaż ekran połączenia</string>
+    <string name="setting_answer_calls_when_locked">Odbieraj połączenia przy zablokowanym ekranie</string>
     <string name="setting_call_notifications">Powiadomienia o połączeniach</string>
     <string name="setting_select_unified_push_distributor">Wybierz dostawcę UnifiedPush</string>
     <string name="setting_re_register_unified_push">Zarejestruj ponownie UnifiedPush</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">Zablokuj po tym czasie w tle</string>
     <string name="setting_screen_security_description">Blokuj zrzuty ekranu i ukrywaj zawartość w przełączniku aplikacji</string>
     <string name="setting_show_call_screen_description">Pokaż pełnoekranowy interfejs połączenia przychodzącego</string>
+    <string name="setting_answer_calls_when_locked_description">Wymagaj odblokowania urządzenia przed odebraniem połączenia przychodzącego</string>
     <string name="setting_call_notifications_description">Powiadomienia o połączeniach przychodzących</string>
     <string name="setting_select_unified_push_distributor_description">Wybierz aplikację dostarczającą push (gcompat/sunup/ntfy itp.)</string>
     <string name="setting_re_register_unified_push_description">Napraw problemy z pushem po aktualizacji, restarcie lub zmianie dostawcy</string>

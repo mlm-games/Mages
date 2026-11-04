@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">Tempo limite do bloqueio</string>
     <string name="setting_screen_security">Segurança do ecrã</string>
     <string name="setting_show_call_screen">Mostrar ecrã de chamada</string>
+    <string name="setting_answer_calls_when_locked">Atender chamadas com o ecrã bloqueado</string>
     <string name="setting_call_notifications">Notificações de chamada</string>
     <string name="setting_select_unified_push_distributor">Selecionar fornecedor do UnifiedPush</string>
     <string name="setting_re_register_unified_push">Voltar a registar o UnifiedPush</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">Bloquear depois de tanto tempo em segundo plano</string>
     <string name="setting_screen_security_description">Bloquear capturas de tela e ocultar conteúdo no alternador de aplicativos</string>
     <string name="setting_show_call_screen_description">Mostrar UI de chamada recebida em tela cheia</string>
+    <string name="setting_answer_calls_when_locked_description">Pedir o desbloqueio do dispositivo antes de atender uma chamada recebida</string>
     <string name="setting_call_notifications_description">Notificações de chamada recebida</string>
     <string name="setting_select_unified_push_distributor_description">Escolha o aplicativo que entrega pushes (gcompat/sunup/ntfy/etc.)</string>
     <string name="setting_re_register_unified_push_description">Corrigir problemas de push após atualização/reinicialização ou mudança de distribuidor</string>

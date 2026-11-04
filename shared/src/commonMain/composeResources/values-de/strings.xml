@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">Timeout der App-Sperre</string>
     <string name="setting_screen_security">Bildschirmschutz</string>
     <string name="setting_show_call_screen">Anrufbildschirm anzeigen</string>
+    <string name="setting_answer_calls_when_locked">Anrufe bei Sperre annehmen</string>
     <string name="setting_call_notifications">Anrufbenachrichtigungen</string>
     <string name="setting_select_unified_push_distributor">UnifiedPush-Anbieter auswählen</string>
     <string name="setting_re_register_unified_push">UnifiedPush erneut registrieren</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">Nach dieser Zeit im Hintergrund sperren</string>
     <string name="setting_screen_security_description">Screenshots blockieren und Inhalt in der App-Übersicht ausblenden</string>
     <string name="setting_show_call_screen_description">Vollbild-UI für eingehende Anrufe anzeigen</string>
+    <string name="setting_answer_calls_when_locked_description">Gerätesperre vor dem Annehmen eines eingehenden Anrufs aufheben</string>
     <string name="setting_call_notifications_description">Benachrichtigungen über eingehende Anrufe</string>
     <string name="setting_select_unified_push_distributor_description">App auswählen, die Pushes liefert (gcompat/sunup/ntfy/etc.)</string>
     <string name="setting_re_register_unified_push_description">Push-Probleme nach Update, Neustart oder Anbieterwechsel beheben</string>

@@ -1109,6 +1109,18 @@ data class AppSettings(
     @Setting(
         category = Calls::class,
         type = Toggle::class,
+        title = "Answer calls when locked",
+        titleKey = MagesSettingsKeys.ANSWER_CALLS_WHEN_LOCKED,
+        description = "Require device unlock before answering an incoming call",
+        descriptionKey = MagesSettingsKeys.ANSWER_CALLS_WHEN_LOCKED_DESCRIPTION,
+        dependsOn = "callNotificationsEnabled",
+        platforms = [SettingPlatform.ANDROID]
+    )
+    val answerCallsWhenLocked: Boolean = true,
+
+    @Setting(
+        category = Calls::class,
+        type = Toggle::class,
         title = "Call notifications",
         titleKey = MagesSettingsKeys.CALL_NOTIFICATIONS,
         description = "Incoming call notifications",

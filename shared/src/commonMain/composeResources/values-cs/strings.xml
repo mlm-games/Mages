@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">Časový limit zámku aplikace vypršel</string>
     <string name="setting_screen_security">Zabezpečení obrazovky</string>
     <string name="setting_show_call_screen">Zobrazit obrazovku hovoru</string>
+    <string name="setting_answer_calls_when_locked">Přijímat hovory při zamčené obrazovce</string>
     <string name="setting_call_notifications">Oznámení o hovorech</string>
     <string name="setting_select_unified_push_distributor">Vyberte distributora UnifiedPush</string>
     <string name="setting_re_register_unified_push">Znovu zaregistrovat UnifiedPush</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">Zamknout po tak dlouhé době na pozadí</string>
     <string name="setting_screen_security_description">Blokovat snímky obrazovky a skrýt obsah v přepínači aplikací</string>
     <string name="setting_show_call_screen_description">Zobrazit uživatelské rozhraní příchozího hovoru na celou obrazovku</string>
+    <string name="setting_answer_calls_when_locked_description">Vyžadovat odemknutí zařízení před přijetím příchozího hovoru</string>
     <string name="setting_call_notifications_description">Oznámení o příchozím hovoru</string>
     <string name="setting_select_unified_push_distributor_description">Vyber aplikaci, která tlačí (gcompat/sunup/ntfy/atd.)</string>
     <string name="setting_re_register_unified_push_description">Opravte problémy s odesíláním po aktualizaci/restartu nebo změně distributora</string>

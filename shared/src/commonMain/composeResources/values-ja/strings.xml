@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">アプリロックのタイムアウト</string>
     <string name="setting_screen_security">画面セキュリティ</string>
     <string name="setting_show_call_screen">通話画面を表示</string>
+    <string name="setting_answer_calls_when_locked">ロック中の着信に応答</string>
     <string name="setting_call_notifications">通話通知</string>
     <string name="setting_select_unified_push_distributor">UnifiedPush配布元を選択</string>
     <string name="setting_re_register_unified_push">UnifiedPushを再登録</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">_バックグラウンドでこの時間が経過したらロック</string>
     <string name="setting_screen_security_description">_スクリーンショットをブロックし、アプリ スイッチャーのコンテンツを非表示</string>
     <string name="setting_show_call_screen_description">_全画面着信 UI を表示</string>
+    <string name="setting_answer_calls_when_locked_description">着信に応答する前に端末のロック解除を求める</string>
     <string name="setting_call_notifications_description">_着信通知_</string>
     <string name="setting_select_unified_push_distributor_description">_プッシュを配信するアプリを選択 (gcompat/sunup/ntfy/など)</string>
     <string name="setting_re_register_unified_push_description">_プッシュの問題を修正更新/再起動またはディストリビュータの変更後_</string>

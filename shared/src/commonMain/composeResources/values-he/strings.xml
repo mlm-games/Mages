@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">זמן קצוב לנעילת האפליקציה</string>
     <string name="setting_screen_security">אבטחת מסך</string>
     <string name="setting_show_call_screen">הצגת מסך שיחה</string>
+    <string name="setting_answer_calls_when_locked">מענה לשיחות כשהמכשיר נעול</string>
     <string name="setting_call_notifications">התראות שיחה</string>
     <string name="setting_select_unified_push_distributor">בחירת ספק UnifiedPush</string>
     <string name="setting_re_register_unified_push">רישום מחדש של UnifiedPush</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">נעילה לאחר פרק זמן זה ברקע</string>
     <string name="setting_screen_security_description">חסימת צילומי מסך והסתרת תוכן במעברי האפליקציות</string>
     <string name="setting_show_call_screen_description">הצגת ממשק מלא לשיחה נכנסת</string>
+    <string name="setting_answer_calls_when_locked_description">לדרוש פתיחת נעילת המכשיר לפני מענה לשיחה נכנסת</string>
     <string name="setting_call_notifications_description">התראות על שיחות נכנסות</string>
     <string name="setting_select_unified_push_distributor_description">בחירת האפליקציה שמספקת push (gcompat/sunup/ntfy וכו׳)</string>
     <string name="setting_re_register_unified_push_description">פתרון בעיות push לאחר עדכון, הפעלה מחדש או החלפת ספק</string>

@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">Λήξη χρονικού ορίου κλειδώματος εφαρμογής</string>
     <string name="setting_screen_security">Ασφάλεια οθόνης</string>
     <string name="setting_show_call_screen">Εμφάνιση οθόνης κλήσεων</string>
+    <string name="setting_answer_calls_when_locked">Απάντηση κλήσεων όταν η συσκευή είναι κλειδωμένη</string>
     <string name="setting_call_notifications">Ειδοποιήσεις κλήσεων</string>
     <string name="setting_select_unified_push_distributor">Επιλέξτε διανομέα UnifiedPush</string>
     <string name="setting_re_register_unified_push">Επανεγγραφή του UnifiedPush</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">Κλείδωμα μετά από τόσο καιρό στο παρασκήνιο</string>
     <string name="setting_screen_security_description">Αποκλεισμός στιγμιότυπων οθόνης και απόκρυψη περιεχομένου στον εναλλάκτη εφαρμογών</string>
     <string name="setting_show_call_screen_description">Εμφάνιση διεπαφής χρήστη εισερχόμενης κλήσης πλήρους οθόνης</string>
+    <string name="setting_answer_calls_when_locked_description">Απαιτείται ξεκλείδωμα της συσκευής πριν την απάντηση εισερχόμενης κλήσης</string>
     <string name="setting_call_notifications_description">Ειδοποιήσεις εισερχόμενης κλήσης</string>
     <string name="setting_select_unified_push_distributor_description">Επιλέξτε την εφαρμογή που προσφέρει push (gcompat/sunup/ntfy/κ.λπ.)</string>
     <string name="setting_re_register_unified_push_description">Επιδιόρθωση προβλημάτων ώθησης μετά από ενημέρωση/επανεκκίνηση ή αλλαγή διανομέα</string>

@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">Uygulama kilidi zaman aşımı</string>
     <string name="setting_screen_security">Ekran güvenliği</string>
     <string name="setting_show_call_screen">Arama ekranını göster</string>
+    <string name="setting_answer_calls_when_locked">Kilitliyken aramaları yanıtla</string>
     <string name="setting_call_notifications">Arama bildirimleri</string>
     <string name="setting_select_unified_push_distributor">UnifiedPush sağlayıcısı seç</string>
     <string name="setting_re_register_unified_push">UnifiedPush’u yeniden kaydet</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">_Arka planda bu kadar süre kaldıktan sonra kilitleyin_</string>
     <string name="setting_screen_security_description">_Ekran görüntülerini engelleyin ve uygulama değiştiricideki içeriği gizleyin_</string>
     <string name="setting_show_call_screen_description">_Tam ekran gelen çağrı kullanıcı arayüzünü gösterin_</string>
+    <string name="setting_answer_calls_when_locked_description">Gelen aramayı yanıtlamadan önce cihazın kilidini açmayı iste</string>
     <string name="setting_call_notifications_description">_Gelen çağrı bildirimleri_</string>
     <string name="setting_select_unified_push_distributor_description">_Anketleri ileten uygulamayı seçin (gcompat/sunup/ntfy/vb.)_</string>
     <string name="setting_re_register_unified_push_description">_Sonraki push sorunlarını düzeltin güncelleme/yeniden başlatma veya distribütör değişikliği</string>

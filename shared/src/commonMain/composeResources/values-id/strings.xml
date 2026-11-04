@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">Batas waktu kunci aplikasi</string>
     <string name="setting_screen_security">Keamanan layar</string>
     <string name="setting_show_call_screen">Tampilkan layar panggilan</string>
+    <string name="setting_answer_calls_when_locked">Jawab panggilan saat terkunci</string>
     <string name="setting_call_notifications">Notifikasi panggilan</string>
     <string name="setting_select_unified_push_distributor">Pilih penyedia UnifiedPush</string>
     <string name="setting_re_register_unified_push">Daftarkan ulang UnifiedPush</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">Kunci setelah sekian lama di latar belakang</string>
     <string name="setting_screen_security_description">Blokir tangkapan layar dan sembunyikan konten di pengalih aplikasi</string>
     <string name="setting_show_call_screen_description">Tampilkan UI panggilan masuk layar penuh</string>
+    <string name="setting_answer_calls_when_locked_description">Minta buka kunci perangkat sebelum menjawab panggilan masuk</string>
     <string name="setting_call_notifications_description">Pemberitahuan panggilan masuk</string>
     <string name="setting_select_unified_push_distributor_description">Pilih aplikasi yang mengirimkan push (gcompat/sunup/ntfy/dll.)</string>
     <string name="setting_re_register_unified_push_description">Perbaiki masalah push setelahnya perbarui/reboot atau perubahan distributor</string>

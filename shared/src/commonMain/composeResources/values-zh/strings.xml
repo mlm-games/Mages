@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">应用锁定超时</string>
     <string name="setting_screen_security">屏幕安全</string>
     <string name="setting_show_call_screen">显示通话屏幕</string>
+    <string name="setting_answer_calls_when_locked">锁屏时接听来电</string>
     <string name="setting_call_notifications">通话通知</string>
     <string name="setting_select_unified_push_distributor">选择 UnifiedPush 分发器</string>
     <string name="setting_re_register_unified_push">重新注册 UnifiedPush</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">在后台经过此时间后锁定</string>
     <string name="setting_screen_security_description">阻止截屏并在应用切换器中隐藏内容</string>
     <string name="setting_show_call_screen_description">显示全屏来电界面</string>
+    <string name="setting_answer_calls_when_locked_description">接听来电前需要解锁设备</string>
     <string name="setting_call_notifications_description">来电通知</string>
     <string name="setting_select_unified_push_distributor_description">选择传递推送通知的应用（gcompat/sunup/ntfy 等）</string>
     <string name="setting_re_register_unified_push_description">在更新、重启或更换分发器后修复推送问题</string>

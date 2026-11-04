@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">Thời gian khóa ứng dụng</string>
     <string name="setting_screen_security">Bảo mật màn hình</string>
     <string name="setting_show_call_screen">Hiển thị màn hình cuộc gọi</string>
+    <string name="setting_answer_calls_when_locked">Trả lời cuộc gọi khi khóa máy</string>
     <string name="setting_call_notifications">Thông báo cuộc gọi</string>
     <string name="setting_select_unified_push_distributor">Chọn nhà phân phối UnifiedPush</string>
     <string name="setting_re_register_unified_push">Đăng ký lại UnifiedPush</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">Khóa sau khoảng thời gian này ở chế độ nền</string>
     <string name="setting_screen_security_description">Chặn ảnh chụp màn hình và ẩn nội dung trong bộ chuyển ứng dụng</string>
     <string name="setting_show_call_screen_description">Hiển thị giao diện cuộc gọi đến toàn màn hình</string>
+    <string name="setting_answer_calls_when_locked_description">Yêu cầu mở khóa thiết bị trước khi trả lời cuộc gọi đến</string>
     <string name="setting_call_notifications_description">Thông báo cuộc gọi đến</string>
     <string name="setting_select_unified_push_distributor_description">Chọn ứng dụng gửi push (gcompat/sunup/ntfy v.v.)</string>
     <string name="setting_re_register_unified_push_description">Khắc phục sự cố push sau khi cập nhật, khởi động lại hoặc đổi nhà phân phối</string>

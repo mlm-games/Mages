@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">Timeout zaključavanja aplikacije</string>
     <string name="setting_screen_security">Sigurnost zaslona</string>
     <string name="setting_show_call_screen">Prikaži zaslon poziva</string>
+    <string name="setting_answer_calls_when_locked">Odgovori na pozive kada je zaslon zaključan</string>
     <string name="setting_call_notifications">Obavijesti o pozivima</string>
     <string name="setting_select_unified_push_distributor">Odaberi UnifiedPush davatelja</string>
     <string name="setting_re_register_unified_push">Ponovno registriraj UnifiedPush</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">Zaključaj nakon ovoliko vremena u pozadini</string>
     <string name="setting_screen_security_description">Blokiraj snimke zaslona i sakrij sadržaj u izmjenjivaču aplikacija</string>
     <string name="setting_show_call_screen_description">Prikaži dolazni poziv preko cijelog zaslona UI</string>
+    <string name="setting_answer_calls_when_locked_description">Zatraži otključavanje uređaja prije odgovora na dolazni poziv</string>
     <string name="setting_call_notifications_description">Obavijesti o dolaznom pozivu</string>
     <string name="setting_select_unified_push_distributor_description">Odaberi aplikaciju koja šalje push poruke (gcompat/sunup/ntfy/etc.)</string>
     <string name="setting_re_register_unified_push_description">Rješavanje problema s pushom nakon ažuriranja/ponovnog pokretanja ili promjene distributera</string>

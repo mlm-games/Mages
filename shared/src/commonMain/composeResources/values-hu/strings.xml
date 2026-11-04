@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">Alkalmazászár időkorlátja</string>
     <string name="setting_screen_security">Képernyőbiztonság</string>
     <string name="setting_show_call_screen">Hívási képernyő megjelenítése</string>
+    <string name="setting_answer_calls_when_locked">Hívások fogadása zárolt állapotban</string>
     <string name="setting_call_notifications">Hívási értesítések</string>
     <string name="setting_select_unified_push_distributor">UnifiedPush-szolgáltató kiválasztása</string>
     <string name="setting_re_register_unified_push">UnifiedPush újraregisztrálása</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">Ennyi idő után zárja le a háttérben</string>
     <string name="setting_screen_security_description">Képernyőképek letiltása és tartalom elrejtése az alkalmazásváltóban</string>
     <string name="setting_show_call_screen_description">Teljes képernyős bejövő hívás felhasználói felület megjelenítése</string>
+    <string name="setting_answer_calls_when_locked_description">A készülék feloldásának kérése a bejövő hívás fogadása előtt</string>
     <string name="setting_call_notifications_description">Bejövő hívások értesítései</string>
     <string name="setting_select_unified_push_distributor_description">Válassza ki a leküldéseket biztosító alkalmazást (gcompat/sunup/ntfy/stb.)</string>
     <string name="setting_re_register_unified_push_description">Javítsa ki a leküldéssel kapcsolatos problémákat a frissítés/újraindítás vagy a forgalmazó módosítása után</string>

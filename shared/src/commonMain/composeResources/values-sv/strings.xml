@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">Tidsgräns för applås</string>
     <string name="setting_screen_security">Skärmsäkerhet</string>
     <string name="setting_show_call_screen">Visa samtalsskärm</string>
+    <string name="setting_answer_calls_when_locked">Svara på samtal när enheten är låst</string>
     <string name="setting_call_notifications">Samtalsaviseringar</string>
     <string name="setting_select_unified_push_distributor">Välj UnifiedPush-leverantör</string>
     <string name="setting_re_register_unified_push">Registrera UnifiedPush igen</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">Lås efter så lång tid i bakgrunden</string>
     <string name="setting_screen_security_description">Blockera skärmdumpar och dölj innehåll i appväxlaren</string>
     <string name="setting_show_call_screen_description">Visa UI för inkommande samtal i helskärm</string>
+    <string name="setting_answer_calls_when_locked_description">Kräv upplåsning av enheten innan ett inkommande samtal besvaras</string>
     <string name="setting_call_notifications_description">Aviseringar om inkommande samtal</string>
     <string name="setting_select_unified_push_distributor_description">Välj appen som levererar push (gcompat/sunup/ntfy/etc.)</string>
     <string name="setting_re_register_unified_push_description">Fixa push-problem efter uppdatering/omstart eller distributörsbyte</string>

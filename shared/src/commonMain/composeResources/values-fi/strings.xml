@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">Sovelluksen lukituksen aikakatkaisu</string>
     <string name="setting_screen_security">Näytön turvallisuus</string>
     <string name="setting_show_call_screen">Näytä puhelunäyttö</string>
+    <string name="setting_answer_calls_when_locked">Vastaa puheluihin lukittuna</string>
     <string name="setting_call_notifications">Puheluilmoitukset</string>
     <string name="setting_select_unified_push_distributor">Valitse UnifiedPush-jakelija</string>
     <string name="setting_re_register_unified_push">Rekisteröi UnifiedPush uudelleen</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">Lukitse näin pitkän ajan jälkeen taustalle</string>
     <string name="setting_screen_security_description">Estä kuvakaappaukset ja piilota sisältö sovellusten vaihtajassa</string>
     <string name="setting_show_call_screen_description">Näytä koko näytön saapuvan puhelun käyttöliittymä</string>
+    <string name="setting_answer_calls_when_locked_description">Vaadi laitteen lukituksen avaaminen ennen saapuvaan puheluun vastaamista</string>
     <string name="setting_call_notifications_description">Saapuvien puhelujen ilmoitukset</string>
     <string name="setting_select_unified_push_distributor_description">Valitse sovellus, joka toimittaa työntöjä (gcompat/sunup/ntfy/etc.)</string>
     <string name="setting_re_register_unified_push_description">Korjaa push-ongelmat päivityksen/uudelleenkäynnistyksen tai jakelijan vaihdon jälkeen</string>

@@ -829,7 +829,9 @@
     <string name="setting_screen_security">Screen security</string>
     <string name="setting_screen_security_description">Block screenshots and hide content in the app switcher</string>
     <string name="setting_show_call_screen">Show call screen</string>
+    <string name="setting_answer_calls_when_locked">Answer calls when locked</string>
     <string name="setting_show_call_screen_description">Show full-screen incoming call UI</string>
+    <string name="setting_answer_calls_when_locked_description">Require device unlock before answering an incoming call</string>
     <string name="setting_call_notifications">Call notifications</string>
     <string name="setting_call_notifications_description">Incoming call notifications</string>
     <string name="setting_select_unified_push_distributor">Select UnifiedPush distributor</string>

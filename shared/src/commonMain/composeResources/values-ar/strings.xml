@@ -56,6 +56,7 @@
     <string name="setting_app_lock_timeout">انتهت مهلة قفل التطبيق</string>
     <string name="setting_screen_security">أمان الشاشة</string>
     <string name="setting_show_call_screen">عرض شاشة المكالمة</string>
+    <string name="setting_answer_calls_when_locked">الرد على المكالمات أثناء القفل</string>
     <string name="setting_call_notifications">إشعارات المكالمات</string>
     <string name="setting_select_unified_push_distributor">تحديد موزع UnifiedPush</string>
     <string name="setting_re_register_unified_push">إعادة تسجيل UnifiedPush</string>
@@ -128,6 +129,7 @@
     <string name="setting_app_lock_timeout_description">اقفل بعد هذا الوقت الطويل في الخلفية</string>
     <string name="setting_screen_security_description">حظر لقطات الشاشة وإخفاء المحتوى في محوّل التطبيق</string>
     <string name="setting_show_call_screen_description">عرض واجهة مستخدم المكالمات الواردة بملء الشاشة</string>
+    <string name="setting_answer_calls_when_locked_description">طلب فتح قفل الجهاز قبل الرد على مكالمة واردة</string>
     <string name="setting_call_notifications_description">إشعارات المكالمات الواردة</string>
     <string name="setting_select_unified_push_distributor_description">اختر التطبيق الذي يقدم عمليات الدفع (gcompat/sunup/ntfy/etc.)</string>
     <string name="setting_re_register_unified_push_description">إصلاح مشكلات الدفع بعد التحديث/إعادة التشغيل أو تغيير الموزع</string>

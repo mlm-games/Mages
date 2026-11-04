@@ -41,6 +41,12 @@ object AndroidNotificationHelper : KoinComponent {
     private fun callScreenRequestCode(roomId: String, eventId: String?): Int =
         ("call_${roomId}_${eventId.orEmpty()}").hashCode()
 
+    private fun callAnswerRequestCode(roomId: String, eventId: String?): Int =
+        ("call_answer_${roomId}_${eventId.orEmpty()}").hashCode()
+
+    private fun callRingRequestCode(roomId: String, eventId: String?): Int =
+        ("call_ring_${roomId}_${eventId.orEmpty()}").hashCode()
+
     fun showIncomingCall(
         ctx: Context,
         roomId: String,
@@ -72,6 +78,30 @@ object AndroidNotificationHelper : KoinComponent {
         )
 
         val joinIntent = createCallJoinIntent(ctx, roomId, eventId, notifId, isVoiceOnly)
+        val ringScreenIntent = createRingScreenIntent(
+            ctx = ctx,
+            roomId = roomId,
+            roomName = roomName,
+            callerName = callerName,
+            eventId = eventId,
+            callerAvatarPath = callerAvatarPath,
+            requestCode = callRingRequestCode(roomId, eventId),
+            isVoiceOnly = isVoiceOnly,
+            isDm = isDm,
+            expiresAtMs = expiresAtMs,
+        )
+        val answerIntent = createAnswerCallIntent(
+            ctx = ctx,
+            roomId = roomId,
+            roomName = roomName,
+            callerName = callerName,
+            eventId = eventId,
+            callerAvatarPath = callerAvatarPath,
+            requestCode = callAnswerRequestCode(roomId, eventId),
+            isVoiceOnly = isVoiceOnly,
+            isDm = isDm,
+            expiresAtMs = expiresAtMs,
+        ) ?: joinIntent
         val declineIntent = createCallDeclineIntent(ctx, roomId, eventId, notifId)
         val deleteIntent = createCallDeleteIntent(ctx, roomId, notifId, eventId, callerName, roomName, isVoiceOnly)
 
@@ -91,7 +121,7 @@ object AndroidNotificationHelper : KoinComponent {
         val style = NotificationCompat.CallStyle.forIncomingCall(
             caller,
             declineIntent,
-            joinIntent
+            answerIntent
         ).setIsVideo(!isVoiceOnly)
 
         val builder = NotificationCompat.Builder(ctx, AppNotificationChannels.CHANNEL_CALLS)
@@ -102,7 +132,7 @@ object AndroidNotificationHelper : KoinComponent {
             .setAutoCancel(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setStyle(style)
-            .setContentIntent(incomingScreenIntent ?: joinIntent)
+            .setContentIntent(incomingScreenIntent ?: ringScreenIntent ?: joinIntent)
             .setDeleteIntent(deleteIntent)
             .setTimeoutAfter(INCOMING_CALL_TIMEOUT_MS)
             .setSound(Settings.System.DEFAULT_RINGTONE_URI, AudioManager.STREAM_RING)
@@ -121,13 +151,18 @@ object AndroidNotificationHelper : KoinComponent {
         mgr.notify(notifId, builder.build().apply {
             flags = flags or Notification.FLAG_INSISTENT
         })
+        runCatching {
+            CallTelecomBridge.onIncomingRinging?.invoke(roomId, eventId, roomName, !isVoiceOnly)
+        }
         Notifier.updateSummaryNotification(ctx)
     }
 
-    fun cancelCallNotification(ctx: Context, roomId: String) {
+    fun cancelCallNotification(ctx: Context, roomId: String, retireTelecom: Boolean = true) {
         val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         mgr.cancel(callNotificationId(roomId))
-        runCatching { CallTelecomBridge.onIncomingGone?.invoke(roomId) }
+        if (retireTelecom) {
+            runCatching { CallTelecomBridge.onIncomingGone?.invoke(roomId) }
+        }
         Notifier.updateSummaryNotification(ctx)
     }
 
@@ -136,8 +171,9 @@ object AndroidNotificationHelper : KoinComponent {
         roomId: String,
         eventId: String? = null,
         silent: Boolean = false,
+        retireTelecom: Boolean = true,
     ) {
-        cancelCallNotification(ctx, roomId)
+        cancelCallNotification(ctx, roomId, retireTelecom)
         CallTelecomBridge.sendCallDismissed(ctx, roomId, eventId, silent)
     }
 
@@ -269,28 +305,18 @@ object AndroidNotificationHelper : KoinComponent {
         // Do not kick the user into system settings during an incoming call.
         // If FSI is unavailable, we still return the PendingIntent so notification taps
         // open the native incoming-call screen consistently.
-
-        // reflection to avoid direct dependency
-        val intent: Intent = try {
-            val activityClass = Class.forName("org.mlm.mages.activities.IncomingCallActivity")
-            Intent(ctx, activityClass).apply {
-                putExtra("room_id", roomId)
-                putExtra("room_name", roomName)
-                putExtra("caller_name", callerName)
-                putExtra("event_id", eventId)
-                putExtra("caller_avatar_path", callerAvatarPath)
-                putExtra("is_voice_only", isVoiceOnly)
-                putExtra("is_dm", isDm)
-                expiresAtMs?.let { putExtra("expires_at_ms", it) }
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                        Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
-                        Intent.FLAG_ACTIVITY_NO_USER_ACTION
-            }
-        } catch (e: ClassNotFoundException) {
-            e.printStackTrace()
-            createCallJoinIntentRaw(ctx, roomId, eventId, isVoiceOnly)
-        }
+        val intent = createIncomingCallScreenIntent(
+            ctx = ctx,
+            roomId = roomId,
+            roomName = roomName,
+            callerName = callerName,
+            eventId = eventId,
+            callerAvatarPath = callerAvatarPath,
+            isVoiceOnly = isVoiceOnly,
+            isDm = isDm,
+            expiresAtMs = expiresAtMs,
+            answerImmediately = false,
+        ) ?: createCallJoinIntentRaw(ctx, roomId, eventId, isVoiceOnly)
 
         return PendingIntent.getActivity(
             ctx,
@@ -298,6 +324,105 @@ object AndroidNotificationHelper : KoinComponent {
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+    }
+
+    private fun createAnswerCallIntent(
+        ctx: Context,
+        roomId: String,
+        roomName: String,
+        callerName: String,
+        eventId: String?,
+        callerAvatarPath: String? = null,
+        requestCode: Int,
+        isVoiceOnly: Boolean = false,
+        isDm: Boolean = false,
+        expiresAtMs: Long? = null,
+    ): PendingIntent? {
+        val intent = createIncomingCallScreenIntent(
+            ctx = ctx,
+            roomId = roomId,
+            roomName = roomName,
+            callerName = callerName,
+            eventId = eventId,
+            callerAvatarPath = callerAvatarPath,
+            isVoiceOnly = isVoiceOnly,
+            isDm = isDm,
+            expiresAtMs = expiresAtMs,
+            answerImmediately = true,
+        ) ?: return null
+
+        return PendingIntent.getActivity(
+            ctx,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    private fun createRingScreenIntent(
+        ctx: Context,
+        roomId: String,
+        roomName: String,
+        callerName: String,
+        eventId: String?,
+        callerAvatarPath: String? = null,
+        requestCode: Int,
+        isVoiceOnly: Boolean = false,
+        isDm: Boolean = false,
+        expiresAtMs: Long? = null,
+    ): PendingIntent? {
+        val intent = createIncomingCallScreenIntent(
+            ctx = ctx,
+            roomId = roomId,
+            roomName = roomName,
+            callerName = callerName,
+            eventId = eventId,
+            callerAvatarPath = callerAvatarPath,
+            isVoiceOnly = isVoiceOnly,
+            isDm = isDm,
+            expiresAtMs = expiresAtMs,
+            answerImmediately = false,
+        ) ?: return null
+
+        return PendingIntent.getActivity(
+            ctx,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    private fun createIncomingCallScreenIntent(
+        ctx: Context,
+        roomId: String,
+        roomName: String,
+        callerName: String,
+        eventId: String?,
+        callerAvatarPath: String?,
+        isVoiceOnly: Boolean,
+        isDm: Boolean,
+        expiresAtMs: Long?,
+        answerImmediately: Boolean,
+    ): Intent? = try {
+        val activityClass = Class.forName("org.mlm.mages.activities.IncomingCallActivity")
+        Intent(ctx, activityClass).apply {
+            putExtra("room_id", roomId)
+            putExtra("room_name", roomName)
+            putExtra("caller_name", callerName)
+            putExtra("event_id", eventId)
+            putExtra("caller_avatar_path", callerAvatarPath)
+            putExtra("is_voice_only", isVoiceOnly)
+            putExtra("is_dm", isDm)
+            putExtra("answer_immediately", answerImmediately)
+            expiresAtMs?.let { putExtra("expires_at_ms", it) }
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
+                    Intent.FLAG_ACTIVITY_NO_USER_ACTION
+        }
+    } catch (e: ClassNotFoundException) {
+        e.printStackTrace()
+        null
     }
 
     private fun createOpenIntent(
