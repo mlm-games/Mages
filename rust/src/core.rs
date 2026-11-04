@@ -5439,7 +5439,6 @@ impl CoreClient {
                     .min(u32::MAX as u64) as u32,
                 topic: room.topic(),
                 latest_event,
-                heroes: Vec::new(),
             });
         }
         snapshot

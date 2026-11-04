@@ -730,8 +730,6 @@ pub struct RoomListEntry {
     pub peer_status_emoji: Option<String>,
     pub peer_status_text: Option<String>,
     pub peer_call_joined_ts_ms: Option<i64>,
-    #[serde(default)]
-    pub heroes: Vec<RoomHeroInfo>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Record)]
