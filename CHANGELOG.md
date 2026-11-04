@@ -1,3 +1,9 @@
+## v5.3.10
+
+- feat: add Google Sans Flex font option (#200)
+- fix: opt-in sticker and live location notifications (#199)
+
+
 ## v5.3.9
 
 - No user-facing changes were mentioned since previous release

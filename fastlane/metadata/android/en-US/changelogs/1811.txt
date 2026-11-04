@@ -1,0 +1,2 @@
+- feat: add Google Sans Flex font option (#200)
+- fix: opt-in sticker and live location notifications (#199)
