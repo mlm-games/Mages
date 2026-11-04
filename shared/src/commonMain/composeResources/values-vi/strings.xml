@@ -435,6 +435,8 @@
     <string name="couldnt_find_message">Không thể tìm thấy tin nhắn đó trong lịch sử tải.</string>
     <string name="reply_failed">Trả lời không thành công</string>
     <string name="send_failed">Gửi không thành công</string>
+    <string name="message_too_long">Tin nhắn quá dài để gửi. Hãy chia nhỏ hoặc gửi dưới dạng tệp.</string>
+    <string name="message_too_long_short">Tin nhắn quá dài để gửi</string>
     <string name="edit_failed">Chỉnh sửa không thành công</string>
     <string name="delete_failed">Xóa không thành công</string>
     <string name="cancel_send_failed">Không thể hủy tin nhắn</string>
@@ -1492,4 +1494,5 @@
     <string name="sticker_pack_zip_unreadable">Không thể đọc tệp .zip này</string>
     <string name="sticker_pack_create">Bộ mới</string>
     <string name="updated">Đã cập nhật</string>
+    <string name="show_more">Xem thêm</string>
 </resources>

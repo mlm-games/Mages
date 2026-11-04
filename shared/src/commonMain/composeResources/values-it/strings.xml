@@ -435,6 +435,8 @@
     <string name="couldnt_find_message">Impossibile trovare il messaggio nella cronologia caricata.</string>
     <string name="reply_failed">Risposta fallita</string>
     <string name="send_failed">Invio non riuscito</string>
+    <string name="message_too_long">Il messaggio è troppo lungo per essere inviato. Suddividilo o invialo come file.</string>
+    <string name="message_too_long_short">Il messaggio è troppo lungo per essere inviato</string>
     <string name="edit_failed">Modifica non riuscita</string>
     <string name="delete_failed">Eliminazione non riuscita</string>
     <string name="cancel_send_failed">Impossibile annullare il messaggio</string>
@@ -1492,4 +1494,5 @@
     <string name="sticker_pack_zip_unreadable">Impossibile leggere questo .zip</string>
     <string name="sticker_pack_create">Nuovo pacchetto</string>
     <string name="updated">Aggiornato</string>
+    <string name="show_more">Mostra altro</string>
 </resources>

@@ -435,6 +435,8 @@
     <string name="couldnt_find_message">Kan dat bericht niet vinden in de geladen geschiedenis.</string>
     <string name="reply_failed">Antwoord mislukt</string>
     <string name="send_failed">Verzenden mislukt</string>
+    <string name="message_too_long">Het bericht is te lang om te verzenden. Splits het of verzend het als bestand.</string>
+    <string name="message_too_long_short">Het bericht is te lang om te verzenden</string>
     <string name="edit_failed">Bewerken mislukt</string>
     <string name="delete_failed">Verwijderen is mislukt</string>
     <string name="cancel_send_failed">Het bericht kon niet worden geannuleerd</string>
@@ -1492,4 +1494,5 @@
     <string name="sticker_pack_zip_unreadable">Deze .zip kon niet worden gelezen</string>
     <string name="sticker_pack_create">Nieuw pakket</string>
     <string name="updated">Bijgewerkt</string>
+    <string name="show_more">Meer weergeven</string>
 </resources>

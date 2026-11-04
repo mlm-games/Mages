@@ -280,6 +280,8 @@
     >No se pudo encontrar ese mensaje en el historial cargado.</string>
     <string name="reply_failed">Error al responder</string>
     <string name="send_failed">Error al enviar</string>
+    <string name="message_too_long">El mensaje es demasiado largo para enviarlo. Divídelo o envíalo como archivo.</string>
+    <string name="message_too_long_short">El mensaje es demasiado largo para enviarlo</string>
     <string name="edit_failed">Error al editar</string>
     <string name="delete_failed">Error al eliminar</string>
     <string name="cancel_send_failed">Error al cancelar el mensaje</string>
@@ -1608,4 +1610,5 @@
     <string name="sticker_pack_zip_unreadable">No se pudo leer este .zip</string>
     <string name="sticker_pack_create">Nuevo paquete</string>
     <string name="updated">Actualizado</string>
+    <string name="show_more">Mostrar más</string>
 </resources>

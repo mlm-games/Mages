@@ -435,6 +435,8 @@
     <string name="couldnt_find_message">Tidak dapat menemukan pesan itu dalam riwayat yang dimuat.</string>
     <string name="reply_failed">Balasan gagal</string>
     <string name="send_failed">Pengiriman gagal</string>
+    <string name="message_too_long">Pesan terlalu panjang untuk dikirim. Pisahkan atau kirim sebagai file.</string>
+    <string name="message_too_long_short">Pesan terlalu panjang untuk dikirim</string>
     <string name="edit_failed">Pengeditan gagal</string>
     <string name="delete_failed">Penghapusan gagal</string>
     <string name="cancel_send_failed">Pesan gagal dibatalkan</string>
@@ -1492,4 +1494,5 @@
     <string name="sticker_pack_zip_unreadable">Tidak dapat membaca .zip ini</string>
     <string name="sticker_pack_create">Paket baru</string>
     <string name="updated">Diperbarui</string>
+    <string name="show_more">Tampilkan selengkapnya</string>
 </resources>

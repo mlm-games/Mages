@@ -435,6 +435,8 @@
     <string name="couldnt_find_message">تعذر العثور على هذه الرسالة في السجل المحمل.</string>
     <string name="reply_failed">فشل الرد</string>
     <string name="send_failed">فشل الإرسال</string>
+    <string name="message_too_long">الرسالة طويلة جدًا للإرسال. قسّمها أو أرسلها كملف.</string>
+    <string name="message_too_long_short">الرسالة طويلة جدًا للإرسال</string>
     <string name="edit_failed">فشل التعديل</string>
     <string name="delete_failed">فشل الحذف</string>
     <string name="cancel_send_failed">تعذّر إلغاء الرسالة</string>
@@ -1496,4 +1498,5 @@
     <string name="sticker_pack_zip_unreadable">تعذر قراءة ملف .zip هذا</string>
     <string name="sticker_pack_create">حزمة جديدة</string>
     <string name="updated">تم التحديث</string>
+    <string name="show_more">عرض المزيد</string>
 </resources>

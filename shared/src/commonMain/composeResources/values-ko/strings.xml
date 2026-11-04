@@ -435,6 +435,8 @@
     <string name="couldnt_find_message">로드된 기록에서 해당 메시지를 찾을 수 없습니다.</string>
     <string name="reply_failed">답장 실패</string>
     <string name="send_failed">보내기 실패</string>
+    <string name="message_too_long">메시지가 너무 길어 보낼 수 없습니다. 나누어 보내거나 파일로 보내세요.</string>
+    <string name="message_too_long_short">메시지가 너무 길어 보낼 수 없습니다</string>
     <string name="edit_failed">수정 실패</string>
     <string name="delete_failed">삭제 실패</string>
     <string name="cancel_send_failed">메시지를 취소하지 못했습니다</string>
@@ -1491,4 +1493,5 @@
     <string name="sticker_pack_zip_unreadable">이 .zip을 읽을 수 없습니다</string>
     <string name="sticker_pack_create">새 팩</string>
     <string name="updated">업데이트됨</string>
+    <string name="show_more">더 보기</string>
 </resources>

@@ -435,6 +435,8 @@
     <string name="couldnt_find_message">Не удалось найти это сообщение в загруженной истории.</string>
     <string name="reply_failed">Не удалось ответить</string>
     <string name="send_failed">Отправить не удалось</string>
+    <string name="message_too_long">Сообщение слишком длинное для отправки. Разделите его или отправьте файлом.</string>
+    <string name="message_too_long_short">Сообщение слишком длинное для отправки</string>
     <string name="edit_failed">Изменить не удалось</string>
     <string name="delete_failed">Удаление не удалось</string>
     <string name="cancel_send_failed">Не удалось отменить сообщение</string>
@@ -1494,4 +1496,5 @@
     <string name="sticker_pack_zip_unreadable">Не удалось прочитать этот .zip</string>
     <string name="sticker_pack_create">Новый набор</string>
     <string name="updated">Обновлено</string>
+    <string name="show_more">Показать больше</string>
 </resources>

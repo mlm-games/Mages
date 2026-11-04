@@ -435,6 +435,8 @@
     <string name="couldnt_find_message">Não foi possível encontrar essa mensagem no histórico carregado.</string>
     <string name="reply_failed">Falha na resposta</string>
     <string name="send_failed">Falha no envio</string>
+    <string name="message_too_long">A mensagem é muito longa para enviar. Divida-a ou envie-a como arquivo.</string>
+    <string name="message_too_long_short">A mensagem é muito longa para enviar</string>
     <string name="edit_failed">Falha na edição</string>
     <string name="delete_failed">Falha na exclusão</string>
     <string name="cancel_send_failed">Falha ao cancelar a mensagem</string>
@@ -1492,4 +1494,5 @@
     <string name="sticker_pack_zip_unreadable">Não foi possível ler este .zip</string>
     <string name="sticker_pack_create">Novo pacote</string>
     <string name="updated">Atualizado</string>
+    <string name="show_more">Mostrar mais</string>
 </resources>

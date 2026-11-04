@@ -435,6 +435,8 @@
     <string name="couldnt_find_message">Viestiä ei löytynyt ladatusta historiasta.</string>
     <string name="reply_failed">Vastaus epäonnistui</string>
     <string name="send_failed">Lähetys epäonnistui</string>
+    <string name="message_too_long">Viesti on liian pitkä lähetettäväksi. Jaa se tai lähetä se tiedostona.</string>
+    <string name="message_too_long_short">Viesti on liian pitkä lähetettäväksi</string>
     <string name="edit_failed">Muokkaus epäonnistui</string>
     <string name="delete_failed">Poistaminen epäonnistui</string>
     <string name="cancel_send_failed">Viestin peruuttaminen epäonnistui</string>
@@ -1492,4 +1494,5 @@
     <string name="sticker_pack_zip_unreadable">Tätä .zip-tiedostoa ei voitu lukea</string>
     <string name="sticker_pack_create">Uusi paketti</string>
     <string name="updated">Päivitetty</string>
+    <string name="show_more">Näytä lisää</string>
 </resources>

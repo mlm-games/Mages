@@ -435,6 +435,8 @@
     <string name="couldnt_find_message">Nie udało się znaleźć tej wiadomości w załadowanej historii.</string>
     <string name="reply_failed">Odpowiedź nie powiodła się</string>
     <string name="send_failed">Wysyłanie nie powiodło się</string>
+    <string name="message_too_long">Wiadomość jest za długa do wysłania. Podziel ją lub wyślij jako plik.</string>
+    <string name="message_too_long_short">Wiadomość jest za długa do wysłania</string>
     <string name="edit_failed">Edycja nie powiodła się</string>
     <string name="delete_failed">Usunięcie nie powiodło się</string>
     <string name="cancel_send_failed">Nie udało się anulować wiadomości</string>
@@ -1494,4 +1496,5 @@
     <string name="sticker_pack_zip_unreadable">Nie można odczytać tego pliku .zip</string>
     <string name="sticker_pack_create">Nowy pakiet</string>
     <string name="updated">Zaktualizowano</string>
+    <string name="show_more">Pokaż więcej</string>
 </resources>

@@ -435,6 +435,8 @@
     <string name="couldnt_find_message">Tuto zprávu se nepodařilo najít v načtené historii.</string>
     <string name="reply_failed">Odpověď se nezdařila</string>
     <string name="send_failed">Odeslání se nezdařilo</string>
+    <string name="message_too_long">Zpráva je příliš dlouhá k odeslání. Rozdělte ji nebo ji pošlete jako soubor.</string>
+    <string name="message_too_long_short">Zpráva je příliš dlouhá k odeslání</string>
     <string name="edit_failed">Úprava se nezdařila</string>
     <string name="delete_failed">Smazání se nezdařilo</string>
     <string name="cancel_send_failed">Zrušení zprávy se nezdařilo</string>
@@ -1494,4 +1496,5 @@
     <string name="sticker_pack_zip_unreadable">Tento .zip nelze přečíst</string>
     <string name="sticker_pack_create">Nová sada</string>
     <string name="updated">Aktualizováno</string>
+    <string name="show_more">Zobrazit více</string>
 </resources>

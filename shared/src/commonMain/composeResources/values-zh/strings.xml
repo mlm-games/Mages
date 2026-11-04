@@ -435,6 +435,8 @@
     <string name="couldnt_find_message">在加载的历史记录中找不到该消息。</string>
     <string name="reply_failed">回复失败</string>
     <string name="send_failed">发送失败</string>
+    <string name="message_too_long">消息太长，无法发送。请拆分后发送，或以文件形式发送。</string>
+    <string name="message_too_long_short">消息太长，无法发送</string>
     <string name="edit_failed">编辑失败</string>
     <string name="delete_failed">删除失败</string>
     <string name="cancel_send_failed">无法取消消息</string>
@@ -1491,4 +1493,5 @@
     <string name="sticker_pack_zip_unreadable">无法读取此 .zip</string>
     <string name="sticker_pack_create">新建图像包</string>
     <string name="updated">已更新</string>
+    <string name="show_more">显示更多</string>
 </resources>

@@ -435,6 +435,8 @@
     <string name="couldnt_find_message">Δεν ήταν δυνατή η εύρεση αυτού του μηνύματος στο φορτωμένο ιστορικό.</string>
     <string name="reply_failed">Η απάντηση απέτυχε</string>
     <string name="send_failed">Η αποστολή απέτυχε</string>
+    <string name="message_too_long">Το μήνυμα είναι πολύ μεγάλο για αποστολή. Χωρίστε το ή στείλτε το ως αρχείο.</string>
+    <string name="message_too_long_short">Το μήνυμα είναι πολύ μεγάλο για αποστολή</string>
     <string name="edit_failed">Η επεξεργασία απέτυχε</string>
     <string name="delete_failed">Η διαγραφή απέτυχε</string>
     <string name="cancel_send_failed">Η ακύρωση του μηνύματος απέτυχε</string>
@@ -1492,4 +1494,5 @@
     <string name="sticker_pack_zip_unreadable">Δεν ήταν δυνατή η ανάγνωση αυτού του .zip</string>
     <string name="sticker_pack_create">Νέο πακέτο</string>
     <string name="updated">Ενημερώθηκε</string>
+    <string name="show_more">Εμφάνιση περισσότερων</string>
 </resources>

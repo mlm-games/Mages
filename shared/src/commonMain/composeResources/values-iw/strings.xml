@@ -435,6 +435,8 @@
     <string name="couldnt_find_message">לא ניתן היה למצוא את ההודעה בהיסטוריה הטעינה.</string>
     <string name="reply_failed">התשובה נכשלה</string>
     <string name="send_failed">השליחה נכשלה</string>
+    <string name="message_too_long">ההודעה ארוכה מדי לשליחה. פצלו אותה או שלחו אותה כקובץ.</string>
+    <string name="message_too_long_short">ההודעה ארוכה מדי לשליחה</string>
     <string name="edit_failed">העריכה נכשלה</string>
     <string name="delete_failed">המחיקה נכשלה</string>
     <string name="cancel_send_failed">ביטול ההודעה נכשל</string>
@@ -1494,4 +1496,5 @@
     <string name="sticker_pack_zip_unreadable">לא ניתן לקרוא את ה-.zip הזה</string>
     <string name="sticker_pack_create">חבילה חדשה</string>
     <string name="updated">עודכן</string>
+    <string name="show_more">הצג עוד</string>
 </resources>

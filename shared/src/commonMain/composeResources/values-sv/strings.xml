@@ -435,6 +435,8 @@
     <string name="couldnt_find_message">Det gick inte att hitta det meddelandet i den laddade historiken.</string>
     <string name="reply_failed">Svar misslyckades</string>
     <string name="send_failed">Skicka misslyckades</string>
+    <string name="message_too_long">Meddelandet är för långt för att skickas. Dela upp det eller skicka det som en fil.</string>
+    <string name="message_too_long_short">Meddelandet är för långt för att skickas</string>
     <string name="edit_failed">Redigeringen misslyckades</string>
     <string name="delete_failed">Det gick inte att ta bort</string>
     <string name="cancel_send_failed">Det gick inte att avbryta meddelandet</string>
@@ -1492,4 +1494,5 @@
     <string name="sticker_pack_zip_unreadable">Det gick inte att läsa denna .zip</string>
     <string name="sticker_pack_create">Nytt paket</string>
     <string name="updated">Uppdaterad</string>
+    <string name="show_more">Visa mer</string>
 </resources>
