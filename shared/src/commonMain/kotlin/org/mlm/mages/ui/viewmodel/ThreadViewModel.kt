@@ -953,6 +953,10 @@ class ThreadViewModel(
         if (newBody.isBlank()) return false
 
         val outgoing = newBody.toOutgoingText()
+        if (isMessageTooLong(outgoing?.body.orEmpty(), outgoing?.formattedBody, currentState.isRoomEncrypted)) {
+            _events.send(Event.ShowError(getString(Res.string.message_too_long)))
+            return false
+        }
         val result = runSafe {
             service.edit(roomId, editEvent.eventId, outgoing?.body.orEmpty(), outgoing?.formattedBody)
         }
@@ -993,12 +997,12 @@ class ThreadViewModel(
     suspend fun sendMessage(text: String): Boolean {
         val body = text.trim()
         if (body.isBlank()) return false
-        if (isMessageTooLong(body, currentState.isRoomEncrypted)) {
+
+        val outgoing = body.toOutgoingText()
+        if (isMessageTooLong(outgoing?.body.orEmpty(), outgoing?.formattedBody, currentState.isRoomEncrypted)) {
             _events.send(Event.ShowError(getString(Res.string.message_too_long)))
             return false
         }
-
-        val outgoing = body.toOutgoingText()
 
         val replyToId = currentState.replyingTo?.eventId
         val replyingTo = currentState.replyingTo

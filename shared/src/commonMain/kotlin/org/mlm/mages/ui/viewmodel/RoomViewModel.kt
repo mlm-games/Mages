@@ -758,11 +758,6 @@ class RoomViewModel(
         if (!hasText && pending.isEmpty()) return
         composerTouched = true
 
-        if (hasText && isMessageTooLong(s.input, s.isRoomEncrypted)) {
-            _events.send(Event.ShowError(getString(Res.string.message_too_long)))
-            return
-        }
-
         if (settings.value.autoMarkReadTrigger == AutoMarkReadTrigger.OnSend) markRoomSeen()
 
         // If there are attachments, send them all, then send text
@@ -785,6 +780,13 @@ class RoomViewModel(
 
             launch {
                 val outgoing = if (hasText) text.toOutgoingText() else null
+
+                if (outgoing != null && isMessageTooLong(outgoing.body, outgoing.formattedBody, s.isRoomEncrypted)) {
+                    updateState { copy(input = originalInput, attachments = pending) }
+                    saveDraft(s.roomId, originalInput)
+                    _events.send(Event.ShowError(getString(Res.string.message_too_long)))
+                    return@launch
+                }
 
                 if (canUseCaption) {
                     sendAttachmentsInternal(
@@ -823,6 +825,12 @@ class RoomViewModel(
                 saveDraft(s.roomId, "")
                 val replyTo = s.replyingTo
                 val outgoing = text.toOutgoingText()
+                if (isMessageTooLong(outgoing?.body.orEmpty(), outgoing?.formattedBody, s.isRoomEncrypted)) {
+                    updateState { copy(input = originalInput) }
+                    saveDraft(s.roomId, originalInput)
+                    _events.send(Event.ShowError(getString(Res.string.message_too_long)))
+                    return@launch
+                }
                 val result = if (replyTo != null) {
                     service.reply(s.roomId, replyTo.eventId, outgoing?.body.orEmpty(), outgoing?.formattedBody)
                 } else {
@@ -912,6 +920,10 @@ class RoomViewModel(
 
         launch {
             val outgoing = rawInput.toOutgoingText()
+            if (isMessageTooLong(outgoing?.body.orEmpty(), outgoing?.formattedBody, s.isRoomEncrypted)) {
+                _events.send(Event.ShowError(getString(Res.string.message_too_long)))
+                return@launch
+            }
             val result = if (isCaptionEdit) {
                 val caption = rawInput.takeIf { it.isNotBlank() }
                 service.port.editCaption(

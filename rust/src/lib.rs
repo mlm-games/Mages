@@ -4309,14 +4309,14 @@ fn map_send_failure(ev: &EventTimelineItem) -> SendFailureReason {
     };
     let text = error.to_string();
     let lower = text.to_ascii_lowercase();
-    if lower.contains("unknown device") {
+    if lower.contains("too large") || lower.contains("m_too_large") {
+        SendFailureReason::TooLarge
+    } else if lower.contains("unknown device") {
         SendFailureReason::UnknownDevice
     } else if lower.contains("unverified") || lower.contains("not verified") {
         SendFailureReason::UnverifiedDevice
     } else if lower.contains("mismatch") || lower.contains("identity") {
         SendFailureReason::UserIdentityMismatch
-    } else if lower.contains("too large") || lower.contains("m_too_large") {
-        SendFailureReason::TooLarge
     } else {
         SendFailureReason::Unknown
     }
