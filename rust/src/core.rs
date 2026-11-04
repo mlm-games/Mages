@@ -118,8 +118,8 @@ fn ffi_hero_info(hero: matrix_sdk::RoomHeroWithProfile) -> RoomHeroInfo {
         user_id: hero.user_id.to_string(),
         display_name: hero.display_name,
         avatar_url: hero.avatar_url.map(|u| u.to_string()),
-        status_emoji: hero.status.map(|s| s.emoji),
-        status_text: hero.status.map(|s| s.text),
+        status_emoji: hero.status.as_ref().map(|s| s.emoji.clone()),
+        status_text: hero.status.as_ref().map(|s| s.text.clone()),
         call_joined_ts_ms: hero
             .call
             .and_then(|c| c.call_joined_ts)
@@ -5439,6 +5439,7 @@ impl CoreClient {
                     .min(u32::MAX as u64) as u32,
                 topic: room.topic(),
                 latest_event,
+                heroes: Vec::new(),
             });
         }
         snapshot
