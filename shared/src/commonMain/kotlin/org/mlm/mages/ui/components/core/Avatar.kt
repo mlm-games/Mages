@@ -98,9 +98,9 @@ fun Avatar(
                 val style: TextStyle = when {
                     size >= Sizes.avatarLarge -> MaterialTheme.typography.titleLarge
                     size >= Sizes.avatarMedium -> MaterialTheme.typography.titleMedium
-                    size >= 24.dp -> MaterialTheme.typography.labelLarge
+                    size >= Sizes.avatarSmall -> MaterialTheme.typography.labelLarge
                     else -> with(LocalDensity.current) {
-                        MaterialTheme.typography.labelSmall.copy(
+                        MaterialTheme.typography.labelLarge.copy(
                             fontSize = (size * InitialsFontSizeRatio).toSp(),
                             lineHeight = (size * InitialsLineHeightRatio).toSp(),
                             letterSpacing = 0.sp
