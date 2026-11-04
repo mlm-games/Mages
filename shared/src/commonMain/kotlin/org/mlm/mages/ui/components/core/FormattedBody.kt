@@ -1133,7 +1133,7 @@ fun FormattedBodyText(
     }
 
     if (parsed == null) {
-        if (useMessageFontSize) {
+        if (useMessageFontSize && maxLines == Int.MAX_VALUE) {
             MarkdownText(
                 text = fallbackBody,
                 modifier = modifier,

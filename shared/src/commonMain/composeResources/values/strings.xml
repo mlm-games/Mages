@@ -314,6 +314,8 @@
     >Couldn't find that message in loaded history.</string>
     <string name="reply_failed">Reply failed</string>
     <string name="send_failed">Send failed</string>
+    <string name="message_too_long">Message is too long to send. Split it or send it as a file.</string>
+    <string name="message_too_long_short">Message is too long to send</string>
     <string name="edit_failed">Edit failed</string>
     <string name="delete_failed">Delete failed</string>
     <string name="cancel_send_failed">Could not cancel the message</string>
@@ -1245,6 +1247,7 @@
     <string name="media_previews_blocked_description">You are seeing placeholders. Loading previews downloads thumbnails for this room.</string>
     <string name="load_previews">Load previews</string>
     <string name="show">Show</string>
+    <string name="show_more">Show more</string>
     <string name="no_messages_available_to_forward">No messages available to forward</string>
     <string name="no_notifications_from_this_room">No notifications from this room</string>
     <string name="no_notifications_from_this_space">No notifications from this space or its rooms</string>

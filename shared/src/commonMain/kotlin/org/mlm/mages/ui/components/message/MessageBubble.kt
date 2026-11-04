@@ -54,6 +54,7 @@ import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.ReplyPreview
 import org.mlm.mages.ReplyPreviewKind
+import org.mlm.mages.SendFailureReason
 import org.mlm.mages.matrix.SendState
 import org.mlm.mages.ui.components.blurHashBackground
 import org.mlm.mages.ui.components.core.Avatar
@@ -246,7 +247,7 @@ fun MessageBubble(
                         contentAlignment = horizontalAlignment,
                         timestamp = { timestampContent(bubbleTextColor) },
                     ) {
-                        FormattedBodyText(
+                        LongMessageBody(
                             formattedBody = model.formattedBody,
                             fallbackBody = model.body,
                             emotePaths = emotePaths,
@@ -439,7 +440,10 @@ fun MessageBubble(
                             if (isMine) {
                                 when {
                                     model.sendState == SendState.Failed -> FailedIndicator(
-                                        stringResource(Res.string.failed_to_send_check_your_internet)
+                                        when (model.sendFailure) {
+                                            SendFailureReason.TooLarge -> stringResource(Res.string.message_too_long_short)
+                                            else -> stringResource(Res.string.failed_to_send_check_your_internet)
+                                        }
                                     )
                                     model.editSendState == SendState.Failed -> FailedIndicator(
                                         stringResource(Res.string.failed_to_save_edit)

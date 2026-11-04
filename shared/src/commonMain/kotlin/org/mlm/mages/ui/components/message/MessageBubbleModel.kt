@@ -2,6 +2,7 @@ package org.mlm.mages.ui.components.message
 
 import org.mlm.mages.LinkPreview
 import org.mlm.mages.ReplyPreview
+import org.mlm.mages.SendFailureReason
 import org.mlm.mages.matrix.PollData
 import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.matrix.SendState
@@ -139,6 +140,7 @@ data class MessageBubbleModel(
     val reactionShortcodes: Map<String, String> = emptyMap(),
     val reply: MessageReplyUi? = null,
     val sendState: SendState? = null,
+    val sendFailure: SendFailureReason? = null,
     val editSendState: SendState? = null,
     val redactionSendState: SendState? = null,
     val attachment: MessageAttachmentUi? = null,

@@ -34,6 +34,7 @@ import org.mlm.mages.ui.components.composer.EmoteSuggestion
 import org.mlm.mages.ui.components.composer.OutgoingText
 import org.mlm.mages.ui.components.composer.SpoilerPlaceholder
 import org.mlm.mages.ui.components.composer.composerToPlainBody
+import org.mlm.mages.ui.components.composer.isMessageTooLong
 import org.mlm.mages.ui.components.composer.parseComposerMarkdown
 import org.mlm.mages.ui.components.composer.emoteSuggestionsFrom
 import org.mlm.mages.ui.components.core.emoteMxcUrisFrom
@@ -992,6 +993,10 @@ class ThreadViewModel(
     suspend fun sendMessage(text: String): Boolean {
         val body = text.trim()
         if (body.isBlank()) return false
+        if (isMessageTooLong(body, currentState.isRoomEncrypted)) {
+            _events.send(Event.ShowError(getString(Res.string.message_too_long)))
+            return false
+        }
 
         val outgoing = body.toOutgoingText()
 

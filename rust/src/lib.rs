@@ -4315,6 +4315,8 @@ fn map_send_failure(ev: &EventTimelineItem) -> SendFailureReason {
         SendFailureReason::UnverifiedDevice
     } else if lower.contains("mismatch") || lower.contains("identity") {
         SendFailureReason::UserIdentityMismatch
+    } else if lower.contains("too large") || lower.contains("m_too_large") {
+        SendFailureReason::TooLarge
     } else {
         SendFailureReason::Unknown
     }

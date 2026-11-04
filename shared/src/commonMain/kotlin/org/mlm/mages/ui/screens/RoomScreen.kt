@@ -407,10 +407,14 @@ fun RoomScreen(
         derivedStateOf { listState.layoutInfo.totalItemsCount > 0 }
     }
 
-    val isNearBottom by remember(listState, events) {
+    val density = LocalDensity.current
+    val nearBottomOffset = remember(density) { with(density) { 8.dp.roundToPx() } }
+
+    val isNearBottom by remember(listState, events, nearBottomOffset) {
         derivedStateOf {
-            val visible = listState.layoutInfo.visibleItemsInfo
-            events.isNotEmpty() && visible.isNotEmpty() && visible.first().index <= 3
+            val first = listState.layoutInfo.visibleItemsInfo.firstOrNull()
+            events.isNotEmpty() && first != null &&
+                (if (first.index == 0) first.offset <= nearBottomOffset else first.index <= 3)
         }
     }
 

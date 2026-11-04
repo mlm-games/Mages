@@ -145,6 +145,7 @@ pub enum SendFailureReason {
     UnverifiedDevice,
     UserIdentityMismatch,
     UnableToDecrypt,
+    TooLarge,
     Unknown,
 }
 

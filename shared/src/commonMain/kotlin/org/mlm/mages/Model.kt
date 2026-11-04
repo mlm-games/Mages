@@ -125,7 +125,7 @@ data class MessageShield(val level: ShieldLevel, val code: ShieldCode)
 
 @Serializable
 enum class SendFailureReason {
-    UnknownDevice, UnverifiedDevice, UserIdentityMismatch, UnableToDecrypt, Unknown
+    UnknownDevice, UnverifiedDevice, UserIdentityMismatch, UnableToDecrypt, TooLarge, Unknown
 }
 
 @Serializable

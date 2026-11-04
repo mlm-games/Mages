@@ -138,6 +138,7 @@ internal fun TimelineContent.Bubble.toBubbleModel(
             previewPath = ctx.resolvedReplyPreviewPath,
         ),
         sendState = event.sendState,
+        sendFailure = event.sendFailure,
         editSendState = event.editSendState,
         redactionSendState = event.redactionSendState,
         attachment = event.toAttachmentUi(

@@ -2676,6 +2676,7 @@ private fun mages.SendFailureReason.toKotlin(): SendFailureReason = when (this) 
     mages.SendFailureReason.UNVERIFIED_DEVICE -> SendFailureReason.UnverifiedDevice
     mages.SendFailureReason.USER_IDENTITY_MISMATCH -> SendFailureReason.UserIdentityMismatch
     mages.SendFailureReason.UNABLE_TO_DECRYPT -> SendFailureReason.UnableToDecrypt
+    mages.SendFailureReason.TOO_LARGE -> SendFailureReason.TooLarge
     mages.SendFailureReason.UNKNOWN -> SendFailureReason.Unknown
 }
 
