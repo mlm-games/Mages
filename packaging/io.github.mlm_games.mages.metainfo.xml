@@ -46,6 +46,27 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="5.4.0" date="2026-11-04" type="stable">
+      <description>
+        <ul>
+          <li>feat: use material symbols for icons</li>
+          <li>feat: call timeline entry type and decline state</li>
+          <li>fix: answer calls from lock screen</li>
+          <li>apply reduce motion to bubble chat</li>
+          <li>add reduce motion setting</li>
+          <li>fix near bottom detection</li>
+          <li>measure outgoing payload for size guard</li>
+          <li>add translations</li>
+          <li>handle oversized and long messages</li>
+          <li>add a gap between media and caption</li>
+          <li>keep the timestamp on the bubble edge</li>
+          <li>align the non-caption text back</li>
+          <li>fix: wasm room visibility lock</li>
+          <li>fix: avatar initials size</li>
+          <li>fix: keep bubbles when a room opens (#147)</li>
+        </ul>
+      </description>
+    </release>
     <release version="5.3.10" date="2026-11-04" type="stable">
       <description>
         <ul>

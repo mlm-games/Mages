@@ -1,3 +1,22 @@
+## v5.4.0
+
+- feat: use material symbols for icons
+- feat: call timeline entry type and decline state
+- fix: answer calls from lock screen
+- apply reduce motion to bubble chat
+- add reduce motion setting
+- fix near bottom detection
+- measure outgoing payload for size guard
+- add translations
+- handle oversized and long messages
+- add a gap between media and caption
+- keep the timestamp on the bubble edge
+- align the non-caption text back
+- fix: wasm room visibility lock
+- fix: avatar initials size
+- fix: keep bubbles when a room opens (#147)
+
+
 ## v5.3.10
 
 - feat: add Google Sans Flex font option (#200)
