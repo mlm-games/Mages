@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">반응 아바타 표시</string>
     <string name="setting_show_username_in_dms">DM에서 사용자 이름 표시</string>
     <string name="setting_bubble_animations">메시지 버블 애니메이션</string>
+    <string name="setting_reduce_motion">동작 줄이기</string>
     <string name="setting_hide_membership_events">멤버십 이벤트 숨기기</string>
     <string name="setting_hide_profile_changes">프로필 변경 숨기기</string>
     <string name="setting_hide_topic_changes">주제 변경 숨기기</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">설정 대신 홈 화면에 계정 버튼을 표시합니다</string>
     <string name="setting_show_username_in_dms_description">직접 메시지에 사용자 이름 표시</string>
     <string name="setting_bubble_animations_description">메시지에 애니메이션을 적용 나타남</string>
+    <string name="setting_reduce_motion_description">화면 전환을 슬라이드 대신 페이드로 하고 장식 애니메이션을 중지합니다</string>
     <string name="setting_hide_membership_events_description">방의 이벤트 참여/나가기/초대</string>
     <string name="setting_hide_profile_changes_description">방의 표시 이름/아바타 변경</string>
     <string name="setting_hide_topic_changes_description">방의 주제 변경</string>

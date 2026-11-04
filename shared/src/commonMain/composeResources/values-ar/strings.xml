@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">إظهار الصور الرمزية لرد الفعل</string>
     <string name="setting_show_username_in_dms">عرض اسم المستخدم في الرسائل المباشرة</string>
     <string name="setting_bubble_animations">رسوم متحركة فقاعية للرسائل</string>
+    <string name="setting_reduce_motion">تقليل الحركة</string>
     <string name="setting_hide_membership_events">إخفاء أحداث العضوية</string>
     <string name="setting_hide_profile_changes">إخفاء تغييرات الملف الشخصي</string>
     <string name="setting_hide_topic_changes">إخفاء تغييرات الموضوع</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">إظهار زر الحساب في الشاشة الرئيسية بدلاً من الإعدادات</string>
     <string name="setting_show_username_in_dms_description">إظهار أسماء المستخدمين في الرسائل المباشرة</string>
     <string name="setting_bubble_animations_description">تحريك الرسائل عند ظهورها</string>
+    <string name="setting_reduce_motion_description">استخدم التلاشي عند التنقل بدلًا من الانزلاق، وأوقف الحركات الزخرفية</string>
     <string name="setting_hide_membership_events_description">الانضمام/المغادرة/دعوة الفعاليات في الغرف</string>
     <string name="setting_hide_profile_changes_description">عرض تغييرات الاسم/الصورة الرمزية في الغرف</string>
     <string name="setting_hide_topic_changes_description">تغييرات الموضوع في الغرف</string>

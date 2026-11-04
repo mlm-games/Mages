@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">Näytä reaktioavatarit</string>
     <string name="setting_show_username_in_dms">Näytä käyttäjänimi DM: issä</string>
     <string name="setting_bubble_animations">Viestikupla-animaatiot</string>
+    <string name="setting_reduce_motion">Vähennä liikettä</string>
     <string name="setting_hide_membership_events">Piilota jäsenyystapahtumat</string>
     <string name="setting_hide_profile_changes">Piilota profiilimuutokset</string>
     <string name="setting_hide_topic_changes">Piilota aiheen muutokset</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">Näyttää tilipainikkeen aloitusnäytöllä asetusten sijaan</string>
     <string name="setting_show_username_in_dms_description">Näytä käyttäjänimet suorissa viesteissä</string>
     <string name="setting_bubble_animations_description">Animoi viestit sellaisina kuin ne näkyvät</string>
+    <string name="setting_reduce_motion_description">Häivytä näyttöjen välillä liu'uttamisen sijaan ja pysäytä koristeanimaatiot</string>
     <string name="setting_hide_membership_events_description">Liity/poistu/kutsu tapahtumiin huoneissa</string>
     <string name="setting_hide_profile_changes_description">Näytä nimen/avatarin muutokset huoneissa</string>
     <string name="setting_hide_topic_changes_description">Aihemuutokset huoneissa</string>

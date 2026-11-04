@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">顯示反應大頭貼</string>
     <string name="setting_show_username_in_dms">在私訊中顯示使用者名稱</string>
     <string name="setting_bubble_animations">訊息氣泡動畫</string>
+    <string name="setting_reduce_motion">減少動態效果</string>
     <string name="setting_hide_membership_events">隱藏成員事件</string>
     <string name="setting_hide_profile_changes">隱藏個人資料變更</string>
     <string name="setting_hide_topic_changes">隱藏主題變更</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">在主畫面顯示帳戶按鈕，而不是在設定中顯示</string>
     <string name="setting_show_username_in_dms_description">在私訊中顯示使用者名稱</string>
     <string name="setting_bubble_animations_description">訊息出現時播放動畫</string>
+    <string name="setting_reduce_motion_description">使用淡入淡出取代滑動轉場，並停止裝飾性動畫</string>
     <string name="setting_hide_membership_events_description">聊天室中的加入、離開和邀請事件</string>
     <string name="setting_hide_profile_changes_description">聊天室中的顯示名稱或大頭貼變更</string>
     <string name="setting_hide_topic_changes_description">聊天室中的主題變更</string>

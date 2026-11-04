@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">Prikaži avatare reakcija</string>
     <string name="setting_show_username_in_dms">Prikaži korisničko ime u DM-u</string>
     <string name="setting_bubble_animations">Animacije mjehurića poruka</string>
+    <string name="setting_reduce_motion">Smanji kretanje</string>
     <string name="setting_hide_membership_events">Sakrij događaje članstva</string>
     <string name="setting_hide_profile_changes">Sakrij promjene profila</string>
     <string name="setting_hide_topic_changes">Sakrij promjene teme</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">Prikazuje gumb računa na početnom zaslonu umjesto u postavkama</string>
     <string name="setting_show_username_in_dms_description">Prikaži korisnička imena u izravnim porukama</string>
     <string name="setting_bubble_animations_description">Animiraj poruke kako se pojavljuju</string>
+    <string name="setting_reduce_motion_description">Zatamni prijelaze između zaslona umjesto klizanja i zaustavi ukrasne animacije</string>
     <string name="setting_hide_membership_events_description">Pridruži se/napusti/pozovi događaje u sobama</string>
     <string name="setting_hide_profile_changes_description">Prikaži promjene imena/avatara u sobama</string>
     <string name="setting_hide_topic_changes_description">Promjene tema u sobama</string>

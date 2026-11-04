@@ -515,7 +515,9 @@
     <string name="setting_show_username_in_dms">Mostrar nombre de usuario en DM</string>
     <string name="setting_show_username_in_dms_description">Mostrar nombres de usuario en mensajes directos</string>
     <string name="setting_bubble_animations">Animaciones de burbujas de mensajes</string>
+    <string name="setting_reduce_motion">Reducir movimiento</string>
     <string name="setting_bubble_animations_description">Animar los mensajes al aparecer</string>
+    <string name="setting_reduce_motion_description">Fundir entre pantallas en lugar de deslizar y detener las animaciones decorativas</string>
     <string name="setting_hide_membership_events">Ocultar eventos de membresía</string>
     <string name="setting_hide_membership_events_description">Eventos de entrada, salida e invitaciones en salas</string>
     <string name="setting_hide_profile_changes">Ocultar cambios de perfil</string>

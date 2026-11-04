@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.mlm.mages.platform.getDynamicColorScheme
+import org.mlm.mages.ui.animation.LocalReduceMotion
 import org.mlm.mages.ui.util.LocalUse24HourTime
 
 
@@ -105,6 +106,7 @@ fun MainTheme(
     oledBlack: Boolean = false,
     use24HourTime: Boolean = true,
     fontFamily: FontFamily = FontFamily.Default,
+    reduceMotion: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val baseScheme = getDynamicColorScheme(darkTheme, dynamicColors)
@@ -136,7 +138,10 @@ fun MainTheme(
         typography = remember(fontFamily) { appTypography(fontFamily) },
         shapes = AppShapes,
     ) {
-        CompositionLocalProvider(LocalUse24HourTime provides use24HourTime) {
+        CompositionLocalProvider(
+            LocalUse24HourTime provides use24HourTime,
+            LocalReduceMotion provides reduceMotion,
+        ) {
             content()
         }
     }

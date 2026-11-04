@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">显示反应头像</string>
     <string name="setting_show_username_in_dms">在私聊中显示用户名</string>
     <string name="setting_bubble_animations">消息气泡动画</string>
+    <string name="setting_reduce_motion">减少动态效果</string>
     <string name="setting_hide_membership_events">隐藏成员事件</string>
     <string name="setting_hide_profile_changes">隐藏个人资料变化</string>
     <string name="setting_hide_topic_changes">隐藏主题变化</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">在主屏幕显示账户按钮，而不是在设置中显示</string>
     <string name="setting_show_username_in_dms_description">在私聊中显示用户名</string>
     <string name="setting_bubble_animations_description">消息出现时播放动画</string>
+    <string name="setting_reduce_motion_description">使用淡入淡出代替滑动转场，并停止装饰性动画</string>
     <string name="setting_hide_membership_events_description">房间中的加入、离开和邀请事件</string>
     <string name="setting_hide_profile_changes_description">房间中的显示名称或头像变化</string>
     <string name="setting_hide_topic_changes_description">房间中的主题变化</string>

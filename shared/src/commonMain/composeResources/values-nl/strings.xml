@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">Avatars van reacties tonen</string>
     <string name="setting_show_username_in_dms">Gebruikersnaam in DM’s tonen</string>
     <string name="setting_bubble_animations">Animaties van berichtbubbels</string>
+    <string name="setting_reduce_motion">Beweging beperken</string>
     <string name="setting_hide_membership_events">Lidmaatschapsgebeurtenissen verbergen</string>
     <string name="setting_hide_profile_changes">Profielwijzigingen verbergen</string>
     <string name="setting_hide_topic_changes">Onderwerpwijzigingen verbergen</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">Toont de accountknop op het startscherm in plaats van in de instellingen</string>
     <string name="setting_show_username_in_dms_description">Toon gebruikersnamen in directe berichten</string>
     <string name="setting_bubble_animations_description">Animeer berichten zodra ze verschijnen</string>
+    <string name="setting_reduce_motion_description">Schermen vervagen in plaats van schuiven en decoratieve animaties stoppen</string>
     <string name="setting_hide_membership_events_description">Deelnemen aan/verlaten/uitnodigen van evenementen in kamers</string>
     <string name="setting_hide_profile_changes_description">Naam-/avatarwijzigingen in kamers weergeven</string>
     <string name="setting_hide_topic_changes_description">Onderwerpwijzigingen in kamers</string>

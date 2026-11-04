@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">Reakciók avatarjainak megjelenítése</string>
     <string name="setting_show_username_in_dms">Felhasználónév megjelenítése DM-ekben</string>
     <string name="setting_bubble_animations">Üzenetbuborék animációk</string>
+    <string name="setting_reduce_motion">Mozgás csökkentése</string>
     <string name="setting_hide_membership_events">Tagsági események elrejtése</string>
     <string name="setting_hide_profile_changes">Profilváltozások elrejtése</string>
     <string name="setting_hide_topic_changes">Témaváltozások elrejtése</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">A fiókgombot a kezdőképernyőn jeleníti meg a beállítások helyett</string>
     <string name="setting_show_username_in_dms_description">Felhasználónevek megjelenítése a közvetlen üzenetekben</string>
     <string name="setting_bubble_animations_description">Animálja az üzeneteket, ahogy megjelennek</string>
+    <string name="setting_reduce_motion_description">Áttűnés a képernyők között csúsztatás helyett, és a díszítő animációk leállítása</string>
     <string name="setting_hide_membership_events_description">Csatlakozás/kilépés/meghívás események a szobákban</string>
     <string name="setting_hide_profile_changes_description">Megjelenítési név/avatar változás a szobákban</string>
     <string name="setting_hide_topic_changes_description">Témaváltozások a szobákban</string>

@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">Показувати аватари реакцій</string>
     <string name="setting_show_username_in_dms">Показувати ім’я користувача в приватних повідомленнях</string>
     <string name="setting_bubble_animations">Анімація бульбашок повідомлень</string>
+    <string name="setting_reduce_motion">Зменшити рух</string>
     <string name="setting_hide_membership_events">Приховувати події участі</string>
     <string name="setting_hide_profile_changes">Приховувати зміни профілю</string>
     <string name="setting_hide_topic_changes">Приховувати зміни теми</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">Показує кнопку облікового запису на головному екрані замість у налаштуваннях</string>
     <string name="setting_show_username_in_dms_description">Показувати імена користувачів у приватних повідомленнях</string>
     <string name="setting_bubble_animations_description">Анімувати появу повідомлень</string>
+    <string name="setting_reduce_motion_description">Затемнення між екранами замість зсуву та зупинка декоративних анімацій</string>
     <string name="setting_hide_membership_events_description">Події входу, виходу та запрошень у кімнатах</string>
     <string name="setting_hide_profile_changes_description">Зміни відображеного імені або аватара в кімнатах</string>
     <string name="setting_hide_topic_changes_description">Зміни теми в кімнатах</string>

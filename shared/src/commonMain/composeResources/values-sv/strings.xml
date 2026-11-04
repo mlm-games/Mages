@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">Visa avatarer för reaktioner</string>
     <string name="setting_show_username_in_dms">Visa användarnamn i DM</string>
     <string name="setting_bubble_animations">Animationer av meddelandebubblor</string>
+    <string name="setting_reduce_motion">Minska rörelse</string>
     <string name="setting_hide_membership_events">Dölj medlemskapshändelser</string>
     <string name="setting_hide_profile_changes">Dölj profiländringar</string>
     <string name="setting_hide_topic_changes">Dölj ämnesändringar</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">Visar kontoknappen på startsidan i stället för i inställningarna</string>
     <string name="setting_show_username_in_dms_description">Visa användarnamn i direktmeddelanden</string>
     <string name="setting_bubble_animations_description">Animera meddelanden när de visas</string>
+    <string name="setting_reduce_motion_description">Tona mellan skärmar i stället för att glida och stoppa dekorativa animationer</string>
     <string name="setting_hide_membership_events_description">Gå med/lämna/bjud in evenemang i rum</string>
     <string name="setting_hide_profile_changes_description">Visningsnamn/avatarändringar i rum</string>
     <string name="setting_hide_topic_changes_description">Ämnesändringar i rum</string>

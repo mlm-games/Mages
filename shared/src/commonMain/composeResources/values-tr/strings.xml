@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">Reaksiyon avatarlarını göster</string>
     <string name="setting_show_username_in_dms">DM’lerde kullanıcı adını göster</string>
     <string name="setting_bubble_animations">Mesaj balonu animasyonları</string>
+    <string name="setting_reduce_motion">Hareketi azalt</string>
     <string name="setting_hide_membership_events">Üyelik olaylarını gizle</string>
     <string name="setting_hide_profile_changes">Profil değişikliklerini gizle</string>
     <string name="setting_hide_topic_changes">Konu değişikliklerini gizle</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">Hesap düğmesini ayarlar yerine ana ekranda gösterir</string>
     <string name="setting_show_username_in_dms_description">_Kullanıcı adlarını doğrudan gösterin mesajlar_</string>
     <string name="setting_bubble_animations_description">_Mesajları göründükleri gibi canlandırın_</string>
+    <string name="setting_reduce_motion_description">Ekranlar arasında kaydırma yerine kararma kullan ve dekoratif animasyonları durdur</string>
     <string name="setting_hide_membership_events_description">_Odalardaki etkinliklere katılma/ayrılma/davet etme_</string>
     <string name="setting_hide_profile_changes_description">_Odalarda görünen ad/avatar değişiklikleri_</string>
     <string name="setting_hide_topic_changes_description">_Odalarda konu değişiklikleri_</string>

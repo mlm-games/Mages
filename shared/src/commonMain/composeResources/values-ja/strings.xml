@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">リアクションのアバターを表示</string>
     <string name="setting_show_username_in_dms">DMでユーザー名を表示</string>
     <string name="setting_bubble_animations">メッセージバブルのアニメーション</string>
+    <string name="setting_reduce_motion">モーションを減らす</string>
     <string name="setting_hide_membership_events">メンバーシップイベントを非表示</string>
     <string name="setting_hide_profile_changes">プロフィール変更を非表示</string>
     <string name="setting_hide_topic_changes">トピック変更を非表示</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">設定画面ではなくホーム画面にアカウントボタンを表示します</string>
     <string name="setting_show_username_in_dms_description">_ユーザー名を直接表示メッセージ</string>
     <string name="setting_bubble_animations_description">_表示どおりにメッセージをアニメーション化</string>
+    <string name="setting_reduce_motion_description">画面遷移をスライドではなくフェードにし、装飾的なアニメーションを停止します</string>
     <string name="setting_hide_membership_events_description">ルームでのイベントへの参加/退出/招待_</string>
     <string name="setting_hide_profile_changes_description">_ルームでの表示名/アバターの変更</string>
     <string name="setting_hide_topic_changes_description">_ルームでのトピックの変更_</string>

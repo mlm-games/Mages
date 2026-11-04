@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">הצגת תמונות משתמש בתגובות</string>
     <string name="setting_show_username_in_dms">הצגת שם משתמש בהודעות ישירות</string>
     <string name="setting_bubble_animations">אנימציות בועות הודעה</string>
+    <string name="setting_reduce_motion">צמצום תנועה</string>
     <string name="setting_hide_membership_events">הסתרת אירועי חברות</string>
     <string name="setting_hide_profile_changes">הסתרת שינויי פרופיל</string>
     <string name="setting_hide_topic_changes">הסתרת שינויי נושא</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">מציג את כפתור החשבון במסך הבית במקום בהגדרות</string>
     <string name="setting_show_username_in_dms_description">הצגת שמות משתמש בהודעות ישירות</string>
     <string name="setting_bubble_animations_description">הנפשת הודעות בעת הופעתן</string>
+    <string name="setting_reduce_motion_description">דהייה בין מסכים במקום החלקה ועצירת אנימציות דקורטיביות</string>
     <string name="setting_hide_membership_events_description">אירועי הצטרפות, עזיבה והזמנה בחדרים</string>
     <string name="setting_hide_profile_changes_description">שינויי שם תצוגה או תמונה בחדרים</string>
     <string name="setting_hide_topic_changes_description">שינויי נושא בחדרים</string>

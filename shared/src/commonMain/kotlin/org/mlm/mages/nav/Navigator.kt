@@ -24,6 +24,7 @@ import kotlinx.serialization.modules.polymorphic
 import org.mlm.mages.MatrixService
 import org.mlm.mages.calls.CallManager
 import org.mlm.mages.matrix.CallIntent
+import org.mlm.mages.ui.theme.Durations
 
 const val NAV_ANIM_DURATION = 450
 
@@ -217,9 +218,10 @@ fun BindDeepLinks(
  * Per-entry metadata for Login to force fade animations for forward/pop/predictive-pop.
  * This avoids trying to read private NavEntry.key and keeps the exact fade you had.
  */
-fun loginEntryFadeMetadata(): Map<String, Any> {
+fun loginEntryFadeMetadata(reduceMotion: Boolean = false): Map<String, Any> {
+    val duration = if (reduceMotion) Durations.short else NAV_ANIM_DURATION
     val fade: AnimatedContentTransitionScope<Scene<*>>.() -> ContentTransform = {
-        fadeIn(tween(NAV_ANIM_DURATION)) togetherWith fadeOut(tween(NAV_ANIM_DURATION))
+        fadeIn(tween(duration)) togetherWith fadeOut(tween(duration))
     }
     return NavDisplay.transitionSpec { fade() } +
             NavDisplay.popTransitionSpec { fade() } +

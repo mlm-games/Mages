@@ -58,6 +58,7 @@ import org.mlm.mages.ui.viewmodel.MediaGalleryViewModel
 import org.mlm.mages.ui.viewmodel.MediaTab
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
+import org.mlm.mages.ui.animation.LocalReduceMotion
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.snackbar.snackbarHost
 import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
@@ -76,6 +77,7 @@ fun MediaGalleryScreen(
     val shareHandler = rememberShareHandler()
     val openExternal = rememberFileOpener()
     var selectedTab by remember { mutableStateOf(MediaTab.Images) }
+    val reduceMotion = LocalReduceMotion.current
     val snackbarManager: SnackbarManager = koinInject()
     val postError = rememberErrorPoster(snackbarManager)
     val service: MatrixService = koinInject()
@@ -141,8 +143,8 @@ fun MediaGalleryScreen(
         bottomBar = {
             AnimatedVisibility(
                 visible = state.isSelectionMode,
-                enter = slideInVertically(initialOffsetY = { it }),
-                exit = slideOutVertically(targetOffsetY = { it })
+                enter = if (reduceMotion) fadeIn() else slideInVertically(initialOffsetY = { it }),
+                exit = if (reduceMotion) fadeOut() else slideOutVertically(targetOffsetY = { it })
             ) {
                 SelectionBottomBar(
                     onShare = viewModel::shareSelected,

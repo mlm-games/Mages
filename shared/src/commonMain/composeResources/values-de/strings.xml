@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">Reaktionsavatars anzeigen</string>
     <string name="setting_show_username_in_dms">Benutzernamen in DMs anzeigen</string>
     <string name="setting_bubble_animations">Nachrichtenblasen-Animationen</string>
+    <string name="setting_reduce_motion">Bewegung reduzieren</string>
     <string name="setting_hide_membership_events">Mitgliedschaftsereignisse ausblenden</string>
     <string name="setting_hide_profile_changes">Profiländerungen ausblenden</string>
     <string name="setting_hide_topic_changes">Themenänderungen ausblenden</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">Konto-Schaltfläche auf dem Startbildschirm statt in den Einstellungen anzeigen</string>
     <string name="setting_show_username_in_dms_description">Benutzernamen in Direktnachrichten anzeigen</string>
     <string name="setting_bubble_animations_description">Nachrichten beim Erscheinen animieren</string>
+    <string name="setting_reduce_motion_description">Bildschirme überblenden statt schieben und dekorative Animationen stoppen</string>
     <string name="setting_hide_membership_events_description">Beitritts-, Verlassens- und Einladungsereignisse in Räumen</string>
     <string name="setting_hide_profile_changes_description">Änderungen an Anzeigename oder Avatar in Räumen</string>
     <string name="setting_hide_topic_changes_description">Themenänderungen in Räumen</string>

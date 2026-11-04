@@ -638,6 +638,8 @@
     <string name="setting_show_username_in_dms_description">Show usernames in direct messages</string>
     <string name="setting_bubble_animations">Message bubble animations</string>
     <string name="setting_bubble_animations_description">Animate messages as they appear</string>
+    <string name="setting_reduce_motion">Reduce motion</string>
+    <string name="setting_reduce_motion_description">Fade between screens instead of sliding, and stop decorative animations</string>
     <string name="setting_hide_membership_events">Hide membership events</string>
     <string name="setting_hide_membership_events_description">Join/leave/invite events in rooms</string>
     <string name="setting_hide_profile_changes">Hide profile changes</string>

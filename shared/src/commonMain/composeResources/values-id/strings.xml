@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">Tampilkan avatar reaksi</string>
     <string name="setting_show_username_in_dms">Tampilkan nama pengguna di DM</string>
     <string name="setting_bubble_animations">Animasi gelembung pesan</string>
+    <string name="setting_reduce_motion">Kurangi gerakan</string>
     <string name="setting_hide_membership_events">Sembunyikan event keanggotaan</string>
     <string name="setting_hide_profile_changes">Sembunyikan perubahan profil</string>
     <string name="setting_hide_topic_changes">Sembunyikan perubahan topik</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">Menampilkan tombol akun di layar beranda alih-alih di pengaturan</string>
     <string name="setting_show_username_in_dms_description">Tampilkan nama pengguna secara langsung pesan</string>
     <string name="setting_bubble_animations_description">Menganimasikan pesan saat muncul</string>
+    <string name="setting_reduce_motion_description">Pudarkan antar layar alih-alih menggeser dan hentikan animasi dekoratif</string>
     <string name="setting_hide_membership_events_description">Bergabung/keluar/mengundang acara di ruangan</string>
     <string name="setting_hide_profile_changes_description">Menampilkan perubahan nama/avatar di ruangan</string>
     <string name="setting_hide_topic_changes_description">Perubahan topik di ruangan</string>

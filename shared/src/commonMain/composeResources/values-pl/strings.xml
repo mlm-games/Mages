@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">Pokaż awatary reakcji</string>
     <string name="setting_show_username_in_dms">Pokaż nazwę użytkownika w DM</string>
     <string name="setting_bubble_animations">Animacje bąbelków wiadomości</string>
+    <string name="setting_reduce_motion">Ogranicz ruch</string>
     <string name="setting_hide_membership_events">Ukryj zdarzenia członkostwa</string>
     <string name="setting_hide_profile_changes">Ukryj zmiany profilu</string>
     <string name="setting_hide_topic_changes">Ukryj zmiany tematu</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">Pokazuje przycisk konta na ekranie głównym zamiast w ustawieniach</string>
     <string name="setting_show_username_in_dms_description">Wyświetlaj nazwy użytkowników w wiadomościach bezpośrednich</string>
     <string name="setting_bubble_animations_description">Animuj wiadomości po ich pojawieniu się</string>
+    <string name="setting_reduce_motion_description">Przenikanie między ekranami zamiast przesuwania i zatrzymanie animacji dekoracyjnych</string>
     <string name="setting_hide_membership_events_description">Zdarzenia dołączenia, opuszczenia i zaproszenia w pokojach</string>
     <string name="setting_hide_profile_changes_description">Zmiany nazwy wyświetlanej lub awataru w pokojach</string>
     <string name="setting_hide_topic_changes_description">Zmiany tematu w pokojach</string>

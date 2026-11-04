@@ -941,7 +941,7 @@ fun RoomScreen(
                                                 viewModel = viewModel,
                                                 showMessageAvatars = listSettings.showMessageAvatars,
                                                 showUsernameInDms = listSettings.showUsernameInDms,
-                                                enableBubbleAnimations = listSettings.bubbleAnimations,
+                                                enableBubbleAnimations = listSettings.bubbleAnimations && !settings.reduceMotion,
                                                 showReactionAvatars = listSettings.showReactionAvatars,
                                                 swipeRightAction = listSettings.messageSwipeRightAction,
                                                 swipeLeftAction = listSettings.messageSwipeLeftAction,

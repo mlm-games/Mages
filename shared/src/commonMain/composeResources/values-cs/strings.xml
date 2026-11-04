@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">Zobrazit reakční avatary</string>
     <string name="setting_show_username_in_dms">Zobrazit uživatelské jméno v DM</string>
     <string name="setting_bubble_animations">Animace bublin zpráv</string>
+    <string name="setting_reduce_motion">Omezit pohyb</string>
     <string name="setting_hide_membership_events">Skrýt události členství</string>
     <string name="setting_hide_profile_changes">Skrýt změny profilu</string>
     <string name="setting_hide_topic_changes">Skrýt změny tématu</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">Zobrazí tlačítko účtu na domovské obrazovce místo v nastavení</string>
     <string name="setting_show_username_in_dms_description">Zobrazit uživatelská jména v přímých zprávách</string>
     <string name="setting_bubble_animations_description">Animovat zprávy tak, jak se zobrazují</string>
+    <string name="setting_reduce_motion_description">Prolínat obrazovky místo posouvání a zastavit dekorativní animace</string>
     <string name="setting_hide_membership_events_description">Připojit/opustit/pozvat události v místnostech</string>
     <string name="setting_hide_profile_changes_description">Změny zobrazovaného jména/avatara v místnostech</string>
     <string name="setting_hide_topic_changes_description">Změny tématu v pokojích</string>

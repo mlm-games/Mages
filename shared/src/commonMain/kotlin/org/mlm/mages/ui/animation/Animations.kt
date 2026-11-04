@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.alpha
@@ -21,22 +22,29 @@ object AnimationSpecs {
                 fadeOut(tween(Durations.medium))
 }
 
+val LocalReduceMotion = staticCompositionLocalOf { false }
+
 fun Modifier.shimmer(): Modifier = composed {
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val alpha by transition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.7f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "shimmerAlpha"
-    )
-    this.alpha(alpha)
+    if (LocalReduceMotion.current) {
+        this.alpha(0.5f)
+    } else {
+        val transition = rememberInfiniteTransition(label = "shimmer")
+        val alpha by transition.animateFloat(
+            initialValue = 0.3f,
+            targetValue = 0.7f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1000),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "shimmerAlpha"
+        )
+        this.alpha(alpha)
+    }
 }
 
 @Composable
 fun rememberPulseAlpha(index: Int): Float {
+    if (LocalReduceMotion.current) return 1f
     val transition = rememberInfiniteTransition(label = "pulse")
     val alpha by transition.animateFloat(
         initialValue = 0.3f,
@@ -64,4 +72,9 @@ val popTransition: (AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentT
                 fadeIn(tween(NAV_ANIM_DURATION)) togetherWith
                 slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(NAV_ANIM_DURATION)) +
                 fadeOut(tween(NAV_ANIM_DURATION))
+    }
+
+val fadeTransition: (AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform) =
+    {
+        fadeIn(tween(Durations.short)) togetherWith fadeOut(tween(Durations.short))
     }

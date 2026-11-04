@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">Εμφάνιση άβαταρ αντίδρασης</string>
     <string name="setting_show_username_in_dms">Εμφάνιση ονόματος χρήστη σε DMs</string>
     <string name="setting_bubble_animations">Κινούμενα σχέδια φυσαλίδων μηνυμάτων</string>
+    <string name="setting_reduce_motion">Μείωση κίνησης</string>
     <string name="setting_hide_membership_events">Απόκρυψη εκδηλώσεων συνδρομής</string>
     <string name="setting_hide_profile_changes">Απόκρυψη αλλαγών προφίλ</string>
     <string name="setting_hide_topic_changes">Απόκρυψη αλλαγών θέματος</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">Εμφανίζει το κουμπί λογαριασμού στην αρχική οθόνη αντί στις ρυθμίσεις</string>
     <string name="setting_show_username_in_dms_description">Εμφάνιση ονομάτων χρηστών σε άμεσα μηνύματα</string>
     <string name="setting_bubble_animations_description">Ζωντανέψτε τα μηνύματα όπως εμφανίζονται</string>
+    <string name="setting_reduce_motion_description">Εξασθένιση μεταξύ οθονών αντί για ολίσθηση και διακοπή διακοσμητικών κινήσεων</string>
     <string name="setting_hide_membership_events_description">Συμμετοχή/αποχώρηση/πρόσκληση εκδηλώσεων στα δωμάτια</string>
     <string name="setting_hide_profile_changes_description">Εμφάνιση ονόματος/αλλαγών avatar στα δωμάτια</string>
     <string name="setting_hide_topic_changes_description">Αλλαγές θέματος στα δωμάτια</string>

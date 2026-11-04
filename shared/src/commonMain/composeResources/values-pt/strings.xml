@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">Mostrar avatares das reações</string>
     <string name="setting_show_username_in_dms">Mostrar nome de usuário nas MPs</string>
     <string name="setting_bubble_animations">Animações de balões de mensagem</string>
+    <string name="setting_reduce_motion">Reduzir movimento</string>
     <string name="setting_hide_membership_events">Ocultar eventos de associação</string>
     <string name="setting_hide_profile_changes">Ocultar alterações de perfil</string>
     <string name="setting_hide_topic_changes">Ocultar alterações de tópico</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">Mostra o botão de conta na tela inicial em vez das configurações</string>
     <string name="setting_show_username_in_dms_description">Mostrar nomes de usuários em direto mensagens</string>
     <string name="setting_bubble_animations_description">Animar mensagens conforme elas aparecem</string>
+    <string name="setting_reduce_motion_description">Fundir entre telas em vez de deslizar e parar animações decorativas</string>
     <string name="setting_hide_membership_events_description">Participar/sair/convidar eventos nas salas</string>
     <string name="setting_hide_profile_changes_description">Exibir alterações de nome/avatar nas salas</string>
     <string name="setting_hide_topic_changes_description">Mudanças de tópico nas salas</string>

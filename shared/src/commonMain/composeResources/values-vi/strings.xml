@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">Hiển thị ảnh đại diện phản ứng</string>
     <string name="setting_show_username_in_dms">Hiển thị tên người dùng trong tin nhắn trực tiếp</string>
     <string name="setting_bubble_animations">Hiệu ứng bong bóng tin nhắn</string>
+    <string name="setting_reduce_motion">Giảm chuyển động</string>
     <string name="setting_hide_membership_events">Ẩn sự kiện thành viên</string>
     <string name="setting_hide_profile_changes">Ẩn thay đổi hồ sơ</string>
     <string name="setting_hide_topic_changes">Ẩn thay đổi chủ đề</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">Hiển thị nút tài khoản trên màn hình chính thay vì trong cài đặt</string>
     <string name="setting_show_username_in_dms_description">Hiển thị tên người dùng trong tin nhắn trực tiếp</string>
     <string name="setting_bubble_animations_description">Tạo hiệu ứng cho tin nhắn khi xuất hiện</string>
+    <string name="setting_reduce_motion_description">Làm mờ giữa các màn hình thay vì trượt và dừng hoạt ảnh trang trí</string>
     <string name="setting_hide_membership_events_description">Sự kiện vào, rời và mời trong phòng</string>
     <string name="setting_hide_profile_changes_description">Thay đổi tên hiển thị hoặc ảnh đại diện trong phòng</string>
     <string name="setting_hide_topic_changes_description">Thay đổi chủ đề trong phòng</string>

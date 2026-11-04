@@ -294,6 +294,16 @@ data class AppSettings(
     val bubbleAnimations: Boolean = false,
 
     @Setting(
+        title = "Reduce motion",
+        titleKey = MagesSettingsKeys.REDUCE_MOTION,
+        description = "Fade between screens instead of sliding, and stop decorative animations",
+        descriptionKey = MagesSettingsKeys.REDUCE_MOTION_DESCRIPTION,
+        category = Appearance::class,
+        type = Toggle::class,
+    )
+    val reduceMotion: Boolean = false,
+
+    @Setting(
         title = "Hide membership events",
         titleKey = MagesSettingsKeys.HIDE_MEMBERSHIP_EVENTS,
         description = "Join/leave/invite events in rooms",

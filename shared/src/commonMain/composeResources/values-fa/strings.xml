@@ -16,6 +16,7 @@
     <string name="setting_show_reaction_avatars">نمایش آواتار واکنش‌ها</string>
     <string name="setting_show_username_in_dms">نمایش نام کاربری در پیام‌های مستقیم</string>
     <string name="setting_bubble_animations">انیمیشن حباب پیام</string>
+    <string name="setting_reduce_motion">کاهش حرکت</string>
     <string name="setting_hide_membership_events">پنهان کردن رویدادهای عضویت</string>
     <string name="setting_hide_profile_changes">پنهان کردن تغییرات نمایه</string>
     <string name="setting_hide_topic_changes">پنهان کردن تغییرات موضوع</string>
@@ -81,6 +82,7 @@
     <string name="setting_show_switch_account_button_description">دکمه حساب را در صفحه اصلی به جای تنظیمات نمایش می‌دهد</string>
     <string name="setting_show_username_in_dms_description">نمایش نام کاربری در پیام‌های مستقیم</string>
     <string name="setting_bubble_animations_description">انیمیشن دادن به پیام‌ها هنگام ظاهر شدن</string>
+    <string name="setting_reduce_motion_description">به‌جای لغزش بین صفحه‌ها محو کنید و انیمیشن‌های تزئینی را متوقف کنید</string>
     <string name="setting_hide_membership_events_description">رویدادهای پیوستن، خروج و دعوت در اتاق‌ها</string>
     <string name="setting_hide_profile_changes_description">تغییرات نام نمایشی یا آواتار در اتاق‌ها</string>
     <string name="setting_hide_topic_changes_description">تغییرات موضوع در اتاق‌ها</string>

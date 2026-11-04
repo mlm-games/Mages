@@ -93,6 +93,7 @@ import org.mlm.mages.settings.toSeconds
 import org.mlm.mages.ui.GlobalCallOverlay
 import org.mlm.mages.ui.IncomingCallOverlay
 import org.mlm.mages.ui.OngoingCallBanner
+import org.mlm.mages.ui.animation.fadeTransition
 import org.mlm.mages.ui.animation.forwardTransition
 import org.mlm.mages.ui.animation.popTransition
 import org.mlm.mages.ui.components.dialogs.SasDialog
@@ -280,6 +281,7 @@ private fun AppContent(
             oledBlack = settings.oledBlack,
             use24HourTime = settings.use24HourTime,
             fontFamily = appFontFamily(settings.appFont, settings.appFontWidth, settings.appFontRoundness),
+            reduceMotion = settings.reduceMotion,
         ) {
             val languageTag = LocalAppLocale.current
             val scope = rememberCoroutineScope()
@@ -538,9 +540,11 @@ private fun AppContent(
                         rememberSaveableStateHolderNavEntryDecorator(),
                         rememberViewModelStoreNavEntryDecorator(navEntryViewModelStore)
                     ),
-                    transitionSpec = forwardTransition,
-                    popTransitionSpec = popTransition,
-                    predictivePopTransitionSpec = { _ -> popTransition.invoke(this) },
+                    transitionSpec = if (settings.reduceMotion) fadeTransition else forwardTransition,
+                    popTransitionSpec = if (settings.reduceMotion) fadeTransition else popTransition,
+                    predictivePopTransitionSpec = { _ ->
+                        (if (settings.reduceMotion) fadeTransition else popTransition).invoke(this)
+                    },
                     onBack = {
                         if (appLocked) return@NavDisplay
                         val top = backStack.lastOrNull()
@@ -564,7 +568,7 @@ private fun AppContent(
                     },
                     entryProvider = entryProvider {
 
-                        entry<Route.Login>(metadata = loginEntryFadeMetadata()) {
+                        entry<Route.Login>(metadata = loginEntryFadeMetadata(settings.reduceMotion)) {
                             val viewModel: LoginViewModel = koinViewModel()
                             val isAddingAccount = backStack.size > 1
 
