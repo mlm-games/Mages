@@ -110,6 +110,7 @@ class BubbleConversationActivity : ComponentActivity() {
                 dynamicColors = settings.dynamicColors,
                 oledBlack = settings.oledBlack,
                 fontFamily = appFontFamily(settings.appFont, settings.appFontWidth, settings.appFontRoundness),
+                reduceMotion = settings.reduceMotion,
             ) {
                 if (!ready) {
                     LoadingIndicator()
