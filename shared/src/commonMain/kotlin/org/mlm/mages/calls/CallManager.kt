@@ -257,9 +257,12 @@ class CallManager(
                 val enabled = runCatching {
                     settings.flow.map { it.shareCallStatus }.first()
                 }.getOrDefault(false)
-                if (!enabled) return@withLock
-                val startedAt = _call.value?.startedAtMs
-                    ?: Clock.System.now().toEpochMilliseconds()
+                if (!enabled) {
+                    runCatching { port.clearUserCall() }
+                        .onFailure { Logger.w("Failed to clear m.call: ${it.message}") }
+                    return@withLock
+                }
+                val startedAt = _call.value?.startedAtMs ?: return@withLock
                 runCatching { port.setUserCall(startedAt) }
                     .onFailure { Logger.w("Failed to set m.call: ${it.message}") }
             }
