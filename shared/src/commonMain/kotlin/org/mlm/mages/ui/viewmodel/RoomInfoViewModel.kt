@@ -11,6 +11,7 @@ import mages.shared.generated.resources.*
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.isInviteBlocked
 import org.mlm.mages.matrix.MemberSummary
+import org.mlm.mages.matrix.RoomHero
 import org.mlm.mages.matrix.sortedForDisplay
 import org.mlm.mages.matrix.KnockRequestSummary
 import org.mlm.mages.matrix.RoomDirectoryVisibility
@@ -87,6 +88,7 @@ data class RoomInfoUiState(
     val dmPartner: MemberSummary? = null,
     val dmPartnerVerified: Boolean = false,
     val activeCallParticipants: Set<String> = emptySet(),
+    val heroes: List<RoomHero> = emptyList(),
     val showMembers: Boolean = false,
     val selectedMemberForAction: MemberSummary? = null,
     val selectedMemberDmAction: ActionAvailabilityUi = ActionAvailabilityUi(),
@@ -219,6 +221,7 @@ class RoomInfoViewModel(
             val profile = service.port.roomProfile(roomId)
             val members = service.port.listMembers(roomId)
             val tags = service.port.roomTags(roomId)
+            val preview = runSafe { service.port.roomPreview(roomId, emptyList()) }.getOrNull()
 
             val sorted = members.sortedForDisplay()
 
@@ -288,6 +291,7 @@ class RoomInfoViewModel(
                     myUserId = myUserId,
                     dmPartner = dmPartner,
                     dmPartnerVerified = dmPartnerVerified,
+                    heroes = preview?.heroes.orEmpty(),
                     notificationMode = notificationMode,
                     isLoadingNotificationMode = false
                 )

@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.RoomDirectoryVisibility
 import org.mlm.mages.matrix.RoomHistoryVisibility
 import org.mlm.mages.matrix.RoomJoinRule
+import org.mlm.mages.matrix.RoomHero
 import org.mlm.mages.matrix.RoomPowerLevelChanges
 import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.ui.components.dialogs.ConfirmationDialog
@@ -288,6 +289,12 @@ fun RoomInfoScreen(
                         onPickAvatar = pickRoomAvatar,
                         onViewAvatar = onViewAvatar,
                     )
+                }
+
+                state.heroes.takeIf { it.isNotEmpty() }?.let { heroes ->
+                    item {
+                        RoomHeroes(heroes = heroes)
+                    }
                 }
 
                 state.successor?.let { successor ->
@@ -836,6 +843,79 @@ private fun ProfileHeader(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 32.dp)
             )
+        }
+    }
+}
+
+@Composable
+private fun RoomHeroes(heroes: List<RoomHero>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            stringResource(Res.string.room_heroes),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = Spacing.md)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
+            heroes.forEach { hero ->
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Avatar(
+                        name = hero.displayName ?: hero.userId,
+                        avatarPath = hero.avatarUrl,
+                        size = 40.dp,
+                        shape = CircleShape
+                    )
+                    Spacer(Modifier.height(Spacing.xs))
+                    Text(
+                        text = hero.displayName ?: hero.userId,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp)
+                    )
+                    val statusLine = listOfNotNull(
+                        hero.statusEmoji?.takeIf { it.isNotBlank() },
+                        hero.statusText?.takeIf { it.isNotBlank() }
+                    ).joinToString(" ")
+                    if (statusLine.isNotBlank()) {
+                        Text(
+                            text = statusLine,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp)
+                                .padding(top = 2.dp)
+                        )
+                    }
+                    if (hero.callJoinedTsMs != null) {
+                        Icon(
+                            painterResource(Res.drawable.ic_call),
+                            contentDescription = stringResource(Res.string.in_call_chip),
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
         }
     }
 }

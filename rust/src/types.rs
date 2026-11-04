@@ -730,6 +730,8 @@ pub struct RoomListEntry {
     pub peer_status_emoji: Option<String>,
     pub peer_status_text: Option<String>,
     pub peer_call_joined_ts_ms: Option<i64>,
+    #[serde(default)]
+    pub heroes: Vec<RoomHeroInfo>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Record)]
@@ -746,6 +748,16 @@ pub struct OwnProfile {
     pub avatar_url: Option<String>,
     pub can_change_display_name: bool,
     pub can_change_avatar: bool,
+    pub status_emoji: Option<String>,
+    pub status_text: Option<String>,
+    pub call_joined_ts_ms: Option<i64>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Record)]
+pub struct RoomHeroInfo {
+    pub user_id: String,
+    pub display_name: Option<String>,
+    pub avatar_url: Option<String>,
     pub status_emoji: Option<String>,
     pub status_text: Option<String>,
     pub call_joined_ts_ms: Option<i64>,
@@ -973,6 +985,8 @@ pub struct RoomPreview {
     pub world_readable: Option<bool>,
     pub join_rule: Option<RoomJoinRule>,
     pub membership: Option<RoomPreviewMembership>,
+    #[serde(default)]
+    pub heroes: Vec<RoomHeroInfo>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Record)]

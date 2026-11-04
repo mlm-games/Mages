@@ -495,8 +495,20 @@ data class RoomPreview(
     val memberCount: Long,
     val worldReadable: Boolean? = null,
     val joinRule: RoomJoinRule? = null,
-    val membership: RoomPreviewMembership? = null
+    val membership: RoomPreviewMembership? = null,
+    val heroes: List<RoomHero> = emptyList(),
 )
+
+@Serializable
+data class RoomHero(
+    val userId: String,
+    val displayName: String? = null,
+    val avatarUrl: String? = null,
+    val statusEmoji: String? = null,
+    val statusText: String? = null,
+    val callJoinedTsMs: Long? = null,
+)
+
 @Serializable
 data class RoomProfile(
     val roomId: String,

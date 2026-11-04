@@ -11,6 +11,7 @@ import org.mlm.mages.matrix.PublicRoomTypeFilter
 import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.RoomPreview
 import org.mlm.mages.matrix.RoomPreviewMembership
+import org.mlm.mages.matrix.RoomHero
 import org.mlm.mages.matrix.isMatrixUserId
 import org.mlm.mages.ui.util.decodeUrl
 import org.jetbrains.compose.resources.getString
@@ -28,6 +29,7 @@ data class DirectJoinPreview(
     val subtitle: String,
     val action: DirectJoinAction,
     val actionLabel: String,
+    val heroes: List<RoomHero> = emptyList(),
 )
 
 data class DiscoverUi(
@@ -422,6 +424,7 @@ class DiscoverViewModel(
             subtitle = subtitle,
             action = action,
             actionLabel = actionLabel,
+            heroes = heroes,
         )
     }
 

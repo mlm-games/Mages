@@ -225,6 +225,7 @@
     <string name="clear_status">Clear</string>
     <string name="edit_status">Edit status</string>
     <string name="in_call_chip">On a call</string>
+    <string name="room_heroes">With</string>
     <string name="appearance">Appearance</string>
     <string name="timeline">Timeline</string>
     <string name="calls">Calls</string>

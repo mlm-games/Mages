@@ -76,7 +76,8 @@ use crate::{
     PublicRoomsPage, ReactionSummary, RecentEmojiEntry, RoomActionState, RoomCallState,
     RoomDirectoryVisibility, RoomHistoryVisibility, RoomInfoSnapshot, RoomJoinRule, RoomListEntry,
     RoomListMembership, RoomPowerLevelChanges, RoomPowerLevels, RoomPreview, RoomPreviewMembership,
-    RoomSummary, RoomTags, RoomUpgradeLinks, SearchHit, SearchPage, SeenByEntry, SendState,
+    RoomSummary, RoomTags, RoomUpgradeLinks, RoomHeroInfo, SearchHit, SearchPage, SeenByEntry,
+    SendState,
     SendUpdate, SpaceChildInfo, SpaceHierarchyPage, SpaceInfo, SpaceParentInfo, SpaceSection,
     SpaceUnread, SuccessorRoomInfo, ThreadPage, ThreadSummary, UnreadStats,
     VerificationInboxObserver, build_unstable_poll_content, latest_room_event_for,
@@ -107,6 +108,20 @@ fn ffi_member_summary(m: &matrix_sdk::BaseRoomMember, me: Option<&UserId>) -> Me
         status_text: m.status().map(|s| s.text.clone()),
         call_joined_ts_ms: m
             .call()
+            .and_then(|c| c.call_joined_ts)
+            .map(|ts| i64::from(ts.get()) * 1000),
+    }
+}
+
+fn ffi_hero_info(hero: matrix_sdk::RoomHeroWithProfile) -> RoomHeroInfo {
+    RoomHeroInfo {
+        user_id: hero.user_id.to_string(),
+        display_name: hero.display_name,
+        avatar_url: hero.avatar_url.map(|u| u.to_string()),
+        status_emoji: hero.status.map(|s| s.emoji),
+        status_text: hero.status.map(|s| s.text),
+        call_joined_ts_ms: hero
+            .call
             .and_then(|c| c.call_joined_ts)
             .map(|ts| i64::from(ts.get()) * 1000),
     }
@@ -3700,6 +3715,12 @@ impl CoreClient {
             world_readable: preview.is_world_readable,
             join_rule,
             membership,
+            heroes: preview
+                .heroes
+                .unwrap_or_default()
+                .into_iter()
+                .map(ffi_hero_info)
+                .collect(),
         })
     }
 

@@ -2610,6 +2610,16 @@ private fun mages.RoomPreview.toModel() = RoomPreview(
     worldReadable = worldReadable,
     joinRule = joinRule?.toKotlin(),
     membership = membership?.toKotlin(),
+    heroes = heroes.map { it.toModel() },
+)
+
+private fun mages.RoomHeroInfo.toModel() = RoomHero(
+    userId = userId,
+    displayName = displayName,
+    avatarUrl = avatarUrl,
+    statusEmoji = statusEmoji,
+    statusText = statusText,
+    callJoinedTsMs = callJoinedTsMs,
 )
 
 private fun mages.MessageEvent.toModel() = MessageEvent(
