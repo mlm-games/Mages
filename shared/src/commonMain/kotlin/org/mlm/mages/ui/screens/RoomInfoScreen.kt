@@ -14,6 +14,8 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.RoomDirectoryVisibility
 import org.mlm.mages.matrix.RoomHistoryVisibility

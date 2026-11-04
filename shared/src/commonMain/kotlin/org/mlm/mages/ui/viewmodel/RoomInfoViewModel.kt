@@ -221,7 +221,7 @@ class RoomInfoViewModel(
             val profile = service.port.roomProfile(roomId)
             val members = service.port.listMembers(roomId)
             val tags = service.port.roomTags(roomId)
-            val preview = runSafe { service.port.roomPreview(roomId, emptyList()) }.getOrNull()
+            val preview = runSafe { service.port.roomPreview(roomId, emptyList()) }?.getOrNull()
 
             val sorted = members.sortedForDisplay()
 

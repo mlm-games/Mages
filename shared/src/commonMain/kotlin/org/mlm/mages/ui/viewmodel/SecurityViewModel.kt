@@ -539,8 +539,8 @@ class SecurityViewModel(
         val version = accountDataVersion
         launch {
             val port = service.portOrNull ?: return@launch
-            val emojiBytes = emoji.trim().toByteArray(Charsets.UTF_8)
-            val textBytes = text.trim().toByteArray(Charsets.UTF_8)
+            val emojiBytes = emoji.trim().encodeToByteArray()
+            val textBytes = text.trim().encodeToByteArray()
             if (emojiBytes.size > STATUS_EMOJI_MAX_BYTES || textBytes.size > STATUS_TEXT_MAX_BYTES) {
                 _events.send(Event.ShowError(getString(Res.string.status_too_long)))
                 return@launch

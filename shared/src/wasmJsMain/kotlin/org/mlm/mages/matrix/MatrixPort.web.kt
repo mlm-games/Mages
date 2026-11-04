@@ -186,7 +186,7 @@ private suspend fun Promise<JsAny?>.awaitAny(): JsAny? =
 private external fun base64ToUint8Array(base64: String): JsAny
 
 @JsFun("(ms) => ms == null ? undefined : BigInt(Math.trunc(ms))")
-private external fun voiceDurationMsToJs(ms: Double?): JsAny?
+private external fun optionalMillisToJs(ms: Double?): JsAny?
 
 @OptIn(ExperimentalEncodingApi::class)
 fun ByteArray.toJsUint8Array(): JsAny {
@@ -888,7 +888,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         val bytes = retrieveWebBlob(path) ?: throw Exception("Blob not found for path: $path")
         clearWebBlob(path)
         // Hack: need to switch to a single fn for all platforms later
-        val result = requireClient().sendAttachmentBytes(roomId, filename ?: path, mime, bytes.toJsUint8Array(), caption, formattedCaption, replyToEventId, voiceDurationMsToJs(voiceDurationMs?.toDouble()), voiceWaveform?.map { it.toDouble() }?.toJsArray(), isVoice).awaitUnitResult()
+        val result = requireClient().sendAttachmentBytes(roomId, filename ?: path, mime, bytes.toJsUint8Array(), caption, formattedCaption, replyToEventId, optionalMillisToJs(voiceDurationMs?.toDouble()), voiceWaveform?.map { it.toDouble() }?.toJsArray(), isVoice).awaitUnitResult()
         return result.isSuccess
     }
 
@@ -1540,7 +1540,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     }
 
     override suspend fun setUserCall(joinedTsMs: Long?): Result<Unit> {
-        val result = requireClient().setUserCall(joinedTsMs?.toDouble()).awaitResult()
+        val result = requireClient().setUserCall(optionalMillisToJs(joinedTsMs?.toDouble())).awaitResult()
         return unitResult(result.ok, "set user call", result.error)
     }
 
