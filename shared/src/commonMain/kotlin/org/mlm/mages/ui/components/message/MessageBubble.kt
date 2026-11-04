@@ -856,6 +856,7 @@ private fun ImageAttachmentBubble(
             }
         }
         if (hasCaption) {
+            Spacer(Modifier.height(4.dp))
             TimestampLayout(
                 position = TimestampPosition.Aligned,
                 timestamp = { timestamp(contentColor) },
@@ -1031,6 +1032,7 @@ private fun VideoAttachmentBubble(
             }
         }
         if (hasCaption) {
+            Spacer(Modifier.height(4.dp))
             TimestampLayout(
                 position = TimestampPosition.Aligned,
                 timestamp = { timestamp(contentColor) },
