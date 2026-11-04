@@ -30,7 +30,7 @@ import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.getString
 
 actual object Notifier {
-    private var currentRoomId: String? = null
+    private val visibleRooms = RoomVisibilityTracker()
     private var windowFocused: Boolean = true
 
     actual fun notifyRoom(title: String, body: String, icon: String?) {
@@ -45,18 +45,21 @@ actual object Notifier {
         )
     }
 
-    actual fun setCurrentRoom(roomId: String?, clearNotifications: Boolean) {
-        currentRoomId = roomId
-        if (roomId != null && clearNotifications) {
+    actual fun onRoomOpened(roomId: String, clearNotifications: Boolean) {
+        if (clearNotifications) {
             runCatching { closeBrowserNotificationByTag(roomId) }
         }
     }
+
+    actual fun setRoomVisible(roomId: String, visible: Boolean) =
+        visibleRooms.set(roomId, visible)
 
     actual fun setWindowFocused(focused: Boolean) {
         windowFocused = focused
     }
 
-    internal fun isRoomVisible(roomId: String): Boolean = roomId == currentRoomId && windowFocused
+    internal fun isRoomVisible(roomId: String): Boolean =
+        windowFocused && visibleRooms.isVisible(roomId)
 
     actual fun shouldNotify(roomId: String, senderIsMe: Boolean): Boolean {
         if (senderIsMe) return false

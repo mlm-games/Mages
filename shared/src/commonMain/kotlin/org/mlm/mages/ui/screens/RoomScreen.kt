@@ -580,6 +580,27 @@ fun RoomScreen(
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, state.roomId) {
+        var reported = false
+        fun report(visible: Boolean) {
+            if (reported == visible) return
+            reported = visible
+            Notifier.setRoomVisible(state.roomId, visible)
+        }
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> report(true)
+                Lifecycle.Event.ON_STOP, Lifecycle.Event.ON_DESTROY -> report(false)
+                else -> Unit
+            }
+        }
+        report(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            report(false)
+        }
+    }
     DisposableEffect(lifecycleOwner, markReadTrigger) {
         if (markReadTrigger != AutoMarkReadTrigger.OnRoomClose) {
             return@DisposableEffect onDispose {}

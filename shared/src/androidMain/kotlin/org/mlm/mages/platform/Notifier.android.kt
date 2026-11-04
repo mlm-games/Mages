@@ -41,8 +41,7 @@ private fun parseNotifiedRooms(json: String): Set<String> {
 
 actual object Notifier {
     private const val CHANNEL_ID = "messages"
-    @Volatile private var currentRoomId: String? = null
-    @Volatile private var windowFocused = false
+    private val visibleRooms = RoomVisibilityTracker()
 
     private fun appContextOrNull(): Context? =
         runCatching { GlobalContext.get().get<Context>() }.getOrNull()
@@ -75,36 +74,33 @@ actual object Notifier {
         mgr.notify((System.currentTimeMillis() % Int.MAX_VALUE).toInt(), n)
     }
 
-    actual fun setCurrentRoom(roomId: String?, clearNotifications: Boolean) {
-        currentRoomId = roomId
-        if (roomId != null) {
-            val ctx = appContextOrNull() ?: return
-            if (clearNotifications) {
-                AndroidNotificationHelper.cancelRoomNotification(
-                    ctx,
-                    roomId,
-                    force = true,
-                    includeThreads = false,
-                )
-            }
-            CoroutineScope(Dispatchers.IO).launch {
-                val settingsRepo = SettingsProvider.get(ctx)
-                val settings = settingsRepo.flow.first()
-                val notifiedRooms = parseNotifiedRooms(settings.notifiedRoomsJson)
-                if (notifiedRooms.contains(roomId)) {
-                    val updated = notifiedRooms - roomId
-                    settingsRepo.update { it.copy(notifiedRoomsJson = Json.encodeToString(updated)) }
-                }
+    actual fun onRoomOpened(roomId: String, clearNotifications: Boolean) {
+        val ctx = appContextOrNull() ?: return
+        if (clearNotifications) {
+            AndroidNotificationHelper.cancelRoomNotification(
+                ctx,
+                roomId,
+                force = false,
+                includeThreads = false,
+            )
+        }
+        CoroutineScope(Dispatchers.IO).launch {
+            val settingsRepo = SettingsProvider.get(ctx)
+            val settings = settingsRepo.flow.first()
+            val notifiedRooms = parseNotifiedRooms(settings.notifiedRoomsJson)
+            if (notifiedRooms.contains(roomId)) {
+                val updated = notifiedRooms - roomId
+                settingsRepo.update { it.copy(notifiedRoomsJson = Json.encodeToString(updated)) }
             }
         }
     }
 
-    actual fun setWindowFocused(focused: Boolean) {
-        windowFocused = focused
-    }
+    actual fun setRoomVisible(roomId: String, visible: Boolean) =
+        visibleRooms.set(roomId, visible)
 
-    internal fun isRoomVisible(roomId: String): Boolean =
-        windowFocused && currentRoomId == roomId
+    actual fun setWindowFocused(focused: Boolean) = Unit
+
+    internal fun isRoomVisible(roomId: String): Boolean = visibleRooms.isVisible(roomId)
 
     actual fun shouldNotify(roomId: String, senderIsMe: Boolean): Boolean {
         if (senderIsMe) return false
@@ -127,7 +123,6 @@ actual fun BindLifecycle(service: MatrixService, resetSyncState: Boolean) {
         val obs = object : DefaultLifecycleObserver {
 
             override fun onStart(owner: LifecycleOwner) {
-                Notifier.setWindowFocused(true)
                 scope.launch {
                     SessionBootstrapper.ensureSessionReady(service)
 
@@ -150,7 +145,6 @@ actual fun BindLifecycle(service: MatrixService, resetSyncState: Boolean) {
             }
 
             override fun onStop(owner: LifecycleOwner) {
-                Notifier.setWindowFocused(false)
                 scope.launch {
                     val port = service.portOrNull ?: return@launch
                     runCatching { port.enterBackground() }

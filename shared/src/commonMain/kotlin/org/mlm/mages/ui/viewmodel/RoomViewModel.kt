@@ -2718,7 +2718,7 @@ class RoomViewModel(
     //  Private Helpers
 
     private fun observeTimeline() {
-        Notifier.setCurrentRoom(
+        Notifier.onRoomOpened(
             currentState.roomId,
             clearNotifications = !settings.value.notifyWhileRoomOpen,
         )
@@ -3455,7 +3455,6 @@ class RoomViewModel(
     override fun onCleared() {
         super.onCleared()
         checkedThreadRootsViaApi.clear()
-        Notifier.setCurrentRoom(null)
         typingToken?.let { runCatching { service.portOrNull?.stopTypingObserver(it) } }
         receiptsToken?.let { runCatching { service.portOrNull?.stopReceiptsObserver(it) } }
         ownReceiptToken?.let { runCatching { service.portOrNull?.stopReceiptsObserver(it) } }

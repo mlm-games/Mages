@@ -609,6 +609,7 @@ object Notifier {
         val existingStyle = nm.activeNotifications
             .find { it.id == notificationId }
             ?.notification
+            ?.takeUnless { isSuppressedBubble(it) }
             ?.let { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it) }
 
         // SystemUI is a separate uid and cannot read a file:// path into app
@@ -829,6 +830,7 @@ object Notifier {
         val existingStyle = nm.activeNotifications
             .find { it.id == notificationId }
             ?.notification
+            ?.takeUnless { isSuppressedBubble(it) }
             ?.let { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it) }
 
         val style = (existingStyle ?: NotificationCompat.MessagingStyle(me)

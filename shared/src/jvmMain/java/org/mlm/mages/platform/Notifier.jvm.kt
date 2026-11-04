@@ -32,7 +32,7 @@ import org.jetbrains.compose.resources.getString
 import kotlin.system.exitProcess
 
 actual object Notifier {
-    private var currentRoomId: String? = null
+    private val visibleRooms = RoomVisibilityTracker()
     private var windowFocused: Boolean = true
     private val roomsNotifiedWithSound = HashSet<String>()
 
@@ -42,22 +42,23 @@ actual object Notifier {
         NotifierImpl.notify(app = "Mages", title = title, body = body, desktopEntry = "org.mlm.mages")
     }
 
-    actual fun setCurrentRoom(roomId: String?, clearNotifications: Boolean) {
-        currentRoomId = roomId
-        if (roomId != null) {
-            roomsNotifiedWithSound.remove(roomId)
-            // Opening the room marks it read here.
-            if (clearNotifications) {
-                runCatching { NotifierImpl.closeRoomNotification(roomId) }
-            }
+    actual fun onRoomOpened(roomId: String, clearNotifications: Boolean) {
+        roomsNotifiedWithSound.remove(roomId)
+        // Opening the room marks it read here.
+        if (clearNotifications) {
+            runCatching { NotifierImpl.closeRoomNotification(roomId) }
         }
     }
+
+    actual fun setRoomVisible(roomId: String, visible: Boolean) =
+        visibleRooms.set(roomId, visible)
 
     actual fun setWindowFocused(focused: Boolean) {
         windowFocused = focused
     }
 
-    internal fun isRoomVisible(roomId: String): Boolean = windowFocused && currentRoomId == roomId
+    internal fun isRoomVisible(roomId: String): Boolean =
+        windowFocused && visibleRooms.isVisible(roomId)
 
     actual fun shouldNotify(roomId: String, senderIsMe: Boolean): Boolean {
         if (senderIsMe) return false
