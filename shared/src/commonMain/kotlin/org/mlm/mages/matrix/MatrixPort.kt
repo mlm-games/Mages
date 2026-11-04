@@ -1271,6 +1271,12 @@ interface MatrixPort {
     suspend fun isReactionNotificationsEnabled(): Result<Boolean>
     suspend fun setReactionNotificationsEnabled(enabled: Boolean): Result<Unit>
 
+    suspend fun setEventNotificationsEnabled(
+        ruleId: String,
+        eventType: String,
+        enabled: Boolean
+    ): Result<Unit>
+
     suspend fun getDefaultRoomNotificationMode(isEncrypted: Boolean, isOneToOne: Boolean): Result<RoomNotificationMode>
     suspend fun setDefaultRoomNotificationMode(
         isEncrypted: Boolean,

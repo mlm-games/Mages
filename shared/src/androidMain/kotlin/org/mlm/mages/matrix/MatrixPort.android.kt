@@ -1086,6 +1086,14 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
             runWithFfiResult { withClient { it.setReactionNotificationsEnabled(enabled) } }
         }
 
+    override suspend fun setEventNotificationsEnabled(
+        ruleId: String,
+        eventType: String,
+        enabled: Boolean
+    ): Result<Unit> = withContext(matrixDispatcher) {
+        runWithFfiResult { withClient { it.setEventNotificationsEnabled(ruleId, eventType, enabled) } }
+    }
+
     override suspend fun getDefaultRoomNotificationMode(
         isEncrypted: Boolean,
         isOneToOne: Boolean

@@ -65,7 +65,7 @@ use matrix_sdk_ui::{
     timeline::{RoomExt as _, Timeline, TimelineEventFocusThreadMode, TimelineFocus},
 };
 use serde_json;
-use tracing::{info, warn};
+use tracing::warn;
 
 use crate::{
     ActionAvailability, ActionPresentation, AttachmentInfo, AttachmentKind, DirectoryUser,
@@ -646,60 +646,62 @@ impl CoreClient {
 
     /// Stickers and live location shares match none of the default push rules,
     /// so without these the homeserver never pushes them to this device.
-    pub async fn ensure_notification_push_rules(&self) {
+    /// Notify for an event type that no default push rule matches, such as
+    /// `m.sticker` or `m.beacon_info`. Push rules are account-scoped, so this is
+    /// only called when the user asks for it, and turning it off deletes the
+    /// rule again instead of leaving it behind.
+    pub async fn set_event_notifications_enabled(
+        &self,
+        rule_id: String,
+        event_type: String,
+        enabled: bool,
+    ) -> Result<(), FfiError> {
         use matrix_sdk::ruma::{
-            api::client::push::set_pushrule,
-            events::{
-                StaticEventContent, beacon_info::BeaconInfoEventContent,
-                sticker::StickerEventContent,
-            },
+            api::client::push::{delete_pushrule, set_pushrule},
             push::{
-                Action, EventMatchConditionData, NewConditionalPushRule, NewPushRule,
-                PushCondition, RuleKind, SoundTweakValue, Tweak,
+                Action, EventMatchConditionData, NewConditionalPushRule, NewPushRule, PushCondition,
+                RuleKind, SoundTweakValue, Tweak,
             },
         };
 
-        let rules = match self.sdk.account().push_rules().await {
-            Ok(rules) => rules,
-            Err(e) => {
-                warn!("push rule check failed: {e:?}");
-                return;
+        let settings = self.sdk.notification_settings().await;
+        let rule_exists = settings
+            .ruleset()
+            .await
+            .get(RuleKind::Underride, &rule_id)
+            .is_some();
+
+        if enabled {
+            if rule_exists {
+                settings
+                    .set_push_rule_enabled(RuleKind::Underride, &rule_id, true)
+                    .await
+                    .ffi()?;
+            } else {
+                let rule = NewPushRule::Underride(NewConditionalPushRule::new(
+                    rule_id,
+                    vec![PushCondition::EventMatch(EventMatchConditionData::new(
+                        "type".into(),
+                        event_type,
+                    ))],
+                    vec![
+                        Action::Notify,
+                        Action::SetTweak(Tweak::Sound(SoundTweakValue::Default)),
+                    ],
+                ));
+                self.sdk
+                    .send(set_pushrule::v3::Request::new(rule))
+                    .await
+                    .ffi()?;
             }
-        };
-
-        let wanted = [
-            ("org.mlm.mages.sticker", StickerEventContent::TYPE),
-            ("org.mlm.mages.live_location", BeaconInfoEventContent::TYPE),
-        ];
-        let missing: Vec<(&str, &str)> = wanted
-            .iter()
-            .filter(|(rule_id, _)| rules.get(RuleKind::Underride, rule_id).is_none())
-            .copied()
-            .collect();
-
-        info!(
-            "notification push rules: {}/{} present",
-            wanted.len() - missing.len(),
-            wanted.len()
-        );
-
-        for (rule_id, event_type) in missing {
-            let rule = NewPushRule::Underride(NewConditionalPushRule::new(
-                rule_id.to_owned(),
-                vec![PushCondition::EventMatch(EventMatchConditionData::new(
-                    "type".into(),
-                    event_type.to_owned(),
-                ))],
-                vec![
-                    Action::Notify,
-                    Action::SetTweak(Tweak::Sound(SoundTweakValue::Default)),
-                ],
-            ));
-            match self.sdk.send(set_pushrule::v3::Request::new(rule)).await {
-                Ok(_) => info!("registered notification push rule {rule_id}"),
-                Err(e) => warn!("failed to register push rule {rule_id}: {e:?}"),
-            }
+        } else if rule_exists {
+            self.sdk
+                .send(delete_pushrule::v3::Request::new(RuleKind::Underride, rule_id))
+                .await
+                .ffi()?;
         }
+
+        Ok(())
     }
 
     pub async fn ensure_sync_service(&self) {
@@ -714,7 +716,6 @@ impl CoreClient {
         if self.sdk.session_meta().is_none() {
             return;
         }
-        self.ensure_notification_push_rules().await;
         let builder = SyncService::builder(self.sdk.clone()).with_offline_mode();
         match builder.build().await {
             Ok(svc) => {

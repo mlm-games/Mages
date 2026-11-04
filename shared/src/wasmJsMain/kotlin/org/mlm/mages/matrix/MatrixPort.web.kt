@@ -1349,6 +1349,15 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         "setReactionNotificationsEnabled"
     )
 
+    override suspend fun setEventNotificationsEnabled(
+        ruleId: String,
+        eventType: String,
+        enabled: Boolean,
+    ): Result<Unit> = unitResult(
+        requireClient().setEventNotificationsEnabled(ruleId, eventType, enabled).awaitBool(),
+        "setEventNotificationsEnabled"
+    )
+
     override suspend fun getDefaultRoomNotificationMode(
         isEncrypted: Boolean,
         isOneToOne: Boolean

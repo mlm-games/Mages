@@ -638,6 +638,7 @@ wasm_delegate! { webffi_unit;
     "setMarkUnread"      => set_mark_unread(room_id: String, unread: bool);
     "sendThreadText"     => send_thread_text(room_id: String, root_event_id: String, body: String, reply_to_event_id: Option<String>, latest_event_id: Option<String>, formatted_body: Option<String>);
     "setReactionNotificationsEnabled" => set_reaction_notifications_enabled(enabled: bool);
+    "setEventNotificationsEnabled" => set_event_notifications_enabled(rule_id: String, event_type: String, enabled: bool);
 }
 
 wasm_delegate! { webffi_value;

@@ -25,6 +25,11 @@ class NotificationSettingsRepository(
             return port.setReactionNotificationsEnabled(uiEnabled)
         }
 
+        toggle.eventType?.let { eventType ->
+            val binding = toggle.rules.firstOrNull() ?: return Result.success(Unit)
+            return port.setEventNotificationsEnabled(binding.ruleId, eventType, uiEnabled)
+        }
+
         val ruleEnabled = if (toggle.invertedSemantics) !uiEnabled else uiEnabled
         var lastResult: Result<Unit> = Result.success(Unit)
         for (binding in toggle.rules) {

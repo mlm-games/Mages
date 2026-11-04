@@ -218,6 +218,8 @@
     <string name="appearance">Appearance</string>
     <string name="timeline">Timeline</string>
     <string name="calls">Calls</string>
+    <string name="notify_for_live_location">Get notified when someone starts sharing their location</string>
+    <string name="notify_for_stickers">Get notified when someone sends a sticker</string>
     <string name="notifications">Notifications</string>
     <string name="storage">Storage</string>
     <string name="advanced">Advanced</string>
@@ -555,6 +557,7 @@
     <string name="search_emoji">Search emoji</string>
     <string name="picker_sticker_pack">Sticker pack</string>
     <string name="picker_sticker_pack_sub">Send a sticker from a pack</string>
+    <string name="stickers">Stickers</string>
     <string name="sticker_pack_unencrypted_notice">Sticker packs are not encrypted. Their images are sent in the clear and are visible to your homeserver, even in encrypted rooms.</string>
     <string name="sticker_pack_enable_globally">Use this pack in every room</string>
     <string name="sticker_pack_disable_globally">Stop using this pack in every room</string>
@@ -1170,6 +1173,7 @@
     <string name="leave_space">Leave space</string>
     <string name="listed_in_room_directory">Listed in room directory</string>
     <string name="live">LIVE</string>
+    <string name="live_location_notifications">Live location</string>
     <string name="live_location_is_not_supported_on_this_platform">Live location is not supported on this platform</string>
     <string name="load_more">Load more</string>
     <string name="loading_thread">Loading thread...</string>

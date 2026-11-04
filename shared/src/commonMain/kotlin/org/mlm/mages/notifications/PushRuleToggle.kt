@@ -17,6 +17,7 @@ data class PushRuleToggle(
     val rules: List<PushRuleBinding>,
     val invertedSemantics: Boolean = false,
     val defaultUiValue: Boolean = true,
+    val eventType: String? = null,
 )
 
 object NotificationToggles {
@@ -68,6 +69,28 @@ object NotificationToggles {
         defaultUiValue = false,
     )
 
+    val stickers = PushRuleToggle(
+        id = "stickers",
+        label = Res.string.stickers,
+        description = Res.string.notify_for_stickers,
+        rules = listOf(
+            PushRuleBinding(PushRuleKind.Underride, "org.mlm.mages.sticker"),
+        ),
+        defaultUiValue = false,
+        eventType = "m.sticker",
+    )
+
+    val liveLocation = PushRuleToggle(
+        id = "live_location",
+        label = Res.string.live_location_notifications,
+        description = Res.string.notify_for_live_location,
+        rules = listOf(
+            PushRuleBinding(PushRuleKind.Underride, "org.mlm.mages.live_location"),
+        ),
+        defaultUiValue = false,
+        eventType = "m.beacon_info",
+    )
+
     val invites = PushRuleToggle(
         id = "invites",
         label = Res.string.invites,
@@ -112,6 +135,8 @@ object NotificationToggles {
         mentions,
         roomMentions,
         reactions,
+        stickers,
+        liveLocation,
         invites,
         calls,
         roomUpgrades,

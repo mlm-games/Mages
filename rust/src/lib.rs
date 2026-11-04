@@ -170,6 +170,7 @@ delegate! { unit;
     decline_call(room_id: String, notification_event_id: String);
     set_room_notification_mode(room_id: String, mode: FfiRoomNotificationMode);
     set_push_rule_enabled(kind: FfiPushRuleKind, rule_id: String, enabled: bool);
+    set_event_notifications_enabled(rule_id: String, event_type: String, enabled: bool);
     set_reaction_notifications_enabled(enabled: bool);
     set_default_room_notification_mode(is_encrypted: bool, is_one_to_one: bool, mode: FfiRoomNotificationMode);
     set_room_canonical_alias(room_id: String, alias: Option<String>, alt_aliases: Vec<String>);
