@@ -243,6 +243,7 @@ fun MessageBubble(
                 val bodyText = @Composable {
                     TimestampLayout(
                         position = TimestampPosition.Aligned,
+                        contentAlignment = horizontalAlignment,
                         timestamp = { timestampContent(bubbleTextColor) },
                     ) {
                         FormattedBodyText(

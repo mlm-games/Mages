@@ -25,6 +25,7 @@ fun TimestampLayout(
     position: TimestampPosition,
     modifier: Modifier = Modifier,
     timestampPadding: Dp = 4.dp,
+    contentAlignment: Alignment.Horizontal = Alignment.Start,
     timestamp: @Composable () -> Unit,
     content: @Composable BoxScope.() -> Unit,
 ) {
@@ -49,6 +50,7 @@ fun TimestampLayout(
         TimestampPosition.Aligned -> {
             ContentAvoidingRow(
                 modifier = modifier,
+                contentAlignment = contentAlignment,
                 timestamp = timestamp,
                 content = content
             )
@@ -70,6 +72,7 @@ private val TIMESTAMP_BELOW_GAP = 4.dp
 @Composable
 private fun ContentAvoidingRow(
     modifier: Modifier = Modifier,
+    contentAlignment: Alignment.Horizontal,
     timestamp: @Composable () -> Unit,
     content: @Composable BoxScope.() -> Unit,
 ) {
@@ -104,7 +107,12 @@ private fun ContentAvoidingRow(
         ).coerceAtMost(maxHeight)
 
         layout(layoutWidth, layoutHeight) {
-            contentPlaceable.placeRelative(0, 0)
+            val contentX = if (contentAlignment == Alignment.End) {
+                (layoutWidth - timestampWidth - gap - contentWidth).coerceAtLeast(0)
+            } else {
+                0
+            }
+            contentPlaceable.placeRelative(contentX, 0)
             timestampPlaceable.placeRelative(
                 x = layoutWidth - timestampWidth,
                 y = if (keepBeside) layoutHeight - timestampHeight
