@@ -1480,7 +1480,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2933,7 +2933,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#bec4085fecaa3ad6731c7d4e0ccebebe37d6ad1e"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
 dependencies = [
  "anymap2",
  "as_variant",
@@ -2992,7 +2992,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-base"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#bec4085fecaa3ad6731c7d4e0ccebebe37d6ad1e"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
 dependencies = [
  "as_variant",
  "async-trait",
@@ -3019,7 +3019,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-common"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#bec4085fecaa3ad6731c7d4e0ccebebe37d6ad1e"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
 dependencies = [
  "eyeball-im",
  "futures-core",
@@ -3042,7 +3042,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-crypto"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#bec4085fecaa3ad6731c7d4e0ccebebe37d6ad1e"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
 dependencies = [
  "aes",
  "as_variant",
@@ -3082,7 +3082,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-indexeddb"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#bec4085fecaa3ad6731c7d4e0ccebebe37d6ad1e"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
@@ -3115,7 +3115,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-qrcode"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#bec4085fecaa3ad6731c7d4e0ccebebe37d6ad1e"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
 dependencies = [
  "byteorder",
  "qrcode",
@@ -3127,7 +3127,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-search"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#bec4085fecaa3ad6731c7d4e0ccebebe37d6ad1e"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
 dependencies = [
  "aes",
  "byteorder",
@@ -3148,7 +3148,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-sqlite"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#bec4085fecaa3ad6731c7d4e0ccebebe37d6ad1e"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
 dependencies = [
  "as_variant",
  "async-trait",
@@ -3176,7 +3176,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-store-encryption"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#bec4085fecaa3ad6731c7d4e0ccebebe37d6ad1e"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
 dependencies = [
  "base64 0.23.1",
  "blake3",
@@ -3198,7 +3198,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-ui"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#bec4085fecaa3ad6731c7d4e0ccebebe37d6ad1e"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
 dependencies = [
  "as_variant",
  "async-rx",
@@ -3441,7 +3441,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4018,7 +4018,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4570,7 +4570,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4627,7 +4627,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5034,7 +5034,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5296,7 +5296,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5728,7 +5728,7 @@ checksum = "f2f6fb2847f6742cd76af783a2a2c49e9375d0a111c7bef6f71cd9e738c72d6e"
 dependencies = [
  "memoffset",
  "tempfile",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6234,7 +6234,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
