@@ -21,13 +21,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import mages.shared.generated.resources.*
 import org.mlm.mages.platform.PlaybackState
 import org.mlm.mages.platform.createAudioPlayer
 import org.mlm.mages.ui.theme.Spacing
+import org.mlm.mages.ui.theme.messageBubbleColors
 import org.mlm.mages.ui.util.formatDuration
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.Res
@@ -62,23 +62,16 @@ fun VoiceMessageBubble(
     }
     val displayDuration = playingDuration ?: lastKnownDuration
 
-    val bubbleColor = if (isMine) {
-        lerp(
-            MaterialTheme.colorScheme.primaryContainer,
-            MaterialTheme.colorScheme.surface,
-            0.45f
-        )
-    } else {
-        MaterialTheme.colorScheme.surfaceVariant
-    }
-    val onBubble = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
-    else MaterialTheme.colorScheme.onSurfaceVariant
+    val bubbleColors = messageBubbleColors(isMine)
+    val bubbleColor = bubbleColors.container
+    val onBubble = bubbleColors.content
 
     var speedIndex by remember(filePath) { mutableIntStateOf(0) }
     val currentSpeed = SPEED_OPTIONS[speedIndex]
 
     Surface(
         color = bubbleColor,
+        contentColor = onBubble,
         shape = RoundedCornerShape(18.dp),
         modifier = modifier.widthIn(min = 200.dp, max = 300.dp)
     ) {

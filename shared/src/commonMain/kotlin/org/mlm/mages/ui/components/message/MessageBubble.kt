@@ -32,7 +32,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.contentDescription
@@ -67,6 +66,7 @@ import org.mlm.mages.ui.components.sticker.TgsSticker
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.components.voice.VoiceMessageBubble
 import org.mlm.mages.ui.theme.Spacing
+import org.mlm.mages.ui.theme.messageBubbleColors
 import org.mlm.mages.ui.util.formatDuration
 import org.mlm.mages.ui.util.formatTime
 import org.mlm.mages.ui.util.isAnimatedImageMime
@@ -140,24 +140,23 @@ fun MessageBubble(
 
     val isRedacted = model.isRedacted
     val threadCount = model.thread?.count?.takeIf { it > 0 }
-
-    val bubbleContainerColor = if (isRedacted) {
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-    } else if (isMine) {
-        lerp(
-            MaterialTheme.colorScheme.primaryContainer,
-            MaterialTheme.colorScheme.surface,
-            0.45f
-        )
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerHigh
+    val reply = model.reply?.takeIf {
+        !it.body.isNullOrBlank() || it.preview != null || !it.sender.isNullOrBlank()
     }
+    val hasStandaloneBody = model.attachment == null &&
+        model.poll == null &&
+        model.linkPreview == null &&
+        !isRedacted &&
+        model.body.isNotBlank() &&
+        !(isMine && (
+            model.sendState == SendState.Failed ||
+                model.editSendState == SendState.Failed ||
+                model.redactionSendState == SendState.Failed
+            ))
 
-    val bubbleTextColor = when {
-        isRedacted -> MaterialTheme.colorScheme.onSurfaceVariant
-        isMine -> MaterialTheme.colorScheme.onPrimaryContainer
-        else -> MaterialTheme.colorScheme.onSurface
-    }
+    val bubbleColors = messageBubbleColors(isMine, isRedacted)
+    val bubbleContainerColor = bubbleColors.container
+    val bubbleTextColor = bubbleColors.content
 
     Column(
         modifier = modifier
@@ -227,17 +226,36 @@ fun MessageBubble(
         ) {
             Surface(
                 color = bubbleContainerColor,
+                contentColor = bubbleTextColor,
                 shape = bubbleShape(isMine, grouping.groupedWithPrev, grouping.groupedWithNext),
                 tonalElevation = if (isRedacted) 0.dp else if (isMine) 3.dp else 1.dp,
             ) {
-                val timestampContent = @Composable {
+                val timestampContent = @Composable { textColor: Color ->
                     MessageTimeAndStatus(
                         timestamp = model.timestamp,
                         isEdited = model.isEdited,
-                        textColor = bubbleTextColor,
+                        textColor = textColor,
                         isPinned = model.isPinned,
                         isMine = isMine
                     )
+                }
+
+                val bodyText = @Composable {
+                    TimestampLayout(
+                        position = TimestampPosition.Aligned,
+                        timestamp = { timestampContent(bubbleTextColor) },
+                    ) {
+                        FormattedBodyText(
+                            formattedBody = model.formattedBody,
+                            fallbackBody = model.body,
+                            emotePaths = emotePaths,
+                            color = bubbleTextColor,
+                            containerColor = bubbleContainerColor,
+                            mentionRefs = model.mentions,
+                            mentionsRoom = model.mentionsRoom,
+                            onMentionClick = onMentionClick
+                        )
+                    }
                 }
 
                 Layout(
@@ -250,30 +268,27 @@ fun MessageBubble(
                         .secondaryClick(onSecondaryClick)
                         .padding(Spacing.md),
                     content = {
-                        model.reply?.let { reply ->
-                            if (!reply.body.isNullOrBlank() ||
-                                reply.preview != null ||
-                                !reply.sender.isNullOrBlank()
-                            ) {
-                                ReplyPreview(
-                                    isMine = isMine,
-                                    sender = reply.sender,
-                                    body = reply.body,
-                                    preview = reply.preview,
-                                    previewPath = reply.previewPath,
-                                    onClick = onReplyPreviewClick,
-                                )
-                            }
+                        reply?.let {
+                            ReplyPreview(
+                                isMine = isMine,
+                                sender = it.sender,
+                                body = it.body,
+                                preview = it.preview,
+                                previewPath = it.previewPath,
+                                onClick = onReplyPreviewClick,
+                            )
                         }
-                        Column(horizontalAlignment = horizontalAlignment) {
+                        if (hasStandaloneBody) {
+                            bodyText()
+                        } else Column(horizontalAlignment = if (reply != null) Alignment.Start else horizontalAlignment) {
                             when (val attachment = model.attachment) {
                                 is MessageAttachmentUi.File -> {
-                                    FileAttachmentBubble(attachment, isMine, onOpenAttachment, onLongPress)
+                                    FileAttachmentBubble(attachment, isMine, bubbleTextColor, onOpenAttachment, onLongPress)
                                     if (!attachment.caption.isNullOrBlank()) {
                                         Spacer(Modifier.height(Spacing.xs))
                                         TimestampLayout(
                                             position = TimestampPosition.Aligned,
-                                            timestamp = timestampContent,
+                                            timestamp = { timestampContent(bubbleTextColor) },
                                         ) {
                                             FormattedBodyText(
                                                 formattedBody = attachment.captionFormattedBody,
@@ -302,6 +317,7 @@ fun MessageBubble(
                                     ImageAttachmentBubble(
                                         attachment = attachment,
                                         isMine = isMine,
+                                        contentColor = bubbleTextColor,
                                         onOpen = onOpenAttachment,
                                         onShowPreview = onShowPreview,
                                         onLongPress = onLongPress,
@@ -317,6 +333,7 @@ fun MessageBubble(
                                     VideoAttachmentBubble(
                                         attachment = attachment,
                                         isMine = isMine,
+                                        contentColor = bubbleTextColor,
                                         onOpen = onOpenAttachment,
                                         onShowPreview = onShowPreview,
                                         onLongPress = onLongPress,
@@ -338,13 +355,13 @@ fun MessageBubble(
                                             isMine = isMine,
                                         )
                                     } else {
-                                        AudioFileBubble(attachment, isMine, onOpenAttachment, onLongPress)
+                                        AudioFileBubble(attachment, isMine, bubbleTextColor, onOpenAttachment, onLongPress)
                                     }
                                     if (!attachment.caption.isNullOrBlank()) {
                                         Spacer(Modifier.height(Spacing.xs))
                                         TimestampLayout(
                                             position = TimestampPosition.Aligned,
-                                            timestamp = timestampContent,
+                                            timestamp = { timestampContent(bubbleTextColor) },
                                         ) {
                                             FormattedBodyText(
                                                 formattedBody = attachment.captionFormattedBody,
@@ -390,7 +407,7 @@ fun MessageBubble(
                             } else if (isRedacted) {
                                 TimestampLayout(
                                     position = TimestampPosition.Aligned,
-                                    timestamp = timestampContent,
+                                    timestamp = { timestampContent(bubbleTextColor) },
                                 ) {
                                     RedactedBody(
                                         text = model.body,
@@ -398,21 +415,7 @@ fun MessageBubble(
                                     )
                                 }
                             } else if (model.attachment == null && model.body.isNotBlank()) {
-                                TimestampLayout(
-                                    position = TimestampPosition.Aligned,
-                                    timestamp = timestampContent,
-                                ) {
-                                    FormattedBodyText(
-                                        formattedBody = model.formattedBody,
-                                        fallbackBody = model.body,
-                                        emotePaths = emotePaths,
-                                        color = bubbleTextColor,
-                                        containerColor = bubbleContainerColor,
-                                        mentionRefs = model.mentions,
-                                        mentionsRoom = model.mentionsRoom,
-                                        onMentionClick = onMentionClick
-                                    )
-                                }
+                                bodyText()
                             } else if (model.attachment == null && model.body.isBlank()) {
                                 MessageTimeAndStatus(
                                     timestamp = model.timestamp,
@@ -453,14 +456,16 @@ fun MessageBubble(
 
                     if (hasReply) {
                         val replyMeasurable = measurables[0]
-                        val mainMeasurable = measurables[1]
+                        val mainMeasurable = measurables.last()
 
                         val replyIntrinsicWidth = replyMeasurable.maxIntrinsicWidth(constraints.maxHeight)
                             .coerceAtMost(constraints.maxWidth)
                             .coerceAtLeast(0)
 
-                        val mainPlaceable = mainMeasurable.measure(looseConstraints)
-                        val contentWidth = maxOf(mainPlaceable.width, replyIntrinsicWidth)
+                        val mainPlaceable = mainMeasurable.measure(
+                            looseConstraints.copy(minWidth = replyIntrinsicWidth)
+                        )
+                        val contentWidth = mainPlaceable.width
 
                         val replyPlaceable = replyMeasurable.measure(
                             looseConstraints.copy(minWidth = contentWidth, maxWidth = contentWidth)
@@ -469,20 +474,18 @@ fun MessageBubble(
                         val spacing = 8.dp.roundToPx()
                         val totalHeight = replyPlaceable.height + spacing + mainPlaceable.height
 
-                        layout(contentWidth, totalHeight) {
+                        layout(maxOf(contentWidth, constraints.minWidth), totalHeight) {
                             replyPlaceable.place(0, 0)
                             mainPlaceable.place(
-                                x = horizontalAlignment.align(mainPlaceable.width, contentWidth, layoutDirection),
+                                x = 0,
                                 y = replyPlaceable.height + spacing
                             )
                         }
                     } else {
                         val mainPlaceable = measurables[0].measure(looseConstraints)
-                        layout(mainPlaceable.width, mainPlaceable.height) {
-                            mainPlaceable.place(
-                                x = horizontalAlignment.align(mainPlaceable.width, mainPlaceable.width, layoutDirection),
-                                y = 0
-                            )
+                        val width = maxOf(mainPlaceable.width, constraints.minWidth)
+                        layout(width, mainPlaceable.height) {
+                            mainPlaceable.place(0, 0)
                         }
                     }
                 }
@@ -634,11 +637,10 @@ private fun ReplyPreviewVisual(preview: ReplyPreview, resolvedPath: String?) {
 private fun FileAttachmentBubble(
     attachment: MessageAttachmentUi.File,
     isMine: Boolean,
+    contentColor: Color,
     onOpen: (() -> Unit)?,
     onLongPress: (() -> Unit)?,
 ) {
-    val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
-    else MaterialTheme.colorScheme.onSecondaryContainer
     val accentColor = if (isMine) MaterialTheme.colorScheme.primary
     else MaterialTheme.colorScheme.secondary
 
@@ -704,11 +706,10 @@ private fun FileAttachmentBubble(
 private fun AudioFileBubble(
     attachment: MessageAttachmentUi.Audio,
     isMine: Boolean,
+    contentColor: Color,
     onOpen: (() -> Unit)?,
     onLongPress: (() -> Unit)?,
 ) {
-    val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
-    else MaterialTheme.colorScheme.onSecondaryContainer
     val accentColor = if (isMine) MaterialTheme.colorScheme.primary
     else MaterialTheme.colorScheme.secondary
     val details = listOfNotNull(
@@ -778,9 +779,10 @@ private fun AudioFileBubble(
 private fun ImageAttachmentBubble(
     attachment: MessageAttachmentUi.Image,
     isMine: Boolean,
+    contentColor: Color,
     onOpen: (() -> Unit)?,
     onLongPress: (() -> Unit)? = null,
-    timestamp: @Composable () -> Unit,
+    timestamp: @Composable (Color) -> Unit,
     containerColor: Color,
     emotePaths: Map<String, String> = emptyMap(),
     mentionRefs: Map<String, MentionRef> = emptyMap(),
@@ -788,8 +790,6 @@ private fun ImageAttachmentBubble(
     onMentionClick: ((String) -> Unit)? = null,
     onShowPreview: (() -> Unit)? = null,
 ) {
-    val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
-    else MaterialTheme.colorScheme.onSecondaryContainer
     val horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
 
     val previewPath = attachment.previewPath
@@ -804,6 +804,7 @@ private fun ImageAttachmentBubble(
             blurhashImage = blurhashImage,
             onOpen = onOpen,
             onLongPress = onLongPress,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
         ) {
             Box(modifier = Modifier.matchParentSize()) {
                 if (previewPath != null) {
@@ -857,7 +858,7 @@ private fun ImageAttachmentBubble(
         if (hasCaption) {
             TimestampLayout(
                 position = TimestampPosition.Aligned,
-                timestamp = timestamp,
+                timestamp = { timestamp(contentColor) },
             ) {
                 FormattedBodyText(
                     formattedBody = attachment.captionFormattedBody,
@@ -885,6 +886,7 @@ private fun MediaTile(
     blurhashImage: ImageBitmap?,
     onOpen: (() -> Unit)?,
     onLongPress: (() -> Unit)?,
+    modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val aspectRatio = if ((width ?: 0) > 0 && (height ?: 0) > 0) {
@@ -892,7 +894,7 @@ private fun MediaTile(
     } else 1.33f
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .widthIn(max = MEDIA_MAX_WIDTH)
             .heightIn(min = MEDIA_MIN_HEIGHT, max = MEDIA_MAX_HEIGHT)
             .aspectRatio(aspectRatio, matchHeightConstraintsFirst = false)
@@ -939,7 +941,7 @@ private fun BoxScope.MediaTilePlaceholder(
 }
 
 @Composable
-private fun BoxScope.TimestampBadge(timestamp: @Composable () -> Unit) {
+private fun BoxScope.TimestampBadge(timestamp: @Composable (Color) -> Unit) {
     Box(
         modifier = Modifier
             .align(Alignment.BottomEnd)
@@ -950,7 +952,7 @@ private fun BoxScope.TimestampBadge(timestamp: @Composable () -> Unit) {
             )
             .padding(horizontal = 4.dp, vertical = 2.dp)
     ) {
-        timestamp()
+        timestamp(MaterialTheme.colorScheme.onSurface)
     }
 }
 
@@ -958,9 +960,10 @@ private fun BoxScope.TimestampBadge(timestamp: @Composable () -> Unit) {
 private fun VideoAttachmentBubble(
     attachment: MessageAttachmentUi.Video,
     isMine: Boolean,
+    contentColor: Color,
     onOpen: (() -> Unit)?,
     onLongPress: (() -> Unit)? = null,
-    timestamp: @Composable () -> Unit,
+    timestamp: @Composable (Color) -> Unit,
     containerColor: Color,
     emotePaths: Map<String, String> = emptyMap(),
     mentionRefs: Map<String, MentionRef> = emptyMap(),
@@ -968,8 +971,6 @@ private fun VideoAttachmentBubble(
     onMentionClick: ((String) -> Unit)? = null,
     onShowPreview: (() -> Unit)? = null,
 ) {
-    val contentColor = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
-    else MaterialTheme.colorScheme.onSecondaryContainer
     val horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
 
     val previewPath = attachment.previewPath
@@ -984,6 +985,7 @@ private fun VideoAttachmentBubble(
             blurhashImage = blurhashImage,
             onOpen = onOpen,
             onLongPress = onLongPress,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
         ) {
             Box(modifier = Modifier.matchParentSize()) {
                 if (previewPath != null) {
@@ -1031,7 +1033,7 @@ private fun VideoAttachmentBubble(
         if (hasCaption) {
             TimestampLayout(
                 position = TimestampPosition.Aligned,
-                timestamp = timestamp,
+                timestamp = { timestamp(contentColor) },
             ) {
                 FormattedBodyText(
                     formattedBody = attachment.captionFormattedBody,
