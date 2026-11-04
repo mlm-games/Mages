@@ -487,7 +487,7 @@ actual fun LiveLocationMapViewer(
                     if (isCentering) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                     } else {
-                        Icon(painterResource(Res.drawable.ic_my_location), contentDescription = stringResource(Res.string.map_center_my_location))
+                        Icon(painterResource(Res.drawable.ic_my_location_filled), contentDescription = stringResource(Res.string.map_center_my_location))
                     }
                 }
 
@@ -559,7 +559,7 @@ actual fun LiveLocationMapViewer(
                     if (isCentering) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                     } else {
-                        Icon(painterResource(Res.drawable.ic_my_location), contentDescription = stringResource(Res.string.map_center_my_location))
+                        Icon(painterResource(Res.drawable.ic_my_location_filled), contentDescription = stringResource(Res.string.map_center_my_location))
                     }
                 }
 
@@ -653,7 +653,7 @@ actual fun LiveLocationMapViewer(
                                     containerColor = MaterialTheme.colorScheme.error
                                 )
                             ) {
-                                Icon(painterResource(Res.drawable.ic_stop), contentDescription = null)
+                                Icon(painterResource(Res.drawable.ic_stop_filled), contentDescription = null)
                                 Spacer(Modifier.width(Spacing.sm))
                                 Text(stringResource(Res.string.stop_sharing))
                             }
@@ -771,7 +771,7 @@ private fun LiveLocationBottomSheetContent(
         if (onStopSharing != null) {
             Spacer(Modifier.height(Spacing.md))
             TextButton(onClick = onStopSharing) {
-                Icon(painterResource(Res.drawable.ic_stop), contentDescription = null)
+                Icon(painterResource(Res.drawable.ic_stop_filled), contentDescription = null)
                 Spacer(Modifier.width(Spacing.sm))
                 Text(stringResource(Res.string.stop_sharing))
             }

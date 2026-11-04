@@ -129,7 +129,7 @@ private fun AttachmentThumbnail(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    painterResource(Res.drawable.ic_play_arrow),
+                    painterResource(Res.drawable.ic_play_arrow_filled),
                     contentDescription = null,
                     modifier = Modifier.size(14.dp),
                     tint = MaterialTheme.colorScheme.onSurface,

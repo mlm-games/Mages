@@ -1465,7 +1465,7 @@ fun RoomScreen(
 @Composable
 private fun VerifiedBadge() {
     Icon(
-        painterResource(Res.drawable.ic_verified),
+        painterResource(Res.drawable.ic_verified_filled),
         contentDescription = stringResource(Res.string.verified),
         tint = AppColors.Verified,
         modifier = Modifier.size(16.dp)

@@ -495,7 +495,7 @@ private fun RoomSelectionTopBar(
                 ) {
                     menuItem(painterResource(Res.drawable.ic_mark_email_unread), stringResource(Res.string.mark_as_unread), onMarkUnread)
                     menuItem(painterResource(Res.drawable.ic_star), stringResource(Res.string.add_to_favorites), onFavourite)
-                    menuItem(painterResource(Res.drawable.ic_star), stringResource(Res.string.remove_from_favorites), onUnfavourite)
+                    menuItem(painterResource(Res.drawable.ic_star_filled), stringResource(Res.string.remove_from_favorites), onUnfavourite)
                     menuItem(painterResource(Res.drawable.ic_arrow_downward), stringResource(Res.string.low_priority), onLowPriority)
                     menuItem(painterResource(Res.drawable.ic_remove), stringResource(Res.string.remove_from_low_priority), onRemoveLowPriority)
                     menuItem(painterResource(Res.drawable.ic_notifications_off), stringResource(Res.string.mute), onMute)

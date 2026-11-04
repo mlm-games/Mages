@@ -51,7 +51,7 @@ fun RoomActionsSheet(
             // }
 
             ActionItem(
-                if (isFavourite) painterResource(Res.drawable.ic_star) else painterResource(Res.drawable.ic_star),
+                if (isFavourite) painterResource(Res.drawable.ic_star_filled) else painterResource(Res.drawable.ic_star),
                 if (isFavourite) stringResource(Res.string.remove_from_favorites) else stringResource(Res.string.add_to_favorites)
             ) {
                 onToggleFavourite()

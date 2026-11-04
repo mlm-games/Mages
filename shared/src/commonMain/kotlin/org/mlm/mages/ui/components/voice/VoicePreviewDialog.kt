@@ -103,7 +103,7 @@ fun VoicePreviewDialog(
                             )
                         } else {
                             Icon(
-                                painter = if (isPlaying) painterResource(Res.drawable.ic_pause) else painterResource(Res.drawable.ic_play_arrow),
+                                painter = if (isPlaying) painterResource(Res.drawable.ic_pause_filled) else painterResource(Res.drawable.ic_play_arrow_filled),
                                 contentDescription = if (isPlaying) stringResource(Res.string.pause) else stringResource(Res.string.play),
                                 tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(26.dp)
@@ -170,7 +170,7 @@ fun VoicePreviewDialog(
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(
-                            painterResource(Res.drawable.ic_send),
+                            painterResource(Res.drawable.ic_send_filled),
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )

@@ -341,7 +341,7 @@ private fun ComposerInputRow(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else if (canSend) {
-                Icon(painterResource(Res.drawable.ic_send), stringResource(Res.string.send))
+                Icon(painterResource(Res.drawable.ic_send_filled), stringResource(Res.string.send))
             } else {
                 Icon(painterResource(Res.drawable.ic_mic), stringResource(Res.string.record_voice))
             }

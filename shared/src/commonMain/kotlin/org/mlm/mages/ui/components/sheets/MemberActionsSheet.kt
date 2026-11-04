@@ -131,7 +131,7 @@ fun MemberActionsSheet(
 
             if (onVerify != null) {
                 ActionItem(
-                    icon = painterResource(Res.drawable.ic_verified_user),
+                    icon = painterResource(Res.drawable.ic_verified_user_filled),
                     title = stringResource(Res.string.verify_user),
                     subtitle = stringResource(Res.string.start_an_emoji_verification_with_them),
                     onClick = { onVerify(); onDismiss() }
@@ -139,7 +139,7 @@ fun MemberActionsSheet(
             } else if (verified) {
                 ListItem(
                     headlineContent = { Text(stringResource(Res.string.verified), color = AppColors.Verified) },
-                    leadingContent = { Icon(painterResource(Res.drawable.ic_verified_user), null, tint = AppColors.Verified) }
+                    leadingContent = { Icon(painterResource(Res.drawable.ic_verified_user_filled), null, tint = AppColors.Verified) }
                 )
             }
 

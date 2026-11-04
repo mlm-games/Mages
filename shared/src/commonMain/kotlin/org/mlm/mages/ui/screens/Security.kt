@@ -385,7 +385,7 @@ fun SecurityScreen(
     if (showVerifyUserDialog) {
         AlertDialog(
             onDismissRequest = { showVerifyUserDialog = false },
-            icon = { Icon(painterResource(Res.drawable.ic_verified_user), null) },
+            icon = { Icon(painterResource(Res.drawable.ic_verified_user_filled), null) },
             title = { Text(stringResource(Res.string.verify_user)) },
             text = {
                 val directoryMembers = rememberDirectoryMembers(verifyUserId)
@@ -850,7 +850,7 @@ private fun DevicesTab(
                 )
 
                 ActionCard(
-                    icon = painterResource(Res.drawable.ic_verified_user),
+                    icon = painterResource(Res.drawable.ic_verified_user_filled),
                     title = stringResource(Res.string.verify_user),
                     subtitle = stringResource(Res.string.verify_another_user),
                     onClick = onVerifyUser,
@@ -1092,7 +1092,7 @@ private fun DeviceCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                if (device.verified) painterResource(Res.drawable.ic_verified_user) else painterResource(Res.drawable.ic_smartphone),
+                if (device.verified) painterResource(Res.drawable.ic_verified_user_filled) else painterResource(Res.drawable.ic_smartphone),
                 null,
                 tint = if (device.verified) AppColors.Verified
                 else MaterialTheme.colorScheme.onSurfaceVariant,

@@ -105,7 +105,7 @@ fun VoiceMessageBubble(
                     )
                 } else {
                     Icon(
-                        painter = if (isPlaying) painterResource(Res.drawable.ic_pause) else painterResource(Res.drawable.ic_play_arrow),
+                        painter = if (isPlaying) painterResource(Res.drawable.ic_pause_filled) else painterResource(Res.drawable.ic_play_arrow_filled),
                         contentDescription = if (isPlaying) stringResource(Res.string.pause) else stringResource(Res.string.play),
                         tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(24.dp)

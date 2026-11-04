@@ -462,7 +462,7 @@ fun LoginScreen(
                                         onValueChange = viewModel::setPass,
                                         label = { Text(stringResource(Res.string.password)) },
                                         placeholder = { Text(stringResource(Res.string.enter_your_password)) },
-                                        leadingIcon = { Icon(painterResource(Res.drawable.ic_lock), null) },
+                                        leadingIcon = { Icon(painterResource(Res.drawable.ic_lock_filled), null) },
                                         trailingIcon = {
                                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                                 Icon(

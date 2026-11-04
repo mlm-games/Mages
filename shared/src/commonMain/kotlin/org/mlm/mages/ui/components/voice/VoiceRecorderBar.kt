@@ -88,7 +88,7 @@ fun VoiceRecorderBar(
                 modifier = Modifier.size(44.dp)
             ) {
                 Icon(
-                    painterResource(Res.drawable.ic_send),
+                    painterResource(Res.drawable.ic_send_filled),
                     contentDescription = stringResource(Res.string.send_voice_message),
                     modifier = Modifier.size(20.dp)
                 )

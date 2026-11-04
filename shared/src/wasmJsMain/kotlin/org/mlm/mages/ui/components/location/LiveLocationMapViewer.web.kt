@@ -104,7 +104,7 @@ actual fun LiveLocationMapViewer(
                             containerColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Icon(painterResource(Res.drawable.ic_stop), contentDescription = null)
+                        Icon(painterResource(Res.drawable.ic_stop_filled), contentDescription = null)
                         Text(stringResource(Res.string.stop_sharing))
                     }
                 }

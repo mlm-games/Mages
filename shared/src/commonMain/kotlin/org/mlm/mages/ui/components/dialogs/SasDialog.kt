@@ -53,7 +53,7 @@ fun SasDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Icon(
-                    painterResource(Res.drawable.ic_verified_user),
+                    painterResource(Res.drawable.ic_verified_user_filled),
                     null,
                     Modifier.size(Sizes.avatarMedium),
                     MaterialTheme.colorScheme.primary

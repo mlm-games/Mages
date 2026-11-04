@@ -172,7 +172,7 @@ fun PollCreatorSheet(
                     enabled = isValid
                 ) {
                     if (!isEditing) {
-                        Icon(painterResource(Res.drawable.ic_send), null)
+                        Icon(painterResource(Res.drawable.ic_send_filled), null)
                         Spacer(Modifier.width(Spacing.sm))
                     }
                     Text(if (isEditing) stringResource(Res.string.save_poll) else stringResource(Res.string.create_poll))

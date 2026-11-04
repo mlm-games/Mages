@@ -246,7 +246,7 @@ private fun SpaceCard(
                     )
                     if (space.isEncrypted) {
                         Icon(
-                            painterResource(Res.drawable.ic_lock),
+                            painterResource(Res.drawable.ic_lock_filled),
                             stringResource(Res.string.encrypted),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.primary
@@ -377,7 +377,7 @@ private fun CreateSpaceSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        if (isPublic) painterResource(Res.drawable.ic_public) else painterResource(Res.drawable.ic_lock),
+                        if (isPublic) painterResource(Res.drawable.ic_public) else painterResource(Res.drawable.ic_lock_filled),
                         null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )

@@ -551,7 +551,7 @@ private fun MediaGridItem(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        painter = painterResource(Res.drawable.ic_play_arrow),
+                        painter = painterResource(Res.drawable.ic_play_arrow_filled),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.surface,
                         modifier = Modifier.size(20.dp)

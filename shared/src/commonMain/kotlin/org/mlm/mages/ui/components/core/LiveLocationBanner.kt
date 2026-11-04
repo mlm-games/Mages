@@ -92,7 +92,7 @@ fun LiveLocationBanner(
             
             if (isMeSharing && onStopSharing != null) {
                 IconButton(onClick = onStopSharing) {
-                    Icon(painterResource(Res.drawable.ic_stop), stringResource(Res.string.stop))
+                    Icon(painterResource(Res.drawable.ic_stop_filled), stringResource(Res.string.stop))
                 }
             }
 

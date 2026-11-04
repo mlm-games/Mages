@@ -209,7 +209,7 @@ fun MessageActionSheet(
 
                         MessageMenuAction.Pin -> if (canPin && event.eventId.isNotBlank() && (!isRedacted || isPinned)) {
                             if (isPinned && onUnpin != null) {
-                                add(MenuEntry(painterResource(Res.drawable.ic_push_pin), stringResource(Res.string.unpin)) { onUnpin(); onDismiss() })
+                                add(MenuEntry(painterResource(Res.drawable.ic_push_pin_filled), stringResource(Res.string.unpin)) { onUnpin(); onDismiss() })
                             } else if (!isPinned && onPin != null) {
                                 add(MenuEntry(painterResource(Res.drawable.ic_push_pin), stringResource(Res.string.pin)) { onPin(); onDismiss() })
                             }
@@ -218,7 +218,7 @@ fun MessageActionSheet(
                         MessageMenuAction.Bookmark -> if (onBookmark != null && !isRedacted && event.eventId.isNotBlank()) {
                             add(
                                 MenuEntry(
-                                    if (isBookmarked) painterResource(Res.drawable.ic_bookmark) else painterResource(Res.drawable.ic_bookmark),
+                                    if (isBookmarked) painterResource(Res.drawable.ic_bookmark_filled) else painterResource(Res.drawable.ic_bookmark),
                                     stringResource(if (isBookmarked) Res.string.remove_bookmark else Res.string.bookmark)
                                 ) { onBookmark(); onDismiss() }
                             )

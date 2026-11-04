@@ -171,7 +171,7 @@ private fun BookmarkItem(
         },
         leadingContent = {
             Icon(
-                painterResource(Res.drawable.ic_bookmark),
+                painterResource(Res.drawable.ic_bookmark_filled),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary
             )

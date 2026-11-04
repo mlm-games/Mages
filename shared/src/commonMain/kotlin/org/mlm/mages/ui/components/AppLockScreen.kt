@@ -43,7 +43,7 @@ fun AppLockScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                painter = painterResource(Res.drawable.ic_lock),
+                painter = painterResource(Res.drawable.ic_lock_filled),
                 contentDescription = null,
                 modifier = Modifier.size(80.dp),
                 tint = MaterialTheme.colorScheme.primary

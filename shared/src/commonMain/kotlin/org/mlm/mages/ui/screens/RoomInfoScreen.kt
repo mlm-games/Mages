@@ -327,7 +327,7 @@ fun RoomInfoScreen(
                         SettingsGroup {
                             if (state.dmPartnerVerified) {
                                 SettingsActionRow(
-                                    icon = painterResource(Res.drawable.ic_verified_user),
+                                    icon = painterResource(Res.drawable.ic_verified_user_filled),
                                     title = stringResource(Res.string.verified),
                                     iconTint = AppColors.Verified,
                                     enabled = false,
@@ -335,7 +335,7 @@ fun RoomInfoScreen(
                                 )
                             } else {
                                 SettingsActionRow(
-                                    icon = painterResource(Res.drawable.ic_verified_user),
+                                    icon = painterResource(Res.drawable.ic_verified_user_filled),
                                     title = stringResource(Res.string.verify_user),
                                     subtitle = dmPartner.displayName ?: dmPartner.userId,
                                     actionText = stringResource(Res.string.start),
@@ -461,7 +461,7 @@ fun RoomInfoScreen(
                             state.profile.let { profile ->
                                 if (profile.isEncrypted) {
                                     SettingsInfoRow(
-                                        icon = painterResource(Res.drawable.ic_lock),
+                                        icon = painterResource(Res.drawable.ic_lock_filled),
                                         title = stringResource(Res.string.encryption),
                                         value = stringResource(Res.string.enabled)
                                     )
@@ -814,7 +814,7 @@ private fun ProfileHeader(
                 overflow = TextOverflow.Ellipsis
             )
             if (profile.isEncrypted) {
-                Icon(painterResource(Res.drawable.ic_lock), stringResource(Res.string.encrypted), Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                Icon(painterResource(Res.drawable.ic_lock_filled), stringResource(Res.string.encrypted), Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
             }
         }
         profile.canonicalAlias?.let {
@@ -860,7 +860,7 @@ private fun QuickActions(
             label = { Text(stringResource(Res.string.favourite_room)) },
             leadingIcon = {
                 Icon(
-                    if (isFavourite) painterResource(Res.drawable.ic_star) else painterResource(Res.drawable.ic_star),
+                    if (isFavourite) painterResource(Res.drawable.ic_star_filled) else painterResource(Res.drawable.ic_star),
                     null, Modifier.size(18.dp)
                 )
             },

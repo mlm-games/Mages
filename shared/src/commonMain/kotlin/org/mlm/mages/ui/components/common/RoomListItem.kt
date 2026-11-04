@@ -156,7 +156,7 @@ fun RoomListItem(
                     if (item.isFavourite) {
                         Spacer(Modifier.width(4.dp))
                         Icon(
-                            painterResource(Res.drawable.ic_star),
+                            painterResource(Res.drawable.ic_star_filled),
                             contentDescription = stringResource(Res.string.favourite_room),
                             modifier = Modifier.size(14.dp),
                             tint = MaterialTheme.colorScheme.primary
@@ -166,7 +166,7 @@ fun RoomListItem(
                     if (item.isEncrypted) {
                         Spacer(Modifier.width(4.dp))
                         Icon(
-                            painterResource(Res.drawable.ic_lock),
+                            painterResource(Res.drawable.ic_lock_filled),
                             contentDescription = stringResource(Res.string.encrypted),
                             modifier = Modifier.size(14.dp),
                             tint = MaterialTheme.colorScheme.tertiary
@@ -176,7 +176,7 @@ fun RoomListItem(
                     if (item.isSharingLocation) {
                         Spacer(Modifier.width(4.dp))
                         Icon(
-                            painterResource(Res.drawable.ic_my_location),
+                            painterResource(Res.drawable.ic_my_location_filled),
                             contentDescription = stringResource(Res.string.sharing_live_location),
                             modifier = Modifier.size(14.dp),
                             tint = MaterialTheme.colorScheme.error
@@ -484,7 +484,7 @@ private fun formatMessagePreview(
 
         LastMessageType.Encrypted -> MessagePreview(
             text = stringResource(Res.string.encrypted_message),
-            icon = painterResource(Res.drawable.ic_lock)
+            icon = painterResource(Res.drawable.ic_lock_filled)
         )
 
         LastMessageType.Redacted -> MessagePreview(

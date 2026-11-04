@@ -578,7 +578,7 @@ private fun ReplyPreviewVisual(preview: ReplyPreview, resolvedPath: String?) {
         ReplyPreviewKind.Call, ReplyPreviewKind.VoiceCall -> painterResource(Res.drawable.ic_call)
         ReplyPreviewKind.VideoCall -> painterResource(Res.drawable.ic_videocam)
         ReplyPreviewKind.Location, ReplyPreviewKind.LiveLocation -> painterResource(Res.drawable.ic_location_on)
-        ReplyPreviewKind.Encrypted -> painterResource(Res.drawable.ic_lock)
+        ReplyPreviewKind.Encrypted -> painterResource(Res.drawable.ic_lock_filled)
         ReplyPreviewKind.Redacted -> painterResource(Res.drawable.ic_delete)
         ReplyPreviewKind.Unsupported -> painterResource(Res.drawable.ic_info)
         ReplyPreviewKind.Text -> null
@@ -1289,7 +1289,7 @@ private fun FailedIndicator(text: String) {
 @Composable
 private fun PinnedIndicator(tint: Color) {
     Icon(
-        painter = painterResource(Res.drawable.ic_push_pin),
+        painter = painterResource(Res.drawable.ic_push_pin_filled),
         contentDescription = stringResource(Res.string.message_pinned),
         tint = tint,
         modifier = Modifier.size(12.dp)

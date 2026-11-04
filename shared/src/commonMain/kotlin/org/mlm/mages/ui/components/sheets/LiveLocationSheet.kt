@@ -134,7 +134,7 @@ fun LiveLocationSheet(
                             color = MaterialTheme.colorScheme.onError
                         )
                     } else {
-                        Icon(painterResource(Res.drawable.ic_stop), null)
+                        Icon(painterResource(Res.drawable.ic_stop_filled), null)
                     }
                     Spacer(Modifier.width(Spacing.sm))
                     Text(stringResource(Res.string.live_location_stop_sharing))

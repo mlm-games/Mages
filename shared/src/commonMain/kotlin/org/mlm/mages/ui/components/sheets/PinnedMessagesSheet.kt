@@ -51,7 +51,7 @@ fun PinnedMessagesSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    painter = painterResource(Res.drawable.ic_push_pin),
+                    painter = painterResource(Res.drawable.ic_push_pin_filled),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
@@ -108,7 +108,7 @@ fun PinnedMessagesSheet(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                painter = painterResource(Res.drawable.ic_push_pin),
+                                painter = painterResource(Res.drawable.ic_push_pin_filled),
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(18.dp)
