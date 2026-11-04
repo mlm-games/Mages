@@ -1516,17 +1516,13 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
     override suspend fun listMembers(roomId: String): List<MemberSummary> =
         withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.listMembers(roomId) } }
-                .getOrElse { emptyList() }.map {
-                    MemberSummary(it.userId, it.displayName, it.avatarUrl, it.isMe, it.membership)
-                }
+                .getOrElse { emptyList() }.map { it.toModel() }
         }
 
     override suspend fun listBannedMembers(roomId: String): List<MemberSummary> =
         withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.listBannedMembers(roomId) } }
-                .getOrElse { emptyList() }.map {
-                    MemberSummary(it.userId, it.displayName, it.avatarUrl, it.isMe, it.membership)
-                }
+                .getOrElse { emptyList() }.map { it.toModel() }
         }
 
     override suspend fun listImagePacks(roomId: String): List<ImagePackSummary> =
@@ -1888,10 +1884,33 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
                         displayName = profile.displayName,
                         avatarUrl = profile.avatarUrl,
                         canChangeDisplayName = profile.canChangeDisplayName,
-                        canChangeAvatar = profile.canChangeAvatar
+                        canChangeAvatar = profile.canChangeAvatar,
+                        statusEmoji = profile.statusEmoji,
+                        statusText = profile.statusText,
+                        callJoinedTsMs = profile.callJoinedTsMs
                     )
                 }
             }.getOrNull()
+        }
+
+    override suspend fun setUserStatus(emoji: String, text: String): Result<Unit> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.setUserStatus(emoji, text) } }.map { }
+        }
+
+    override suspend fun clearUserStatus(): Result<Unit> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.clearUserStatus() } }.map { }
+        }
+
+    override suspend fun setUserCall(joinedTsMs: Long?): Result<Unit> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.setUserCall(joinedTsMs) } }.map { }
+        }
+
+    override suspend fun clearUserCall(): Result<Unit> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.clearUserCall() } }.map { }
         }
 
     override suspend fun setDisplayName(name: String?): Result<Unit> =
@@ -2951,6 +2970,17 @@ private fun mages.SearchHit.toKotlin(): SearchHit =
 //        bytes
 //    )
 
+private fun mages.MemberSummary.toModel() = MemberSummary(
+    userId = userId,
+    displayName = displayName,
+    avatarUrl = avatarUrl,
+    isMe = isMe,
+    membership = membership,
+    statusEmoji = statusEmoji,
+    statusText = statusText,
+    callJoinedTsMs = callJoinedTsMs,
+)
+
 private fun mages.RoomListMembership.toKotlin(): RoomListMembership = when (this) {
     mages.RoomListMembership.JOINED -> RoomListMembership.Joined
     mages.RoomListMembership.INVITED -> RoomListMembership.Invited
@@ -2994,7 +3024,10 @@ private fun mages.RoomListEntry.toKotlinRoomListEntry(): RoomListEntry =
                 sticker = e.sticker?.toModel(),
                 attachment = e.attachment?.toModel()
             )
-        }
+        },
+        peerStatusEmoji = peerStatusEmoji,
+        peerStatusText = peerStatusText,
+        peerCallJoinedTsMs = peerCallJoinedTsMs,
     )
 
 private fun mages.PollData.toModel(): PollData {

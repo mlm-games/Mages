@@ -500,6 +500,9 @@ pub struct MemberSummary {
     pub avatar_url: Option<String>,
     pub is_me: bool,
     pub membership: String,
+    pub status_emoji: Option<String>,
+    pub status_text: Option<String>,
+    pub call_joined_ts_ms: Option<i64>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Enum)]
@@ -724,6 +727,9 @@ pub struct RoomListEntry {
     pub member_count: u32,
     pub topic: Option<String>,
     pub latest_event: Option<LatestRoomEvent>,
+    pub peer_status_emoji: Option<String>,
+    pub peer_status_text: Option<String>,
+    pub peer_call_joined_ts_ms: Option<i64>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Record)]
@@ -740,6 +746,9 @@ pub struct OwnProfile {
     pub avatar_url: Option<String>,
     pub can_change_display_name: bool,
     pub can_change_avatar: bool,
+    pub status_emoji: Option<String>,
+    pub status_text: Option<String>,
+    pub call_joined_ts_ms: Option<i64>,
 }
 
 /// One MSC4133 extended profile field, with its value as plain text.

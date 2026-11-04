@@ -102,6 +102,33 @@ fun MemberActionsSheet(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    val statusLine = listOfNotNull(
+                        member.statusEmoji?.takeIf { it.isNotBlank() },
+                        member.statusText?.takeIf { it.isNotBlank() }
+                    ).joinToString(" ")
+                    if (statusLine.isNotBlank()) {
+                        Text(
+                            statusLine,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    if (member.callJoinedTsMs != null) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                painterResource(Res.drawable.ic_call),
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                stringResource(Res.string.in_call_chip),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                     sharedRoomCount?.takeIf { it > 0 }?.let { count ->
                         Text(
                             pluralStringResource(Res.plurals.shared_rooms_count, count, count),

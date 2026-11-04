@@ -23,7 +23,7 @@ val coreModule = module {
     single { Json { ignoreUnknownKeys = true; encodeDefaults = true } }
     single { SnackbarHostState() }
     single { SnackbarManager() }
-    single { CallManager(get()) }
+    single { CallManager(get(), get()) }
     single { IncomingCallTracker() }
 }
 

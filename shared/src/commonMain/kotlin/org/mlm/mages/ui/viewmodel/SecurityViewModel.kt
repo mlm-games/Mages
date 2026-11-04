@@ -34,6 +34,9 @@ import kotlin.reflect.KClass
 import org.jetbrains.compose.resources.getString
 import mages.shared.generated.resources.Res
 
+private const val STATUS_EMOJI_MAX_BYTES = 32
+private const val STATUS_TEXT_MAX_BYTES = 256
+
 class SecurityViewModel(
     private val service: MatrixService,
     private val settingsRepository: SettingsRepository<AppSettings>,
@@ -528,6 +531,41 @@ class SecurityViewModel(
                 _events.send(Event.ShowError(getString(Res.string.profile_field_was_rejected)))
             } else {
                 fetchProfileFields(version)
+            }
+        }
+    }
+
+    fun saveStatus(emoji: String, text: String) {
+        val version = accountDataVersion
+        launch {
+            val port = service.portOrNull ?: return@launch
+            val emojiBytes = emoji.trim().toByteArray(Charsets.UTF_8)
+            val textBytes = text.trim().toByteArray(Charsets.UTF_8)
+            if (emojiBytes.size > STATUS_EMOJI_MAX_BYTES || textBytes.size > STATUS_TEXT_MAX_BYTES) {
+                _events.send(Event.ShowError(getString(Res.string.status_too_long)))
+                return@launch
+            }
+            val trimmedEmoji = emoji.trim()
+            val trimmedText = text.trim()
+            if (trimmedEmoji.isEmpty() || trimmedText.isEmpty()) return@launch
+            val saved = port.setUserStatus(trimmedEmoji, trimmedText)
+            if (saved.isFailure) {
+                _events.send(Event.ShowError(getString(Res.string.status_was_rejected)))
+            } else {
+                fetchProfile(version)
+            }
+        }
+    }
+
+    fun clearStatus() {
+        val version = accountDataVersion
+        launch {
+            val port = service.portOrNull ?: return@launch
+            val saved = port.clearUserStatus()
+            if (saved.isFailure) {
+                _events.send(Event.ShowError(getString(Res.string.status_could_not_be_cleared)))
+            } else {
+                fetchProfile(version)
             }
         }
     }

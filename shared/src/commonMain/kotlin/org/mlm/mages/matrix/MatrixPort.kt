@@ -631,6 +631,9 @@ data class RoomListEntry(
     val memberCount: Int = 0,
     val topic: String? = null,
     val latestEvent: LatestRoomEvent? = null,
+    val peerStatusEmoji: String? = null,
+    val peerStatusText: String? = null,
+    val peerCallJoinedTsMs: Long? = null,
 )
 
 @Serializable
@@ -639,7 +642,10 @@ data class MemberSummary(
     val displayName: String? = null,
     val avatarUrl: String? = null,
     val isMe: Boolean = false,
-    val membership: String = ""
+    val membership: String = "",
+    val statusEmoji: String? = null,
+    val statusText: String? = null,
+    val callJoinedTsMs: Long? = null,
 )
 
 @Serializable
@@ -807,7 +813,10 @@ data class OwnProfile(
     val displayName: String? = null,
     val avatarUrl: String? = null,
     val canChangeDisplayName: Boolean = true,
-    val canChangeAvatar: Boolean = true
+    val canChangeAvatar: Boolean = true,
+    val statusEmoji: String? = null,
+    val statusText: String? = null,
+    val callJoinedTsMs: Long? = null,
 )
 
 /** One MSC4133 extended profile field, with its value as plain text. */
@@ -1441,6 +1450,14 @@ interface MatrixPort {
     suspend fun setRoomSection(roomId: String, tag: String?): Result<Unit>
 
     suspend fun setPresence(presence: Presence, status: String?): Result<Unit>
+
+    suspend fun setUserStatus(emoji: String, text: String): Result<Unit>
+
+    suspend fun clearUserStatus(): Result<Unit>
+
+    suspend fun setUserCall(joinedTsMs: Long?): Result<Unit>
+
+    suspend fun clearUserCall(): Result<Unit>
 
     suspend fun ownProfile(): OwnProfile?
 

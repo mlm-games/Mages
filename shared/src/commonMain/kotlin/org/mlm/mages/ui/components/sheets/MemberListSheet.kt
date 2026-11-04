@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
 import org.mlm.mages.matrix.MemberSummary
@@ -135,11 +136,26 @@ private fun MemberListItem(
             }
         },
         supportingContent = {
-            Text(
-                member.userId,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Column {
+                val status = listOfNotNull(
+                    member.statusEmoji?.takeIf { it.isNotBlank() },
+                    member.statusText?.takeIf { it.isNotBlank() }
+                ).joinToString(" ")
+                if (status.isNotBlank()) {
+                    Text(
+                        status,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Text(
+                    member.userId,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         },
         leadingContent = {
             Avatar(
@@ -153,7 +169,7 @@ private fun MemberListItem(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                if (isInCall) {
+                if (isInCall || member.callJoinedTsMs != null) {
                     InCallBadge()
                 }
                 MembershipBadge(member.membership)

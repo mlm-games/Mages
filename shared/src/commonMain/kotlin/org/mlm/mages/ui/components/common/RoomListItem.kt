@@ -183,6 +183,41 @@ fun RoomListItem(
                         )
                     }
 
+                    if (item.isDm) {
+                        val statusLine = listOfNotNull(
+                            item.peerStatusEmoji?.takeIf { it.isNotBlank() },
+                            item.peerStatusText?.takeIf { it.isNotBlank() }
+                        ).joinToString(" ")
+                        if (statusLine.isNotBlank()) {
+                            Spacer(Modifier.width(4.dp))
+                            Surface(
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = MaterialTheme.shapes.extraSmall
+                            ) {
+                                Text(
+                                    statusLine,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier
+                                        .widthIn(max = 140.dp)
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
+                        if (item.peerCallJoinedTsMs != null) {
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                painterResource(Res.drawable.ic_call),
+                                contentDescription = stringResource(Res.string.in_call),
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
                     if (item.parentSpaces.isNotEmpty()) {
                         Spacer(Modifier.width(Spacing.sm))
                         val first = item.parentSpaces.first()

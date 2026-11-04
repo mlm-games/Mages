@@ -563,6 +563,10 @@ wasm_delegate! { webffi_unit;
     "setAccountData"       => set_account_data(event_type: String, content_json: String);
     "setProfileField"      => set_profile_field(name: String, value: String);
     "deleteProfileField"   => delete_profile_field(name: String);
+    "setUserStatus"        => set_user_status(emoji: String, text: String);
+    "clearUserStatus"      => clear_user_status();
+    "setUserCall"          => set_user_call(joined_ts_ms: Option<i64>);
+    "clearUserCall"        => clear_user_call();
 }
 
 wasm_delegate! { |r| to_json(&r);

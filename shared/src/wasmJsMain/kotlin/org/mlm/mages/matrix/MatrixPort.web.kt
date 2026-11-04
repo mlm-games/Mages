@@ -1529,6 +1529,26 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         return unitResult(result.ok, "set display name", result.error)
     }
 
+    override suspend fun setUserStatus(emoji: String, text: String): Result<Unit> {
+        val result = requireClient().setUserStatus(emoji, text).awaitResult()
+        return unitResult(result.ok, "set user status", result.error)
+    }
+
+    override suspend fun clearUserStatus(): Result<Unit> {
+        val result = requireClient().clearUserStatus().awaitResult()
+        return unitResult(result.ok, "clear user status", result.error)
+    }
+
+    override suspend fun setUserCall(joinedTsMs: Long?): Result<Unit> {
+        val result = requireClient().setUserCall(joinedTsMs?.toDouble()).awaitResult()
+        return unitResult(result.ok, "set user call", result.error)
+    }
+
+    override suspend fun clearUserCall(): Result<Unit> {
+        val result = requireClient().clearUserCall().awaitResult()
+        return unitResult(result.ok, "clear user call", result.error)
+    }
+
     override suspend fun setAvatarFromPath(path: String, mime: String): Result<String> {
         val bytes = retrieveWebBlob(path)
             ?: return Result.failure(IllegalStateException("image no longer available"))

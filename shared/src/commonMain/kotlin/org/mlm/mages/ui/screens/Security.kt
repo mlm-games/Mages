@@ -325,7 +325,9 @@ fun SecurityScreen(
                     profileFields = state.profileFields,
                     isSavingField = state.isSavingProfileField,
                     onSaveField = viewModel::saveProfileField,
-                    onDeleteField = viewModel::deleteProfileField
+                    onDeleteField = viewModel::deleteProfileField,
+                    onSaveStatus = viewModel::saveStatus,
+                    onClearStatus = viewModel::clearStatus
                 )
 
                 2 -> SettingsTab(
@@ -455,7 +457,9 @@ private fun ProfileTab(
     profileFields: List<ProfileField>,
     isSavingField: Boolean,
     onSaveField: (String, String) -> Unit,
-    onDeleteField: (String) -> Unit
+    onDeleteField: (String) -> Unit,
+    onSaveStatus: (emoji: String, text: String) -> Unit,
+    onClearStatus: () -> Unit
 ) {
     var displayName by remember(accountId, profile?.displayName) {
         mutableStateOf(profile?.displayName.orEmpty())
@@ -467,6 +471,9 @@ private fun ProfileTab(
     var fieldEditorExisting by remember(accountId) { mutableStateOf(false) }
     var fieldEditorName by remember(accountId) { mutableStateOf("") }
     var fieldEditorValue by remember(accountId) { mutableStateOf("") }
+    var statusEditorOpen by remember(accountId) { mutableStateOf(false) }
+    var statusEmoji by remember(accountId, profile?.statusEmoji) { mutableStateOf(profile?.statusEmoji.orEmpty()) }
+    var statusText by remember(accountId, profile?.statusText) { mutableStateOf(profile?.statusText.orEmpty()) }
 
     if (isLoading && profile == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -554,6 +561,47 @@ private fun ProfileTab(
         )
     }
 
+    if (statusEditorOpen) {
+        AlertDialog(
+            onDismissRequest = { statusEditorOpen = false },
+            title = { Text(stringResource(Res.string.edit_status)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    OutlinedTextField(
+                        value = statusEmoji,
+                        onValueChange = { statusEmoji = it },
+                        singleLine = true,
+                        label = { Text(stringResource(Res.string.status_placeholder_emoji)) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = statusText,
+                        onValueChange = { statusText = it },
+                        singleLine = true,
+                        label = { Text(stringResource(Res.string.status_placeholder_text)) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        statusEditorOpen = false
+                        onSaveStatus(statusEmoji, statusText)
+                    },
+                    enabled = statusEmoji.isNotBlank() && statusText.isNotBlank() && !isSaving
+                ) {
+                    Text(stringResource(Res.string.save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { statusEditorOpen = false }) {
+                    Text(stringResource(Res.string.cancel))
+                }
+            }
+        )
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -634,6 +682,74 @@ private fun ProfileTab(
                 } else {
                     Text(stringResource(Res.string.save))
                 }
+            }
+        }
+
+        if (canSetProfileFields) {
+            item {
+                val statusLine = listOfNotNull(
+                    current.statusEmoji?.takeIf { it.isNotBlank() },
+                    current.statusText?.takeIf { it.isNotBlank() }
+                ).joinToString(" ")
+                ListItem(
+                    headlineContent = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                if (statusLine.isNotBlank()) statusLine else stringResource(Res.string.status_not_set),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = if (statusLine.isNotBlank()) MaterialTheme.colorScheme.onSurface
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (current.callJoinedTsMs != null) {
+                                Spacer(Modifier.width(Spacing.sm))
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                    shape = MaterialTheme.shapes.small
+                                ) {
+                                    Text(
+                                        stringResource(Res.string.in_call_chip),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    supportingContent = {
+                        Text(stringResource(Res.string.profile_status))
+                    },
+                    leadingContent = {
+                        Icon(
+                            painterResource(Res.drawable.ic_tag),
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    trailingContent = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (statusLine.isNotBlank()) {
+                                TextButton(
+                                    onClick = onClearStatus,
+                                    enabled = !isSaving
+                                ) {
+                                    Text(stringResource(Res.string.clear_status))
+                                }
+                            }
+                            IconButton(
+                                onClick = {
+                                    statusEmoji = current.statusEmoji.orEmpty()
+                                    statusText = current.statusText.orEmpty()
+                                    statusEditorOpen = true
+                                },
+                                enabled = !isSaving
+                            ) {
+                                Icon(painterResource(Res.drawable.ic_edit), stringResource(Res.string.edit))
+                            }
+                        }
+                    }
+                )
             }
         }
 

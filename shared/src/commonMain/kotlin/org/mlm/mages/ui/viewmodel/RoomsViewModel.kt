@@ -456,6 +456,9 @@ class RoomsViewModel(
             lastMessageImageMxc = lastImage?.mxcUri,
             lastMessageImagePath = lastImage?.mxcUri?.let { imagePreviewPathByMxc[it] },
             isSharingLocation = LiveLocationSharingCoordinator.isSharing(entry.roomId),
+            peerStatusEmoji = entry.peerStatusEmoji,
+            peerStatusText = entry.peerStatusText,
+            peerCallJoinedTsMs = entry.peerCallJoinedTsMs,
             parentSpaces = if (settings.value.showSpaceBadgeInRoomList) {
                 spaces.map { space ->
                     SpaceBadgeUi(

@@ -1,6 +1,7 @@
 package org.mlm.mages.calls
 
 import co.touchlab.kermit.Logger
+import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -10,12 +11,19 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.CallIntent
 import org.mlm.mages.matrix.CallWidgetObserver
 import org.mlm.mages.platform.CallWebViewController
+import org.mlm.mages.settings.AppSettings
 import kotlin.random.Random
 import kotlin.time.Clock
 
@@ -42,7 +50,8 @@ private const val WIDGET_ENDED_GRACE_MS = 250L
 private const val WIDGET_HANGUP_ACTION = "im.vector.hangup"
 
 class CallManager(
-    private val service: MatrixService
+    private val service: MatrixService,
+    private val settings: SettingsRepository<AppSettings>,
 ) {
     private val _call = MutableStateFlow<GlobalCallState?>(null)
     val call: StateFlow<GlobalCallState?> = _call.asStateFlow()
@@ -58,6 +67,17 @@ class CallManager(
 
     private var controller: CallWebViewController? = null
     private val pendingToWidget = Channel<String>(Channel.UNLIMITED)
+    private val callStatusMutex = Mutex()
+
+    init {
+        scope.launch {
+            settings.flow
+                .map { it.shareCallStatus }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { syncCallStatus(inCall = _call.value != null) }
+        }
+    }
     private var hangupRequested = false
     private var hangupSignal: CompletableDeferred<Unit>? = null
 
@@ -153,6 +173,7 @@ class CallManager(
             isAudio = intent.isAudioCall(),
             incoming = incoming
         )
+        syncCallStatus(inCall = true)
         onCallStateChanged?.invoke(_call.value)
         return true
     }
@@ -220,7 +241,29 @@ class CallManager(
         _externalHost.value = false
         hangupRequested = false
         hangupSignal = null
+        syncCallStatus(inCall = false)
         onCallStateChanged?.invoke(null)
+    }
+
+    private fun syncCallStatus(inCall: Boolean) {
+        scope.launch {
+            callStatusMutex.withLock {
+                val port = service.portOrNull ?: return@withLock
+                if (!inCall) {
+                    runCatching { port.clearUserCall() }
+                        .onFailure { Logger.w("Failed to clear m.call: ${it.message}") }
+                    return@withLock
+                }
+                val enabled = runCatching {
+                    settings.flow.map { it.shareCallStatus }.first()
+                }.getOrDefault(false)
+                if (!enabled) return@withLock
+                val startedAt = _call.value?.startedAtMs
+                    ?: Clock.System.now().toEpochMilliseconds()
+                runCatching { port.setUserCall(startedAt) }
+                    .onFailure { Logger.w("Failed to set m.call: ${it.message}") }
+            }
+        }
     }
 }
 

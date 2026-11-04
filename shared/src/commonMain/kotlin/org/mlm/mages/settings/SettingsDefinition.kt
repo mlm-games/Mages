@@ -1005,6 +1005,16 @@ data class AppSettings(
     val sendTypingIndicators: Boolean = true,
 
     @Setting(
+        title = "Share call status",
+        titleKey = MagesSettingsKeys.SHARE_CALL_STATUS,
+        description = "Show other users you're on a call (MSC4426 m.call)",
+        descriptionKey = MagesSettingsKeys.SHARE_CALL_STATUS_DESCRIPTION,
+        category = Privacy::class,
+        type = Toggle::class
+    )
+    val shareCallStatus: Boolean = false,
+
+    @Setting(
         title = "Block room invites",
         titleKey = MagesSettingsKeys.BLOCK_INVITES,
         description = "Automatically reject every room invite sent to you. Synced to your other devices",

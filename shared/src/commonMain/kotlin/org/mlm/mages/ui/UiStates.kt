@@ -860,6 +860,10 @@ data class RoomListItemUi(
 
     val isSharingLocation: Boolean = false,
 
+    val peerStatusEmoji: String? = null,
+    val peerStatusText: String? = null,
+    val peerCallJoinedTsMs: Long? = null,
+
     val parentSpaces: List<SpaceBadgeUi> = emptyList(),
 )
 

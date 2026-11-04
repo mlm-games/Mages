@@ -96,6 +96,22 @@ const MSC4027_SHORTCODE_FIELD: &str = "com.beeper.reaction.shortcode";
 
 const SEARCH_HIT_LOAD_CONCURRENCY: usize = 8;
 
+fn ffi_member_summary(m: &matrix_sdk::BaseRoomMember, me: Option<&UserId>) -> MemberSummary {
+    MemberSummary {
+        user_id: m.user_id().to_string(),
+        display_name: m.display_name().map(|n| n.to_string()),
+        avatar_url: m.avatar_url().map(|u| u.to_string()),
+        is_me: me.is_some_and(|u| u == m.user_id()),
+        membership: m.membership().to_string(),
+        status_emoji: m.status().map(|s| s.emoji.clone()),
+        status_text: m.status().map(|s| s.text.clone()),
+        call_joined_ts_ms: m
+            .call()
+            .and_then(|c| c.call_joined_ts)
+            .map(|ts| i64::from(ts.get()) * 1000),
+    }
+}
+
 use crate::{
     RoomProfile,
     errors::{IntoFfi, OptionFfi, ffi_err},
@@ -2097,16 +2113,7 @@ impl CoreClient {
             Ok(members) => members,
             Err(_) => room.members_no_sync(RoomMemberships::ACTIVE).await.ffi()?,
         };
-        Ok(members
-            .into_iter()
-            .map(|m| MemberSummary {
-                user_id: m.user_id().to_string(),
-                display_name: m.display_name().map(|n| n.to_string()),
-                avatar_url: m.avatar_url().map(|u| u.to_string()),
-                is_me: me.map(|u| u == m.user_id()).unwrap_or(false),
-                membership: m.membership().to_string(),
-            })
-            .collect())
+        Ok(members.iter().map(|m| ffi_member_summary(m, me)).collect())
     }
 
     /// Banned users are excluded from `list_members`, so without this the unban
@@ -2121,16 +2128,7 @@ impl CoreClient {
             Ok(members) => members,
             Err(_) => room.members_no_sync(RoomMemberships::BAN).await.ffi()?,
         };
-        Ok(members
-            .into_iter()
-            .map(|m| MemberSummary {
-                user_id: m.user_id().to_string(),
-                display_name: m.display_name().map(|n| n.to_string()),
-                avatar_url: m.avatar_url().map(|u| u.to_string()),
-                is_me: me.map(|u| u == m.user_id()).unwrap_or(false),
-                membership: m.membership().to_string(),
-            })
-            .collect())
+        Ok(members.iter().map(|m| ffi_member_summary(m, me)).collect())
     }
 
     pub async fn list_invited(&self) -> Result<Vec<RoomProfile>, FfiError> {
@@ -2673,19 +2671,23 @@ impl CoreClient {
             .map(|m| m.user_id().to_string()))
     }
 
-    pub async fn dm_peer_avatar_url(room: &Room, me: Option<&UserId>) -> Option<String> {
+    pub async fn dm_peer_member(
+        room: &Room,
+        me: Option<&UserId>,
+    ) -> Option<matrix_sdk::room::RoomMember> {
         let peer = room
             .direct_targets()
             .iter()
             .filter_map(|t| t.as_user_id())
             .find(|uid| me.map_or(true, |me| *uid != me))
             .map(|uid| uid.to_owned())?;
-        let member = room
-            .get_member_no_sync(peer.as_ref())
+        room.get_member_no_sync(peer.as_ref()).await.ok().flatten()
+    }
+
+    pub async fn dm_peer_avatar_url(room: &Room, me: Option<&UserId>) -> Option<String> {
+        Self::dm_peer_member(room, me)
             .await
-            .ok()
-            .flatten()?;
-        member.avatar_url().map(|mxc| mxc.to_string())
+            .and_then(|member| member.avatar_url().map(|mxc| mxc.to_string()))
     }
 
     fn member_action_target(
@@ -4862,12 +4864,40 @@ impl CoreClient {
             _ => (true, true),
         };
 
+        let (status_emoji, status_text, call_joined_ts_ms) = match self
+            .sdk
+            .account()
+            .fetch_user_profile()
+            .await
+        {
+            Ok(profile) => {
+                let status = profile
+                    .get_static::<matrix_sdk::ruma::profile::Status>()
+                    .ok()
+                    .flatten();
+                let call = profile
+                    .get_static::<matrix_sdk::ruma::profile::Call>()
+                    .ok()
+                    .flatten();
+                (
+                    status.as_ref().map(|s| s.emoji.clone()),
+                    status.map(|s| s.text),
+                    call.and_then(|c| c.call_joined_ts)
+                        .map(|ts| i64::from(ts.get()) * 1000),
+                )
+            }
+            Err(_) => (None, None, None),
+        };
+
         Ok(OwnProfile {
             user_id: user_id.to_string(),
             display_name,
             avatar_url,
             can_change_display_name,
             can_change_avatar,
+            status_emoji,
+            status_text,
+            call_joined_ts_ms,
         })
     }
 
@@ -4896,6 +4926,36 @@ impl CoreClient {
         self.sdk.account().set_avatar_url(None).await.ffi()
     }
 
+    pub async fn set_user_status(&self, emoji: String, text: String) -> Result<(), FfiError> {
+        self.sdk
+            .account()
+            .set_status(emoji, text)
+            .await
+            .map_err(FfiError::from)
+    }
+
+    pub async fn clear_user_status(&self) -> Result<(), FfiError> {
+        self.sdk.account().clear_status().await.map_err(FfiError::from)
+    }
+
+    pub async fn set_user_call(&self, joined_ts_ms: Option<i64>) -> Result<(), FfiError> {
+        use matrix_sdk::ruma::{SecondsSinceUnixEpoch, UInt};
+
+        let joined = joined_ts_ms
+            .filter(|ms| *ms >= 0)
+            .and_then(|ms| UInt::try_from(ms / 1000).ok())
+            .map(SecondsSinceUnixEpoch);
+        self.sdk
+            .account()
+            .set_call(joined)
+            .await
+            .map_err(FfiError::from)
+    }
+
+    pub async fn clear_user_call(&self) -> Result<(), FfiError> {
+        self.sdk.account().clear_call().await.map_err(FfiError::from)
+    }
+
     /// Whether the homeserver lets this account set extended profile fields (MSC4133).
     pub async fn can_set_profile_fields(&self) -> Result<bool, FfiError> {
         Ok(self
@@ -4911,7 +4971,12 @@ impl CoreClient {
         let profile = self.sdk.account().fetch_user_profile().await.ffi()?;
         Ok(profile
             .iter()
-            .filter(|(name, _)| name.as_str() != "displayname" && name.as_str() != "avatar_url")
+            .filter(|(name, _)| {
+                name.as_str() != "displayname"
+                    && name.as_str() != "avatar_url"
+                    && name.as_str() != "org.matrix.msc4426.status"
+                    && name.as_str() != "org.matrix.msc4426.call"
+            })
             .map(|(name, value)| ProfileField {
                 name: name.clone(),
                 value: match value {
@@ -5306,6 +5371,23 @@ impl CoreClient {
             }
             let latest_event = latest_room_event_for(room, &self.timeline_mgr).await;
             let membership = room_list_membership(room);
+            let (peer_status_emoji, peer_status_text, peer_call_joined_ts_ms) = if is_dm {
+                Self::dm_peer_member(&room, self.sdk.user_id())
+                    .await
+                    .map(|member| {
+                        (
+                            member.status().map(|s| s.emoji.clone()),
+                            member.status().map(|s| s.text.clone()),
+                            member
+                                .call()
+                                .and_then(|c| c.call_joined_ts)
+                                .map(|ts| i64::from(ts.get()) * 1000),
+                        )
+                    })
+                    .unwrap_or((None, None, None))
+            } else {
+                (None, None, None)
+            };
             snapshot.push(RoomListEntry {
                 room_id: room.room_id().to_string(),
                 name: item
@@ -5314,6 +5396,9 @@ impl CoreClient {
                     .unwrap_or(RoomDisplayName::Named(room.room_id().to_string()))
                     .to_string(),
                 last_ts,
+                peer_status_emoji,
+                peer_status_text,
+                peer_call_joined_ts_ms,
                 notifications: room.num_unread_notifications(),
                 messages: room.num_unread_messages(),
                 mentions: room.num_unread_mentions(),

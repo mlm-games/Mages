@@ -215,6 +215,16 @@
     <string name="time_zone">Time zone</string>
     <string name="profile_field_was_rejected">Profile field was rejected</string>
     <string name="profile_field_could_not_be_removed">Profile field could not be removed</string>
+    <string name="profile_status">Status</string>
+    <string name="status_not_set">Not set</string>
+    <string name="status_placeholder_text">What&apos;s up?</string>
+    <string name="status_placeholder_emoji">🌴</string>
+    <string name="status_was_rejected">The server rejected your status</string>
+    <string name="status_could_not_be_cleared">Your status could not be cleared</string>
+    <string name="status_too_long">Status too long (max 256 bytes for text, 32 for emoji)</string>
+    <string name="clear_status">Clear</string>
+    <string name="edit_status">Edit status</string>
+    <string name="in_call_chip">On a call</string>
     <string name="appearance">Appearance</string>
     <string name="timeline">Timeline</string>
     <string name="calls">Calls</string>
@@ -815,6 +825,8 @@
     <string name="setting_send_public_read_receipts">Send public read receipts</string>
     <string name="setting_send_public_read_receipts_description">When enabled, other users can see when you&apos;ve read their messages</string>
     <string name="setting_send_typing_indicators">Send typing indicators</string>
+    <string name="setting_share_call_status">Share call status</string>
+    <string name="setting_share_call_status_description">Show other users you&apos;re on a call (MSC4426 m.call)</string>
     <string name="setting_send_typing_indicators_description">When disabled, Mages will not send typing notifications</string>
     <string name="setting_block_invites">Block room invites</string>
     <string name="setting_block_invites_description">Automatically reject every room invite sent to you. Synced to your other devices</string>
