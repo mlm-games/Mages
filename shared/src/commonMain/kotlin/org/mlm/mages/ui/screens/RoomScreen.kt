@@ -392,16 +392,18 @@ fun RoomScreen(
     }
 
     val eventsRef = rememberUpdatedState(events)
+    val callTileCount = if (state.hasActiveCallForRoom && !state.isLocalCallActiveForRoom) 1 else 0
 
     fun listIndexForEventIndex(eventIndex: Int): Int {
         val last = eventsRef.value.lastIndex
         if (last < 0) return 0
-        return (last - eventIndex).coerceIn(0, last)
+        return (last - eventIndex).coerceIn(0, last) + callTileCount
     }
     fun lastListIndex(): Int = 0
 
     fun atNewest(): Boolean =
-        listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+        listState.firstVisibleItemIndex < callTileCount ||
+            (listState.firstVisibleItemIndex == callTileCount && listState.firstVisibleItemScrollOffset == 0)
 
     val hasListLayout by remember(listState) {
         derivedStateOf { listState.layoutInfo.totalItemsCount > 0 }
@@ -410,11 +412,11 @@ fun RoomScreen(
     val density = LocalDensity.current
     val nearBottomOffset = remember(density) { with(density) { 8.dp.roundToPx() } }
 
-    val isNearBottom by remember(listState, events, nearBottomOffset) {
+    val isNearBottom by remember(listState, events, nearBottomOffset, callTileCount) {
         derivedStateOf {
             val first = listState.layoutInfo.visibleItemsInfo.firstOrNull()
             events.isNotEmpty() && first != null &&
-                (if (first.index == 0) first.offset <= nearBottomOffset else first.index <= 3)
+                (if (first.index == callTileCount) first.offset >= -nearBottomOffset else first.index <= callTileCount + 3)
         }
     }
 

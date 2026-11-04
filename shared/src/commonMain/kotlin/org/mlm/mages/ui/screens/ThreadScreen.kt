@@ -18,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -252,10 +253,13 @@ fun ThreadScreen(
         count
     }
 
-    val isNearBottom by remember(listState, totalItems) {
+    val nearBottomOffset = with(LocalDensity.current) { 8.dp.roundToPx() }
+
+    val isNearBottom by remember(listState, totalItems, nearBottomOffset) {
         derivedStateOf {
-            val firstVisible = listState.layoutInfo.visibleItemsInfo.firstOrNull()?.index ?: -1
-            totalItems == 0 || firstVisible <= 3
+            val first = listState.layoutInfo.visibleItemsInfo.firstOrNull()
+            totalItems == 0 || first == null ||
+                (if (first.index == 0) first.offset >= -nearBottomOffset else first.index <= 3)
         }
     }
 

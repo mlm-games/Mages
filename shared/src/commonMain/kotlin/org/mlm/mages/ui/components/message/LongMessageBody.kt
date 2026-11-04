@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,11 +52,11 @@ internal fun LongMessageBody(
     mentionsRoom: Boolean,
     onMentionClick: ((String) -> Unit)?,
 ) {
-    val collapsible = remember(fallbackBody, formattedBody) {
+    val collapsible = remember(fallbackBody) {
         fallbackBody.length > LONG_MESSAGE_CHARS ||
             fallbackBody.count { it == '\n' } >= LONG_MESSAGE_NEWLINES
     }
-    var showFullScreen by remember { mutableStateOf(false) }
+    var showFullScreen by rememberSaveable { mutableStateOf(false) }
 
     Column {
         FormattedBodyText(
@@ -80,7 +81,7 @@ internal fun LongMessageBody(
                     .padding(top = Spacing.xs)
                     .clip(RoundedCornerShape(4.dp))
                     .clickable { showFullScreen = true }
-                    .padding(horizontal = 2.dp, vertical = 2.dp)
+                    .padding(horizontal = 2.dp, vertical = 14.dp)
             )
         }
     }
@@ -146,13 +147,13 @@ private fun FullMessageDialog(
                     }
                 }
                 HorizontalDivider()
-                SelectionContainer {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
-                            .padding(Spacing.md)
-                    ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(Spacing.md)
+                ) {
+                    SelectionContainer {
                         FormattedBodyText(
                             formattedBody = formattedBody,
                             fallbackBody = fallbackBody,
