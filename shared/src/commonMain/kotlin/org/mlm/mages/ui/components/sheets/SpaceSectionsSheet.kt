@@ -1,16 +1,10 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -52,7 +46,7 @@ fun SpaceSectionsSheet(
             )
 
             ActionListItem(
-                icon = Icons.Default.Add,
+                icon = painterResource(Res.drawable.ic_add),
                 label = stringResource(Res.string.new_section),
                 description = null,
                 onClick = { onDismiss(); onCreate() }
@@ -105,22 +99,22 @@ private fun SectionSheetRow(
             ) {
                 IconButton(onClick = onMoveUp, enabled = enabled && canMoveUp) {
                     Icon(
-                        Icons.Default.ArrowUpward,
+                        painterResource(Res.drawable.ic_arrow_upward),
                         stringResource(Res.string.move_section_up)
                     )
                 }
                 IconButton(onClick = onMoveDown, enabled = enabled && canMoveDown) {
                     Icon(
-                        Icons.Default.ArrowDownward,
+                        painterResource(Res.drawable.ic_arrow_downward),
                         stringResource(Res.string.move_section_down)
                     )
                 }
                 IconButton(onClick = onRename, enabled = enabled) {
-                    Icon(Icons.Default.Edit, stringResource(Res.string.rename_section))
+                    Icon(painterResource(Res.drawable.ic_edit), stringResource(Res.string.rename_section))
                 }
                 IconButton(onClick = onDelete, enabled = enabled) {
                     Icon(
-                        Icons.Default.Delete,
+                        painterResource(Res.drawable.ic_delete),
                         stringResource(Res.string.delete_section),
                         tint = MaterialTheme.colorScheme.error
                     )

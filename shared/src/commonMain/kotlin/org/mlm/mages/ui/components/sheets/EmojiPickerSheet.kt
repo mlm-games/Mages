@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -7,8 +8,6 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,7 +20,6 @@ import org.koin.compose.koinInject
 import org.mlm.mages.emoji.RecentEmojiStore
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun EmojiPickerSheet(
@@ -65,7 +63,7 @@ fun EmojiPickerSheet(
                         .padding(horizontal = Spacing.md)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Image,
+                        painter = painterResource(Res.drawable.ic_image),
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )

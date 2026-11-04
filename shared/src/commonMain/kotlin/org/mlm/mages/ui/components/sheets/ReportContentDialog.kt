@@ -1,9 +1,7 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,7 +10,6 @@ import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -55,7 +52,7 @@ fun ReportContentDialog(
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         Icon(
-                            Icons.Default.Warning,
+                            painterResource(Res.drawable.ic_warning),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onErrorContainer,
                             modifier = Modifier.size(20.dp)
@@ -102,7 +99,7 @@ fun ReportContentDialog(
                         leadingIcon = if (selected) {
                             {
                                 Icon(
-                                    Icons.Default.Check,
+                                    painterResource(Res.drawable.ic_check),
                                     contentDescription = null,
                                     modifier = Modifier.size(FilterChipDefaults.IconSize)
                                 )

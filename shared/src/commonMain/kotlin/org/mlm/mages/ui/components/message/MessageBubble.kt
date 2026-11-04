@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.components.message
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -7,23 +8,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.EmojiEmotions
-import androidx.compose.material.icons.filled.AudioFile
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Poll
-import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.filled.Videocam
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.outlined.Gesture
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -32,7 +16,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -49,7 +33,6 @@ import coil3.request.crossfade
 import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
 import io.github.mlmgames.settings.core.annotations.SettingPlatform
 import io.github.mlmgames.settings.core.platform.currentPlatform
-import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.ReplyPreview
@@ -585,19 +568,19 @@ internal fun ReplyPreview(
 private fun ReplyPreviewVisual(preview: ReplyPreview, resolvedPath: String?) {
     val imageSource = resolvedPath
     val icon = when (preview.kind) {
-        ReplyPreviewKind.Image -> Icons.Default.Image
-        ReplyPreviewKind.Video -> Icons.Default.Videocam
-        ReplyPreviewKind.Audio -> Icons.Default.AudioFile
-        ReplyPreviewKind.Voice -> Icons.Default.Mic
-        ReplyPreviewKind.File -> Icons.AutoMirrored.Filled.InsertDriveFile
-        ReplyPreviewKind.Sticker -> Icons.Default.EmojiEmotions
-        ReplyPreviewKind.Poll -> Icons.Default.Poll
-        ReplyPreviewKind.Call, ReplyPreviewKind.VoiceCall -> Icons.Default.Call
-        ReplyPreviewKind.VideoCall -> Icons.Default.Videocam
-        ReplyPreviewKind.Location, ReplyPreviewKind.LiveLocation -> Icons.Default.LocationOn
-        ReplyPreviewKind.Encrypted -> Icons.Default.Lock
-        ReplyPreviewKind.Redacted -> Icons.Default.Delete
-        ReplyPreviewKind.Unsupported -> Icons.Default.Info
+        ReplyPreviewKind.Image -> painterResource(Res.drawable.ic_image)
+        ReplyPreviewKind.Video -> painterResource(Res.drawable.ic_videocam)
+        ReplyPreviewKind.Audio -> painterResource(Res.drawable.ic_audio_file)
+        ReplyPreviewKind.Voice -> painterResource(Res.drawable.ic_mic)
+        ReplyPreviewKind.File -> painterResource(Res.drawable.ic_description)
+        ReplyPreviewKind.Sticker -> painterResource(Res.drawable.ic_sentiment_satisfied)
+        ReplyPreviewKind.Poll -> painterResource(Res.drawable.ic_bar_chart)
+        ReplyPreviewKind.Call, ReplyPreviewKind.VoiceCall -> painterResource(Res.drawable.ic_call)
+        ReplyPreviewKind.VideoCall -> painterResource(Res.drawable.ic_videocam)
+        ReplyPreviewKind.Location, ReplyPreviewKind.LiveLocation -> painterResource(Res.drawable.ic_location_on)
+        ReplyPreviewKind.Encrypted -> painterResource(Res.drawable.ic_lock)
+        ReplyPreviewKind.Redacted -> painterResource(Res.drawable.ic_delete)
+        ReplyPreviewKind.Unsupported -> painterResource(Res.drawable.ic_info)
         ReplyPreviewKind.Text -> null
     }
 
@@ -672,7 +655,7 @@ private fun FileAttachmentBubble(
                     .background(accentColor.copy(alpha = 0.15f))
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
+                    painter = painterResource(Res.drawable.ic_description),
                     contentDescription = null,
                     tint = accentColor,
                     modifier = Modifier.size(18.dp)
@@ -745,7 +728,7 @@ private fun AudioFileBubble(
                     .background(accentColor.copy(alpha = 0.15f))
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
+                    painter = painterResource(Res.drawable.ic_description),
                     contentDescription = null,
                     tint = accentColor,
                     modifier = Modifier.size(18.dp)
@@ -835,7 +818,7 @@ private fun ImageAttachmentBubble(
                 } else if (!previewBlocked) {
                     MediaTilePlaceholder(
                         label = stringResource(Res.string.image),
-                        icon = Icons.Default.Image,
+                        icon = painterResource(Res.drawable.ic_image),
                         contentColor = contentColor,
                     )
                 }
@@ -848,7 +831,7 @@ private fun ImageAttachmentBubble(
                     ) {
                         TextButton(onClick = { onShowPreview?.invoke() }) {
                             Icon(
-                                imageVector = Icons.Default.Visibility,
+                                painter = painterResource(Res.drawable.ic_visibility),
                                 contentDescription = stringResource(Res.string.show),
                             )
                         }
@@ -919,7 +902,7 @@ private fun MediaTile(
 @Composable
 private fun BoxScope.MediaTilePlaceholder(
     label: String,
-    icon: ImageVector,
+    icon: Painter,
     contentColor: Color,
 ) {
     Box(
@@ -930,7 +913,7 @@ private fun BoxScope.MediaTilePlaceholder(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
-                imageVector = icon,
+                painter = icon,
                 contentDescription = null,
                 tint = contentColor.copy(alpha = 0.7f),
                 modifier = Modifier.size(24.dp),
@@ -1006,7 +989,7 @@ private fun VideoAttachmentBubble(
                 } else if (!previewBlocked) {
                     MediaTilePlaceholder(
                         label = stringResource(Res.string.video),
-                        icon = Icons.Default.Videocam,
+                        icon = painterResource(Res.drawable.ic_videocam),
                         contentColor = contentColor,
                     )
                 }
@@ -1019,7 +1002,7 @@ private fun VideoAttachmentBubble(
                     ) {
                         TextButton(onClick = { onShowPreview?.invoke() }) {
                             Icon(
-                                imageVector = Icons.Default.Visibility,
+                                painter = painterResource(Res.drawable.ic_visibility),
                                 contentDescription = stringResource(Res.string.show),
                             )
                         }
@@ -1191,10 +1174,10 @@ private fun StickerMessage(
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = if (previewBlocked) {
-                                Icons.Default.Visibility
+                            painter = if (previewBlocked) {
+                                painterResource(Res.drawable.ic_visibility)
                             } else {
-                                Icons.Default.EmojiEmotions
+                                painterResource(Res.drawable.ic_sentiment_satisfied)
                             },
                             contentDescription = stringResource(
                                 if (previewBlocked) Res.string.show else Res.string.picker_sticker
@@ -1240,7 +1223,7 @@ private fun ThreadBadge(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.Gesture,
+                    painter = painterResource(Res.drawable.ic_gesture),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(15.dp)
@@ -1259,7 +1242,7 @@ private fun ThreadBadge(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.Gesture,
+                    painter = painterResource(Res.drawable.ic_gesture),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(16.dp)
@@ -1289,7 +1272,7 @@ private fun DurationBadge(ms: Long, modifier: Modifier = Modifier) {
 private fun FailedIndicator(text: String) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = Spacing.xs)) {
         Icon(
-            imageVector = Icons.Default.Error,
+            painter = painterResource(Res.drawable.ic_error),
             contentDescription = stringResource(Res.string.failed),
             tint = MaterialTheme.colorScheme.error,
             modifier = Modifier.size(14.dp)
@@ -1306,7 +1289,7 @@ private fun FailedIndicator(text: String) {
 @Composable
 private fun PinnedIndicator(tint: Color) {
     Icon(
-        imageVector = Icons.Default.PushPin,
+        painter = painterResource(Res.drawable.ic_push_pin),
         contentDescription = stringResource(Res.string.message_pinned),
         tint = tint,
         modifier = Modifier.size(12.dp)
@@ -1351,7 +1334,7 @@ private fun RedactedBody(
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
-            imageVector = Icons.Default.Delete,
+            painter = painterResource(Res.drawable.ic_delete),
             contentDescription = null,
             tint = color,
             modifier = Modifier.size(14.dp)

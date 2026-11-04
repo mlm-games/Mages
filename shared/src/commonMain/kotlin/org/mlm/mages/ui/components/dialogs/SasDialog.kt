@@ -1,11 +1,9 @@
 package org.mlm.mages.ui.components.dialogs
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -21,7 +19,6 @@ import org.mlm.mages.ui.animation.AnimationSpecs
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun SasDialog(
@@ -56,7 +53,7 @@ fun SasDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Icon(
-                    Icons.Default.VerifiedUser,
+                    painterResource(Res.drawable.ic_verified_user),
                     null,
                     Modifier.size(Sizes.avatarMedium),
                     MaterialTheme.colorScheme.primary
@@ -190,7 +187,7 @@ private fun SasPhaseContent(
             ) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Icon(
-                        Icons.Default.CheckCircle,
+                        painterResource(Res.drawable.ic_check_circle),
                         null,
                         Modifier.size(Sizes.iconLarge),
                         MaterialTheme.colorScheme.onPrimaryContainer

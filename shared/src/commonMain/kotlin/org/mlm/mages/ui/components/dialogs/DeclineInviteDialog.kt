@@ -1,10 +1,8 @@
 package org.mlm.mages.ui.components.dialogs
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,7 +12,6 @@ import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun DeclineInviteDialog(
@@ -54,7 +51,7 @@ fun DeclineInviteDialog(
                         onCheckedChange = { blockUser = it },
                         icon = {
                             Icon(
-                                Icons.Default.Block,
+                                painterResource(Res.drawable.ic_block),
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -70,7 +67,7 @@ fun DeclineInviteDialog(
                     onCheckedChange = { reportRoom = it },
                     icon = {
                         Icon(
-                            Icons.Default.Flag,
+                            painterResource(Res.drawable.ic_flag),
                             contentDescription = null,
                             modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,

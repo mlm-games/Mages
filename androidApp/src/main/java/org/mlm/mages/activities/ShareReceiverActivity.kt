@@ -1,5 +1,14 @@
 package org.mlm.mages.activities
 
+import mages.shared.generated.resources.Res
+import mages.shared.generated.resources.ic_attach_file
+import mages.shared.generated.resources.ic_audio_file
+import mages.shared.generated.resources.ic_close
+import mages.shared.generated.resources.ic_folder
+import mages.shared.generated.resources.ic_image
+import mages.shared.generated.resources.ic_text_fields
+import mages.shared.generated.resources.ic_videocam
+import org.jetbrains.compose.resources.painterResource
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -29,19 +38,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.AudioFile
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.TextFields
-import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularWavyProgressIndicator
@@ -342,7 +338,7 @@ private fun ShareReceiverScreen(
                         onClick = onDismiss,
                         enabled = !isSending
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.share_cancel))
+                        Icon(painterResource(Res.drawable.ic_close), contentDescription = stringResource(R.string.share_cancel))
                     }
                 }
             )
@@ -534,7 +530,7 @@ private fun SelectedRoomsRow(
                         )
                     },
                     trailingIcon = {
-                        Icon(Icons.Default.Close, contentDescription = "Remove")
+                        Icon(painterResource(Res.drawable.ic_close), contentDescription = "Remove")
                     }
                 )
             }
@@ -557,19 +553,19 @@ private fun SharePreview(
             verticalAlignment = Alignment.CenterVertically
         ) {
             val icon = when (content) {
-                is SharedContent.Text -> Icons.Default.TextFields
+                is SharedContent.Text -> painterResource(Res.drawable.ic_text_fields)
                 is SharedContent.SingleFile -> when {
-                    content.mimeType.startsWith("image/") -> Icons.Default.Image
-                    content.mimeType.startsWith("video/") -> Icons.Default.Videocam
-                    content.mimeType.startsWith("audio/") -> Icons.Default.AudioFile
-                    else -> Icons.Default.AttachFile
+                    content.mimeType.startsWith("image/") -> painterResource(Res.drawable.ic_image)
+                    content.mimeType.startsWith("video/") -> painterResource(Res.drawable.ic_videocam)
+                    content.mimeType.startsWith("audio/") -> painterResource(Res.drawable.ic_audio_file)
+                    else -> painterResource(Res.drawable.ic_attach_file)
                 }
 
-                is SharedContent.MultipleFiles -> Icons.Default.Folder
+                is SharedContent.MultipleFiles -> painterResource(Res.drawable.ic_folder)
             }
 
             Icon(
-                imageVector = icon,
+                painter = icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(32.dp)

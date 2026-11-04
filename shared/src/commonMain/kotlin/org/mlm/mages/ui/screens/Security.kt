@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandHorizontally
@@ -15,9 +16,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -26,7 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -91,7 +89,6 @@ import org.mlm.mages.ui.viewmodel.SecurityViewModel
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.*
 import kotlin.reflect.KClass
-import mages.shared.generated.resources.Res
 
 private sealed interface SecuritySheet {
     data class SetupRecovery(val isChange: Boolean) : SecuritySheet
@@ -208,14 +205,14 @@ fun SecurityScreen(
                                 if (searchOpen) closeSearch() else backStack.popBack()
                             }
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
+                            Icon(painterResource(Res.drawable.ic_arrow_back), stringResource(Res.string.back))
                         }
                     },
                     actions = {
                         AnimatedVisibility(visible = !searchOpen) {
                             if (!settings.showSwitchAccountButton) {
                                 IconButton(onClick = onOpenAccountSwitcher) {
-                                    Icon(Icons.Default.SwitchAccount, stringResource(Res.string.account))
+                                    Icon(painterResource(Res.drawable.ic_switch_account), stringResource(Res.string.account))
                                 }
                             }
                         }
@@ -225,7 +222,7 @@ fun SecurityScreen(
                             exit = fadeOut() + scaleOut(targetScale = 0.6f) + shrinkHorizontally()
                         ) {
                             IconButton(onClick = { searchOpen = true }) {
-                                Icon(Icons.Default.Search, stringResource(Res.string.search_settings))
+                                Icon(painterResource(Res.drawable.ic_search), stringResource(Res.string.search_settings))
                             }
                         }
                     }
@@ -248,19 +245,19 @@ fun SecurityScreen(
 //                                    }
                                 }
                             },
-                            icon = { Icon(Icons.Default.Devices, null) }
+                            icon = { Icon(painterResource(Res.drawable.ic_devices), null) }
                         )
                         Tab(
                             selected = state.selectedTab == 1,
                             onClick = { viewModel.setSelectedTab(1) },
                             text = { Text(stringResource(Res.string.profile)) },
-                            icon = { Icon(Icons.Default.Person, null) }
+                            icon = { Icon(painterResource(Res.drawable.ic_person), null) }
                         )
                         Tab(
                             selected = state.selectedTab == 2,
                             onClick = { viewModel.setSelectedTab(2) },
                             text = { Text(stringResource(Res.string.settings_tab)) },
-                            icon = { Icon(Icons.Default.Settings, null) }
+                            icon = { Icon(painterResource(Res.drawable.ic_settings), null) }
                         )
                     }
                 }
@@ -388,7 +385,7 @@ fun SecurityScreen(
     if (showVerifyUserDialog) {
         AlertDialog(
             onDismissRequest = { showVerifyUserDialog = false },
-            icon = { Icon(Icons.Default.VerifiedUser, null) },
+            icon = { Icon(painterResource(Res.drawable.ic_verified_user), null) },
             title = { Text(stringResource(Res.string.verify_user)) },
             text = {
                 val directoryMembers = rememberDirectoryMembers(verifyUserId)
@@ -481,7 +478,7 @@ private fun ProfileTab(
     val current = profile
     if (current == null) {
         EmptyState(
-            icon = Icons.Default.CloudOff,
+            icon = painterResource(Res.drawable.ic_cloud_off),
             title = stringResource(Res.string.profile_load_failed),
             action = { TextButton(onClick = onRetry) { Text(stringResource(Res.string.retry)) } }
         )
@@ -612,7 +609,7 @@ private fun ProfileTab(
                     headlineContent = { Text(stringResource(Res.string.profile_remove_photo)) },
                     leadingContent = {
                         Icon(
-                            Icons.Default.DeleteOutline,
+                            painterResource(Res.drawable.ic_delete),
                             null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -664,7 +661,7 @@ private fun ProfileTab(
                         },
                         enabled = !isSaving && !isSavingField
                     ) {
-                        Icon(Icons.Default.Add, null)
+                        Icon(painterResource(Res.drawable.ic_add), null)
                         Text(stringResource(Res.string.add))
                     }
                 }
@@ -694,13 +691,13 @@ private fun ProfileTab(
                                 },
                                 enabled = !isSaving && !isSavingField
                             ) {
-                                Icon(Icons.Default.Edit, stringResource(Res.string.edit))
+                                Icon(painterResource(Res.drawable.ic_edit), stringResource(Res.string.edit))
                             }
                             IconButton(
                                 onClick = { onDeleteField(field.name) },
                                 enabled = !isSaving && !isSavingField
                             ) {
-                                Icon(Icons.Default.DeleteOutline, stringResource(Res.string.delete))
+                                Icon(painterResource(Res.drawable.ic_delete), stringResource(Res.string.delete))
                             }
                         }
                     }
@@ -715,7 +712,7 @@ private fun ProfileTab(
                     headlineContent = { Text(stringResource(Res.string.manage_account)) },
                     leadingContent = {
                         Icon(
-                            Icons.Default.OpenInNew,
+                            painterResource(Res.drawable.ic_open_in_new),
                             null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -760,7 +757,7 @@ private fun ProfileTab(
                     headlineContent = { Text(mxid, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     leadingContent = {
                         Icon(
-                            Icons.Default.Block,
+                            painterResource(Res.drawable.ic_block),
                             null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -840,7 +837,7 @@ private fun DevicesTab(
                 }
 
                 ActionCard(
-                    icon = Icons.Default.Key,
+                    icon = painterResource(Res.drawable.ic_key),
                     title = recoveryAction.first,
                     subtitle = recoveryAction.second,
                     badge = if (
@@ -853,7 +850,7 @@ private fun DevicesTab(
                 )
 
                 ActionCard(
-                    icon = Icons.Default.VerifiedUser,
+                    icon = painterResource(Res.drawable.ic_verified_user),
                     title = stringResource(Res.string.verify_user),
                     subtitle = stringResource(Res.string.verify_another_user),
                     onClick = onVerifyUser,
@@ -923,7 +920,7 @@ private fun DevicesTab(
                 },
                 leadingContent = {
                     Icon(
-                        Icons.Default.History,
+                        painterResource(Res.drawable.ic_history),
                         null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -950,7 +947,7 @@ private fun DevicesTab(
                     },
                     leadingContent = {
                         Icon(
-                            Icons.Default.QrCode2,
+                            painterResource(Res.drawable.ic_qr_code_2),
                             null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -982,7 +979,7 @@ private fun DevicesTab(
                             modifier = Modifier.size(20.dp),
                         )
                     } else {
-                        Icon(Icons.Default.Refresh, stringResource(Res.string.refresh))
+                        Icon(painterResource(Res.drawable.ic_refresh), stringResource(Res.string.refresh))
                     }
                 }
             }
@@ -991,7 +988,7 @@ private fun DevicesTab(
         if (devices.isEmpty() && !isLoading) {
             item {
                 EmptyState(
-                    icon = Icons.Default.DevicesOther,
+                    icon = painterResource(Res.drawable.ic_devices_other),
                     title = stringResource(Res.string.no_devices_found),
                     subtitle = stringResource(Res.string.try_refreshing),
                     modifier = Modifier.padding(Spacing.lg)
@@ -1010,7 +1007,7 @@ private fun DevicesTab(
 
 @Composable
 private fun ActionCard(
-    icon: ImageVector,
+    icon: Painter,
     title: String,
     subtitle: String,
     modifier: Modifier = Modifier,
@@ -1095,7 +1092,7 @@ private fun DeviceCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                if (device.verified) Icons.Default.VerifiedUser else Icons.Default.Smartphone,
+                if (device.verified) painterResource(Res.drawable.ic_verified_user) else painterResource(Res.drawable.ic_smartphone),
                 null,
                 tint = if (device.verified) AppColors.Verified
                 else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1141,7 +1138,7 @@ private fun DeviceCard(
                 }
             } else {
                 Icon(
-                    Icons.Default.CheckCircle,
+                    painterResource(Res.drawable.ic_check_circle),
                     stringResource(Res.string.verified),
                     tint = AppColors.Verified
                 )
@@ -1169,7 +1166,7 @@ private fun SettingsTab(
         Box(modifier = Modifier.fillMaxSize()) {
             if (query.isNotEmpty() && shownSchema.fields.isEmpty()) {
                 EmptyState(
-                    icon = Icons.Default.SearchOff,
+                    icon = painterResource(Res.drawable.ic_search_off),
                     title = stringResource(Res.string.no_settings_found),
                     subtitle = stringResource(Res.string.try_different_search),
                 )
@@ -1314,7 +1311,7 @@ private fun SettingsSearchField(
                 }
                 if (query.isNotEmpty()) {
                     IconButton(onClick = { onQueryChange("") }) {
-                        Icon(Icons.Default.Clear, stringResource(Res.string.clear_search))
+                        Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.clear_search))
                     }
                 }
             }

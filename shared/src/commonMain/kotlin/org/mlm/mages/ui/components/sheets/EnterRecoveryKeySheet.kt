@@ -1,10 +1,9 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Key
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,7 +16,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import mages.shared.generated.resources.*
-import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.create_new_recovery_key
 import mages.shared.generated.resources.recover
 import mages.shared.generated.resources.recovery_key
@@ -53,7 +51,7 @@ fun EnterRecoveryKeySheet(
         verticalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
         Icon(
-            Icons.Default.Key,
+            painterResource(Res.drawable.ic_key),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(48.dp)

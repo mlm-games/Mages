@@ -13,7 +13,6 @@ import androidx.compose.ui.input.key.onPreInterceptKeyBeforeSoftKeyboard
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 
-
 fun Modifier.pasteInterceptor(
     onPasteAttempt: () -> Boolean
 ): Modifier = this.onPreviewKeyEvent { event ->

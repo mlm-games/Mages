@@ -1,12 +1,10 @@
 package org.mlm.mages.ui
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CallEnd
-import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,7 +26,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun GlobalCallOverlay(
@@ -141,7 +138,7 @@ fun GlobalCallOverlay(
                         modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
-                            Icons.Default.Fullscreen,
+                            painterResource(Res.drawable.ic_fullscreen),
                             contentDescription = stringResource(Res.string.restore),
                             modifier = Modifier.size(18.dp)
                         )
@@ -151,7 +148,7 @@ fun GlobalCallOverlay(
                         modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
-                            Icons.Default.CallEnd,
+                            painterResource(Res.drawable.ic_call_end),
                             contentDescription = stringResource(Res.string.end_call),
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(18.dp)

@@ -1,11 +1,10 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,7 +17,6 @@ import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun MemberListSheet(
@@ -52,7 +50,7 @@ fun MemberListSheet(
                     style = MaterialTheme.typography.titleMedium
                 )
                 FilledTonalButton(onClick = onInvite) {
-                    Icon(Icons.Default.PersonAdd, null, Modifier.size(18.dp))
+                    Icon(painterResource(Res.drawable.ic_person_add), null, Modifier.size(18.dp))
                     Spacer(Modifier.width(Spacing.sm))
                     Text(stringResource(Res.string.invite))
                 }
@@ -176,7 +174,7 @@ private fun InCallBadge() {
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
             Icon(
-                Icons.Default.Call,
+                painterResource(Res.drawable.ic_call),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(14.dp)

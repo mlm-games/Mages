@@ -1,16 +1,12 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,7 +23,6 @@ import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.isMatrixUserId
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 enum class AliasAvailability {
     Unknown,
@@ -185,10 +180,10 @@ fun CreateRoomSheet(
                                         CircularWavyProgressIndicator(modifier = Modifier.size(20.dp))
                                     }
                                     AliasAvailability.Available -> {
-                                        Icon(Icons.Default.Check, contentDescription = stringResource(Res.string.available), tint = MaterialTheme.colorScheme.primary)
+                                        Icon(painterResource(Res.drawable.ic_check), contentDescription = stringResource(Res.string.available), tint = MaterialTheme.colorScheme.primary)
                                     }
                                     AliasAvailability.Taken, AliasAvailability.Invalid -> {
-                                        Icon(Icons.Default.Warning, contentDescription = stringResource(Res.string.error), tint = MaterialTheme.colorScheme.error)
+                                        Icon(painterResource(Res.drawable.ic_warning), contentDescription = stringResource(Res.string.error), tint = MaterialTheme.colorScheme.error)
                                     }
                                     else -> {}
                                 }
@@ -227,7 +222,7 @@ fun CreateRoomSheet(
                         },
                         enabled = isMatrixUserId(inviteeInput)
                     ) {
-                        Icon(Icons.Default.Add, stringResource(Res.string.add))
+                        Icon(painterResource(Res.drawable.ic_add), stringResource(Res.string.add))
                     }
                 }
 
@@ -246,7 +241,7 @@ fun CreateRoomSheet(
                                         onClick = { invitees = invitees - mxid },
                                         modifier = Modifier.size(18.dp)
                                     ) {
-                                        Icon(Icons.Default.Close, stringResource(Res.string.remove), Modifier.size(14.dp))
+                                        Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.remove), Modifier.size(14.dp))
                                     }
                                 }
                             )

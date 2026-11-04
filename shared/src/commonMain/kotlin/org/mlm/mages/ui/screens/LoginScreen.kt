@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.*
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -10,10 +11,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.automirrored.filled.Login
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,7 +36,6 @@ import org.mlm.mages.ui.components.QrLoginDialog
 import org.mlm.mages.ui.components.rememberLocalNetworkPermissionGate
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.LoginViewModel
-import mages.shared.generated.resources.Res
 
 @Composable
 fun LoginScreen(
@@ -135,7 +131,7 @@ fun LoginScreen(
             ) {
                 Box(Modifier.fillMaxSize(), Alignment.Center) {
                     Icon(
-                        Icons.AutoMirrored.Filled.Chat, null,
+                        painterResource(Res.drawable.ic_chat), null,
                         modifier = Modifier.size(48.dp),
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -198,7 +194,7 @@ fun LoginScreen(
                         onValueChange = viewModel::setHomeserver,
                         label = { Text(stringResource(Res.string.homeserver)) },
                         placeholder = { Text(stringResource(Res.string.homeserver_placeholder)) },
-                        leadingIcon = { Icon(Icons.Default.Home, null) },
+                        leadingIcon = { Icon(painterResource(Res.drawable.ic_home), null) },
                         trailingIcon = {
                             if (state.isCheckingServer) {
                                 CircularProgressIndicator(
@@ -206,12 +202,12 @@ fun LoginScreen(
                                 )
                             } else if (serverKnown && (passwordAvailable || oauthAvailable || ssoAvailable)) {
                                 Icon(
-                                    Icons.Default.CheckCircle, null,
+                                    painterResource(Res.drawable.ic_check_circle), null,
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             } else if (serverKnown && !passwordAvailable && !oauthAvailable && !ssoAvailable) {
                                 Icon(
-                                    Icons.Default.Warning, stringResource(Res.string.homeserver_has_no_login_methods_or_might_not_exist),
+                                    painterResource(Res.drawable.ic_warning), stringResource(Res.string.homeserver_has_no_login_methods_or_might_not_exist),
                                     tint = MaterialTheme.colorScheme.error
                                 )
                             }
@@ -246,7 +242,7 @@ fun LoginScreen(
                                     contentColor = MaterialTheme.colorScheme.error
                                 )
                             ) {
-                                Icon(Icons.Default.Close, null)
+                                Icon(painterResource(Res.drawable.ic_close), null)
                                 Spacer(Modifier.width(Spacing.sm))
                                 Text(stringResource(Res.string.cancel_oauth))
                             }
@@ -256,7 +252,7 @@ fun LoginScreen(
                                 enabled = !state.isBusy,
                                 modifier = Modifier.fillMaxWidth().height(52.dp)
                             ) {
-                                Icon(Icons.Default.Security, null)
+                                Icon(painterResource(Res.drawable.ic_security), null)
                                 Spacer(Modifier.width(8.dp))
                                 Text(
                                     stringResource(Res.string.continue_with_oauth),
@@ -269,7 +265,7 @@ fun LoginScreen(
                                 enabled = !state.isBusy,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Icon(Icons.Default.Security, null)
+                                Icon(painterResource(Res.drawable.ic_security), null)
                                 Spacer(Modifier.width(Spacing.sm))
                                 Text(stringResource(Res.string.continue_with_oauth))
                             }
@@ -282,7 +278,7 @@ fun LoginScreen(
                             enabled = !state.isBusy && !state.qrInProgress,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(Icons.Default.QrCode2, null)
+                            Icon(painterResource(Res.drawable.ic_qr_code_2), null)
                             Spacer(Modifier.width(Spacing.sm))
                             Text(stringResource(Res.string.qr_sign_in))
                         }
@@ -303,7 +299,7 @@ fun LoginScreen(
                                         contentColor = MaterialTheme.colorScheme.error
                                     )
                                 ) {
-                                    Icon(Icons.Default.Close, null)
+                                    Icon(painterResource(Res.drawable.ic_close), null)
                                     Spacer(Modifier.width(Spacing.sm))
                                     Text(stringResource(Res.string.cancel_sso))
                                 }
@@ -313,7 +309,7 @@ fun LoginScreen(
                                     enabled = !state.isBusy,
                                     modifier = Modifier.fillMaxWidth().height(52.dp)
                                 ) {
-                                    Icon(Icons.Default.OpenInBrowser, null)
+                                    Icon(painterResource(Res.drawable.ic_open_in_browser), null)
                                     Spacer(Modifier.width(8.dp))
                                     Text(
                                         stringResource(Res.string.continue_with_sso),
@@ -326,7 +322,7 @@ fun LoginScreen(
                                     enabled = !state.isBusy && !state.oauthInProgress,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Icon(Icons.Default.OpenInBrowser, null)
+                                    Icon(painterResource(Res.drawable.ic_open_in_browser), null)
                                     Spacer(Modifier.width(Spacing.sm))
                                     Text(stringResource(Res.string.continue_with_sso))
                                 }
@@ -404,7 +400,7 @@ fun LoginScreen(
                                             onValueChange = viewModel::setPhoneCountry,
                                             label = { Text(stringResource(Res.string.country_code)) },
                                             placeholder = { Text("US") },
-                                            leadingIcon = { Icon(Icons.Default.Flag, null) },
+                                            leadingIcon = { Icon(painterResource(Res.drawable.ic_flag), null) },
                                             modifier = Modifier.fillMaxWidth(),
                                             enabled = !state.isBusy,
                                             singleLine = true,
@@ -438,9 +434,9 @@ fun LoginScreen(
                                         leadingIcon = {
                                             Icon(
                                                 when (state.passwordLoginKind) {
-                                                    PasswordLoginKind.Username -> Icons.Default.Person
-                                                    PasswordLoginKind.Email -> Icons.Default.Email
-                                                    PasswordLoginKind.Phone -> Icons.Default.Phone
+                                                    PasswordLoginKind.Username -> painterResource(Res.drawable.ic_person)
+                                                    PasswordLoginKind.Email -> painterResource(Res.drawable.ic_mail)
+                                                    PasswordLoginKind.Phone -> painterResource(Res.drawable.ic_call)
                                                 },
                                                 null
                                             )
@@ -466,12 +462,12 @@ fun LoginScreen(
                                         onValueChange = viewModel::setPass,
                                         label = { Text(stringResource(Res.string.password)) },
                                         placeholder = { Text(stringResource(Res.string.enter_your_password)) },
-                                        leadingIcon = { Icon(Icons.Default.Lock, null) },
+                                        leadingIcon = { Icon(painterResource(Res.drawable.ic_lock), null) },
                                         trailingIcon = {
                                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                                 Icon(
-                                                    if (passwordVisible) Icons.Default.VisibilityOff
-                                                    else Icons.Default.Visibility,
+                                                    if (passwordVisible) painterResource(Res.drawable.ic_visibility_off)
+                                                    else painterResource(Res.drawable.ic_visibility),
                                                     null
                                                 )
                                             }
@@ -513,7 +509,7 @@ fun LoginScreen(
                                             )
                                         } else {
                                             Icon(
-                                                Icons.AutoMirrored.Filled.Login, null,
+                                                painterResource(Res.drawable.ic_login), null,
                                                 modifier = Modifier.size(20.dp)
                                             )
                                             Spacer(Modifier.width(8.dp))
@@ -545,7 +541,7 @@ fun LoginScreen(
                                 verticalAlignment = Alignment.Top
                             ) {
                                 Icon(
-                                    Icons.Default.Error, null,
+                                    painterResource(Res.drawable.ic_error), null,
                                     tint = MaterialTheme.colorScheme.onErrorContainer,
                                     modifier = Modifier.size(20.dp)
                                 )

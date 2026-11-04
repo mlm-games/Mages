@@ -1,13 +1,12 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,7 +22,6 @@ import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.rememberResolvedAvatar
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 /** Server-side thumbnail size for the room avatars drawn in the pickers. */
 private const val ROOM_AVATAR_PX = 64
@@ -46,14 +44,14 @@ fun RoomSelectionList(
             enabled = enabled,
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text(stringResource(Res.string.search_rooms)) },
-            leadingIcon = { Icon(Icons.Default.Search, stringResource(Res.string.search)) },
+            leadingIcon = { Icon(painterResource(Res.drawable.ic_search), stringResource(Res.string.search)) },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(
                         onClick = { onSearchChange("") },
                         enabled = enabled
                     ) {
-                        Icon(Icons.Default.Close, stringResource(Res.string.clear))
+                        Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.clear))
                     }
                 }
             },
@@ -87,7 +85,7 @@ fun RoomSelectionList(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                            Icons.Default.SearchOff,
+                            painterResource(Res.drawable.ic_search_off),
                             contentDescription = null,
                             modifier = Modifier.size(48.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -219,7 +217,7 @@ fun SelectedRoomsRow(
                         )
                     },
                     trailingIcon = {
-                        Icon(Icons.Default.Close, contentDescription = stringResource(Res.string.remove))
+                        Icon(painterResource(Res.drawable.ic_close), contentDescription = stringResource(Res.string.remove))
                     }
                 )
             }

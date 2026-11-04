@@ -1,5 +1,8 @@
 package org.mlm.mages.ui.components.core
 
+import mages.shared.generated.resources.Res
+import mages.shared.generated.resources.ic_sentiment_satisfied
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -12,8 +15,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -957,7 +958,7 @@ private fun EmotePlaceholder() {
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            imageVector = Icons.Default.EmojiEmotions,
+            painter = painterResource(Res.drawable.ic_sentiment_satisfied),
             contentDescription = null,
             tint = LocalContentColor.current.copy(alpha = 0.5f),
             modifier = Modifier.size(size * 0.6f)

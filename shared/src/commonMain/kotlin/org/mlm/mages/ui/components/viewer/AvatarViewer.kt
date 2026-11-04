@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.components.viewer
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -11,8 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +38,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.back
+import mages.shared.generated.resources.ic_arrow_back
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.ui.theme.Spacing
 
@@ -135,7 +135,7 @@ private fun AvatarViewerDialog(
                 ) {
                     IconButton(onClick = onDismiss) {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
+                            painterResource(Res.drawable.ic_arrow_back),
                             contentDescription = stringResource(Res.string.back),
                             tint = Color.White,
                         )

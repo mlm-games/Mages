@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.components.message
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -7,10 +8,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,7 +21,6 @@ import org.mlm.mages.matrix.PollData
 import org.mlm.mages.matrix.PollKind
 import org.mlm.mages.matrix.PollOption
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 import org.jetbrains.compose.resources.pluralStringResource
 
 @Composable
@@ -47,7 +43,7 @@ fun PollBubble(
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (poll.isEnded) {
                 Icon(
-                    imageVector = Icons.Default.EmojiEvents,
+                    painter = painterResource(Res.drawable.ic_emoji_events),
                     contentDescription = stringResource(Res.string.ended),
                     tint = winnerColor,
                     modifier = Modifier.size(16.dp)
@@ -190,7 +186,7 @@ private fun PollOptionItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = if (option.isSelected) Icons.Default.CheckCircle else Icons.Outlined.Circle,
+                painter = if (option.isSelected) painterResource(Res.drawable.ic_check_circle) else painterResource(Res.drawable.ic_circle),
                 contentDescription = null,
                 tint = when {
                     option.isWinner -> winnerColor

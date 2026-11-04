@@ -1,10 +1,9 @@
 package org.mlm.mages.ui.components.attachment
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,7 +14,6 @@ import org.mlm.mages.ui.AttachmentUploadStage
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun AttachmentProgress(
@@ -49,7 +47,7 @@ fun AttachmentProgress(
                 Text(fileName, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(secondaryText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            IconButton(onClick = onCancel) { Icon(Icons.Default.Close, stringResource(Res.string.cancel)) }
+            IconButton(onClick = onCancel) { Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.cancel)) }
         }
         when (stage) {
             AttachmentUploadStage.Preparing -> LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())

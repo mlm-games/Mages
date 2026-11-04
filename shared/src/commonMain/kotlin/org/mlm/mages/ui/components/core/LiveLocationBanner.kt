@@ -1,8 +1,7 @@
 package org.mlm.mages.ui.components.core
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,7 +15,6 @@ import org.mlm.mages.matrix.LiveLocationShare
 import org.mlm.mages.platform.LiveLocationProvider
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.banner_is_sharing
 import mages.shared.generated.resources.banner_people_sharing
 import mages.shared.generated.resources.live_location_web_foreground_desc
@@ -53,7 +51,7 @@ fun LiveLocationBanner(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                Icons.Default.LocationOn,
+                painterResource(Res.drawable.ic_location_on),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSecondaryContainer
             )
@@ -94,13 +92,13 @@ fun LiveLocationBanner(
             
             if (isMeSharing && onStopSharing != null) {
                 IconButton(onClick = onStopSharing) {
-                    Icon(Icons.Default.Stop, stringResource(Res.string.stop))
+                    Icon(painterResource(Res.drawable.ic_stop), stringResource(Res.string.stop))
                 }
             }
 
             if (currentPlatform == SettingPlatform.ANDROID || currentPlatform == SettingPlatform.JVM) {
                 IconButton(onClick = onViewAll) {
-                    Icon(Icons.Default.Map, stringResource(Res.string.view))
+                    Icon(painterResource(Res.drawable.ic_map), stringResource(Res.string.view))
                 }
             }
         }

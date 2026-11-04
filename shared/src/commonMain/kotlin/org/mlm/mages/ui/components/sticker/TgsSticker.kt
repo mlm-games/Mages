@@ -1,10 +1,11 @@
 package org.mlm.mages.ui.components.sticker
 
+import mages.shared.generated.resources.Res
+import mages.shared.generated.resources.ic_sentiment_satisfied
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -99,7 +100,7 @@ private fun TgsPlaceholder(
 ) {
     Box(modifier, contentAlignment = Alignment.Center) {
         Icon(
-            imageVector = Icons.Default.EmojiEmotions,
+            painter = painterResource(Res.drawable.ic_sentiment_satisfied),
             contentDescription = contentDescription,
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
             modifier = Modifier.size(24.dp),

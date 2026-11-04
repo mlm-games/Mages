@@ -1,18 +1,12 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CollectionsBookmark
-import androidx.compose.material.icons.filled.Public
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.TravelExplore
-import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
-import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.picker_no_sticker_packs
 import mages.shared.generated.resources.sticker_pack_enable_globally
 import mages.shared.generated.resources.sticker_pack_disable_globally
@@ -104,7 +97,7 @@ fun StickerPickerSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     EmptyState(
-                        icon = Icons.Filled.TravelExplore,
+                        icon = painterResource(Res.drawable.ic_travel_explore),
                         title = stringResource(Res.string.sticker_picker_discover_none)
                     )
                 }
@@ -141,7 +134,7 @@ fun StickerPickerSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     EmptyState(
-                        icon = Icons.Filled.CollectionsBookmark,
+                        icon = painterResource(Res.drawable.ic_collections_bookmark),
                         title = stringResource(Res.string.picker_no_sticker_packs)
                     )
                 }
@@ -198,10 +191,10 @@ private fun discoveryRow(
     ) {
         TextButton(onClick = onToggle) {
             Icon(
-                imageVector = if (showDiscovery) {
-                    Icons.AutoMirrored.Filled.ArrowBack
+                painter = if (showDiscovery) {
+                    painterResource(Res.drawable.ic_arrow_back)
                 } else {
-                    Icons.Filled.TravelExplore
+                    painterResource(Res.drawable.ic_travel_explore)
                 },
                 contentDescription = null,
                 modifier = Modifier.size(18.dp)
@@ -233,7 +226,7 @@ private fun discoveryRow(
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Filled.Refresh,
+                        painter = painterResource(Res.drawable.ic_refresh),
                         contentDescription = stringResource(Res.string.sticker_picker_discover_refresh),
                         modifier = Modifier.size(18.dp)
                     )
@@ -334,7 +327,7 @@ private fun LazyGridScope.packHeader(
                     )
                 } else {
                     Icon(
-                        imageVector = if (pack.isGlobal) Icons.Filled.Public else Icons.Outlined.Public,
+                        painter = if (pack.isGlobal) painterResource(Res.drawable.ic_public) else painterResource(Res.drawable.ic_public),
                         contentDescription = stringResource(
                             if (pack.isGlobal) Res.string.sticker_pack_disable_globally
                             else Res.string.sticker_pack_enable_globally

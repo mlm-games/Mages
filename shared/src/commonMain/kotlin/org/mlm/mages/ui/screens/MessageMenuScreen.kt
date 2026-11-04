@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,20 +14,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Forward
-import androidx.compose.material.icons.automirrored.filled.Reply
-import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Deselect
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Gesture
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,7 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
@@ -77,6 +64,19 @@ import mages.shared.generated.resources.reset
 import mages.shared.generated.resources.select
 import mages.shared.generated.resources.setting_message_menu_order
 import mages.shared.generated.resources.share
+import mages.shared.generated.resources.ic_arrow_back
+import mages.shared.generated.resources.ic_bookmark
+import mages.shared.generated.resources.ic_content_copy
+import mages.shared.generated.resources.ic_deselect
+import mages.shared.generated.resources.ic_done
+import mages.shared.generated.resources.ic_drag_handle
+import mages.shared.generated.resources.ic_edit
+import mages.shared.generated.resources.ic_forward
+import mages.shared.generated.resources.ic_gesture
+import mages.shared.generated.resources.ic_info
+import mages.shared.generated.resources.ic_push_pin
+import mages.shared.generated.resources.ic_reply
+import mages.shared.generated.resources.ic_share
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.mlm.mages.settings.AppSettings
@@ -146,7 +146,7 @@ fun MessageMenuScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            painter = painterResource(Res.drawable.ic_arrow_back),
                             contentDescription = stringResource(Res.string.back),
                         )
                     }
@@ -203,7 +203,7 @@ fun MessageMenuScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = action.icon(),
+                                    painter = action.icon(),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(22.dp)
@@ -224,7 +224,7 @@ fun MessageMenuScreen(
                                         )
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Rounded.DragHandle,
+                                        painter = painterResource(Res.drawable.ic_drag_handle),
                                         contentDescription = reorderLabel,
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -257,16 +257,17 @@ private fun MessageMenuAction.label(): String = when (this) {
     MessageMenuAction.Info -> stringResource(Res.string.message_info)
 }
 
-private fun MessageMenuAction.icon(): ImageVector = when (this) {
-    MessageMenuAction.Reply -> Icons.AutoMirrored.Filled.Reply
-    MessageMenuAction.ReplyInThread -> Icons.Default.Gesture
-    MessageMenuAction.Edit -> Icons.Default.Edit
-    MessageMenuAction.Copy -> Icons.Default.ContentCopy
-    MessageMenuAction.Forward -> Icons.AutoMirrored.Filled.Forward
-    MessageMenuAction.Share -> Icons.Default.Share
-    MessageMenuAction.Pin -> Icons.Default.PushPin
-    MessageMenuAction.Bookmark -> Icons.Default.BookmarkBorder
-    MessageMenuAction.MarkRead -> Icons.Default.Done
-    MessageMenuAction.Select -> Icons.Default.Deselect
-    MessageMenuAction.Info -> Icons.Default.Info
+@Composable
+private fun MessageMenuAction.icon(): Painter = when (this) {
+    MessageMenuAction.Reply -> painterResource(Res.drawable.ic_reply)
+    MessageMenuAction.ReplyInThread -> painterResource(Res.drawable.ic_gesture)
+    MessageMenuAction.Edit -> painterResource(Res.drawable.ic_edit)
+    MessageMenuAction.Copy -> painterResource(Res.drawable.ic_content_copy)
+    MessageMenuAction.Forward -> painterResource(Res.drawable.ic_forward)
+    MessageMenuAction.Share -> painterResource(Res.drawable.ic_share)
+    MessageMenuAction.Pin -> painterResource(Res.drawable.ic_push_pin)
+    MessageMenuAction.Bookmark -> painterResource(Res.drawable.ic_bookmark)
+    MessageMenuAction.MarkRead -> painterResource(Res.drawable.ic_done)
+    MessageMenuAction.Select -> painterResource(Res.drawable.ic_deselect)
+    MessageMenuAction.Info -> painterResource(Res.drawable.ic_info)
 }

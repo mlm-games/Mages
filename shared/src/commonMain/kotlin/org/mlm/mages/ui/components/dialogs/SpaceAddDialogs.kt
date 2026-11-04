@@ -1,11 +1,10 @@
 package org.mlm.mages.ui.components.dialogs
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -132,7 +131,7 @@ fun InviteUserToSpaceDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Default.PersonAdd, null) },
+        icon = { Icon(painterResource(Res.drawable.ic_person_add), null) },
         title = { Text(stringResource(Res.string.invite_user_to_space)) },
         text = {
             Column {

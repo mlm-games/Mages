@@ -1,13 +1,11 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun PollCreatorSheet(
@@ -63,7 +60,7 @@ fun PollCreatorSheet(
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, stringResource(Res.string.close))
+                    Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.close))
                 }
             }
 
@@ -85,7 +82,7 @@ fun PollCreatorSheet(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = false,
                     maxLines = 3,
-                    leadingIcon = { Icon(Icons.Default.Poll, null) }
+                    leadingIcon = { Icon(painterResource(Res.drawable.ic_bar_chart), null) }
                 )
 
                 Spacer(Modifier.height(Spacing.sm))
@@ -118,7 +115,7 @@ fun PollCreatorSheet(
                                 IconButton(onClick = {
                                     answers = answers.toMutableList().apply { removeAt(index) }
                                 }) {
-                                    Icon(Icons.Default.Close, stringResource(Res.string.remove_option))
+                                    Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.remove_option))
                                 }
                             }
                         }
@@ -130,7 +127,7 @@ fun PollCreatorSheet(
                         onClick = { answers = answers + "" },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.Add, null)
+                        Icon(painterResource(Res.drawable.ic_add), null)
                         Spacer(Modifier.width(Spacing.sm))
                         Text(stringResource(Res.string.add_option))
                     }
@@ -175,7 +172,7 @@ fun PollCreatorSheet(
                     enabled = isValid
                 ) {
                     if (!isEditing) {
-                        Icon(Icons.AutoMirrored.Filled.Send, null)
+                        Icon(painterResource(Res.drawable.ic_send), null)
                         Spacer(Modifier.width(Spacing.sm))
                     }
                     Text(if (isEditing) stringResource(Res.string.save_poll) else stringResource(Res.string.create_poll))

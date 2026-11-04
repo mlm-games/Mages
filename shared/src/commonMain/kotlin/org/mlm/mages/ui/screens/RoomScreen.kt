@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.*
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -14,13 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.CallMerge
-import androidx.compose.material.icons.automirrored.filled.Forward
-import androidx.compose.material.icons.automirrored.filled.Reply
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshotFlow
@@ -69,7 +63,6 @@ import org.mlm.mages.ui.components.message.MessageBubble
 import org.mlm.mages.ui.components.message.MessageStatusLine
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 import org.mlm.mages.ui.components.message.SystemMessageItem
 import org.mlm.mages.ui.components.message.SeenByChip
 import org.mlm.mages.ui.components.core.FloatingTimelineDateChip
@@ -753,7 +746,7 @@ fun RoomScreen(
                                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                             ) {
                                 Icon(
-                                    Icons.Default.MarkChatUnread,
+                                    painterResource(Res.drawable.ic_mark_chat_unread),
                                     contentDescription = stringResource(Res.string.jump_to_unread)
                                 )
                             }
@@ -777,7 +770,7 @@ fun RoomScreen(
                         contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                     ) {
                         Icon(
-                            if (isReturnMode) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            if (isReturnMode) painterResource(Res.drawable.ic_keyboard_arrow_up) else painterResource(Res.drawable.ic_keyboard_arrow_down),
                             stringResource(if (isReturnMode) Res.string.return_to_position else Res.string.scroll_to_bottom)
                         )
                         Spacer(Modifier.width(8.dp))
@@ -880,7 +873,7 @@ fun RoomScreen(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         EmptyState(
-                                            icon = Icons.Default.ChatBubbleOutline,
+                                            icon = painterResource(Res.drawable.ic_chat_bubble),
                                             title = stringResource(Res.string.no_messages_yet),
                                             subtitle = stringResource(Res.string.send_message_to_start)
                                         )
@@ -1472,7 +1465,7 @@ fun RoomScreen(
 @Composable
 private fun VerifiedBadge() {
     Icon(
-        Icons.Default.Verified,
+        painterResource(Res.drawable.ic_verified),
         contentDescription = stringResource(Res.string.verified),
         tint = AppColors.Verified,
         modifier = Modifier.size(16.dp)
@@ -1583,14 +1576,14 @@ private fun RoomTopBar(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
+                        Icon(painterResource(Res.drawable.ic_arrow_back), stringResource(Res.string.back))
                     }
                 },
                 actions = {
                     if (hasActiveCall) {
                         IconButton(onClick = { onJoinCall(activeCallIsAudio == true) }) {
                             Icon(
-                                Icons.AutoMirrored.Filled.CallMerge,
+                                painterResource(Res.drawable.ic_call_merge),
                                 contentDescription = stringResource(Res.string.join_call)
                             )
                         }
@@ -1601,7 +1594,7 @@ private fun RoomTopBar(
                                 enabled = voiceCallAction.isEnabled,
                             ) {
                                 Icon(
-                                    Icons.Default.Call,
+                                    painterResource(Res.drawable.ic_call),
                                     contentDescription = stringResource(Res.string.voice_call)
                                 )
                             }
@@ -1613,7 +1606,7 @@ private fun RoomTopBar(
 //                                enabled = videoCallAction.isEnabled,
                             ) {
                                 Icon(
-                                    Icons.Default.Videocam,
+                                    painterResource(Res.drawable.ic_videocam),
                                     contentDescription = stringResource(Res.string.video_call)
                                 )
                             }
@@ -1622,10 +1615,10 @@ private fun RoomTopBar(
                     }
 
                     IconButton(onClick = onOpenInfo) {
-                        Icon(Icons.Default.Info, stringResource(Res.string.room_info_short))
+                        Icon(painterResource(Res.drawable.ic_info), stringResource(Res.string.room_info_short))
                     }
                     IconButton(onClick = onOpenSearch) {
-                        Icon(Icons.Default.Search, stringResource(Res.string.search_room))
+                        Icon(painterResource(Res.drawable.ic_search), stringResource(Res.string.search_room))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -1818,7 +1811,7 @@ private fun ActiveCallTile(
             ) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Icon(
-                        Icons.Default.Call,
+                        painterResource(Res.drawable.ic_call),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(20.dp)
@@ -2140,7 +2133,7 @@ private fun MessageItem(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = revealedIcon,
+                        painter = revealedIcon,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary.copy(alpha = iconAlpha),
                         modifier = Modifier.size(24.dp)
@@ -2299,12 +2292,13 @@ private fun MessageItem(
     }
 }
 
-private fun messageSwipeIcon(action: MessageSwipeAction): androidx.compose.ui.graphics.vector.ImageVector? =
+@Composable
+private fun messageSwipeIcon(action: MessageSwipeAction): androidx.compose.ui.graphics.painter.Painter? =
     when (action) {
-        MessageSwipeAction.Reply -> Icons.AutoMirrored.Filled.Reply
-        MessageSwipeAction.React -> Icons.Default.AddReaction
-        MessageSwipeAction.Pin -> Icons.Default.PushPin
-        MessageSwipeAction.Copy -> Icons.Default.ContentCopy
+        MessageSwipeAction.Reply -> painterResource(Res.drawable.ic_reply)
+        MessageSwipeAction.React -> painterResource(Res.drawable.ic_add_reaction)
+        MessageSwipeAction.Pin -> painterResource(Res.drawable.ic_push_pin)
+        MessageSwipeAction.Copy -> painterResource(Res.drawable.ic_content_copy)
         MessageSwipeAction.Nothing -> null
     }
 
@@ -2360,17 +2354,17 @@ private fun SelectionBottomBar(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             TextButton(onClick = onShare) {
-                Icon(Icons.Default.Share, null)
+                Icon(painterResource(Res.drawable.ic_share), null)
                 Spacer(Modifier.width(6.dp))
                 Text(stringResource(Res.string.share))
             }
             TextButton(onClick = onForward) {
-                Icon(Icons.AutoMirrored.Filled.Forward, null)
+                Icon(painterResource(Res.drawable.ic_forward), null)
                 Spacer(Modifier.width(6.dp))
                 Text(stringResource(Res.string.forward))
             }
             TextButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, null)
+                Icon(painterResource(Res.drawable.ic_delete), null)
                 Spacer(Modifier.width(6.dp))
                 Text(stringResource(Res.string.delete))
             }

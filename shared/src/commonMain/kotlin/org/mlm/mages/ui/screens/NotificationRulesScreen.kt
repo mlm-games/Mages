@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,9 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -46,7 +44,6 @@ import org.mlm.mages.notifications.NotificationSettingsRepository
 import org.mlm.mages.notifications.NotificationToggles
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun NotificationRulesScreen(
@@ -88,7 +85,7 @@ fun NotificationRulesScreen(
                 title = { Text(stringResource(Res.string.setting_notification_rules)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
+                        Icon(painterResource(Res.drawable.ic_arrow_back), contentDescription = stringResource(Res.string.back))
                     }
                 },
             )
@@ -267,7 +264,7 @@ fun NotificationRulesScreen(
                                 },
                             ) {
                                 Icon(
-                                    Icons.Default.Delete,
+                                    painterResource(Res.drawable.ic_delete),
                                     contentDescription = stringResource(Res.string.remove),
                                 )
                             }

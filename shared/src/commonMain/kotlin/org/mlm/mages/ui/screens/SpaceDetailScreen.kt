@@ -1,14 +1,12 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -46,7 +44,6 @@ import org.mlm.mages.ui.viewmodel.SpaceActionsViewModel
 import org.mlm.mages.ui.viewmodel.SpaceDetailViewModel
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 private const val DEFAULT_SECTION_KEY = "__default__"
 
@@ -96,7 +93,7 @@ fun SpaceDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
+                        Icon(painterResource(Res.drawable.ic_arrow_back), contentDescription = stringResource(Res.string.back))
                     }
                 },
                 actions = {
@@ -107,13 +104,13 @@ fun SpaceDetailScreen(
                         },
                         enabled = !state.isLoading
                     ) {
-                        Icon(Icons.Default.Refresh, stringResource(Res.string.refresh))
+                        Icon(painterResource(Res.drawable.ic_refresh), stringResource(Res.string.refresh))
                     }
                     IconButton(onClick = { showSectionsSheet = true }) {
-                        Icon(Icons.Default.Tune, stringResource(Res.string.sections))
+                        Icon(painterResource(Res.drawable.ic_tune), stringResource(Res.string.sections))
                     }
                     IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Default.Settings, stringResource(Res.string.settings))
+                        Icon(painterResource(Res.drawable.ic_settings), stringResource(Res.string.settings))
                     }
                 }
             )
@@ -125,7 +122,7 @@ fun SpaceDetailScreen(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ) {
-                    Icon(Icons.Default.Add, stringResource(Res.string.add))
+                    Icon(painterResource(Res.drawable.ic_add), stringResource(Res.string.add))
                     Spacer(Modifier.width(Spacing.sm))
                     Text(stringResource(Res.string.add))
                 }
@@ -157,7 +154,7 @@ fun SpaceDetailScreen(
 
                 state.hierarchy.isEmpty() -> {
                     EmptyState(
-                        icon = Icons.Default.FolderOpen,
+                        icon = painterResource(Res.drawable.ic_folder_open),
                         title = stringResource(Res.string.this_space_is_empty),
                         subtitle = stringResource(Res.string.add_rooms_or_subspaces_to_organize_your_conversations)
                     )
@@ -457,7 +454,7 @@ private fun SpaceChildItem(
                 )
                 IconButton(onClick = onMoreClick) {
                     Icon(
-                        Icons.Default.MoreVert,
+                        painterResource(Res.drawable.ic_more_vert),
                         stringResource(Res.string.move_to_section),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )

@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,9 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -42,7 +40,6 @@ import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun KnockRequestsSheet(
@@ -122,12 +119,12 @@ fun KnockRequestsSheet(
                                         declineTarget = request
                                         declineReason = ""
                                     }) {
-                                        Icon(Icons.Default.Close, contentDescription = null)
+                                        Icon(painterResource(Res.drawable.ic_close), contentDescription = null)
                                         Spacer(Modifier.width(Spacing.xs))
                                         Text(stringResource(Res.string.decline))
                                     }
                                     Button(onClick = { onAccept(request.userId) }) {
-                                        Icon(Icons.Default.Check, contentDescription = null)
+                                        Icon(painterResource(Res.drawable.ic_check), contentDescription = null)
                                         Spacer(Modifier.width(Spacing.xs))
                                         Text(stringResource(Res.string.accept))
                                     }

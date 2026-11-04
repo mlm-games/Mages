@@ -1,9 +1,7 @@
 package org.mlm.mages.ui.components
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,7 +12,6 @@ import org.mlm.mages.matrix.RoomPredecessorInfo
 import org.mlm.mages.matrix.RoomUpgradeInfo
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun RoomUpgradeBanner(
@@ -40,7 +37,7 @@ fun RoomUpgradeBanner(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        Icons.Default.Upgrade,
+                        painterResource(Res.drawable.ic_upgrade),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -61,7 +58,7 @@ fun RoomUpgradeBanner(
                     }
                     TextButton(onClick = { onNavigateToRoom(successor.roomId) }) {
                         Text(stringResource(Res.string.go_to_new_room))
-                        Icon(Icons.AutoMirrored.Filled.ArrowForward, null, Modifier.size(16.dp))
+                        Icon(painterResource(Res.drawable.ic_arrow_forward), null, Modifier.size(16.dp))
                     }
                 }
             }
@@ -79,7 +76,7 @@ fun RoomUpgradeBanner(
 //                    verticalAlignment = Alignment.CenterVertically
 //                ) {
 //                    Icon(
-//                        Icons.Default.History,
+//                        painterResource(Res.drawable.ic_history),
 //                        contentDescription = null,
 //                        tint = MaterialTheme.colorScheme.onSurfaceVariant
 //                    )

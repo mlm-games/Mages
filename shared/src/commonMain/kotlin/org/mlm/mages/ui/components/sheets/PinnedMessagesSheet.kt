@@ -1,13 +1,10 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Forward
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,7 +22,6 @@ import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatPinnedTimestamp
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun PinnedMessagesSheet(
@@ -55,7 +51,7 @@ fun PinnedMessagesSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.PushPin,
+                    painter = painterResource(Res.drawable.ic_push_pin),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
@@ -112,7 +108,7 @@ fun PinnedMessagesSheet(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Default.PushPin,
+                                painter = painterResource(Res.drawable.ic_push_pin),
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(18.dp)
@@ -166,7 +162,7 @@ fun PinnedMessagesSheet(
                             if (pinned.event?.isForwardable() != false) {
                                 IconButton(onClick = { onForward(pinned.eventId) }) {
                                     Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.Forward,
+                                        painter = painterResource(Res.drawable.ic_forward),
                                         contentDescription = stringResource(Res.string.forward)
                                     )
                                 }
@@ -175,7 +171,7 @@ fun PinnedMessagesSheet(
                             if (canUnpin) {
                                 IconButton(onClick = { onUnpin(pinned.eventId) }) {
                                     Icon(
-                                        imageVector = Icons.Default.Close,
+                                        painter = painterResource(Res.drawable.ic_close),
                                         contentDescription = stringResource(Res.string.unpin)
                                     )
                                 }

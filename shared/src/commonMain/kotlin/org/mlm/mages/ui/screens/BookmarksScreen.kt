@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -8,10 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,7 +38,6 @@ import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.snackbar.snackbarHost
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatPinnedTimestamp
-import mages.shared.generated.resources.Res
 
 @Composable
 fun BookmarksRoute(
@@ -91,7 +87,7 @@ fun BookmarksScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            painter = painterResource(Res.drawable.ic_arrow_back),
                             contentDescription = stringResource(Res.string.back),
                         )
                     }
@@ -102,7 +98,7 @@ fun BookmarksScreen(
     ) { padding ->
         if (bookmarks.isEmpty()) {
             EmptyState(
-                icon = Icons.Default.Bookmark,
+                icon = painterResource(Res.drawable.ic_bookmark),
                 title = stringResource(Res.string.bookmarks_empty_title),
                 subtitle = stringResource(Res.string.bookmarks_empty_subtitle),
                 modifier = Modifier.padding(padding)
@@ -175,7 +171,7 @@ private fun BookmarkItem(
         },
         leadingContent = {
             Icon(
-                Icons.Default.Bookmark,
+                painterResource(Res.drawable.ic_bookmark),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary
             )
@@ -183,7 +179,7 @@ private fun BookmarkItem(
         trailingContent = {
             IconButton(onClick = onRemove) {
                 Icon(
-                    Icons.Default.Delete,
+                    painterResource(Res.drawable.ic_delete),
                     contentDescription = stringResource(Res.string.remove_bookmark),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )

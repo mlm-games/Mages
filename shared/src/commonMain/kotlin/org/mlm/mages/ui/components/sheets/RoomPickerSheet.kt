@@ -1,11 +1,9 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ForwardToInbox
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,7 +18,6 @@ import org.mlm.mages.ui.ForwardableRoom
 import org.mlm.mages.ui.displayPreview
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun RoomPickerSheet(
@@ -64,7 +61,7 @@ fun RoomPickerSheet(
                 onValueChange = onSearchChange,
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text(stringResource(Res.string.search_rooms)) },
-                leadingIcon = { Icon(Icons.Default.Search, stringResource(Res.string.search)) },
+                leadingIcon = { Icon(painterResource(Res.drawable.ic_search), stringResource(Res.string.search)) },
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium,
                 colors = OutlinedTextFieldDefaults.colors(
@@ -87,7 +84,7 @@ fun RoomPickerSheet(
                     Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                Icons.Default.SearchOff,
+                                painterResource(Res.drawable.ic_search_off),
                                 contentDescription = null,
                                 modifier = Modifier.size(48.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -140,7 +137,7 @@ private fun ForwardPreview(event: MessageEvent) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                Icons.AutoMirrored.Filled.ForwardToInbox,
+                painterResource(Res.drawable.ic_forward_to_inbox),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp)
@@ -166,10 +163,10 @@ private fun ForwardPreview(event: MessageEvent) {
                     ) {
                         Icon(
                             when (att.kind) {
-                                AttachmentKind.Image -> Icons.Default.Image
-                                AttachmentKind.Video -> Icons.Default.Videocam
-                                AttachmentKind.Audio -> Icons.Default.AudioFile
-                                AttachmentKind.File -> Icons.Default.AttachFile
+                                AttachmentKind.Image -> painterResource(Res.drawable.ic_image)
+                                AttachmentKind.Video -> painterResource(Res.drawable.ic_videocam)
+                                AttachmentKind.Audio -> painterResource(Res.drawable.ic_audio_file)
+                                AttachmentKind.File -> painterResource(Res.drawable.ic_attach_file)
                             },
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
@@ -214,7 +211,7 @@ private fun RoomPickerItem(room: ForwardableRoom, onClick: () -> Unit) {
                 )
             }
 
-            Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(painterResource(Res.drawable.ic_chevron_right), null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

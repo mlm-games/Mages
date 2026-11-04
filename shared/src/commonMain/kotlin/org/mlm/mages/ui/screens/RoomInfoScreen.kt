@@ -1,19 +1,15 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
@@ -63,7 +59,6 @@ import org.mlm.mages.ui.components.viewer.rememberAvatarViewerState
 import org.mlm.mages.ui.util.dragToScrollIfEnabled
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 import androidx.compose.runtime.Composable
 
 @Composable
@@ -266,12 +261,12 @@ fun RoomInfoScreen(
                 title = { Text(stringResource(Res.string.room_info)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
+                        Icon(painterResource(Res.drawable.ic_arrow_back), contentDescription = stringResource(Res.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = onRefresh, enabled = !state.isLoading) {
-                        Icon(Icons.Default.Refresh, contentDescription = stringResource(Res.string.refresh))
+                        Icon(painterResource(Res.drawable.ic_refresh), contentDescription = stringResource(Res.string.refresh))
                     }
                 }
             )
@@ -332,7 +327,7 @@ fun RoomInfoScreen(
                         SettingsGroup {
                             if (state.dmPartnerVerified) {
                                 SettingsActionRow(
-                                    icon = Icons.Default.VerifiedUser,
+                                    icon = painterResource(Res.drawable.ic_verified_user),
                                     title = stringResource(Res.string.verified),
                                     iconTint = AppColors.Verified,
                                     enabled = false,
@@ -340,7 +335,7 @@ fun RoomInfoScreen(
                                 )
                             } else {
                                 SettingsActionRow(
-                                    icon = Icons.Default.VerifiedUser,
+                                    icon = painterResource(Res.drawable.ic_verified_user),
                                     title = stringResource(Res.string.verify_user),
                                     subtitle = dmPartner.displayName ?: dmPartner.userId,
                                     actionText = stringResource(Res.string.start),
@@ -386,7 +381,7 @@ fun RoomInfoScreen(
                     item {
                         SettingsGroup {
                             SettingsActionRow(
-                                icon = Icons.Default.DeleteOutline,
+                                icon = painterResource(Res.drawable.ic_delete),
                                 title = stringResource(Res.string.profile_remove_photo),
                                 enabled = !state.isSavingAvatar,
                                 onClick = onRemoveAvatar
@@ -416,7 +411,7 @@ fun RoomInfoScreen(
                 item {
                     SettingsGroup {
                         SettingsNavRow(
-                            icon = Icons.Default.People,
+                            icon = painterResource(Res.drawable.ic_group),
                             title = stringResource(Res.string.members_room),
                             subtitle = stringResource(Res.string.n_members, state.members.size),
                             onClick = onShowMembers
@@ -424,7 +419,7 @@ fun RoomInfoScreen(
                         if (state.canInvite) {
                             HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                             SettingsNavRow(
-                                icon = Icons.Default.HowToReg,
+                                icon = painterResource(Res.drawable.ic_how_to_reg),
                                 title = stringResource(Res.string.knock_requests),
                                 subtitle = if (state.knockRequests.isEmpty()) stringResource(Res.string.no_pending_requests) else "${state.knockRequests.size} pending",
                                 onClick = onShowKnockRequests
@@ -432,26 +427,26 @@ fun RoomInfoScreen(
                         }
                         HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                         SettingsNavRow(
-                            icon = Icons.Default.Notifications,
+                            icon = painterResource(Res.drawable.ic_notifications),
                             title = stringResource(Res.string.notifications),
                             subtitle = state.notificationMode?.displayName() ?: stringResource(Res.string.default),
                             onClick = onShowNotificationSettings
                         )
                         HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                         SettingsNavRow(
-                            icon = Icons.Default.Wallpaper,
+                            icon = painterResource(Res.drawable.ic_wallpaper),
                             title = stringResource(Res.string.setting_chat_wallpaper),
                             onClick = onOpenWallpaper
                         )
                         HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                         SettingsNavRow(
-                            icon = Icons.Default.PhotoLibrary,
+                            icon = painterResource(Res.drawable.ic_photo_library),
                             title = stringResource(Res.string.media_files),
                             onClick = onOpenMediaGallery
                         )
                         HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                         SettingsNavRow(
-                            icon = Icons.Default.CollectionsBookmark,
+                            icon = painterResource(Res.drawable.ic_collections_bookmark),
                             title = stringResource(Res.string.image_packs),
                             onClick = onOpenImagePackEditor
                         )
@@ -466,7 +461,7 @@ fun RoomInfoScreen(
                             state.profile.let { profile ->
                                 if (profile.isEncrypted) {
                                     SettingsInfoRow(
-                                        icon = Icons.Default.Lock,
+                                        icon = painterResource(Res.drawable.ic_lock),
                                         title = stringResource(Res.string.encryption),
                                         value = stringResource(Res.string.enabled)
                                     )
@@ -475,7 +470,7 @@ fun RoomInfoScreen(
                                     }
                                 } else if (state.canManageSettings) {
                                     SettingsActionRow(
-                                        icon = Icons.Default.LockOpen,
+                                        icon = painterResource(Res.drawable.ic_lock_open),
                                         title = stringResource(Res.string.encryption),
                                         subtitle = stringResource(Res.string.not_enabled),
                                         actionText = stringResource(Res.string.enable),
@@ -497,7 +492,7 @@ fun RoomInfoScreen(
                                         else -> null
                                     }
                                     SettingsDropdownRow(
-                                        icon = Icons.Default.MeetingRoom,
+                                        icon = painterResource(Res.drawable.ic_meeting_room),
                                         label = stringResource(Res.string.who_can_join),
                                         currentValue = state.joinRule,
                                         displayName = { it.displayName() },
@@ -515,7 +510,7 @@ fun RoomInfoScreen(
                                     )
                                     HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                                     SettingsDropdownRow(
-                                        icon = Icons.Default.History,
+                                        icon = painterResource(Res.drawable.ic_history),
                                         label = stringResource(Res.string.message_history),
                                         currentValue = state.historyVisibility,
                                         displayName = { it.displayName() },
@@ -531,7 +526,7 @@ fun RoomInfoScreen(
                                     )
                                     HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                                     SettingSwitchRow(
-                                        icon = Icons.Default.Public,
+                                        icon = painterResource(Res.drawable.ic_public),
                                         title = stringResource(Res.string.listed_in_room_directory),
                                         checked = state.directoryVisibility == RoomDirectoryVisibility.Public,
                                         enabled = !state.isAdminBusy,
@@ -550,27 +545,27 @@ fun RoomInfoScreen(
                         SettingsGroupHeader(stringResource(Res.string.permissions))
                         SettingsGroup {
                             SettingsInfoRow(
-                                icon = Icons.Default.Badge,
+                                icon = painterResource(Res.drawable.ic_badge),
                                 title = stringResource(Res.string.your_role),
                                 value = getRoleName(state.myPowerLevel)
                             )
                             HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                             SettingsNavRow(
-                                icon = Icons.Default.AdminPanelSettings,
+                                icon = painterResource(Res.drawable.ic_admin_panel_settings),
                                 title = stringResource(Res.string.room_permissions_section),
                                 subtitle = stringResource(Res.string.configure_what_each_role_can_do),
                                 onClick = { showGranularPermissionsSheet = true }
                             )
                             HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                             SettingsNavRow(
-                                icon = Icons.Default.Shield,
+                                icon = painterResource(Res.drawable.ic_shield),
                                 title = stringResource(Res.string.manage_roles),
                                 subtitle = stringResource(Res.string.change_member_power_levels),
                                 onClick = { showPowerLevelsSheet = true }
                             )
                             HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                             SettingsNavRow(
-                                icon = Icons.Default.Edit,
+                                icon = painterResource(Res.drawable.ic_edit),
                                 title = stringResource(Res.string.room_addresses),
                                 subtitle = state.profile?.canonicalAlias ?: stringResource(Res.string.no_primary_address),
                                 onClick = { showAliasesSheet = true }
@@ -584,7 +579,7 @@ fun RoomInfoScreen(
                         SettingsGroupHeader(stringResource(Res.string.shortcuts))
                         SettingsGroup {
                             SettingsActionRow(
-                                icon = Icons.Default.Home,
+                                icon = painterResource(Res.drawable.ic_home),
                                 title = stringResource(Res.string.add_to_home_screen),
                                 subtitle = stringResource(Res.string.create_a_launcher_shortcut_for_this_room),
                                 onClick = onAddHomeScreenShortcut
@@ -597,21 +592,21 @@ fun RoomInfoScreen(
                     SettingsGroupHeader(stringResource(Res.string.advanced))
                     SettingsGroup {
                         SettingsNavRow(
-                            icon = if (showAdvanced) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            icon = if (showAdvanced) painterResource(Res.drawable.ic_expand_less) else painterResource(Res.drawable.ic_expand_more),
                             title = if (showAdvanced) stringResource(Res.string.hide_advanced) else stringResource(Res.string.show_advanced),
                             onClick = { showAdvanced = !showAdvanced }
                         )
                         if (showAdvanced) {
                             HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                             SettingsInfoRow(
-                                icon = Icons.Default.Info,
+                                icon = painterResource(Res.drawable.ic_info),
                                 title = stringResource(Res.string.room_version),
                                 value = state.profile?.roomVersion ?: stringResource(Res.string.unknown)
                             )
                             state.profile?.roomId?.let { roomId ->
                                 HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                                 SettingsCopyRow(
-                                    icon = Icons.Default.Tag,
+                                    icon = painterResource(Res.drawable.ic_tag),
                                     title = stringResource(Res.string.room_id),
                                     value = roomId,
                                     onCopy = { clipboard.setText(AnnotatedString(roomId)) }
@@ -620,7 +615,7 @@ fun RoomInfoScreen(
                             state.profile?.canonicalAlias?.let { alias ->
                                 HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                                 SettingsCopyRow(
-                                    icon = Icons.Default.AlternateEmail,
+                                    icon = painterResource(Res.drawable.ic_alternate_email),
                                     title = stringResource(Res.string.primary_address),
                                     value = alias,
                                     onCopy = { clipboard.setText(AnnotatedString(alias)) }
@@ -630,7 +625,7 @@ fun RoomInfoScreen(
                             if (altCount > 0) {
                                 HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                                 SettingsInfoRow(
-                                    icon = Icons.Default.Link,
+                                    icon = painterResource(Res.drawable.ic_link),
                                     title = stringResource(Res.string.alternative_addresses),
                                     value = "$altCount"
                                 )
@@ -643,13 +638,13 @@ fun RoomInfoScreen(
                     Spacer(Modifier.height(Spacing.lg))
                     SettingsGroup {
                         SettingsDangerRow(
-                            icon = Icons.Default.Report,
+                            icon = painterResource(Res.drawable.ic_report),
                             title = stringResource(Res.string.report_this_room),
                             onClick = { showReportDialog = true }
                         )
                         HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                         SettingsDangerRow(
-                            icon = Icons.AutoMirrored.Filled.ExitToApp,
+                            icon = painterResource(Res.drawable.ic_exit_to_app),
                             title = if (state.profile?.isDm == true) stringResource(Res.string.end_conversation) else stringResource(Res.string.leave_room_action),
                             onClick = { showLeaveDialog = true },
                             enabled = !state.isSaving
@@ -665,7 +660,7 @@ fun RoomInfoScreen(
                 title = stringResource(Res.string.leave_room),
                 message = stringResource(Res.string.you_will_no_longer_receive_messages_from_this_room_you_can_rejoin_if_invited_again),
                 confirmText = stringResource(Res.string.leave),
-                icon = Icons.Default.Warning,
+                icon = painterResource(Res.drawable.ic_warning),
                 isDestructive = true,
                 isLoading = state.isSaving,
                 onConfirm = { showLeaveDialog = false; onLeave() },
@@ -819,7 +814,7 @@ private fun ProfileHeader(
                 overflow = TextOverflow.Ellipsis
             )
             if (profile.isEncrypted) {
-                Icon(Icons.Default.Lock, stringResource(Res.string.encrypted), Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                Icon(painterResource(Res.drawable.ic_lock), stringResource(Res.string.encrypted), Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
             }
         }
         profile.canonicalAlias?.let {
@@ -865,7 +860,7 @@ private fun QuickActions(
             label = { Text(stringResource(Res.string.favourite_room)) },
             leadingIcon = {
                 Icon(
-                    if (isFavourite) Icons.Default.Star else Icons.Default.StarBorder,
+                    if (isFavourite) painterResource(Res.drawable.ic_star) else painterResource(Res.drawable.ic_star),
                     null, Modifier.size(18.dp)
                 )
             },
@@ -877,7 +872,7 @@ private fun QuickActions(
             label = { Text(stringResource(Res.string.low_priority)) },
             leadingIcon = {
                 Icon(
-                    if (isLowPriority) Icons.Default.ArrowDownward else Icons.Default.Remove,
+                    if (isLowPriority) painterResource(Res.drawable.ic_arrow_downward) else painterResource(Res.drawable.ic_remove),
                     null, Modifier.size(18.dp)
                 )
             },
@@ -938,7 +933,7 @@ private fun SettingsGroupHeader(title: String) {
 /** A row that shows icon + title + subtitle and navigates on click. */
 @Composable
 private fun SettingsNavRow(
-    icon: ImageVector,
+    icon: Painter,
     title: String,
     subtitle: String? = null,
     onClick: () -> Unit
@@ -962,7 +957,7 @@ private fun SettingsNavRow(
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(painterResource(Res.drawable.ic_keyboard_arrow_right), null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -997,7 +992,7 @@ private fun SettingsAvatarNavRow(
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f)
             )
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(painterResource(Res.drawable.ic_keyboard_arrow_right), null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -1005,7 +1000,7 @@ private fun SettingsAvatarNavRow(
 /** A row showing a label and a static value. */
 @Composable
 private fun SettingsInfoRow(
-    icon: ImageVector,
+    icon: Painter,
     title: String,
     value: String
 ) {
@@ -1025,7 +1020,7 @@ private fun SettingsInfoRow(
 /** A row with a value that can be copied (tap anywhere to copy). */
 @Composable
 private fun SettingsCopyRow(
-    icon: ImageVector,
+    icon: Painter,
     title: String,
     value: String,
     onCopy: () -> Unit
@@ -1053,7 +1048,7 @@ private fun SettingsCopyRow(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            Icon(Icons.Default.ContentCopy, stringResource(Res.string.copy), tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+            Icon(painterResource(Res.drawable.ic_content_copy), stringResource(Res.string.copy), tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
         }
     }
 }
@@ -1063,7 +1058,7 @@ private fun SettingsCopyRow(
 /** A row with icon + title + optional subtitle, with an action button on the right. */
 @Composable
 private fun SettingsActionRow(
-    icon: ImageVector,
+    icon: Painter,
     title: String,
     subtitle: String? = null,
     actionText: String? = null,
@@ -1101,7 +1096,7 @@ private fun SettingsActionRow(
 /** A destructive action row (red tinted). */
 @Composable
 private fun SettingsDangerRow(
-    icon: ImageVector,
+    icon: Painter,
     title: String,
     onClick: () -> Unit,
     enabled: Boolean = true
@@ -1132,7 +1127,7 @@ private fun SettingsDangerRow(
                 modifier = Modifier.weight(1f)
             )
             Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight, null,
+                painterResource(Res.drawable.ic_keyboard_arrow_right), null,
                 tint = if (enabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.error.copy(alpha = 0.38f)
             )
         }
@@ -1142,7 +1137,7 @@ private fun SettingsDangerRow(
 /** Dropdown setting row with icon, matching the grouped list style. */
 @Composable
 private fun <T> SettingsDropdownRow(
-    icon: ImageVector,
+    icon: Painter,
     label: String,
     currentValue: T?,
     displayName: @Composable (T) -> String,
@@ -1183,7 +1178,7 @@ private fun <T> SettingsDropdownRow(
                 }
                 if (canChange) {
                     Icon(
-                        Icons.Default.ArrowDropDown,
+                        painterResource(Res.drawable.ic_arrow_drop_down),
                         null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1197,7 +1192,7 @@ private fun <T> SettingsDropdownRow(
                         text = { Text(text) },
                         onClick = { onSelect(value); expanded = false },
                         leadingIcon = if (currentValue == value) {
-                            { Icon(Icons.Default.Check, null) }
+                            { Icon(painterResource(Res.drawable.ic_check), null) }
                         } else null
                     )
                 }

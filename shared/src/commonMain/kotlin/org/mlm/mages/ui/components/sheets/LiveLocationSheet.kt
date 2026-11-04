@@ -1,10 +1,9 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,7 +17,6 @@ import mages.shared.generated.resources.*
 import org.mlm.mages.platform.LiveLocationProvider
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.live_location_active_desc
 import mages.shared.generated.resources.live_location_inactive_desc
 import mages.shared.generated.resources.live_location_web_foreground_desc
@@ -64,7 +62,7 @@ fun LiveLocationSheet(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                if (isCurrentlySharing) Icons.Default.LocationOn else Icons.Default.LocationSearching,
+                if (isCurrentlySharing) painterResource(Res.drawable.ic_location_on) else painterResource(Res.drawable.ic_location_searching),
                 contentDescription = null,
                 modifier = Modifier.size(56.dp),
                 tint = if (isCurrentlySharing) MaterialTheme.colorScheme.primary
@@ -136,7 +134,7 @@ fun LiveLocationSheet(
                             color = MaterialTheme.colorScheme.onError
                         )
                     } else {
-                        Icon(Icons.Default.Stop, null)
+                        Icon(painterResource(Res.drawable.ic_stop), null)
                     }
                     Spacer(Modifier.width(Spacing.sm))
                     Text(stringResource(Res.string.live_location_stop_sharing))
@@ -184,7 +182,7 @@ fun LiveLocationSheet(
                         Spacer(Modifier.width(Spacing.sm))
                         Text(stringResource(Res.string.live_location_starting))
                     } else {
-                        Icon(Icons.Default.Share, null)
+                        Icon(painterResource(Res.drawable.ic_share), null)
                         Spacer(Modifier.width(Spacing.sm))
                         Text(stringResource(Res.string.live_location_start_sharing))
                     }

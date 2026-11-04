@@ -43,8 +43,6 @@ import org.mlm.mages.ui.util.nowMs
 import androidx.compose.runtime.Composable
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.StringResource
-import mages.shared.generated.resources.Res
-
 
 data class LoginUiState(
     val homeserver: String = "matrix.org",

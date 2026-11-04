@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,9 +14,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -61,7 +59,6 @@ import org.mlm.mages.ui.components.wallpaper.WallpaperBackground
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.wallpaper.WallpaperConfig
 import org.mlm.mages.wallpaper.WallpaperStore
-import mages.shared.generated.resources.Res
 
 /** Above this the upload is refused rather than read into memory and sent. */
 private const val MAX_WALLPAPER_BYTES = 8L * 1024 * 1024
@@ -178,7 +175,7 @@ fun WallpaperScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            painter = painterResource(Res.drawable.ic_arrow_back),
                             contentDescription = stringResource(Res.string.back),
                         )
                     }
@@ -292,7 +289,7 @@ fun WallpaperScreen(
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.Delete, contentDescription = null)
+                    Icon(painterResource(Res.drawable.ic_delete), contentDescription = null)
                     Spacer(Modifier.width(Spacing.sm))
                     Text(stringResource(Res.string.wallpaper_remove))
                 }

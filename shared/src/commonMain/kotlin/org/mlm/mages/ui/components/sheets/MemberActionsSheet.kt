@@ -1,18 +1,15 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.font.FontWeight
 import mages.shared.generated.resources.*
 import org.koin.compose.koinInject
@@ -26,7 +23,6 @@ import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 import kotlinx.coroutines.launch
 import org.mlm.mages.nav.matrixToUserLink
 import org.mlm.mages.platform.ShareContent
@@ -121,7 +117,7 @@ fun MemberActionsSheet(
             // Actions
             if (dmAction.presentation != ActionPresentationUi.Hidden) {
                 ActionItem(
-                    icon = Icons.AutoMirrored.Filled.Chat,
+                    icon = painterResource(Res.drawable.ic_chat),
                     title = stringResource(Res.string.send_direct_message),
                     subtitle = if (dmAction.presentation == ActionPresentationUi.Disabled) {
                         dmAction.reason
@@ -135,7 +131,7 @@ fun MemberActionsSheet(
 
             if (onVerify != null) {
                 ActionItem(
-                    icon = Icons.Default.VerifiedUser,
+                    icon = painterResource(Res.drawable.ic_verified_user),
                     title = stringResource(Res.string.verify_user),
                     subtitle = stringResource(Res.string.start_an_emoji_verification_with_them),
                     onClick = { onVerify(); onDismiss() }
@@ -143,13 +139,13 @@ fun MemberActionsSheet(
             } else if (verified) {
                 ListItem(
                     headlineContent = { Text(stringResource(Res.string.verified), color = AppColors.Verified) },
-                    leadingContent = { Icon(Icons.Default.VerifiedUser, null, tint = AppColors.Verified) }
+                    leadingContent = { Icon(painterResource(Res.drawable.ic_verified_user), null, tint = AppColors.Verified) }
                 )
             }
 
             if (profileLink != null) {
                 ActionItem(
-                    icon = Icons.Default.Share,
+                    icon = painterResource(Res.drawable.ic_share),
                     title = stringResource(Res.string.share_profile),
                     subtitle = profileLink,
                     onClick = {
@@ -166,7 +162,7 @@ fun MemberActionsSheet(
             }
 
             ActionItem(
-                icon = Icons.Default.Block,
+                icon = painterResource(Res.drawable.ic_block),
                 title = stringResource(Res.string.ignore_user),
                 subtitle = stringResource(Res.string.hide_their_messages_everywhere),
                 onClick = { onIgnore(); onDismiss() }
@@ -184,7 +180,7 @@ fun MemberActionsSheet(
 
                 if (isBanned) {
                     ActionItem(
-                        icon = Icons.Default.RemoveCircle,
+                        icon = painterResource(Res.drawable.ic_cancel),
                         title = stringResource(Res.string.unban_user),
                         subtitle = unbanAction.takeIf { it.presentation == ActionPresentationUi.Disabled }?.reason ?: stringResource(Res.string.allow_them_to_rejoin),
                         enabled = unbanAction.isEnabled,
@@ -193,7 +189,7 @@ fun MemberActionsSheet(
                 } else {
                     if (kickAction.presentation != ActionPresentationUi.Hidden) {
                         ActionItem(
-                            icon = Icons.AutoMirrored.Filled.ExitToApp,
+                            icon = painterResource(Res.drawable.ic_exit_to_app),
                             title = stringResource(Res.string.remove_from_room),
                             subtitle = kickAction.takeIf { it.presentation == ActionPresentationUi.Disabled }?.reason ?: stringResource(Res.string.kick_user_from_this_room),
                             enabled = kickAction.isEnabled,
@@ -204,7 +200,7 @@ fun MemberActionsSheet(
 
                     if (banAction.presentation != ActionPresentationUi.Hidden) {
                         ActionItem(
-                            icon = Icons.Default.Block,
+                            icon = painterResource(Res.drawable.ic_block),
                             title = stringResource(Res.string.ban_from_room),
                             subtitle = banAction.takeIf { it.presentation == ActionPresentationUi.Disabled }?.reason ?: stringResource(Res.string.permanently_remove_and_prevent_rejoining),
                             enabled = banAction.isEnabled,
@@ -251,7 +247,7 @@ fun MemberActionsSheet(
 
 @Composable
 private fun ActionItem(
-    icon: ImageVector,
+    icon: Painter,
     title: String,
     subtitle: String? = null,
     tint: Color = MaterialTheme.colorScheme.onSurface,

@@ -1,13 +1,11 @@
 package org.mlm.mages.ui.components.voice
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -30,7 +28,6 @@ import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.theme.messageBubbleColors
 import org.mlm.mages.ui.util.formatDuration
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 private val SPEED_OPTIONS = listOf(1f, 1.5f, 2f)
 
@@ -108,7 +105,7 @@ fun VoiceMessageBubble(
                     )
                 } else {
                     Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        painter = if (isPlaying) painterResource(Res.drawable.ic_pause) else painterResource(Res.drawable.ic_play_arrow),
                         contentDescription = if (isPlaying) stringResource(Res.string.pause) else stringResource(Res.string.play),
                         tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(24.dp)

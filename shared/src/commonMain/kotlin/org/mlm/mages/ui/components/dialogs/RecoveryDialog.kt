@@ -1,9 +1,8 @@
 package org.mlm.mages.ui.components.dialogs
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Key
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -13,7 +12,6 @@ import mages.shared.generated.resources.*
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun RecoveryDialog(keyValue: String, onChange: (String) -> Unit, onCancel: () -> Unit, onConfirm: () -> Unit) {
@@ -22,7 +20,7 @@ fun RecoveryDialog(keyValue: String, onChange: (String) -> Unit, onCancel: () ->
         icon = {
             Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = CircleShape, modifier = Modifier.size(Sizes.avatarMedium)) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Key, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                    Icon(painterResource(Res.drawable.ic_key), null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
                 }
             }
         },

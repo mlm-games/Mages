@@ -1,20 +1,18 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun RoomActionsSheet(
@@ -40,20 +38,20 @@ fun RoomActionsSheet(
             HorizontalDivider(Modifier.padding(horizontal = Spacing.lg))
             Spacer(Modifier.height(Spacing.sm))
 
-            ActionItem(Icons.Default.Bookmark, stringResource(Res.string.mark_read)) {
+            ActionItem(painterResource(Res.drawable.ic_bookmark), stringResource(Res.string.mark_read)) {
                 onMarkRead()
                 onDismiss()
             }
 
             // ActionItem(
-            //     Icons.Default.Notifications,
+            //     painterResource(Res.drawable.ic_notifications),
             //     stringResource(Res.string.mute)
             // ) {
             //     onDismiss()
             // }
 
             ActionItem(
-                if (isFavourite) Icons.Filled.Star else Icons.Default.Star,
+                if (isFavourite) painterResource(Res.drawable.ic_star) else painterResource(Res.drawable.ic_star),
                 if (isFavourite) stringResource(Res.string.remove_from_favorites) else stringResource(Res.string.add_to_favorites)
             ) {
                 onToggleFavourite()
@@ -61,14 +59,14 @@ fun RoomActionsSheet(
             }
 
             ActionItem(
-                if (isLowPriority) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                if (isLowPriority) painterResource(Res.drawable.ic_arrow_upward) else painterResource(Res.drawable.ic_arrow_downward),
                 if (isLowPriority) stringResource(Res.string.remove_from_low_priority) else stringResource(Res.string.low_priority)
             ) {
                 onToggleLowPriority()
                 onDismiss()
             }
 
-            ActionItem(Icons.Default.Checklist, stringResource(Res.string.select)) {
+            ActionItem(painterResource(Res.drawable.ic_checklist), stringResource(Res.string.select)) {
                 onDismiss()
                 onSelect()
             }
@@ -102,7 +100,7 @@ private fun RoomPreview(roomName: String, roomId: String) {
 
 @Composable
 private fun ActionItem(
-    icon: ImageVector,
+    icon: Painter,
     text: String,
     onClick: () -> Unit
 ) {
@@ -115,7 +113,7 @@ private fun ActionItem(
             headlineContent = { Text(text) },
             leadingContent = {
                 Icon(
-                    imageVector = icon,
+                    painter = icon,
                     contentDescription = null,
                     modifier = Modifier.size(24.dp)
                 )

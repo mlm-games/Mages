@@ -1,5 +1,6 @@
 package org.mlm.mages.ui
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,9 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -30,7 +28,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import mages.shared.generated.resources.*
-import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.answer
 import mages.shared.generated.resources.decline
 import mages.shared.generated.resources.incoming_call
@@ -123,7 +120,7 @@ fun IncomingCallOverlay(
                         modifier = Modifier.size(44.dp)
                     ) {
                         Icon(
-                            Icons.Default.CallEnd,
+                            painterResource(Res.drawable.ic_call_end),
                             contentDescription = stringResource(Res.string.decline),
                             modifier = Modifier.size(22.dp)
                         )
@@ -137,7 +134,7 @@ fun IncomingCallOverlay(
                         modifier = Modifier.size(44.dp)
                     ) {
                         Icon(
-                            Icons.Default.Call,
+                            painterResource(Res.drawable.ic_call),
                             contentDescription = stringResource(Res.string.answer),
                             modifier = Modifier.size(22.dp)
                         )

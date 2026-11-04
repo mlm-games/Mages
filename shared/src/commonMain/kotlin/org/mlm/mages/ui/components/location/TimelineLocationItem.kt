@@ -1,13 +1,12 @@
 package org.mlm.mages.ui.components.location
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -29,7 +28,6 @@ import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatTime
 import org.mlm.mages.ui.util.secondaryClick
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.timeline_shared_live_location
 import mages.shared.generated.resources.timeline_shared_location
 
@@ -139,7 +137,7 @@ internal fun TimelineLocationItem(
                         modifier = Modifier.size(32.dp),
                     ) {
                         Icon(
-                            Icons.Default.Close,
+                            painterResource(Res.drawable.ic_close),
                             contentDescription = stringResource(Res.string.stop_sharing),
                             modifier = Modifier.size(18.dp),
                         )

@@ -5,7 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.ui.theme.Spacing
@@ -14,7 +14,7 @@ import org.mlm.mages.ui.theme.Spacing
 fun SectionHeader(
     title: String,
     count: Int? = null,
-    icon: ImageVector? = null,
+    icon: Painter? = null,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -26,7 +26,7 @@ fun SectionHeader(
     ) {
         icon?.let {
             Icon(
-                imageVector = it,
+                painter = it,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.primary

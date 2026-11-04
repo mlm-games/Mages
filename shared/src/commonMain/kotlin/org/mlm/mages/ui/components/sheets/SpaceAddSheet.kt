@@ -1,10 +1,7 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddComment
-import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -41,7 +38,7 @@ fun SpaceAddSheet(
             )
 
             ActionListItem(
-                icon = Icons.Default.AddComment,
+                icon = painterResource(Res.drawable.ic_add_comment),
                 label = stringResource(Res.string.new_room_in_this_space),
                 description = if (canManageChildren) stringResource(Res.string.create_a_room_inside_this_space)
                 else spaceChildReason,
@@ -50,7 +47,7 @@ fun SpaceAddSheet(
             )
 
             ActionListItem(
-                icon = Icons.Default.Add,
+                icon = painterResource(Res.drawable.ic_add),
                 label = stringResource(Res.string.add_rooms),
                 description = if (canManageChildren) stringResource(Res.string.add_existing_rooms_to_this_space)
                 else spaceChildReason,
@@ -59,7 +56,7 @@ fun SpaceAddSheet(
             )
 
             ActionListItem(
-                icon = Icons.Default.PersonAdd,
+                icon = painterResource(Res.drawable.ic_person_add),
                 label = stringResource(Res.string.invite_users),
                 description = if (canInvite) stringResource(Res.string.invite_users_to_this_space)
                 else inviteReason,

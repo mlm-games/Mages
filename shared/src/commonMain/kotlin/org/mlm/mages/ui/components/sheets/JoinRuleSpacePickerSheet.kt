@@ -1,11 +1,9 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Workspaces
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,7 +14,6 @@ import org.mlm.mages.matrix.SpaceInfo
 import org.mlm.mages.ui.theme.Spacing
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun JoinRuleSpacePickerSheet(
@@ -95,7 +92,7 @@ fun JoinRuleSpacePickerSheet(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Icon(
-                                    Icons.Default.Workspaces,
+                                    painterResource(Res.drawable.ic_workspaces),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
                                 )
@@ -114,7 +111,7 @@ fun JoinRuleSpacePickerSheet(
                                 }
                                 if (isSelected) {
                                     Icon(
-                                        Icons.Default.Check,
+                                        painterResource(Res.drawable.ic_check),
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
                                     )

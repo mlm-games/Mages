@@ -1,14 +1,11 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,7 +46,6 @@ import org.mlm.mages.ui.viewmodel.SpaceActionsViewModel
 import org.mlm.mages.ui.viewmodel.SpaceSettingsViewModel
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 import androidx.compose.runtime.Composable
 
 @Composable
@@ -104,7 +100,7 @@ fun SpaceSettingsScreen(
                 title = { Text(stringResource(Res.string.space_settings), fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
+                        Icon(painterResource(Res.drawable.ic_arrow_back), contentDescription = stringResource(Res.string.back))
                     }
                 },
                 actions = {
@@ -115,7 +111,7 @@ fun SpaceSettingsScreen(
                         },
                         enabled = !state.isLoading
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = stringResource(Res.string.refresh))
+                        Icon(painterResource(Res.drawable.ic_refresh), contentDescription = stringResource(Res.string.refresh))
                     }
                 }
             )
@@ -164,7 +160,7 @@ fun SpaceSettingsScreen(
                             headlineContent = { Text(stringResource(Res.string.edit_details)) },
                             supportingContent = { Text(stringResource(Res.string.name_topic_and_address)) },
                             leadingContent = {
-                                Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.primary)
+                                Icon(painterResource(Res.drawable.ic_edit), null, tint = MaterialTheme.colorScheme.primary)
                             },
                             modifier = Modifier.clickable(enabled = !state.isSaving) {
                                 viewModel.showEditDetailsDialog()
@@ -179,7 +175,7 @@ fun SpaceSettingsScreen(
                             headlineContent = { Text(stringResource(Res.string.profile_remove_photo)) },
                             leadingContent = {
                                 Icon(
-                                    Icons.Default.DeleteOutline,
+                                    painterResource(Res.drawable.ic_delete),
                                     null,
                                     tint = MaterialTheme.colorScheme.error
                                 )
@@ -196,7 +192,7 @@ fun SpaceSettingsScreen(
                         headlineContent = { Text(stringResource(Res.string.people)) },
                         supportingContent = { Text(stringResource(Res.string.n_members, state.members.size)) },
                         leadingContent = {
-                            Icon(Icons.Default.Group, null, tint = MaterialTheme.colorScheme.primary)
+                            Icon(painterResource(Res.drawable.ic_group), null, tint = MaterialTheme.colorScheme.primary)
                         },
                         modifier = Modifier.clickable { viewModel.showPeople() }
                     )
@@ -210,7 +206,7 @@ fun SpaceSettingsScreen(
                         },
                         leadingContent = {
                             Icon(
-                                Icons.Default.Notifications,
+                                painterResource(Res.drawable.ic_notifications),
                                 null,
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -225,7 +221,7 @@ fun SpaceSettingsScreen(
                             headlineContent = { Text(stringResource(Res.string.roles_and_permissions)) },
                             supportingContent = { Text(stringResource(Res.string.who_can_change_what)) },
                             leadingContent = {
-                                Icon(Icons.Default.AdminPanelSettings, null, tint = MaterialTheme.colorScheme.primary)
+                                Icon(painterResource(Res.drawable.ic_admin_panel_settings), null, tint = MaterialTheme.colorScheme.primary)
                             },
                             modifier = Modifier.clickable(enabled = !state.isSaving) {
                                 viewModel.showRoles()
@@ -248,7 +244,7 @@ fun SpaceSettingsScreen(
                             )
                         },
                         leadingContent = {
-                            Icon(Icons.Default.AddComment, null, tint = MaterialTheme.colorScheme.primary)
+                            Icon(painterResource(Res.drawable.ic_add_comment), null, tint = MaterialTheme.colorScheme.primary)
                         },
                         modifier = Modifier
                             .alpha(if (actionsState.canManageChildren) 1f else 0.5f)
@@ -273,7 +269,7 @@ fun SpaceSettingsScreen(
                         },
                         leadingContent = {
                             Icon(
-                                Icons.Default.Add,
+                                painterResource(Res.drawable.ic_add),
                                 null,
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -301,7 +297,7 @@ fun SpaceSettingsScreen(
                         },
                         leadingContent = {
                             Icon(
-                                Icons.Default.PersonAdd,
+                                painterResource(Res.drawable.ic_person_add),
                                 null,
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -321,7 +317,7 @@ fun SpaceSettingsScreen(
                         },
                         leadingContent = {
                             Icon(
-                                Icons.AutoMirrored.Filled.ExitToApp,
+                                painterResource(Res.drawable.ic_exit_to_app),
                                 null,
                                 tint = MaterialTheme.colorScheme.error
                             )
@@ -706,7 +702,7 @@ private fun ChildRoomItem(
         trailingContent = {
             IconButton(onClick = onRemove, enabled = !isRemoving) {
                 Icon(
-                    Icons.Default.RemoveCircleOutline,
+                    painterResource(Res.drawable.ic_cancel),
                     stringResource(Res.string.remove),
                     tint = MaterialTheme.colorScheme.error
                 )

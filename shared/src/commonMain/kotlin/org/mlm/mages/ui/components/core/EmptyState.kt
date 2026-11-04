@@ -7,14 +7,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.style.TextAlign
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 
 @Composable
 fun EmptyState(
-    icon: ImageVector,
+    icon: Painter,
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
@@ -23,7 +23,7 @@ fun EmptyState(
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
-                imageVector = icon,
+                painter = icon,
                 contentDescription = null,
                 modifier = Modifier.size(Sizes.avatarLarge),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)

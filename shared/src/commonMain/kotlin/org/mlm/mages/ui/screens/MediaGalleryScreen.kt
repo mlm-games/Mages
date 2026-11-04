@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -11,19 +12,13 @@ import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Forward
-import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
@@ -62,8 +57,6 @@ import org.mlm.mages.ui.animation.LocalReduceMotion
 import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.snackbar.snackbarHost
 import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
-import mages.shared.generated.resources.Res
-
 
 @Composable
 fun MediaGalleryScreen(
@@ -134,7 +127,7 @@ fun MediaGalleryScreen(
                     title = { Text(stringResource(Res.string.media_files)) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
+                            Icon(painterResource(Res.drawable.ic_arrow_back), contentDescription = stringResource(Res.string.back))
                         }
                     }
                 )
@@ -294,12 +287,12 @@ fun SelectionTopBar(
         title = { Text(stringResource(Res.string.n_selected, selectedCount)) },
         navigationIcon = {
             IconButton(onClick = onClearSelection) {
-                Icon(Icons.Default.Close, stringResource(Res.string.clear_selection))
+                Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.clear_selection))
             }
         },
         actions = {
             IconButton(onClick = onSelectAll) {
-                Icon(Icons.Default.SelectAll, stringResource(Res.string.select_all))
+                Icon(painterResource(Res.drawable.ic_select_all), stringResource(Res.string.select_all))
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
@@ -326,19 +319,19 @@ private fun SelectionBottomBar(
         ) {
             TextButton(onClick = onShare) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Share, null)
+                    Icon(painterResource(Res.drawable.ic_share), null)
                     Text(stringResource(Res.string.share), style = MaterialTheme.typography.labelSmall)
                 }
             }
             TextButton(onClick = onForward) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.AutoMirrored.Filled.Forward, null)
+                    Icon(painterResource(Res.drawable.ic_forward), null)
                     Text(stringResource(Res.string.forward), style = MaterialTheme.typography.labelSmall)
                 }
             }
             TextButton(onClick = onDownload) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Download, null)
+                    Icon(painterResource(Res.drawable.ic_download), null)
                     Text(stringResource(Res.string.download), style = MaterialTheme.typography.labelSmall)
                 }
             }
@@ -395,7 +388,7 @@ fun MediaGrid(
 
     if (galleryItems.isEmpty()) {
         if (hitStart) {
-            EmptyTabContent(icon = Icons.Default.Image, text = stringResource(Res.string.no_media_found))
+            EmptyTabContent(icon = painterResource(Res.drawable.ic_image), text = stringResource(Res.string.no_media_found))
         } else {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -537,8 +530,8 @@ private fun MediaGridItem(
                     )
                 } else if (blurhashImage == null) {
                     Icon(
-                        imageVector = if (event.attachment?.kind == AttachmentKind.Video)
-                            Icons.Default.VideoFile else Icons.Default.Image,
+                        painter = if (event.attachment?.kind == AttachmentKind.Video)
+                            painterResource(Res.drawable.ic_video_file) else painterResource(Res.drawable.ic_image),
                         contentDescription = null,
                         modifier = Modifier.size(32.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -558,7 +551,7 @@ private fun MediaGridItem(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Default.PlayArrow,
+                        painter = painterResource(Res.drawable.ic_play_arrow),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.surface,
                         modifier = Modifier.size(20.dp)
@@ -604,7 +597,7 @@ private fun MediaGridItem(
                 Box(contentAlignment = Alignment.Center) {
                     if (isSelected) {
                         Icon(
-                            imageVector = Icons.Default.Check,
+                            painter = painterResource(Res.drawable.ic_check),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(16.dp)
@@ -662,7 +655,7 @@ private fun FilesList(
 
     if (items.isEmpty()) {
         if (hitStart) {
-            EmptyTabContent(icon = Icons.Default.Folder, text = stringResource(Res.string.no_files_found))
+            EmptyTabContent(icon = painterResource(Res.drawable.ic_folder), text = stringResource(Res.string.no_files_found))
         } else {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -753,7 +746,7 @@ private fun FileListItem(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
+                        painter = painterResource(Res.drawable.ic_description),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -788,7 +781,7 @@ private fun FileListItem(
 
             if (!isSelectionMode) {
                 Icon(
-                    imageVector = Icons.Default.Download,
+                    painter = painterResource(Res.drawable.ic_download),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
@@ -832,7 +825,7 @@ private fun LinksList(
 
     if (links.isEmpty()) {
         if (hitStart) {
-            EmptyTabContent(icon = Icons.Default.Link, text = stringResource(Res.string.no_links_found))
+            EmptyTabContent(icon = painterResource(Res.drawable.ic_link), text = stringResource(Res.string.no_links_found))
         } else {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -888,7 +881,7 @@ private fun LinkListItem(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Default.Link,
+                        painter = painterResource(Res.drawable.ic_link),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onTertiaryContainer
                     )
@@ -911,7 +904,7 @@ private fun LinkListItem(
             }
 
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                painter = painterResource(Res.drawable.ic_open_in_new),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp)
@@ -938,7 +931,7 @@ private fun BlockedPreviewsBanner(onLoad: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            Icon(Icons.Default.VisibilityOff, contentDescription = null)
+            Icon(painterResource(Res.drawable.ic_visibility_off), contentDescription = null)
             Column(Modifier.weight(1f)) {
                 Text(
                     text = stringResource(Res.string.media_previews_blocked),
@@ -958,7 +951,7 @@ private fun BlockedPreviewsBanner(onLoad: () -> Unit) {
 
 @Composable
 private fun EmptyTabContent(
-    icon: ImageVector,
+    icon: Painter,
     text: String
 ) {
     Box(
@@ -967,7 +960,7 @@ private fun EmptyTabContent(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
-                imageVector = icon,
+                painter = icon,
                 contentDescription = null,
                 modifier = Modifier.size(48.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant

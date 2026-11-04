@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.components.message
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,11 +9,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.CallMissed
-import androidx.compose.material.icons.filled.Videocam
-import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -30,6 +26,10 @@ import mages.shared.generated.resources.video_call_declined
 import mages.shared.generated.resources.call_declined
 import mages.shared.generated.resources.voice_call
 import mages.shared.generated.resources.video_call
+import mages.shared.generated.resources.ic_call
+import mages.shared.generated.resources.ic_call_missed
+import mages.shared.generated.resources.ic_videocam
+import mages.shared.generated.resources.ic_videocam_off
 import org.mlm.mages.matrix.EventType
 import org.mlm.mages.ui.components.timeline.TimelineContent
 import org.mlm.mages.ui.theme.Spacing
@@ -41,10 +41,10 @@ private fun CallNotificationBody(event: org.mlm.mages.MessageEvent) {
     val isVoice = event.callType == "audio"
     val declined = event.callDeclined
     val icon = when {
-        declined && isVideo -> Icons.Default.VideocamOff
-        declined -> Icons.Default.CallMissed
-        isVideo -> Icons.Default.Videocam
-        else -> Icons.Default.Call
+        declined && isVideo -> painterResource(Res.drawable.ic_videocam_off)
+        declined -> painterResource(Res.drawable.ic_call_missed)
+        isVideo -> painterResource(Res.drawable.ic_videocam)
+        else -> painterResource(Res.drawable.ic_call)
     }
     val tint = if (declined) {
         MaterialTheme.colorScheme.error
@@ -65,7 +65,7 @@ private fun CallNotificationBody(event: org.mlm.mages.MessageEvent) {
         modifier = Modifier.padding(horizontal = Spacing.sm, vertical = 2.dp)
     ) {
         Icon(
-            imageVector = icon,
+            painter = icon,
             contentDescription = null,
             tint = tint,
             modifier = Modifier.size(16.dp),

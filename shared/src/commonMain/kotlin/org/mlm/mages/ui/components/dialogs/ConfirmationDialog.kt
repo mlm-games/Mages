@@ -4,11 +4,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun ConfirmationDialog(
@@ -16,7 +15,7 @@ fun ConfirmationDialog(
     message: String,
     confirmText: String = stringResource(Res.string.confirm),
     cancelText: String = stringResource(Res.string.cancel),
-    icon: ImageVector? = null,
+    icon: Painter? = null,
     isDestructive: Boolean = false,
     isLoading: Boolean = false,
     onConfirm: () -> Unit,

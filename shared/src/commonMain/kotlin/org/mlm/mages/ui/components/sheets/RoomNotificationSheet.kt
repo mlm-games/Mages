@@ -1,21 +1,19 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
 import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun RoomNotificationSheet(
@@ -76,7 +74,7 @@ fun RoomNotificationSheet(
                 }
             } else {
                 NotificationOption(
-                    icon = Icons.Default.Notifications,
+                    icon = painterResource(Res.drawable.ic_notifications),
                     title = stringResource(Res.string.all_messages),
                     subtitle = stringResource(Res.string.get_notified_for_every_message),
                     isSelected = currentMode == RoomNotificationMode.AllMessages,
@@ -84,7 +82,7 @@ fun RoomNotificationSheet(
                 )
 
                 NotificationOption(
-                    icon = Icons.Default.AlternateEmail,
+                    icon = painterResource(Res.drawable.ic_alternate_email),
                     title = stringResource(Res.string.mentions_and_keywords_only),
                     subtitle = stringResource(Res.string.only_notify_when_mentioned_or_keywords_match),
                     isSelected = currentMode == RoomNotificationMode.MentionsAndKeywordsOnly,
@@ -92,7 +90,7 @@ fun RoomNotificationSheet(
                 )
 
                 NotificationOption(
-                    icon = Icons.Default.NotificationsOff,
+                    icon = painterResource(Res.drawable.ic_notifications_off),
                     title = stringResource(Res.string.mute),
                     subtitle = stringResource(
                         if (isSpace) Res.string.no_notifications_from_this_space
@@ -108,7 +106,7 @@ fun RoomNotificationSheet(
 
 @Composable
 private fun NotificationOption(
-    icon: ImageVector,
+    icon: Painter,
     title: String,
     subtitle: String,
     isSelected: Boolean,
@@ -133,7 +131,7 @@ private fun NotificationOption(
         trailingContent = {
             if (isSelected) {
                 Icon(
-                    Icons.Default.Check,
+                    painterResource(Res.drawable.ic_check),
                     stringResource(Res.string.selected),
                     tint = MaterialTheme.colorScheme.primary
                 )

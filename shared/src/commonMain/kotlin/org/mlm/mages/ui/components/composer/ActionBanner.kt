@@ -1,12 +1,9 @@
 package org.mlm.mages.ui.components.composer
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Reply
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -22,7 +19,6 @@ import org.mlm.mages.ui.components.message.ReplyPreview
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.toReplyPreview
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun ActionBanner(
@@ -66,7 +62,7 @@ fun ActionBanner(
                 Spacer(Modifier.width(Spacing.md))
 
                 Icon(
-                    if (isEditing) Icons.Default.Edit else Icons.AutoMirrored.Filled.Reply,
+                    if (isEditing) painterResource(Res.drawable.ic_edit) else painterResource(Res.drawable.ic_reply),
                     contentDescription = null,
                     tint = if (isEditing) {
                         MaterialTheme.colorScheme.onTertiaryContainer
@@ -107,7 +103,7 @@ fun ActionBanner(
                     modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
-                        Icons.Default.Close,
+                        painterResource(Res.drawable.ic_close),
                         if (isEditing) stringResource(Res.string.cancel_edit) else stringResource(Res.string.cancel_reply),
                         modifier = Modifier.size(18.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant

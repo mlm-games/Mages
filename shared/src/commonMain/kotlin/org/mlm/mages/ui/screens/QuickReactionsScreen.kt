@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,14 +19,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AddReaction
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -68,6 +61,13 @@ import mages.shared.generated.resources.reset
 import mages.shared.generated.resources.setting_quick_reactions
 import mages.shared.generated.resources.setting_quick_reactions_description
 import mages.shared.generated.resources.sticker_pack_emoticon
+import mages.shared.generated.resources.ic_add_reaction
+import mages.shared.generated.resources.ic_arrow_back
+import mages.shared.generated.resources.ic_arrow_downward
+import mages.shared.generated.resources.ic_arrow_upward
+import mages.shared.generated.resources.ic_delete
+import mages.shared.generated.resources.ic_image
+import mages.shared.generated.resources.ic_more_vert
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -144,7 +144,7 @@ fun QuickReactionsScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            painter = painterResource(Res.drawable.ic_arrow_back),
                             contentDescription = stringResource(Res.string.back),
                         )
                     }
@@ -227,7 +227,7 @@ fun QuickReactionsScreen(
                         onClick = { showEmojiPicker = true },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Icon(Icons.Default.AddReaction, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(painterResource(Res.drawable.ic_add_reaction), contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(Spacing.sm))
                         Text(stringResource(Res.string.sticker_pack_emoticon))
                     }
@@ -236,7 +236,7 @@ fun QuickReactionsScreen(
                         enabled = !packsLoading,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(painterResource(Res.drawable.ic_image), contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(Spacing.sm))
                         Text(stringResource(Res.string.quick_reactions_from_packs))
                     }
@@ -349,7 +349,7 @@ private fun ReactionRow(
             Box {
                 IconButton(onClick = { menuOpen = true }) {
                     Icon(
-                        Icons.Default.MoreVert,
+                        painterResource(Res.drawable.ic_more_vert),
                         contentDescription = stringResource(Res.string.more_options),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -357,7 +357,7 @@ private fun ReactionRow(
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(
                         text = { Text(stringResource(Res.string.move_up)) },
-                        leadingIcon = { Icon(Icons.Default.ArrowUpward, contentDescription = null) },
+                        leadingIcon = { Icon(painterResource(Res.drawable.ic_arrow_upward), contentDescription = null) },
                         enabled = canMoveUp,
                         onClick = {
                             menuOpen = false
@@ -366,7 +366,7 @@ private fun ReactionRow(
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(Res.string.move_down)) },
-                        leadingIcon = { Icon(Icons.Default.ArrowDownward, contentDescription = null) },
+                        leadingIcon = { Icon(painterResource(Res.drawable.ic_arrow_downward), contentDescription = null) },
                         enabled = canMoveDown,
                         onClick = {
                             menuOpen = false
@@ -378,7 +378,7 @@ private fun ReactionRow(
                         text = { Text(stringResource(Res.string.remove)) },
                         leadingIcon = {
                             Icon(
-                                Icons.Default.Delete,
+                                painterResource(Res.drawable.ic_delete),
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.error
                             )

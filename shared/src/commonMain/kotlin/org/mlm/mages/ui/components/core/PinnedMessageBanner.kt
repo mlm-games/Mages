@@ -1,10 +1,9 @@
 package org.mlm.mages.ui.components.core
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,8 +15,6 @@ import org.mlm.mages.ui.PinnedMessageUi
 import org.mlm.mages.ui.previewText
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
-
 
 @Composable
 fun PinnedMessageBanner(
@@ -52,7 +49,7 @@ fun PinnedMessageBanner(
         Spacer(Modifier.width(Spacing.sm))
 
         Icon(
-            imageVector = Icons.Default.PushPin,
+            painter = painterResource(Res.drawable.ic_push_pin),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(18.dp)

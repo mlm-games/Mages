@@ -1,11 +1,8 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -61,7 +58,7 @@ fun StartChatSheet(
             ) {
                 item {
                     ActionListItem(
-                        icon = Icons.Default.Add,
+                        icon = painterResource(Res.drawable.ic_add),
                         label = stringResource(Res.string.new_room),
                         description = stringResource(Res.string.create_room_desc),
                         onClick = {
@@ -72,7 +69,7 @@ fun StartChatSheet(
                 }
                 item {
                     ActionListItem(
-                        icon = Icons.Default.Search,
+                        icon = painterResource(Res.drawable.ic_search),
                         label = stringResource(Res.string.discover),
                         description = stringResource(Res.string.search_users_or_rooms),
                         onClick = {
@@ -84,7 +81,7 @@ fun StartChatSheet(
                 if (inviteLink != null) {
                     item {
                         ActionListItem(
-                            icon = Icons.Default.Share,
+                            icon = painterResource(Res.drawable.ic_share),
                             label = stringResource(Res.string.invite_to_chat_on_matrix),
                             description = myUserId,
                             onClick = {

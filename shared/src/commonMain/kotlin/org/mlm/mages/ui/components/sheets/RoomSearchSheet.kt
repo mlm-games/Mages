@@ -1,13 +1,12 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,7 +22,6 @@ import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatTime
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun RoomSearchSheet(
@@ -62,11 +60,11 @@ fun RoomSearchSheet(
                     .padding(horizontal = Spacing.lg)
                     .focusRequester(focusRequester),
                 placeholder = { Text(stringResource(Res.string.search_in_this_room)) },
-                leadingIcon = { Icon(Icons.Default.Search, null) },
+                leadingIcon = { Icon(painterResource(Res.drawable.ic_search), null) },
                 trailingIcon = {
                     if (query.isNotEmpty()) {
                         IconButton(onClick = { onQueryChange("") }) {
-                            Icon(Icons.Default.Close, stringResource(Res.string.clear))
+                            Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.clear))
                         }
                     }
                 },
@@ -103,7 +101,7 @@ fun RoomSearchSheet(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                Icons.Default.SearchOff,
+                                painterResource(Res.drawable.ic_search_off),
                                 contentDescription = null,
                                 modifier = Modifier.size(48.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant

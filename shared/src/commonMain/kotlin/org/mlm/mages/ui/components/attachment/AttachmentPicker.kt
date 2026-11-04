@@ -1,23 +1,20 @@
 package org.mlm.mages.ui.components.attachment
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import io.github.mlmgames.settings.core.annotations.SettingPlatform
 import io.github.mlmgames.settings.core.platform.currentPlatform
 import mages.shared.generated.resources.*
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.picker_camera
 import mages.shared.generated.resources.picker_camera_sub
 import mages.shared.generated.resources.picker_document
@@ -70,7 +67,7 @@ fun AttachmentPicker(
 
             if (onPasteFromClipboard != null) {
                 AttachmentOption(
-                    Icons.Default.ContentPaste,
+                    painterResource(Res.drawable.ic_content_paste),
                     stringResource(Res.string.picker_paste),
                     stringResource(Res.string.picker_paste_sub)
                 ) { onPasteFromClipboard(); onDismiss() }
@@ -79,41 +76,41 @@ fun AttachmentPicker(
 
             // Media section
             AttachmentOption(
-                Icons.Default.Image,
+                painterResource(Res.drawable.ic_image),
                 stringResource(Res.string.picker_photo),
                 stringResource(Res.string.picker_photo_sub)
             ) { onPickImage(); onDismiss() }
 
             AttachmentOption(
-                Icons.Default.EmojiEmotions,
+                painterResource(Res.drawable.ic_sentiment_satisfied),
                 stringResource(Res.string.picker_sticker),
                 stringResource(Res.string.picker_sticker_sub)
             ) { onPickSticker(); onDismiss() }
 
             if (onPickStickerPack != null) {
                 AttachmentOption(
-                    Icons.Default.CollectionsBookmark,
+                    painterResource(Res.drawable.ic_collections_bookmark),
                     stringResource(Res.string.picker_sticker_pack),
                     stringResource(Res.string.picker_sticker_pack_sub)
                 ) { onPickStickerPack(); onDismiss() }
             }
 
             AttachmentOption(
-                Icons.Default.VideoLibrary,
+                painterResource(Res.drawable.ic_video_library),
                 stringResource(Res.string.picker_video),
                 stringResource(Res.string.picker_video_sub)
             ) { onPickVideo(); onDismiss() }
 
             if (onCamera != null && currentPlatform == SettingPlatform.ANDROID) {
                 AttachmentOption(
-                    Icons.Default.PhotoCamera,
+                    painterResource(Res.drawable.ic_photo_camera),
                     stringResource(Res.string.picker_camera),
                     stringResource(Res.string.picker_camera_sub)
                 ) { onCamera(); onDismiss() }
             }
 
             AttachmentOption(
-                Icons.AutoMirrored.Filled.InsertDriveFile,
+                painterResource(Res.drawable.ic_description),
                 stringResource(Res.string.picker_document),
                 stringResource(Res.string.picker_document_sub)
             ) { onPickDocument(); onDismiss() }
@@ -131,7 +128,7 @@ fun AttachmentPicker(
 
                 if (onCreatePoll != null) {
                     AttachmentOption(
-                        Icons.Default.Poll,
+                        painterResource(Res.drawable.ic_bar_chart),
                         stringResource(Res.string.picker_poll),
                         stringResource(Res.string.picker_poll_sub)
                     ) { onCreatePoll(); onDismiss() }
@@ -150,14 +147,14 @@ fun AttachmentPicker(
                         (currentPlatform == SettingPlatform.ANDROID || currentPlatform == SettingPlatform.JVM)
                     ) {
                         AttachmentOption(
-                            Icons.Default.LocationOn,
+                            painterResource(Res.drawable.ic_location_on),
                             stringResource(Res.string.picker_location),
                             stringResource(Res.string.picker_location_sub)
                         ) { onShareStaticLocation(); onDismiss() }
                     }
                     if (onShareLocation != null) {
                         AttachmentOption(
-                            Icons.Default.Timeline,
+                            painterResource(Res.drawable.ic_timeline),
                             stringResource(Res.string.picker_live_location),
                             stringResource(Res.string.picker_live_location_sub)
                         ) { onShareLocation(); onDismiss() }
@@ -170,7 +167,7 @@ fun AttachmentPicker(
 
 @Composable
 private fun AttachmentOption(
-    icon: ImageVector,
+    icon: Painter,
     title: String,
     subtitle: String,
     onClick: () -> Unit

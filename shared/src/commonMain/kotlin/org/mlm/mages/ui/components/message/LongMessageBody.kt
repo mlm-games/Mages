@@ -1,13 +1,12 @@
 package org.mlm.mages.ui.components.message
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,6 +31,7 @@ import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.close
 import mages.shared.generated.resources.message
 import mages.shared.generated.resources.show_more
+import mages.shared.generated.resources.ic_close
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.ui.components.core.FormattedBodyText
 import org.mlm.mages.ui.components.core.MentionRef
@@ -141,7 +141,7 @@ private fun FullMessageDialog(
                     )
                     IconButton(onClick = onDismiss) {
                         Icon(
-                            imageVector = Icons.Default.Close,
+                            painter = painterResource(Res.drawable.ic_close),
                             contentDescription = stringResource(Res.string.close),
                         )
                     }

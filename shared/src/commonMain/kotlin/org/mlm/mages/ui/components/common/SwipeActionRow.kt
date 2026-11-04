@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.components.common
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -12,10 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.MarkEmailUnread
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -40,7 +37,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
-import mages.shared.generated.resources.Res
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.settings.RoomSwipeAction
 import kotlin.math.abs
@@ -157,13 +153,13 @@ fun SwipeActionRow(
 @Composable
 private fun RevealIcon(action: RoomSwipeAction, alpha: Float) {
     val icon = when (action) {
-        RoomSwipeAction.MarkRead -> Icons.Default.Done
-        RoomSwipeAction.MarkUnread -> Icons.Default.MarkEmailUnread
-        RoomSwipeAction.ToggleUnread -> Icons.Default.SwapHoriz
+        RoomSwipeAction.MarkRead -> painterResource(Res.drawable.ic_done)
+        RoomSwipeAction.MarkUnread -> painterResource(Res.drawable.ic_mark_email_unread)
+        RoomSwipeAction.ToggleUnread -> painterResource(Res.drawable.ic_swap_horiz)
         RoomSwipeAction.Nothing -> null
     } ?: return
     Icon(
-        imageVector = icon,
+        painter = icon,
         contentDescription = null,
         modifier = Modifier
             .size(20.dp)

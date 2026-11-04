@@ -5,19 +5,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 /**
  * A reusable setting row component with icon, title, subtitle, and optional trailing content.
  */
 @Composable
 fun SettingRow(
-    icon: ImageVector,
+    icon: Painter,
     title: String,
     subtitle: String? = null,
     enabled: Boolean = true,
@@ -42,7 +41,7 @@ fun SettingRow(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Icon(
-                imageVector = icon,
+                painter = icon,
                 contentDescription = null,
                 tint = if (enabled) {
                     MaterialTheme.colorScheme.onSurfaceVariant
@@ -84,7 +83,7 @@ fun SettingRow(
  */
 @Composable
 fun SettingSwitchRow(
-    icon: ImageVector,
+    icon: Painter,
     title: String,
     subtitle: String? = null,
     checked: Boolean,

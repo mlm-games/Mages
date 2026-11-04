@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.components.core
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -8,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +39,7 @@ import coil3.request.crossfade
 import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.profile_change_photo
 import mages.shared.generated.resources.profile_view_photo
+import mages.shared.generated.resources.ic_photo_camera
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.mlm.mages.MatrixService
@@ -163,7 +163,7 @@ fun EditableAvatar(
                     .clickable(onClickLabel = changePhotoLabel) { onEditClick() }
             ) {
                 Icon(
-                    Icons.Default.PhotoCamera,
+                    painterResource(Res.drawable.ic_photo_camera),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.padding(badgeSize * 0.2f)

@@ -1,18 +1,16 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.DirectoryUser
@@ -72,7 +70,7 @@ fun DiscoverScreen(
                 ),
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
+                        Icon(painterResource(Res.drawable.ic_arrow_back), contentDescription = stringResource(Res.string.back))
                     }
                 }
             )
@@ -103,12 +101,12 @@ fun DiscoverScreen(
                 placeholder = { Text(stringResource(Res.string.search_placeholder)) },
                 singleLine = true,
                 leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = null)
+                    Icon(painterResource(Res.drawable.ic_search), contentDescription = null)
                 },
                 trailingIcon = {
                     if (state.query.isNotEmpty()) {
                         IconButton(onClick = { onQuery("") }) {
-                            Icon(Icons.Default.Close, contentDescription = stringResource(Res.string.clear))
+                            Icon(painterResource(Res.drawable.ic_close), contentDescription = stringResource(Res.string.clear))
                         }
                     }
                 }
@@ -126,7 +124,7 @@ fun DiscoverScreen(
                     label = { Text(stringResource(Res.string.rooms_and_spaces)) },
                     leadingIcon = {
                         Icon(
-                            Icons.Default.Apps,
+                            painterResource(Res.drawable.ic_apps),
                             contentDescription = null,
                             modifier = Modifier.size(FilterChipDefaults.IconSize)
                         )
@@ -138,7 +136,7 @@ fun DiscoverScreen(
                     label = { Text(stringResource(Res.string.public_rooms)) },
                     leadingIcon = {
                         Icon(
-                            Icons.Default.Group,
+                            painterResource(Res.drawable.ic_group),
                             contentDescription = null,
                             modifier = Modifier.size(FilterChipDefaults.IconSize)
                         )
@@ -150,7 +148,7 @@ fun DiscoverScreen(
                     label = { Text(stringResource(Res.string.spaces)) },
                     leadingIcon = {
                         Icon(
-                            Icons.Default.Workspaces,
+                            painterResource(Res.drawable.ic_workspaces),
                             contentDescription = null,
                             modifier = Modifier.size(FilterChipDefaults.IconSize)
                         )
@@ -246,7 +244,7 @@ fun DiscoverScreen(
                                 } else {
                                     OutlinedButton(onClick = onLoadMore) {
                                         Icon(
-                                            Icons.Default.ExpandMore,
+                                            painterResource(Res.drawable.ic_expand_more),
                                             contentDescription = null,
                                             modifier = Modifier.size(18.dp)
                                         )
@@ -345,7 +343,7 @@ private fun DirectJoinCard(
             },
             leadingContent = {
                 Icon(
-                    Icons.Default.MeetingRoom,
+                    painterResource(Res.drawable.ic_meeting_room),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
@@ -389,7 +387,7 @@ private fun UserListItem(
                         size = 40.dp
                     )
                 } else {
-                    Icon(Icons.Default.Person, contentDescription = null)
+                    Icon(painterResource(Res.drawable.ic_person), contentDescription = null)
                 }
             },
             trailingContent = {
@@ -451,7 +449,7 @@ private fun RoomListItem(
                     )
                 } else {
                     Icon(
-                        if (room.isSpace) Icons.Default.Workspaces else Icons.Default.Group,
+                        if (room.isSpace) painterResource(Res.drawable.ic_workspaces) else painterResource(Res.drawable.ic_group),
                         contentDescription = null
                     )
                 }
@@ -488,7 +486,7 @@ private fun EmptySearchState(query: String) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Icon(
-                Icons.Default.SearchOff,
+                painterResource(Res.drawable.ic_search_off),
                 contentDescription = null,
                 modifier = Modifier.size(48.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -524,7 +522,7 @@ private fun FilterEmptyState(title: String) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Icon(
-                Icons.Default.SearchOff,
+                painterResource(Res.drawable.ic_search_off),
                 contentDescription = null,
                 modifier = Modifier.size(48.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -558,25 +556,25 @@ private fun SearchHintCard() {
             )
 
             SearchHintRow(
-                icon = Icons.Default.Tag,
+                icon = painterResource(Res.drawable.ic_tag),
                 example = "#linux:matrix.org",
                 description = stringResource(Res.string.join_room_by_alias)
             )
 
             SearchHintRow(
-                icon = Icons.Default.Person,
+                icon = painterResource(Res.drawable.ic_person),
                 example = "@username:server.com",
                 description = stringResource(Res.string.start_dm_with_user)
             )
 
             SearchHintRow(
-                icon = Icons.Default.Search,
+                icon = painterResource(Res.drawable.ic_search),
                 example = "programming",
                 description = stringResource(Res.string.search_rooms_by_topic)
             )
 
             SearchHintRow(
-                icon = Icons.Default.Link,
+                icon = painterResource(Res.drawable.ic_link),
                 example = "https://matrix.to/#/...",
                 description = stringResource(Res.string.paste_matrix_link)
             )
@@ -586,7 +584,7 @@ private fun SearchHintCard() {
 
 @Composable
 private fun SearchHintRow(
-    icon: ImageVector,
+    icon: Painter,
     example: String,
     description: String
 ) {

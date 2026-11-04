@@ -1,32 +1,19 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.automirrored.filled.Message
-import androidx.compose.material.icons.automirrored.filled.Subject
-import androidx.compose.material.icons.filled.AccountTree
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
 import org.mlm.mages.matrix.RoomPowerLevelChanges
 import org.mlm.mages.matrix.RoomPowerLevels
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun GranularPermissionsSheet(
@@ -98,7 +85,7 @@ private fun GeneralPermissionsTab(
         item {
             PermissionSliderRow(
                 label = stringResource(Res.string.ban_users),
-                icon = Icons.Default.Block,
+                icon = painterResource(Res.drawable.ic_block),
                 value = powerLevels?.ban ?: 50,
                 canEdit = canEdit,
                 onValueChange = { onUpdatePowerLevels(RoomPowerLevelChanges(ban = it)) }
@@ -107,7 +94,7 @@ private fun GeneralPermissionsTab(
         item {
             PermissionSliderRow(
                 label = stringResource(Res.string.kick_users),
-                icon = Icons.AutoMirrored.Filled.ExitToApp,
+                icon = painterResource(Res.drawable.ic_exit_to_app),
                 value = powerLevels?.kick ?: 50,
                 canEdit = canEdit,
                 onValueChange = { onUpdatePowerLevels(RoomPowerLevelChanges(kick = it)) }
@@ -116,7 +103,7 @@ private fun GeneralPermissionsTab(
         item {
             PermissionSliderRow(
                 label = stringResource(Res.string.invite_users),
-                icon = Icons.Default.PersonAdd,
+                icon = painterResource(Res.drawable.ic_person_add),
                 value = powerLevels?.invite ?: 0,
                 canEdit = canEdit,
                 onValueChange = { onUpdatePowerLevels(RoomPowerLevelChanges(invite = it)) }
@@ -125,7 +112,7 @@ private fun GeneralPermissionsTab(
         item {
             PermissionSliderRow(
                 label = stringResource(Res.string.redact_messages_others),
-                icon = Icons.Default.Delete,
+                icon = painterResource(Res.drawable.ic_delete),
                 value = powerLevels?.redact ?: 50,
                 canEdit = canEdit,
                 onValueChange = { onUpdatePowerLevels(RoomPowerLevelChanges(redact = it)) }
@@ -146,7 +133,7 @@ private fun MessagePermissionsTab(
         item {
             PermissionSliderRow(
                 label = stringResource(Res.string.send_messages_default),
-                icon = Icons.AutoMirrored.Filled.Message,
+                icon = painterResource(Res.drawable.ic_chat_bubble),
                 value = powerLevels?.eventsDefault ?: 0,
                 canEdit = canEdit,
                 onValueChange = { onUpdatePowerLevels(RoomPowerLevelChanges(eventsDefault = it)) }
@@ -167,7 +154,7 @@ private fun RoomSettingsTab(
         item {
             PermissionSliderRow(
                 label = stringResource(Res.string.change_room_name),
-                icon = Icons.Default.Edit,
+                icon = painterResource(Res.drawable.ic_edit),
                 value = powerLevels?.roomName ?: 50,
                 canEdit = canEdit,
                 onValueChange = { onUpdatePowerLevels(RoomPowerLevelChanges(roomName = it)) }
@@ -176,7 +163,7 @@ private fun RoomSettingsTab(
         item {
             PermissionSliderRow(
                 label = stringResource(Res.string.change_room_avatar),
-                icon = Icons.Default.Image,
+                icon = painterResource(Res.drawable.ic_image),
                 value = powerLevels?.roomAvatar ?: 50,
                 canEdit = canEdit,
                 onValueChange = { onUpdatePowerLevels(RoomPowerLevelChanges(roomAvatar = it)) }
@@ -185,7 +172,7 @@ private fun RoomSettingsTab(
         item {
             PermissionSliderRow(
                 label = stringResource(Res.string.change_topic),
-                icon = Icons.AutoMirrored.Filled.Subject,
+                icon = painterResource(Res.drawable.ic_subject),
                 value = powerLevels?.roomTopic ?: 50,
                 canEdit = canEdit,
                 onValueChange = { onUpdatePowerLevels(RoomPowerLevelChanges(roomTopic = it)) }
@@ -206,7 +193,7 @@ private fun AdvancedPermissionsTab(
         item {
             PermissionSliderRow(
                 label = stringResource(Res.string.default_user_level),
-                icon = Icons.Default.Person,
+                icon = painterResource(Res.drawable.ic_person),
                 value = powerLevels?.usersDefault ?: 0,
                 canEdit = canEdit,
                 onValueChange = { onUpdatePowerLevels(RoomPowerLevelChanges(usersDefault = it)) }
@@ -215,7 +202,7 @@ private fun AdvancedPermissionsTab(
         item {
             PermissionSliderRow(
                 label = stringResource(Res.string.default_state_event_level),
-                icon = Icons.Default.Settings,
+                icon = painterResource(Res.drawable.ic_settings),
                 value = powerLevels?.stateDefault ?: 50,
                 canEdit = canEdit,
                 onValueChange = { onUpdatePowerLevels(RoomPowerLevelChanges(stateDefault = it)) }
@@ -224,7 +211,7 @@ private fun AdvancedPermissionsTab(
         item {
             PermissionSliderRow(
                 label = stringResource(Res.string.manage_space_children),
-                icon = Icons.Default.AccountTree,
+                icon = painterResource(Res.drawable.ic_account_tree),
                 value = powerLevels?.spaceChild ?: 100,
                 canEdit = canEdit,
                 onValueChange = { onUpdatePowerLevels(RoomPowerLevelChanges(spaceChild = it)) }
@@ -233,7 +220,7 @@ private fun AdvancedPermissionsTab(
         item {
             PermissionSliderRow(
                 label = stringResource(Res.string.share_live_location),
-                icon = Icons.Default.LocationOn,
+                icon = painterResource(Res.drawable.ic_location_on),
                 value = powerLevels?.beacon ?: 0,
                 canEdit = canEdit,
                 onValueChange = { onUpdatePowerLevels(RoomPowerLevelChanges(beacon = it)) }
@@ -242,7 +229,7 @@ private fun AdvancedPermissionsTab(
         item {
             PermissionSliderRow(
                 label = stringResource(Res.string.manage_live_location),
-                icon = Icons.Default.LocationOn,
+                icon = painterResource(Res.drawable.ic_location_on),
                 value = powerLevels?.beaconInfo ?: 50,
                 canEdit = canEdit,
                 onValueChange = { onUpdatePowerLevels(RoomPowerLevelChanges(beaconInfo = it)) }
@@ -254,7 +241,7 @@ private fun AdvancedPermissionsTab(
 @Composable
 private fun PermissionSliderRow(
     label: String,
-    icon: ImageVector,
+    icon: Painter,
     value: Long,
     canEdit: Boolean,
     onValueChange: (Long) -> Unit

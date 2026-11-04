@@ -1,14 +1,12 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddReaction
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
-import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.picker_no_reaction_images
 import mages.shared.generated.resources.picker_search_images
 import mages.shared.generated.resources.search_no_results_found
@@ -70,7 +67,7 @@ fun ReactionImagePickerSheet(
                     value = query,
                     onValueChange = { query = it },
                     placeholder = { Text(stringResource(Res.string.picker_search_images)) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    leadingIcon = { Icon(painterResource(Res.drawable.ic_search), contentDescription = null) },
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -87,13 +84,13 @@ fun ReactionImagePickerSheet(
                 ) {
                     if (hasAnyImage) {
                         EmptyState(
-                            icon = Icons.Default.Search,
+                            icon = painterResource(Res.drawable.ic_search),
                             title = stringResource(Res.string.search_no_results_found),
                             subtitle = stringResource(Res.string.try_different_search)
                         )
                     } else {
                         EmptyState(
-                            icon = Icons.Default.AddReaction,
+                            icon = painterResource(Res.drawable.ic_add_reaction),
                             title = stringResource(Res.string.picker_no_reaction_images)
                         )
                     }

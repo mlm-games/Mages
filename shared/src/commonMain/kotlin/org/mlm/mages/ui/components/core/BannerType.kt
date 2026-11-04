@@ -1,15 +1,16 @@
 package org.mlm.mages.ui.components.core
 
+import mages.shared.generated.resources.Res
+import mages.shared.generated.resources.ic_cloud_off
+import mages.shared.generated.resources.ic_error
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.ui.theme.Spacing
 
@@ -39,9 +40,9 @@ fun StatusBanner(
             BannerType.LOADING -> MaterialTheme.colorScheme.onSecondaryContainer
         }
 
-        val icon: ImageVector? = when (type) {
-            BannerType.ERROR -> Icons.Default.ErrorOutline
-            BannerType.OFFLINE -> Icons.Default.CloudOff
+        val icon: Painter? = when (type) {
+            BannerType.ERROR -> painterResource(Res.drawable.ic_error)
+            BannerType.OFFLINE -> painterResource(Res.drawable.ic_cloud_off)
             BannerType.LOADING -> null
         }
 
@@ -60,7 +61,7 @@ fun StatusBanner(
                     )
                 } else if (icon != null) {
                     Icon(
-                        imageVector = icon,
+                        painter = icon,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
                         tint = contentColor

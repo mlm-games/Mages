@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.components.composer
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -7,12 +8,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.AudioFile
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -31,7 +26,6 @@ import org.mlm.mages.ui.components.AttachmentData
 import org.mlm.mages.ui.components.OutgoingMediaMode
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun ComposerAttachmentTray(
@@ -58,9 +52,9 @@ fun ComposerAttachmentTray(
             } else {
                 val typeIcon = when {
                     attachment.mode == OutgoingMediaMode.Sticker -> null
-                    attachment.mimeType.startsWith("audio/", ignoreCase = true) -> Icons.Default.AudioFile
-                    attachment.mimeType.equals("application/pdf", ignoreCase = true) -> Icons.Default.PictureAsPdf
-                    else -> Icons.Default.AttachFile
+                    attachment.mimeType.startsWith("audio/", ignoreCase = true) -> painterResource(Res.drawable.ic_audio_file)
+                    attachment.mimeType.equals("application/pdf", ignoreCase = true) -> painterResource(Res.drawable.ic_picture_as_pdf)
+                    else -> painterResource(Res.drawable.ic_attach_file)
                 }
                 InputChip(
                     selected = true,
@@ -68,7 +62,7 @@ fun ComposerAttachmentTray(
                     leadingIcon = typeIcon?.let { icon ->
                         {
                             Icon(
-                                imageVector = icon,
+                                painter = icon,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -88,7 +82,7 @@ fun ComposerAttachmentTray(
                     },
                     trailingIcon = {
                         Icon(
-                            Icons.Default.Close,
+                            painterResource(Res.drawable.ic_close),
                             contentDescription = stringResource(Res.string.remove_attachment),
                             modifier = Modifier.clickable { onRemoveAttachment?.invoke(index) }
                         )
@@ -135,7 +129,7 @@ private fun AttachmentThumbnail(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    Icons.Default.PlayArrow,
+                    painterResource(Res.drawable.ic_play_arrow),
                     contentDescription = null,
                     modifier = Modifier.size(14.dp),
                     tint = MaterialTheme.colorScheme.onSurface,
@@ -154,7 +148,7 @@ private fun AttachmentThumbnail(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    Icons.Default.Close,
+                    painterResource(Res.drawable.ic_close),
                     contentDescription = stringResource(Res.string.remove_attachment),
                     modifier = Modifier.size(12.dp),
                     tint = MaterialTheme.colorScheme.onSurface,

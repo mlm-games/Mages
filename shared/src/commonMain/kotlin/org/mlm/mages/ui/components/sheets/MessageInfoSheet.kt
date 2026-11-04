@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,9 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -35,7 +33,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.AttachmentInfo
@@ -96,7 +93,7 @@ fun MessageInfoSheet(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Default.Info, contentDescription = null)
+                    Icon(painterResource(Res.drawable.ic_info), contentDescription = null)
                     Spacer(Modifier.width(Spacing.sm))
                     Text(
                         text = stringResource(Res.string.message_info),
@@ -239,7 +236,7 @@ fun MessageInfoSheet(
                         )
                         IconButton(onClick = { copy(json) }) {
                             Icon(
-                                Icons.Default.ContentCopy,
+                                painterResource(Res.drawable.ic_content_copy),
                                 contentDescription = stringResource(Res.string.copy),
                             )
                         }
@@ -463,7 +460,7 @@ private fun InfoRow(
             if (onCopy != null) {
                 IconButton(onClick = onCopy) {
                     Icon(
-                        imageVector = Icons.Default.ContentCopy,
+                        painter = painterResource(Res.drawable.ic_content_copy),
                         contentDescription = stringResource(Res.string.copy),
                     )
                 }

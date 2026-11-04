@@ -1,12 +1,9 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,7 +12,6 @@ import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun RoomAliasesSheet(
@@ -80,7 +76,7 @@ fun RoomAliasesSheet(
                     },
                     enabled = newAlias.isNotBlank()
                 ) {
-                    Icon(Icons.Default.Add, stringResource(Res.string.add_alias))
+                    Icon(painterResource(Res.drawable.ic_add), stringResource(Res.string.add_alias))
                 }
             }
 
@@ -108,7 +104,7 @@ fun RoomAliasesSheet(
                                     aliases = aliases.filter { it != alias }.toMutableList()
                                 }
                             ) {
-                                Icon(Icons.Default.Delete, stringResource(Res.string.remove_alias))
+                                Icon(painterResource(Res.drawable.ic_delete), stringResource(Res.string.remove_alias))
                             }
                         }
                     }

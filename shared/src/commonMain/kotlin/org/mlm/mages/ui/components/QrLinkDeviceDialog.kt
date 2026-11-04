@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.components
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,9 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.Icon
@@ -56,6 +54,8 @@ import mages.shared.generated.resources.qr_scan_choose_image
 import mages.shared.generated.resources.qr_scan_hint
 import mages.shared.generated.resources.qr_scan_no_code
 import mages.shared.generated.resources.qr_scan_title
+import mages.shared.generated.resources.ic_check_circle
+import mages.shared.generated.resources.ic_photo_camera
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.platform.decodeQrImage
 import org.mlm.mages.platform.rememberCameraPickerLauncher
@@ -131,7 +131,7 @@ fun QrLinkDeviceDialog(
                                 onClick = cameraPicker::launch,
                                 modifier = Modifier.fillMaxWidth().height(48.dp)
                             ) {
-                                Icon(Icons.Default.PhotoCamera, null)
+                                Icon(painterResource(Res.drawable.ic_photo_camera), null)
                                 Text(
                                     text = stringResource(Res.string.qr_scan_camera),
                                     modifier = Modifier.padding(start = 8.dp)
@@ -220,7 +220,7 @@ fun QrLinkDeviceDialog(
 
                     QrGrantPhase.Done -> {
                         Icon(
-                            Icons.Default.CheckCircle,
+                            painterResource(Res.drawable.ic_check_circle),
                             null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(56.dp),

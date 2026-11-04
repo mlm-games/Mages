@@ -1,5 +1,6 @@
 package org.mlm.mages.ui
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,9 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Call
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -31,7 +29,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import mages.shared.generated.resources.*
-import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.ongoing_call
 import mages.shared.generated.resources.tap_to_return
 import org.jetbrains.compose.resources.stringResource
@@ -70,7 +67,7 @@ fun OngoingCallBanner(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
             Icon(
-                Icons.Default.Call,
+                painterResource(Res.drawable.ic_call),
                 contentDescription = null,
                 modifier = Modifier.size(22.dp)
             )
@@ -92,7 +89,7 @@ fun OngoingCallBanner(
                 )
             }
             Icon(
-                Icons.AutoMirrored.Filled.ArrowForward,
+                painterResource(Res.drawable.ic_arrow_forward),
                 contentDescription = stringResource(Res.string.tap_to_return),
                 modifier = Modifier.size(20.dp)
             )

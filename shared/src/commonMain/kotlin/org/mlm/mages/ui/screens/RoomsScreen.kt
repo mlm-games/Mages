@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.*
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -7,16 +8,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -49,7 +47,6 @@ import org.mlm.mages.ui.components.common.InviteListItem
 import org.mlm.mages.ui.components.common.SwipeActionRow
 import org.mlm.mages.ui.components.dialogs.ConfirmationDialog
 import org.mlm.mages.ui.components.dialogs.DeclineInviteDialog
-import mages.shared.generated.resources.Res
 
 @Composable
 fun RoomsScreen(
@@ -156,7 +153,7 @@ fun RoomsScreen(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ) {
-                    Icon(Icons.Default.KeyboardArrowUp, stringResource(Res.string.scroll_to_top))
+                    Icon(painterResource(Res.drawable.ic_keyboard_arrow_up), stringResource(Res.string.scroll_to_top))
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(Res.string.new_activity))
                 }
@@ -173,13 +170,13 @@ fun RoomsScreen(
 
             !hasAnyRooms && state.offlineBanner != null -> {
                 EmptyState(
-                    icon = Icons.Default.CloudOff,
+                    icon = painterResource(Res.drawable.ic_cloud_off),
                     title = state.offlineBanner?.let { stringResource(it) } ?: stringResource(Res.string.offline),
                     subtitle = stringResource(Res.string.connect_to_internet),
                     modifier = Modifier.padding(innerPadding),
                     action = {
                         Button(onClick = viewModel::refresh) {
-                            Icon(Icons.Default.Refresh, null)
+                            Icon(painterResource(Res.drawable.ic_refresh), null)
                             Spacer(Modifier.width(Spacing.sm))
                             Text(stringResource(Res.string.retry))
                         }
@@ -193,13 +190,13 @@ fun RoomsScreen(
                     !state.unreadOnly &&
                     state.typeFilter == RoomTypeFilter.All -> {
                 EmptyState(
-                    icon = Icons.Default.Workspaces,
+                    icon = painterResource(Res.drawable.ic_workspaces),
                     title = stringResource(Res.string.rooms_hidden_in_spaces),
                     subtitle = stringResource(Res.string.rooms_hidden_in_spaces_subtitle),
                     modifier = Modifier.padding(innerPadding),
                     action = {
                         Button(onClick = onOpenSpaces) {
-                            Icon(Icons.Default.Workspaces, null)
+                            Icon(painterResource(Res.drawable.ic_workspaces), null)
                             Spacer(Modifier.width(Spacing.sm))
                             Text(stringResource(Res.string.spaces))
                         }
@@ -209,7 +206,7 @@ fun RoomsScreen(
 
             !hasAnyRooms -> {
                 EmptyState(
-                    icon = Icons.Default.MeetingRoom,
+                    icon = painterResource(Res.drawable.ic_meeting_room),
                     title = stringResource(Res.string.no_rooms_found),
                     subtitle = if (state.roomSearchQuery.isBlank())
                         stringResource(Res.string.join_a_room)
@@ -219,7 +216,7 @@ fun RoomsScreen(
                     action = if (state.roomSearchQuery.isBlank()) {
                         {
                             Button(onClick = onOpenStartChat) {
-                                Icon(Icons.Default.Search, null)
+                                Icon(painterResource(Res.drawable.ic_search), null)
                                 Spacer(Modifier.width(Spacing.sm))
                                 Text(stringResource(Res.string.discover_rooms))
                             }
@@ -239,7 +236,7 @@ fun RoomsScreen(
                             SectionHeader(
                                 title = stringResource(Res.string.favourites),
                                 count = state.favouriteItems.size,
-                                icon = Icons.Default.Star
+                                icon = painterResource(Res.drawable.ic_star)
                             )
                         }
                         itemsIndexed(
@@ -285,7 +282,7 @@ fun RoomsScreen(
                                 SectionHeader(
                                     title = stringResource(Res.string.rooms),
                                     count = state.normalItems.size,
-                                    icon = Icons.Default.ChatBubble
+                                    icon = painterResource(Res.drawable.ic_chat_bubble)
                                 )
                             }
                         }
@@ -331,7 +328,7 @@ fun RoomsScreen(
                             SectionHeader(
                                 title = stringResource(Res.string.low_priority),
                                 count = state.lowPriorityItems.size,
-                                icon = Icons.Default.ArrowDownward
+                                icon = painterResource(Res.drawable.ic_arrow_downward)
                             )
                         }
                         itemsIndexed(
@@ -377,7 +374,7 @@ fun RoomsScreen(
                             SectionHeader(
                                 title = stringResource(Res.string.invites),
                                 count = state.inviteItems.size,
-                                icon = Icons.Default.Mail
+                                icon = painterResource(Res.drawable.ic_mail)
                             )
                         }
                         itemsIndexed(
@@ -459,7 +456,7 @@ private fun RoomSelectionTopBar(
     var menuExpanded by remember { mutableStateOf(false) }
 
     @Composable
-    fun menuItem(icon: ImageVector, label: String, onClick: () -> Unit) {
+    fun menuItem(icon: Painter, label: String, onClick: () -> Unit) {
         DropdownMenuItem(
             text = { Text(label) },
             leadingIcon = { Icon(icon, contentDescription = null) },
@@ -481,30 +478,30 @@ private fun RoomSelectionTopBar(
         },
         navigationIcon = {
             IconButton(onClick = onClose) {
-                Icon(Icons.Default.Close, stringResource(Res.string.close))
+                Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.close))
             }
         },
         actions = {
             IconButton(onClick = onMarkRead) {
-                Icon(Icons.Default.DoneAll, stringResource(Res.string.mark_read))
+                Icon(painterResource(Res.drawable.ic_done_all), stringResource(Res.string.mark_read))
             }
             Box {
                 IconButton(onClick = { menuExpanded = true }) {
-                    Icon(Icons.Default.MoreVert, stringResource(Res.string.more_options))
+                    Icon(painterResource(Res.drawable.ic_more_vert), stringResource(Res.string.more_options))
                 }
                 DropdownMenu(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false },
                 ) {
-                    menuItem(Icons.Default.MarkEmailUnread, stringResource(Res.string.mark_as_unread), onMarkUnread)
-                    menuItem(Icons.Default.Star, stringResource(Res.string.add_to_favorites), onFavourite)
-                    menuItem(Icons.Default.StarBorder, stringResource(Res.string.remove_from_favorites), onUnfavourite)
-                    menuItem(Icons.Default.ArrowDownward, stringResource(Res.string.low_priority), onLowPriority)
-                    menuItem(Icons.Default.Remove, stringResource(Res.string.remove_from_low_priority), onRemoveLowPriority)
-                    menuItem(Icons.Default.NotificationsOff, stringResource(Res.string.mute), onMute)
-                    menuItem(Icons.Default.Notifications, stringResource(Res.string.unmute), onUnmute)
-                    menuItem(Icons.Default.SelectAll, stringResource(Res.string.select_all), onSelectAll)
-                    menuItem(Icons.AutoMirrored.Filled.Logout, stringResource(Res.string.leave_rooms), onLeave)
+                    menuItem(painterResource(Res.drawable.ic_mark_email_unread), stringResource(Res.string.mark_as_unread), onMarkUnread)
+                    menuItem(painterResource(Res.drawable.ic_star), stringResource(Res.string.add_to_favorites), onFavourite)
+                    menuItem(painterResource(Res.drawable.ic_star), stringResource(Res.string.remove_from_favorites), onUnfavourite)
+                    menuItem(painterResource(Res.drawable.ic_arrow_downward), stringResource(Res.string.low_priority), onLowPriority)
+                    menuItem(painterResource(Res.drawable.ic_remove), stringResource(Res.string.remove_from_low_priority), onRemoveLowPriority)
+                    menuItem(painterResource(Res.drawable.ic_notifications_off), stringResource(Res.string.mute), onMute)
+                    menuItem(painterResource(Res.drawable.ic_notifications), stringResource(Res.string.unmute), onUnmute)
+                    menuItem(painterResource(Res.drawable.ic_select_all), stringResource(Res.string.select_all), onSelectAll)
+                    menuItem(painterResource(Res.drawable.ic_logout), stringResource(Res.string.leave_rooms), onLeave)
                 }
             }
         },
@@ -546,7 +543,7 @@ private fun RoomsTopBar(
             actions = {
                 IconButton(onClick = onOpenSpaces) {
                     Box {
-                        Icon(Icons.Default.Workspaces, stringResource(Res.string.spaces))
+                        Icon(painterResource(Res.drawable.ic_workspaces), stringResource(Res.string.spaces))
                         if (spacesUnreadCount > 0) {
                             Badge(
                                 modifier = Modifier
@@ -562,17 +559,17 @@ private fun RoomsTopBar(
                     }
                 }
                 IconButton(onClick = onOpenSecurity) {
-                    Icon(Icons.Default.Settings, stringResource(Res.string.settings))
+                    Icon(painterResource(Res.drawable.ic_settings), stringResource(Res.string.settings))
                 }
                 IconButton(onClick = onOpenStartChat) {
-                    Icon(Icons.Default.Add, stringResource(Res.string.find_users_and_public_rooms))
+                    Icon(painterResource(Res.drawable.ic_add), stringResource(Res.string.find_users_and_public_rooms))
                 }
                 IconButton(onClick = onOpenSearch) {
-                    Icon(Icons.Default.Search, stringResource(Res.string.search_messages))
+                    Icon(painterResource(Res.drawable.ic_search), stringResource(Res.string.search_messages))
                 }
                 if (showSwitchAccountButton) {
                     IconButton(onClick = onOpenAccountSwitcher) {
-                        Icon(Icons.Default.SwitchAccount, stringResource(Res.string.account))
+                        Icon(painterResource(Res.drawable.ic_switch_account), stringResource(Res.string.account))
                     }
                 }
             }
@@ -603,11 +600,11 @@ private fun RoomsTopBar(
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
             placeholder = { Text(stringResource(Res.string.search_rooms)) },
-            leadingIcon = { Icon(Icons.Default.Search, null) },
+            leadingIcon = { Icon(painterResource(Res.drawable.ic_search), null) },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = { onSearchChange("") }) {
-                        Icon(Icons.Default.Close, stringResource(Res.string.clear_search))
+                        Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.clear_search))
                     }
                 }
             },
@@ -635,7 +632,7 @@ private fun RoomsTopBar(
                     )
                 },
                 leadingIcon = if (unreadOnly) {
-                    { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
+                    { Icon(painterResource(Res.drawable.ic_check), null, Modifier.size(18.dp)) }
                 } else null
             )
             FilterChip(
@@ -643,7 +640,7 @@ private fun RoomsTopBar(
                 onClick = { onSetTypeFilter(RoomTypeFilter.Groups) },
                 label = { Text(withCount(stringResource(Res.string.groups), unreadGroupsCount, unreadOnly)) },
                 leadingIcon = if (typeFilter == RoomTypeFilter.Groups) {
-                    { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
+                    { Icon(painterResource(Res.drawable.ic_check), null, Modifier.size(18.dp)) }
                 } else null
             )
             FilterChip(
@@ -651,7 +648,7 @@ private fun RoomsTopBar(
                 onClick = { onSetTypeFilter(RoomTypeFilter.Dms) },
                 label = { Text(withCount(stringResource(Res.string.dms), unreadDmsCount, unreadOnly)) },
                 leadingIcon = if (typeFilter == RoomTypeFilter.Dms) {
-                    { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
+                    { Icon(painterResource(Res.drawable.ic_check), null, Modifier.size(18.dp)) }
                 } else null
             )
             FilterChip(
@@ -667,7 +664,7 @@ private fun RoomsTopBar(
                     )
                 },
                 leadingIcon = if (typeFilter == RoomTypeFilter.Invites) {
-                    { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
+                    { Icon(painterResource(Res.drawable.ic_check), null, Modifier.size(18.dp)) }
                 } else null
             )
             FilterChip(
@@ -675,7 +672,7 @@ private fun RoomsTopBar(
                 onClick = { onSetTypeFilter(RoomTypeFilter.Favourites) },
                 label = { Text(withCount(stringResource(Res.string.favourites), unreadFavouritesCount, unreadOnly)) },
                 leadingIcon = if (typeFilter == RoomTypeFilter.Favourites) {
-                    { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
+                    { Icon(painterResource(Res.drawable.ic_check), null, Modifier.size(18.dp)) }
                 } else null
             )
         }

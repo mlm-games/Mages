@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.components.common
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -7,15 +8,13 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,7 +42,6 @@ import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun RoomListItem(
@@ -132,7 +130,7 @@ fun RoomListItem(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            Icons.Default.Workspaces,
+                            painterResource(Res.drawable.ic_workspaces),
                             contentDescription = stringResource(Res.string.spaces),
                             modifier = Modifier.size(11.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -158,7 +156,7 @@ fun RoomListItem(
                     if (item.isFavourite) {
                         Spacer(Modifier.width(4.dp))
                         Icon(
-                            Icons.Default.Star,
+                            painterResource(Res.drawable.ic_star),
                             contentDescription = stringResource(Res.string.favourite_room),
                             modifier = Modifier.size(14.dp),
                             tint = MaterialTheme.colorScheme.primary
@@ -168,7 +166,7 @@ fun RoomListItem(
                     if (item.isEncrypted) {
                         Spacer(Modifier.width(4.dp))
                         Icon(
-                            Icons.Default.Lock,
+                            painterResource(Res.drawable.ic_lock),
                             contentDescription = stringResource(Res.string.encrypted),
                             modifier = Modifier.size(14.dp),
                             tint = MaterialTheme.colorScheme.tertiary
@@ -178,7 +176,7 @@ fun RoomListItem(
                     if (item.isSharingLocation) {
                         Spacer(Modifier.width(4.dp))
                         Icon(
-                            Icons.Default.MyLocation,
+                            painterResource(Res.drawable.ic_my_location),
                             contentDescription = stringResource(Res.string.sharing_live_location),
                             modifier = Modifier.size(14.dp),
                             tint = MaterialTheme.colorScheme.error
@@ -419,7 +417,7 @@ fun InviteListItem(
 
 private data class MessagePreview(
     val text: String,
-    val icon: ImageVector? = null,
+    val icon: Painter? = null,
     val imagePath: String? = null
 )
 
@@ -444,49 +442,49 @@ private fun formatMessagePreview(
 
         LastMessageType.Image -> MessagePreview(
             text = senderPrefix + stringResource(Res.string.photo),
-            icon = if (imagePath == null) Icons.Default.Image else null,
+            icon = if (imagePath == null) painterResource(Res.drawable.ic_image) else null,
             imagePath = imagePath
         )
 
         LastMessageType.Video -> MessagePreview(
             text = senderPrefix + stringResource(Res.string.video),
-            icon = Icons.Default.Videocam
+            icon = painterResource(Res.drawable.ic_videocam)
         )
 
         LastMessageType.Audio -> MessagePreview(
             text = senderPrefix + stringResource(Res.string.audio_message),
-            icon = Icons.Default.Mic
+            icon = painterResource(Res.drawable.ic_mic)
         )
 
         LastMessageType.File -> MessagePreview(
             text = senderPrefix + (body?.takeIf { !it.startsWith("mxc://") } ?: stringResource(Res.string.file)),
-            icon = Icons.Default.AttachFile
+            icon = painterResource(Res.drawable.ic_attach_file)
         )
 
         LastMessageType.Sticker -> MessagePreview(
             text = senderPrefix + stringResource(Res.string.picker_sticker),
-            icon = if (stickerPath == null) Icons.Default.EmojiEmotions else null,
+            icon = if (stickerPath == null) painterResource(Res.drawable.ic_sentiment_satisfied) else null,
             imagePath = stickerPath
         )
 
         LastMessageType.Location -> MessagePreview(
             text = senderPrefix + stringResource(Res.string.location),
-            icon = Icons.Default.LocationOn
+            icon = painterResource(Res.drawable.ic_location_on)
         )
 
         LastMessageType.Poll -> MessagePreview(
             text = senderPrefix + stringResource(Res.string.picker_poll),
-            icon = Icons.Default.Poll
+            icon = painterResource(Res.drawable.ic_bar_chart)
         )
 
         LastMessageType.Call -> MessagePreview(
             text = senderPrefix + stringResource(Res.string.call),
-            icon = Icons.Default.Call
+            icon = painterResource(Res.drawable.ic_call)
         )
 
         LastMessageType.Encrypted -> MessagePreview(
             text = stringResource(Res.string.encrypted_message),
-            icon = Icons.Default.Lock
+            icon = painterResource(Res.drawable.ic_lock)
         )
 
         LastMessageType.Redacted -> MessagePreview(

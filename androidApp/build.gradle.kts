@@ -104,6 +104,7 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.compose.components.resources)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.telecom)
@@ -121,7 +122,6 @@ dependencies {
     implementation(libs.connector)
     implementation(libs.kermit)
 
-    implementation(libs.compose.material.icons.extended)
 }
 
 apkDist {

@@ -1,14 +1,12 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,7 +27,6 @@ import org.mlm.mages.ui.components.sheets.SelectedRoomsRow
 import org.mlm.mages.ui.components.sheets.SelectableRoomItem
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 import org.jetbrains.compose.resources.pluralStringResource
 
 @Composable
@@ -74,7 +71,7 @@ fun ForwardPickerScreen(
                         onClick = onBack,
                         enabled = !state.isSubmitting
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
+                        Icon(painterResource(Res.drawable.ic_arrow_back), contentDescription = stringResource(Res.string.back))
                     }
                 }
             )
@@ -201,7 +198,7 @@ private fun SelectedRoomsRow(
                         )
                     },
                     trailingIcon = {
-                        Icon(Icons.Default.Close, contentDescription = stringResource(Res.string.remove))
+                        Icon(painterResource(Res.drawable.ic_close), contentDescription = stringResource(Res.string.remove))
                     }
                 )
             }
@@ -295,7 +292,7 @@ private fun RoomForwardItem(
 
                 RoomForwardStage.Success -> {
                     Icon(
-                        imageVector = Icons.Default.CheckCircle,
+                        painter = painterResource(Res.drawable.ic_check_circle),
                         contentDescription = stringResource(Res.string.sent),
                         tint = MaterialTheme.colorScheme.primary
                     )
@@ -303,7 +300,7 @@ private fun RoomForwardItem(
 
                 RoomForwardStage.PartialSuccess -> {
                     Icon(
-                        imageVector = Icons.Default.WarningAmber,
+                        painter = painterResource(Res.drawable.ic_warning),
                         contentDescription = stringResource(Res.string.partial_success),
                         tint = MaterialTheme.colorScheme.tertiary
                     )
@@ -311,7 +308,7 @@ private fun RoomForwardItem(
 
                 RoomForwardStage.Failed -> {
                     Icon(
-                        imageVector = Icons.Default.ErrorOutline,
+                        painter = painterResource(Res.drawable.ic_error),
                         contentDescription = stringResource(Res.string.failed),
                         tint = MaterialTheme.colorScheme.error
                     )

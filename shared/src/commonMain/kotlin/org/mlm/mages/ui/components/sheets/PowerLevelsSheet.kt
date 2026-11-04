@@ -1,13 +1,10 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AdminPanelSettings
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,7 +15,6 @@ import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.RoomPowerLevels
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 import androidx.compose.runtime.Composable
 
 @Composable
@@ -105,10 +101,10 @@ fun PowerLevelsSheet(
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                             ) {
                                 Icon(
-                                    imageVector = when {
-                                        memberPowerLevel >= 100 -> Icons.Default.AdminPanelSettings
-                                        memberPowerLevel >= 50 -> Icons.Default.Shield
-                                        else -> Icons.Default.Person
+                                    painter = when {
+                                        memberPowerLevel >= 100 -> painterResource(Res.drawable.ic_admin_panel_settings)
+                                        memberPowerLevel >= 50 -> painterResource(Res.drawable.ic_shield)
+                                        else -> painterResource(Res.drawable.ic_person)
                                     },
                                     contentDescription = null,
                                     tint = when {
@@ -286,7 +282,7 @@ private fun RoleOption(
         leadingContent = if (selected) {
             {
                 Icon(
-                    Icons.Default.AdminPanelSettings,
+                    painterResource(Res.drawable.ic_admin_panel_settings),
                     contentDescription = stringResource(Res.string.selected),
                     tint = MaterialTheme.colorScheme.primary
                 )

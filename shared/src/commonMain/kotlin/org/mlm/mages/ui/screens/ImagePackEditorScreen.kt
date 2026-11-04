@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,13 +24,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddPhotoAlternate
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.FolderZip
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -73,7 +67,6 @@ import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.platform.imagePackZipImportSupported
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.viewmodel.ImagePackEditorViewModel
-import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.sticker_pack_add_images
 import mages.shared.generated.resources.sticker_pack_import_zip
 import mages.shared.generated.resources.sticker_pack_discard_cancel
@@ -188,7 +181,7 @@ fun ImagePackEditorScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onDiscard) { Icon(Icons.Default.Close, null) }
+                    IconButton(onClick = onDiscard) { Icon(painterResource(Res.drawable.ic_close), null) }
                 },
                 actions = {
                     IconButton(
@@ -196,7 +189,7 @@ fun ImagePackEditorScreen(
                         enabled = state.canEdit && !state.isUploading && state.hasUnsavedChanges
                     ) {
                         Icon(
-                            Icons.Default.Save,
+                            painterResource(Res.drawable.ic_save),
                             contentDescription = stringResource(Res.string.sticker_pack_save)
                         )
                     }
@@ -264,7 +257,7 @@ fun ImagePackEditorScreen(
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.lg, vertical = Spacing.md)
             ) {
-                Icon(Icons.Default.Add, null, Modifier.size(18.dp))
+                Icon(painterResource(Res.drawable.ic_add), null, Modifier.size(18.dp))
                 Spacer(Modifier.width(Spacing.sm))
                 Text(stringResource(Res.string.sticker_pack_create))
             }
@@ -440,7 +433,7 @@ private fun PackHeader(
                     modifier = Modifier.height(HEADER_FIELD)
                 ) {
                     Icon(
-                        Icons.Default.AddPhotoAlternate,
+                        painterResource(Res.drawable.ic_add_photo_alternate),
                         stringResource(Res.string.sticker_pack_add_images)
                     )
                 }
@@ -451,7 +444,7 @@ private fun PackHeader(
                         modifier = Modifier.height(HEADER_FIELD)
                     ) {
                         Icon(
-                            Icons.Default.FolderZip,
+                            painterResource(Res.drawable.ic_folder_zip),
                             stringResource(Res.string.sticker_pack_import_zip)
                         )
                     }
@@ -462,7 +455,7 @@ private fun PackHeader(
                     modifier = Modifier.height(HEADER_FIELD)
                 ) {
                     Icon(
-                        Icons.Default.Delete,
+                        painterResource(Res.drawable.ic_delete),
                         stringResource(Res.string.sticker_pack_remove)
                     )
                 }
@@ -670,7 +663,7 @@ private fun RemoveChip(onClick: () -> Unit, modifier: Modifier = Modifier) {
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
-                    Icons.Default.Close,
+                    painterResource(Res.drawable.ic_close),
                     stringResource(Res.string.sticker_pack_remove),
                     modifier = Modifier.size(14.dp),
                     tint = MaterialTheme.colorScheme.onErrorContainer

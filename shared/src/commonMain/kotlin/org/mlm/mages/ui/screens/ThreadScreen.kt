@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -9,11 +10,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Reply
-import androidx.compose.material.icons.filled.Gesture
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -82,7 +78,6 @@ import org.mlm.mages.settings.MessageMenuAction
 import org.mlm.mages.settings.parseMessageMenuOrder
 import org.mlm.mages.settings.parseQuickReactions
 import org.mlm.mages.settings.defaultQuickReactions
-import mages.shared.generated.resources.Res
 import org.jetbrains.compose.resources.pluralStringResource
 
 @Composable
@@ -358,7 +353,7 @@ fun ThreadScreen(
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                     contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                 ) {
-                    Icon(Icons.Default.KeyboardArrowDown, stringResource(Res.string.scroll_to_bottom))
+                    Icon(painterResource(Res.drawable.ic_keyboard_arrow_down), stringResource(Res.string.scroll_to_bottom))
                     Spacer(Modifier.width(Spacing.sm))
                     Text(stringResource(Res.string.latest))
                 }
@@ -620,7 +615,7 @@ private fun ThreadTopBar(
                     ) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Icon(
-                                Icons.Default.Gesture,
+                                painterResource(Res.drawable.ic_gesture),
                                 null,
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.size(20.dp)
@@ -651,7 +646,7 @@ private fun ThreadTopBar(
             },
             navigationIcon = {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
+                    Icon(painterResource(Res.drawable.ic_arrow_back), contentDescription = stringResource(Res.string.back))
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
@@ -784,7 +779,7 @@ private fun ThreadRootMessage(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        Icons.AutoMirrored.Filled.Reply,
+                        painterResource(Res.drawable.ic_reply),
                         null,
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.primary
@@ -957,7 +952,7 @@ private fun EmptyThreadView() {
             ) {
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                     Icon(
-                        Icons.Default.Gesture,
+                        painterResource(Res.drawable.ic_gesture),
                         null,
                         modifier = Modifier.size(40.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant

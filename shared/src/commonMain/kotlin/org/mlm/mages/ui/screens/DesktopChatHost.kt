@@ -1,12 +1,11 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -20,7 +19,6 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import mages.shared.generated.resources.*
-import mages.shared.generated.resources.Res
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.viewmodel.RoomsViewModel
@@ -87,7 +85,7 @@ fun DesktopChatHost(
                         ChatDetailPane(selection = selection, detailContent = detailContent)
                     } else {
                         EmptyState(
-                            icon = Icons.Default.ChatBubbleOutline,
+                            icon = painterResource(Res.drawable.ic_chat_bubble),
                             title = stringResource(Res.string.select_conversation_title),
                             subtitle = stringResource(Res.string.select_conversation_subtitle)
                         )

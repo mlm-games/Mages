@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.components.location
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -21,14 +22,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -481,7 +474,7 @@ actual fun LiveLocationMapViewer(
                         .align(Alignment.TopEnd)
                         .padding(16.dp),
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = "Close")
+                    Icon(painterResource(Res.drawable.ic_close), contentDescription = "Close")
                 }
 
                 FilledIconButton(
@@ -494,12 +487,12 @@ actual fun LiveLocationMapViewer(
                     if (isCentering) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                     } else {
-                        Icon(Icons.Default.MyLocation, contentDescription = stringResource(Res.string.map_center_my_location))
+                        Icon(painterResource(Res.drawable.ic_my_location), contentDescription = stringResource(Res.string.map_center_my_location))
                     }
                 }
 
                 Icon(
-                    Icons.Default.LocationOn,
+                    painterResource(Res.drawable.ic_location_on),
                     contentDescription = stringResource(Res.string.map_picked_location),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
@@ -528,7 +521,7 @@ actual fun LiveLocationMapViewer(
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(Res.string.sending))
                     } else {
-                        Icon(Icons.Default.LocationOn, contentDescription = null)
+                        Icon(painterResource(Res.drawable.ic_location_on), contentDescription = null)
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(Res.string.map_send_location))
                     }
@@ -553,7 +546,7 @@ actual fun LiveLocationMapViewer(
                         .align(Alignment.TopEnd)
                         .padding(16.dp),
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = stringResource(Res.string.map_close))
+                    Icon(painterResource(Res.drawable.ic_close), contentDescription = stringResource(Res.string.map_close))
                 }
 
                 FilledIconButton(
@@ -566,7 +559,7 @@ actual fun LiveLocationMapViewer(
                     if (isCentering) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                     } else {
-                        Icon(Icons.Default.MyLocation, contentDescription = stringResource(Res.string.map_center_my_location))
+                        Icon(painterResource(Res.drawable.ic_my_location), contentDescription = stringResource(Res.string.map_center_my_location))
                     }
                 }
 
@@ -580,7 +573,7 @@ actual fun LiveLocationMapViewer(
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     ) {
                         Icon(
-                            Icons.Default.Fullscreen,
+                            painterResource(Res.drawable.ic_fullscreen),
                             contentDescription = stringResource(Res.string.map_fit_all),
                             modifier = Modifier.size(24.dp),
                         )
@@ -605,7 +598,7 @@ actual fun LiveLocationMapViewer(
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     ) {
                         Icon(
-                            Icons.Default.ContentCopy,
+                            painterResource(Res.drawable.ic_content_copy),
                             contentDescription = stringResource(Res.string.map_copy_coordinates),
                             modifier = Modifier.size(24.dp),
                         )
@@ -621,7 +614,7 @@ actual fun LiveLocationMapViewer(
                     ) {
                         Box {
                             Icon(
-                                Icons.AutoMirrored.Filled.List,
+                                painterResource(Res.drawable.ic_list),
                                 contentDescription = stringResource(Res.string.map_view_all)
                             )
                             if (activeShares.size > 1) {
@@ -660,7 +653,7 @@ actual fun LiveLocationMapViewer(
                                     containerColor = MaterialTheme.colorScheme.error
                                 )
                             ) {
-                                Icon(Icons.Default.Stop, contentDescription = null)
+                                Icon(painterResource(Res.drawable.ic_stop), contentDescription = null)
                                 Spacer(Modifier.width(Spacing.sm))
                                 Text(stringResource(Res.string.stop_sharing))
                             }
@@ -778,7 +771,7 @@ private fun LiveLocationBottomSheetContent(
         if (onStopSharing != null) {
             Spacer(Modifier.height(Spacing.md))
             TextButton(onClick = onStopSharing) {
-                Icon(Icons.Default.Stop, contentDescription = null)
+                Icon(painterResource(Res.drawable.ic_stop), contentDescription = null)
                 Spacer(Modifier.width(Spacing.sm))
                 Text(stringResource(Res.string.stop_sharing))
             }

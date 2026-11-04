@@ -1,8 +1,8 @@
 package org.mlm.mages.push
+
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
 import org.freedesktop.dbus.Tuple
 import org.freedesktop.dbus.annotations.DBusInterfaceName
 import org.freedesktop.dbus.connections.impl.DBusConnection

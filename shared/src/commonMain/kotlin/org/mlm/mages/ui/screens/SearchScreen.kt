@@ -1,14 +1,12 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,7 +26,6 @@ import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatTime
 import org.mlm.mages.ui.viewmodel.SearchViewModel
-import mages.shared.generated.resources.Res
 
 @Composable
 fun SearchScreen(
@@ -94,7 +91,7 @@ fun SearchScreen(
                 pagingItems.loadState.refresh is LoadState.Error -> {
                     val error = (pagingItems.loadState.refresh as LoadState.Error).error
                     EmptyState(
-                        icon = Icons.Default.ErrorOutline,
+                        icon = painterResource(Res.drawable.ic_error),
                         title = stringResource(Res.string.search_error),
                         subtitle = error.message ?: stringResource(Res.string.unknown_error)
                     )
@@ -103,7 +100,7 @@ fun SearchScreen(
                 pagingItems.itemCount == 0 &&
                     pagingItems.loadState.refresh is LoadState.NotLoading -> {
                     EmptyState(
-                        icon = Icons.Default.SearchOff,
+                        icon = painterResource(Res.drawable.ic_search_off),
                         title = stringResource(Res.string.search_no_results),
                         subtitle = stringResource(Res.string.search_no_messages_for, state.query)
                     )
@@ -185,7 +182,7 @@ private fun SearchTopBar(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
+                        Icon(painterResource(Res.drawable.ic_arrow_back), stringResource(Res.string.back))
                     }
                 }
             )
@@ -205,17 +202,17 @@ private fun SearchTopBar(
             leadingIcon = {
                 if (scopedRoomName == null) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
+                        Icon(painterResource(Res.drawable.ic_arrow_back), stringResource(Res.string.back))
                     }
                 } else {
-                    Icon(Icons.Default.Search, null)
+                    Icon(painterResource(Res.drawable.ic_search), null)
                 }
             },
             trailingIcon = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (query.isNotEmpty()) {
                         IconButton(onClick = { onQueryChange("") }) {
-                            Icon(Icons.Default.Clear, stringResource(Res.string.clear))
+                            Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.clear))
                         }
                     }
                     if (isSearching) {
@@ -250,7 +247,7 @@ private fun SearchPlaceholder(
                 headlineContent = { Text(stringResource(Res.string.bookmarks)) },
                 leadingContent = {
                     Icon(
-                        Icons.Default.Bookmark,
+                        painterResource(Res.drawable.ic_bookmark),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
@@ -284,7 +281,7 @@ private fun SearchPlaceholder(
                         },
                         leadingContent = {
                             Icon(
-                                Icons.Default.History,
+                                painterResource(Res.drawable.ic_history),
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -292,7 +289,7 @@ private fun SearchPlaceholder(
                         trailingContent = {
                             IconButton(onClick = { onRemoveHistory(query) }) {
                                 Icon(
-                                    Icons.Default.Close,
+                                    painterResource(Res.drawable.ic_close),
                                     contentDescription = stringResource(Res.string.remove)
                                 )
                             }
@@ -304,7 +301,7 @@ private fun SearchPlaceholder(
             HorizontalDivider()
         } else {
             EmptyState(
-                icon = Icons.Default.Search,
+                icon = painterResource(Res.drawable.ic_search),
                 title = if (isScoped) stringResource(Res.string.search_this_room) else stringResource(Res.string.search_all_messages),
                 subtitle = stringResource(Res.string.search_min_chars),
                 modifier = Modifier.weight(1f)
@@ -361,7 +358,7 @@ private fun SearchResultItem(
         },
         leadingContent = {
             Icon(
-                Icons.Default.ChatBubbleOutline,
+                painterResource(Res.drawable.ic_chat_bubble),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )

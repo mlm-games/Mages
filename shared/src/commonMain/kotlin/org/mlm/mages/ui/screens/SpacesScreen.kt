@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -7,9 +8,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -61,12 +59,12 @@ fun SpacesScreen(
                 title = { Text(stringResource(Res.string.spaces), fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
+                        Icon(painterResource(Res.drawable.ic_arrow_back), stringResource(Res.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = viewModel::refresh, enabled = !state.isLoading) {
-                        Icon(Icons.Default.Refresh, stringResource(Res.string.refresh))
+                        Icon(painterResource(Res.drawable.ic_refresh), stringResource(Res.string.refresh))
                     }
                 }
             )
@@ -77,7 +75,7 @@ fun SpacesScreen(
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             ) {
-                Icon(Icons.Default.Add, null)
+                Icon(painterResource(Res.drawable.ic_add), null)
                 Spacer(Modifier.width(Spacing.sm))
                 Text(stringResource(Res.string.create_space))
             }
@@ -97,11 +95,11 @@ fun SpacesScreen(
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
                 placeholder = { Text(stringResource(Res.string.search_spaces)) },
-                leadingIcon = { Icon(Icons.Default.Search, null) },
+                leadingIcon = { Icon(painterResource(Res.drawable.ic_search), null) },
                 trailingIcon = {
                     if (state.searchQuery.isNotEmpty()) {
                         IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                            Icon(Icons.Default.Close, stringResource(Res.string.clear))
+                            Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.clear))
                         }
                     }
                 },
@@ -116,7 +114,7 @@ fun SpacesScreen(
 
                 state.filteredSpaces.isEmpty() -> {
                     EmptyState(
-                        icon = Icons.Default.Workspaces,
+                        icon = painterResource(Res.drawable.ic_workspaces),
                         title = if (state.searchQuery.isBlank()) stringResource(Res.string.no_spaces_yet)
                         else stringResource(Res.string.no_spaces_found),
                         subtitle = if (state.searchQuery.isBlank())
@@ -213,7 +211,7 @@ private fun SpaceCard(
                     ) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Icon(
-                                Icons.Default.Workspaces,
+                                painterResource(Res.drawable.ic_workspaces),
                                 null,
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.size(28.dp)
@@ -248,7 +246,7 @@ private fun SpaceCard(
                     )
                     if (space.isEncrypted) {
                         Icon(
-                            Icons.Default.Lock,
+                            painterResource(Res.drawable.ic_lock),
                             stringResource(Res.string.encrypted),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.primary
@@ -256,7 +254,7 @@ private fun SpaceCard(
                     }
                     if (space.isPublic) {
                         Icon(
-                            Icons.Default.Public,
+                            painterResource(Res.drawable.ic_public),
                             stringResource(Res.string.public),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.tertiary
@@ -284,7 +282,7 @@ private fun SpaceCard(
             }
 
             Icon(
-                Icons.Default.ChevronRight,
+                painterResource(Res.drawable.ic_chevron_right),
                 null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -337,7 +335,7 @@ private fun CreateSpaceSheet(
             ) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Icon(
-                        Icons.Default.Workspaces,
+                        painterResource(Res.drawable.ic_workspaces),
                         null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(40.dp)
@@ -379,7 +377,7 @@ private fun CreateSpaceSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        if (isPublic) Icons.Default.Public else Icons.Default.Lock,
+                        if (isPublic) painterResource(Res.drawable.ic_public) else painterResource(Res.drawable.ic_lock),
                         null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -441,7 +439,7 @@ private fun CreateSpaceSheet(
                     },
                     enabled = isMatrixUserId(inviteeInput) && !isCreating
                 ) {
-                    Icon(Icons.Default.Add, stringResource(Res.string.add))
+                    Icon(painterResource(Res.drawable.ic_add), stringResource(Res.string.add))
                 }
             }
 
@@ -461,7 +459,7 @@ private fun CreateSpaceSheet(
                                     modifier = Modifier.size(18.dp),
                                     enabled = !isCreating
                                 ) {
-                                    Icon(Icons.Default.Close, stringResource(Res.string.remove), Modifier.size(14.dp))
+                                    Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.remove), Modifier.size(14.dp))
                                 }
                             }
                         )
@@ -485,7 +483,7 @@ private fun CreateSpaceSheet(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Icon(Icons.Default.Add, null)
+                    Icon(painterResource(Res.drawable.ic_add), null)
                     Spacer(Modifier.width(Spacing.sm))
                     Text(stringResource(Res.string.create_space), fontWeight = FontWeight.Medium)
                 }

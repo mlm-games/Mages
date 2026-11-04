@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -7,10 +8,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Key
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,7 +19,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import mages.shared.generated.resources.*
-import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.change_recovery_key_instructions
 import mages.shared.generated.resources.change_recovery_key_title
 import mages.shared.generated.resources.copy
@@ -62,7 +58,7 @@ fun SetupRecoverySheet(
         verticalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
         Icon(
-            Icons.Default.Key,
+            painterResource(Res.drawable.ic_key),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(48.dp)
@@ -111,7 +107,7 @@ fun SetupRecoverySheet(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Icon(
-                                if (copied) Icons.Default.Check else Icons.Default.ContentCopy,
+                                if (copied) painterResource(Res.drawable.ic_check) else painterResource(Res.drawable.ic_content_copy),
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp)
                             )

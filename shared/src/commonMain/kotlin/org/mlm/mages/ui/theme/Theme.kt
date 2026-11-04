@@ -15,7 +15,6 @@ import org.mlm.mages.platform.getDynamicColorScheme
 import org.mlm.mages.ui.animation.LocalReduceMotion
 import org.mlm.mages.ui.util.LocalUse24HourTime
 
-
 object AppColors {
     val Purple80 = Color(0xFFD0BCFF)
     val PurpleGrey80 = Color(0xFFCCC2DC)

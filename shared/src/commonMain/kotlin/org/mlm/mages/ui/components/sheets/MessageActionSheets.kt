@@ -1,21 +1,18 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Forward
-import androidx.compose.material.icons.automirrored.filled.Reply
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -24,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import io.github.mlmgames.settings.core.annotations.SettingPlatform
 import io.github.mlmgames.settings.core.platform.currentPlatform
 import mages.shared.generated.resources.*
-import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.message_info
 import mages.shared.generated.resources.retry
 import org.jetbrains.compose.resources.stringResource
@@ -136,7 +132,7 @@ fun MessageActionSheet(
 
             val actions = buildList {
                 if (isMine && event.sendState == SendState.Failed && onRetry != null) {
-                    add(MenuEntry(Icons.Default.Refresh, stringResource(Res.string.retry)) { onRetry(); onDismiss() })
+                    add(MenuEntry(painterResource(Res.drawable.ic_refresh), stringResource(Res.string.retry)) { onRetry(); onDismiss() })
                 }
                 if (isMine && event.canCancelSend() && onCancelSend != null) {
                     val label = if (event.sendState == SendState.Failed) {
@@ -144,28 +140,28 @@ fun MessageActionSheet(
                     } else {
                         stringResource(Res.string.cancel_sending)
                     }
-                    add(MenuEntry(Icons.Default.Close, label) { onCancelSend(); onDismiss() })
+                    add(MenuEntry(painterResource(Res.drawable.ic_close), label) { onCancelSend(); onDismiss() })
                 }
                 menuOrder.forEach { action ->
                     when (action) {
                         MessageMenuAction.Reply -> if (!isRedacted) {
-                            add(MenuEntry(Icons.AutoMirrored.Filled.Reply, stringResource(Res.string.reply_action)) { onReply(); onDismiss() })
+                            add(MenuEntry(painterResource(Res.drawable.ic_reply), stringResource(Res.string.reply_action)) { onReply(); onDismiss() })
                         }
 
                         MessageMenuAction.ReplyInThread -> if (!isRedacted && onReplyInThread != null) {
-                            add(MenuEntry(Icons.Default.Gesture, stringResource(Res.string.reply_in_thread)) { onReplyInThread(); onDismiss() })
+                            add(MenuEntry(painterResource(Res.drawable.ic_gesture), stringResource(Res.string.reply_in_thread)) { onReplyInThread(); onDismiss() })
                         }
 
                         MessageMenuAction.Edit -> if (isMine && !isRedacted && event.sendState != SendState.Failed && event.eventId.isNotBlank()) {
                             if (event.pollData != null) {
                                 if (event.pollData?.isEnded == false && onEditPoll != null) {
-                                    add(MenuEntry(Icons.Default.Poll, stringResource(Res.string.edit_poll)) { onEditPoll(); onDismiss() })
+                                    add(MenuEntry(painterResource(Res.drawable.ic_bar_chart), stringResource(Res.string.edit_poll)) { onEditPoll(); onDismiss() })
                                 }
                             } else if (event.attachment != null) {
                                 if (onEditCaption != null) {
                                     add(
                                         MenuEntry(
-                                            Icons.Default.Edit,
+                                            painterResource(Res.drawable.ic_edit),
                                             if (event.hasCaption()) stringResource(Res.string.edit_caption) else stringResource(Res.string.add_caption)
                                         ) { onEditCaption(); onDismiss() }
                                     )
@@ -173,7 +169,7 @@ fun MessageActionSheet(
                                 if (event.hasCaption() && onRemoveCaption != null) {
                                     add(
                                         MenuEntry(
-                                            Icons.Default.Close,
+                                            painterResource(Res.drawable.ic_close),
                                             stringResource(Res.string.remove_caption),
                                             MaterialTheme.colorScheme.error
                                         ) { onRemoveCaption(); onDismiss() }
@@ -183,25 +179,25 @@ fun MessageActionSheet(
                                 event.eventType != EventType.Location &&
                                 event.eventType != EventType.LiveLocation
                             ) {
-                                add(MenuEntry(Icons.Default.Edit, stringResource(Res.string.edit)) { onEdit(); onDismiss() })
+                                add(MenuEntry(painterResource(Res.drawable.ic_edit), stringResource(Res.string.edit)) { onEdit(); onDismiss() })
                             }
                         }
 
                         MessageMenuAction.Copy -> add(
-                            MenuEntry(Icons.Default.ContentCopy, stringResource(Res.string.copy)) {
+                            MenuEntry(painterResource(Res.drawable.ic_content_copy), stringResource(Res.string.copy)) {
                                 clipboardManager.setText(AnnotatedString(event.body))
                                 onDismiss()
                             }
                         )
 
                         MessageMenuAction.Forward -> if (onForward != null && event.isForwardable()) {
-                            add(MenuEntry(Icons.AutoMirrored.Filled.Forward, stringResource(Res.string.forward)) { onForward(); onDismiss() })
+                            add(MenuEntry(painterResource(Res.drawable.ic_forward), stringResource(Res.string.forward)) { onForward(); onDismiss() })
                         }
 
                         MessageMenuAction.Share -> if (onShare != null) {
                             add(
                                 MenuEntry(
-                                    Icons.Default.Share,
+                                    painterResource(Res.drawable.ic_share),
                                     if (currentPlatform == SettingPlatform.WEB) {
                                         stringResource(Res.string.download)
                                     } else {
@@ -213,37 +209,37 @@ fun MessageActionSheet(
 
                         MessageMenuAction.Pin -> if (canPin && event.eventId.isNotBlank() && (!isRedacted || isPinned)) {
                             if (isPinned && onUnpin != null) {
-                                add(MenuEntry(Icons.Default.PushPin, stringResource(Res.string.unpin)) { onUnpin(); onDismiss() })
+                                add(MenuEntry(painterResource(Res.drawable.ic_push_pin), stringResource(Res.string.unpin)) { onUnpin(); onDismiss() })
                             } else if (!isPinned && onPin != null) {
-                                add(MenuEntry(Icons.Default.PushPin, stringResource(Res.string.pin)) { onPin(); onDismiss() })
+                                add(MenuEntry(painterResource(Res.drawable.ic_push_pin), stringResource(Res.string.pin)) { onPin(); onDismiss() })
                             }
                         }
 
                         MessageMenuAction.Bookmark -> if (onBookmark != null && !isRedacted && event.eventId.isNotBlank()) {
                             add(
                                 MenuEntry(
-                                    if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                                    if (isBookmarked) painterResource(Res.drawable.ic_bookmark) else painterResource(Res.drawable.ic_bookmark),
                                     stringResource(if (isBookmarked) Res.string.remove_bookmark else Res.string.bookmark)
                                 ) { onBookmark(); onDismiss() }
                             )
                         }
 
                         MessageMenuAction.MarkRead -> add(
-                            MenuEntry(Icons.Default.Done, stringResource(Res.string.mark_as_read_here)) {
+                            MenuEntry(painterResource(Res.drawable.ic_done), stringResource(Res.string.mark_as_read_here)) {
                                 onMarkReadHere()
                                 onDismiss()
                             }
                         )
 
                         MessageMenuAction.Select -> add(
-                            MenuEntry(Icons.Default.Deselect, stringResource(Res.string.select)) {
+                            MenuEntry(painterResource(Res.drawable.ic_deselect), stringResource(Res.string.select)) {
                                 onSelect()
                                 onDismiss()
                             }
                         )
 
                         MessageMenuAction.Info -> if (onShowMessageInfo != null) {
-                            add(MenuEntry(Icons.Default.Info, stringResource(Res.string.message_info)) {
+                            add(MenuEntry(painterResource(Res.drawable.ic_info), stringResource(Res.string.message_info)) {
                                 onShowMessageInfo()
                                 onDismiss()
                             })
@@ -266,14 +262,14 @@ fun MessageActionSheet(
             if (canDelete || canReport) {
                 HorizontalDivider(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.xs))
                 if (canDelete) {
-                    ActionItem(Icons.Default.Delete, stringResource(Res.string.delete), MaterialTheme.colorScheme.error) {
+                    ActionItem(painterResource(Res.drawable.ic_delete), stringResource(Res.string.delete), MaterialTheme.colorScheme.error) {
                         onDelete()
                         onDismiss()
                     }
                 }
                 val report = onReport
                 if (report != null && event.eventId.isNotBlank()) {
-                    ActionItem(Icons.Default.Flag, stringResource(Res.string.report), MaterialTheme.colorScheme.error) {
+                    ActionItem(painterResource(Res.drawable.ic_flag), stringResource(Res.string.report), MaterialTheme.colorScheme.error) {
                         report()
                         onDismiss()
                     }
@@ -284,7 +280,7 @@ fun MessageActionSheet(
 }
 
 private class MenuEntry(
-    val icon: ImageVector,
+    val icon: Painter,
     val label: String,
     val color: Color? = null,
     val onClick: () -> Unit,
@@ -330,14 +326,14 @@ private fun QuickReactionsRow(
         item {
             Surface(onClick = onOpenPicker, shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.size(48.dp)) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.more_emoji), modifier = Modifier.size(20.dp))
+                    Icon(painterResource(Res.drawable.ic_add), contentDescription = stringResource(Res.string.more_emoji), modifier = Modifier.size(20.dp))
                 }
             }
         }
         item {
             Surface(onClick = onOpenImagePicker, shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.size(48.dp)) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Image, contentDescription = stringResource(Res.string.react_with_an_image), modifier = Modifier.size(20.dp))
+                    Icon(painterResource(Res.drawable.ic_image), contentDescription = stringResource(Res.string.react_with_an_image), modifier = Modifier.size(20.dp))
                 }
             }
         }
@@ -346,7 +342,7 @@ private fun QuickReactionsRow(
 
 @Composable
 private fun ActionItem(
-    icon: ImageVector,
+    icon: Painter,
     text: String,
     color: Color = MaterialTheme.colorScheme.onSurface,
     onClick: () -> Unit
@@ -360,7 +356,7 @@ private fun ActionItem(
             headlineContent = { Text(text, color = color) },
             leadingContent = {
                 Icon(
-                    imageVector = icon,
+                    painter = icon,
                     contentDescription = null,
                     tint = color,
                     modifier = Modifier.size(24.dp)

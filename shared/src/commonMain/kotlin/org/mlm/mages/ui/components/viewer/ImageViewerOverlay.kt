@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.components.viewer
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -18,10 +19,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -334,7 +331,7 @@ private fun ImageViewerChrome(
         ) {
             IconButton(onClick = onClose) {
                 Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
+                    painterResource(Res.drawable.ic_arrow_back),
                     contentDescription = stringResource(Res.string.back),
                     tint = Color.White,
                 )
@@ -359,14 +356,14 @@ private fun ImageViewerChrome(
             }
             IconButton(onClick = onShare) {
                 Icon(
-                    Icons.Default.Share,
+                    painterResource(Res.drawable.ic_share),
                     contentDescription = stringResource(Res.string.share),
                     tint = Color.White,
                 )
             }
             IconButton(onClick = onOpen) {
                 Icon(
-                    Icons.AutoMirrored.Filled.OpenInNew,
+                    painterResource(Res.drawable.ic_open_in_new),
                     contentDescription = stringResource(Res.string.open_in),
                     tint = Color.White,
                 )

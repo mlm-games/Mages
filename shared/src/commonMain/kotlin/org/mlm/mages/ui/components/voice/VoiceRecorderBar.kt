@@ -1,13 +1,11 @@
 package org.mlm.mages.ui.components.voice
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,7 +18,6 @@ import org.mlm.mages.platform.createAudioRecorder
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatDuration
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun VoiceRecorderBar(
@@ -62,7 +59,7 @@ fun VoiceRecorderBar(
                 scope.launch { recorder.cancelRecording(); onCancel() }
             }) {
                 Icon(
-                    Icons.Default.Delete,
+                    painterResource(Res.drawable.ic_delete),
                     contentDescription = stringResource(Res.string.cancel_recording),
                     tint = MaterialTheme.colorScheme.error
                 )
@@ -91,7 +88,7 @@ fun VoiceRecorderBar(
                 modifier = Modifier.size(44.dp)
             ) {
                 Icon(
-                    Icons.AutoMirrored.Filled.Send,
+                    painterResource(Res.drawable.ic_send),
                     contentDescription = stringResource(Res.string.send_voice_message),
                     modifier = Modifier.size(20.dp)
                 )

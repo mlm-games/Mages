@@ -1,14 +1,11 @@
 package org.mlm.mages.ui.components.composer
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -44,7 +41,6 @@ import org.mlm.mages.ui.components.voice.VoiceRecorderBar
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun MessageComposer(
@@ -240,7 +236,7 @@ private fun ComposerInputRow(
         AnimatedVisibility(visible = onAttach != null && !isUploadingAttachment) {
             IconButton(onClick = { onAttach?.invoke() }) {
                 Icon(
-                    Icons.Default.AttachFile,
+                    painterResource(Res.drawable.ic_attach_file),
                     stringResource(Res.string.attach),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -345,9 +341,9 @@ private fun ComposerInputRow(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else if (canSend) {
-                Icon(Icons.AutoMirrored.Filled.Send, stringResource(Res.string.send))
+                Icon(painterResource(Res.drawable.ic_send), stringResource(Res.string.send))
             } else {
-                Icon(Icons.Default.Mic, stringResource(Res.string.record_voice))
+                Icon(painterResource(Res.drawable.ic_mic), stringResource(Res.string.record_voice))
             }
         }
     }

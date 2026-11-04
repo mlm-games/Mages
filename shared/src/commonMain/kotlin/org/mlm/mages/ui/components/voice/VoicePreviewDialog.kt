@@ -1,13 +1,11 @@
 package org.mlm.mages.ui.components.voice
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.runtime.*
@@ -22,7 +20,6 @@ import org.mlm.mages.platform.createAudioPlayer
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.formatDuration
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun VoicePreviewDialog(
@@ -106,7 +103,7 @@ fun VoicePreviewDialog(
                             )
                         } else {
                             Icon(
-                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                painter = if (isPlaying) painterResource(Res.drawable.ic_pause) else painterResource(Res.drawable.ic_play_arrow),
                                 contentDescription = if (isPlaying) stringResource(Res.string.pause) else stringResource(Res.string.play),
                                 tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(26.dp)
@@ -151,7 +148,7 @@ fun VoicePreviewDialog(
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(
-                            Icons.Default.Refresh,
+                            painterResource(Res.drawable.ic_refresh),
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )
@@ -162,7 +159,7 @@ fun VoicePreviewDialog(
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(
-                            Icons.Default.Delete,
+                            painterResource(Res.drawable.ic_delete),
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )
@@ -173,7 +170,7 @@ fun VoicePreviewDialog(
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(
-                            Icons.AutoMirrored.Filled.Send,
+                            painterResource(Res.drawable.ic_send),
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )

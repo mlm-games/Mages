@@ -63,7 +63,6 @@ kotlin {
             implementation(libs.navigation3.ui)
             implementation(libs.lifecycle.viewmodel.navigation3)
             implementation(libs.adaptive.navigation3)
-            implementation(libs.compose.material.icons.extended)
             implementation(libs.compose.components.resources)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)

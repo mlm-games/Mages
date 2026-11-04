@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.components.location
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,9 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledIconButton
@@ -29,7 +27,6 @@ import mages.shared.generated.resources.*
 import org.mlm.mages.matrix.LiveLocationShare
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.live_location_web_foreground_desc
 
 @Composable
@@ -107,7 +104,7 @@ actual fun LiveLocationMapViewer(
                             containerColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Icon(Icons.Default.Stop, contentDescription = null)
+                        Icon(painterResource(Res.drawable.ic_stop), contentDescription = null)
                         Text(stringResource(Res.string.stop_sharing))
                     }
                 }
@@ -120,7 +117,7 @@ actual fun LiveLocationMapViewer(
                 .align(Alignment.TopEnd)
                 .padding(Spacing.lg),
         ) {
-            Icon(Icons.Default.Close, contentDescription = stringResource(Res.string.close_live_location_viewer))
+            Icon(painterResource(Res.drawable.ic_close), contentDescription = stringResource(Res.string.close_live_location_viewer))
         }
     }
 }

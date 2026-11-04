@@ -1,12 +1,10 @@
 package org.mlm.mages.ui.components.sheets
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,7 +14,6 @@ import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
 import org.mlm.mages.accounts.MatrixAccount
 import org.jetbrains.compose.resources.stringResource
-import mages.shared.generated.resources.Res
 
 @Composable
 fun AccountSwitcherSheet(
@@ -58,7 +55,7 @@ fun AccountSwitcherSheet(
                     ListItem(
                         headlineContent = { Text(stringResource(Res.string.add_account)) },
                         leadingContent = {
-                            Icon(Icons.Default.Add, contentDescription = null)
+                            Icon(painterResource(Res.drawable.ic_add), contentDescription = null)
                         },
                         modifier = Modifier.clickable {
                             onAddAccount()
@@ -107,7 +104,7 @@ private fun AccountRow(
                     MaterialTheme.colorScheme.surfaceVariant
             ) {
                 Icon(
-                    Icons.Default.Person,
+                    painterResource(Res.drawable.ic_person),
                     contentDescription = null,
                     modifier = Modifier.padding(8.dp),
                     tint = if (isActive)
@@ -121,14 +118,14 @@ private fun AccountRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (isActive) {
                     Icon(
-                        Icons.Default.Check,
+                        painterResource(Res.drawable.ic_check),
                         contentDescription = stringResource(Res.string.active),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
                 IconButton(onClick = { showRemoveDialog = true }) {
                     Icon(
-                        Icons.AutoMirrored.Filled.Logout,
+                        painterResource(Res.drawable.ic_logout),
                         contentDescription = stringResource(Res.string.logout),
                         tint = MaterialTheme.colorScheme.error
                     )

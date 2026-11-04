@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.screens
 
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -24,11 +25,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -72,7 +68,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import mages.shared.generated.resources.*
-import mages.shared.generated.resources.Res
 import mages.shared.generated.resources.back
 import mages.shared.generated.resources.files
 import mages.shared.generated.resources.media_cache
@@ -244,7 +239,7 @@ fun MediaCacheScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            painter = painterResource(Res.drawable.ic_arrow_back),
                             contentDescription = stringResource(Res.string.back),
                         )
                     }
@@ -681,7 +676,7 @@ private fun MediaTypeCard(
                 trailing = {
                     IconButton(onClick = { onClear(row.kind) }) {
                         Icon(
-                            imageVector = Icons.Default.Delete,
+                            painter = painterResource(Res.drawable.ic_delete),
                             contentDescription = clearLabel,
                         )
                     }
@@ -736,7 +731,7 @@ private fun ByChatCard(
                 trailing = {
                     IconButton(onClick = { onClear(room) }) {
                         Icon(
-                            imageVector = Icons.Default.Delete,
+                            painter = painterResource(Res.drawable.ic_delete),
                             contentDescription = clearLabel,
                         )
                     }
@@ -804,7 +799,7 @@ private fun MediaItemsDialog(
                         navigationIcon = {
                             IconButton(onClick = onDismiss, enabled = !state.isClearing) {
                                 Icon(
-                                    imageVector = Icons.Default.Close,
+                                    painter = painterResource(Res.drawable.ic_close),
                                     contentDescription = stringResource(Res.string.cancel),
                                 )
                             }
@@ -1056,7 +1051,7 @@ private fun <T> OptionRow(
             Box {
                 TextButton(onClick = { expanded = true }, enabled = enabled) {
                     Text(options.firstOrNull { it.second == value }?.first ?: fallback)
-                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                    Icon(painterResource(Res.drawable.ic_arrow_drop_down), contentDescription = null)
                 }
 
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
