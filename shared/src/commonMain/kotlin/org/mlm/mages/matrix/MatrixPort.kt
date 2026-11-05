@@ -1471,6 +1471,8 @@ interface MatrixPort {
 
     suspend fun clearUserCall(): Result<Unit>
 
+    suspend fun fetchRoomHeroes(roomIds: List<String>): Result<Map<String, List<RoomHero>>>
+
     suspend fun ownProfile(): OwnProfile?
 
     suspend fun setDisplayName(name: String?): Result<Unit>

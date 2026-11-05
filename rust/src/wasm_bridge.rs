@@ -597,6 +597,7 @@ wasm_delegate! { webffi_value;
     "roomPowerLevels"  => room_power_levels(room_id: String);
     "getPresence"      => get_presence(user_id: String);
     "roomPreview"      => room_preview(id_or_alias: String, via: Vec<String>);
+    "fetchRoomHeroes"  => fetch_room_heroes(room_ids: Vec<String>);
     "forwardEvent"     => forward_event(source_room_id: String, event_id: String, target_room_ids: Vec<String>);
     "spaceHierarchy"   => space_hierarchy(space_id: String, from: Option<String>, limit: u32, max_depth: Option<u32>, suggested_only: bool);
     "renameSection"    => rename_section(tag: String, name: String);

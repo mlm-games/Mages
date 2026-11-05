@@ -21,6 +21,7 @@ import org.mlm.mages.matrix.ImagePackSummary
 import org.mlm.mages.matrix.LiveLocationShare
 import org.mlm.mages.matrix.SpaceParentInfo
 import org.mlm.mages.matrix.MemberSummary
+import org.mlm.mages.matrix.RoomHero
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.matrix.OwnProfile
 import org.mlm.mages.matrix.ProfileField
@@ -110,6 +111,8 @@ data class RoomsUiState(
     val parentSpaces: Map<String, List<SpaceParentInfo>> = emptyMap(),
     val parentSpaceAvatarPath: Map<String, String> = emptyMap(),
     val parentSpacesResolvedKey: String = "",
+    val roomListHeroesResolvedKey: String = "",
+    val roomListHeroes: Map<String, List<RoomHero>> = emptyMap(),
 
     val unreadChatCount: Int = 0,
     val unreadFavouritesCount: Int = 0,
@@ -863,6 +866,8 @@ data class RoomListItemUi(
     val peerStatusEmoji: String? = null,
     val peerStatusText: String? = null,
     val peerCallJoinedTsMs: Long? = null,
+
+    val heroes: List<RoomHero> = emptyList(),
 
     val parentSpaces: List<SpaceBadgeUi> = emptyList(),
 )

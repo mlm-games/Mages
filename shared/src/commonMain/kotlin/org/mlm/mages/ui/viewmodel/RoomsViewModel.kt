@@ -71,6 +71,7 @@ class RoomsViewModel(
                 recomputeGroupedRooms()
                 prefetchVisibleStickerPreviews(current.mediaPreviews)
                 prefetchVisibleImagePreviews(current.mediaPreviews)
+                loadRoomListHeroes()
             }
         }
 
@@ -431,6 +432,7 @@ class RoomsViewModel(
         val lastSticker = lastEvent?.sticker
         val lastImage = lastEvent?.attachment?.takeIf { it.kind == AttachmentKind.Image }
         val spaces = currentState.parentSpaces[entry.roomId].orEmpty()
+        val heroes = currentState.roomListHeroes[entry.roomId].orEmpty()
 
         return RoomListItemUi(
             roomId = entry.roomId,
@@ -459,6 +461,7 @@ class RoomsViewModel(
             peerStatusEmoji = entry.peerStatusEmoji,
             peerStatusText = entry.peerStatusText,
             peerCallJoinedTsMs = entry.peerCallJoinedTsMs,
+            heroes = heroes,
             parentSpaces = if (settings.value.showSpaceBadgeInRoomList) {
                 spaces.map { space ->
                     SpaceBadgeUi(
@@ -476,6 +479,32 @@ class RoomsViewModel(
     // Only re-resolve when the visible room set actually changes; the search box and the
     // type filter call recomputeGroupedRooms on every keystroke. The key lives in the state
     // so it is cleared together with the maps it guards when observers are reset.
+
+    private fun loadRoomListHeroes() {
+        if (!settings.value.showRoomListHeroes) return
+        val roomIds = currentState.allItems.map { it.roomId }
+        if (roomIds.isEmpty()) return
+        val key = roomIds.joinToString(",")
+        if (key == currentState.roomListHeroesResolvedKey) return
+        updateState { copy(roomListHeroesResolvedKey = key) }
+        launch {
+            val byRoom = runSafe { service.port.fetchRoomHeroes(roomIds) }?.getOrNull().orEmpty()
+            updateState {
+                fun List<RoomListItemUi>.withHeroes() = map { item ->
+                    item.copy(heroes = byRoom[item.roomId].orEmpty())
+                }
+                copy(
+                    roomListHeroes = byRoom,
+                    allItems = allItems.withHeroes(),
+                    favouriteItems = favouriteItems.withHeroes(),
+                    normalItems = normalItems.withHeroes(),
+                    lowPriorityItems = lowPriorityItems.withHeroes(),
+                    inviteItems = inviteItems.withHeroes(),
+                )
+            }
+        }
+    }
+
     private fun loadParentSpaces() {
         val roomIds = currentState.allItems.map { it.roomId }
         if (roomIds.isEmpty()) return
@@ -757,6 +786,7 @@ class RoomsViewModel(
             )
         }
         loadParentSpaces()
+        loadRoomListHeroes()
     }
 
     private fun maybePrefetchRoomAvatar(roomId: String, avatarMxc: String?) {

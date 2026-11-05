@@ -1913,6 +1913,13 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
             runWithFfiResult { withClient { it.clearUserCall() } }.map { }
         }
 
+    override suspend fun fetchRoomHeroes(roomIds: List<String>): Result<Map<String, List<RoomHero>>> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.fetchRoomHeroes(roomIds) } }.map { heroes ->
+                heroes.mapValues { (_, list) -> list.map { it.toModel() } }
+            }
+        }
+
     override suspend fun setDisplayName(name: String?): Result<Unit> =
         withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.setDisplayName(name) } }.map { }

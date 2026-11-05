@@ -267,6 +267,7 @@ delegate! { plain Vec<String>; room_aliases(room_id: String); }
 delegate! { plain i64; get_user_power_level(room_id: String, user_id: String); }
 delegate! { plain OwnReceipt; own_last_read(room_id: String); }
 delegate! { plain HashMap<String, Vec<ReactionSummary>>; reactions_batch(room_id: String, event_ids: Vec<String>); }
+delegate! { result HashMap<String, Vec<RoomHeroInfo>>; fetch_room_heroes(room_ids: Vec<String>); }
 delegate! { plain Vec<ReactionSummary>; reactions_for_event(room_id: String, event_id: String); }
 delegate! { plain Vec<SpaceInfo>; my_spaces(); }
 delegate! { plain Vec<RoomSummary>; rooms(); }

@@ -1549,6 +1549,12 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         return unitResult(result.ok, "clear user call", result.error)
     }
 
+    override suspend fun fetchRoomHeroes(roomIds: List<String>): Result<Map<String, List<RoomHero>>> {
+        val value = requireClient().fetchRoomHeroes(roomIds.toJsArray()).awaitValue<Map<String, List<RoomHero>>>("fetchRoomHeroes")
+            ?: return Result.failure(Exception("Failed to load room heroes"))
+        return Result.success(value)
+    }
+
     override suspend fun setAvatarFromPath(path: String, mime: String): Result<String> {
         val bytes = retrieveWebBlob(path)
             ?: return Result.failure(IllegalStateException("image no longer available"))
