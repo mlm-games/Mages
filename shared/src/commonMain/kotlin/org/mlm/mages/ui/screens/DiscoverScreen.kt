@@ -12,14 +12,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.foundation.shape.CircleShape
 import org.mlm.mages.ui.theme.Spacing
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.DirectoryUser
 import org.mlm.mages.matrix.PublicRoom
 import org.mlm.mages.matrix.PublicRoomTypeFilter
-import org.mlm.mages.matrix.RoomHero
 import org.mlm.mages.ui.components.core.StatusBanner
 import org.mlm.mages.ui.components.core.BannerType
 import org.mlm.mages.ui.components.core.Avatar
@@ -336,59 +333,6 @@ private fun DirectJoinCard(
             supportingContent = {
                 Column {
                     Text(subtitle)
-                    preview?.heroes?.takeIf { it.isNotEmpty() }?.let { heroes ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = Spacing.xs),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                        ) {
-                            heroes.forEach { hero ->
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Avatar(
-                                        name = hero.displayName ?: hero.userId,
-                                        avatarPath = hero.avatarUrl,
-                                        size = 32.dp,
-                                        shape = CircleShape
-                                    )
-                                    Spacer(Modifier.height(Spacing.xs))
-                                    Text(
-                                        text = hero.displayName ?: hero.userId,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                    val statusLine = listOfNotNull(
-                                        hero.statusEmoji?.takeIf { it.isNotBlank() },
-                                        hero.statusText?.takeIf { it.isNotBlank() }
-                                    ).joinToString(" ")
-                                    if (statusLine.isNotBlank()) {
-                                        Text(
-                                            text = statusLine,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-                                    }
-                                    if (hero.callJoinedTsMs != null) {
-                                        Icon(
-                                            painterResource(Res.drawable.ic_call),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(12.dp),
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
                     if (preview?.title != null && preview.target != preview.title) {
                         Text(
                             preview.target,

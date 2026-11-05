@@ -31,7 +31,6 @@ import kotlinx.datetime.toLocalDateTime
 import mages.shared.generated.resources.*
 import org.mlm.mages.ui.LastMessageType
 import org.mlm.mages.ui.RoomListItemUi
-import org.mlm.mages.matrix.RoomHero
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.platform.isTgsSticker
 import org.mlm.mages.ui.components.sticker.TgsSticker
@@ -86,16 +85,12 @@ fun RoomListItem(
                 Spacer(Modifier.width(Spacing.sm))
             }
             Box {
-                if (!item.isDm && item.heroes.isNotEmpty()) {
-                    HeroStack(heroes = item.heroes)
-                } else {
-                    Avatar(
-                        name = item.name,
-                        avatarPath = item.avatarUrl,
-                        size = 52.dp,
-                        shape = CircleShape
-                    )
-                }
+                Avatar(
+                    name = item.name,
+                    avatarPath = item.avatarUrl,
+                    size = 52.dp,
+                    shape = CircleShape
+                )
 
                 if (showSilentUnreadCount && item.unreadCount > 0) {
                     Badge(
@@ -363,48 +358,6 @@ fun RoomListItem(
     }
 }
 
-
-@Composable
-private fun HeroStack(heroes: List<RoomHero>, modifier: Modifier = Modifier) {
-    val shown = heroes.take(4)
-    val step = 17.dp
-    val overflow = heroes.size > shown.size
-    val width = step * ((shown.size - 1) + if (overflow) 1 else 0).coerceAtLeast(0) + 44.dp
-    Box(modifier = modifier.width(width).height(52.dp), contentAlignment = Alignment.CenterStart) {
-        shown.forEachIndexed { index, hero ->
-            val realIndex = shown.lastIndex - index
-            Box(
-                modifier = Modifier
-                    .offset(x = step * realIndex)
-                    .size(44.dp)
-                    .background(MaterialTheme.colorScheme.surfaceContainer, CircleShape)
-                    .clip(CircleShape)
-            ) {
-                Avatar(
-                    name = hero.displayName ?: hero.userId,
-                    avatarPath = hero.avatarUrl,
-                    size = 40.dp,
-                    shape = CircleShape
-                )
-            }
-        }
-        if (heroes.size > shown.size) {
-            Box(
-                modifier = Modifier
-                    .offset(x = step * shown.size)
-                    .size(44.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "+${heroes.size - shown.size}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
 
 @Composable
 fun InviteListItem(
