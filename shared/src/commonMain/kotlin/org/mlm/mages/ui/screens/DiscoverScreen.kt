@@ -449,10 +449,11 @@ private fun RoomListItem(
                 }
                 room.topic?.takeIf { it.isNotBlank() }?.let { topic ->
                     Text(
-                        topic.take(100) + if (topic.length > 100) "..." else "",
+                        text = topic,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
