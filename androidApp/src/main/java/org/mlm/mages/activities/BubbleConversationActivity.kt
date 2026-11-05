@@ -24,7 +24,6 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import org.mlm.mages.MatrixService
-import org.mlm.mages.platform.BindLifecycle
 import org.mlm.mages.platform.SessionBootstrapper
 import org.mlm.mages.push.BubbleActivityTracker
 import org.mlm.mages.push.ConversationShortcutPublisher
@@ -41,6 +40,7 @@ private const val SESSION_READY_RETRY_MS = 500L
 
 class BubbleConversationActivity : ComponentActivity() {
     private val service: MatrixService by inject()
+    private var bubbleSlotHeld = false
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(ContextCompat.getContextForLanguage(newBase))
@@ -59,8 +59,13 @@ class BubbleConversationActivity : ComponentActivity() {
             override fun onStart(owner: LifecycleOwner) {
                 BubbleActivityTracker.onBubbleOpened(roomId)
                 lifecycleScope.launch {
-                    SessionBootstrapper.ensureReadyAndSyncing(service)
+                    SessionBootstrapper.ensureSessionReady(service)
                     service.portOrNull?.resumeActiveUi()
+                    if (!bubbleSlotHeld && service.portOrNull != null && service.isLoggedIn()) {
+                        runCatching { service.portOrNull?.enterForeground() }
+                        bubbleSlotHeld = true
+                    }
+                    enqueueNotificationReconciliation(this@BubbleConversationActivity)
                 }
             }
 
@@ -74,17 +79,22 @@ class BubbleConversationActivity : ComponentActivity() {
                     service.portOrNull?.resumeActiveUi()
                 }
             }
+
+            override fun onDestroy(owner: LifecycleOwner) {
+                if (bubbleSlotHeld) {
+                    runCatching { service.portOrNull?.enterBackground() }
+                    bubbleSlotHeld = false
+                }
+            }
         })
 
         setContent {
-            BindLifecycle(service, resetSyncState = false)
-
             var ready by remember { mutableStateOf(false) }
 
             LaunchedEffect(roomId) {
                 var attempts = 0
                 while (true) {
-                    SessionBootstrapper.ensureReadyAndSyncing(service)
+                    SessionBootstrapper.ensureSessionReady(service)
                     if (service.isLoggedIn() && service.portOrNull != null) break
                     if (service.isReady.value || ++attempts >= SESSION_READY_ATTEMPTS) {
                         finish()
@@ -92,6 +102,11 @@ class BubbleConversationActivity : ComponentActivity() {
                     }
                     delay(SESSION_READY_RETRY_MS)
                 }
+                if (!bubbleSlotHeld) {
+                    runCatching { service.portOrNull?.enterForeground() }
+                    bubbleSlotHeld = true
+                }
+                runCatching { service.startSupervisedSync() }
                 ready = true
             }
 
