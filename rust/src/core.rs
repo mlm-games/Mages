@@ -3689,6 +3689,14 @@ impl CoreClient {
         let target = OwnedRoomOrAliasId::try_from(id_or_alias).ffi()?;
         let via = Self::parse_via_servers(via)?;
         let preview = self.sdk.get_room_preview(&target, via).await.ffi()?;
+        let preview_heroes = match self.sdk.get_room(&preview.room_id) {
+            Some(room)
+                if matches!(room.state(), RoomState::Joined | RoomState::Banned) =>
+            {
+                Some(room.heroes().await)
+            }
+            _ => preview.heroes,
+        };
         let join_rule = preview.join_rule.map(|rule| match rule {
             JoinRuleSummary::Public => RoomJoinRule::Public,
             JoinRuleSummary::Invite => RoomJoinRule::Invite,
@@ -3715,13 +3723,33 @@ impl CoreClient {
             world_readable: preview.is_world_readable,
             join_rule,
             membership,
-            heroes: preview
-                .heroes
+            heroes: preview_heroes
                 .unwrap_or_default()
                 .into_iter()
                 .map(ffi_hero_info)
                 .collect(),
         })
+    }
+
+    pub async fn fetch_room_heroes(
+        &self,
+        room_ids: Vec<String>,
+    ) -> Result<HashMap<String, Vec<RoomHeroInfo>>, FfiError> {
+        let fetches = room_ids.into_iter().filter_map(|id| {
+            let room_id = OwnedRoomId::try_from(id).ok()?;
+            self.sdk.get_room(&room_id)
+        }).map(|room| async move {
+            if !matches!(room.state(), RoomState::Joined | RoomState::Banned) {
+                return None;
+            }
+            let heroes = room.heroes().await;
+            if heroes.is_empty() {
+                return None;
+            }
+            let room_id = room.room_id().to_string();
+            Some((room_id, heroes.into_iter().map(ffi_hero_info).collect()))
+        });
+        Ok(futures_util::future::join_all(fetches).await.into_iter().flatten().collect())
     }
 
     /// Servers that can vouch for the local user when knocking on a
