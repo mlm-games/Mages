@@ -602,7 +602,8 @@
     <string name="picker_photo">Fénykép</string>
     <string name="picker_photo_sub">Kép küldése a galériából</string>
     <string name="picker_sticker">Matrica</string>
-    <string name="picker_sticker_sub">Küldjön képet matricaként</string>
+    <string name="picker_image_sticker">Képmatrica</string>
+    <string name="picker_image_sticker_sub">Küldjön képet matricaként</string>
     <string name="sticker_picker_discover">Pakettek keresése más szobákban</string>
     <string name="sticker_picker_discover_back">Vissza a matricacsomagokhoz</string>
     <string name="sticker_picker_discover_none">Nem található más matricacsomag</string>
@@ -611,8 +612,8 @@
     <string name="picker_video_sub">Videó megosztása</string>
     <string name="picker_camera">Kamera</string>
     <string name="picker_camera_sub">Készítsen fényképet</string>
-    <string name="picker_document">Dokumentum</string>
-    <string name="picker_document_sub">Fájl küldése</string>
+    <string name="picker_file">Fájl</string>
+    <string name="picker_file_sub">Fájl küldése</string>
     <string name="picker_interactive">Interaktív</string>
     <string name="picker_poll">Szavazás</string>
     <string name="picker_poll_sub">Hozzon létre egy szavazást a szobához</string>
@@ -671,8 +672,8 @@
     <string name="emote_pack_unencrypted_notice">A képcsomagok emojii nincsenek titkosítva, és láthatók az otthoni szervere számára.</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">Emoji keresése</string>
-    <string name="picker_sticker_pack">Matricacsomag</string>
-    <string name="picker_sticker_pack_sub">Matrica küldése egy csomagból</string>
+    <string name="picker_stickers">Matricák</string>
+    <string name="picker_stickers_sub">Matrica küldése egy csomagból</string>
     <string name="sticker_pack_unencrypted_notice">A matricacsomagok nincsenek titkosítva. Képeik titkosítatlanul kerülnek küldésre, és láthatók az otthoni szervere számára, még a titkosított szobákban is.</string>
     <string name="sticker_pack_enable_globally">Csomag használata minden szobában</string>
     <string name="sticker_pack_disable_globally">Csomag használatának abbahagyása minden szobában</string>

@@ -602,7 +602,8 @@
     <string name="picker_photo">Fotografie</string>
     <string name="picker_photo_sub">Pošlete obrázek z galerie</string>
     <string name="picker_sticker">Nálepka</string>
-    <string name="picker_sticker_sub">Pošlete obrázek jako nálepku</string>
+    <string name="picker_image_sticker">Obrázková nálepka</string>
+    <string name="picker_image_sticker_sub">Pošlete obrázek jako nálepku</string>
     <string name="sticker_picker_discover">Objevte sady v jiných místnostech</string>
     <string name="sticker_picker_discover_back">Zpět k sadám nálepek</string>
     <string name="sticker_picker_discover_none">Žádné další sady nálepek nenalezeny</string>
@@ -611,8 +612,8 @@
     <string name="picker_video_sub">Sdílejte video</string>
     <string name="picker_camera">Fotoaparát</string>
     <string name="picker_camera_sub">Pořiďte fotku</string>
-    <string name="picker_document">Dokument</string>
-    <string name="picker_document_sub">Odeslat soubor</string>
+    <string name="picker_file">Soubor</string>
+    <string name="picker_file_sub">Odeslat soubor</string>
     <string name="picker_interactive">Interaktivní</string>
     <string name="picker_poll">Hlasování</string>
     <string name="picker_poll_sub">Vytvořte anketu pro místnost</string>
@@ -671,8 +672,8 @@
     <string name="emote_pack_unencrypted_notice">Emotikony z obrazových sad nejsou šifrované a jsou viditelné vašemu domovskému serveru.</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">Hledat emoji</string>
-    <string name="picker_sticker_pack">Sada nálepek</string>
-    <string name="picker_sticker_pack_sub">Odeslat nálepku ze sady</string>
+    <string name="picker_stickers">Nálepky</string>
+    <string name="picker_stickers_sub">Odeslat nálepku ze sady</string>
     <string name="sticker_pack_unencrypted_notice">Sady nálepek nejsou šifrované. Jeich obrázky se posílají nešifrovaně a jsou viditelné vašemu domovskému serveru i v šifrovaných místnostech.</string>
     <string name="sticker_pack_enable_globally">Používat tuto sadu ve všech místnostech</string>
     <string name="sticker_pack_disable_globally">Nepoužívat tuto sadu ve všech místnostech</string>

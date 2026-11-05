@@ -602,7 +602,8 @@
     <string name="picker_photo">사진</string>
     <string name="picker_photo_sub">갤러리에서 이미지 보내기</string>
     <string name="picker_sticker">상표</string>
-    <string name="picker_sticker_sub">이미지를 스티커로 보내기</string>
+    <string name="picker_image_sticker">이미지 스티커</string>
+    <string name="picker_image_sticker_sub">이미지를 스티커로 보내기</string>
     <string name="sticker_picker_discover">다른 방에서 팩 찾기</string>
     <string name="sticker_picker_discover_back">스티커 팩으로 돌아가기</string>
     <string name="sticker_picker_discover_none">다른 스티커 팩이 없습니다</string>
@@ -611,8 +612,8 @@
     <string name="picker_video_sub">비디오 공유</string>
     <string name="picker_camera">카메라</string>
     <string name="picker_camera_sub">사진을 찍으세요</string>
-    <string name="picker_document">문서</string>
-    <string name="picker_document_sub">파일 보내기</string>
+    <string name="picker_file">파일</string>
+    <string name="picker_file_sub">파일 보내기</string>
     <string name="picker_interactive">인터랙티브</string>
     <string name="picker_poll">투표</string>
     <string name="picker_poll_sub">회의실에 대한 설문조사 만들기</string>
@@ -671,8 +672,8 @@
     <string name="emote_pack_unencrypted_notice">이미지 팩의 이모티콘은 암호화되지 않으며 홈서버에서 볼 수 있습니다.</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">이모지 검색</string>
-    <string name="picker_sticker_pack">스티커 팩</string>
-    <string name="picker_sticker_pack_sub">팩에서 스티커 보내기</string>
+    <string name="picker_stickers">스티커</string>
+    <string name="picker_stickers_sub">팩에서 스티커 보내기</string>
     <string name="sticker_pack_unencrypted_notice">스티커 팩은 암호화되지 않습니다. 이미지는 평문으로 전송되며 암호화된 방에서도 홈서버에서 볼 수 있습니다.</string>
     <string name="sticker_pack_enable_globally">모든 방에서 이 팩 사용</string>
     <string name="sticker_pack_disable_globally">모든 방에서 이 팩 사용 중지</string>

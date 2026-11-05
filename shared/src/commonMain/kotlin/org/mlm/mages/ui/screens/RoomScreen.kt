@@ -229,7 +229,7 @@ fun RoomScreen(
         viewModel.hideAttachmentPicker()
     }
 
-    val documentPicker = rememberFilePickerLauncher(
+    val filePicker = rememberFilePickerLauncher(
         mode = FileKitMode.Multiple(),
         type = FileKitType.File()
     ) { files ->
@@ -1089,7 +1089,7 @@ fun RoomScreen(
         AttachmentPicker(
             onPickImage = { imagePicker.launch() },
             onPickVideo = { videoPicker.launch() },
-            onPickDocument = { documentPicker.launch() },
+            onPickFile = { filePicker.launch() },
             onCamera = { cameraPicker?.launch() },
             onPasteFromClipboard = if (clipboardHasAttachment) {
                 {

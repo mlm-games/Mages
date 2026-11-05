@@ -470,7 +470,8 @@
     <string name="picker_photo">Foto</string>
     <string name="picker_photo_sub">Enviar imagen de la galeria</string>
     <string name="picker_sticker">Sticker</string>
-    <string name="picker_sticker_sub">Enviar imagen como sticker</string>
+    <string name="picker_image_sticker">Sticker de imagen</string>
+    <string name="picker_image_sticker_sub">Enviar imagen como sticker</string>
     <string name="sticker_picker_discover">Descubre paquetes en otras salas</string>
     <string name="sticker_picker_discover_back">Volver a los paquetes de stickers</string>
     <string name="sticker_picker_discover_none">No se encontraron otros paquetes de stickers</string>
@@ -479,8 +480,8 @@
     <string name="picker_video_sub">Compartir un video</string>
     <string name="picker_camera">Camara</string>
     <string name="picker_camera_sub">Tomar una foto</string>
-    <string name="picker_document">Documento</string>
-    <string name="picker_document_sub">Enviar un archivo</string>
+    <string name="picker_file">Archivo</string>
+    <string name="picker_file_sub">Enviar un archivo</string>
     <string name="picker_interactive">Interactivo</string>
     <string name="picker_poll">Encuesta</string>
     <string name="picker_poll_sub">Crear una encuesta para la sala</string>
@@ -787,8 +788,8 @@
     <string name="emote_pack_unencrypted_notice">Los emojis de los paquetes de imágenes no están cifrados y son visibles para tu servidor de origen.</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">Buscar emoji</string>
-    <string name="picker_sticker_pack">Paquete de stickers</string>
-    <string name="picker_sticker_pack_sub">Enviar un sticker de un paquete</string>
+    <string name="picker_stickers">Stickers</string>
+    <string name="picker_stickers_sub">Enviar un sticker de un paquete</string>
     <string name="sticker_pack_unencrypted_notice">Los paquetes de stickers no están cifrados. Sus imágenes se envían en claro y son visibles para tu servidor de origen, incluso en salas cifradas.</string>
     <string name="sticker_pack_enable_globally">Usar este paquete en todas las salas</string>
     <string name="sticker_pack_disable_globally">Dejar de usar este paquete en todas las salas</string>

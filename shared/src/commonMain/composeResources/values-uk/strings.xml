@@ -602,7 +602,8 @@
     <string name="picker_photo">Фото</string>
     <string name="picker_photo_sub">Надіслати зображення з галереї</string>
     <string name="picker_sticker">наклейка</string>
-    <string name="picker_sticker_sub">Надішліть зображення як наклейку</string>
+    <string name="picker_image_sticker">Наклейка із зображенням</string>
+    <string name="picker_image_sticker_sub">Надішліть зображення як наклейку</string>
     <string name="sticker_picker_discover">Шукати набори в інших кімнатах</string>
     <string name="sticker_picker_discover_back">Назад до наборів наклейок</string>
     <string name="sticker_picker_discover_none">Інших наборів наклейок не знайдено</string>
@@ -611,8 +612,8 @@
     <string name="picker_video_sub">Поділіться відео</string>
     <string name="picker_camera">Камера</string>
     <string name="picker_camera_sub">Зробіть фото</string>
-    <string name="picker_document">документ</string>
-    <string name="picker_document_sub">Надіслати файл</string>
+    <string name="picker_file">Файл</string>
+    <string name="picker_file_sub">Надіслати файл</string>
     <string name="picker_interactive">Інтерактивний</string>
     <string name="picker_poll">Опитування</string>
     <string name="picker_poll_sub">Створіть опитування для кімнати</string>
@@ -671,8 +672,8 @@
     <string name="emote_pack_unencrypted_notice">Емодзі з наборів зображень не шифруються і видимі вашому домашньому серверу.</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">Пошук емодзі</string>
-    <string name="picker_sticker_pack">Набір наклейок</string>
-    <string name="picker_sticker_pack_sub">Надіслати наклейку з набору</string>
+    <string name="picker_stickers">Наклейки</string>
+    <string name="picker_stickers_sub">Надіслати наклейку з набору</string>
     <string name="sticker_pack_unencrypted_notice">Набори наклейок не шифруються. Їхні зображення надсилаються відкритим текстом і видимі вашому домашньому серверу, навіть у зашифрованих кімнатах.</string>
     <string name="sticker_pack_enable_globally">Використовувати цей набір у кожній кімнаті</string>
     <string name="sticker_pack_disable_globally">Не використовувати цей набір у кожній кімнаті</string>

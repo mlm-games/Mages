@@ -602,7 +602,8 @@
     <string name="picker_photo">Ảnh</string>
     <string name="picker_photo_sub">Gửi hình ảnh từ thư viện</string>
     <string name="picker_sticker">Hình dán</string>
-    <string name="picker_sticker_sub">Gửi hình ảnh dưới dạng nhãn dán</string>
+    <string name="picker_image_sticker">Hình dán ảnh</string>
+    <string name="picker_image_sticker_sub">Gửi hình ảnh dưới dạng nhãn dán</string>
     <string name="sticker_picker_discover">Khám phá gói trong các phòng khác</string>
     <string name="sticker_picker_discover_back">Quay lại gói nhãn dán</string>
     <string name="sticker_picker_discover_none">Không tìm thấy gói nhãn dán nào khác</string>
@@ -611,8 +612,8 @@
     <string name="picker_video_sub">Chia sẻ video</string>
     <string name="picker_camera">Máy ảnh</string>
     <string name="picker_camera_sub">Chụp ảnh</string>
-    <string name="picker_document">Tài liệu</string>
-    <string name="picker_document_sub">Gửi một tập tin</string>
+    <string name="picker_file">Tập tin</string>
+    <string name="picker_file_sub">Gửi một tập tin</string>
     <string name="picker_interactive">Tương tác</string>
     <string name="picker_poll">Thăm dò ý kiến</string>
     <string name="picker_poll_sub">Tạo một cuộc thăm dò cho phòng</string>
@@ -671,8 +672,8 @@
     <string name="emote_pack_unencrypted_notice">Emoji từ gói hình ảnh không được mã hóa và có thể nhìn thấy trên máy chủ gia đình của bạn.</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">Tìm kiếm emoji</string>
-    <string name="picker_sticker_pack">Gói hình dán</string>
-    <string name="picker_sticker_pack_sub">Gửi hình dán từ một gói</string>
+    <string name="picker_stickers">Hình dán</string>
+    <string name="picker_stickers_sub">Gửi hình dán từ một gói</string>
     <string name="sticker_pack_unencrypted_notice">Các gói hình dán không được mã hóa. Hình ảnh được gửi ở dạng không mã hóa và có thể nhìn thấy trên máy chủ gia đình của bạn, ngay cả trong phòng đã mã hóa.</string>
     <string name="sticker_pack_enable_globally">Dùng gói này trong mọi phòng</string>
     <string name="sticker_pack_disable_globally">Ngừng dùng gói này trong mọi phòng</string>

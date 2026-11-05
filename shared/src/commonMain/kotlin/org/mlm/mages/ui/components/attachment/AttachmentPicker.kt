@@ -17,8 +17,10 @@ import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.picker_camera
 import mages.shared.generated.resources.picker_camera_sub
-import mages.shared.generated.resources.picker_document
-import mages.shared.generated.resources.picker_document_sub
+import mages.shared.generated.resources.picker_file
+import mages.shared.generated.resources.picker_file_sub
+import mages.shared.generated.resources.picker_image_sticker
+import mages.shared.generated.resources.picker_image_sticker_sub
 import mages.shared.generated.resources.picker_interactive
 import mages.shared.generated.resources.picker_live_location
 import mages.shared.generated.resources.picker_live_location_sub
@@ -31,10 +33,8 @@ import mages.shared.generated.resources.picker_photo_sub
 import mages.shared.generated.resources.picker_poll
 import mages.shared.generated.resources.picker_poll_sub
 import mages.shared.generated.resources.picker_share
-import mages.shared.generated.resources.picker_sticker
-import mages.shared.generated.resources.picker_sticker_pack
-import mages.shared.generated.resources.picker_sticker_pack_sub
-import mages.shared.generated.resources.picker_sticker_sub
+import mages.shared.generated.resources.picker_stickers
+import mages.shared.generated.resources.picker_stickers_sub
 import mages.shared.generated.resources.picker_video
 import mages.shared.generated.resources.picker_video_sub
 
@@ -44,7 +44,7 @@ fun AttachmentPicker(
     onPickSticker: () -> Unit,
     onPickStickerPack: (() -> Unit)? = null,
     onPickVideo: () -> Unit,
-    onPickDocument: () -> Unit,
+    onPickFile: () -> Unit,
     onPasteFromClipboard: (() -> Unit)?,
     onDismiss: () -> Unit,
     onCamera: (() -> Unit)? = null,
@@ -81,19 +81,19 @@ fun AttachmentPicker(
                 stringResource(Res.string.picker_photo_sub)
             ) { onPickImage(); onDismiss() }
 
-            AttachmentOption(
-                painterResource(Res.drawable.ic_sentiment_satisfied),
-                stringResource(Res.string.picker_sticker),
-                stringResource(Res.string.picker_sticker_sub)
-            ) { onPickSticker(); onDismiss() }
-
             if (onPickStickerPack != null) {
                 AttachmentOption(
                     painterResource(Res.drawable.ic_collections_bookmark),
-                    stringResource(Res.string.picker_sticker_pack),
-                    stringResource(Res.string.picker_sticker_pack_sub)
+                    stringResource(Res.string.picker_stickers),
+                    stringResource(Res.string.picker_stickers_sub)
                 ) { onPickStickerPack(); onDismiss() }
             }
+
+            AttachmentOption(
+                painterResource(Res.drawable.ic_sentiment_satisfied),
+                stringResource(Res.string.picker_image_sticker),
+                stringResource(Res.string.picker_image_sticker_sub)
+            ) { onPickSticker(); onDismiss() }
 
             AttachmentOption(
                 painterResource(Res.drawable.ic_video_library),
@@ -111,9 +111,9 @@ fun AttachmentPicker(
 
             AttachmentOption(
                 painterResource(Res.drawable.ic_description),
-                stringResource(Res.string.picker_document),
-                stringResource(Res.string.picker_document_sub)
-            ) { onPickDocument(); onDismiss() }
+                stringResource(Res.string.picker_file),
+                stringResource(Res.string.picker_file_sub)
+            ) { onPickFile(); onDismiss() }
 
             // Interactive content
             if (onCreatePoll != null || onShareLocation != null) {

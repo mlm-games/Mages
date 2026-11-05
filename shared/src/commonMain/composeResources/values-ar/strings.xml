@@ -602,7 +602,8 @@
     <string name="picker_photo">صورة</string>
     <string name="picker_photo_sub">إرسال صورة من المعرض</string>
     <string name="picker_sticker">ملصق</string>
-    <string name="picker_sticker_sub">إرسال صورة كملصق</string>
+    <string name="picker_image_sticker">ملصق صورة</string>
+    <string name="picker_image_sticker_sub">إرسال صورة كملصق</string>
     <string name="sticker_picker_discover">اكتشاف الحزم في غرف أخرى</string>
     <string name="sticker_picker_discover_back">العودة إلى حزم الملصقات</string>
     <string name="sticker_picker_discover_none">لم يتم العثور على حزم ملصقات أخرى</string>
@@ -611,8 +612,8 @@
     <string name="picker_video_sub">مشاركة مقطع فيديو</string>
     <string name="picker_camera">آلة تصوير</string>
     <string name="picker_camera_sub">التقط صورة</string>
-    <string name="picker_document">وثيقة</string>
-    <string name="picker_document_sub">إرسال ملف</string>
+    <string name="picker_file">ملف</string>
+    <string name="picker_file_sub">إرسال ملف</string>
     <string name="picker_interactive">تفاعلية</string>
     <string name="picker_poll">استطلاع</string>
     <string name="picker_poll_sub">إنشاء استطلاع للغرفة</string>
@@ -671,8 +672,8 @@
     <string name="emote_pack_unencrypted_notice">الرموز التعبيرية من حزم الصور غير مشفرة ومرئية لخادم المنزل الخاص بك.</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">بحث في الرموز التعبيرية</string>
-    <string name="picker_sticker_pack">حزمة ملصقات</string>
-    <string name="picker_sticker_pack_sub">إرسال ملصق من حزمة</string>
+    <string name="picker_stickers">ملصقات</string>
+    <string name="picker_stickers_sub">إرسال ملصق من حزمة</string>
     <string name="sticker_pack_unencrypted_notice">حزم الملصقات غير مشفرة. تُرسل صورها كنص واضح ومرئية لخادم المنزل الخاص بك، حتى في الغرف المشفرة.</string>
     <string name="sticker_pack_enable_globally">استخدام هذه الحزمة في كل غرفة</string>
     <string name="sticker_pack_disable_globally">إيقاف استخدام هذه الحزمة في كل غرفة</string>

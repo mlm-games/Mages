@@ -602,7 +602,8 @@
     <string name="picker_photo">Fotografija</string>
     <string name="picker_photo_sub">Pošaljite sliku iz galerije</string>
     <string name="picker_sticker">Naljepnica</string>
-    <string name="picker_sticker_sub">Pošaljite sliku kao naljepnicu</string>
+    <string name="picker_image_sticker">Slikovna naljepnica</string>
+    <string name="picker_image_sticker_sub">Pošaljite sliku kao naljepnicu</string>
     <string name="sticker_picker_discover">Otkrijte pakete u drugim sobama</string>
     <string name="sticker_picker_discover_back">Natrag na pakete naljepnica</string>
     <string name="sticker_picker_discover_none">Nema pronađenih drugih paketa naljepnica</string>
@@ -611,8 +612,8 @@
     <string name="picker_video_sub">Podijelite video</string>
     <string name="picker_camera">Fotoaparat</string>
     <string name="picker_camera_sub">Snimite fotografiju</string>
-    <string name="picker_document">Dokument</string>
-    <string name="picker_document_sub">Pošaljite datoteku</string>
+    <string name="picker_file">Datoteka</string>
+    <string name="picker_file_sub">Pošaljite datoteku</string>
     <string name="picker_interactive">Interaktivan</string>
     <string name="picker_poll">Anketa</string>
     <string name="picker_poll_sub">Napravite anketu za sobu</string>
@@ -671,8 +672,8 @@
     <string name="emote_pack_unencrypted_notice">Emotikoni iz paketa slika nisu šifrirani i vidljivi su vašem kućnom poslužitelju.</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">Traži emoji</string>
-    <string name="picker_sticker_pack">Paket naljepnica</string>
-    <string name="picker_sticker_pack_sub">Pošalji naljepnicu iz paketa</string>
+    <string name="picker_stickers">Naljepnice</string>
+    <string name="picker_stickers_sub">Pošalji naljepnicu iz paketa</string>
     <string name="sticker_pack_unencrypted_notice">Paketi naljepnica nisu šifrirani. Njihove se slike šalju u čistom obliku i vidljive su vašem kućnom poslužitelju, čak i u šifriranim sobama.</string>
     <string name="sticker_pack_enable_globally">Koristi ovaj paket u svakoj sobi</string>
     <string name="sticker_pack_disable_globally">Više ne koristi ovaj paket u svakoj sobi</string>

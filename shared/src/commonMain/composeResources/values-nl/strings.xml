@@ -602,7 +602,8 @@
     <string name="picker_photo">Foto</string>
     <string name="picker_photo_sub">Stuur een afbeelding vanuit de galerij</string>
     <string name="picker_sticker">Sticker</string>
-    <string name="picker_sticker_sub">Stuur een afbeelding als sticker</string>
+    <string name="picker_image_sticker">Sticker met afbeelding</string>
+    <string name="picker_image_sticker_sub">Stuur een afbeelding als sticker</string>
     <string name="sticker_picker_discover">Ontdek pakketten in andere kamers</string>
     <string name="sticker_picker_discover_back">Terug naar stickerpakketten</string>
     <string name="sticker_picker_discover_none">Geen andere stickerpakketten gevonden</string>
@@ -611,8 +612,8 @@
     <string name="picker_video_sub">Deel een video</string>
     <string name="picker_camera">Camera</string>
     <string name="picker_camera_sub">Maak een foto</string>
-    <string name="picker_document">Document</string>
-    <string name="picker_document_sub">Stuur een bestand</string>
+    <string name="picker_file">Bestand</string>
+    <string name="picker_file_sub">Stuur een bestand</string>
     <string name="picker_interactive">Interactieve</string>
     <string name="picker_poll">Opiniepeiling</string>
     <string name="picker_poll_sub">Maak een poll voor de kamer</string>
@@ -671,8 +672,8 @@
     <string name="emote_pack_unencrypted_notice">Emoticons uit afbeeldingspakketten zijn niet gecodeerd en zijn zichtbaar voor uw thuisserver.</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">Zoek emoji</string>
-    <string name="picker_sticker_pack">Stickerpakket</string>
-    <string name="picker_sticker_pack_sub">Stuur een sticker uit een pakket</string>
+    <string name="picker_stickers">Stickers</string>
+    <string name="picker_stickers_sub">Stuur een sticker uit een pakket</string>
     <string name="sticker_pack_unencrypted_notice">Stickerpakketten zijn niet gecodeerd. De afbeeldingen worden onversleuteld verzonden en zijn zichtbaar voor uw thuisserver, zelfs in gecodeerde kamers.</string>
     <string name="sticker_pack_enable_globally">Gebruik dit pakket in elke kamer</string>
     <string name="sticker_pack_disable_globally">Gebruik dit pakket niet in elke kamer</string>

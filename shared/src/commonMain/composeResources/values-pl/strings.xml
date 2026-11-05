@@ -602,7 +602,8 @@
     <string name="picker_photo">Zdjęcie</string>
     <string name="picker_photo_sub">Wyślij obraz z galerii</string>
     <string name="picker_sticker">Naklejka</string>
-    <string name="picker_sticker_sub">Wyślij obraz jako naklejkę</string>
+    <string name="picker_image_sticker">Naklejka z obrazem</string>
+    <string name="picker_image_sticker_sub">Wyślij obraz jako naklejkę</string>
     <string name="sticker_picker_discover">Odkrywaj pakiety w innych pokojach</string>
     <string name="sticker_picker_discover_back">Powrót do pakietów naklejek</string>
     <string name="sticker_picker_discover_none">Nie znaleziono innych pakietów naklejek</string>
@@ -611,8 +612,8 @@
     <string name="picker_video_sub">Udostępnij film</string>
     <string name="picker_camera">Kamera</string>
     <string name="picker_camera_sub">Zrób zdjęcie</string>
-    <string name="picker_document">Dokument</string>
-    <string name="picker_document_sub">Wyślij plik</string>
+    <string name="picker_file">Plik</string>
+    <string name="picker_file_sub">Wyślij plik</string>
     <string name="picker_interactive">Interaktywny</string>
     <string name="picker_poll">Głosowanie</string>
     <string name="picker_poll_sub">Utwórz ankietę dotyczącą pokoju</string>
@@ -671,8 +672,8 @@
     <string name="emote_pack_unencrypted_notice">Emotki z pakietów obrazów nie są szyfrowane i są widoczne dla Twojego serwera domowego.</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">Wyszukaj emoji</string>
-    <string name="picker_sticker_pack">Pakiet naklejek</string>
-    <string name="picker_sticker_pack_sub">Wyślij naklejkę z pakietu</string>
+    <string name="picker_stickers">Naklejki</string>
+    <string name="picker_stickers_sub">Wyślij naklejkę z pakietu</string>
     <string name="sticker_pack_unencrypted_notice">Pakiety naklejek nie są szyfrowane. Ich obrazy są wysyłane jawnie i są widoczne dla Twojego serwera domowego, nawet w szyfrowanych pokojach.</string>
     <string name="sticker_pack_enable_globally">Używaj tego pakietu w każdym pokoju</string>
     <string name="sticker_pack_disable_globally">Przestań używać tego pakietu we wszystkich pokojach</string>

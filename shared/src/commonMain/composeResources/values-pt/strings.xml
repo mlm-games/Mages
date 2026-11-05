@@ -602,7 +602,8 @@
     <string name="picker_photo">Foto</string>
     <string name="picker_photo_sub">Envie uma imagem da galeria</string>
     <string name="picker_sticker">Adesivo</string>
-    <string name="picker_sticker_sub">Envie uma imagem como adesivo</string>
+    <string name="picker_image_sticker">Adesivo de imagem</string>
+    <string name="picker_image_sticker_sub">Envie uma imagem como adesivo</string>
     <string name="sticker_picker_discover">Descubra pacotes em outras salas</string>
     <string name="sticker_picker_discover_back">Voltar aos pacotes de adesivos</string>
     <string name="sticker_picker_discover_none">Nenhum outro pacote de adesivos encontrado</string>
@@ -611,8 +612,8 @@
     <string name="picker_video_sub">Compartilhe um vídeo</string>
     <string name="picker_camera">Câmera</string>
     <string name="picker_camera_sub">Tire uma foto</string>
-    <string name="picker_document">Documento</string>
-    <string name="picker_document_sub">Envie um arquivo</string>
+    <string name="picker_file">Arquivo</string>
+    <string name="picker_file_sub">Envie um arquivo</string>
     <string name="picker_interactive">Interativo</string>
     <string name="picker_poll">Enquete</string>
     <string name="picker_poll_sub">Crie uma enquete para a sala</string>
@@ -671,8 +672,8 @@
     <string name="emote_pack_unencrypted_notice">Os emojis de pacotes de imagens não são criptografados e ficam visíveis para seu servidor doméstico.</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">Pesquisar emoji</string>
-    <string name="picker_sticker_pack">Pacote de adesivos</string>
-    <string name="picker_sticker_pack_sub">Envie um adesivo de um pacote</string>
+    <string name="picker_stickers">Adesivos</string>
+    <string name="picker_stickers_sub">Envie um adesivo de um pacote</string>
     <string name="sticker_pack_unencrypted_notice">Os pacotes de adesivos não são criptografados. Suas imagens são enviadas em texto simples e ficam visíveis para seu servidor doméstico, mesmo em salas criptografadas.</string>
     <string name="sticker_pack_enable_globally">Usar este pacote em todas as salas</string>
     <string name="sticker_pack_disable_globally">Parar de usar este pacote em todas as salas</string>

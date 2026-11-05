@@ -602,7 +602,8 @@
     <string name="picker_photo">عکس</string>
     <string name="picker_photo_sub">ارسال تصویر از گالری</string>
     <string name="picker_sticker">استیکر</string>
-    <string name="picker_sticker_sub">یک تصویر به عنوان استیکر ارسال کنید</string>
+    <string name="picker_image_sticker">استیکر تصویر</string>
+    <string name="picker_image_sticker_sub">یک تصویر به عنوان استیکر ارسال کنید</string>
     <string name="sticker_picker_discover">کشف بسته‌ها در اتاق‌های دیگر</string>
     <string name="sticker_picker_discover_back">بازگشت به بسته‌های استیکر</string>
     <string name="sticker_picker_discover_none">هیچ بسته استیکر دیگری پیدا نشد</string>
@@ -611,8 +612,8 @@
     <string name="picker_video_sub">یک ویدیو را به اشتراک بگذارید</string>
     <string name="picker_camera">دوربین</string>
     <string name="picker_camera_sub">عکس بگیر</string>
-    <string name="picker_document">سند</string>
-    <string name="picker_document_sub">یک فایل ارسال کنید</string>
+    <string name="picker_file">فایل</string>
+    <string name="picker_file_sub">یک فایل ارسال کنید</string>
     <string name="picker_interactive">تعاملی</string>
     <string name="picker_poll">نظرسنجی</string>
     <string name="picker_poll_sub">یک نظرسنجی برای اتاق ایجاد کنید</string>
@@ -671,8 +672,8 @@
     <string name="emote_pack_unencrypted_notice">ایموجی‌های بسته‌های تصویری رمزگذاری نشده‌اند و برای سرور خانه شما قابل مشاهده‌اند.</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">جستجوی ایموجی</string>
-    <string name="picker_sticker_pack">بسته استیکر</string>
-    <string name="picker_sticker_pack_sub">ارسال استیکر از یک بسته</string>
+    <string name="picker_stickers">استیکرها</string>
+    <string name="picker_stickers_sub">ارسال استیکر از یک بسته</string>
     <string name="sticker_pack_unencrypted_notice">بسته‌های استیکر رمزگذاری نشده‌اند. تصاویر آن‌ها به‌صورت ساده ارسال می‌شوند و حتی در اتاق‌های رمزگذاری‌شده برای سرور خانه شما قابل مشاهده‌اند.</string>
     <string name="sticker_pack_enable_globally">استفاده از این بسته در همه اتاق‌ها</string>
     <string name="sticker_pack_disable_globally">توقف استفاده از این بسته در همه اتاق‌ها</string>

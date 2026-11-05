@@ -602,7 +602,8 @@
     <string name="picker_photo">תַצלוּם</string>
     <string name="picker_photo_sub">Send an image from gallery</string>
     <string name="picker_sticker">מַדבֵּקָה</string>
-    <string name="picker_sticker_sub">Send an image as a sticker</string>
+    <string name="picker_image_sticker">מדבקת תמונה</string>
+    <string name="picker_image_sticker_sub">Send an image as a sticker</string>
     <string name="sticker_picker_discover">גלו חבילות בחדרים אחרים</string>
     <string name="sticker_picker_discover_back">חזרה לחבילות המדבקות</string>
     <string name="sticker_picker_discover_none">לא נמצאו חבילות מדבקות נוספות</string>
@@ -611,8 +612,8 @@
     <string name="picker_video_sub">שתף סרטון</string>
     <string name="picker_camera">מַצלֵמָה</string>
     <string name="picker_camera_sub">צלם תמונה</string>
-    <string name="picker_document">מִסְמָך</string>
-    <string name="picker_document_sub">שלח קובץ</string>
+    <string name="picker_file">קובץ</string>
+    <string name="picker_file_sub">שלח קובץ</string>
     <string name="picker_interactive">אינטראקטיבי</string>
     <string name="picker_poll">מִשׁאָל</string>
     <string name="picker_poll_sub">Create a poll for the room</string>
@@ -671,8 +672,8 @@
     <string name="emote_pack_unencrypted_notice">אימוג׳ים מחבילות תמונות אינם מוצפנים ונראים לשרת הביתי שלך.</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">חפש אמוג'י</string>
-    <string name="picker_sticker_pack">חבילת מדבקות</string>
-    <string name="picker_sticker_pack_sub">שליחת מדבקה מחבילה</string>
+    <string name="picker_stickers">מדבקות</string>
+    <string name="picker_stickers_sub">שליחת מדבקה מחבילה</string>
     <string name="sticker_pack_unencrypted_notice">חבילות מדבקות אינן מוצפנות. התמונות שלהן נשלחות ללא הצפנה ונראות לשרת הביתי שלך, אפילו בחדרים מוצפנים.</string>
     <string name="sticker_pack_enable_globally">שימוש בחבילה הזו בכל חדר</string>
     <string name="sticker_pack_disable_globally">הפסקת השימוש בחבילה הזו בכל חדר</string>

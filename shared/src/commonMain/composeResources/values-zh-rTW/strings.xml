@@ -602,7 +602,8 @@
     <string name="picker_photo">照片</string>
     <string name="picker_photo_sub">發送圖庫中的圖像</string>
     <string name="picker_sticker">貼紙</string>
-    <string name="picker_sticker_sub">傳送圖像作為貼紙</string>
+    <string name="picker_image_sticker">圖片貼圖</string>
+    <string name="picker_image_sticker_sub">傳送圖像作為貼紙</string>
     <string name="sticker_picker_discover">在其他房間中尋找貼圖包</string>
     <string name="sticker_picker_discover_back">返回貼圖包</string>
     <string name="sticker_picker_discover_none">找不到其他貼圖包</string>
@@ -611,8 +612,8 @@
     <string name="picker_video_sub">分享影片</string>
     <string name="picker_camera">相機</string>
     <string name="picker_camera_sub">拍張照片</string>
-    <string name="picker_document">文件</string>
-    <string name="picker_document_sub">傳送文件</string>
+    <string name="picker_file">檔案</string>
+    <string name="picker_file_sub">傳送文件</string>
     <string name="picker_interactive">互動的</string>
     <string name="picker_poll">輪詢</string>
     <string name="picker_poll_sub">為房間創建投票</string>
@@ -671,8 +672,8 @@
     <string name="emote_pack_unencrypted_notice">圖像包中的表情未加密，您的家庭伺服器可看見這些內容。</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">搜尋表情符號</string>
-    <string name="picker_sticker_pack">貼圖包</string>
-    <string name="picker_sticker_pack_sub">從貼圖包傳送貼圖</string>
+    <string name="picker_stickers">貼圖</string>
+    <string name="picker_stickers_sub">從貼圖包傳送貼圖</string>
     <string name="sticker_pack_unencrypted_notice">貼圖包未加密。其圖像以明文傳送，即使在加密房間中，您的家庭伺服器也能看見。</string>
     <string name="sticker_pack_enable_globally">在所有房間使用此貼圖包</string>
     <string name="sticker_pack_disable_globally">停止在所有房間使用此貼圖包</string>

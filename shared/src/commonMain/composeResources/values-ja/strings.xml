@@ -602,7 +602,8 @@
     <string name="picker_photo">写真</string>
     <string name="picker_photo_sub">ギャラリーから画像を送信する</string>
     <string name="picker_sticker">ステッカー</string>
-    <string name="picker_sticker_sub">画像をステッカーとして送信する</string>
+    <string name="picker_image_sticker">画像ステッカー</string>
+    <string name="picker_image_sticker_sub">画像をステッカーとして送信する</string>
     <string name="sticker_picker_discover">他のルームでパックを探す</string>
     <string name="sticker_picker_discover_back">ステッカーパックに戻る</string>
     <string name="sticker_picker_discover_none">他のステッカーパックは見つかりませんでした</string>
@@ -611,8 +612,8 @@
     <string name="picker_video_sub">ビデオを共有する</string>
     <string name="picker_camera">カメラ</string>
     <string name="picker_camera_sub">写真を撮ってください</string>
-    <string name="picker_document">書類</string>
-    <string name="picker_document_sub">ファイルを送信する</string>
+    <string name="picker_file">ファイル</string>
+    <string name="picker_file_sub">ファイルを送信する</string>
     <string name="picker_interactive">相互の作用</string>
     <string name="picker_poll">投票</string>
     <string name="picker_poll_sub">ルームのアンケートを作成する</string>
@@ -671,8 +672,8 @@
     <string name="emote_pack_unencrypted_notice">画像パックの絵文字は暗号化されておらず、ホームサーバーから閲覧できます。</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">絵文字を検索する</string>
-    <string name="picker_sticker_pack">ステッカーパック</string>
-    <string name="picker_sticker_pack_sub">パックからステッカーを送信</string>
+    <string name="picker_stickers">ステッカー</string>
+    <string name="picker_stickers_sub">パックからステッカーを送信</string>
     <string name="sticker_pack_unencrypted_notice">ステッカーパックは暗号化されません。画像は平文で送信されるため、暗号化されたルームでもホームサーバーから閲覧できます。</string>
     <string name="sticker_pack_enable_globally">すべてのルームでこのパックを使用</string>
     <string name="sticker_pack_disable_globally">すべてのルームでの使用を停止</string>

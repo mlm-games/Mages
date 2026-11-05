@@ -602,7 +602,8 @@
     <string name="picker_photo">Photo</string>
     <string name="picker_photo_sub">Envoyer une image depuis la galerie</string>
     <string name="picker_sticker">Autocollant</string>
-    <string name="picker_sticker_sub">Envoyer une image sous forme d'autocollant</string>
+    <string name="picker_image_sticker">Image autocollante</string>
+    <string name="picker_image_sticker_sub">Envoyer une image sous forme d'autocollant</string>
     <string name="sticker_picker_discover">Découvrir des paquets dans d'autres salles</string>
     <string name="sticker_picker_discover_back">Retour aux paquets d'autocollants</string>
     <string name="sticker_picker_discover_none">Aucun autre paquet d'autocollants trouvé</string>
@@ -611,8 +612,8 @@
     <string name="picker_video_sub">Partager une vidéo</string>
     <string name="picker_camera">Caméra</string>
     <string name="picker_camera_sub">Prendre une photo</string>
-    <string name="picker_document">Document</string>
-    <string name="picker_document_sub">Envoyer un fichier</string>
+    <string name="picker_file">Fichier</string>
+    <string name="picker_file_sub">Envoyer un fichier</string>
     <string name="picker_interactive">Interactif</string>
     <string name="picker_poll">Sondage</string>
     <string name="picker_poll_sub">Créer un sondage pour la salle</string>
@@ -671,8 +672,8 @@
     <string name="emote_pack_unencrypted_notice">Les émojis des paquets d&apos;images ne sont pas cryptés et sont visibles par votre serveur domestique.</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">Rechercher des emoji</string>
-    <string name="picker_sticker_pack">Paquet d&apos;autocollants</string>
-    <string name="picker_sticker_pack_sub">Envoyer un autocollant d&apos;un paquet</string>
+    <string name="picker_stickers">Autocollants</string>
+    <string name="picker_stickers_sub">Envoyer un autocollant d&apos;un paquet</string>
     <string name="sticker_pack_unencrypted_notice">Les paquets d&apos;autocollants ne sont pas cryptés. Leurs images sont envoyées en clair et visibles par votre serveur domestique, même dans les salles cryptées.</string>
     <string name="sticker_pack_enable_globally">Utiliser ce paquet dans toutes les salles</string>
     <string name="sticker_pack_disable_globally">Ne plus utiliser ce paquet dans toutes les salles</string>

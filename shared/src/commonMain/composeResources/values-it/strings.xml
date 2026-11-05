@@ -602,7 +602,8 @@
     <string name="picker_photo">Foto</string>
     <string name="picker_photo_sub">Invia un'immagine dalla galleria</string>
     <string name="picker_sticker">Adesivo</string>
-    <string name="picker_sticker_sub">Invia un'immagine come adesivo</string>
+    <string name="picker_image_sticker">Adesivo immagine</string>
+    <string name="picker_image_sticker_sub">Invia un'immagine come adesivo</string>
     <string name="sticker_picker_discover">Scopri pacchetti in altre stanze</string>
     <string name="sticker_picker_discover_back">Torna ai pacchetti di adesivi</string>
     <string name="sticker_picker_discover_none">Nessun altro pacchetto di adesivi trovato</string>
@@ -611,8 +612,8 @@
     <string name="picker_video_sub">Condividi un video</string>
     <string name="picker_camera">Telecamera</string>
     <string name="picker_camera_sub">Scatta una foto</string>
-    <string name="picker_document">Documento</string>
-    <string name="picker_document_sub">Invia un file</string>
+    <string name="picker_file">File</string>
+    <string name="picker_file_sub">Invia un file</string>
     <string name="picker_interactive">Interattivo</string>
     <string name="picker_poll">Sondaggio</string>
     <string name="picker_poll_sub">Crea un sondaggio per la stanza</string>
@@ -671,8 +672,8 @@
     <string name="emote_pack_unencrypted_notice">Le emoji dei pacchetti di immagini non sono crittografate e sono visibili al tuo server domestico.</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">Cerca emoji</string>
-    <string name="picker_sticker_pack">Pacchetto di adesivi</string>
-    <string name="picker_sticker_pack_sub">Invia un adesivo da un pacchetto</string>
+    <string name="picker_stickers">Adesivi</string>
+    <string name="picker_stickers_sub">Invia un adesivo da un pacchetto</string>
     <string name="sticker_pack_unencrypted_notice">I pacchetti di adesivi non sono crittografati. Le immagini sono inviate in chiaro e visibili al tuo server domestico, anche nelle stanze crittografate.</string>
     <string name="sticker_pack_enable_globally">Usa questo pacchetto in ogni stanza</string>
     <string name="sticker_pack_disable_globally">Non usare più questo pacchetto in ogni stanza</string>

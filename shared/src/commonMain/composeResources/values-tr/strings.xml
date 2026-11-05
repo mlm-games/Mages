@@ -602,7 +602,8 @@
     <string name="picker_photo">Fotoğraf</string>
     <string name="picker_photo_sub">Galeriden bir resim gönder</string>
     <string name="picker_sticker">Etiket</string>
-    <string name="picker_sticker_sub">Bir resmi çıkartma olarak gönder</string>
+    <string name="picker_image_sticker">Görsel çıkartma</string>
+    <string name="picker_image_sticker_sub">Bir resmi çıkartma olarak gönder</string>
     <string name="sticker_picker_discover">Diğer odalarda paketleri keşfet</string>
     <string name="sticker_picker_discover_back">Çıkartma paketlerine dön</string>
     <string name="sticker_picker_discover_none">Başka çıkartma paketi bulunamadı</string>
@@ -611,8 +612,8 @@
     <string name="picker_video_sub">Bir video paylaşın</string>
     <string name="picker_camera">Kamera</string>
     <string name="picker_camera_sub">Fotoğraf çek</string>
-    <string name="picker_document">Belge</string>
-    <string name="picker_document_sub">Dosya gönder</string>
+    <string name="picker_file">Dosya</string>
+    <string name="picker_file_sub">Dosya gönder</string>
     <string name="picker_interactive">İnteraktif</string>
     <string name="picker_poll">Anket</string>
     <string name="picker_poll_sub">Oda için bir anket oluşturun</string>
@@ -671,8 +672,8 @@
     <string name="emote_pack_unencrypted_notice">Görsel paketlerindeki emojiler şifreli değildir ve ev sunucunuz tarafından görülebilir.</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">Emoji ara</string>
-    <string name="picker_sticker_pack">Çıkartma paketi</string>
-    <string name="picker_sticker_pack_sub">Paketten bir çıkartma gönder</string>
+    <string name="picker_stickers">Çıkartmalar</string>
+    <string name="picker_stickers_sub">Paketten bir çıkartma gönder</string>
     <string name="sticker_pack_unencrypted_notice">Çıkartma paketleri şifreli değildir. Görselleri şifresiz gönderilir ve şifreli odalarda bile ev sunucunuz tarafından görülebilir.</string>
     <string name="sticker_pack_enable_globally">Bu paketi her odada kullan</string>
     <string name="sticker_pack_disable_globally">Bu paketi her odada kullanmayı bırak</string>

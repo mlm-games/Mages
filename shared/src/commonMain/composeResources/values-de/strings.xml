@@ -602,7 +602,8 @@
     <string name="picker_photo">Foto</string>
     <string name="picker_photo_sub">Senden Sie ein Bild aus der Galerie</string>
     <string name="picker_sticker">Aufkleber</string>
-    <string name="picker_sticker_sub">Senden Sie ein Bild als Aufkleber</string>
+    <string name="picker_image_sticker">Bildaufkleber</string>
+    <string name="picker_image_sticker_sub">Senden Sie ein Bild als Aufkleber</string>
     <string name="sticker_picker_discover">Pakete in anderen Räumen entdecken</string>
     <string name="sticker_picker_discover_back">Zurück zu den Aufkleber-Paketen</string>
     <string name="sticker_picker_discover_none">Keine weiteren Aufkleber-Pakete gefunden</string>
@@ -611,8 +612,8 @@
     <string name="picker_video_sub">Teilen Sie ein Video</string>
     <string name="picker_camera">Kamera</string>
     <string name="picker_camera_sub">Machen Sie ein Foto</string>
-    <string name="picker_document">Dokumentieren</string>
-    <string name="picker_document_sub">Senden Sie eine Datei</string>
+    <string name="picker_file">Datei</string>
+    <string name="picker_file_sub">Senden Sie eine Datei</string>
     <string name="picker_interactive">Interaktiv</string>
     <string name="picker_poll">Umfrage</string>
     <string name="picker_poll_sub">Erstellen Sie eine Umfrage für den Raum</string>
@@ -671,8 +672,8 @@
     <string name="emote_pack_unencrypted_notice">Emojis aus Bildpaketen sind nicht verschlüsselt und für Ihren Homeserver sichtbar.</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">Emojis durchsuchen</string>
-    <string name="picker_sticker_pack">Aufkleberpaket</string>
-    <string name="picker_sticker_pack_sub">Einen Aufkleber aus einem Paket senden</string>
+    <string name="picker_stickers">Aufkleber</string>
+    <string name="picker_stickers_sub">Einen Aufkleber aus einem Paket senden</string>
     <string name="sticker_pack_unencrypted_notice">Aufkleberpakete sind nicht verschlüsselt. Ihre Bilder werden im Klartext gesendet und sind für Ihren Homeserver sichtbar, auch in verschlüsselten Räumen.</string>
     <string name="sticker_pack_enable_globally">Dieses Paket in jedem Raum verwenden</string>
     <string name="sticker_pack_disable_globally">Dieses Paket nicht mehr in jedem Raum verwenden</string>

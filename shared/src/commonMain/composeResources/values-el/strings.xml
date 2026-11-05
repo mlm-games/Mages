@@ -602,7 +602,8 @@
     <string name="picker_photo">Φωτογραφία</string>
     <string name="picker_photo_sub">Στείλτε μια εικόνα από τη συλλογή</string>
     <string name="picker_sticker">Αυτοκόλλητη ετικέτα</string>
-    <string name="picker_sticker_sub">Στείλτε μια εικόνα ως αυτοκόλλητο</string>
+    <string name="picker_image_sticker">Αυτοκόλλητο εικόνας</string>
+    <string name="picker_image_sticker_sub">Στείλτε μια εικόνα ως αυτοκόλλητο</string>
     <string name="sticker_picker_discover">Ανακαλύψτε πακέτα σε άλλα δωμάτια</string>
     <string name="sticker_picker_discover_back">Πίσω στα πακέτα αυτοκόλλητων</string>
     <string name="sticker_picker_discover_none">Δεν βρέθηκαν άλλα πακέτα αυτοκόλλητων</string>
@@ -611,8 +612,8 @@
     <string name="picker_video_sub">Μοιραστείτε ένα βίντεο</string>
     <string name="picker_camera">Κάμερα</string>
     <string name="picker_camera_sub">Βγάλε μια φωτογραφία</string>
-    <string name="picker_document">Εγγραφο</string>
-    <string name="picker_document_sub">Αποστολή αρχείου</string>
+    <string name="picker_file">Αρχείο</string>
+    <string name="picker_file_sub">Αποστολή αρχείου</string>
     <string name="picker_interactive">Αλληλεπιδραστικός</string>
     <string name="picker_poll">Ψηφοφορία</string>
     <string name="picker_poll_sub">Δημιουργήστε μια δημοσκόπηση για το δωμάτιο</string>
@@ -671,8 +672,8 @@
     <string name="emote_pack_unencrypted_notice">Τα emotes από τα πακέτα εικόνων δεν είναι κρυπτογραφημένα και είναι ορατά στον διακομιστή σπιτιού σας.</string>
     <string name="emotes">Emotes</string>
     <string name="search_emoji">Αναζήτηση emoji</string>
-    <string name="picker_sticker_pack">Πακέτο αυτοκόλλητων</string>
-    <string name="picker_sticker_pack_sub">Αποστολή αυτοκόλλητου από ένα πακέτο</string>
+    <string name="picker_stickers">Αυτοκόλλητα</string>
+    <string name="picker_stickers_sub">Αποστολή αυτοκόλλητου από ένα πακέτο</string>
     <string name="sticker_pack_unencrypted_notice">Τα πακέτα αυτοκόλλητων δεν είναι κρυπτογραφημένα. Οι εικόνες τους στέλνονται απροστάτευτες και είναι ορατές στον διακομιστή σπιτιού σας, ακόμη και σε κρυπτογραφημένα δωμάτια.</string>
     <string name="sticker_pack_enable_globally">Χρήση αυτού του πακέτου σε κάθε δωμάτιο</string>
     <string name="sticker_pack_disable_globally">Διακοπή χρήσης αυτού του πακέτου σε κάθε δωμάτιο</string>
