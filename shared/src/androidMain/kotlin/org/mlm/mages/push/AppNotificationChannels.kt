@@ -120,9 +120,11 @@ object AppNotificationChannels {
     fun ensureBubblesAllowed(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        nm.getNotificationChannel(CHANNEL_MESSAGES)?.let {
-            it.setAllowBubbles(true)
-            nm.createNotificationChannel(it)
+        for (id in listOf(CHANNEL_MESSAGES, CHANNEL_MESSAGES_SILENT)) {
+            nm.getNotificationChannel(id)?.let {
+                it.setAllowBubbles(true)
+                nm.createNotificationChannel(it)
+            }
         }
     }
 }
