@@ -32,6 +32,7 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
 
         CoroutineScope(Dispatchers.IO).launch {
             val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            var raisedForeground = false
 
             val roomId = intent.getStringExtra(EXTRA_ROOM_ID)
             val eventId = intent.getStringExtra(EXTRA_EVENT_ID)
@@ -81,6 +82,7 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                             if (port != null && service.isLoggedIn()) {
                                 runCatching { port.acceptInvite(roomId) }
                                 runCatching { port.enterForeground() }
+                                raisedForeground = true
                             }
                             if (notifId != 0) {
                                 nm.cancel(notifId)
@@ -149,6 +151,7 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                         if (text.isBlank()) return@launch
 
                         runCatching { port.enterForeground() }
+                        raisedForeground = true
 
                         val ok = if (threadId != null) {
                             port.sendThreadText(roomId, threadId, text).isSuccess
@@ -256,6 +259,9 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                     }
                 }
             } finally {
+                if (raisedForeground) {
+                    runCatching { service.portOrNull?.enterBackground() }
+                }
                 pending.finish()
             }
         }

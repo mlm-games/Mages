@@ -97,6 +97,11 @@ class NotificationEnrichWorker(
             return Result.success()
         }
 
+        var raisedForeground = false
+        try {
+            runCatching { port.enterForeground() }
+            raisedForeground = true
+
         // Distinguish timeout from "null result".
         data class Fetch(val timedOut: Boolean, val rendered: RenderedNotification?)
 
@@ -281,6 +286,11 @@ class NotificationEnrichWorker(
                     mediaPath = media,
                 )
                 return Result.success()
+            }
+        }
+        } finally {
+            if (raisedForeground) {
+                runCatching { service.portOrNull?.enterBackground() }
             }
         }
     }

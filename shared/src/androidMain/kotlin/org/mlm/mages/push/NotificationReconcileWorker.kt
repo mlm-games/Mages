@@ -74,9 +74,12 @@ class NotificationReconcileWorker(
 
         val port = service.portOrNull ?: return Result.success()
 
-        runCatching { port.enterForeground() }
-        runCatching { service.startSupervisedSync() }
-        delay(SYNC_SETTLE_MS)
+        var raisedForeground = false
+        try {
+            runCatching { port.enterForeground() }
+            raisedForeground = true
+            runCatching { service.startSupervisedSync() }
+            delay(SYNC_SETTLE_MS)
 
         val active = mgr.activeNotifications ?: return Result.success()
 
@@ -123,6 +126,11 @@ class NotificationReconcileWorker(
         }
 
         return Result.success()
+        } finally {
+            if (raisedForeground) {
+                runCatching { service.portOrNull?.enterBackground() }
+            }
+        }
     }
 
     companion object {
