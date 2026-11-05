@@ -734,8 +734,7 @@ object Notifier {
         val existingStyle = nm.activeNotifications
             .find { it.id == notificationId }
             ?.notification
-            ?.takeUnless { isSuppressedBubble(it) }
-            ?.let { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it) }
+            ?.let { runCatching { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it) }.getOrNull() }
 
         // SystemUI is a separate uid and cannot read a file:// path into app
         // private storage, so a preview handed over that way silently never
@@ -938,6 +937,12 @@ object Notifier {
     ) {
         val isThread = threadId != null
         val channelId = AppNotificationChannels.CHANNEL_MESSAGES_SILENT
+        val bubbleIcon = if (isDm) myAvatar.icon else contactAvatar.icon
+        if (bubbleActivityClass != null && !isThread) {
+            ConversationShortcutPublisher.publishOrUpdate(
+                context, roomId, roomName, contactName, bubbleIcon, bubbleActivityClass
+            )
+        }
 
         val me = Person.Builder()
             .setName(myUserName)
@@ -955,8 +960,7 @@ object Notifier {
         val existingStyle = nm.activeNotifications
             .find { it.id == notificationId }
             ?.notification
-            ?.takeUnless { isSuppressedBubble(it) }
-            ?.let { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it) }
+            ?.let { runCatching { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it) }.getOrNull() }
 
         val style = (existingStyle ?: NotificationCompat.MessagingStyle(me)
             .setConversationTitle(
@@ -1042,7 +1046,6 @@ object Notifier {
                     .putExtra(ConversationShortcutPublisher.EXTRA_ROOM_ID, roomId),
                 PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
-            val bubbleIcon = if (isDm) myAvatar.icon else contactAvatar.icon
             val bubbleMetadata = NotificationCompat.BubbleMetadata.Builder(
                 bubblePendingIntent, bubbleIcon
             )
