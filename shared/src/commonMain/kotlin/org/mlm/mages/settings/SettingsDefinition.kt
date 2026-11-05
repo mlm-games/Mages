@@ -529,16 +529,6 @@ data class AppSettings(
     val includeSilentUnreadInFilter: Boolean = false,
 
     @Setting(
-        title = "Show heroes in room list",
-        titleKey = MagesSettingsKeys.SHOW_ROOM_LIST_HEROES,
-        description = "Show overlapping avatars of a room's members in its list row",
-        descriptionKey = MagesSettingsKeys.SHOW_ROOM_LIST_HEROES_DESCRIPTION,
-        category = Timeline::class,
-        type = Toggle::class,
-    )
-    val showRoomListHeroes: Boolean = false,
-
-    @Setting(
         title = "Show space badge in room list",
         titleKey = MagesSettingsKeys.SHOW_SPACE_BADGE_IN_ROOM_LIST,
         description = "Show a small space avatar next to rooms that belong to a space",

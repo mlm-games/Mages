@@ -54,7 +54,6 @@ fun RoomListItem(
     allowMediaPreviews: Boolean = true,
     selectionMode: Boolean = false,
     selected: Boolean = false,
-    showRoomListHeroes: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val clickModifier = if (onLongClick != null) {
@@ -87,7 +86,7 @@ fun RoomListItem(
                 Spacer(Modifier.width(Spacing.sm))
             }
             Box {
-                if (showRoomListHeroes && !item.isDm && item.heroes.isNotEmpty()) {
+                if (!item.isDm && item.heroes.isNotEmpty()) {
                     HeroStack(heroes = item.heroes)
                 } else {
                     Avatar(

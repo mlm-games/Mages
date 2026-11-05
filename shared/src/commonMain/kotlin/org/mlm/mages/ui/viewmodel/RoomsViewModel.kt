@@ -481,7 +481,6 @@ class RoomsViewModel(
     // so it is cleared together with the maps it guards when observers are reset.
 
     private fun loadRoomListHeroes() {
-        if (!settings.value.showRoomListHeroes) return
         val roomIds = currentState.allItems.map { it.roomId }
         if (roomIds.isEmpty()) return
         val key = roomIds.joinToString(",")

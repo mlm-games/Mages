@@ -52,8 +52,6 @@ object MagesSettingsKeys {
     const val INCLUDE_SILENT_UNREAD_IN_FILTER = "mages.settings.include_silent_unread_in_filter"
     const val SHOW_SPACE_BADGE_IN_ROOM_LIST = "mages.settings.show_space_badge_in_room_list"
     const val SHOW_SPACE_BADGE_IN_ROOM_LIST_DESCRIPTION = "mages.settings.show_space_badge_in_room_list.description"
-    const val SHOW_ROOM_LIST_HEROES = "mages.settings.show_room_list_heroes"
-    const val SHOW_ROOM_LIST_HEROES_DESCRIPTION = "mages.settings.show_room_list_heroes.description"
     const val ROOM_LIST_SWIPE_RIGHT = "mages.settings.room_list_swipe_right"
     const val ROOM_LIST_SWIPE_RIGHT_DESCRIPTION = "mages.settings.room_list_swipe_right.description"
     const val ROOM_LIST_SWIPE_LEFT = "mages.settings.room_list_swipe_left"

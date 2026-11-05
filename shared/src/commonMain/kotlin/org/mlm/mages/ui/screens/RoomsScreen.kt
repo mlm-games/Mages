@@ -269,7 +269,6 @@ fun RoomsScreen(
                                     selectionMode = state.selectionMode,
                                     selected = item.roomId in state.selectedRoomIds,
                                     showSilentUnreadCount = settings.showSilentUnreadCount,
-                                    showRoomListHeroes = settings.showRoomListHeroes,
                                     draft = drafts[item.roomId],
                                     allowMediaPreviews = settings.mediaPreviews.allowsMediaPreviews(item.isDm)
                                 )
@@ -317,7 +316,6 @@ fun RoomsScreen(
                                     selectionMode = state.selectionMode,
                                     selected = item.roomId in state.selectedRoomIds,
                                     showSilentUnreadCount = settings.showSilentUnreadCount,
-                                    showRoomListHeroes = settings.showRoomListHeroes,
                                     draft = drafts[item.roomId],
                                     allowMediaPreviews = settings.mediaPreviews.allowsMediaPreviews(item.isDm)
                                 )
@@ -364,7 +362,6 @@ fun RoomsScreen(
                                     selectionMode = state.selectionMode,
                                     selected = item.roomId in state.selectedRoomIds,
                                     showSilentUnreadCount = settings.showSilentUnreadCount,
-                                    showRoomListHeroes = settings.showRoomListHeroes,
                                     draft = drafts[item.roomId],
                                     allowMediaPreviews = settings.mediaPreviews.allowsMediaPreviews(item.isDm)
                                 )
