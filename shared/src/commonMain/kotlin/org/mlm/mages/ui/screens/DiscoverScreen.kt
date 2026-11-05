@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import org.mlm.mages.ui.theme.Spacing
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.DirectoryUser
@@ -309,46 +310,47 @@ private fun DirectJoinCard(
             .fillMaxWidth()
             .clickable(onClick = onOpen),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
         )
     ) {
-        ListItem(
-            headlineContent = {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painterResource(Res.drawable.ic_meeting_room),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(Modifier.width(Spacing.lg))
+
+            Column(Modifier.weight(1f)) {
                 Text(
                     title,
                     style = MaterialTheme.typography.titleMedium
                 )
-            },
-            supportingContent = {
-                Column {
-                    Text(subtitle)
-                    if (preview?.title != null && preview.target != preview.title) {
-                        Text(
-                            preview.target,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                Text(subtitle)
+                if (preview?.title != null && preview.target != preview.title) {
+                    Text(
+                        preview.target,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-            },
-            leadingContent = {
-                Icon(
-                    painterResource(Res.drawable.ic_meeting_room),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            trailingContent = {
-                Icon(
-                    painterResource(Res.drawable.ic_chevron_right),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
-            colors = ListItemDefaults.colors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
+            }
+
+            Spacer(Modifier.width(Spacing.lg))
+
+            Icon(
+                painterResource(Res.drawable.ic_chevron_right),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        )
+        }
     }
 }
 
@@ -399,59 +401,70 @@ private fun RoomListItem(
             .fillMaxWidth()
             .clickable(onClick = onClick)
     ) {
-        ListItem(
-            headlineContent = {
-                Text(room.name ?: room.alias ?: room.roomId)
-            },
-            supportingContent = {
-                Column {
-                    if (room.isSpace) {
-                        Text(
-                            stringResource(Res.string.spaces),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    room.alias?.let { alias ->
-                        if (alias != room.name) {
-                            Text(
-                                alias,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                    room.topic?.takeIf { it.isNotBlank() }?.let { topic ->
-                        Text(
-                            topic.take(100) + if (topic.length > 100) "..." else "",
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 2
-                        )
-                    }
-                }
-            },
-            leadingContent = {
-                if (avatarPath != null) {
-                    Avatar(
-                        name = room.name ?: room.alias ?: room.roomId,
-                        avatarPath = avatarPath,
-                        size = 40.dp
-                    )
-                } else {
-                    Icon(
-                        if (room.isSpace) painterResource(Res.drawable.ic_workspaces) else painterResource(Res.drawable.ic_group),
-                        contentDescription = null
-                    )
-                }
-            },
-            trailingContent = {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (avatarPath != null) {
+                Avatar(
+                    name = room.name ?: room.alias ?: room.roomId,
+                    avatarPath = avatarPath,
+                    size = 40.dp
+                )
+            } else {
                 Icon(
-                    painterResource(Res.drawable.ic_chevron_right),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    if (room.isSpace) painterResource(Res.drawable.ic_workspaces) else painterResource(Res.drawable.ic_group),
+                    contentDescription = null
                 )
             }
-        )
+
+            Spacer(Modifier.width(Spacing.lg))
+
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = room.name ?: room.alias ?: room.roomId,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (room.isSpace) {
+                    Text(
+                        stringResource(Res.string.spaces),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                room.alias?.let { alias ->
+                    if (alias != room.name) {
+                        Text(
+                            alias,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                room.topic?.takeIf { it.isNotBlank() }?.let { topic ->
+                    Text(
+                        topic.take(100) + if (topic.length > 100) "..." else "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(Spacing.lg))
+
+            Icon(
+                painterResource(Res.drawable.ic_chevron_right),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 package org.mlm.mages.ui.components.sheets
 
 import org.jetbrains.compose.resources.painterResource
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -40,6 +42,7 @@ import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.SeenByEntry
 import org.mlm.mages.ui.ReactionDetail
+import org.mlm.mages.ui.ReactionUser
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.FormattedBodyText
 import org.mlm.mages.ui.components.message.ReactionKeyLabel
@@ -517,47 +520,88 @@ private fun ReactionGroup(
     shortcodes: Map<String, String>,
 ) {
     val shown = detail.users.take(MAX_REACTORS_SHOWN)
+    val hidden = detail.count - shown.size
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            ReactionKeyLabel(
-                key = detail.key,
-                imagePath = imagePaths[detail.key],
-                shortcode = shortcodes[detail.key],
-            )
-            Spacer(Modifier.width(Spacing.sm))
-            Text(
-                text = detail.count.toString(),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        shown.forEach { user ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Surface(
+                shape = RoundedCornerShape(percent = 50),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceContainerLowest),
             ) {
-                Avatar(
-                    name = user.displayName ?: user.userId,
-                    avatarPath = user.avatarPath,
-                    size = 28.dp,
-                )
-                Spacer(Modifier.width(Spacing.md))
-                Text(
-                    text = user.displayName ?: user.userId,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    ReactionKeyLabel(
+                        key = detail.key,
+                        imagePath = imagePaths[detail.key],
+                        shortcode = shortcodes[detail.key],
+                    )
+                    Text(
+                        text = detail.count.toString(),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
+            HorizontalDivider(Modifier.weight(1f))
         }
-        val hidden = detail.count - shown.size
-        if (hidden > 0) {
+
+        shown.forEach { user ->
+            ReactionUserRow(user)
+        }
+
+        if (hidden > 0 && shown.isNotEmpty()) {
             Text(
-                text = stringResource(Res.string.showing_first_reactors, shown.size),
+                text = stringResource(Res.string.more_reactions, hidden),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = Spacing.xs),
             )
+        }
+    }
+}
+
+@Composable
+private fun ReactionUserRow(user: ReactionUser) {
+    val displayName = user.displayName ?: user.userId
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Avatar(
+            name = displayName,
+            avatarPath = user.avatarPath,
+            size = 32.dp,
+        )
+        Spacer(Modifier.width(Spacing.md))
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = displayName,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (user.displayName != null &&
+                user.userId.isNotBlank() &&
+                user.displayName != user.userId
+            ) {
+                Text(
+                    text = user.userId,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
