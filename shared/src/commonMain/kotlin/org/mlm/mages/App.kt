@@ -371,14 +371,10 @@ private fun AppContent(
                     service.activeAccount.first { it != null }
 
                     val action = resolveDeepLink(service, raw)
-                    when {
-                        action == null ->
-                            snackbarManager.showError(getString(Res.string.could_not_open_link, raw))
-
-                        action.notice != null ->
-                            snackbarManager.show(action.notice)
-
-                        else -> localDeepLinks.emit(action)
+                    if (action == null) {
+                        snackbarManager.showError(getString(Res.string.could_not_open_link, raw))
+                    } else {
+                        localDeepLinks.emit(action)
                     }
                 }
             }
@@ -632,6 +628,9 @@ private fun AppContent(
                                     onOpenSpaces = { backStack.add(Route.Spaces) },
                                     onOpenSearch = { backStack.add(Route.Search) },
                                     onOpenAccountSwitcher = { showAccountSwitcher = true },
+                                    onOpenJoinPreview = { roomId, isSpace ->
+                                        backStack.add(Route.JoinRoom(roomId, emptyList(), isSpace = isSpace))
+                                    },
                                     roomListPercent = settings.splitRoomListPercent,
                                 ) { sel ->
                                     RoomEntryContent(
@@ -656,6 +655,9 @@ private fun AppContent(
                                     onOpenSpaces = { backStack.add(Route.Spaces) },
                                     onOpenSearch = { backStack.add(Route.Search) },
                                     onOpenAccountSwitcher = { showAccountSwitcher = true },
+                                    onOpenJoinPreview = { roomId, isSpace ->
+                                        backStack.add(Route.JoinRoom(roomId, emptyList(), isSpace = isSpace))
+                                    },
                                 )
                             }
 
@@ -714,6 +716,54 @@ private fun AppContent(
                                 onRequestVoiceCallPermissions = onRequestVoiceCallPermissions,
                                 widgetTheme = widgetTheme,
                                 languageTag = languageTag,
+                            )
+                        }
+
+                        entry<Route.JoinRoom> { key ->
+                            val viewModel: JoinRoomViewModel = koinViewModel(
+                                parameters = { parametersOf(key.roomIdOrAlias, key.via, key.isSpace) }
+                            )
+
+                            LaunchedEffect(Unit) {
+                                viewModel.events.collect { event ->
+                                    when (event) {
+                                        is JoinRoomViewModel.Event.OpenJoined -> {
+                                            backStack.removeAt(backStack.lastIndex)
+                                            if (event.isSpace) {
+                                                backStack.add(Route.SpaceDetail(event.roomId, event.name))
+                                            } else {
+                                                backStack.openRoom(Route.Room(event.roomId, event.name, key.eventId))
+                                                if (key.threadId != null) {
+                                                    backStack.add(
+                                                        Route.Thread(
+                                                            roomId = event.roomId,
+                                                            rootEventId = key.threadId,
+                                                            roomName = event.name,
+                                                            focusedEventId = key.eventId,
+                                                        )
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        is JoinRoomViewModel.Event.Declined -> {
+                                            backStack.removeAt(backStack.lastIndex)
+                                        }
+
+                                        is JoinRoomViewModel.Event.ShowMessage -> {
+                                            snackbarManager.show(event.message)
+                                        }
+
+                                        is JoinRoomViewModel.Event.ShowError -> {
+                                            postError(event.message)
+                                        }
+                                    }
+                                }
+                            }
+
+                            JoinRoomScreen(
+                                viewModel = viewModel,
+                                onBack = backStack::popBack,
                             )
                         }
 
@@ -780,8 +830,14 @@ private fun AppContent(
                                             backStack.add(Route.Room(event.roomId, event.name))
                                         }
 
-                                        is DiscoverViewModel.Event.OpenSpace -> {
-                                            backStack.add(Route.SpaceDetail(event.spaceId, event.name))
+                                        is DiscoverViewModel.Event.OpenJoinPreview -> {
+                                            backStack.add(
+                                                Route.JoinRoom(
+                                                    event.roomIdOrAlias,
+                                                    event.via,
+                                                    isSpace = event.isSpace,
+                                                )
+                                            )
                                         }
 
                                         is DiscoverViewModel.Event.ShowError -> {
@@ -814,7 +870,7 @@ private fun AppContent(
                                         }
 
                                         is RoomInfoViewModel.Event.OpenRoom -> {
-                                            backStack.add(Route.Room(event.roomId, event.name))
+                                            localDeepLinks.tryEmit(DeepLinkAction(roomId = event.roomId))
                                         }
 
                                         is RoomInfoViewModel.Event.ShowError -> {
@@ -957,6 +1013,16 @@ private fun AppContent(
                                                 Route.SpaceDetail(
                                                     event.spaceId,
                                                     event.name
+                                                )
+                                            )
+                                        }
+
+                                        is SpaceDetailViewModel.Event.OpenJoinPreview -> {
+                                            backStack.add(
+                                                Route.JoinRoom(
+                                                    event.roomIdOrAlias,
+                                                    event.via,
+                                                    isSpace = event.isSpace,
                                                 )
                                             )
                                         }

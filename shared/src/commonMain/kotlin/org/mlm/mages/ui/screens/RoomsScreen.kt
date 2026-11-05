@@ -46,7 +46,6 @@ import mages.shared.generated.resources.*
 import org.mlm.mages.ui.components.common.InviteListItem
 import org.mlm.mages.ui.components.common.SwipeActionRow
 import org.mlm.mages.ui.components.dialogs.ConfirmationDialog
-import org.mlm.mages.ui.components.dialogs.DeclineInviteDialog
 
 @Composable
 fun RoomsScreen(
@@ -56,6 +55,7 @@ fun RoomsScreen(
     onOpenSpaces: () -> Unit,
     onOpenSearch: () -> Unit,
     onOpenAccountSwitcher: () -> Unit,
+    onOpenJoinPreview: (String, Boolean) -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
     val settingsRepository: SettingsRepository<AppSettings> = koinInject()
@@ -389,8 +389,7 @@ fun RoomsScreen(
                             }
                             InviteListItem(
                                 item = item,
-                                onAccept = { viewModel.acceptInvite(item.roomId) },
-                                onDecline = { viewModel.showDeclineInvite(item.roomId) }
+                                onClick = { onOpenJoinPreview(item.roomId, item.isSpace) }
                             )
                         }
                     }
@@ -410,16 +409,6 @@ fun RoomsScreen(
             onToggleFavourite = { viewModel.toggleFavourite(roomId, roomId in state.favourites) },
             onToggleLowPriority = { viewModel.toggleLowPriority(roomId, roomId in state.lowPriority) },
             onSelect = { viewModel.startRoomSelection(roomId) },
-        )
-    }
-
-    state.declineInviteRoomId?.let { roomId ->
-        DeclineInviteDialog(
-            roomName = state.declineInviteRoomName,
-            inviterName = state.declineInviteInviterName,
-            isLoading = state.isDecliningInvite,
-            onDecline = viewModel::declineInvite,
-            onDismiss = viewModel::hideDeclineInvite,
         )
     }
 

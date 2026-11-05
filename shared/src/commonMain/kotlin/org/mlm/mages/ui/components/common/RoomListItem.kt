@@ -362,12 +362,13 @@ fun RoomListItem(
 @Composable
 fun InviteListItem(
     item: RoomListItemUi,
-    onAccept: () -> Unit,
-    onDecline: () -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         color = MaterialTheme.colorScheme.surfaceContainer,
         tonalElevation = 3.dp,
     ) {
@@ -377,25 +378,12 @@ fun InviteListItem(
                 .padding(horizontal = Spacing.lg, vertical = Spacing.md),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box {
-                Avatar(
-                    name = item.name,
-                    avatarPath = item.avatarUrl,
-                    size = 52.dp,
-                    shape = CircleShape
-                )
-
-//                Badge(
-//                    modifier = Modifier
-//                        .align(Alignment.BottomEnd)
-//                        .offset(x = 6.dp, y = 6.dp)
-//                ) {
-//                    Text(
-//                        "Hey!",
-//                        style = MaterialTheme.typography.labelSmall
-//                    )
-//                }
-            }
+            Avatar(
+                name = item.name,
+                avatarPath = item.avatarUrl,
+                size = 52.dp,
+                shape = CircleShape
+            )
 
             Spacer(Modifier.width(Spacing.md))
 
@@ -429,24 +417,11 @@ fun InviteListItem(
                 }
             }
 
-            Spacer(Modifier.width(Spacing.md))
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TextButton(
-                    onClick = onDecline,
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text(stringResource(Res.string.decline))
-                }
-
-                Button(onClick = onAccept) {
-                    Text(stringResource(Res.string.accept))
-                }
-            }
+            Icon(
+                painterResource(Res.drawable.ic_chevron_right),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

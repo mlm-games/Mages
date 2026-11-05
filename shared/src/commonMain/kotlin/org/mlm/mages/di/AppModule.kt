@@ -103,6 +103,15 @@ val viewModelModule = module {
         )
     }
 
+    viewModel { (roomIdOrAlias: String, via: List<String>, isSpaceHint: Boolean?) ->
+        JoinRoomViewModel(
+            service = get(),
+            roomIdOrAlias = roomIdOrAlias,
+            via = via,
+            isSpaceHint = isSpaceHint,
+        )
+    }
+
     viewModel { DiscoverViewModel(get()) }
 
     viewModel { (scopedRoomId: String?, scopedRoomName: String?) ->

@@ -101,11 +101,6 @@ data class RoomsUiState(
     val lowPriorityItems: List<RoomListItemUi> = emptyList(),
     val inviteItems: List<RoomListItemUi> = emptyList(),
 
-    val declineInviteRoomId: String? = null,
-    val declineInviteRoomName: String = "",
-    val declineInviteInviterName: String? = null,
-    val isDecliningInvite: Boolean = false,
-
     val roomAvatarPath: Map<String, String> = emptyMap(),
     val roomAvatarUrlByRoomId: Map<String, String> = emptyMap(),
     val parentSpaces: Map<String, List<SpaceParentInfo>> = emptyMap(),

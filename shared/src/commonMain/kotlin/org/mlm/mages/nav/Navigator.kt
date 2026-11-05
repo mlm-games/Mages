@@ -24,6 +24,7 @@ import kotlinx.serialization.modules.polymorphic
 import org.mlm.mages.MatrixService
 import org.mlm.mages.calls.CallManager
 import org.mlm.mages.matrix.CallIntent
+import org.mlm.mages.matrix.RoomPreviewMembership
 import org.mlm.mages.ui.theme.Durations
 
 const val NAV_ANIM_DURATION = 450
@@ -33,6 +34,14 @@ sealed interface Route : NavKey {
     @Serializable data object Login : Route
     @Serializable data object Rooms : Route
     @Serializable data class Room(val roomId: String, val name: String, val eventId: String? = null) : Route
+    @Serializable
+    data class JoinRoom(
+        val roomIdOrAlias: String,
+        val via: List<String> = emptyList(),
+        val eventId: String? = null,
+        val threadId: String? = null,
+        val isSpace: Boolean? = null,
+    ) : Route
     @Serializable data object Security : Route
     @Serializable data object Discover : Route
     @Serializable data class MediaGallery(val roomId: String) : Route
@@ -92,7 +101,7 @@ data class DeepLinkAction(
     val joinCall: Boolean = false,
     val voiceOnly: Boolean = false,
     val incoming: Boolean = false,
-    val notice: String? = null,
+    val via: List<String> = emptyList(),
 )
 
 // Deep links: push Room keys when links arrive
@@ -111,105 +120,135 @@ fun BindDeepLinks(
 ) {
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(deepLinks) {
-        deepLinks?.collectLatest { action ->
-            val top = backStack.lastOrNull()
-            val threadId = action.threadId
-            if (threadId != null) {
-                if (top is Route.Thread &&
-                    top.roomId == action.roomId &&
-                    top.rootEventId == threadId
-                ) {
-                    if (action.eventId != null) {
-                        backStack.replaceTop(top.copy(focusedEventId = action.eventId))
-                    }
-                } else {
-                    val threadRoute = Route.Thread(
-                        roomId = action.roomId,
-                        rootEventId = threadId,
-                        roomName = action.roomId,
-                        focusedEventId = action.eventId
-                    )
-                    if (top is Route.Room && top.roomId == action.roomId) {
-                        backStack.add(threadRoute)
-                    } else {
-                        backStack.openRoom(threadRoute)
-                    }
+    suspend fun openResolved(resolved: DeepLinkAction) {
+        val top = backStack.lastOrNull()
+        val threadId = resolved.threadId
+        if (threadId != null) {
+            if (top is Route.Thread &&
+                top.roomId == resolved.roomId &&
+                top.rootEventId == threadId
+            ) {
+                if (resolved.eventId != null) {
+                    backStack.replaceTop(top.copy(focusedEventId = resolved.eventId))
                 }
             } else {
-                val isSpace = action.eventId == null &&
-                    !action.joinCall &&
-                    runCatching { service.isSpace(action.roomId) }.getOrDefault(false)
-
-                if (isSpace) {
-                    val alreadyThere = top is Route.SpaceDetail && top.spaceId == action.roomId
-                    if (!alreadyThere) {
-                        val name = runCatching {
-                            service.mySpaces().firstOrNull { it.roomId == action.roomId }?.name
-                        }.getOrNull() ?: action.roomId
-                        backStack.add(Route.SpaceDetail(action.roomId, name))
-                    }
+                val threadRoute = Route.Thread(
+                    roomId = resolved.roomId,
+                    rootEventId = threadId,
+                    roomName = resolved.roomId,
+                    focusedEventId = resolved.eventId
+                )
+                if (top is Route.Room && top.roomId == resolved.roomId) {
+                    backStack.add(threadRoute)
                 } else {
-                    val alreadyThere = top is Route.Room && top.roomId == action.roomId
-                    if (alreadyThere) {
-                        if (action.eventId != null) {
-                            backStack.replaceTop(Route.Room(
-                                roomId = action.roomId,
-                                name = action.roomId,
-                                eventId = action.eventId
-                            ))
-                        }
-                    } else {
-                        backStack.openRoom(Route.Room(
+                    backStack.openRoom(threadRoute)
+                }
+            }
+            return
+        }
+
+        val isSpace = resolved.eventId == null &&
+            !resolved.joinCall &&
+            runCatching { service.isSpace(resolved.roomId) }.getOrDefault(false)
+
+        if (isSpace) {
+            val alreadyThere = top is Route.SpaceDetail && top.spaceId == resolved.roomId
+            if (!alreadyThere) {
+                val name = runCatching {
+                    service.mySpaces().firstOrNull { it.roomId == resolved.roomId }?.name
+                }.getOrNull() ?: resolved.roomId
+                backStack.add(Route.SpaceDetail(resolved.roomId, name))
+            }
+        } else {
+            val alreadyThere = top is Route.Room && top.roomId == resolved.roomId
+            if (alreadyThere) {
+                if (resolved.eventId != null) {
+                    backStack.replaceTop(Route.Room(
+                        roomId = resolved.roomId,
+                        name = resolved.roomId,
+                        eventId = resolved.eventId
+                    ))
+                }
+            } else {
+                backStack.openRoom(Route.Room(
+                    roomId = resolved.roomId,
+                    name = resolved.roomId, // Will be updated by RoomViewModel
+                    eventId = resolved.eventId
+                ))
+            }
+        }
+    }
+
+    fun joinCallIfRequested(action: DeepLinkAction) {
+        val callIntent = if (action.voiceOnly) CallIntent.JoinExistingVoiceDm
+        else CallIntent.JoinExisting
+
+        if (!action.joinCall || callManager.isInCall(action.roomId)) return
+
+        val joinCallAction: () -> Unit = {
+            coroutineScope.launch {
+                val roomName = runCatching {
+                    service.portOrNull?.roomProfile(action.roomId)?.name
+                }.getOrDefault(null) ?: action.roomId
+
+                repeat(10) { attempt ->
+                    val ok = runCatching {
+                        callManager.startOrJoinCall(
                             roomId = action.roomId,
-                            name = action.roomId, // Will be updated by RoomViewModel
-                            eventId = action.eventId
-                        ))
-                    }
+                            roomName = roomName,
+                            intent = callIntent,
+                            elementCallUrl = elementCallUrl,
+                            parentUrl = parentCallUrl,
+                            languageTag = languageTag,
+                            theme = widgetTheme,
+                            incoming = action.incoming
+                        )
+                    }.getOrDefault(false)
+
+                    if (ok) return@launch
+
+                    delay(400L + attempt * 150L)
                 }
             }
+        }
 
-            val callIntent = if (action.voiceOnly) CallIntent.JoinExistingVoiceDm
-            else CallIntent.JoinExisting
+        val requestPermissions =
+            if (action.voiceOnly) onRequestVoiceCallPermissions
+            else onRequestVideoCallPermissions
 
-            if (action.joinCall && !callManager.isInCall(action.roomId)) {
-                val joinCallAction: () -> Unit = {
-                    coroutineScope.launch {
-                        val roomName = runCatching {
-                            service.portOrNull?.roomProfile(action.roomId)?.name
-                        }.getOrDefault(null) ?: action.roomId
+        if (requestPermissions != null) {
+            requestPermissions.invoke(joinCallAction)
+        } else {
+            joinCallAction()
+        }
+    }
 
-                        repeat(10) { attempt ->
-                            val ok = runCatching {
-                                callManager.startOrJoinCall(
-                                    roomId = action.roomId,
-                                    roomName = roomName,
-                                    intent = callIntent,
-                                    elementCallUrl = elementCallUrl,
-                                    parentUrl = parentCallUrl,
-                                    languageTag = languageTag,
-                                    theme = widgetTheme,
-                                    incoming = action.incoming
-                                )
-                            }.getOrDefault(false)
-
-                            if (ok) return@launch
-
-                            delay(400L + attempt * 150L)
-                        }
-                    }
-                }
-
-                val requestPermissions =
-                    if (action.voiceOnly) onRequestVoiceCallPermissions
-                    else onRequestVideoCallPermissions
-
-                if (requestPermissions != null) {
-                    requestPermissions.invoke(joinCallAction)
+    LaunchedEffect(deepLinks) {
+        deepLinks?.collectLatest { action ->
+            if (action.joinCall) {
+                // Call deep links (e.g. answering an ongoing call from a mages://room
+                // link) join directly instead of going through the join preview.
+                openResolved(action)
+            } else {
+                val preview = runCatching {
+                    service.portOrNull?.roomPreview(action.roomId, action.via)
+                }.getOrNull()?.getOrNull()
+                if (preview != null && preview.membership == RoomPreviewMembership.Joined) {
+                    openResolved(action.copy(roomId = preview.roomId))
                 } else {
-                    joinCallAction()
+                    val route = Route.JoinRoom(
+                        roomIdOrAlias = action.roomId,
+                        via = action.via,
+                        eventId = action.eventId,
+                        threadId = action.threadId,
+                    )
+                    if (backStack.lastOrNull() != route) {
+                        backStack.add(route)
+                    }
                 }
             }
+
+            joinCallIfRequested(action)
         }
     }
 }
@@ -233,6 +272,7 @@ val routeSerializersModule = SerializersModule {
         subclass(Route.Login::class, Route.Login.serializer())
         subclass(Route.Rooms::class, Route.Rooms.serializer())
         subclass(Route.Room::class, Route.Room.serializer())
+        subclass(Route.JoinRoom::class, Route.JoinRoom.serializer())
         subclass(Route.Security::class, Route.Security.serializer())
         subclass(Route.Discover::class, Route.Discover.serializer())
         subclass(Route.RoomInfo::class, Route.RoomInfo.serializer())

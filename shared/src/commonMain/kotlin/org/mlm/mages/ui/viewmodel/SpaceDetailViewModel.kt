@@ -6,9 +6,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.receiveAsFlow
 import mages.shared.generated.resources.*
 import org.mlm.mages.MatrixService
-import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.RoomListMembership
-import org.mlm.mages.matrix.RoomPreviewMembership
 import org.mlm.mages.matrix.SpaceChildInfo
 import org.mlm.mages.matrix.SpaceInfo
 import org.mlm.mages.matrix.SpaceSection
@@ -72,6 +70,11 @@ class SpaceDetailViewModel(
     sealed class Event {
         data class OpenSpace(val spaceId: String, val name: String) : Event()
         data class OpenRoom(val roomId: String, val name: String) : Event()
+        data class OpenJoinPreview(
+            val roomIdOrAlias: String,
+            val via: List<String>,
+            val isSpace: Boolean,
+        ) : Event()
         data class ShowError(val message: String) : Event()
         data class ShowMessage(val message: String) : Event()
     }
@@ -117,22 +120,37 @@ class SpaceDetailViewModel(
     fun openChild(child: SpaceChildInfo) {
         launch {
             val displayName = child.name ?: child.alias ?: child.roomId
-            if (child.isSpace) {
-                if (child.membership == RoomListMembership.Joined) {
+            if (child.membership == RoomListMembership.Joined) {
+                if (child.isSpace) {
                     _events.send(Event.OpenSpace(child.roomId, displayName))
                 } else {
-                    joinChild(child, displayName)
+                    _events.send(Event.OpenRoom(child.roomId, displayName))
                 }
                 return@launch
             }
-            when (child.membership) {
-                RoomListMembership.Joined,
-                RoomListMembership.Invited,
-                RoomListMembership.Knocked -> _events.send(Event.OpenRoom(child.roomId, displayName))
-
-                else -> joinChild(child, displayName)
-            }
+            _events.send(
+                Event.OpenJoinPreview(
+                    roomIdOrAlias = child.roomId,
+                    via = childVia(child),
+                    isSpace = child.isSpace,
+                )
+            )
         }
+    }
+
+    fun refreshHierarchy() {
+        loadHierarchy(silent = true)
+    }
+
+    private suspend fun childVia(child: SpaceChildInfo): List<String> {
+        val parentServer = currentState.spaceId.substringAfter(':', "")
+            .takeIf { it.isNotBlank() }
+        val childServer = child.roomId.substringAfter(':', "")
+            .takeIf { it.isNotBlank() }
+        val joinedSpaceServers = runSafe { service.mySpaces() }
+            .orEmpty()
+            .mapNotNull { it.roomId.substringAfter(':', "").takeIf { server -> server.isNotBlank() } }
+        return (child.via + listOfNotNull(childServer, parentServer) + joinedSpaceServers).distinct()
     }
 
     fun showCreateSection() = updateState {
@@ -254,73 +272,6 @@ class SpaceDetailViewModel(
                     else getString(Res.string.moved_into_section)
                 )
             )
-        }
-    }
-
-    private fun joinChild(child: SpaceChildInfo, displayName: String) {
-        launch {
-            val parentServer = currentState.spaceId.substringAfter(':', "")
-                .takeIf { it.isNotBlank() }
-            val childServer = child.roomId.substringAfter(':', "")
-                .takeIf { it.isNotBlank() }
-            val joinedSpaceServers = runSafe { service.mySpaces() }
-                .orEmpty()
-                .mapNotNull { it.roomId.substringAfter(':', "").takeIf { server -> server.isNotBlank() } }
-            val via = (child.via + listOfNotNull(childServer, parentServer) + joinedSpaceServers).distinct()
-            val preview = service.port.roomPreview(child.roomId, via).getOrNull()
-            val roomId = preview?.roomId ?: child.roomId
-            val membership = preview?.membership ?: when (child.membership) {
-                RoomListMembership.Invited -> RoomPreviewMembership.Invited
-                RoomListMembership.Knocked -> RoomPreviewMembership.Knocked
-                RoomListMembership.Banned -> RoomPreviewMembership.Banned
-                else -> null
-            }
-
-            when (membership) {
-                RoomPreviewMembership.Joined -> {
-                    if (child.isSpace) {
-                        _events.send(Event.OpenSpace(roomId, displayName))
-                    } else {
-                        _events.send(Event.OpenRoom(roomId, displayName))
-                    }
-                    loadHierarchy()
-                    return@launch
-                }
-
-                RoomPreviewMembership.Knocked -> {
-                    _events.send(Event.ShowMessage(getString(Res.string.already_requested_access)))
-                    return@launch
-                }
-
-                RoomPreviewMembership.Banned -> {
-                    _events.send(Event.ShowError(getString(Res.string.you_are_banned_from_this_room)))
-                    return@launch
-                }
-
-                else -> Unit
-            }
-
-            val joinRule = preview?.joinRule
-            val forceJoin = membership == RoomPreviewMembership.Invited
-            val result = when {
-                !forceJoin && (joinRule == RoomJoinRule.Knock || joinRule == RoomJoinRule.KnockRestricted) ->
-                    service.port.knock(roomId, via)
-                else -> service.port.joinByIdOrAlias(roomId, via)
-            }
-
-            if (result.isFailure) {
-                _events.send(Event.ShowError(getString(Res.string.could_not_join_named, displayName)))
-                return@launch
-            }
-
-            if (!forceJoin && (joinRule == RoomJoinRule.Knock || joinRule == RoomJoinRule.KnockRestricted)) {
-                _events.send(Event.ShowMessage(getString(Res.string.knocked_on_named, displayName)))
-            } else if (child.isSpace) {
-                _events.send(Event.OpenSpace(roomId, displayName))
-            } else {
-                _events.send(Event.OpenRoom(roomId, displayName))
-            }
-            loadHierarchy()
         }
     }
 

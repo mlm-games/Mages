@@ -38,6 +38,7 @@ fun DesktopChatHost(
     onOpenSpaces: () -> Unit,
     onOpenSearch: () -> Unit,
     onOpenAccountSwitcher: () -> Unit,
+    onOpenJoinPreview: (String, Boolean) -> Unit,
     roomListPercent: Int = 40,
     detailContent: @Composable (ChatSelection) -> Unit,
 ) {
@@ -53,6 +54,7 @@ fun DesktopChatHost(
                     onOpenSpaces = onOpenSpaces,
                     onOpenSearch = onOpenSearch,
                     onOpenAccountSwitcher = onOpenAccountSwitcher,
+                    onOpenJoinPreview = onOpenJoinPreview,
                 )
             }
         } else {
@@ -72,6 +74,7 @@ fun DesktopChatHost(
                         onOpenSpaces = onOpenSpaces,
                         onOpenSearch = onOpenSearch,
                         onOpenAccountSwitcher = onOpenAccountSwitcher,
+                        onOpenJoinPreview = onOpenJoinPreview,
                     )
                 }
                 VerticalDivider()

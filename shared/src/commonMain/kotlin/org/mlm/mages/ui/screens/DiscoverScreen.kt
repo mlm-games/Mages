@@ -1,6 +1,7 @@
 package org.mlm.mages.ui.screens
 
 import org.jetbrains.compose.resources.painterResource
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
@@ -20,7 +21,6 @@ import org.mlm.mages.matrix.PublicRoomTypeFilter
 import org.mlm.mages.ui.components.core.StatusBanner
 import org.mlm.mages.ui.components.core.BannerType
 import org.mlm.mages.ui.components.core.Avatar
-import org.mlm.mages.ui.viewmodel.DirectJoinAction
 import org.mlm.mages.ui.viewmodel.DirectJoinPreview
 import org.mlm.mages.ui.viewmodel.DiscoverUi
 import org.mlm.mages.ui.viewmodel.DiscoverViewModel
@@ -39,9 +39,8 @@ fun DiscoverRoute(
         onQuery = viewModel::setQuery,
         onClose = onClose,
         onOpenUser = { u -> viewModel.openUser(u) },
-        onOpenRoom = { r -> viewModel.openRoom(r) },
-        onKnockRoom = { r -> viewModel.knockRoom(r) },
-        onJoinByIdOrAlias = { idOrAlias -> viewModel.joinDirect(idOrAlias) },
+        onOpenJoinPreview = { r -> viewModel.openJoinPreview(r) },
+        onOpenJoinPreviewTarget = { target -> viewModel.openJoinPreview(target) },
         onRoomTypeFilterChange = viewModel::setRoomTypeFilter,
         onLoadMore = viewModel::loadMoreRooms
     )
@@ -53,14 +52,11 @@ fun DiscoverScreen(
     onQuery: (String) -> Unit,
     onClose: () -> Unit,
     onOpenUser: (DirectoryUser) -> Unit,
-    onOpenRoom: (PublicRoom) -> Unit,
-    onKnockRoom: (PublicRoom) -> Unit,
-    onJoinByIdOrAlias: (String) -> Unit,
+    onOpenJoinPreview: (PublicRoom) -> Unit,
+    onOpenJoinPreviewTarget: (String) -> Unit,
     onRoomTypeFilterChange: (PublicRoomTypeFilter?) -> Unit,
     onLoadMore: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         topBar = {
@@ -171,8 +167,7 @@ fun DiscoverScreen(
                         DirectJoinCard(
                             preview = state.directJoinPreview,
                             target = target,
-                            onJoin = { onJoinByIdOrAlias(target) },
-                            isBusy = state.isBusy
+                            onOpen = { onOpenJoinPreviewTarget(target) },
                         )
                     }
                 }
@@ -227,8 +222,7 @@ fun DiscoverScreen(
                         RoomListItem(
                             room = room,
                             avatarPath = room.avatarUrl?.let { state.avatarPathByUrl[it] },
-                            onJoin = { onOpenRoom(room) },
-                            onKnock = { onKnockRoom(room) }
+                            onClick = { onOpenJoinPreview(room) }
                         )
                     }
 
@@ -305,20 +299,15 @@ fun DiscoverScreen(
 private fun DirectJoinCard(
     preview: DirectJoinPreview?,
     target: String,
-    onJoin: () -> Unit,
-    isBusy: Boolean
+    onOpen: () -> Unit,
 ) {
     val title = preview?.title ?: target
     val subtitle = preview?.subtitle ?: stringResource(Res.string.join_this_room)
-    val actionLabel = when (preview?.action ?: DirectJoinAction.Join) {
-        DirectJoinAction.Join -> stringResource(Res.string.join)
-        DirectJoinAction.Knock -> stringResource(Res.string.knock)
-        DirectJoinAction.None -> stringResource(Res.string.unavailable)
-    }
-    val canAct = (preview?.action ?: DirectJoinAction.Join) != DirectJoinAction.None
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         )
@@ -350,12 +339,11 @@ private fun DirectJoinCard(
                 )
             },
             trailingContent = {
-                Button(
-                    onClick = onJoin,
-                    enabled = !isBusy && canAct
-                ) {
-                    Text(actionLabel)
-                }
+                Icon(
+                    painterResource(Res.drawable.ic_chevron_right),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             },
             colors = ListItemDefaults.colors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -404,11 +392,12 @@ private fun UserListItem(
 private fun RoomListItem(
     room: PublicRoom,
     avatarPath: String?,
-    onJoin: () -> Unit,
-    onKnock: (() -> Unit)? = null
+    onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
     ) {
         ListItem(
             headlineContent = {
@@ -456,16 +445,11 @@ private fun RoomListItem(
                 }
             },
             trailingContent = {
-                Row {
-                    if (onKnock != null) {
-                        TextButton(onClick = onKnock) {
-                            Text(stringResource(Res.string.knock))
-                        }
-                    }
-                    TextButton(onClick = onJoin) {
-                        Text(stringResource(Res.string.join))
-                    }
-                }
+                Icon(
+                    painterResource(Res.drawable.ic_chevron_right),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         )
     }
