@@ -2,7 +2,7 @@
 
 Mages is an experimental matrix chat client.
 
-[![Matrix Room Count](https://img.shields.io/matrix/mages-chat%3Amatrix.org?label=mages-chat&logo=matrix&color=0db787&style=flat-square)](https://matrix.to/#/#mages-chat:matrix.org)
+[![Matrix Room Count](https://img.shields.io/matrix/mages-chat%3Amatrix.org?label=mages-chat&logo=matrix&color=0db787&style=flat-square)](https://matrix.to/#/#mages:unredacted.org)
 
 - UI: [Compose Multiplatform](https://www.jetbrains.com/lp/compose-multiplatform/)
 - Core: a Rust library built on top of [matrix-rust-sdk](https://github.com/matrix-org/matrix-rust-sdk), exposed to Kotlin via UniFFI (not using matrix-sdk-ffi)
