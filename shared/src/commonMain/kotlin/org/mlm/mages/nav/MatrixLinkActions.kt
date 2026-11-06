@@ -36,10 +36,10 @@ private suspend fun routingServers(service: MatrixService, target: MatrixRoomTar
 suspend fun handleMatrixLink(
     service: MatrixService,
     link: MatrixLink,
-    openRoom: (roomId: String, eventId: String?) -> Unit
+    openRoom: (DeepLinkAction) -> Unit
 ): Boolean {
     val action = openMatrixLink(service, link) ?: return false
-    openRoom(action.roomId, action.eventId)
+    openRoom(action)
     return true
 }
 

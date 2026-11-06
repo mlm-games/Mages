@@ -112,11 +112,11 @@ class LinuxPushHandler(
                 if (settings.autoJoinInvites) {
                     runCatching { port.acceptInvite(n.roomId) }
                 } else {
-                    NotifierImpl.notify(
-                        app = "Mages",
+                    NotifierImpl.notifyInvite(
                         title = getString(Res.string.room_invite),
                         body = getString(Res.string.notif_invited_you, n.sender, n.roomName),
-                        desktopEntry = "org.mlm.mages"
+                        roomId = n.roomId,
+                        roomName = n.roomName,
                     )
                 }
                 continue

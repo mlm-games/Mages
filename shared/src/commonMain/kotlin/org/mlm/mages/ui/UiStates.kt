@@ -620,6 +620,7 @@ sealed interface AvatarEdit {
 data class SpacesUiState(
     val spaces: List<SpaceInfo> = emptyList(),
     val filteredSpaces: List<SpaceInfo> = emptyList(),
+    val invitedSpaces: List<SpaceInfo> = emptyList(),
     val searchQuery: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,

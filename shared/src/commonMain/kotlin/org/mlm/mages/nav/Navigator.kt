@@ -230,6 +230,8 @@ fun BindDeepLinks(
                 // link) join directly instead of going through the join preview.
                 openResolved(action)
             } else {
+                val spaceHint = action.eventId == null &&
+                    runCatching { service.isSpace(action.roomId) }.getOrDefault(false)
                 val preview = runCatching {
                     service.portOrNull?.roomPreview(action.roomId, action.via)
                 }.getOrNull()?.getOrNull()
@@ -241,6 +243,7 @@ fun BindDeepLinks(
                         via = action.via,
                         eventId = action.eventId,
                         threadId = action.threadId,
+                        isSpace = spaceHint.takeIf { it },
                     )
                     if (backStack.lastOrNull() != route) {
                         backStack.add(route)

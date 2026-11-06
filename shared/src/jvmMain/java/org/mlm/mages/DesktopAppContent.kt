@@ -48,6 +48,20 @@ fun DesktopBackground(
             deepLinkEmitter.tryEmit(DeepLinkAction(roomId = roomId))
         }
 
+        DesktopNotifActions.acceptInvite = { roomId ->
+            NotifierImpl.closeInviteNotification(roomId)
+            scope.launch {
+                service.portOrNull?.let { runCatching { it.acceptInvite(roomId) } }
+            }
+        }
+
+        DesktopNotifActions.declineInvite = { roomId ->
+            NotifierImpl.closeInviteNotification(roomId)
+            scope.launch {
+                service.portOrNull?.let { runCatching { it.leaveRoom(roomId) } }
+            }
+        }
+
         DesktopNotifActions.markRead = { roomId, eventId ->
             scope.launch {
                 val port = service.portOrNull ?: return@launch

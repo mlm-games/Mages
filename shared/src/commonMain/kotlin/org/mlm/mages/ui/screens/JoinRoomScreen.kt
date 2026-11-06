@@ -68,6 +68,7 @@ fun JoinRoomScreen(
                 onDecline = viewModel::showDeclineDialog,
                 onOpenJoined = viewModel::open,
                 onDismissActionError = viewModel::dismissActionError,
+                onRetry = viewModel::load,
             )
         }
     ) { padding ->
@@ -207,6 +208,7 @@ private fun JoinRoomFooter(
     onDecline: () -> Unit,
     onOpenJoined: () -> Unit,
     onDismissActionError: () -> Unit,
+    onRetry: () -> Unit,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -220,6 +222,16 @@ private fun JoinRoomFooter(
         ) {
             state.actionError?.let { error ->
                 ActionErrorBanner(error, onDismissActionError)
+            }
+
+            if (state.error != null && state.membership == null) {
+                OutlinedButton(
+                    onClick = onRetry,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(Res.string.retry))
+                }
+                return@Column
             }
 
             when (state.membership) {

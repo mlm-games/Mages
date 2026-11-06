@@ -88,7 +88,34 @@ class JoinRoomViewModel(
                     resolveHeroAvatars(preview.heroes)
                 },
                 onFailure = { error ->
-                    updateState { copy(isLoading = false, error = error.message ?: fallback) }
+                    // Preview needs the server to answer; fall back to the local
+                    // invite list so invites stay actionable when it is wrong.
+                    val invited = runSafe { service.port.listInvited() }
+                        ?.firstOrNull { invite ->
+                            invite.roomId == roomIdOrAlias ||
+                                invite.canonicalAlias == roomIdOrAlias ||
+                                invite.altAliases.contains(roomIdOrAlias)
+                        }
+                    if (invited != null) {
+                        updateState {
+                            copy(
+                                isLoading = false,
+                                roomId = invited.roomId,
+                                name = invited.name,
+                                alias = invited.canonicalAlias
+                                    ?: roomIdOrAlias.takeIf { it.startsWith("#") },
+                                topic = invited.topic?.takeIf { it.isNotBlank() },
+                                memberCount = invited.memberCount.takeIf { it > 0 },
+                                joinRule = RoomJoinRule.Invite,
+                                membership = RoomPreviewMembership.Invited,
+                            )
+                        }
+                        invited.avatarUrl?.let { url ->
+                            resolveAvatar(service, url, px = 512) { path -> copy(avatarPath = path) }
+                        }
+                    } else {
+                        updateState { copy(isLoading = false, error = error.message ?: fallback) }
+                    }
                 }
             )
         }

@@ -12,7 +12,8 @@ import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.RoomPreview
 import org.mlm.mages.matrix.RoomPreviewMembership
 import org.mlm.mages.matrix.isMatrixUserId
-import org.mlm.mages.ui.util.decodeUrl
+import org.mlm.mages.nav.MatrixLink
+import org.mlm.mages.nav.parseMatrixLink
 import org.jetbrains.compose.resources.getString
 import mages.shared.generated.resources.Res
 
@@ -280,43 +281,9 @@ class DiscoverViewModel(
         )
     }
 
-    private fun normalizeJoinTarget(input: String): JoinTarget? {
-        val t = input.trim()
-        if (t.isBlank()) return null
-
-        val value = when {
-            t.startsWith("https://matrix.to/#/") ->
-                t.removePrefix("https://matrix.to/#/")
-
-            t.contains("app.element.io/#/room/") ->
-                t.substringAfter("app.element.io/#/room/")
-
-            t.startsWith("matrix:", ignoreCase = true) -> {
-                val body = t.substringAfter(':').trimStart('/')
-                when {
-                    body.startsWith("r/") -> body.removePrefix("r/")
-                    body.startsWith("room/") -> body.removePrefix("room/")
-                    body.startsWith("roomid/") -> body.removePrefix("roomid/")
-                    else -> return null
-                }
-            }
-
-            else -> t
-        }
-
-        val pathAndQuery = value.split('?', limit = 2)
-        val id = decodeUrl(pathAndQuery[0].trim().substringBefore('/'))
-        val via = pathAndQuery.getOrNull(1)?.let(::parseViaQuery).orEmpty()
-
-        return id.takeIf { (it.startsWith("#") || it.startsWith("!")) && it.contains(":") }
-            ?.let { JoinTarget(it, via) }
-    }
-
-    private fun parseViaQuery(query: String): List<String> =
-        query.split('&').mapNotNull {
-            val kv = it.split('=', limit = 2)
-            if (kv.size == 2 && kv[0] == "via") decodeUrl(kv[1]) else null
-        }
+    private fun normalizeJoinTarget(input: String): JoinTarget? =
+        (parseMatrixLink(input) as? MatrixLink.Room)
+            ?.let { JoinTarget(it.target.roomIdOrAlias, it.target.via) }
 }
 
 private data class JoinTarget(

@@ -24,6 +24,7 @@ class SpacesViewModel(
         data class OpenRoom(val roomId: String, val name: String) : Event()
         data class ShowError(val message: String) : Event()
         data class ShowSuccess(val message: String) : Event()
+        data class OpenJoinPreview(val spaceId: String) : Event()
     }
 
     private val _events = Channel<Event>(Channel.BUFFERED)
@@ -44,13 +45,29 @@ class SpacesViewModel(
         ) {
             updateState { copy(isLoading = true, error = null) }
             val spaces = service.mySpaces()
+            val invited = runSafe { service.port.listInvited() }
+                .orEmpty()
+                .filter { invited -> runCatching { service.isSpace(invited.roomId) }.getOrDefault(false) }
+                .map { invited ->
+                    SpaceInfo(
+                        roomId = invited.roomId,
+                        name = invited.name,
+                        topic = invited.topic,
+                        memberCount = invited.memberCount,
+                        isEncrypted = invited.isEncrypted,
+                        isPublic = invited.isPublic,
+                        avatarUrl = invited.avatarUrl,
+                        canonicalAlias = invited.canonicalAlias,
+                    )
+                }
             updateState {
                 copy(
                     spaces = spaces,
+                    invitedSpaces = invited,
                     isLoading = false
                 )
             }
-            resolveSpaceAvatars(spaces)
+            resolveSpaceAvatars(spaces + invited)
             recomputeFilteredSpaces()
         }
     }
@@ -71,6 +88,12 @@ class SpacesViewModel(
     fun openSpace(space: SpaceInfo) {
         launch {
             _events.send(Event.OpenSpace(space.roomId, space.name))
+        }
+    }
+
+    fun openInvitedSpace(space: SpaceInfo) {
+        launch {
+            _events.send(Event.OpenJoinPreview(space.roomId))
         }
     }
 

@@ -978,6 +978,16 @@ private fun AppContent(
                                             )
                                         }
 
+                                        is SpacesViewModel.Event.OpenJoinPreview -> {
+                                            backStack.add(
+                                                Route.JoinRoom(
+                                                    roomIdOrAlias = event.spaceId,
+                                                    via = emptyList(),
+                                                    isSpace = true,
+                                                )
+                                            )
+                                        }
+
                                         is SpacesViewModel.Event.OpenRoom -> {
                                             backStack.add(Route.Room(event.roomId, event.name))
                                         }

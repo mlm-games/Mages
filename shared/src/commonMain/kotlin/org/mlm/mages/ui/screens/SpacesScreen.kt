@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.SpaceInfo
 import org.mlm.mages.matrix.isMatrixUserId
 import org.mlm.mages.ui.UnreadBadgeUi
+import org.mlm.mages.ui.components.core.SectionHeader
 import org.mlm.mages.ui.components.core.EmptyState
 import org.mlm.mages.ui.components.core.ShimmerList
 import org.mlm.mages.ui.components.core.TopicText
@@ -112,7 +113,7 @@ fun SpacesScreen(
                     ShimmerList(modifier = Modifier.fillMaxSize())
                 }
 
-                state.filteredSpaces.isEmpty() -> {
+                state.filteredSpaces.isEmpty() && state.invitedSpaces.isEmpty() -> {
                     EmptyState(
                         icon = painterResource(Res.drawable.ic_workspaces),
                         title = if (state.searchQuery.isBlank()) stringResource(Res.string.no_spaces_yet)
@@ -133,6 +134,31 @@ fun SpacesScreen(
                         contentPadding = PaddingValues(Spacing.lg),
                         verticalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
+                        val query = state.searchQuery.trim()
+                        val visibleInvited = state.invitedSpaces.filter { space ->
+                            query.isBlank() ||
+                                space.name.contains(query, ignoreCase = true) ||
+                                space.roomId.contains(query, ignoreCase = true)
+                        }
+                        if (visibleInvited.isNotEmpty()) {
+                            item(key = "header_invited_spaces") {
+                                SectionHeader(
+                                    title = stringResource(Res.string.invites),
+                                    count = visibleInvited.size,
+                                    icon = painterResource(Res.drawable.ic_mail)
+                                )
+                            }
+                            items(visibleInvited, key = { "invited_${it.roomId}" }) { space ->
+                                SpaceCard(
+                                    space = space,
+                                    avatarPath = state.avatarPathByRoomId[space.roomId],
+                                    unread = null,
+                                    showSilentCount = settings.showSilentUnreadCount,
+                                    onClick = { viewModel.openInvitedSpace(space) }
+                                )
+                            }
+                        }
+
                         items(state.filteredSpaces, key = { it.roomId }) { space ->
                             SpaceCard(
                                 space = space,

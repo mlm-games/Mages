@@ -73,12 +73,33 @@ fun guessMimeType(fileName: String): String {
     }
 }
 
-fun decodeUrl(s: String): String = s.replace("%3A", ":", ignoreCase = true)
-    .replace("%2F", "/", ignoreCase = true)
-    .replace("%23", "#", ignoreCase = true)
-    .replace("%40", "@", ignoreCase = true)
-    .replace("%24", "$", ignoreCase = true)
-    .replace("%20", " ", ignoreCase = true)
+/** Percent-decodes a URI component, UTF-8 aware. '+' is left alone. */
+fun decodeUrl(s: String): String {
+    if ('%' !in s) return s
+    val out = StringBuilder(s.length)
+    var i = 0
+    while (i < s.length) {
+        val c = s[i]
+        if (c == '%') {
+            val bytes = mutableListOf<Byte>()
+            var j = i
+            while (j < s.length && s[j] == '%' && j + 2 <= s.length - 1) {
+                val b = s.substring(j + 1, j + 3).toIntOrNull(16)
+                if (b == null) break
+                bytes += b.toByte()
+                j += 3
+            }
+            if (bytes.isNotEmpty()) {
+                out.append(bytes.toByteArray().decodeToString())
+                i = j
+                continue
+            }
+        }
+        out.append(c)
+        i++
+    }
+    return out.toString()
+}
 
 @OptIn(ExperimentalTime::class)
 fun nowMs(): Long = Clock.System.now().toEpochMilliseconds()

@@ -30,6 +30,7 @@ object NotifierImpl {
     private val notifCtx = ConcurrentHashMap<UInt32, Pair<String, String>>()
     private val notifIdByRoom = ConcurrentHashMap<String, UInt32>()
     private val callNotifIdByRoom = ConcurrentHashMap<String, UInt32>()
+    private val inviteNotifIdByRoom = ConcurrentHashMap<String, UInt32>()
 
     private val _unreadRooms = MutableStateFlow(0)
     val unreadRooms: StateFlow<Int> = _unreadRooms.asStateFlow()
@@ -107,6 +108,8 @@ object NotifierImpl {
                     "inline-reply" -> DesktopNotifActions.reply(roomId, eventId)
                     "answer" -> DesktopNotifActions.answerCall(roomId, eventId)
                     "decline" -> DesktopNotifActions.declineCall(roomId, eventId)
+                    "accept_invite" -> DesktopNotifActions.acceptInvite(roomId)
+                    "decline_invite" -> DesktopNotifActions.declineInvite(roomId)
                 }
             }
         }
@@ -127,6 +130,7 @@ object NotifierImpl {
                 notifCtx.remove(sig.id)
                 notifIdByRoom.entries.removeIf { it.value == sig.id }
                 callNotifIdByRoom.entries.removeIf { it.value == sig.id }
+                inviteNotifIdByRoom.entries.removeIf { it.value == sig.id }
                 if (dismissedCall && ctx != null) {
                     DesktopNotifActions.declineCall(ctx.first, ctx.second)
                 }
@@ -288,6 +292,45 @@ object NotifierImpl {
 
     fun trackedRoomIds(): Set<String> = notifIdByRoom.keys.toSet()
 
+    suspend fun notifyInvite(title: String, body: String, roomId: String, roomName: String) {
+        val actions: Array<String> =
+            if (actionsSupported && roomId.isNotBlank()) {
+                arrayOf(
+                    "default", getString(Res.string.notif_open),
+                    "accept_invite", getString(Res.string.accept),
+                    "decline_invite", getString(Res.string.decline)
+                )
+            } else emptyArray()
+
+        val id = postNotify(
+            summary = title,
+            body = body,
+            roomId = roomId,
+            eventId = roomId,
+            desktopEntry = "org.mlm.mages",
+            iconPath = null,
+            urgency = 2.toByte(),
+            soundName = null,
+            resident = false,
+            actions = actions,
+            expireTimeout = -1,
+            replacesId = inviteNotifIdByRoom[roomId] ?: UInt32(0),
+            logTag = "invite"
+        ) ?: return
+        inviteNotifIdByRoom[roomId] = id
+    }
+
+    fun closeInviteNotification(roomId: String) {
+        val id = inviteNotifIdByRoom.remove(roomId) ?: return
+        notifCtx.remove(id)
+        val c = ensure() ?: return
+        try {
+            getNotificationsProxy(c).CloseNotification(id)
+        } catch (e: Exception) {
+            Logger.w("[notification] D-Bus CloseNotification failed: ${e.message}")
+        }
+    }
+
     private fun postNotify(
         summary: String,
         body: String,
@@ -420,4 +463,6 @@ object DesktopNotifActions {
     @Volatile var replyText: (String, String, String) -> Unit = { _, _, _ -> }
     @Volatile var answerCall: (String, String) -> Unit = { roomId, _ -> openRoom(roomId) }
     @Volatile var declineCall: (String, String) -> Unit = { _, _ -> }
+    @Volatile var acceptInvite: (String) -> Unit = {}
+    @Volatile var declineInvite: (String) -> Unit = {}
 }
