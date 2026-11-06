@@ -6,16 +6,16 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 
 /**
- * Emote markdown. The quoted title inside the target is the shortcode, and only
- * [EmoteSuggestion.markdown] writes that shape, so an image anyone else types
- * is left as it is. Separate from [EMOTE_MARKDOWN] because the send path
- * collapses every image to its alt text, while this one has to read the
- * shortcode back out and needs the target to be an mxc URI.
+ * Emote markdown. The quoted title inside the target is the shortcode, a shape
+ * only the emote picker and the restored edit draft write, so the text can show
+ * `:shortcode:` whether or not the pack is loaded. Separate from
+ * [EMOTE_MARKDOWN] because the send path collapses every image to its alt text,
+ * while this one has to read the shortcode back out and needs an mxc URI.
  */
 private val EMOTE_WITH_SHORTCODE =
-    Regex("""!\[(?:\\.|[^\]\\])*]\((mxc://[^ )]+)\s+"([^"]*)"\)""")
+    Regex("""!\[(?:\\.|[^\]\\])*]\(mxc://[^ )]+\s+"([^"]*)"\)""")
 
-class ComposerVisualTransformation(private val emoteUris: Set<String>) : VisualTransformation {
+class ComposerVisualTransformation : VisualTransformation {
 
     override fun filter(text: AnnotatedString): TransformedText {
         val source = text.text
@@ -47,11 +47,8 @@ class ComposerVisualTransformation(private val emoteUris: Set<String>) : VisualT
         }
 
         for (match in EMOTE_WITH_SHORTCODE.findAll(source)) {
-            val mxcUri = match.groupValues[1]
-            val shortcode = match.groupValues[2]
-            if (mxcUri in emoteUris && shortcode.isNotBlank()) {
-                found += Pair(match.range, ":$shortcode:")
-            }
+            val shortcode = match.groupValues[1]
+            if (shortcode.isNotBlank()) found += Pair(match.range, ":$shortcode:")
         }
 
         return found.sortedBy { it.first.first }

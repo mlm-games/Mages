@@ -37,6 +37,8 @@ private val MARKDOWN_ESCAPE = Regex("""\\([!"#$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~]
 
 private val IMG_TAG = Regex("""<img\b[^>]*>""", RegexOption.IGNORE_CASE)
 private val IMG_SRC = Regex("""\ssrc\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
+private val IMG_ALT = Regex("""\salt\s*=\s*["']([^"']*)["']""", RegexOption.IGNORE_CASE)
+private val IMG_TITLE = Regex("""\stitle\s*=\s*["']([^"']*)["']""", RegexOption.IGNORE_CASE)
 
 /**
  * A parsed composer message.
@@ -98,11 +100,13 @@ class OutgoingText(val body: String, val formattedBody: String?)
  * the fallback link at; without it the fallback degrades to a bare label.
  */
 fun composerToPlainBody(parsed: ComposerMarkdown, spoilerImage: String? = null): String =
-    MENTION_ANCHOR
-        .replace(redactSpoilers(parsed.text, parsed.spoilerRanges, spoilerImage)) {
-            unescapeHtml(unescapeMarkdown(it.groupValues[1]))
-        }
-        .replace(EMOTE_MARKDOWN) { unescapeMarkdown(it.groupValues[1]) }
+    unescapeMarkdown(
+        MENTION_ANCHOR
+            .replace(redactSpoilers(parsed.text, parsed.spoilerRanges, spoilerImage)) {
+                unescapeHtml(it.groupValues[1])
+            }
+            .replace(EMOTE_MARKDOWN) { it.groupValues[1] }
+    )
 
 private fun redactSpoilers(text: String, ranges: List<IntRange>, image: String?): String {
     if (ranges.isEmpty()) return text
@@ -136,21 +140,28 @@ private fun spoilerRanges(tree: ASTNode): List<IntRange> {
  * marks an image as an emote, and `height` is mandatory for clients that do not
  * understand them.
  *
- * The rewritten tag always quotes the pack's own URI rather than the parsed
- * one, so nothing from the message reaches the output verbatim.
+ * A quoted title is the emote's shortcode. The pack supplies it for an image
+ * picked from the picker, and a restored edit keeps it, so an emote stays an
+ * emote even when its pack is no longer loaded.
  */
 private fun markEmoteImages(html: String, emoteImages: List<ImagePackImageEntry>): String? {
-    if (emoteImages.isEmpty()) return null
     val known = emoteImages.associateBy({ it.mxcUrl }, { it })
 
     var changed = false
     val out = IMG_TAG.replace(html) { match ->
-        val raw = IMG_SRC.find(match.value)?.groupValues?.get(1) ?: return@replace match.value
-        val image = known[raw] ?: return@replace match.value
+        val src = IMG_SRC.find(match.value)?.groupValues?.get(1)?.let(::unescapeHtml)
+            ?: return@replace match.value
+        if (!src.startsWith("mxc://")) return@replace match.value
+        val image = known[src]
+        val shortcode = image?.shortcode
+            ?: IMG_TITLE.find(match.value)?.groupValues?.get(1)?.let(::unescapeHtml)?.takeIf { it.isNotBlank() }
+            ?: return@replace match.value
+        val alt = image?.body?.takeIf { it.isNotBlank() }
+            ?: IMG_ALT.find(match.value)?.groupValues?.get(1)?.let(::unescapeHtml)?.takeIf { it.isNotBlank() }
+            ?: shortcode
         changed = true
-        val alt = escapeHtmlAttribute(image.body?.takeIf { it.isNotBlank() } ?: image.shortcode)
-        "<img data-mx-emoticon src=\"${escapeHtmlAttribute(image.mxcUrl)}\" alt=\"$alt\" " +
-            "title=\"${escapeHtmlAttribute(image.shortcode)}\" height=\"32\">"
+        "<img data-mx-emoticon src=\"${escapeHtmlAttribute(src)}\" alt=\"${escapeHtmlAttribute(alt)}\" " +
+            "title=\"${escapeHtmlAttribute(shortcode)}\" height=\"32\">"
     }
     return if (changed) out else null
 }

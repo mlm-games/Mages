@@ -103,9 +103,7 @@ fun MessageComposer(
     val emotePickerVisible = emoteQuery != null &&
         (emoteQuery.query.isEmpty() || visibleEmotes.isNotEmpty() || visibleEmoji.isNotEmpty())
 
-    val visualTransformation = remember(emoteSuggestions) {
-        ComposerVisualTransformation(emoteSuggestions.mapTo(mutableSetOf<String>()) { it.ref.mxcUri })
-    }
+    val visualTransformation = remember { ComposerVisualTransformation() }
 
     if (isRecordingVoice && onStartVoiceRecording != null && onCancelVoiceRecording != null && onVoiceRecordingComplete != null) {
         VoiceRecorderBar(
