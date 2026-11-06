@@ -432,7 +432,7 @@ private fun filterMentionSuggestionsInternal(members: List<MemberSummary>, query
 
 private fun insertMentionInternal(current: TextFieldValue, member: MemberSummary, mentionQuery: MentionQueryInternal): TextFieldValue {
     val label = member.displayName ?: member.userId.substringAfter("@").substringBefore(":")
-    val mentionText = "[@${escapeMarkdown(label)}](https://matrix.to/#/${member.userId}) "
+    val mentionText = mentionMarkdown(label, member.userId) + " "
     val newText = buildString {
         append(current.text.substring(0, mentionQuery.start))
         append(mentionText)

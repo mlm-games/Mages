@@ -16,6 +16,12 @@ private val markdownFlavour = SpoilerFlavour()
 val MENTION_MARKDOWN =
     Regex("""\[((?:\\.|[^\]])+)]\(https://matrix\.to/#/(@[^)]+)\)""")
 
+/** The composer text for a mention, which [MENTION_MARKDOWN] turns back into an anchor. */
+internal fun mentionMarkdown(label: String, userId: String): String {
+    val display = if (label.startsWith("@")) label else "@$label"
+    return "[${escapeMarkdown(display)}](https://matrix.to/#/$userId)"
+}
+
 /**
  * The same mention, after [MENTION_MARKDOWN] has turned it into a real anchor
  * so the markdown pass leaves it alone.
@@ -58,7 +64,7 @@ fun parseComposerMarkdown(text: String, emoteImages: List<ImagePackImageEntry>):
     if (text.isBlank()) return null
 
     val processed = MENTION_MARKDOWN.replace(text) { match ->
-        val label = match.groupValues[1]
+        val label = unescapeMarkdown(match.groupValues[1])
         val userId = match.groupValues[2]
         val display = if (label.startsWith("@")) escapeHtml(label) else "@${escapeHtml(label)}"
         "<a href=\"https://matrix.to/#/${escapeHtmlAttribute(userId)}\">$display</a>"

@@ -48,12 +48,13 @@ import org.mlm.mages.ui.RoomUiState
 import org.mlm.mages.ui.components.AttachmentData
 import org.mlm.mages.ui.isEditableBy
 import org.mlm.mages.ui.canCancelSend
-import org.mlm.mages.ui.mediaCaption
 import org.mlm.mages.ui.components.OutgoingMediaMode
 import org.mlm.mages.ui.components.composer.EmoteSuggestion
 import org.mlm.mages.ui.components.composer.OutgoingText
 import org.mlm.mages.ui.components.composer.SpoilerPlaceholder
+import org.mlm.mages.ui.components.composer.captionEditComposerText
 import org.mlm.mages.ui.components.composer.composerToPlainBody
+import org.mlm.mages.ui.components.composer.editComposerText
 import org.mlm.mages.ui.components.composer.isMessageTooLong
 import org.mlm.mages.ui.components.composer.parseComposerMarkdown
 import org.mlm.mages.ui.components.composer.emoteSuggestionsFrom
@@ -875,11 +876,13 @@ class RoomViewModel(
     fun cancelReply() = updateState { copy(replyingTo = null) }
 
     fun startEdit(event: MessageEvent) {
-        if (event.pollData != null) {
-            startEditPoll(event)
-            return
+        when {
+            event.pollData != null -> startEditPoll(event)
+            event.attachment != null -> startEditCaption(event)
+            else -> updateState {
+                copy(editing = event, editingPoll = null, input = event.editComposerText())
+            }
         }
-        updateState { copy(editing = event, editingPoll = null, input = event.mediaCaption() ?: event.body) }
     }
 
     fun startEditPoll(event: MessageEvent) = updateState {
@@ -887,7 +890,7 @@ class RoomViewModel(
     }
 
     fun startEditCaption(event: MessageEvent) = updateState {
-        copy(editing = event, editingPoll = null, input = event.mediaCaption() ?: "")
+        copy(editing = event, editingPoll = null, input = event.captionEditComposerText())
     }
 
     fun startRemoveCaption(event: MessageEvent) {
@@ -905,7 +908,6 @@ class RoomViewModel(
                 startEditPoll(event)
                 showPollCreator()
             }
-            event.attachment != null -> startEditCaption(event)
             else -> startEdit(event)
         }
     }

@@ -34,6 +34,7 @@ import org.mlm.mages.ui.components.composer.EmoteSuggestion
 import org.mlm.mages.ui.components.composer.OutgoingText
 import org.mlm.mages.ui.components.composer.SpoilerPlaceholder
 import org.mlm.mages.ui.components.composer.composerToPlainBody
+import org.mlm.mages.ui.components.composer.editComposerText
 import org.mlm.mages.ui.components.composer.isMessageTooLong
 import org.mlm.mages.ui.components.composer.parseComposerMarkdown
 import org.mlm.mages.ui.components.composer.emoteSuggestionsFrom
@@ -606,7 +607,7 @@ class ThreadViewModel(
      * Start editing a message.
      */
     fun startEdit(event: MessageEvent) {
-        updateState { copy(editingEvent = event, input = event.body) }
+        updateState { copy(editingEvent = event, input = event.editComposerText()) }
     }
 
     private fun MessageEvent.isThreadEditable(): Boolean =
