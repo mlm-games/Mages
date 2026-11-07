@@ -75,6 +75,12 @@ pub struct LiveLocationEvent {
     pub beacon_info_event_id: String,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, Record)]
+pub struct ReadReceiptUser {
+    pub user_id: String,
+    pub ts_ms: Option<u64>,
+}
+
 #[derive(Clone, Serialize, Deserialize, Record)]
 pub struct MessageEvent {
     pub item_id: String,
@@ -118,6 +124,7 @@ pub struct MessageEvent {
     pub shield: Option<MessageShield>,
     pub send_failure: Option<SendFailureReason>,
     pub utd: Option<UtdInfo>,
+    pub read_receipts: Vec<ReadReceiptUser>,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, Enum)]
@@ -1197,7 +1204,8 @@ pub enum TimelineDiffKind {
     RemoveByItemId {
         item_id: String,
     },
-    UpsertByItemId {
+    Insert {
+        index: u32,
         item_id: String,
         value: MessageEvent,
     },

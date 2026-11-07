@@ -470,7 +470,6 @@ data class RoomUiState(
     val showReportDialog: Boolean = false,
     val reportingEvent: MessageEvent? = null,
 
-    val seenByEntries: List<SeenByEntry> = emptyList(),
     val showMessageInfo: Boolean = false,
     val messageInfoEvent: MessageEvent? = null,
     val isLoadingMessageInfo: Boolean = false,

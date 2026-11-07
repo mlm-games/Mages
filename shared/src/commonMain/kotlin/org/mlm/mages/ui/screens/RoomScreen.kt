@@ -43,6 +43,7 @@ import org.mlm.mages.MessageEvent
 import org.mlm.mages.ReplyPreviewKind
 import org.mlm.mages.thumbKey
 import org.mlm.mages.matrix.SendState
+import org.mlm.mages.matrix.SeenByEntry
 import org.mlm.mages.matrix.allowsMediaPreviews
 import org.mlm.mages.platform.*
 import org.mlm.mages.ui.components.AttachmentData
@@ -64,7 +65,7 @@ import org.mlm.mages.ui.components.message.MessageStatusLine
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.ui.components.message.SystemMessageItem
-import org.mlm.mages.ui.components.message.SeenByChip
+import org.mlm.mages.ui.components.message.ReadReceiptAvatars
 import org.mlm.mages.ui.components.core.FloatingTimelineDateChip
 import org.mlm.mages.ui.components.location.*
 import org.mlm.mages.ui.components.sheets.MemberActionsSheet
@@ -934,6 +935,7 @@ fun RoomScreen(
                                                 viewModel = viewModel,
                                                 showMessageAvatars = listSettings.showMessageAvatars,
                                                 showUsernameInDms = listSettings.showUsernameInDms,
+                                                showReadReceiptAvatars = listSettings.showReadReceiptAvatars,
                                                 enableBubbleAnimations = listSettings.bubbleAnimations && !settings.reduceMotion,
                                                 showReactionAvatars = listSettings.showReactionAvatars,
                                                 swipeRightAction = listSettings.messageSwipeRightAction,
@@ -1912,6 +1914,7 @@ private fun MessageItem(
     viewModel: RoomViewModel,
     showMessageAvatars: Boolean,
     showUsernameInDms: Boolean,
+    showReadReceiptAvatars: Boolean = true,
     enableBubbleAnimations: Boolean = true,
     showReactionAvatars: Boolean = true,
     swipeRightAction: MessageSwipeAction = MessageSwipeAction.Reply,
@@ -1961,6 +1964,23 @@ private fun MessageItem(
         val nextEvent = events.getOrNull(index + 1)
 
         val isMine = event.sender == state.myUserId
+
+        val receiptEntries = remember(event.readReceipts, state.roomMembers, state.avatarByUserId, state.isDm, showReadReceiptAvatars) {
+            if (state.isDm || !showReadReceiptAvatars) {
+                emptyList()
+            } else {
+                val members = state.roomMembers.associateBy { it.userId }
+                event.readReceipts.map { receipt ->
+                    val member = members[receipt.userId]
+                    SeenByEntry(
+                        userId = receipt.userId,
+                        displayName = member?.displayName,
+                        avatarUrl = state.avatarByUserId[receipt.userId] ?: member?.avatarUrl,
+                        tsMs = receipt.tsMs?.toULong(),
+                    )
+                }
+            }
+        }
 
         val isSelected = state.isSelectionMode && event.eventId in state.selectedEventIds
 
@@ -2236,6 +2256,14 @@ private fun MessageItem(
 
         Spacer(Modifier.height(1.dp))
 
+        if (receiptEntries.isNotEmpty()) {
+            ReadReceiptAvatars(
+                entries = receiptEntries,
+                isMine = isMine,
+                onClick = { viewModel.showReadReceiptsSheet(receiptEntries) },
+            )
+        }
+
         when {
             event.editSendState == SendState.Sending || event.editSendState == SendState.Retrying -> {
                 Spacer(Modifier.height(2.dp))
@@ -2258,31 +2286,27 @@ private fun MessageItem(
                 SendState.Failed -> Unit
                 SendState.Sent, null -> {
                     if (isLastOutgoing) {
-                        Spacer(Modifier.height(2.dp))
-                        val isSeen = state.lastOutgoingRead || state.seenByEntries.isNotEmpty()
                         when {
-                            isSeen -> {
-                                if (state.isDm) {
+                            state.isDm -> {
+                                Spacer(Modifier.height(2.dp))
+                                if (state.lastOutgoingRead) {
                                     MessageStatusLine(
                                         text = stringResource(Res.string.seen, formatTime(event.timestampMs)),
                                         isMine = true
                                     )
-                                } else if (state.seenByEntries.isNotEmpty()) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = Spacing.lg, vertical = Spacing.xs),
-                                        horizontalArrangement = Arrangement.End
-                                    ) {
-                                        SeenByChip(
-                                            entries = state.seenByEntries,
-                                            onClick = { viewModel.showReadReceiptsSheet(state.seenByEntries) }
-                                        )
-                                    }
+                                } else {
+                                    MessageStatusLine(
+                                        text = stringResource(Res.string.delivered),
+                                        isMine = true
+                                    )
                                 }
                             }
-                            else -> {
-                                MessageStatusLine(text = stringResource(Res.string.delivered), isMine = true)
+                            receiptEntries.isEmpty() -> {
+                                Spacer(Modifier.height(2.dp))
+                                MessageStatusLine(
+                                    text = stringResource(Res.string.delivered),
+                                    isMine = true
+                                )
                             }
                         }
                     }

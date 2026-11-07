@@ -62,7 +62,7 @@ use matrix_sdk_ui::{
     room_list_service::RoomListItem,
     spaces::SpaceService,
     sync_service::SyncService,
-    timeline::{RoomExt as _, Timeline, TimelineEventFocusThreadMode, TimelineFocus},
+    timeline::{RoomExt as _, Timeline, TimelineEventFocusThreadMode, TimelineFocus, TimelineReadReceiptTracking},
 };
 use serde_json;
 use tracing::warn;
@@ -533,6 +533,7 @@ impl TimelineManager {
         let tl = Arc::new(
             room.timeline_builder()
                 .event_filter(timeline_event_filter)
+                .track_read_marker_and_receipts(TimelineReadReceiptTracking::MessageLikeEvents)
                 .build()
                 .await
                 .ok()?,

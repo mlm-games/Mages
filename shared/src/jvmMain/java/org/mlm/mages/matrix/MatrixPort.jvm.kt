@@ -192,7 +192,7 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
                     is TimelineDiffKind.PushFront -> TimelineDiff.Prepend(diff.value.toModel())
                     is TimelineDiffKind.UpdateByItemId -> TimelineDiff.UpdateByItemId(diff.itemId, diff.value.toModel())
                     is TimelineDiffKind.RemoveByItemId -> TimelineDiff.RemoveByItemId(diff.itemId)
-                    is TimelineDiffKind.UpsertByItemId -> TimelineDiff.UpsertByItemId(diff.itemId, diff.value.toModel())
+                    is TimelineDiffKind.Insert -> TimelineDiff.Insert(diff.index.toInt(), diff.itemId, diff.value.toModel())
                     is TimelineDiffKind.PopBack,
                     is TimelineDiffKind.PopFront,
                     is TimelineDiffKind.Truncate -> {
@@ -2666,6 +2666,7 @@ private fun mages.MessageEvent.toModel() = MessageEvent(
     shield = shield?.let { MessageShield(it.level.toKotlin(), it.code.toKotlin()) },
     sendFailure = sendFailure?.toKotlin(),
     utd = utd?.let { UtdInfo(it.algorithmKnown, it.isMegolm) },
+    readReceipts = readReceipts.map { ReadReceiptUser(it.userId, it.tsMs?.toLong()) },
 )
 
 private fun mages.ReplyPreview.toModel() = ReplyPreview(

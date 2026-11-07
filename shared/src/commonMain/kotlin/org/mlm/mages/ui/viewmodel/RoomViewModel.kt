@@ -232,7 +232,6 @@ class RoomViewModel(
     val events = _events.receiveAsFlow()
 
     private var typingToken: ULong? = null
-    private var receiptsToken: ULong? = null
     private var ownReceiptToken: ULong? = null
     private var roomCallStateToken: ULong? = null
     private var roomInfoToken: ULong? = null
@@ -377,7 +376,6 @@ class RoomViewModel(
         }
         observeTyping()
         observeOwnReceipt()
-        observeReceipts()
         observeRoomCallState()
         observeRoomInfo()
         loadNotificationMode()
@@ -812,7 +810,7 @@ class RoomViewModel(
                     launch { saveDraft(s.roomId, originalInput) }
                     _events.send(Event.ShowError(result.toUserMessage(if (replyTo != null) getString(Res.string.reply_failed) else getString(Res.string.send_failed))))
                 }
-                updateState { copy(replyingTo = null, seenByEntries = emptyList(), lastOutgoingRead = false) }
+                updateState { copy(replyingTo = null, lastOutgoingRead = false) }
             }
             return
         }
@@ -842,7 +840,7 @@ class RoomViewModel(
                     launch { saveDraft(s.roomId, originalInput) }
                     _events.send(Event.ShowError(result.toUserMessage(if (replyTo != null) getString(Res.string.reply_failed) else getString(Res.string.send_failed))))
                 }
-                updateState { copy(replyingTo = null, seenByEntries = emptyList(), lastOutgoingRead = false) }
+                updateState { copy(replyingTo = null, lastOutgoingRead = false) }
             }
         }
     }
@@ -2458,6 +2456,7 @@ class RoomViewModel(
         prefetchSenderAvatars(newEvents)
         prefetchMentionProfiles(newEvents)
         prefetchReactionUserAvatars(newEvents)
+        prefetchReceiptAvatars(newEvents)
         prefetchAudioForEvents(visible.takeLast(8))
     }
 
@@ -2499,8 +2498,19 @@ class RoomViewModel(
     }
 
     private fun prefetchReactionUserAvatars(events: List<MessageEvent>) {
-        val userIds = events
-            .flatMap { event -> event.reactions.flatMap { it.userIds } }
+        prefetchUserAvatars(
+            events.flatMap { event -> event.reactions.flatMap { it.userIds } }
+        )
+    }
+
+    private fun prefetchReceiptAvatars(events: List<MessageEvent>) {
+        prefetchUserAvatars(
+            events.flatMap { event -> event.readReceipts.map { it.userId } }
+        )
+    }
+
+    private fun prefetchUserAvatars(ids: List<String>) {
+        val userIds = ids
             .distinct()
             .filter { it !in currentState.avatarByUserId }
             .take(24)
@@ -2769,7 +2779,7 @@ class RoomViewModel(
         val isLiveAppend = when (diff) {
             is TimelineDiff.Append -> diff.items.isNotEmpty()
             is TimelineDiff.Prepend -> true
-            is TimelineDiff.UpdateByItemId, is TimelineDiff.UpsertByItemId -> true
+            is TimelineDiff.UpdateByItemId, is TimelineDiff.Insert -> true
             else -> false
         }
         if (diff is TimelineDiff.Reset) {
@@ -2935,18 +2945,6 @@ class RoomViewModel(
         }
     }
 
-    private fun observeReceipts() {
-        launch {
-            receiptsToken?.let { runCatching { service.portOrNull?.stopReceiptsObserver(it) } }
-            receiptsToken = service.port.observeReceipts(currentState.roomId, object : ReceiptsObserver {
-                override fun onChanged() {
-                    recomputeReadStatuses()
-                    refreshSeenBy()
-                }
-            })
-        }
-    }
-
     private fun observeOwnReceipt() {
         launch {
             runSafe { service.port.ownLastRead(currentState.roomId) }
@@ -3000,7 +2998,6 @@ class RoomViewModel(
         updateState { copy(lastIncomingFromOthersTs = lastIncoming) }
 
         if (s.isDm) recomputeReadStatuses()
-        else refreshSeenBy()
     }
 
     private fun recomputeReadStatuses() {
@@ -3019,25 +3016,6 @@ class RoomViewModel(
                 service.port.isEventReadBy(s.roomId, lastOutgoing.eventId, peer)
             } ?: false
             updateState { copy(lastOutgoingRead = read) }
-        }
-    }
-
-    private fun refreshSeenBy() {
-        val s = currentState
-        if (s.isDm) return
-        val me = s.myUserId ?: return
-        val lastOutgoing = s.events.lastOrNull { it.sender == me } ?: run {
-            updateState { copy(seenByEntries = emptyList()) }
-            return
-        }
-        launch {
-            val entries = runSafe {
-                service.port.seenByForEvent(s.roomId, lastOutgoing.eventId, 10)
-            } ?: emptyList()
-            val resolvedEntries = entries.map { entry ->
-                entry.copy(avatarUrl = service.avatars.resolve(entry.avatarUrl, px = 64, crop = true))
-            }
-            updateState { copy(seenByEntries = resolvedEntries) }
         }
     }
 
@@ -3476,7 +3454,6 @@ class RoomViewModel(
         super.onCleared()
         checkedThreadRootsViaApi.clear()
         typingToken?.let { runCatching { service.portOrNull?.stopTypingObserver(it) } }
-        receiptsToken?.let { runCatching { service.portOrNull?.stopReceiptsObserver(it) } }
         ownReceiptToken?.let { runCatching { service.portOrNull?.stopReceiptsObserver(it) } }
         roomCallStateToken?.let { runCatching { service.portOrNull?.unobserveRoomCallState(it) } }
         currentState.liveLocationSubToken?.let { runCatching { service.portOrNull?.stopObserveLiveLocation(it) } }

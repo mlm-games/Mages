@@ -274,6 +274,16 @@ data class AppSettings(
     val showReactionAvatars: Boolean = false,
 
     @Setting(
+        title = "Show read receipt avatars",
+        titleKey = MagesSettingsKeys.SHOW_READ_RECEIPT_AVATARS,
+        description = "Display avatars under the last message each person has read",
+        descriptionKey = MagesSettingsKeys.SHOW_READ_RECEIPT_AVATARS_DESCRIPTION,
+        category = Appearance::class,
+        type = Toggle::class
+    )
+    val showReadReceiptAvatars: Boolean = true,
+
+    @Setting(
         title = "Show username in DMs",
         titleKey = MagesSettingsKeys.SHOW_USERNAME_IN_DMS,
         description = "Show usernames in direct messages",

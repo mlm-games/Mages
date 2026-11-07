@@ -1,5 +1,6 @@
 package org.mlm.mages.ui.components.message
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -15,7 +16,6 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.mlm.mages.matrix.SeenByEntry
@@ -57,56 +57,52 @@ fun MessageStatusLine(
 }
 
 @Composable
-fun SeenByChip(
+fun ReadReceiptAvatars(
     entries: List<SeenByEntry>,
+    isMine: Boolean,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
 ) {
     if (entries.isEmpty()) return
 
-    val shown = entries.take(3)
+    val shown = entries.take(MAX_RECEIPT_AVATARS)
     val overflow = (entries.size - shown.size).coerceAtLeast(0)
+    val description = formatSeenBy(entries.map { it.displayName ?: it.userId })
 
-    Surface(
+    Row(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        tonalElevation = 1.dp
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg, vertical = 2.dp),
+        horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-//        Spacer(Modifier.height(8.dp))
-
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+                .semantics { contentDescription = description }
+                .padding(2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AvatarStack(
                 entries = shown,
-                size = 20.dp,
-                overlap = 6.dp
-            )
-
-            Spacer(Modifier.width(8.dp))
-
-            Text(
-                text = formatSeenBy(entries.map { it.displayName ?: it.userId }),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                size = 16.dp,
+                overlap = 4.dp
             )
 
             if (overflow > 0) {
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(4.dp))
                 Text(
                     text = "+$overflow",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                 )
             }
         }
     }
 }
+
+private const val MAX_RECEIPT_AVATARS = 3
 
 @Composable
 private fun AvatarStack(
@@ -126,10 +122,8 @@ private fun AvatarStack(
                     avatarPath = entry.avatarUrl,
                     size = size,
                     modifier = Modifier
+                        .border(1.dp, MaterialTheme.colorScheme.surface, CircleShape)
                         .clip(CircleShape)
-                        .semantics {
-                            contentDescription = entry.displayName ?: entry.userId
-                        }
                 )
             }
         }

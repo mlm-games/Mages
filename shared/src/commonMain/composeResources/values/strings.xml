@@ -663,6 +663,8 @@
     <string name="setting_show_message_avatars_description">Display user avatars next to messages</string>
     <string name="setting_show_reaction_avatars">Show reaction avatars</string>
     <string name="setting_show_reaction_avatars_description">Display user avatars on reaction chips</string>
+    <string name="setting_show_read_receipt_avatars">Show read receipt avatars</string>
+    <string name="setting_show_read_receipt_avatars_description">Display avatars under the last message each person has read</string>
     <string name="setting_show_switch_account_button">Show account button on home screen</string>
     <string name="setting_show_switch_account_button_description">Show the account button on the home screen instead of in settings</string>
     <string name="setting_show_username_in_dms">Show username in DMs</string>

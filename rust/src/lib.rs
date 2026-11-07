@@ -4249,6 +4249,15 @@ fn map_timeline_event(
         _ => None,
     };
     let utd = map_utd(ev);
+    let read_receipts = ev
+        .read_receipts()
+        .iter()
+        .filter(|(user_id, _)| user_id.as_str() != me)
+        .map(|(user_id, receipt)| ReadReceiptUser {
+            user_id: user_id.to_string(),
+            ts_ms: receipt.ts.map(|t| t.0.into()),
+        })
+        .collect();
 
     Some(MessageEvent {
         item_id: item_id_str,
@@ -4287,6 +4296,7 @@ fn map_timeline_event(
         shield,
         send_failure,
         utd,
+        read_receipts,
     })
 }
 

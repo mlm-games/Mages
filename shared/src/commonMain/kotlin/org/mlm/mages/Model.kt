@@ -8,6 +8,12 @@ import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.matrix.SendState
 
 @Serializable
+data class ReadReceiptUser(
+    var userId: String,
+    var tsMs: Long? = null,
+)
+
+@Serializable
 data class MessageEvent(
     var itemId: String,
     var eventId: String,
@@ -45,6 +51,7 @@ data class MessageEvent(
     var shield: MessageShield? = null,
     var sendFailure: SendFailureReason? = null,
     var utd: UtdInfo? = null,
+    var readReceipts: List<ReadReceiptUser> = emptyList(),
 )
 
 val MessageEvent.thumbKey: String?

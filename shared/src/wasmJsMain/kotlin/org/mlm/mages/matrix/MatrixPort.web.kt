@@ -359,7 +359,8 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
                 itemId = (value?.get("item_id") as? JsonPrimitive)?.content ?: return null,
             )
 
-            "UpsertByItemId" -> TimelineDiff.UpsertByItemId(
+            "Insert" -> TimelineDiff.Insert(
+                index = (value?.get("index") as? JsonPrimitive)?.content?.toIntOrNull() ?: return null,
                 itemId = (value?.get("item_id") as? JsonPrimitive)?.content ?: return null,
                 item = wasmJson.decodeFromJsonElement<MessageEvent>(value["value"] ?: return null)
             )

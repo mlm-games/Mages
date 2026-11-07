@@ -258,7 +258,7 @@ class ThreadViewModel(
                 }
             }
 
-            is TimelineDiff.UpsertByItemId -> {
+            is TimelineDiff.Insert -> {
                 val event = diff.item
                 if (event.eventId == rootEventId || event.threadRootEventId == rootEventId) {
                     upsertSingleEvent(event)

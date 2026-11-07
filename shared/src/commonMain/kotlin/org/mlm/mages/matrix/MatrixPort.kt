@@ -66,7 +66,7 @@ sealed class TimelineDiff<out T> {
     @Serializable
     data class RemoveByItemId<T>(val itemId: String) : TimelineDiff<T>()
     @Serializable
-    data class UpsertByItemId<T>(val itemId: String, val item: T) : TimelineDiff<T>()
+    data class Insert<T>(val index: Int, val itemId: String, val item: T) : TimelineDiff<T>()
     @Serializable
     data class Prepend<T>(val item: T) : TimelineDiff<T>()
 }
