@@ -61,7 +61,7 @@
     <string name="setting_select_unified_push_distributor">UnifiedPush-szolgáltató kiválasztása</string>
     <string name="setting_re_register_unified_push">UnifiedPush újraregisztrálása</string>
     <string name="setting_copy_unified_push_endpoint">UnifiedPush végpont másolása</string>
-    <string name="setting_block_media_previews">Médianézletek letiltása</string>
+    <string name="setting_block_media_previews">Médianézletek</string>
     <string name="setting_media_cache">Médiagyorsítótár</string>
     <string name="setting_start_in_tray">Indítás tálcán</string>
     <string name="setting_enter_sends_message">Enter küldi az üzenetet</string>
@@ -134,7 +134,7 @@
     <string name="setting_select_unified_push_distributor_description">Válassza ki a leküldéseket biztosító alkalmazást (gcompat/sunup/ntfy/stb.)</string>
     <string name="setting_re_register_unified_push_description">Javítsa ki a leküldéssel kapcsolatos problémákat a frissítés/újraindítás vagy a forgalmazó módosítása után</string>
     <string name="setting_copy_unified_push_endpoint_description">Hibakereséshez; megmutatja, hogy melyik végpont van regisztrálva</string>
-    <string name="setting_block_media_previews_description">Ne töltse le automatikusan az indexképeket/előnézeteket</string>
+    <string name="setting_block_media_previews_description">Indexképek, képek, hang és videó automatikus letöltése. Szinkronizálva a többi eszközével</string>
     <string name="setting_auto_download_photos">Fényképek automatikus letöltése</string>
     <string name="setting_auto_download_photos_description">Fényképek automatikus letöltése teljes méretben</string>
     <string name="setting_auto_download_audio">Hang automatikus letöltése</string>

@@ -61,7 +61,7 @@
     <string name="setting_select_unified_push_distributor">Вибрати постачальника UnifiedPush</string>
     <string name="setting_re_register_unified_push">Повторно зареєструвати UnifiedPush</string>
     <string name="setting_copy_unified_push_endpoint">Копіювати кінцеву точку UnifiedPush</string>
-    <string name="setting_block_media_previews">Блокувати попередній перегляд медіа</string>
+    <string name="setting_block_media_previews">Попередній перегляд медіа</string>
     <string name="setting_media_cache">Кеш медіа</string>
     <string name="setting_start_in_tray">Запускати в треї</string>
     <string name="setting_enter_sends_message">Enter надсилає повідомлення</string>
@@ -134,7 +134,7 @@
     <string name="setting_select_unified_push_distributor_description">Виберіть застосунок, який доставляє push (gcompat/sunup/ntfy тощо)</string>
     <string name="setting_re_register_unified_push_description">Усувати проблеми з push після оновлення, перезавантаження або зміни постачальника</string>
     <string name="setting_copy_unified_push_endpoint_description">Для налагодження; показує зареєстровану кінцеву точку</string>
-    <string name="setting_block_media_previews_description">Не завантажувати автоматично мініатюри та попередні перегляди</string>
+    <string name="setting_block_media_previews_description">Автоматично завантажувати мініатюри, зображення, голосові повідомлення та відео. Синхронізується з іншими пристроями</string>
     <string name="setting_auto_download_photos">Автоматично завантажувати фото</string>
     <string name="setting_auto_download_photos_description">Автоматично завантажувати фото в повному розмірі</string>
     <string name="setting_auto_download_audio">Автоматично завантажувати аудіо</string>

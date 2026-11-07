@@ -61,7 +61,7 @@
     <string name="setting_select_unified_push_distributor">Välj UnifiedPush-leverantör</string>
     <string name="setting_re_register_unified_push">Registrera UnifiedPush igen</string>
     <string name="setting_copy_unified_push_endpoint">Kopiera UnifiedPush-slutpunkt</string>
-    <string name="setting_block_media_previews">Blockera mediaförhandsvisningar</string>
+    <string name="setting_block_media_previews">Mediaförhandsvisningar</string>
     <string name="setting_media_cache">Mediecach</string>
     <string name="setting_start_in_tray">Starta i systemfältet</string>
     <string name="setting_enter_sends_message">Enter skickar meddelandet</string>
@@ -134,7 +134,7 @@
     <string name="setting_select_unified_push_distributor_description">Välj appen som levererar push (gcompat/sunup/ntfy/etc.)</string>
     <string name="setting_re_register_unified_push_description">Fixa push-problem efter uppdatering/omstart eller distributörsbyte</string>
     <string name="setting_copy_unified_push_endpoint_description">För felsökning; visar vilken slutpunkt som är registrerad</string>
-    <string name="setting_block_media_previews_description">Hämta inte automatiskt miniatyrer/förhandsvisningar</string>
+    <string name="setting_block_media_previews_description">Ladda ned miniatyrer, bilder, röst och video automatiskt. Synkroniseras till dina andra enheter</string>
     <string name="setting_auto_download_photos">Hämta foton automatiskt</string>
     <string name="setting_auto_download_photos_description">Hämta foton i full storlek automatiskt</string>
     <string name="setting_auto_download_audio">Hämta ljud automatiskt</string>

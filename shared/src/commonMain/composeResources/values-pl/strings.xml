@@ -61,7 +61,7 @@
     <string name="setting_select_unified_push_distributor">Wybierz dostawcę UnifiedPush</string>
     <string name="setting_re_register_unified_push">Zarejestruj ponownie UnifiedPush</string>
     <string name="setting_copy_unified_push_endpoint">Kopiuj punkt końcowy UnifiedPush</string>
-    <string name="setting_block_media_previews">Blokuj podglądy multimediów</string>
+    <string name="setting_block_media_previews">Podglądy multimediów</string>
     <string name="setting_media_cache">Pamięć podręczna multimediów</string>
     <string name="setting_start_in_tray">Uruchamiaj w zasobniku</string>
     <string name="setting_enter_sends_message">Enter wysyła wiadomość</string>
@@ -134,7 +134,7 @@
     <string name="setting_select_unified_push_distributor_description">Wybierz aplikację dostarczającą push (gcompat/sunup/ntfy itp.)</string>
     <string name="setting_re_register_unified_push_description">Napraw problemy z pushem po aktualizacji, restarcie lub zmianie dostawcy</string>
     <string name="setting_copy_unified_push_endpoint_description">Do debugowania; pokazuje zarejestrowany punkt końcowy</string>
-    <string name="setting_block_media_previews_description">Nie pobieraj automatycznie miniatur ani podglądów</string>
+    <string name="setting_block_media_previews_description">Automatycznie pobieraj miniatury, obrazy, wiadomości głosowe i filmy. Synchronizowane z innymi urządzeniami</string>
     <string name="setting_auto_download_photos">Automatycznie pobieraj zdjęcia</string>
     <string name="setting_auto_download_photos_description">Automatycznie pobieraj zdjęcia w pełnym rozmiarze</string>
     <string name="setting_auto_download_audio">Automatycznie pobieraj dźwięk</string>

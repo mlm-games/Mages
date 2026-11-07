@@ -61,7 +61,7 @@
     <string name="setting_select_unified_push_distributor">Odaberi UnifiedPush davatelja</string>
     <string name="setting_re_register_unified_push">Ponovno registriraj UnifiedPush</string>
     <string name="setting_copy_unified_push_endpoint">Kopiraj UnifiedPush endpoint</string>
-    <string name="setting_block_media_previews">Blokiraj pretpreglede medija</string>
+    <string name="setting_block_media_previews">Pretpregledi medija</string>
     <string name="setting_media_cache">Predmemorijski cache medija</string>
     <string name="setting_start_in_tray">Pokreni u sistemskoj traci</string>
     <string name="setting_enter_sends_message">Enter šalje poruku</string>
@@ -134,7 +134,7 @@
     <string name="setting_select_unified_push_distributor_description">Odaberi aplikaciju koja šalje push poruke (gcompat/sunup/ntfy/etc.)</string>
     <string name="setting_re_register_unified_push_description">Rješavanje problema s pushom nakon ažuriranja/ponovnog pokretanja ili promjene distributera</string>
     <string name="setting_copy_unified_push_endpoint_description">Za otklanjanje pogrešaka; pokazuje koja je krajnja točka registrirana</string>
-    <string name="setting_block_media_previews_description">Nemoj automatski preuzimati minijature/preglede</string>
+    <string name="setting_block_media_previews_description">Automatski preuzimaj minijature, slike, glas i videozapise. Sinkronizirano s tvojim drugim uređajima</string>
     <string name="setting_auto_download_photos">Automatski preuzimaj fotografije</string>
     <string name="setting_auto_download_photos_description">Automatski preuzimaj fotografije u punoj veličini</string>
     <string name="setting_auto_download_audio">Automatski preuzimaj zvuk</string>

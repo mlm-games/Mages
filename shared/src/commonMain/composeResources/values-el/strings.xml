@@ -61,7 +61,7 @@
     <string name="setting_select_unified_push_distributor">Επιλέξτε διανομέα UnifiedPush</string>
     <string name="setting_re_register_unified_push">Επανεγγραφή του UnifiedPush</string>
     <string name="setting_copy_unified_push_endpoint">Αντιγραφή τελικού σημείου UnifiedPush</string>
-    <string name="setting_block_media_previews">Αποκλεισμός προεπισκοπήσεων πολυμέσων</string>
+    <string name="setting_block_media_previews">Προεπισκοπήσεις πολυμέσων</string>
     <string name="setting_media_cache">Προσωρινή μνήμη πολυμέσων</string>
     <string name="setting_start_in_tray">Έναρξη στο δίσκο</string>
     <string name="setting_enter_sends_message">Η εισαγωγή στέλνει μήνυμα</string>
@@ -134,7 +134,7 @@
     <string name="setting_select_unified_push_distributor_description">Επιλέξτε την εφαρμογή που προσφέρει push (gcompat/sunup/ntfy/κ.λπ.)</string>
     <string name="setting_re_register_unified_push_description">Επιδιόρθωση προβλημάτων ώθησης μετά από ενημέρωση/επανεκκίνηση ή αλλαγή διανομέα</string>
     <string name="setting_copy_unified_push_endpoint_description">Για αποσφαλμάτωση. Δείχνει ποιο τελικό σημείο είναι καταχωρημένο</string>
-    <string name="setting_block_media_previews_description">Μην κατεβάζετε αυτόματα μικρογραφίες/προεπισκοπήσεις</string>
+    <string name="setting_block_media_previews_description">Αυτόματη λήψη μικρογραφιών, εικόνων, φωνής και βίντεο. Συγχρονίζεται με τις άλλες συσκευές σας</string>
     <string name="setting_auto_download_photos">Αυτόματη λήψη φωτογραφιών</string>
     <string name="setting_auto_download_photos_description">Αυτόματη λήψη φωτογραφιών σε πλήρες μέγεθος</string>
     <string name="setting_auto_download_audio">Αυτόματη λήψη ήχου</string>

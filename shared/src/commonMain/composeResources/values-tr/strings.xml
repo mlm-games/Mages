@@ -61,7 +61,7 @@
     <string name="setting_select_unified_push_distributor">UnifiedPush sağlayıcısı seç</string>
     <string name="setting_re_register_unified_push">UnifiedPush’u yeniden kaydet</string>
     <string name="setting_copy_unified_push_endpoint">UnifiedPush uç noktasını kopyala</string>
-    <string name="setting_block_media_previews">Medya önizlemelerini engelle</string>
+    <string name="setting_block_media_previews">Medya önizlemeleri</string>
     <string name="setting_media_cache">Medya önbelleği</string>
     <string name="setting_start_in_tray">Sistem tepsisinde başlat</string>
     <string name="setting_enter_sends_message">Enter mesajı gönderir</string>
@@ -134,7 +134,7 @@
     <string name="setting_select_unified_push_distributor_description">_Anketleri ileten uygulamayı seçin (gcompat/sunup/ntfy/vb.)_</string>
     <string name="setting_re_register_unified_push_description">_Sonraki push sorunlarını düzeltin güncelleme/yeniden başlatma veya distribütör değişikliği</string>
     <string name="setting_copy_unified_push_endpoint_description">Hata ayıklama için; hangi uç noktanın kayıtlı olduğunu gösterir</string>
-    <string name="setting_block_media_previews_description">Küçük resimleri/önizlemeleri otomatik olarak indirme</string>
+    <string name="setting_block_media_previews_description">Küçük resimleri, görselleri, sesi ve videoyu otomatik olarak indir. Diğer cihazlarınla senkronize edilir</string>
     <string name="setting_auto_download_photos">Fotoğrafları otomatik indir</string>
     <string name="setting_auto_download_photos_description">Fotoğrafları tam boyutta otomatik indir</string>
     <string name="setting_auto_download_audio">Sesi otomatik indir</string>

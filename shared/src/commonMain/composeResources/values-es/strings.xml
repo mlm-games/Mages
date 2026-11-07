@@ -613,8 +613,8 @@
     <string name="setting_re_register_unified_push_description">Solucionar problemas de push después de una actualización, reinicio o cambio de distribuidor</string>
     <string name="setting_copy_unified_push_endpoint">Copiar endpoint de UnifiedPush</string>
     <string name="setting_copy_unified_push_endpoint_description">Para depuración; muestra qué endpoint está registrado</string>
-    <string name="setting_block_media_previews">Bloquear vistas previas de medios</string>
-    <string name="setting_block_media_previews_description">No descargar automáticamente miniaturas ni vistas previas</string>
+    <string name="setting_block_media_previews">Vistas previas de medios</string>
+    <string name="setting_block_media_previews_description">Descargar automáticamente miniaturas, imágenes, voz y vídeo. Sincronizado con tus otros dispositivos</string>
     <string name="setting_auto_download_photos">Descargar fotos automáticamente</string>
     <string name="setting_auto_download_photos_description">Descargar automáticamente las fotos a tamaño completo</string>
     <string name="setting_auto_download_audio">Descargar audio automáticamente</string>

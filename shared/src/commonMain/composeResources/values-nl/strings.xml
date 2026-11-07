@@ -61,7 +61,7 @@
     <string name="setting_select_unified_push_distributor">UnifiedPush-provider selecteren</string>
     <string name="setting_re_register_unified_push">UnifiedPush opnieuw registreren</string>
     <string name="setting_copy_unified_push_endpoint">UnifiedPush-eindpunt kopiëren</string>
-    <string name="setting_block_media_previews">Mediavoorbeelden blokkeren</string>
+    <string name="setting_block_media_previews">Mediavoorbeelden</string>
     <string name="setting_media_cache">Mediacache</string>
     <string name="setting_start_in_tray">Starten in systeemvak</string>
     <string name="setting_enter_sends_message">Enter verzendt bericht</string>
@@ -134,7 +134,7 @@
     <string name="setting_select_unified_push_distributor_description">Kies de app die pushes levert (gcompat/sunup/ntfy/etc.)</string>
     <string name="setting_re_register_unified_push_description">Push-problemen oplossen na bijwerken/herstarten of distributeur wijzigen</string>
     <string name="setting_copy_unified_push_endpoint_description">Voor foutopsporing; laat zien welk eindpunt is geregistreerd</string>
-    <string name="setting_block_media_previews_description">Miniaturen/previews niet automatisch downloaden</string>
+    <string name="setting_block_media_previews_description">Miniaturen, afbeeldingen, spraak en video automatisch downloaden. Gesynchroniseerd met je andere apparaten</string>
     <string name="setting_auto_download_photos">Foto's automatisch downloaden</string>
     <string name="setting_auto_download_photos_description">Foto's automatisch op volledige grootte downloaden</string>
     <string name="setting_auto_download_audio">Audio automatisch downloaden</string>

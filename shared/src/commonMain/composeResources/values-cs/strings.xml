@@ -61,7 +61,7 @@
     <string name="setting_select_unified_push_distributor">Vyberte distributora UnifiedPush</string>
     <string name="setting_re_register_unified_push">Znovu zaregistrovat UnifiedPush</string>
     <string name="setting_copy_unified_push_endpoint">Kopírovat koncový bod UnifiedPush</string>
-    <string name="setting_block_media_previews">Blokovat náhledy médií</string>
+    <string name="setting_block_media_previews">Náhledy médií</string>
     <string name="setting_media_cache">Mezipaměť médií</string>
     <string name="setting_start_in_tray">Začít v zásobníku</string>
     <string name="setting_enter_sends_message">Enter odešle zprávu</string>
@@ -134,7 +134,7 @@
     <string name="setting_select_unified_push_distributor_description">Vyber aplikaci, která tlačí (gcompat/sunup/ntfy/atd.)</string>
     <string name="setting_re_register_unified_push_description">Opravte problémy s odesíláním po aktualizaci/restartu nebo změně distributora</string>
     <string name="setting_copy_unified_push_endpoint_description">Pro ladění; ukazuje, jaký koncový bod je registrován</string>
-    <string name="setting_block_media_previews_description">Nestahovat automaticky miniatury/náhledy</string>
+    <string name="setting_block_media_previews_description">Automaticky stahovat miniatury, obrázky, hlas a video. Synchronizováno s vašimi dalšími zařízeními</string>
     <string name="setting_auto_download_photos">Automaticky stahovat fotografie</string>
     <string name="setting_auto_download_photos_description">Automaticky stahovat fotografie v plném rozlišení</string>
     <string name="setting_auto_download_audio">Automaticky stahovat zvuk</string>

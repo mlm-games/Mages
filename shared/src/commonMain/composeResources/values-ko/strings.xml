@@ -61,7 +61,7 @@
     <string name="setting_select_unified_push_distributor">UnifiedPush 제공자 선택</string>
     <string name="setting_re_register_unified_push">UnifiedPush 다시 등록</string>
     <string name="setting_copy_unified_push_endpoint">UnifiedPush 엔드포인트 복사</string>
-    <string name="setting_block_media_previews">미디어 미리보기 차단</string>
+    <string name="setting_block_media_previews">미디어 미리보기</string>
     <string name="setting_media_cache">미디어 캐시</string>
     <string name="setting_start_in_tray">시스템 트레이에서 시작</string>
     <string name="setting_enter_sends_message">Enter로 메시지 보내기</string>
@@ -134,7 +134,7 @@
     <string name="setting_select_unified_push_distributor_description">푸시를 전달하는 앱 선택(gcompat/sunup/ntfy/etc.)</string>
     <string name="setting_re_register_unified_push_description">업데이트/재부팅 또는 배포자 후 푸시 문제 해결 Change</string>
     <string name="setting_copy_unified_push_endpoint_description">디버깅용; 등록된 엔드포인트 표시</string>
-    <string name="setting_block_media_previews_description">썸네일/미리 보기 자동 다운로드 안 함</string>
+    <string name="setting_block_media_previews_description">썸네일, 이미지, 음성, 동영상을 자동으로 다운로드합니다. 다른 기기와 동기화됩니다</string>
     <string name="setting_auto_download_photos">사진 자동 다운로드</string>
     <string name="setting_auto_download_photos_description">사진을 원본 크기로 자동 다운로드</string>
     <string name="setting_auto_download_audio">오디오 자동 다운로드</string>

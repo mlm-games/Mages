@@ -61,7 +61,7 @@
     <string name="setting_select_unified_push_distributor">בחירת ספק UnifiedPush</string>
     <string name="setting_re_register_unified_push">רישום מחדש של UnifiedPush</string>
     <string name="setting_copy_unified_push_endpoint">העתקת נקודת הקצה של UnifiedPush</string>
-    <string name="setting_block_media_previews">חסימת תצוגות מקדימות של מדיה</string>
+    <string name="setting_block_media_previews">תצוגות מקדימות של מדיה</string>
     <string name="setting_media_cache">מטמון מדיה</string>
     <string name="setting_start_in_tray">התחלה במגש המערכת</string>
     <string name="setting_enter_sends_message">Enter שולח הודעה</string>
@@ -134,7 +134,7 @@
     <string name="setting_select_unified_push_distributor_description">בחירת האפליקציה שמספקת push (gcompat/sunup/ntfy וכו׳)</string>
     <string name="setting_re_register_unified_push_description">פתרון בעיות push לאחר עדכון, הפעלה מחדש או החלפת ספק</string>
     <string name="setting_copy_unified_push_endpoint_description">לצורכי ניפוי; מציג את נקודת הקצה הרשומה</string>
-    <string name="setting_block_media_previews_description">הימנעות מהורדת תמונות ממוזערות ותצוגות מקדימות אוטומטית</string>
+    <string name="setting_block_media_previews_description">הורדה אוטומטית של תמונות ממוזערות, תמונות, הודעות קוליות ווידאו. מסונכרן לשאר המכשירים שלך</string>
     <string name="setting_auto_download_photos">הורדת תמונות אוטומטית</string>
     <string name="setting_auto_download_photos_description">הורדת תמונות בגודל מלא אוטומטית</string>
     <string name="setting_auto_download_audio">הורדת שמע אוטומטית</string>

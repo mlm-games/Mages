@@ -61,7 +61,7 @@
     <string name="setting_select_unified_push_distributor">انتخاب توزیع‌کننده UnifiedPush</string>
     <string name="setting_re_register_unified_push">ثبت دوباره UnifiedPush</string>
     <string name="setting_copy_unified_push_endpoint">کپی نشانی UnifiedPush</string>
-    <string name="setting_block_media_previews">مسدود کردن پیش‌نمایش رسانه</string>
+    <string name="setting_block_media_previews">پیش‌نمایش رسانه</string>
     <string name="setting_media_cache">حافظه نهان رسانه</string>
     <string name="setting_start_in_tray">شروع در سینی سیستم</string>
     <string name="setting_enter_sends_message">Enter پیام را ارسال می‌کند</string>
@@ -134,7 +134,7 @@
     <string name="setting_select_unified_push_distributor_description">برنامه‌ای را انتخاب کنید که push را تحویل می‌دهد (gcompat/sunup/ntfy و غیره)</string>
     <string name="setting_re_register_unified_push_description">رفع مشکلات push پس از به‌روزرسانی، راه‌اندازی مجدد یا تغییر توزیع‌کننده</string>
     <string name="setting_copy_unified_push_endpoint_description">برای اشکال‌زدایی؛ نشانی ثبت‌شده را نشان می‌دهد</string>
-    <string name="setting_block_media_previews_description">از دانلود خودکار بندانگشتی‌ها و پیش‌نمایش‌ها خودداری کن</string>
+    <string name="setting_block_media_previews_description">دانلود خودکار بندانگشتی‌ها، تصاویر، صدا و ویدیو. همگام‌سازی با دستگاه‌های دیگر شما</string>
     <string name="setting_auto_download_photos">دانلود خودکار تصاویر</string>
     <string name="setting_auto_download_photos_description">دانلود خودکار تصاویر در اندازه کامل</string>
     <string name="setting_auto_download_audio">دانلود خودکار صدا</string>

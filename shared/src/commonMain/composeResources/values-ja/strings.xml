@@ -61,7 +61,7 @@
     <string name="setting_select_unified_push_distributor">UnifiedPush配布元を選択</string>
     <string name="setting_re_register_unified_push">UnifiedPushを再登録</string>
     <string name="setting_copy_unified_push_endpoint">UnifiedPushエンドポイントをコピー</string>
-    <string name="setting_block_media_previews">メディアプレビューをブロック</string>
+    <string name="setting_block_media_previews">メディアプレビュー</string>
     <string name="setting_media_cache">メディアキャッシュ</string>
     <string name="setting_start_in_tray">システムトレイで起動</string>
     <string name="setting_enter_sends_message">Enterでメッセージを送信</string>
@@ -134,7 +134,7 @@
     <string name="setting_select_unified_push_distributor_description">_プッシュを配信するアプリを選択 (gcompat/sunup/ntfy/など)</string>
     <string name="setting_re_register_unified_push_description">_プッシュの問題を修正更新/再起動またはディストリビュータの変更後_</string>
     <string name="setting_copy_unified_push_endpoint_description">_デバッグ用。登録されているエンドポイントを表示</string>
-    <string name="setting_block_media_previews_description">サムネイル/プレビューを自動ダウンロードしない</string>
+    <string name="setting_block_media_previews_description">サムネイル、画像、音声、動画を自動ダウンロードします。他のデバイスと同期されます</string>
     <string name="setting_auto_download_photos">写真を自動ダウンロード</string>
     <string name="setting_auto_download_photos_description">写真をフルサイズで自動ダウンロード</string>
     <string name="setting_auto_download_audio">音声を自動ダウンロード</string>

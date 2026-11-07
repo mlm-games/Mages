@@ -61,7 +61,7 @@
     <string name="setting_select_unified_push_distributor">Valitse UnifiedPush-jakelija</string>
     <string name="setting_re_register_unified_push">Rekisteröi UnifiedPush uudelleen</string>
     <string name="setting_copy_unified_push_endpoint">Kopioi UnifiedPush-päätepiste</string>
-    <string name="setting_block_media_previews">Estä median esikatselut</string>
+    <string name="setting_block_media_previews">Median esikatselut</string>
     <string name="setting_media_cache">Mediavälimuisti</string>
     <string name="setting_start_in_tray">Aloita lokerosta</string>
     <string name="setting_enter_sends_message">Syötä lähettää viestin</string>
@@ -134,7 +134,7 @@
     <string name="setting_select_unified_push_distributor_description">Valitse sovellus, joka toimittaa työntöjä (gcompat/sunup/ntfy/etc.)</string>
     <string name="setting_re_register_unified_push_description">Korjaa push-ongelmat päivityksen/uudelleenkäynnistyksen tai jakelijan vaihdon jälkeen</string>
     <string name="setting_copy_unified_push_endpoint_description">Virheenkorjausta varten; näyttää mikä päätepiste on rekisteröity</string>
-    <string name="setting_block_media_previews_description">Älä lataa pikkukuvia/esikatseluita automaattisesti</string>
+    <string name="setting_block_media_previews_description">Lataa pikkukuvat, kuvat, ääni ja video automaattisesti. Synkronoidaan muihin laitteisiisi</string>
     <string name="setting_auto_download_photos">Lataa valokuvat automaattisesti</string>
     <string name="setting_auto_download_photos_description">Lataa valokuvat täysikokoisina automaattisesti</string>
     <string name="setting_auto_download_audio">Lataa ääni automaattisesti</string>

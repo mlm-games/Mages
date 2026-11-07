@@ -61,7 +61,7 @@
     <string name="setting_select_unified_push_distributor">UnifiedPush-Anbieter auswählen</string>
     <string name="setting_re_register_unified_push">UnifiedPush erneut registrieren</string>
     <string name="setting_copy_unified_push_endpoint">UnifiedPush-Endpunkt kopieren</string>
-    <string name="setting_block_media_previews">Medienvorschauen blockieren</string>
+    <string name="setting_block_media_previews">Medienvorschauen</string>
     <string name="setting_media_cache">Medien-Cache</string>
     <string name="setting_start_in_tray">In den Infobereich starten</string>
     <string name="setting_enter_sends_message">Enter sendet die Nachricht</string>
@@ -134,7 +134,7 @@
     <string name="setting_select_unified_push_distributor_description">App auswählen, die Pushes liefert (gcompat/sunup/ntfy/etc.)</string>
     <string name="setting_re_register_unified_push_description">Push-Probleme nach Update, Neustart oder Anbieterwechsel beheben</string>
     <string name="setting_copy_unified_push_endpoint_description">Zum Debuggen; zeigt den registrierten Endpunkt</string>
-    <string name="setting_block_media_previews_description">Miniaturansichten und Vorschauen nicht automatisch herunterladen</string>
+    <string name="setting_block_media_previews_description">Miniaturansichten, Bilder, Sprache und Videos automatisch herunterladen. Mit deinen anderen Geräten synchronisiert</string>
     <string name="setting_auto_download_photos">Fotos automatisch herunterladen</string>
     <string name="setting_auto_download_photos_description">Fotos in voller Größe automatisch herunterladen</string>
     <string name="setting_auto_download_audio">Audio automatisch herunterladen</string>

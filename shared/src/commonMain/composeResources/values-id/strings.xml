@@ -61,7 +61,7 @@
     <string name="setting_select_unified_push_distributor">Pilih penyedia UnifiedPush</string>
     <string name="setting_re_register_unified_push">Daftarkan ulang UnifiedPush</string>
     <string name="setting_copy_unified_push_endpoint">Salin endpoint UnifiedPush</string>
-    <string name="setting_block_media_previews">Blokir pratinjau media</string>
+    <string name="setting_block_media_previews">Pratinjau media</string>
     <string name="setting_media_cache">Cache media</string>
     <string name="setting_start_in_tray">Mulai di baki sistem</string>
     <string name="setting_enter_sends_message">Enter mengirim pesan</string>
@@ -134,7 +134,7 @@
     <string name="setting_select_unified_push_distributor_description">Pilih aplikasi yang mengirimkan push (gcompat/sunup/ntfy/dll.)</string>
     <string name="setting_re_register_unified_push_description">Perbaiki masalah push setelahnya perbarui/reboot atau perubahan distributor</string>
     <string name="setting_copy_unified_push_endpoint_description">Untuk debugging; menunjukkan titik akhir apa yang didaftarkan</string>
-    <string name="setting_block_media_previews_description">Jangan unduh otomatis thumbnail/pratinjau</string>
+    <string name="setting_block_media_previews_description">Unduh thumbnail, gambar, suara, dan video secara otomatis. Disinkronkan ke perangkat Anda yang lain</string>
     <string name="setting_auto_download_photos">Unduh foto otomatis</string>
     <string name="setting_auto_download_photos_description">Unduh foto ukuran penuh otomatis</string>
     <string name="setting_auto_download_audio">Unduh audio otomatis</string>

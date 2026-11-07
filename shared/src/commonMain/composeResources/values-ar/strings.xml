@@ -61,7 +61,7 @@
     <string name="setting_select_unified_push_distributor">تحديد موزع UnifiedPush</string>
     <string name="setting_re_register_unified_push">إعادة تسجيل UnifiedPush</string>
     <string name="setting_copy_unified_push_endpoint">نسخ نقطة نهاية UnifiedPush</string>
-    <string name="setting_block_media_previews">حظر معاينات الوسائط</string>
+    <string name="setting_block_media_previews">معاينات الوسائط</string>
     <string name="setting_media_cache">ذاكرة التخزين المؤقت للوسائط</string>
     <string name="setting_start_in_tray">ابدأ في الدرج</string>
     <string name="setting_enter_sends_message">إدخال إرسال رسالة</string>
@@ -134,7 +134,7 @@
     <string name="setting_select_unified_push_distributor_description">اختر التطبيق الذي يقدم عمليات الدفع (gcompat/sunup/ntfy/etc.)</string>
     <string name="setting_re_register_unified_push_description">إصلاح مشكلات الدفع بعد التحديث/إعادة التشغيل أو تغيير الموزع</string>
     <string name="setting_copy_unified_push_endpoint_description">للتصحيح ؛ يوضح نقطة النهاية المسجلة</string>
-    <string name="setting_block_media_previews_description">لا تقم بالتنزيل التلقائي للصور المصغرة/المعاينات</string>
+    <string name="setting_block_media_previews_description">تنزيل الصور المصغرة والصور والصوت والفيديو تلقائيًا. تتم المزامنة مع أجهزتك الأخرى</string>
     <string name="setting_auto_download_photos">تنزيل الصور تلقائيًا</string>
     <string name="setting_auto_download_photos_description">تنزيل الصور بالحجم الكامل تلقائيًا</string>
     <string name="setting_auto_download_audio">تنزيل الصوت تلقائيًا</string>

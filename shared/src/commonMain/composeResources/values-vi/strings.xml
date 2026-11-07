@@ -61,7 +61,7 @@
     <string name="setting_select_unified_push_distributor">Chọn nhà phân phối UnifiedPush</string>
     <string name="setting_re_register_unified_push">Đăng ký lại UnifiedPush</string>
     <string name="setting_copy_unified_push_endpoint">Sao chép điểm cuối UnifiedPush</string>
-    <string name="setting_block_media_previews">Chặn xem trước phương tiện</string>
+    <string name="setting_block_media_previews">Xem trước phương tiện</string>
     <string name="setting_media_cache">Bộ nhớ đệm phương tiện</string>
     <string name="setting_start_in_tray">Khởi động trong khay hệ thống</string>
     <string name="setting_enter_sends_message">Enter gửi tin nhắn</string>
@@ -134,7 +134,7 @@
     <string name="setting_select_unified_push_distributor_description">Chọn ứng dụng gửi push (gcompat/sunup/ntfy v.v.)</string>
     <string name="setting_re_register_unified_push_description">Khắc phục sự cố push sau khi cập nhật, khởi động lại hoặc đổi nhà phân phối</string>
     <string name="setting_copy_unified_push_endpoint_description">Để gỡ lỗi; hiển thị điểm cuối đã đăng ký</string>
-    <string name="setting_block_media_previews_description">Không tự động tải hình thu nhỏ và bản xem trước</string>
+    <string name="setting_block_media_previews_description">Tự động tải hình thu nhỏ, hình ảnh, thoại và video. Đồng bộ với các thiết bị khác của bạn</string>
     <string name="setting_auto_download_photos">Tự động tải ảnh</string>
     <string name="setting_auto_download_photos_description">Tự động tải ảnh kích thước đầy đủ</string>
     <string name="setting_auto_download_audio">Tự động tải âm thanh</string>
