@@ -61,7 +61,7 @@
     <string name="setting_select_unified_push_distributor">選擇 UnifiedPush 分發器</string>
     <string name="setting_re_register_unified_push">重新註冊 UnifiedPush</string>
     <string name="setting_copy_unified_push_endpoint">複製 UnifiedPush 端點</string>
-    <string name="setting_block_media_previews">阻止媒體預覽</string>
+    <string name="setting_block_media_previews">媒體預覽</string>
     <string name="setting_media_cache">媒體快取</string>
     <string name="setting_start_in_tray">啟動時最小化到系統匣</string>
     <string name="setting_enter_sends_message">按 Enter 傳送訊息</string>
@@ -134,7 +134,7 @@
     <string name="setting_select_unified_push_distributor_description">選擇傳送推送通知的應用程式（gcompat/sunup/ntfy 等）</string>
     <string name="setting_re_register_unified_push_description">在更新、重新啟動或更換分發器後修正推送問題</string>
     <string name="setting_copy_unified_push_endpoint_description">用於偵錯；顯示已註冊的端點</string>
-    <string name="setting_block_media_previews_description">不自動下載縮圖和預覽</string>
+    <string name="setting_block_media_previews_description">自動下載縮圖和預覽</string>
     <string name="setting_auto_download_photos">自動下載照片</string>
     <string name="setting_auto_download_photos_description">自動下載原始尺寸照片</string>
     <string name="setting_auto_download_audio">自動下載音訊</string>
