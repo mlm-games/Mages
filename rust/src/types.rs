@@ -1188,11 +1188,6 @@ pub enum TimelineDiffKind {
     PushFront {
         value: MessageEvent,
     },
-    PopBack,
-    PopFront,
-    Truncate {
-        length: u32,
-    },
     Clear,
     Reset {
         values: Vec<MessageEvent>,

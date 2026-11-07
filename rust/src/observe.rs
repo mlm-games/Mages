@@ -3,8 +3,7 @@ use crate::spawn_detached;
 use crate::types::*;
 use crate::{
     count_visible_room_view, map_live_location_share, map_live_location_vec_diff,
-    map_timeline_items_to_events, map_vec_diff, missing_reply_event_id, paginate_backwards_visible,
-    safe_call,
+    map_timeline_item, missing_reply_event_id, paginate_backwards_visible, safe_call,
 };
 use futures_util::StreamExt;
 use matrix_sdk::Room;
@@ -295,21 +294,26 @@ pub(crate) async fn drive_timeline(
 
     let (items, mut stream) = tl.subscribe().await;
 
-    let mut item_ids: Vec<String> = items
-        .iter()
-        .map(|item| item.unique_id().0.to_string())
-        .collect();
-
-    {
-        let mapped = map_timeline_items_to_events(&items, room_id, &tl, me);
-        info!(
-            "observe_timeline Reset room={} cached_items={} mapped={}",
-            room_id,
-            items.len(),
-            mapped.len()
-        );
-        safe_call(|| obs.on_diff(TimelineDiffKind::Reset { values: mapped }));
+    let mut entries: Vec<TimelineEntry> = Vec::with_capacity(items.len());
+    let mut reset_values: Vec<MessageEvent> = Vec::with_capacity(items.len());
+    for item in items.iter() {
+        let mapped = map_timeline_item(item, room_id, &tl, me);
+        entries.push(TimelineEntry {
+            id: item.unique_id().0.to_string(),
+            mapped: mapped.is_some(),
+        });
+        if let Some(ev) = mapped {
+            reset_values.push(ev);
+        }
     }
+
+    info!(
+        "observe_timeline Reset room={} cached_items={} mapped={}",
+        room_id,
+        items.len(),
+        reset_values.len()
+    );
+    safe_call(|| obs.on_diff(TimelineDiffKind::Reset { values: reset_values }));
 
     for it in items.iter() {
         if let Some(ev) = it.as_event() {
@@ -324,89 +328,168 @@ pub(crate) async fn drive_timeline(
 
     while let Some(diffs) = stream.next().await {
         for diff in diffs {
-            match &diff {
+            match diff {
                 VectorDiff::Append { values } => {
-                    item_ids.extend(values.iter().map(|v| v.unique_id().0.to_string()));
+                    let mut mapped = Vec::with_capacity(values.len());
+                    for value in values.iter() {
+                        let ev = map_timeline_item(value, room_id, &tl, me);
+                        entries.push(TimelineEntry {
+                            id: value.unique_id().0.to_string(),
+                            mapped: ev.is_some(),
+                        });
+                        if let Some(ev) = ev {
+                            mapped.push(ev);
+                        }
+                    }
+                    if !mapped.is_empty() {
+                        safe_call(|| obs.on_diff(TimelineDiffKind::Append { values: mapped }));
+                    }
                 }
                 VectorDiff::PushBack { value } => {
-                    item_ids.push(value.unique_id().0.to_string());
+                    let ev = map_timeline_item(&value, room_id, &tl, me);
+                    entries.push(TimelineEntry {
+                        id: value.unique_id().0.to_string(),
+                        mapped: ev.is_some(),
+                    });
+                    if let Some(ev) = ev {
+                        safe_call(|| obs.on_diff(TimelineDiffKind::PushBack { value: ev }));
+                    }
                 }
                 VectorDiff::PushFront { value } => {
-                    item_ids.insert(0, value.unique_id().0.to_string());
+                    let ev = map_timeline_item(&value, room_id, &tl, me);
+                    entries.insert(
+                        0,
+                        TimelineEntry {
+                            id: value.unique_id().0.to_string(),
+                            mapped: ev.is_some(),
+                        },
+                    );
+                    if let Some(ev) = ev {
+                        safe_call(|| obs.on_diff(TimelineDiffKind::PushFront { value: ev }));
+                    }
                 }
                 VectorDiff::Insert { index, value } => {
-                    let idx = (*index).min(item_ids.len());
-                    item_ids.insert(idx, value.unique_id().0.to_string());
+                    let at = index.min(entries.len());
+                    let event_index = entries[..at].iter().filter(|e| e.mapped).count();
+                    let ev = map_timeline_item(&value, room_id, &tl, me);
+                    let item_id = value.unique_id().0.to_string();
+                    entries.insert(
+                        at,
+                        TimelineEntry {
+                            id: item_id.clone(),
+                            mapped: ev.is_some(),
+                        },
+                    );
+                    if let Some(ev) = ev {
+                        safe_call(|| {
+                            obs.on_diff(TimelineDiffKind::Insert {
+                                index: event_index as u32,
+                                item_id,
+                                value: ev,
+                            })
+                        });
+                    }
                 }
                 VectorDiff::Set { index, value } => {
-                    if let Some(id) = item_ids.get_mut(*index) {
-                        *id = value.unique_id().0.to_string();
+                    let Some(previous) = entries.get(index).map(|e| (e.id.clone(), e.mapped)) else {
+                        continue;
+                    };
+                    let event_index = entries[..index].iter().filter(|e| e.mapped).count();
+                    let ev = map_timeline_item(&value, room_id, &tl, me);
+                    let item_id = value.unique_id().0.to_string();
+                    entries[index] = TimelineEntry {
+                        id: item_id.clone(),
+                        mapped: ev.is_some(),
+                    };
+                    match ev {
+                        Some(ev) if previous.0 != item_id => {
+                            safe_call(|| {
+                                obs.on_diff(TimelineDiffKind::RemoveByItemId {
+                                    item_id: previous.0.clone(),
+                                })
+                            });
+                            safe_call(|| {
+                                obs.on_diff(TimelineDiffKind::Insert {
+                                    index: event_index as u32,
+                                    item_id,
+                                    value: ev,
+                                })
+                            });
+                        }
+                        Some(ev) => safe_call(|| {
+                            obs.on_diff(TimelineDiffKind::UpdateByItemId { item_id, value: ev })
+                        }),
+                        None if previous.1 => safe_call(|| {
+                            obs.on_diff(TimelineDiffKind::RemoveByItemId { item_id: previous.0 })
+                        }),
+                        None => {}
                     }
                 }
                 VectorDiff::Remove { index } => {
-                    if *index < item_ids.len() {
-                        let removed = item_ids.remove(*index);
-                        safe_call(|| {
-                            obs.on_diff(TimelineDiffKind::RemoveByItemId { item_id: removed })
-                        });
+                    if index < entries.len() {
+                        let entry = entries.remove(index);
+                        if entry.mapped {
+                            safe_call(|| {
+                                obs.on_diff(TimelineDiffKind::RemoveByItemId { item_id: entry.id })
+                            });
+                        }
                     }
                 }
                 VectorDiff::PopBack => {
-                    if let Some(removed) = item_ids.pop() {
-                        safe_call(|| {
-                            obs.on_diff(TimelineDiffKind::RemoveByItemId { item_id: removed })
-                        });
+                    if let Some(entry) = entries.pop() {
+                        if entry.mapped {
+                            safe_call(|| {
+                                obs.on_diff(TimelineDiffKind::RemoveByItemId { item_id: entry.id })
+                            });
+                        }
                     }
                 }
                 VectorDiff::PopFront => {
-                    if !item_ids.is_empty() {
-                        let removed = item_ids.remove(0);
-                        safe_call(|| {
-                            obs.on_diff(TimelineDiffKind::RemoveByItemId { item_id: removed })
-                        });
+                    if !entries.is_empty() {
+                        let entry = entries.remove(0);
+                        if entry.mapped {
+                            safe_call(|| {
+                                obs.on_diff(TimelineDiffKind::RemoveByItemId { item_id: entry.id })
+                            });
+                        }
                     }
                 }
                 VectorDiff::Truncate { length } => {
-                    let keep = (*length).min(item_ids.len());
-                    let removed: Vec<String> = item_ids.drain(keep..).collect();
-                    for item_id in removed {
-                        safe_call(|| obs.on_diff(TimelineDiffKind::RemoveByItemId { item_id }));
+                    let keep = length.min(entries.len());
+                    let removed: Vec<TimelineEntry> = entries.drain(keep..).collect();
+                    for entry in removed {
+                        if entry.mapped {
+                            safe_call(|| {
+                                obs.on_diff(TimelineDiffKind::RemoveByItemId { item_id: entry.id })
+                            });
+                        }
                     }
                 }
                 VectorDiff::Clear => {
-                    item_ids.clear();
+                    entries.clear();
+                    safe_call(|| obs.on_diff(TimelineDiffKind::Clear));
                 }
-                VectorDiff::Reset { .. } => {}
-            }
-
-            match diff {
-                // Already emitted as RemoveByItemId above.
-                VectorDiff::Remove { .. }
-                | VectorDiff::PopBack
-                | VectorDiff::PopFront
-                | VectorDiff::Truncate { .. } => {}
-
-                VectorDiff::Clear => {
-                    // Keep shadow lockstep: empty UI + empty shadow; later stream
-                    // ops rebuild. Never rewrite item_ids from tl.items() here.
-                    safe_call(|| obs.on_diff(TimelineDiffKind::Reset { values: Vec::new() }));
-                }
-
                 VectorDiff::Reset { values } => {
-                    item_ids = values
-                        .iter()
-                        .map(|it| it.unique_id().0.to_string())
-                        .collect();
-                    let mapped = map_timeline_items_to_events(&values, room_id, &tl, me);
-                    safe_call(|| obs.on_diff(TimelineDiffKind::Reset { values: mapped }));
-                }
-
-                other => {
-                    if let Some(mapped) = map_vec_diff(other, room_id, &tl, me) {
-                        safe_call(|| obs.on_diff(mapped));
+                    entries.clear();
+                    let mut mapped = Vec::with_capacity(values.len());
+                    for value in values.iter() {
+                        let ev = map_timeline_item(value, room_id, &tl, me);
+                        entries.push(TimelineEntry {
+                            id: value.unique_id().0.to_string(),
+                            mapped: ev.is_some(),
+                        });
+                        if let Some(ev) = ev {
+                            mapped.push(ev);
+                        }
                     }
+                    safe_call(|| obs.on_diff(TimelineDiffKind::Reset { values: mapped }));
                 }
             }
         }
     }
+}
+
+struct TimelineEntry {
+    id: String,
+    mapped: bool,
 }

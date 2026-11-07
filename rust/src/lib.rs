@@ -5719,115 +5719,15 @@ pub(crate) fn missing_reply_event_id(
     None
 }
 
-pub(crate) fn map_vec_diff(
-    diff: VectorDiff<Arc<TimelineItem>>,
+pub(crate) fn map_timeline_item(
+    item: &Arc<TimelineItem>,
     room_id: &OwnedRoomId,
     tl: &Arc<Timeline>,
     me: &str,
-) -> Option<TimelineDiffKind> {
-    match diff {
-        VectorDiff::Append { values } => {
-            let vals: Vec<_> = values
-                .iter()
-                .filter_map(|v| {
-                    v.as_event().and_then(|ei| {
-                        fetch_reply_if_needed(ei, tl);
-                        map_timeline_event(
-                            ei,
-                            room_id.as_str(),
-                            Some(&v.unique_id().0.to_string()),
-                            &me,
-                        )
-                    })
-                })
-                .collect();
-
-            if vals.is_empty() {
-                None
-            } else {
-                Some(TimelineDiffKind::Append { values: vals })
-            }
-        }
-
-        VectorDiff::PushBack { value } => value
-            .as_event()
-            .and_then(|ei| {
-                fetch_reply_if_needed(ei, tl);
-                map_timeline_event(
-                    ei,
-                    room_id.as_str(),
-                    Some(&value.unique_id().0.to_string()),
-                    &me,
-                )
-            })
-            .map(|v| TimelineDiffKind::PushBack { value: v }),
-
-        VectorDiff::PushFront { value } => value
-            .as_event()
-            .and_then(|ei| {
-                fetch_reply_if_needed(ei, tl);
-                map_timeline_event(
-                    ei,
-                    room_id.as_str(),
-                    Some(&value.unique_id().0.to_string()),
-                    &me,
-                )
-            })
-            .map(|v| TimelineDiffKind::PushFront { value: v }),
-
-        VectorDiff::Set { index: _, value } => {
-            let item_id = value.unique_id().0.clone();
-            value
-                .as_event()
-                .and_then(|ei| {
-                    fetch_reply_if_needed(ei, tl);
-                    map_timeline_event(ei, room_id.as_str(), Some(&item_id), &me)
-                })
-                .map(|v| TimelineDiffKind::UpdateByItemId { item_id, value: v })
-        }
-
-        VectorDiff::Insert { index: _, value } => {
-            let item_id = value.unique_id().0.clone();
-            value
-                .as_event()
-                .and_then(|ei| {
-                    fetch_reply_if_needed(ei, tl);
-                    map_timeline_event(ei, room_id.as_str(), Some(&item_id), &me)
-                })
-                .map(|v| TimelineDiffKind::UpsertByItemId { item_id, value: v })
-        }
-
-        VectorDiff::Remove { index: _ } => {
-            // Handled in observe_timeline via shadow Vec + RemoveByItemId.
-            None
-        }
-
-        // Ports drop the raw kinds, so do not emit them.
-        VectorDiff::PopBack => None,
-        VectorDiff::PopFront => None,
-
-        VectorDiff::Truncate { length: _ } => None,
-
-        VectorDiff::Clear => Some(TimelineDiffKind::Clear),
-
-        VectorDiff::Reset { values } => {
-            let vals: Vec<_> = values
-                .iter()
-                .filter_map(|v| {
-                    v.as_event().and_then(|ei| {
-                        fetch_reply_if_needed(ei, tl);
-                        map_timeline_event(
-                            ei,
-                            room_id.as_str(),
-                            Some(&v.unique_id().0.to_string()),
-                            &me,
-                        )
-                    })
-                })
-                .collect();
-            Some(TimelineDiffKind::Reset { values: vals })
-        }
-    }
+) -> Option<MessageEvent> {
+    let ev = item.as_event()?;
+    fetch_reply_if_needed(ev, tl);
+    map_timeline_event(ev, room_id.as_str(), Some(&item.unique_id().0.to_string()), me)
 }
 
 pub(crate) fn map_live_location_share(s: &LiveLocationShare) -> LiveLocationShareInfo {
@@ -5990,37 +5890,6 @@ async fn count_visible_room_view(tl: &Arc<Timeline>, rid: &OwnedRoomId, me: &str
             Some(())
         })
         .count()
-}
-
-pub(crate) fn map_timeline_items_to_events(
-    items: &Vector<Arc<TimelineItem>>,
-    rid: &OwnedRoomId,
-    tl: &Arc<Timeline>,
-    me: &str,
-) -> Vec<MessageEvent> {
-    items
-        .iter()
-        .filter_map(|it| {
-            it.as_event().and_then(|ei| {
-                fetch_reply_if_needed(ei, tl);
-                map_timeline_event(ei, rid.as_str(), Some(&it.unique_id().0.to_string()), me)
-            })
-        })
-        .collect()
-}
-
-// Kept for potential future callers that need a filled snapshot on demand.
-#[allow(dead_code)]
-pub(crate) async fn emit_timeline_reset_filled(
-    obs: &Arc<dyn TimelineObserver>,
-    tl: &Arc<Timeline>,
-    rid: &OwnedRoomId,
-    me: &str,
-) {
-    let items = tl.items().await;
-    let mapped = map_timeline_items_to_events(&items, rid, tl, me);
-
-    safe_call(|| obs.on_diff(TimelineDiffKind::Reset { values: mapped }));
 }
 
 async fn paginate_backwards_visible(

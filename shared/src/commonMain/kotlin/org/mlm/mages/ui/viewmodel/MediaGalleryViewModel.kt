@@ -190,7 +190,8 @@ class MediaGalleryViewModel(
             itemIdOf = { it.itemId },
             stableIdOf = { it.stableKey() },
             timeOf = { it.timestampMs },
-            tieOf = { it.stableKey() }
+            tieOf = { it.stableKey() },
+            useDiffIndex = false
         )
 
         val filtered = result.list.filter { hasMediaOrLink(it) }

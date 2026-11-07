@@ -200,13 +200,6 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
                     is TimelineDiffKind.UpdateByItemId -> TimelineDiff.UpdateByItemId(diff.itemId, diff.value.toModel())
                     is TimelineDiffKind.RemoveByItemId -> TimelineDiff.RemoveByItemId(diff.itemId)
                     is TimelineDiffKind.Insert -> TimelineDiff.Insert(diff.index.toInt(), diff.itemId, diff.value.toModel())
-                    is TimelineDiffKind.PopBack,
-                    is TimelineDiffKind.PopFront,
-                    is TimelineDiffKind.Truncate -> {
-                        // Should not happen after Rust fix; if it does, force a safe resync rather than desync.
-                        Logger.w("Unexpected timeline structural diff: $diff ... requesting filled reset is handled in Rust")
-                        null
-                    }
                 }
                 mapped?.let { trySendBlocking(it) }
             }

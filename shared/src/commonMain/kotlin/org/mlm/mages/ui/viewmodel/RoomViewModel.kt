@@ -2816,9 +2816,7 @@ class RoomViewModel(
                 }
                 if (lostPending.isNotEmpty()) {
                     newAll = newAll.toMutableList().also { list ->
-                        lostPending.forEach {
-                            list.insertSorted(it, { it.timestampMs }, { it.stableKey() })
-                        }
+                        lostPending.forEach { list.add(it) }
                     }
                 }
             }

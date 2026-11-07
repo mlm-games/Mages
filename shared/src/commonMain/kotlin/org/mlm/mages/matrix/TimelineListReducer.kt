@@ -3,11 +3,16 @@ package org.mlm.mages.matrix
 /**
  * Applies timeline diffs to a list keyed by stable itemId (TimelineItem.unique_id()).
  *
- * Important: This does not, and should not try to "sort by timestamp" for upserts.
- * Ordering is preserved by:
- *  - Append -> end
- *  - Prepend -> start
+ * Ordering comes from the SDK, which owns the timeline vector:
+ *  - Append (and PushBack) -> end
+ *  - Prepend (PushFront) -> start
+ *  - Insert -> index
  *  - Reset -> exact order given
+ *
+ * Pass useDiffIndex = false for a list filtered out of the timeline, where the SDK's
+ * positional index no longer applies. Never order confirmed events by timestamp: until
+ * the server echoes a local echo back, its timestamp is the device clock, so the value
+ * changes under it.
  */
 object TimelineListReducer {
 
@@ -25,6 +30,7 @@ object TimelineListReducer {
         stableIdOf: (T) -> String,
         timeOf: (T) -> Long,
         tieOf: (T) -> String,
+        useDiffIndex: Boolean = true,
     ): Result<T> {
         return when (diff) {
 
@@ -43,14 +49,13 @@ object TimelineListReducer {
             }
 
             is TimelineDiff.Clear ->
-                // should never receive this, but if it does, don't nuke user-visible history.
-                Result(list = current, cleared = false)
+                Result(list = emptyList(), cleared = true)
 
             is TimelineDiff.Append -> {
                 val list = current.toMutableList()
                 val delta = ArrayList<T>(diff.items.size)
                 for (item in diff.items) {
-                    upsert(list, item, itemIdOf, stableIdOf, timeOf, tieOf)
+                    if (!replaceExisting(list, item, itemIdOf, stableIdOf)) list.add(item)
                     delta.add(item)
                 }
                 Result(list = list, delta = delta)
@@ -59,7 +64,7 @@ object TimelineListReducer {
             is TimelineDiff.Prepend -> {
                 val list = current.toMutableList()
                 val item = diff.item
-                upsert(list, item, itemIdOf, stableIdOf, timeOf, tieOf)
+                if (!replaceExisting(list, item, itemIdOf, stableIdOf)) list.add(0, item)
                 Result(list = list, delta = listOf(item))
             }
 
@@ -70,10 +75,14 @@ object TimelineListReducer {
                 Result(list = list, delta = listOf(item))
             }
 
-            is TimelineDiff.UpsertByItemId -> {
+            is TimelineDiff.Insert -> {
                 val list = current.toMutableList()
                 val item = diff.item
-                upsert(list, item, itemIdOf, stableIdOf, timeOf, tieOf)
+                when {
+                    replaceExisting(list, item, itemIdOf, stableIdOf) -> Unit
+                    useDiffIndex -> list.add(diff.index.coerceIn(0, list.size), item)
+                    else -> list.insertSorted(item, timeOf, tieOf)
+                }
                 Result(list = list, delta = listOf(item))
             }
 
@@ -93,31 +102,33 @@ object TimelineListReducer {
         timeOf: (T) -> Long,
         tieOf: (T) -> String,
     ) {
+        if (replaceExisting(list, incoming, itemIdOf, stableIdOf)) return
+        list.insertSorted(incoming, timeOf, tieOf)
+    }
+
+    private fun <T> replaceExisting(
+        list: MutableList<T>,
+        incoming: T,
+        itemIdOf: (T) -> String,
+        stableIdOf: (T) -> String,
+    ): Boolean {
         val incomingItemId = itemIdOf(incoming)
         val incomingStable = stableIdOf(incoming)
 
         val idxByItem = list.indexOfFirst { itemIdOf(it) == incomingItemId }
-        if (idxByItem >= 0) {
-            val idxByStable = list.indexOfFirst { stableIdOf(it) == incomingStable }
-            if (idxByStable >= 0 && idxByStable != idxByItem) {
-                // Keep whichever position is earlier to minimize UI jumps; remove the other.
-                val keep = minOf(idxByItem, idxByStable)
-                val drop = maxOf(idxByItem, idxByStable)
-                list[keep] = incoming
-                list.removeAt(drop)
-            } else {
-                list[idxByItem] = incoming
-            }
-            return
-        }
-
         val idxByStable = list.indexOfFirst { stableIdOf(it) == incomingStable }
-        if (idxByStable >= 0) {
-            list[idxByStable] = incoming
-            return
-        }
+        if (idxByItem < 0 && idxByStable < 0) return false
 
-        list.insertSorted(incoming, timeOf, tieOf)
+        if (idxByItem >= 0 && idxByStable >= 0 && idxByItem != idxByStable) {
+            // Keep whichever position is earlier to minimize UI jumps; remove the other.
+            val keep = minOf(idxByItem, idxByStable)
+            val drop = maxOf(idxByItem, idxByStable)
+            list[keep] = incoming
+            list.removeAt(drop)
+        } else {
+            list[if (idxByItem >= 0) idxByItem else idxByStable] = incoming
+        }
+        return true
     }
 }
 
