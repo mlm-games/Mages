@@ -327,7 +327,9 @@ pub(crate) async fn drive_timeline(
     }
 
     while let Some(diffs) = stream.next().await {
-        for diff in diffs {
+        let mut diffs = diffs.into_iter().peekable();
+        let mut suppressed_remove: Option<String> = None;
+        while let Some(diff) = diffs.next() {
             match diff {
                 VectorDiff::Append { values } => {
                     let mut mapped = Vec::with_capacity(values.len());
@@ -347,25 +349,35 @@ pub(crate) async fn drive_timeline(
                 }
                 VectorDiff::PushBack { value } => {
                     let ev = map_timeline_item(&value, room_id, &tl, me);
+                    let item_id = value.unique_id().0.to_string();
+                    let suppressed = suppressed_remove.as_deref() == Some(item_id.as_str());
+                    suppressed_remove = None;
                     entries.push(TimelineEntry {
-                        id: value.unique_id().0.to_string(),
+                        id: item_id.clone(),
                         mapped: ev.is_some(),
                     });
                     if let Some(ev) = ev {
                         safe_call(|| obs.on_diff(TimelineDiffKind::PushBack { value: ev }));
+                    } else if suppressed {
+                        safe_call(|| obs.on_diff(TimelineDiffKind::RemoveByItemId { item_id }));
                     }
                 }
                 VectorDiff::PushFront { value } => {
                     let ev = map_timeline_item(&value, room_id, &tl, me);
+                    let item_id = value.unique_id().0.to_string();
+                    let suppressed = suppressed_remove.as_deref() == Some(item_id.as_str());
+                    suppressed_remove = None;
                     entries.insert(
                         0,
                         TimelineEntry {
-                            id: value.unique_id().0.to_string(),
+                            id: item_id.clone(),
                             mapped: ev.is_some(),
                         },
                     );
                     if let Some(ev) = ev {
                         safe_call(|| obs.on_diff(TimelineDiffKind::PushFront { value: ev }));
+                    } else if suppressed {
+                        safe_call(|| obs.on_diff(TimelineDiffKind::RemoveByItemId { item_id }));
                     }
                 }
                 VectorDiff::Insert { index, value } => {
@@ -373,6 +385,8 @@ pub(crate) async fn drive_timeline(
                     let event_index = entries[..at].iter().filter(|e| e.mapped).count();
                     let ev = map_timeline_item(&value, room_id, &tl, me);
                     let item_id = value.unique_id().0.to_string();
+                    let suppressed = suppressed_remove.as_deref() == Some(item_id.as_str());
+                    suppressed_remove = None;
                     entries.insert(
                         at,
                         TimelineEntry {
@@ -388,6 +402,8 @@ pub(crate) async fn drive_timeline(
                                 value: ev,
                             })
                         });
+                    } else if suppressed {
+                        safe_call(|| obs.on_diff(TimelineDiffKind::RemoveByItemId { item_id }));
                     }
                 }
                 VectorDiff::Set { index, value } => {
@@ -426,7 +442,22 @@ pub(crate) async fn drive_timeline(
                     }
                 }
                 VectorDiff::Remove { index } => {
-                    if index < entries.len() {
+                    let removed = entries.get(index).map(|entry| (entry.id.clone(), entry.mapped));
+                    let replacement = diffs.peek().and_then(|next| match next {
+                        VectorDiff::Insert { value, .. }
+                        | VectorDiff::PushBack { value }
+                        | VectorDiff::PushFront { value } => {
+                            Some(value.unique_id().0.to_string())
+                        }
+                        _ => None,
+                    });
+                    let replaced = removed
+                        .as_ref()
+                        .is_some_and(|(id, _)| replacement.as_deref() == Some(id.as_str()));
+                    if replaced {
+                        entries.remove(index);
+                        suppressed_remove = removed.map(|(id, _)| id);
+                    } else if index < entries.len() {
                         let entry = entries.remove(index);
                         if entry.mapped {
                             safe_call(|| {

@@ -55,7 +55,14 @@ object TimelineListReducer {
                 val list = current.toMutableList()
                 val delta = ArrayList<T>(diff.items.size)
                 for (item in diff.items) {
-                    if (existingIndex(list, item, itemIdOf, stableIdOf) < 0) list.add(item)
+                    val existing = existingIndex(list, item, itemIdOf, stableIdOf)
+                    when {
+                        existing < 0 -> list.add(item)
+                        useDiffIndex -> {
+                            val moved = list.removeAt(existing)
+                            list.add(moved)
+                        }
+                    }
                     delta.add(item)
                 }
                 Result(list = list, delta = delta)
@@ -64,7 +71,14 @@ object TimelineListReducer {
             is TimelineDiff.Prepend -> {
                 val list = current.toMutableList()
                 val item = diff.item
-                if (existingIndex(list, item, itemIdOf, stableIdOf) < 0) list.add(0, item)
+                val existing = existingIndex(list, item, itemIdOf, stableIdOf)
+                when {
+                    existing < 0 -> list.add(0, item)
+                    useDiffIndex -> {
+                        val moved = list.removeAt(existing)
+                        list.add(0, moved)
+                    }
+                }
                 Result(list = list, delta = listOf(item))
             }
 

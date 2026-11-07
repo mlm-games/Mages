@@ -2787,16 +2787,6 @@ class RoomViewModel(
         }
 
         updateState {
-            if (diff is TimelineDiff.RemoveByItemId) {
-                val isLocalEcho = allEvents.any {
-                    it.itemId == diff.itemId &&
-                        !it.txnId.isNullOrBlank()
-                }
-                if (isLocalEcho) {
-                    return@updateState this
-                }
-            }
-
             val r = TimelineListReducer.apply(
                 current = allEvents,
                 diff = diff,

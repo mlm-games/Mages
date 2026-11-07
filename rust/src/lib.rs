@@ -4627,13 +4627,16 @@ async fn map_event_id_via_timeline(
     let tl = mgr.timeline_for(rid).await?;
     let _ = tl.fetch_details_for_event(eid.as_ref()).await;
 
-    let item = tl.item_by_event_id(eid).await?;
-    let item_id = match item.identifier() {
-        TimelineEventItemId::EventId(id) => id.to_string(),
-        TimelineEventItemId::TransactionId(id) => id.to_string(),
-    };
+    let items = tl.items().await;
+    let item = items.iter().find(|item| {
+        item.as_event()
+            .and_then(|event| event.event_id())
+            .is_some_and(|id| id.as_str() == eid.as_str())
+    })?;
+    let event = item.as_event()?;
+    let item_id = item.unique_id().0.to_string();
     let me = client.user_id().map(|u| u.to_string()).unwrap_or_default();
-    map_timeline_event(&item, rid.as_str(), Some(&item_id), &me)
+    map_timeline_event(event, rid.as_str(), Some(&item_id), &me)
 }
 
 fn search_hit_from_event(

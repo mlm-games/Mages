@@ -197,7 +197,13 @@ class MediaGalleryViewModel(
         val filtered = result.list.filter { hasMediaOrLink(it) }
 
         val validSelectedIds = when (diff) {
-            is TimelineDiff.RemoveByItemId -> currentState.selectedIds - diff.itemId
+            is TimelineDiff.RemoveByItemId -> {
+                val removedEventId = currentState.allEvents
+                    .firstOrNull { it.itemId == diff.itemId }
+                    ?.eventId
+                if (removedEventId.isNullOrBlank()) currentState.selectedIds
+                else currentState.selectedIds - removedEventId
+            }
             is TimelineDiff.Clear -> emptySet()
             else -> currentState.selectedIds
         }

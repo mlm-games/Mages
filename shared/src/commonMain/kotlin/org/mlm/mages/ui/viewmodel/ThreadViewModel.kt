@@ -318,11 +318,12 @@ class ThreadViewModel(
 
             // Merge with existing replies
             val mergedReplies = if (isReset) {
-                newReplies
+                newReplies.sortedForThread()
             } else {
                 (replies + newReplies)
                     .distinctBy { it.itemId }
-            }.sortedBy { it.timestampMs }
+                    .sortedForThread()
+            }
 
             var thumbs = thumbByEvent
             events.forEach { ev ->
@@ -378,7 +379,7 @@ class ThreadViewModel(
                 else -> {
                     val idx = replies.indexOfFirst { it.itemId == event.itemId }
                     if (idx >= 0) {
-                        copy(replies = replies.toMutableList().apply { this[idx] = event })
+                        copy(replies = replies.toMutableList().apply { this[idx] = event }.sortedForThread())
                     } else {
                         this
                     }
@@ -407,11 +408,11 @@ class ThreadViewModel(
                     val idx = replies.indexOfFirst { it.itemId == event.itemId }
                     if (idx >= 0) {
                         // Update existing
-                        copy(replies = replies.toMutableList().apply { this[idx] = event })
+                        copy(replies = replies.toMutableList().apply { this[idx] = event }.sortedForThread())
                     } else {
                         val newReplies = (replies + event)
                             .distinctBy { it.itemId }
-                            .sortedBy { it.timestampMs }
+                            .sortedForThread()
                         copy(replies = newReplies)
                     }
                 }
@@ -472,7 +473,7 @@ class ThreadViewModel(
                 val mergedRoot = root ?: rootMessage
                 val mergedReplies = (this.replies + replies)
                     .distinctBy { it.itemId }
-                    .sortedBy { it.timestampMs }
+                    .sortedForThread()
 
                 copy(
                     rootMessage = mergedRoot,
@@ -533,9 +534,9 @@ class ThreadViewModel(
         prefetchMentionProfiles(newReplies)
 
             updateState {
-                val merged = (newReplies + replies)
+                val merged = (replies + newReplies)
                     .distinctBy { it.itemId }
-                    .sortedBy { it.timestampMs }
+                    .sortedForThread()
                 copy(
                     replies = merged,
                     nextBatch = page.nextBatch,
@@ -1007,8 +1008,8 @@ class ThreadViewModel(
 
         val replyToId = currentState.replyingTo?.eventId
         val replyingTo = currentState.replyingTo
-        val latestEventId = if (replyToId == null && currentState.replies.isNotEmpty()) {
-            currentState.replies.lastOrNull()?.eventId
+        val latestEventId = if (replyToId == null) {
+            currentState.replies.lastOrNull { it.eventId.isNotBlank() }?.eventId
         } else {
             null
         }
@@ -1053,3 +1054,11 @@ class ThreadViewModel(
         seenItemIds.clear()
     }
 }
+
+private fun List<MessageEvent>.sortedForThread(): List<MessageEvent> =
+    sortedWith(
+        compareBy<MessageEvent>(
+            { !it.txnId.isNullOrBlank() },
+            { if (it.txnId.isNullOrBlank()) it.timestampMs else 0L },
+        )
+    )
