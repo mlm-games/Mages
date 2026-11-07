@@ -324,7 +324,11 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     private fun requireClientOrNull(): WasmClient? = client
 
     private fun decodeTimelineDiff(diffValue: JsAny?): TimelineDiff<MessageEvent>? {
-        val obj = diffValue.toJsonElement() as? JsonObject ?: return null
+        val element = diffValue.toJsonElement()
+        if (element is JsonPrimitive && element.isString) {
+            return if (element.content == "Clear") TimelineDiff.Clear() else null
+        }
+        val obj = element as? JsonObject ?: return null
         if (obj.isEmpty()) return null
 
         val entry = obj.entries.first()

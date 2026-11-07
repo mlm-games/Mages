@@ -55,7 +55,7 @@ object TimelineListReducer {
                 val list = current.toMutableList()
                 val delta = ArrayList<T>(diff.items.size)
                 for (item in diff.items) {
-                    if (!replaceExisting(list, item, itemIdOf, stableIdOf)) list.add(item)
+                    if (existingIndex(list, item, itemIdOf, stableIdOf) < 0) list.add(item)
                     delta.add(item)
                 }
                 Result(list = list, delta = delta)
@@ -64,7 +64,7 @@ object TimelineListReducer {
             is TimelineDiff.Prepend -> {
                 val list = current.toMutableList()
                 val item = diff.item
-                if (!replaceExisting(list, item, itemIdOf, stableIdOf)) list.add(0, item)
+                if (existingIndex(list, item, itemIdOf, stableIdOf) < 0) list.add(0, item)
                 Result(list = list, delta = listOf(item))
             }
 
@@ -78,10 +78,17 @@ object TimelineListReducer {
             is TimelineDiff.Insert -> {
                 val list = current.toMutableList()
                 val item = diff.item
+                val existing = existingIndex(list, item, itemIdOf, stableIdOf)
                 when {
-                    replaceExisting(list, item, itemIdOf, stableIdOf) -> Unit
-                    useDiffIndex -> list.add(diff.index.coerceIn(0, list.size), item)
-                    else -> list.insertSorted(item, timeOf, tieOf)
+                    existing < 0 && useDiffIndex ->
+                        list.add(diff.index.coerceIn(0, list.size), item)
+                    existing < 0 ->
+                        list.insertSorted(item, timeOf, tieOf)
+                    useDiffIndex -> {
+                        val moved = list.removeAt(existing)
+                        list.add(diff.index.coerceIn(0, list.size), moved)
+                    }
+                    else -> Unit
                 }
                 Result(list = list, delta = listOf(item))
             }
@@ -102,22 +109,22 @@ object TimelineListReducer {
         timeOf: (T) -> Long,
         tieOf: (T) -> String,
     ) {
-        if (replaceExisting(list, incoming, itemIdOf, stableIdOf)) return
+        if (existingIndex(list, incoming, itemIdOf, stableIdOf) >= 0) return
         list.insertSorted(incoming, timeOf, tieOf)
     }
 
-    private fun <T> replaceExisting(
+    private fun <T> existingIndex(
         list: MutableList<T>,
         incoming: T,
         itemIdOf: (T) -> String,
         stableIdOf: (T) -> String,
-    ): Boolean {
+    ): Int {
         val incomingItemId = itemIdOf(incoming)
         val incomingStable = stableIdOf(incoming)
 
         val idxByItem = list.indexOfFirst { itemIdOf(it) == incomingItemId }
         val idxByStable = list.indexOfFirst { stableIdOf(it) == incomingStable }
-        if (idxByItem < 0 && idxByStable < 0) return false
+        if (idxByItem < 0 && idxByStable < 0) return -1
 
         if (idxByItem >= 0 && idxByStable >= 0 && idxByItem != idxByStable) {
             // Keep whichever position is earlier to minimize UI jumps; remove the other.
@@ -125,10 +132,11 @@ object TimelineListReducer {
             val drop = maxOf(idxByItem, idxByStable)
             list[keep] = incoming
             list.removeAt(drop)
-        } else {
-            list[if (idxByItem >= 0) idxByItem else idxByStable] = incoming
+            return keep
         }
-        return true
+        val idx = if (idxByItem >= 0) idxByItem else idxByStable
+        list[idx] = incoming
+        return idx
     }
 }
 

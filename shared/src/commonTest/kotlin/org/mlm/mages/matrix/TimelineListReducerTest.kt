@@ -103,6 +103,19 @@ class TimelineListReducerTest {
     }
 
     @Test
+    fun reInsertedEchoMovesToTheSdkIndex() {
+        val a = Item(itemId = "txnA", stable = "t:A", ts = 100)
+        val b = Item(itemId = "txnB", stable = "t:B", ts = 200)
+
+        val list = apply(
+            listOf(a, b),
+            TimelineDiff.Insert(index = 0, itemId = "txnB", item = b.copy(ts = 50)),
+        )
+
+        assertEquals(listOf("txnB", "txnA"), list.map { it.itemId })
+    }
+
+    @Test
     fun prependGoesToStartNotByTimestamp() {
         val existing = Item(itemId = "a", stable = "e:a", ts = 100)
         val older = Item(itemId = "b", stable = "e:b", ts = 999)
