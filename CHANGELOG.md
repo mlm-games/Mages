@@ -1,3 +1,13 @@
+## v5.4.1
+
+- fix media previews translations
+- Fix outdated translations
+- Replace the SeenBy indicator with Element-style read reciepts UI (#202)
+- matrix link parsing and space invite flow fix
+- Add a join room preview screen (shown before joining rooms or spaces)
+- refactor: drop dead room list heroes field
+
+
 ## v5.4.0
 
 - feat: use material symbols for icons
