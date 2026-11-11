@@ -715,13 +715,15 @@ private fun ThreadRootMessage(
                         MaterialTheme.colorScheme.onSecondaryContainer
                 )
                 Spacer(Modifier.width(Spacing.md))
-                Column {
+                Column(Modifier.weight(1f)) {
                     Text(
                         formatDisplayName(event.sender),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = if (isMine) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }

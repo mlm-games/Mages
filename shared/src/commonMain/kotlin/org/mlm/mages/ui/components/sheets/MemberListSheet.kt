@@ -118,7 +118,10 @@ private fun MemberListItem(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     member.displayName ?: member.userId,
-                    fontWeight = if (isMe) FontWeight.Bold else FontWeight.Normal
+                    fontWeight = if (isMe) FontWeight.Bold else FontWeight.Normal,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
                 if (isMe) {
                     Spacer(Modifier.width(Spacing.sm))
@@ -153,7 +156,9 @@ private fun MemberListItem(
                 Text(
                     member.userId,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         },

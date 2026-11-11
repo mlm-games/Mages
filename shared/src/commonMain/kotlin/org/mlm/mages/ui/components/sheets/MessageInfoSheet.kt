@@ -491,6 +491,8 @@ private fun MessageInfoPreview(
                 text = event.senderDisplayName ?: event.sender,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             Spacer(Modifier.height(2.dp))
             Text(
@@ -622,7 +624,12 @@ private fun MessageInfoReaderRow(entry: SeenByEntry) {
         )
         Spacer(Modifier.width(Spacing.md))
         Column(Modifier.weight(1f)) {
-            Text(displayName, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                displayName,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             entry.tsMs?.let { ts ->
                 Text(
                     text = formatAbsoluteDateTime(ts.toLong()),

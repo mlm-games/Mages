@@ -291,7 +291,15 @@ private fun MessagePreview(event: MessageEvent) {
     Surface(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm), shape = MaterialTheme.shapes.medium) {
         Column(Modifier.padding(Spacing.md)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(event.sender, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+                Text(
+                    event.sender,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
                 Spacer(Modifier.width(Spacing.sm))
                 Text(
                     formatTime(event.timestampMs),

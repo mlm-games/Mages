@@ -169,7 +169,10 @@ fun MessageBubble(
                         text = senderName.orEmpty(),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
                     )
                 }
             } else {
@@ -178,6 +181,8 @@ fun MessageBubble(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .clickable(enabled = onSenderClick != null, onClick = { onSenderClick?.invoke() })
                         .padding(horizontal = Spacing.md, vertical = 2.dp)
@@ -546,20 +551,25 @@ internal fun ReplyPreview(
                 ReplyPreviewVisual(it, previewPath)
                 Spacer(Modifier.width(Spacing.sm))
             }
-            Text(
-                text = buildString {
-                    val previewText = body?.takeIf { it.isNotBlank() } ?: preview?.text
-                    if (!sender.isNullOrBlank()) {
-                        append(sender)
-                        if (!previewText.isNullOrBlank()) append(": ")
-                    }
-                    append(previewText.orEmpty())
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = maxLines,
-                overflow = TextOverflow.Ellipsis
-            )
+            Column(Modifier.weight(1f, fill = false)) {
+                if (!sender.isNullOrBlank()) {
+                    Text(
+                        text = sender,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Text(
+                    text = body?.takeIf { it.isNotBlank() } ?: preview?.text.orEmpty(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = maxLines,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }

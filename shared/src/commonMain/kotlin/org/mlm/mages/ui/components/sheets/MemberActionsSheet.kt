@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import mages.shared.generated.resources.*
 import org.koin.compose.koinInject
 import org.mlm.mages.MatrixService
@@ -92,16 +93,20 @@ fun MemberActionsSheet(
                     onClick = if (member.avatarUrl.isNullOrBlank()) null else onAvatarClick
                 )
                 Spacer(Modifier.width(Spacing.md))
-                Column {
+                Column(Modifier.weight(1f)) {
                     Text(
                         member.displayName ?: member.userId,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         member.userId,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     val statusLine = listOfNotNull(
                         member.statusEmoji?.takeIf { it.isNotBlank() },
@@ -111,7 +116,9 @@ fun MemberActionsSheet(
                         Text(
                             statusLine,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                     if (member.callJoinedTsMs != null) {

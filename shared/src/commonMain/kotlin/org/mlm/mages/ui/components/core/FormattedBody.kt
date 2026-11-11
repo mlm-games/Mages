@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -102,6 +103,7 @@ private val mentionAvatarGap = 4.dp
 private val mentionPaddingHorizontal = 6.dp
 private val mentionPaddingVertical = 1.dp
 private val mentionCornerRadius = 6.dp
+private val mentionLabelMaxWidth = 200.dp
 
 private val mentionChromeHeight = mentionAvatarSize + mentionPaddingVertical * 2
 
@@ -1258,8 +1260,19 @@ private fun measureMentionPills(
     val widths = LinkedHashMap<String, TextUnit>(refs.size)
     val roomLabelWidths = LinkedHashMap<String, TextUnit>(roomLabels.size)
     with(density) {
+        val labelLimitPx = mentionLabelMaxWidth.roundToPx().coerceAtLeast(1)
+
+        fun measureLabel(label: String): Float =
+            measurer.measure(
+                text = label,
+                style = style,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                constraints = Constraints(maxWidth = labelLimitPx),
+            ).size.width.toFloat()
+
         refs.forEach { (userId, ref) ->
-            val labelPx = measurer.measure(ref.label, style).size.width
+            val labelPx = measureLabel(ref.label)
             val chromePx = mentionPaddingHorizontal.roundToPx() * 2 +
                 if (ref.avatarPath != null) {
                     mentionAvatarSize.roundToPx() + mentionAvatarGap.roundToPx()
@@ -1270,7 +1283,7 @@ private fun measureMentionPills(
         }
 
         roomLabels.forEach { label ->
-            val labelPx = measurer.measure(label, style).size.width
+            val labelPx = measureLabel(label)
             roomLabelWidths[label] = (
                 labelPx + mentionPaddingHorizontal.roundToPx() * 2 +
                     MENTION_PLACEHOLDER_SLACK_PX
@@ -1280,7 +1293,7 @@ private fun measureMentionPills(
         val lineHeightPx = measurer.measure("Ag", style).size.height.toFloat()
         val heightPx = maxOf(mentionChromeHeight.toPx(), lineHeightPx)
         val everyoneWidth = if (mentionsRoom) {
-            val labelPx = measurer.measure(EVERYONE_LABEL, style).size.width
+            val labelPx = measureLabel(EVERYONE_LABEL)
             (labelPx + mentionPaddingHorizontal.roundToPx() * 2 + MENTION_PLACEHOLDER_SLACK_PX).toSp()
         } else {
             null
