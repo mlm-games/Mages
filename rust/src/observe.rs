@@ -47,10 +47,9 @@ impl CoreClient {
         room_id: &OwnedRoomId,
         obs: Arc<dyn ReceiptsObserver>,
     ) {
-        let Some(tl) = self.timeline_mgr.timeline_for(room_id).await else {
+        let Some(mut stream) = self.receipts_changed_stream(room_id).await else {
             return;
         };
-        let mut stream = tl.subscribe_own_user_read_receipts_changed().await;
         while let Some(()) = stream.next().await {
             safe_call(|| obs.on_changed());
         }

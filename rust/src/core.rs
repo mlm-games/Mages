@@ -5284,8 +5284,7 @@ impl CoreClient {
         &self,
         room_id: &OwnedRoomId,
     ) -> Option<impl futures_util::Stream<Item = ()>> {
-        let room = self.sdk.get_room(room_id)?;
-        let tl = room.timeline().await.ok()?;
+        let tl = self.timeline_mgr.timeline_for(room_id).await?;
         Some(tl.subscribe_own_user_read_receipts_changed().await)
     }
 

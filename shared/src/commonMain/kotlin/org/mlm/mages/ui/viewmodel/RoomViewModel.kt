@@ -1390,7 +1390,7 @@ class RoomViewModel(
     fun markRoomSeen() {
         val readTs = currentState.events
             .asReversed()
-            .firstOrNull { it.eventId.isNotBlank() }
+            .firstOrNull { it.sendState == null && it.eventId.isNotBlank() }
             ?.timestampMs
         if (readTs != null) {
             updateState {
