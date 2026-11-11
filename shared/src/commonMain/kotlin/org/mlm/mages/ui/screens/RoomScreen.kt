@@ -612,10 +612,10 @@ fun RoomScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(events.size, seekingJump) {
-        if (didInitialScroll && isNearBottom && events.isNotEmpty() && !seekingUnread && !seekingJump) {
-            listState.animateScrollToItem(lastListIndex())
-        }
+    val shouldFollowNewest = didInitialScroll && isNearBottom && events.isNotEmpty() &&
+        !seekingUnread && !seekingJump
+    LaunchedEffect(events.size, events.lastOrNull()?.itemId, seekingJump) {
+        if (shouldFollowNewest) listState.requestScrollToItem(lastListIndex())
     }
 
     LaunchedEffect(pendingJumpEventId) {

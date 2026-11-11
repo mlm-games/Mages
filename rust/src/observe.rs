@@ -8,7 +8,6 @@ use crate::{
 use futures_util::StreamExt;
 use matrix_sdk::Room;
 use matrix_sdk::ruma::events::call::invite::OriginalSyncCallInviteEvent;
-use matrix_sdk::ruma::events::receipt::SyncReceiptEvent;
 use matrix_sdk::ruma::{OwnedEventId, OwnedRoomId};
 use matrix_sdk_ui::eyeball_im::VectorDiff;
 use matrix_sdk_ui::timeline::Timeline;
@@ -48,11 +47,11 @@ impl CoreClient {
         room_id: &OwnedRoomId,
         obs: Arc<dyn ReceiptsObserver>,
     ) {
-        let stream = self
-            .sdk
-            .observe_room_events::<SyncReceiptEvent, matrix_sdk::room::Room>(room_id);
-        let mut sub = stream.subscribe();
-        while let Some((_ev, _room)) = sub.next().await {
+        let Some(tl) = self.timeline_mgr.timeline_for(room_id).await else {
+            return;
+        };
+        let mut stream = tl.subscribe_own_user_read_receipts_changed().await;
+        while let Some(()) = stream.next().await {
             safe_call(|| obs.on_changed());
         }
     }

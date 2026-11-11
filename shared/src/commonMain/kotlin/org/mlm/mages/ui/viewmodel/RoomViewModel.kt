@@ -1388,6 +1388,15 @@ class RoomViewModel(
     }
 
     fun markRoomSeen() {
+        val readTs = currentState.events
+            .asReversed()
+            .firstOrNull { it.eventId.isNotBlank() }
+            ?.timestampMs
+        if (readTs != null) {
+            updateState {
+                copy(lastReadTs = maxOf(lastReadTs ?: 0L, readTs), hasLoadedLastRead = true)
+            }
+        }
         launch {
             runCatching {
                 service.markRoomSeenLatest(
@@ -2934,23 +2943,25 @@ class RoomViewModel(
     }
 
     private fun observeOwnReceipt() {
-        launch {
-            runSafe { service.port.ownLastRead(currentState.roomId) }
-                ?.let { (_, ts) -> updateState { copy(lastReadTs = ts, hasLoadedLastRead = true) } }
-                ?: updateState { copy(hasLoadedLastRead = true) }
-        }
+        launch { refreshOwnLastRead() }
 
         launch {
             ownReceiptToken?.let { runCatching { service.portOrNull?.stopReceiptsObserver(it) } }
             ownReceiptToken = service.port.observeOwnReceipt(currentState.roomId, object : ReceiptsObserver {
                 override fun onChanged() {
-                    launch {
-                        runSafe { service.port.ownLastRead(currentState.roomId) }
-                            ?.let { (_, ts) -> updateState { copy(lastReadTs = ts, hasLoadedLastRead = true) } }
-                            ?: updateState { copy(hasLoadedLastRead = true) }
-                    }
+                    launch { refreshOwnLastRead() }
                 }
             })
+        }
+    }
+
+    private suspend fun refreshOwnLastRead() {
+        val ts = runSafe { service.port.ownLastRead(currentState.roomId) }?.second
+        updateState {
+            copy(
+                lastReadTs = maxOf(lastReadTs ?: 0L, ts ?: 0L).takeIf { it > 0L },
+                hasLoadedLastRead = true
+            )
         }
     }
 

@@ -295,11 +295,9 @@ fun ThreadScreen(
         }
     }
 
-    // Auto-scroll when new message appears
-    LaunchedEffect(state.replies.lastOrNull()?.itemId, isNearBottom, focusedEventId) {
-        if (isNearBottom && totalItems > 0 && focusedEventId == null) {
-            listState.animateScrollToItem(0)
-        }
+    val shouldFollowNewest = isNearBottom && totalItems > 0 && focusedEventId == null
+    LaunchedEffect(state.replies.size, state.replies.lastOrNull()?.itemId) {
+        if (shouldFollowNewest) listState.requestScrollToItem(0)
     }
 
     Scaffold(
