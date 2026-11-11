@@ -501,64 +501,55 @@ impl TimelineManager {
     }
 
     pub async fn timeline_for(&self, room_id: &OwnedRoomId) -> Option<Arc<Timeline>> {
-        if let Some(tl) = self
+        let cached = self
             .timelines
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .get(room_id)
-            .cloned()
-        {
-            let should_fetch = {
-                let mut s = self
-                    .members_fetched
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner());
-                if s.contains(room_id) {
-                    false
-                } else {
-                    s.insert(room_id.clone());
-                    true
-                }
-            };
-            if should_fetch {
-                let tlc = tl.clone();
-                spawn_detached_core!(async move {
-                    let _ = tlc.fetch_members().await;
-                });
+            .cloned();
+
+        let tl = match cached {
+            Some(tl) => tl,
+            None => {
+                let room = self.client.get_room(room_id)?;
+                let built = Arc::new(
+                    room.timeline_builder()
+                        .event_filter(timeline_event_filter)
+                        .track_read_marker_and_receipts(
+                            TimelineReadReceiptTracking::MessageLikeEvents,
+                        )
+                        .build()
+                        .await
+                        .ok()?,
+                );
+                let mut map = self.timelines.lock().unwrap_or_else(|e| e.into_inner());
+                map.entry(room_id.clone()).or_insert_with(|| built).clone()
             }
-            return Some(tl);
-        }
+        };
 
-        let room = self.client.get_room(room_id)?;
-        let tl = Arc::new(
-            room.timeline_builder()
-                .event_filter(timeline_event_filter)
-                .track_read_marker_and_receipts(TimelineReadReceiptTracking::MessageLikeEvents)
-                .build()
-                .await
-                .ok()?,
-        );
+        self.ensure_members_fetched(room_id, &tl);
+        Some(tl)
+    }
 
-        self.timelines
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .insert(room_id.clone(), tl.clone());
-
-        {
+    fn ensure_members_fetched(&self, room_id: &OwnedRoomId, tl: &Arc<Timeline>) {
+        let should_fetch = {
             let mut s = self
                 .members_fetched
                 .lock()
                 .unwrap_or_else(|e| e.into_inner());
-            if !s.contains(room_id) {
+            if s.contains(room_id) {
+                false
+            } else {
                 s.insert(room_id.clone());
-                let tlc = tl.clone();
-                spawn_detached_core!(async move {
-                    let _ = tlc.fetch_members().await;
-                });
+                true
             }
+        };
+        if should_fetch {
+            let tlc = tl.clone();
+            spawn_detached_core!(async move {
+                let _ = tlc.fetch_members().await;
+            });
         }
-
-        Some(tl)
     }
 }
 
