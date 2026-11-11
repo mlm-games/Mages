@@ -1833,6 +1833,7 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
                         guestCanJoin = child.guestCanJoin,
                         suggested = child.suggested,
                         via = child.via,
+                        membership = child.membership?.toKotlin(),
                         sectionTag = child.sectionTag
                     )
                 },
