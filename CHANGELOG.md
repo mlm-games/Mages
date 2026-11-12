@@ -1,3 +1,12 @@
+## v5.4.2
+
+- fix duplicate timeline builds (#201)
+- fix own receipt timeline source (#201)
+- fix timeline follow and read marker (#201)
+- fix long display name overflow (#208)
+- fix the space join view issue
+
+
 ## v5.4.1
 
 - fix media previews translations

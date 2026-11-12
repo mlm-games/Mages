@@ -46,6 +46,17 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="5.4.2" date="2026-11-12" type="stable">
+      <description>
+        <ul>
+          <li>fix duplicate timeline builds (#201)</li>
+          <li>fix own receipt timeline source (#201)</li>
+          <li>fix timeline follow and read marker (#201)</li>
+          <li>fix long display name overflow (#208)</li>
+          <li>fix the space join view issue</li>
+        </ul>
+      </description>
+    </release>
     <release version="5.4.1" date="2026-11-07" type="stable">
       <description>
         <ul>
