@@ -779,10 +779,19 @@ data class ThreadUiState(
     val imagePacks: List<ImagePackSummary> = emptyList(),
     val emotePathByMxc: Map<String, String> = emptyMap(),
     val reactionImagePathByMxc: Map<String, String> = emptyMap(),
+    val audioFileByEvent: Map<String, String> = emptyMap(),
+    val waveformByEvent: Map<String, List<Float>> = emptyMap(),
     /** See [RoomUiState.linkPreviewByEvent]. */
     val linkPreviewByEvent: Map<String, LinkPreview?> = emptyMap(),
     val linkPreviewImageByEvent: Map<String, String> = emptyMap(),
     val isRoomEncrypted: Boolean = false,
+    val isDm: Boolean = false,
+    val sendMessageAction: ActionAvailabilityUi = ActionAvailabilityUi.Enabled,
+    val isSelectionMode: Boolean = false,
+    val selectedEventIds: Set<String> = emptySet(),
+    val showStaticLocationViewer: Boolean = false,
+    val staticLocationViewerLat: Double = 0.0,
+    val staticLocationViewerLon: Double = 0.0,
     /** See [RoomUiState.mentionProfilesByUserId]. */
     override val mentionProfilesByUserId: Map<String, MentionProfileUi> = emptyMap(),
     override val selectedMemberForAction: MemberSummary? = null,
@@ -805,8 +814,6 @@ data class ThreadUiState(
         selectedMemberBanAction = ban,
         selectedMemberUnbanAction = unban,
     )
-
-    val messageCount: Int get() = (if (rootMessage != null) 1 else 0) + replies.size
 
     val allMessages: List<MessageEvent> get() = listOfNotNull(rootMessage) + replies
 }

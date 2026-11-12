@@ -77,6 +77,7 @@ fun MessageBubble(
     model: MessageBubbleModel,
     modifier: Modifier = Modifier,
     onMentionClick: ((String) -> Unit)? = null,
+    onClick: (() -> Unit)? = null,
     onLongPress: (() -> Unit)? = null,
     onSecondaryClick: (() -> Unit)? = onLongPress,
     onDoubleClick: (() -> Unit)? = null,
@@ -98,6 +99,7 @@ fun MessageBubble(
     if (model.isSticker) {
         StickerMessage(
             model = model,
+            onClick = onClick,
             onLongPress = onLongPress,
             onSecondaryClick = onSecondaryClick,
             onDoubleClick = onDoubleClick,
@@ -251,7 +253,7 @@ fun MessageBubble(
                 Layout(
                     modifier = Modifier
                         .combinedClickable(
-                            onClick = {},
+                            onClick = { onClick?.invoke() },
                             onLongClick = onLongPress,
                             onDoubleClick = onDoubleClick
                         )
@@ -1052,6 +1054,7 @@ private fun VideoAttachmentBubble(
 @Composable
 private fun StickerMessage(
     model: MessageBubbleModel,
+    onClick: (() -> Unit)? = null,
     onLongPress: (() -> Unit)?,
     onSecondaryClick: (() -> Unit)? = onLongPress,
     onDoubleClick: (() -> Unit)?,
@@ -1138,7 +1141,9 @@ private fun StickerMessage(
                     .blurHashBackground(blurhashImage)
                     .combinedClickable(
                         onClick = {
-                            if (previewBlocked) onShowPreview?.invoke() else onOpen?.invoke()
+                            if (onClick != null) onClick()
+                            else if (previewBlocked) onShowPreview?.invoke()
+                            else onOpen?.invoke()
                         },
                         onLongClick = onLongPress,
                         onDoubleClick = onDoubleClick,
@@ -1223,7 +1228,7 @@ private fun ThreadBadge(
     val a11yLabel = pluralStringResource(Res.plurals.reply_count, count, count)
     Surface(
         onClick = onClick,
-        color = MaterialTheme.colorScheme.primary,
+        color = MaterialTheme.colorScheme.secondaryContainer,
         shape = if (count > 1) RoundedCornerShape(50) else CircleShape,
         modifier = modifier.semantics { contentDescription = a11yLabel }
     ) {
@@ -1235,7 +1240,7 @@ private fun ThreadBadge(
                 Icon(
                     painter = painterResource(Res.drawable.ic_gesture),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.size(15.dp)
                 )
                 Spacer(Modifier.width(4.dp))
@@ -1243,7 +1248,7 @@ private fun ThreadBadge(
                     text = count.toString(),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimary
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
             }
         } else {
@@ -1254,7 +1259,7 @@ private fun ThreadBadge(
                 Icon(
                     painter = painterResource(Res.drawable.ic_gesture),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.size(16.dp)
                 )
             }

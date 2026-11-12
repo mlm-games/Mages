@@ -953,6 +953,10 @@ private fun AppContent(
                                         is ThreadViewModel.Event.NavigateToRoom -> {
                                             backStack.add(Route.Room(event.roomId, event.title))
                                         }
+
+                                        is ThreadViewModel.Event.OpenForwardPicker -> {
+                                            backStack.add(Route.ForwardPicker(event.roomId, event.eventIds))
+                                        }
                                     }
                                 }
                             }

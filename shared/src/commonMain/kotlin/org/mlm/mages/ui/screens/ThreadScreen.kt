@@ -5,6 +5,9 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -14,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -30,6 +34,7 @@ import org.mlm.mages.matrix.SendState
 import org.mlm.mages.matrix.allowsMediaPreviews
 import org.mlm.mages.thumbKey
 import org.mlm.mages.matrix.MemberSummary
+import org.mlm.mages.matrix.PollData
 import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.ui.MentionProfileUi
 import org.mlm.mages.ui.ThreadUiState
@@ -38,17 +43,18 @@ import org.mlm.mages.ui.components.composer.ActionBanner
 import org.mlm.mages.ui.components.composer.EmoteSuggestion
 import org.mlm.mages.ui.components.composer.MessageComposer
 import org.mlm.mages.ui.components.core.Avatar
-import org.mlm.mages.ui.components.core.FormattedBodyText
 import org.mlm.mages.ui.components.core.LoadMoreButton
 import org.mlm.mages.ui.components.core.StatusBanner
 import org.mlm.mages.ui.components.core.BannerType
 import org.mlm.mages.ui.components.core.formatDisplayName
+import org.mlm.mages.ui.components.location.LiveLocationMapViewer
+import org.mlm.mages.ui.components.location.LocationViewerMode
 import org.mlm.mages.ui.components.location.TimelineLocationItem
+import org.mlm.mages.ui.components.location.parseGeoUri
 import org.mlm.mages.ui.components.message.MessageBubble
 import org.mlm.mages.ui.components.message.MessageBubbleRenderContext
 import org.mlm.mages.ui.components.message.MessageBubbleVariant
 import org.mlm.mages.ui.components.message.MessageStatusLine
-import org.mlm.mages.ui.components.message.ReactionChipsRow
 import org.mlm.mages.ui.components.message.toBubbleModel
 import org.mlm.mages.ui.components.timeline.TimelineContent
 import org.mlm.mages.ui.components.timeline.TimelineEventItem
@@ -137,15 +143,30 @@ fun ThreadRoute(
         onDelete = { ev -> viewModel.delete(ev) },
         onOpenAttachment = { ev -> viewModel.openAttachment(ev) { path, mime -> openExternal(path, mime) } },
         onOpenImage = { ev ->
-        openedImageItems = imageViewerItems(state.allMessages) { e -> e.thumbKey?.let { state.thumbByEvent[it] } }
-        openedImageKey = ev.itemId
-    },
+            openedImageItems = imageViewerItems(state.allMessages) { e ->
+                e.thumbKey?.let { state.thumbByEvent[it] }
+            }
+            openedImageKey = ev.itemId
+        },
         enterSendsMessage = settings.enterSendsMessage,
         showReactionAvatars = settings.showReactionAvatars,
         canEditLatest = settings.editLatestWithUpArrow && state.editingEvent == null && viewModel.hasEditableLatest(),
         onEditLatest = viewModel::startEditLatestEditable,
         onMentionClick = viewModel::selectMemberForAction,
         onDismissMember = viewModel::clearSelectedMember,
+        onEnterSelectionMode = viewModel::enterSelectionMode,
+        onToggleSelection = viewModel::toggleSelected,
+        onClearSelection = viewModel::clearSelection,
+        onSelectAll = viewModel::selectAllVisible,
+        onForwardSelected = viewModel::forwardSelected,
+        onDeleteSelected = viewModel::deleteSelected,
+        onForwardEvent = { event -> viewModel.forwardEvent(event) },
+        onMarkReadHere = viewModel::markReadHere,
+        onRetryMessage = viewModel::retry,
+        onRetryLoad = viewModel::retryLoad,
+        onVotePoll = viewModel::votePoll,
+        onEndPoll = viewModel::endPoll,
+        onShowStaticLocation = viewModel::showStaticLocation,
         onStartDm = viewModel::startDmWith,
         onKick = viewModel::kickUser,
         onBan = viewModel::banUser,
@@ -164,7 +185,7 @@ fun ThreadRoute(
         quickReactions = parseQuickReactions(settings.quickReactions),
         reactionShortcodes = viewModel.reactionShortcodes,
         onReactionImages = { chips -> viewModel.ensureReactionImages(chips) },
-        previewBlocked = !settings.mediaPreviews.allowsMediaPreviews(null),
+        previewBlocked = !settings.mediaPreviews.allowsMediaPreviews(state.isDm),
         onShowPreview = { viewModel.showMediaPreview(it) },
     )
 
@@ -175,9 +196,9 @@ fun ThreadRoute(
             startKey = openedImage,
             startIndex = viewerStartIndex.coerceAtLeast(0),
             onDismiss = {
-            openedImageKey = null
-            openedImageItems = null
-        },
+                openedImageKey = null
+                openedImageItems = null
+            },
             loadFullMedia = { event -> service.loadImageForViewing(event) },
             onOpenMedia = { path, mime -> openExternal(path, mime) },
             onShareMedia = { path, mime ->
@@ -194,6 +215,21 @@ fun ThreadRoute(
     }
 
     AvatarViewerHost(avatarViewer)
+
+    if (state.showStaticLocationViewer) {
+        LiveLocationMapViewer(
+            shares = emptyMap(),
+            avatarPathByUserId = state.avatarByUserId,
+            displayNameByUserId = state.allMessages.asReversed().associate {
+                it.sender to (it.senderDisplayName ?: it.sender)
+            },
+            onDismiss = viewModel::hideStaticLocation,
+            mode = LocationViewerMode.ViewStatic(
+                lat = state.staticLocationViewerLat,
+                lon = state.staticLocationViewerLon,
+            ),
+        )
+    }
 }
 
 @Composable
@@ -218,6 +254,19 @@ fun ThreadScreen(
     canEditLatest: Boolean = false,
     onEditLatest: () -> Unit = {},
     onMentionClick: ((String) -> Unit)? = null,
+    onEnterSelectionMode: (String) -> Unit = {},
+    onToggleSelection: (String) -> Unit = {},
+    onClearSelection: () -> Unit = {},
+    onSelectAll: () -> Unit = {},
+    onForwardSelected: () -> Unit = {},
+    onDeleteSelected: () -> Unit = {},
+    onForwardEvent: (MessageEvent) -> Unit = {},
+    onMarkReadHere: (MessageEvent) -> Unit = {},
+    onRetryMessage: (MessageEvent) -> Unit = {},
+    onRetryLoad: () -> Unit = {},
+    onVotePoll: (String, PollData, String) -> Unit = { _, _, _ -> },
+    onEndPoll: (String) -> Unit = {},
+    onShowStaticLocation: (Double, Double) -> Unit = { _, _ -> },
     onDismissMember: () -> Unit = {},
     onStartDm: (String) -> Unit = { },
     onKick: (String, String?) -> Unit = { _, _ -> },
@@ -236,7 +285,7 @@ fun ThreadScreen(
     onShowPreview: ((MessageEvent) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
-    var sheetEvent by remember { mutableStateOf<MessageEvent?>(null) }
+    var sheetItemId by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
 
     // Calculate total items
@@ -244,7 +293,6 @@ fun ThreadScreen(
         var count = 0
         if (state.nextBatch != null) count++
         if (state.rootMessage != null) count++
-        if (state.rootMessage != null && state.replies.isNotEmpty()) count++
         count += state.replies.size
         count
     }
@@ -264,6 +312,7 @@ fun ThreadScreen(
         onReactionImages(state.allMessages.flatMap { it.reactions })
     }
     var focusedLoadAttempts by remember { mutableIntStateOf(0) }
+    LaunchedEffect(focusedEventId) { focusedLoadAttempts = 0 }
     LaunchedEffect(focusedEventId, state.hasInitialLoad, state.replies.size, state.nextBatch, state.isLoading) {
         val target = focusedEventId ?: return@LaunchedEffect
         if (!state.hasInitialLoad) return@LaunchedEffect
@@ -271,10 +320,15 @@ fun ThreadScreen(
         if (replyIndex >= 0) {
             listState.scrollToItem(state.replies.lastIndex - replyIndex)
             focusedLoadAttempts = 0
+            onClearFocus()
             return@LaunchedEffect
         }
-        if (state.rootMessage?.eventId == target || state.rootEventId == target) {
+        if (state.rootMessage != null &&
+            (state.rootMessage.eventId == target || state.rootEventId == target)
+        ) {
+            listState.scrollToItem(state.replies.size)
             focusedLoadAttempts = 0
+            onClearFocus()
             return@LaunchedEffect
         }
         if (state.focusedEventMissing) {
@@ -304,42 +358,60 @@ fun ThreadScreen(
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top),
         topBar = {
-            ThreadTopBar(
-                messageCount = state.messageCount,
-                roomName = state.roomName,
-                onBack = onBack
-            )
+            if (state.isSelectionMode) {
+                SelectionTopBar(
+                    selectedCount = state.selectedEventIds.size,
+                    onClearSelection = onClearSelection,
+                    onSelectAll = onSelectAll,
+                )
+            } else {
+                ThreadTopBar(
+                    starterName = state.rootMessage?.let { root ->
+                        root.senderDisplayName?.takeIf { it.isNotBlank() }
+                            ?: root.sender.takeIf { it.isNotBlank() }?.let(::formatDisplayName)
+                    },
+                    roomName = state.roomName,
+                    onBack = onBack
+                )
+            }
         },
         bottomBar = {
-            Column(modifier = Modifier.navigationBarsPadding().imePadding()) {
-                ActionBanner(
-                    replyingTo = state.replyingTo,
-                    editing = state.editingEvent,
-                    onCancelReply = onCancelReply,
-                    onCancelEdit = onCancelEdit,
-                    resolvedPreviewPath = (state.editingEvent ?: state.replyingTo)?.thumbKey?.let { state.thumbByEvent[it] },
+            if (state.isSelectionMode) {
+                ThreadSelectionBottomBar(
+                    onForward = onForwardSelected,
+                    onDelete = onDeleteSelected,
                 )
-                MessageComposer(
-                    value = state.input,
-                    enabled = true,
-                    isOffline = false,
-                    replyingTo = state.replyingTo,
-                    editing = state.editingEvent,
-                    attachments = emptyList(),
-                    isUploadingAttachment = false,
-                    onValueChange = onInputChange,
-                    onSend = onSend,
-                    onCancelReply = onCancelReply,
-                    onCancelEdit = onCancelEdit,
-                    enterSendsMessage = enterSendsMessage,
-                    canEditLatest = canEditLatest,
-                    onEditLatest = onEditLatest,
-                    roomMembers = state.roomMembers,
-                    avatarPathByUserId = state.avatarByUserId,
-                    emoteSuggestions = emoteSuggestions,
-                    resolveEmotePreview = resolveEmotePreview,
-                    isEncryptedRoom = state.isRoomEncrypted,
-                )
+            } else {
+                Column(modifier = Modifier.navigationBarsPadding().imePadding()) {
+                    ActionBanner(
+                        replyingTo = state.replyingTo,
+                        editing = state.editingEvent,
+                        onCancelReply = onCancelReply,
+                        onCancelEdit = onCancelEdit,
+                        resolvedPreviewPath = (state.editingEvent ?: state.replyingTo)?.thumbKey?.let { state.thumbByEvent[it] },
+                    )
+                    MessageComposer(
+                        value = state.input,
+                        enabled = state.sendMessageAction.isEnabled,
+                        isOffline = false,
+                        replyingTo = state.replyingTo,
+                        editing = state.editingEvent,
+                        attachments = emptyList(),
+                        isUploadingAttachment = false,
+                        onValueChange = onInputChange,
+                        onSend = onSend,
+                        onCancelReply = onCancelReply,
+                        onCancelEdit = onCancelEdit,
+                        enterSendsMessage = enterSendsMessage,
+                        canEditLatest = canEditLatest,
+                        onEditLatest = onEditLatest,
+                        roomMembers = state.roomMembers,
+                        avatarPathByUserId = state.avatarByUserId,
+                        emoteSuggestions = emoteSuggestions,
+                        resolveEmotePreview = resolveEmotePreview,
+                        isEncryptedRoom = state.isRoomEncrypted,
+                    )
+                }
             }
         },
         floatingActionButton = {
@@ -372,7 +444,7 @@ fun ThreadScreen(
                 .padding(padding)
                 .consumeWindowInsets(padding)
         ) {
-            AnimatedVisibility(visible = state.isLoading && !state.hasInitialLoad) {
+            AnimatedVisibility(visible = state.isLoading && state.hasInitialLoad) {
                 LinearWavyProgressIndicator(
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.primary
@@ -385,7 +457,14 @@ fun ThreadScreen(
             )
 
             when {
-                !state.hasInitialLoad && state.isLoading -> {
+                !state.hasInitialLoad &&
+                        state.rootMessage == null &&
+                        state.replies.isEmpty() &&
+                        state.error != null -> {
+                    EmptyThreadView(hasError = true, onRetry = onRetryLoad)
+                }
+
+                !state.hasInitialLoad && state.rootMessage == null && state.replies.isEmpty() -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             LoadingIndicator()
@@ -399,8 +478,11 @@ fun ThreadScreen(
                     }
                 }
 
-                state.rootMessage == null && state.hasInitialLoad -> {
-                    EmptyThreadView()
+                state.rootMessage == null && state.replies.isEmpty() && state.hasInitialLoad -> {
+                    EmptyThreadView(
+                        hasError = state.error != null,
+                        onRetry = onRetryLoad,
+                    )
                 }
 
                 else -> {
@@ -430,19 +512,65 @@ fun ThreadScreen(
                                     ThreadReplyMessage(
                                         event = bubbleItem.event,
                                         isMine = bubbleItem.event.sender == myUserId,
+                                        isDm = state.isDm,
                                         reactionSummaries = bubbleItem.event.reactions,
                                         avatarByUserId = state.avatarByUserId,
                                         replyThumbByEvent = state.replyThumbByEvent,
                                         thumbByEvent = state.thumbByEvent,
+                                        audioFileByEvent = state.audioFileByEvent,
+                                        waveformByEvent = state.waveformByEvent,
                                         linkPreviewByEvent = state.linkPreviewByEvent,
                                         linkPreviewImageByEvent = state.linkPreviewImageByEvent,
                                         mentionProfilesByUserId = state.mentionProfilesByUserId,
+                                        showReactionAvatars = showReactionAvatars,
+                                        isSelected = bubbleItem.event.eventId in state.selectedEventIds,
                                         onMentionClick = onMentionClick,
+                                        onClick = if (state.isSelectionMode) {
+                                            { onToggleSelection(bubbleItem.event.eventId) }
+                                        } else {
+                                            null
+                                        },
+                                        isSelectionMode = state.isSelectionMode,
+                                        onReplyPreviewClick = if (state.isSelectionMode) {
+                                            null
+                                        } else bubbleItem.event.replyToEventId?.let { targetId ->
+                                            {
+                                                val targetIndex = state.replies.indexOfFirst { it.eventId == targetId }
+                                                if (targetIndex >= 0) {
+                                                    scope.launch {
+                                                        listState.animateScrollToItem(state.replies.lastIndex - targetIndex)
+                                                    }
+                                                } else if (state.rootMessage?.eventId == targetId) {
+                                                    scope.launch {
+                                                        listState.animateScrollToItem(state.replies.size)
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        onVote = { optionId ->
+                                            bubbleItem.event.pollData?.let {
+                                                onVotePoll(bubbleItem.event.eventId, it, optionId)
+                                            }
+                                        },
+                                        onEndPoll = { onEndPoll(bubbleItem.event.eventId) },
+                                        onSenderClick = if (bubbleItem.event.sender != myUserId &&
+                                            !state.isSelectionMode
+                                        ) {
+                                            { onMentionClick?.invoke(bubbleItem.event.sender) }
+                                        } else {
+                                            null
+                                        },
                                         emotePaths = state.emotePathByMxc,
                                         reactionImagePaths = state.reactionImagePathByMxc,
                                         reactionShortcodes = reactionShortcodes,
                                         onReact = { emoji -> onReact(bubbleItem.event, emoji) },
-                                        onLongPress = { sheetEvent = bubbleItem.event },
+                                        onLongPress = {
+                                            if (state.isSelectionMode) {
+                                                onToggleSelection(bubbleItem.event.eventId)
+                                            } else {
+                                                sheetItemId = bubbleItem.event.itemId
+                                            }
+                                        },
                                         onOpenAttachment = {
                                             val event = bubbleItem.event
                                             if (event.isViewableImage()) onOpenImage(event)
@@ -458,8 +586,22 @@ fun ThreadScreen(
                                 staticLocation = { locItem ->
                                     TimelineLocationItem(
                                         item = locItem,
-                                        onClick = {},
-                                        onLongClick = { sheetEvent = locItem.event },
+                                        onClick = {
+                                            if (state.isSelectionMode) {
+                                                onToggleSelection(locItem.event.eventId)
+                                            } else {
+                                                parseGeoUri(
+                                                    locItem.event.liveLocation?.geoUri ?: locItem.event.body
+                                                )?.let { (lat, lon) -> onShowStaticLocation(lat, lon) }
+                                            }
+                                        },
+                                        onLongClick = {
+                                            if (state.isSelectionMode) {
+                                                onToggleSelection(locItem.event.eventId)
+                                            } else {
+                                                sheetItemId = locItem.event.itemId
+                                            }
+                                        },
                                         senderDisplayName = locItem.event.senderDisplayName,
                                         senderAvatarPath = state.avatarByUserId[locItem.event.sender],
                                     )
@@ -468,19 +610,27 @@ fun ThreadScreen(
                                     TimelineLocationItem(
                                         item = locItem,
                                         isLive = locItem.event.liveLocation?.isLive == true,
-                                        onClick = {},
-                                        onLongClick = { sheetEvent = locItem.event },
+                                        onClick = {
+                                            if (state.isSelectionMode) {
+                                                onToggleSelection(locItem.event.eventId)
+                                            } else {
+                                                parseGeoUri(
+                                                    locItem.event.liveLocation?.geoUri ?: locItem.event.body
+                                                )?.let { (lat, lon) -> onShowStaticLocation(lat, lon) }
+                                            }
+                                        },
+                                        onLongClick = {
+                                            if (state.isSelectionMode) {
+                                                onToggleSelection(locItem.event.eventId)
+                                            } else {
+                                                sheetItemId = locItem.event.itemId
+                                            }
+                                        },
                                         senderDisplayName = locItem.event.senderDisplayName,
                                         senderAvatarPath = state.avatarByUserId[locItem.event.sender],
                                     )
                                 },
                             )
-                        }
-
-                        if (state.replies.isNotEmpty()) {
-                            item(key = "divider") {
-                                ThreadDivider(replyCount = state.replies.size)
-                            }
                         }
 
                         state.rootMessage?.let { root ->
@@ -492,19 +642,74 @@ fun ThreadScreen(
                                             state = state,
                                             event = bubbleItem.event,
                                             isMine = bubbleItem.event.sender == myUserId,
-                                            reactionSummaries = bubbleItem.event.reactions,
                                             reactionShortcodes = reactionShortcodes,
                                             showReactionAvatars = showReactionAvatars,
+                                            onMentionClick = onMentionClick,
+                                            onClick = if (state.isSelectionMode) {
+                                                {
+                                                    onToggleSelection(bubbleItem.event.eventId)
+                                                }
+                                            } else {
+                                                null
+                                            },
+                                            highlighted = state.isSelectionMode &&
+                                                bubbleItem.event.eventId in state.selectedEventIds,
+                                            previewBlocked = previewBlocked,
+                                            onOpenAttachment = onOpenAttachment,
+                                            onOpenImage = onOpenImage,
+                                            onShowPreview = { onShowPreview?.invoke(bubbleItem.event) },
+                                            onReplyPreviewClick = if (state.isSelectionMode) {
+                                                null
+                                            } else bubbleItem.event.replyToEventId?.let { targetId ->
+                                                {
+                                                    val targetIndex = state.replies.indexOfFirst { it.eventId == targetId }
+                                                    if (targetIndex >= 0) {
+                                                        scope.launch {
+                                                            listState.animateScrollToItem(state.replies.lastIndex - targetIndex)
+                                                        }
+                                                    } else if (state.rootMessage?.eventId == targetId) {
+                                                        scope.launch {
+                                                            listState.animateScrollToItem(state.replies.size)
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            onVote = { optionId ->
+                                                bubbleItem.event.pollData?.let {
+                                                    onVotePoll(bubbleItem.event.eventId, it, optionId)
+                                                }
+                                            },
+                                            onEndPoll = { onEndPoll(bubbleItem.event.eventId) },
                                             onReact = { emoji -> onReact(bubbleItem.event, emoji) },
                                             onReply = { onStartReply(bubbleItem.event) },
-                                            onLongPress = { sheetEvent = bubbleItem.event }
+                                            onLongPress = {
+                                                if (state.isSelectionMode) {
+                                                    onToggleSelection(bubbleItem.event.eventId)
+                                                } else {
+                                                    sheetItemId = bubbleItem.event.itemId
+                                                }
+                                            },
                                         )
                                     },
                                     staticLocation = { locItem ->
                                         TimelineLocationItem(
                                             item = locItem,
-                                            onClick = {},
-                                            onLongClick = { sheetEvent = locItem.event },
+                                            onClick = {
+                                                if (state.isSelectionMode) {
+                                                    onToggleSelection(locItem.event.eventId)
+                                                } else {
+                                                    parseGeoUri(
+                                                        locItem.event.liveLocation?.geoUri ?: locItem.event.body
+                                                    )?.let { (lat, lon) -> onShowStaticLocation(lat, lon) }
+                                                }
+                                            },
+                                            onLongClick = {
+                                                if (state.isSelectionMode) {
+                                                    onToggleSelection(locItem.event.eventId)
+                                                } else {
+                                                    sheetItemId = locItem.event.itemId
+                                                }
+                                            },
                                             senderDisplayName = locItem.event.senderDisplayName,
                                             senderAvatarPath = state.avatarByUserId[locItem.event.sender],
                                         )
@@ -513,8 +718,22 @@ fun ThreadScreen(
                                         TimelineLocationItem(
                                             item = locItem,
                                             isLive = locItem.event.liveLocation?.isLive == true,
-                                            onClick = {},
-                                            onLongClick = { sheetEvent = locItem.event },
+                                            onClick = {
+                                                if (state.isSelectionMode) {
+                                                    onToggleSelection(locItem.event.eventId)
+                                                } else {
+                                                    parseGeoUri(
+                                                        locItem.event.liveLocation?.geoUri ?: locItem.event.body
+                                                    )?.let { (lat, lon) -> onShowStaticLocation(lat, lon) }
+                                                }
+                                            },
+                                            onLongClick = {
+                                                if (state.isSelectionMode) {
+                                                    onToggleSelection(locItem.event.eventId)
+                                                } else {
+                                                    sheetItemId = locItem.event.itemId
+                                                }
+                                            },
                                             senderDisplayName = locItem.event.senderDisplayName,
                                             senderAvatarPath = state.avatarByUserId[locItem.event.sender],
                                         )
@@ -538,7 +757,9 @@ fun ThreadScreen(
         }
     }
 
-    sheetEvent?.let { ev ->
+    val sheetEvent = sheetItemId?.let { id -> state.allMessages.firstOrNull { it.itemId == id } }
+    if (sheetEvent != null) {
+        val ev = sheetEvent
         val isMine = ev.sender == myUserId
         MessageActionSheet(
             event = ev,
@@ -548,40 +769,58 @@ fun ThreadScreen(
             reactionImagePacks = state.imagePacks,
             resolveReactionPreview = resolveEmotePreview,
             isEncryptedRoom = state.isRoomEncrypted,
-            onDismiss = { sheetEvent = null },
+            onDismiss = { sheetItemId = null },
             onReply = {
                 onStartReply(ev)
-                sheetEvent = null
+                sheetItemId = null
             },
             onEdit = {
                 if (isMine) {
-                    run {
-                        onStartEdit(ev)
-                        sheetEvent = null
-                    }
-                } else null
+                    onStartEdit(ev)
+                    sheetItemId = null
+                }
             },
             onDelete = {
                 if (isMine) {
-                    run {
-                        scope.launch {
-                            onDelete(ev)
-                            sheetEvent = null
-                        }
+                    scope.launch {
+                        onDelete(ev)
+                        sheetItemId = null
                     }
-                } else null
+                }
             },
             onCancelSend = {
                 if (isMine) {
                     scope.launch {
                         onDelete(ev)
-                        sheetEvent = null
+                        sheetItemId = null
                     }
-                } else null
+                }
+            },
+            onRetry = if (isMine) {
+                {
+                    onRetryMessage(ev)
+                    sheetItemId = null
+                }
+            } else {
+                null
+            },
+            onForward = if (ev.eventId.isNotBlank()) {
+                {
+                    onForwardEvent(ev)
+                    sheetItemId = null
+                }
+            } else {
+                null
             },
             onReact = { emoji -> onReact(ev, emoji) },
-            onMarkReadHere = { sheetEvent = null },
-            onSelect = { }// viewModel.enterSelectionMode(event.eventId) },
+            onMarkReadHere = {
+                onMarkReadHere(ev)
+                sheetItemId = null
+            },
+            onSelect = {
+                if (ev.eventId.isNotBlank()) onEnterSelectionMode(ev.eventId)
+                sheetItemId = null
+            },
         )
     }
 
@@ -606,7 +845,7 @@ fun ThreadScreen(
 
 @Composable
 private fun ThreadTopBar(
-    messageCount: Int,
+    starterName: String?,
     roomName: String,
     onBack: () -> Unit
 ) {
@@ -635,18 +874,24 @@ private fun ThreadTopBar(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
-                        Text(
-                            buildString {
-                                append("$messageCount ${if (messageCount == 1) "message" else "messages"}")
-                                if (roomName.isNotBlank()) {
-                                    append(" • $roomName")
-                                }
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        val replyLabel = if (replyCount > 0) {
+                            pluralStringResource(Res.plurals.reply_count, replyCount, replyCount)
+                        } else {
+                            null
+                        }
+                        val subtitle = listOfNotNull(
+                            replyLabel,
+                            roomName.takeIf { it.isNotBlank() },
+                        ).joinToString(" • ")
+                        if (subtitle.isNotBlank()) {
+                            Text(
+                                subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
             },
@@ -667,28 +912,51 @@ private fun ThreadRootMessage(
     state: ThreadUiState,
     event: MessageEvent,
     isMine: Boolean,
-    reactionSummaries: List<ReactionSummary>,
-    reactionShortcodes: Map<String, String> = emptyMap(),
+    reactionShortcodes: Map<String, String>,
     showReactionAvatars: Boolean,
+    onMentionClick: ((String) -> Unit)?,
+    onClick: (() -> Unit)?,
+    highlighted: Boolean,
+    previewBlocked: Boolean,
+    onOpenAttachment: (MessageEvent) -> Unit,
+    onOpenImage: (MessageEvent) -> Unit,
+    onShowPreview: () -> Unit,
+    onReplyPreviewClick: (() -> Unit)?,
+    onVote: (String) -> Unit,
+    onEndPoll: () -> Unit,
     onReact: (String) -> Unit,
     onReply: () -> Unit,
     onLongPress: () -> Unit
 ) {
+    val senderName = event.senderDisplayName?.takeIf { it.isNotBlank() }
+        ?: formatDisplayName(event.sender)
+    val inSelectionMode = onClick != null
+    val senderClickable = !isMine && onMentionClick != null && !inSelectionMode
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(Spacing.md)
+            .combinedClickable(
+                onClick = { onClick?.invoke() },
+                onLongClick = onLongPress
+            )
             .secondaryClick(onLongPress),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = if (highlighted) {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            }
         ),
-        shape = RoundedCornerShape(16.dp),
-        onClick = onLongPress
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Column(modifier = Modifier.padding(Spacing.lg)) {
+        Column {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = Spacing.lg, top = Spacing.md, end = Spacing.lg)
             ) {
                 Surface(
                     color = MaterialTheme.colorScheme.primary,
@@ -706,9 +974,21 @@ private fun ThreadRootMessage(
 
             Spacer(Modifier.height(Spacing.md))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.lg)
+                    .then(
+                        if (senderClickable) {
+                            Modifier.clickable { onMentionClick?.invoke(event.sender) }
+                        } else {
+                            Modifier
+                        }
+                    )
+            ) {
                 Avatar(
-                    name = event.sender,
+                    name = senderName,
                     avatarPath = state.avatarByUserId[event.sender],
                     size = 36.dp,
                     containerColor = if (isMine)
@@ -723,7 +1003,7 @@ private fun ThreadRootMessage(
                 Spacer(Modifier.width(Spacing.md))
                 Column(Modifier.weight(1f)) {
                     Text(
-                        formatDisplayName(event.sender),
+                        senderName,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = if (isMine) MaterialTheme.colorScheme.primary
@@ -734,104 +1014,92 @@ private fun ThreadRootMessage(
                 }
             }
 
-            Spacer(Modifier.height(Spacing.md))
-
-            Surface(
-                color = if (isMine)
-                    MaterialTheme.colorScheme.primaryContainer
-                else
-                    MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Box(modifier = Modifier.padding(Spacing.md)) {
-                    FormattedBodyText(
-                        formattedBody = event.formattedBody,
-                        fallbackBody = event.body,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (isMine)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        else
-                            MaterialTheme.colorScheme.onSurface,
-                        containerColor = if (isMine)
-                            MaterialTheme.colorScheme.primaryContainer
-                        else
-                            MaterialTheme.colorScheme.surface,
-                    )
-                }
-            }
-
-            if (reactionSummaries.isNotEmpty()) {
-                Spacer(Modifier.height(Spacing.sm))
-                ReactionChipsRow(
-                    chips = reactionSummaries,
-                    maxVisible = 6,
-                    avatarPathsByUserId = state.avatarByUserId,
-                    imagePaths = state.reactionImagePathByMxc,
-                    shortcodes = reactionShortcodes,
-                    showAvatars = showReactionAvatars,
-                    onClick = onReact,
-                    modifier = Modifier.offset(y = (-12).dp).padding(horizontal = Spacing.xs)
-                )
-            }
-
             Spacer(Modifier.height(Spacing.sm))
-            Surface(
-                onClick = onReply,
-                color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(20.dp),
-                modifier = Modifier.align(Alignment.End)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        painterResource(Res.drawable.ic_reply),
-                        null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        stringResource(Res.string.reply_action),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
+
+            val bubbleModel = TimelineContent.Bubble(event).toBubbleModel(
+                ctx = MessageBubbleRenderContext(
+                    isMine = isMine,
+                    isDm = state.isDm,
+                    avatarPath = state.avatarByUserId[event.sender],
+                    groupedWithPrev = false,
+                    groupedWithNext = false,
+                    reactions = event.reactions,
+                    reactionAvatarsByUserId = state.avatarByUserId,
+                    showReactionAvatars = showReactionAvatars,
+                    reactionImagePaths = state.reactionImagePathByMxc,
+                    reactionShortcodes = reactionShortcodes,
+                    variant = MessageBubbleVariant.ThreadRoot,
+                    previewBlocked = previewBlocked,
+                    resolvedPreviewPath = event.thumbKey?.let { state.thumbByEvent[it] },
+                    resolvedReplyPreviewPath = event.replyToEventId?.let {
+                        state.replyThumbByEvent[it] ?: state.thumbByEvent[it]
+                    },
+                    resolvedAudioPath = state.audioFileByEvent[event.eventId],
+                    resolvedAudioWaveform = state.waveformByEvent[event.eventId].orEmpty(),
+                    resolvedLinkPreview = state.linkPreviewByEvent[event.eventId],
+                    resolvedLinkPreviewImage = state.linkPreviewImageByEvent[event.eventId],
+                    resolvedMentions = mentionsOf(event, state.mentionProfilesByUserId),
+                    senderVisible = false,
+                )
+            )
+            Box {
+                MessageBubble(
+                    model = bubbleModel,
+                    onMentionClick = onMentionClick,
+                    onClick = onClick,
+                    onLongPress = onLongPress,
+                    onReact = onReact,
+                    onOpenAttachment = {
+                        if (event.isViewableImage()) onOpenImage(event) else onOpenAttachment(event)
+                    },
+                    onShowPreview = onShowPreview,
+                    onReplyPreviewClick = onReplyPreviewClick,
+                    onVote = onVote,
+                    onEndPoll = onEndPoll,
+                    emotePaths = state.emotePathByMxc,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (inSelectionMode) {
+                    Box(
+                        Modifier
+                            .matchParentSize()
+                            .pointerInput(event.eventId) {
+                                detectTapGestures { onClick?.invoke() }
+                            }
                     )
                 }
             }
-        }
-    }
-}
 
-@Composable
-private fun ThreadDivider(replyCount: Int) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.xl, vertical = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        HorizontalDivider(
-            modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.outlineVariant
-        )
-        Surface(
-            color = MaterialTheme.colorScheme.secondaryContainer,
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.padding(horizontal = Spacing.md)
-        ) {
-            Text(
-                pluralStringResource(Res.plurals.reply_count, replyCount, replyCount),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-            )
+            if (!inSelectionMode) {
+                Spacer(Modifier.height(Spacing.sm))
+                Surface(
+                    onClick = onReply,
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(end = Spacing.md, bottom = Spacing.sm)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = Spacing.md, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painterResource(Res.drawable.ic_reply),
+                            null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            stringResource(Res.string.reply_action),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
         }
-        HorizontalDivider(
-            modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.outlineVariant
-        )
     }
 }
 
@@ -839,14 +1107,24 @@ private fun ThreadDivider(replyCount: Int) {
 private fun ThreadReplyMessage(
     event: MessageEvent,
     isMine: Boolean,
+    isDm: Boolean,
     reactionSummaries: List<ReactionSummary>,
     avatarByUserId: Map<String, String>,
     replyThumbByEvent: Map<String, String>,
     thumbByEvent: Map<String, String>,
+    audioFileByEvent: Map<String, String>,
+    waveformByEvent: Map<String, List<Float>>,
     linkPreviewByEvent: Map<String, LinkPreview?>,
     linkPreviewImageByEvent: Map<String, String>,
+    showReactionAvatars: Boolean,
     mentionProfilesByUserId: Map<String, MentionProfileUi> = emptyMap(),
     onMentionClick: ((String) -> Unit)? = null,
+    onClick: (() -> Unit)?,
+    isSelectionMode: Boolean,
+    onReplyPreviewClick: (() -> Unit)? = null,
+    onVote: (String) -> Unit,
+    onEndPoll: () -> Unit,
+    onSenderClick: (() -> Unit)?,
     emotePaths: Map<String, String>,
     reactionImagePaths: Map<String, String>,
     reactionShortcodes: Map<String, String>,
@@ -856,6 +1134,7 @@ private fun ThreadReplyMessage(
     grouped: Boolean = false,
     groupedWithNext: Boolean = false,
     highlighted: Boolean = false,
+    isSelected: Boolean = false,
     previewBlocked: Boolean = false,
     onShowPreview: (() -> Unit)? = null,
 ) {
@@ -863,8 +1142,11 @@ private fun ThreadReplyMessage(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                if (highlighted) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
-                else MaterialTheme.colorScheme.surface
+                when {
+                    isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                    highlighted -> MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                    else -> MaterialTheme.colorScheme.surface
+                }
             )
             .padding(horizontal = Spacing.md, vertical = if (grouped) 2.dp else 4.dp)
     ) {
@@ -889,11 +1171,13 @@ private fun ThreadReplyMessage(
             val bubbleModel = TimelineContent.Bubble(event).toBubbleModel(
                 ctx = MessageBubbleRenderContext(
                     isMine = isMine,
-                    isDm = false,
+                    isDm = isDm,
                     avatarPath = if (grouped) null else avatarByUserId[event.sender],
                     groupedWithPrev = grouped,
                     groupedWithNext = groupedWithNext,
                     reactions = reactionSummaries,
+                    reactionAvatarsByUserId = avatarByUserId,
+                    showReactionAvatars = showReactionAvatars,
                     threadCount = null,
                     variant = MessageBubbleVariant.ThreadReply,
                     previewBlocked = previewBlocked,
@@ -901,6 +1185,8 @@ private fun ThreadReplyMessage(
                     resolvedReplyPreviewPath = event.replyToEventId?.let {
                         replyThumbByEvent[it] ?: thumbByEvent[it]
                     },
+                    resolvedAudioPath = audioFileByEvent[event.eventId],
+                    resolvedAudioWaveform = waveformByEvent[event.eventId].orEmpty(),
                     resolvedLinkPreview = linkPreviewByEvent[event.eventId],
                     resolvedLinkPreviewImage = linkPreviewImageByEvent[event.eventId],
                     resolvedMentions = mentionsOf(event, mentionProfilesByUserId),
@@ -913,16 +1199,33 @@ private fun ThreadReplyMessage(
                 editSendState = event.editSendState,
                 redactionSendState = event.redactionSendState,
                 isEdited = event.isEdited,
+                poll = event.pollData,
             )
-            MessageBubble(
-                model = bubbleModel,
-                onMentionClick = onMentionClick,
-                onLongPress = onLongPress,
-                onReact = onReact,
-                onOpenAttachment = onOpenAttachment,
-                onShowPreview = onShowPreview,
-                emotePaths = emotePaths
-            )
+            Box {
+                MessageBubble(
+                    model = bubbleModel,
+                    onMentionClick = onMentionClick,
+                    onClick = onClick,
+                    onLongPress = onLongPress,
+                    onReact = onReact,
+                    onOpenAttachment = onOpenAttachment,
+                    onShowPreview = onShowPreview,
+                    onVote = onVote,
+                    onEndPoll = onEndPoll,
+                    onReplyPreviewClick = onReplyPreviewClick,
+                    onSenderClick = onSenderClick,
+                    emotePaths = emotePaths
+                )
+                if (isSelectionMode) {
+                    Box(
+                        Modifier
+                            .matchParentSize()
+                            .pointerInput(event.eventId) {
+                                detectTapGestures { onClick?.invoke() }
+                            }
+                    )
+                }
+            }
             if (isMine) {
                 when {
                     event.editSendState == SendState.Sending ||
@@ -946,7 +1249,40 @@ private fun ThreadReplyMessage(
 }
 
 @Composable
-private fun EmptyThreadView() {
+private fun ThreadSelectionBottomBar(
+    onForward: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 3.dp,
+        modifier = Modifier.navigationBarsPadding()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            TextButton(onClick = onForward) {
+                Icon(painterResource(Res.drawable.ic_forward), null)
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(Res.string.forward))
+            }
+            TextButton(onClick = onDelete) {
+                Icon(painterResource(Res.drawable.ic_delete), null)
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(Res.string.delete))
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyThreadView(
+    hasError: Boolean,
+    onRetry: () -> Unit,
+) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -976,11 +1312,20 @@ private fun EmptyThreadView() {
             )
             Spacer(Modifier.height(Spacing.sm))
             Text(
-                stringResource(Res.string.the_thread_may_have_been_deleted_or_is_still_loading),
+                stringResource(
+                    if (hasError) Res.string.failed_to_load_thread
+                    else Res.string.the_thread_may_have_been_deleted_or_is_still_loading
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
+            if (hasError) {
+                Spacer(Modifier.height(Spacing.lg))
+                Button(onClick = onRetry) {
+                    Text(stringResource(Res.string.retry))
+                }
+            }
         }
     }
 }

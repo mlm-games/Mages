@@ -21,6 +21,7 @@ import org.mlm.mages.thumbKey
 import org.mlm.mages.withBridgedThumb
 import org.mlm.mages.matrix.ImagePackSummary
 import org.mlm.mages.matrix.LINK_PREVIEW_IMAGE_PX
+import org.mlm.mages.matrix.PollData
 import org.mlm.mages.matrix.TimelineDiff
 import org.mlm.mages.matrix.allowsLinkPreviews
 import org.mlm.mages.matrix.allowsMediaPreviews
@@ -30,6 +31,7 @@ import org.mlm.mages.storage.UserProfile
 import org.mlm.mages.ui.MentionProfileUi
 import org.mlm.mages.ui.isEditableBy
 import org.mlm.mages.ui.ThreadUiState
+import org.mlm.mages.ui.toUi
 import org.mlm.mages.ui.components.composer.EmoteSuggestion
 import org.mlm.mages.ui.components.composer.OutgoingText
 import org.mlm.mages.ui.components.composer.SpoilerPlaceholder
@@ -48,6 +50,7 @@ import org.mlm.mages.ui.util.downloadNameHint
 import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.platform.Notifier
 import org.mlm.mages.platform.isTgsSticker
+import org.mlm.mages.platform.voiceMessageExtension
 import org.mlm.mages.AttachmentKind
 import kotlin.getValue
 import org.jetbrains.compose.resources.getString
@@ -72,6 +75,7 @@ class ThreadViewModel(
         data class ShowError(val message: String) : Event()
         data class ShowSuccess(val message: String) : Event()
         data class NavigateToRoom(val roomId: String, val title: String) : Event()
+        data class OpenForwardPicker(val roomId: String, val eventIds: List<String>) : Event()
     }
 
     private val _events = Channel<Event>(Channel.BUFFERED)
@@ -109,27 +113,38 @@ class ThreadViewModel(
     private val prefs = settingsRepo.flow
         .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
 
+    private var initialPageRequested = false
 
     init {
         Notifier.clearThreadNotification(roomId, rootEventId)
         preloadRoomMembers()
         launch {
             val profile = runSafe { service.port.roomProfile(roomId) } ?: return@launch
+            updateState { copy(isDm = profile.isDm) }
             if (profile.name.isNotBlank() &&
                 (currentState.roomName.isBlank() || currentState.roomName == roomId)
             ) {
                 updateState { copy(roomName = profile.name) }
             }
         }
+        loadSendActionState()
         loadImagePacks()
         loadRoomEncryption()
         observeTimeline()
-        // Load initial thread data after a short delay to let timeline sync
+        // Load the latest page after the timeline snapshot settles.
         launch {
             delay(300)
-            if (!currentState.hasInitialLoad) {
+            if (!initialPageRequested) {
+                initialPageRequested = true
                 loadInitialThread()
             }
+        }
+    }
+
+    private fun loadSendActionState() {
+        launch {
+            val actionState = runSafe { service.port.roomActionState(roomId) } ?: return@launch
+            updateState { copy(sendMessageAction = actionState.sendMessage.toUi()) }
         }
     }
 
@@ -270,7 +285,6 @@ class ThreadViewModel(
             }
 
             is TimelineDiff.Clear -> {
-                // Timeline cleared - reset our state
                 seenItemIds.clear()
                 updateState {
                     copy(
@@ -279,6 +293,8 @@ class ThreadViewModel(
                         hasInitialLoad = false
                     )
                 }
+                initialPageRequested = false
+                loadInitialThread()
             }
         }
     }
@@ -303,6 +319,7 @@ class ThreadViewModel(
         prefetchReplyThumbnails(events)
         prefetchLinkPreviews(events)
         prefetchMentionProfiles(events)
+        prefetchAudioForEvents(events)
 
         val hasOnlyRootSnapshot = isReset && events.none { it.eventId != rootEventId }
 
@@ -316,14 +333,11 @@ class ThreadViewModel(
                 it.eventId != rootEventId && it.threadRootEventId == rootEventId
             }
 
-            // Merge with existing replies
-            val mergedReplies = if (isReset) {
-                newReplies.sortedForThread()
-            } else {
-                (replies + newReplies)
-                    .distinctBy { it.itemId }
-                    .sortedForThread()
-            }
+            // Keep API-loaded replies across timeline resets: the room timeline
+            // does not carry every thread reply.
+            val mergedReplies = (replies + newReplies)
+                .distinctBy { it.itemId }
+                .sortedForThread()
 
             var thumbs = thumbByEvent
             events.forEach { ev ->
@@ -334,7 +348,7 @@ class ThreadViewModel(
                 rootMessage = updatedRoot,
                 replies = mergedReplies,
                 thumbByEvent = thumbs,
-                hasInitialLoad = !hasOnlyRootSnapshot,
+                hasInitialLoad = hasInitialLoad || !hasOnlyRootSnapshot,
                 isLoading = false,
                 error = null
             )
@@ -369,6 +383,7 @@ class ThreadViewModel(
         seenItemIds.add(event.itemId)
         prefetchReplyThumbnails(listOf(event))
         prefetchLinkPreviews(listOf(event))
+        prefetchAudioForEvents(listOf(event))
 
         updateState {
             val bridged = event.withBridgedThumb(thumbByEvent)
@@ -397,6 +412,7 @@ class ThreadViewModel(
         seenItemIds.add(event.itemId)
         prefetchReplyThumbnails(listOf(event))
         prefetchLinkPreviews(listOf(event))
+        prefetchAudioForEvents(listOf(event))
 
         updateState {
             val bridged = event.withBridgedThumb(thumbByEvent)
@@ -422,54 +438,43 @@ class ThreadViewModel(
         }
     }
 
-    /**
-     * Remove an event by itemId.
-     */
     private fun removeSingleEvent(itemId: String) {
         seenItemIds.remove(itemId)
-
-        updateState {
-            when {
-                rootMessage?.itemId == itemId -> {
-                    // Root was deleted - show as deleted
-                    copy(rootMessage = rootMessage.copy(body = "[deleted]"))
-                }
-                else -> {
-                    copy(replies = replies.filter { it.itemId != itemId })
-                }
-            }
-        }
     }
 
     /**
      * Load thread via API as fallback/supplement to timeline data.
      */
     private fun loadInitialThread() {
+        if (currentState.isLoading) return
+        updateState { copy(isLoading = true, error = null) }
         launch(onError = {
+            initialPageRequested = false
             val failedToLoadThreadFallback = getString(Res.string.failed_to_load_thread)
             updateState { copy(isLoading = false, error = it.message ?: failedToLoadThreadFallback) }
         }) {
-            updateState { copy(isLoading = true, error = null) }
-
             val page = service.port.threadReplies(
                 roomId = roomId,
                 rootEventId = rootEventId,
                 from = null,
                 limit = 100,
-                forward = true
+                forward = false
             )
 
             val allMessages = page.messages.sortedBy { it.timestampMs }
             val root = allMessages.find { it.eventId == rootEventId }
+                ?: currentState.rootMessage
+                ?: runSafe { service.port.eventDetails(roomId, rootEventId) }
             val replies = allMessages.filter { it.eventId != rootEventId }
+            val prefetchEvents = (allMessages + listOfNotNull(root)).distinctBy { it.itemId }
 
-            // Track all seen items
             allMessages.forEach { seenItemIds.add(it.itemId) }
-            prefetchReplyThumbnails(allMessages)
-            prefetchLinkPreviews(allMessages)
+            prefetchReplyThumbnails(prefetchEvents)
+            prefetchLinkPreviews(prefetchEvents)
+            prefetchMentionProfiles(prefetchEvents)
+            prefetchAudioForEvents(prefetchEvents)
 
             updateState {
-                // Merge with any existing data from timeline
                 val mergedRoot = root ?: rootMessage
                 val mergedReplies = (this.replies + replies)
                     .distinctBy { it.itemId }
@@ -487,7 +492,13 @@ class ThreadViewModel(
                             mergedReplies.none { it.eventId == focusedEventId },
                 )
             }
+            markLatestRead(prefetchEvents)
         }
+    }
+
+    fun retryLoad() {
+        initialPageRequested = true
+        loadInitialThread()
     }
 
     /**
@@ -511,12 +522,11 @@ class ThreadViewModel(
         }
         if (currentState.isLoading) return
 
+        updateState { copy(isLoading = true) }
         launch(onError = { e ->
             updateState { copy(isLoading = false) }
             launch { _events.send(Event.ShowError(e.message ?: getString(Res.string.failed_to_load_more_messages))) }
         }) {
-            updateState { copy(isLoading = true) }
-
             val page = service.port.threadReplies(
                 roomId = roomId,
                 rootEventId = rootEventId,
@@ -527,11 +537,11 @@ class ThreadViewModel(
 
             val newReplies = page.messages.filter { it.eventId != rootEventId }
 
-            // Track new items
             newReplies.forEach { seenItemIds.add(it.itemId) }
             prefetchReplyThumbnails(newReplies)
             prefetchLinkPreviews(newReplies)
-        prefetchMentionProfiles(newReplies)
+            prefetchMentionProfiles(newReplies)
+            prefetchAudioForEvents(newReplies)
 
             updateState {
                 val merged = (replies + newReplies)
@@ -590,6 +600,144 @@ class ThreadViewModel(
         }
     }
 
+    fun enterSelectionMode(eventId: String) {
+        if (eventId.isBlank()) return
+        updateState { copy(isSelectionMode = true, selectedEventIds = setOf(eventId)) }
+    }
+
+    fun toggleSelected(eventId: String) {
+        if (eventId.isBlank()) return
+        updateState {
+            val next = if (eventId in selectedEventIds) {
+                selectedEventIds - eventId
+            } else {
+                selectedEventIds + eventId
+            }
+            copy(selectedEventIds = next, isSelectionMode = next.isNotEmpty())
+        }
+    }
+
+    fun clearSelection() {
+        updateState { copy(isSelectionMode = false, selectedEventIds = emptySet()) }
+    }
+
+    fun selectAllVisible() {
+        val ids = currentState.allMessages
+            .mapNotNull { it.eventId.takeIf { id -> id.isNotBlank() } }
+            .toSet()
+        updateState { copy(isSelectionMode = ids.isNotEmpty(), selectedEventIds = ids) }
+    }
+
+    fun forwardSelected() {
+        val ids = currentState.selectedEventIds.toList()
+        if (ids.isEmpty()) return
+        launch {
+            _events.send(Event.OpenForwardPicker(roomId, ids))
+            clearSelection()
+        }
+    }
+
+    fun forwardEvent(event: MessageEvent) {
+        if (event.eventId.isBlank()) return
+        launch { _events.send(Event.OpenForwardPicker(roomId, listOf(event.eventId))) }
+    }
+
+    fun deleteSelected() {
+        val selected = currentState.allMessages
+            .filter { it.eventId.isNotBlank() && it.eventId in currentState.selectedEventIds }
+        if (selected.isEmpty()) {
+            clearSelection()
+            return
+        }
+
+        launch {
+            var deleted = 0
+            selected.forEach { event ->
+                val result = runSafe { service.port.redact(roomId, event.eventId, null) }
+                if (result?.isSuccess == true) deleted++
+            }
+            clearSelection()
+            if (deleted == selected.size) {
+                sendSuccess(getString(Res.string.deleted_n_messages, deleted))
+            } else {
+                sendError(getString(Res.string.deleted_n_of_m_messages, deleted, selected.size))
+            }
+        }
+    }
+
+    fun votePoll(pollEventId: String, poll: PollData, optionId: String) {
+        if (pollEventId.isBlank()) return
+        launch {
+            val currentSelections = poll.mySelections.toSet()
+            val newSelections = if (poll.maxSelections <= 1L) {
+                if (currentSelections.contains(optionId)) emptyList() else listOf(optionId)
+            } else {
+                if (currentSelections.contains(optionId)) {
+                    currentSelections - optionId
+                } else if (currentSelections.size >= poll.maxSelections) {
+                    sendError(getString(Res.string.max_selections_options, poll.maxSelections))
+                    return@launch
+                } else {
+                    currentSelections + optionId
+                }
+            }.toList()
+
+            val result = service.port.sendPollResponse(roomId, pollEventId, newSelections)
+            if (result.isFailure) {
+                sendError(getString(Res.string.failed_to_submit_vote))
+            }
+        }
+    }
+
+    fun endPoll(pollEventId: String) {
+        if (pollEventId.isBlank()) return
+        launch {
+            val result = service.port.sendPollEnd(roomId, pollEventId)
+            if (result.isFailure) {
+                sendError(getString(Res.string.failed_to_end_poll))
+            } else {
+                sendSuccess(getString(Res.string.poll_ended))
+            }
+        }
+    }
+
+    fun markReadHere(event: MessageEvent) {
+        if (event.eventId.isBlank()) return
+        launch {
+            val result = service.markThreadReadAt(
+                roomId = roomId,
+                threadRootEventId = rootEventId,
+                eventId = event.eventId,
+                sendPublicReceipt = prefs.value.sendReadReceipts,
+            )
+            if (result.isSuccess) lastMarkedReadEventId = event.eventId
+        }
+    }
+
+    fun showStaticLocation(lat: Double, lon: Double) = updateState {
+        copy(
+            showStaticLocationViewer = true,
+            staticLocationViewerLat = lat,
+            staticLocationViewerLon = lon,
+        )
+    }
+
+    fun hideStaticLocation() = updateState { copy(showStaticLocationViewer = false) }
+
+    fun retry(event: MessageEvent) {
+        val txnId = event.txnId
+        if (txnId.isNullOrBlank()) {
+            launch { sendError(getString(Res.string.this_message_cannot_be_retried)) }
+            return
+        }
+        launch {
+            val result = service.retryByTxn(roomId, txnId)
+            if (result.isFailure) {
+                sendError(result.toUserMessage(getString(Res.string.retry_failed)))
+            }
+        }
+    }
+
     /**
      * Start replying to a message.
      */
@@ -637,7 +785,7 @@ class ThreadViewModel(
     }
 
     private fun mediaPreviewsAllowed(): Boolean =
-        prefs.value.mediaPreviews.allowsMediaPreviews(isPrivateRoom = null)
+        prefs.value.mediaPreviews.allowsMediaPreviews(isPrivateRoom = currentState.isDm)
 
     private fun linkPreviewsAllowed(): Boolean =
         prefs.value.linkPreviews.allowsLinkPreviews(currentState.isRoomEncrypted)
@@ -648,6 +796,30 @@ class ThreadViewModel(
             prefetchReplyThumbnail(it)
             prefetchEmotes(it)
             ensureThumbnail(it)
+        }
+    }
+
+    private fun prefetchAudioForEvents(events: List<MessageEvent>) {
+        if (!mediaPreviewsAllowed()) return
+        events.takeLast(8).forEach { event ->
+            val attachment = event.attachment ?: return@forEach
+            if (attachment.kind != AttachmentKind.Audio) return@forEach
+            if (event.eventId.isBlank()) return@forEach
+            if (currentState.audioFileByEvent.containsKey(event.eventId)) return@forEach
+            launch {
+                val nameHint = "voice_${event.eventId}.$voiceMessageExtension"
+                service.port.downloadAttachmentToCache(attachment, nameHint)
+                    .onSuccess { path ->
+                        updateState {
+                            copy(
+                                audioFileByEvent = audioFileByEvent + (event.eventId to path),
+                                waveformByEvent = attachment.waveform?.let {
+                                    waveformByEvent + (event.eventId to it)
+                                } ?: waveformByEvent
+                            )
+                        }
+                    }
+            }
         }
     }
 
@@ -1035,7 +1207,13 @@ class ThreadViewModel(
         }
 
         if (result?.isSuccess != true) {
-            updateState { copy(input = text, replyingTo = replyingTo) }
+            updateState {
+                val restoreDraft = input.isBlank()
+                copy(
+                    input = if (restoreDraft) text else input,
+                    replyingTo = if (restoreDraft) replyingTo else this.replyingTo,
+                )
+            }
             _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.failed_to_send_message))))
         }
 
