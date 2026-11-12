@@ -6,6 +6,7 @@ import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
@@ -22,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -1083,6 +1085,7 @@ fun FormattedBodyText(
         linkedMentions.users + mentionRefs
     }
     val bodyFontSize = baseStyle.fontSize.takeOrElse { LocalMessageFontSize.current.sp }
+    val pillTextStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = bodyFontSize)
     val rawRoomLabels = remember(fallbackBody) {
         buildSet {
             for (match in ROOM_ALIAS.findAll(fallbackBody)) {
@@ -1091,51 +1094,9 @@ fun FormattedBodyText(
             }
         }
     }
+    val html = formattedBody?.takeIf { it.isNotBlank() }
 
-    // The pill is tinted from the bubble's own text colour, the way the file-attachment box
-    // is, so it reads as an inset of the bubble instead of a themed block laid over it. That
-    // keeps it legible on both the sent and received bubbles without a colour per variant.
-    val pillLayout = remember(
-        allMentionRefs, linkedMentions.rooms, rawRoomLabels, mentionsRoom,
-        measurer, density, color, baseStyle
-    ) {
-        measureMentionPills(
-            refs = allMentionRefs,
-            roomRefs = linkedMentions.rooms,
-            rawRoomLabels = rawRoomLabels,
-            mentionsRoom = mentionsRoom,
-            measurer = measurer,
-            style = baseStyle,
-            density = density,
-            content = color,
-            fontSize = bodyFontSize,
-        )
-    }
-
-    // A concealed spoiler carries a clickable annotation that reveals it, so
-    // the parse only has to be redone when the set of revealed ones changes.
-    val parsed = remember(
-        formattedBody, emotePaths, containerColor, color, bodyFontSize, revealed.toList(), pillLayout
-    ) {
-        formattedBody?.takeIf { it.isNotBlank() }?.let { html ->
-            parseFormattedBody(
-                html = html,
-                emotePaths = emotePaths,
-                conceal = containerColor,
-                revealed = revealed.toSet(),
-                onReveal = { revealed.add(it) },
-                mentionRefs = allMentionRefs,
-                roomRefs = linkedMentions.rooms,
-                pillLayout = pillLayout,
-                onMentionClick = { userId -> onMentionClick?.invoke(userId) },
-                quoteRailColor = color.copy(alpha = 0.45f),
-                baseFontSize = bodyFontSize,
-                linkColor = linkColorOn(containerColor),
-            )
-        }
-    }
-
-    if (parsed == null) {
+    if (html == null) {
         if (useMessageFontSize && maxLines == Int.MAX_VALUE) {
             MarkdownText(
                 text = fallbackBody,
@@ -1158,16 +1119,74 @@ fun FormattedBodyText(
         return
     }
 
-    Text(
-        text = parsed.text,
-        modifier = modifier,
-        color = color,
-        style = baseStyle,
-        inlineContent = parsed.inlineContent,
-        maxLines = maxLines,
-        overflow = overflow,
-        textAlign = textAlign
-    )
+    val pillCandidate = allMentionRefs.isNotEmpty() ||
+        mentionsRoom ||
+        linkedMentions.rooms.isNotEmpty() ||
+        rawRoomLabels.isNotEmpty()
+    val currentMentionClick = rememberUpdatedState(onMentionClick)
+
+    val render: @Composable (Modifier, MentionPillLayout?) -> Unit = { textModifier, pillLayout ->
+        // A concealed spoiler carries a clickable annotation that reveals it, so
+        // the parse only has to be redone when the set of revealed ones changes.
+        val parsed = remember(
+            html, emotePaths, containerColor, color, bodyFontSize, revealed.toList(), pillLayout
+        ) {
+            parseFormattedBody(
+                html = html,
+                emotePaths = emotePaths,
+                conceal = containerColor,
+                revealed = revealed.toSet(),
+                onReveal = { revealed.add(it) },
+                mentionRefs = allMentionRefs,
+                roomRefs = linkedMentions.rooms,
+                pillLayout = pillLayout,
+                onMentionClick = { userId -> currentMentionClick.value?.invoke(userId) },
+                quoteRailColor = color.copy(alpha = 0.45f),
+                baseFontSize = bodyFontSize,
+                linkColor = linkColorOn(containerColor),
+            )
+        }
+        Text(
+            text = parsed.text,
+            modifier = textModifier,
+            color = color,
+            style = baseStyle,
+            inlineContent = parsed.inlineContent,
+            maxLines = maxLines,
+            overflow = overflow,
+            textAlign = textAlign
+        )
+    }
+
+    if (!pillCandidate) {
+        render(modifier, null)
+        return
+    }
+
+    BoxWithConstraints(modifier = modifier) {
+        val availableWidth = constraints.maxWidth
+        // The pill is tinted from the bubble's own text colour, the way the file-attachment box
+        // is, so it reads as an inset of the bubble instead of a themed block laid over it. That
+        // keeps it legible on both the sent and received bubbles without a colour per variant.
+        val pillLayout = remember(
+            allMentionRefs, linkedMentions.rooms, rawRoomLabels, mentionsRoom,
+            measurer, density, color, pillTextStyle, availableWidth
+        ) {
+            measureMentionPills(
+                refs = allMentionRefs,
+                roomRefs = linkedMentions.rooms,
+                rawRoomLabels = rawRoomLabels,
+                mentionsRoom = mentionsRoom,
+                measurer = measurer,
+                style = pillTextStyle,
+                density = density,
+                content = color,
+                fontSize = bodyFontSize,
+                availableWidth = availableWidth,
+            )
+        }
+        render(Modifier, pillLayout)
+    }
 }
 
 @Composable
@@ -1249,6 +1268,7 @@ private fun measureMentionPills(
     density: Density,
     content: Color,
     fontSize: TextUnit,
+    availableWidth: Int,
 ): MentionPillLayout? {
     val anchorLabels = roomRefs.values.map { it.label }.distinct().take(MAX_ROOM_PILLS)
     val roomLabels = (anchorLabels + rawRoomLabels.take(MAX_ROOM_PILLS)).distinct()
@@ -1260,41 +1280,57 @@ private fun measureMentionPills(
     val widths = LinkedHashMap<String, TextUnit>(refs.size)
     val roomLabelWidths = LinkedHashMap<String, TextUnit>(roomLabels.size)
     with(density) {
-        val labelLimitPx = mentionLabelMaxWidth.roundToPx().coerceAtLeast(1)
+        val labelCapPx = mentionLabelMaxWidth.roundToPx()
+        val unbounded = availableWidth == Constraints.Infinity
+        val boundedWidthPx = if (unbounded) labelCapPx else availableWidth
+        val maxPlaceholderPx = if (unbounded) Float.MAX_VALUE else availableWidth.toFloat()
 
-        fun measureLabel(label: String): Float =
+        fun labelLimit(chromePx: Int): Int =
+            minOf(
+                labelCapPx.toFloat(),
+                boundedWidthPx - chromePx - MENTION_PLACEHOLDER_SLACK_PX
+            ).toInt().coerceAtLeast(1)
+
+        fun measureLabel(label: String, limitPx: Int): Float =
             measurer.measure(
                 text = label,
                 style = style,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                constraints = Constraints(maxWidth = labelLimitPx),
+                constraints = Constraints(maxWidth = limitPx),
             ).size.width.toFloat()
 
         refs.forEach { (userId, ref) ->
-            val labelPx = measureLabel(ref.label)
             val chromePx = mentionPaddingHorizontal.roundToPx() * 2 +
                 if (ref.avatarPath != null) {
                     mentionAvatarSize.roundToPx() + mentionAvatarGap.roundToPx()
                 } else {
                     0
                 }
-            widths[userId] = (labelPx + chromePx + MENTION_PLACEHOLDER_SLACK_PX).toSp()
+            val labelPx = measureLabel(ref.label, labelLimit(chromePx))
+            widths[userId] = minOf(
+                labelPx + chromePx + MENTION_PLACEHOLDER_SLACK_PX,
+                maxPlaceholderPx
+            ).toSp()
         }
 
+        val roomChromePx = mentionPaddingHorizontal.roundToPx() * 2
         roomLabels.forEach { label ->
-            val labelPx = measureLabel(label)
-            roomLabelWidths[label] = (
-                labelPx + mentionPaddingHorizontal.roundToPx() * 2 +
-                    MENTION_PLACEHOLDER_SLACK_PX
-                ).toSp()
+            val labelPx = measureLabel(label, labelLimit(roomChromePx))
+            roomLabelWidths[label] = minOf(
+                labelPx + roomChromePx + MENTION_PLACEHOLDER_SLACK_PX,
+                maxPlaceholderPx
+            ).toSp()
         }
 
         val lineHeightPx = measurer.measure("Ag", style).size.height.toFloat()
         val heightPx = maxOf(mentionChromeHeight.toPx(), lineHeightPx)
         val everyoneWidth = if (mentionsRoom) {
-            val labelPx = measureLabel(EVERYONE_LABEL)
-            (labelPx + mentionPaddingHorizontal.roundToPx() * 2 + MENTION_PLACEHOLDER_SLACK_PX).toSp()
+            val labelPx = measureLabel(EVERYONE_LABEL, labelLimit(roomChromePx))
+            minOf(
+                labelPx + roomChromePx + MENTION_PLACEHOLDER_SLACK_PX,
+                maxPlaceholderPx
+            ).toSp()
         } else {
             null
         }

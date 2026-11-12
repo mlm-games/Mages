@@ -34,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import mages.shared.generated.resources.*
 import org.mlm.mages.matrix.KnockRequestSummary
 import org.mlm.mages.ui.components.core.Avatar
@@ -91,14 +92,20 @@ fun KnockRequestsSheet(
                     items(requests, key = { it.eventId }) { request ->
                         ListItem(
                             headlineContent = {
-                                Text(request.displayName ?: request.userId)
+                                Text(
+                                    request.displayName ?: request.userId,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             },
                             supportingContent = {
                                 Column {
                                     Text(
                                         request.userId,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                     request.reason?.takeIf { it.isNotBlank() }?.let { reason ->
                                         Spacer(Modifier.height(Spacing.xs))

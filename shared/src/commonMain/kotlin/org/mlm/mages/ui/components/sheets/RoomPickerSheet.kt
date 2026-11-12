@@ -147,7 +147,9 @@ private fun ForwardPreview(event: MessageEvent) {
                 Text(
                     event.sender.substringAfter('@').substringBefore(':'),
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     event.displayPreview(),

@@ -364,10 +364,20 @@ private fun UserListItem(
         modifier = Modifier.fillMaxWidth()
     ) {
         ListItem(
-            headlineContent = { Text(user.displayName ?: user.userId) },
+            headlineContent = {
+                Text(
+                    user.displayName ?: user.userId,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
             supportingContent = {
                 if (!user.displayName.isNullOrBlank()) {
-                    Text(user.userId)
+                    Text(
+                        user.userId,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             },
             leadingContent = {

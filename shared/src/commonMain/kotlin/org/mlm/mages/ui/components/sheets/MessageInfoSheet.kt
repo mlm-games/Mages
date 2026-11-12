@@ -685,6 +685,8 @@ fun ReadReceiptsSheet(
                                 Text(
                                     text = entry.displayName ?: entry.userId,
                                     fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             },
                             supportingContent = {

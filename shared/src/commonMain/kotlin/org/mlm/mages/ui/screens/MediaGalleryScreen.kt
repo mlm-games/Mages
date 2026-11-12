@@ -767,7 +767,9 @@ private fun FileListItem(
                     Text(
                         text = event.sender.substringAfter('@').substringBefore(':'),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     event.attachment?.sizeBytes?.let { size ->
                         Text(
@@ -899,7 +901,9 @@ private fun LinkListItem(
                 Text(
                     text = link.sender.substringAfter('@').substringBefore(':'),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 

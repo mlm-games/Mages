@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
 import org.mlm.mages.matrix.MemberSummary
@@ -97,6 +98,7 @@ fun PowerLevelsSheet(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(
+                                modifier = Modifier.weight(1f),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                             ) {
@@ -113,15 +115,19 @@ fun PowerLevelsSheet(
                                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                                     }
                                 )
-                                Column {
+                                Column(Modifier.weight(1f)) {
                                     Text(
                                         member.displayName ?: member.userId,
-                                        style = MaterialTheme.typography.bodyMedium
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
                                         getRoleLabel(memberPowerLevel),
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
                             }

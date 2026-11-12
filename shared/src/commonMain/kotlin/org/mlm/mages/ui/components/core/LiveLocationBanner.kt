@@ -80,6 +80,8 @@ fun LiveLocationBanner(
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 if (showForegroundWarning) {
                     Text(

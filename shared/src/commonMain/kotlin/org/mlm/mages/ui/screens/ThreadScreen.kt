@@ -34,6 +34,7 @@ import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.ui.MentionProfileUi
 import org.mlm.mages.ui.ThreadUiState
 import org.mlm.mages.ui.displayPreview
+import org.mlm.mages.ui.components.composer.ActionBanner
 import org.mlm.mages.ui.components.composer.EmoteSuggestion
 import org.mlm.mages.ui.components.composer.MessageComposer
 import org.mlm.mages.ui.components.core.Avatar
@@ -311,6 +312,13 @@ fun ThreadScreen(
         },
         bottomBar = {
             Column(modifier = Modifier.navigationBarsPadding().imePadding()) {
+                ActionBanner(
+                    replyingTo = state.replyingTo,
+                    editing = state.editingEvent,
+                    onCancelReply = onCancelReply,
+                    onCancelEdit = onCancelEdit,
+                    resolvedPreviewPath = (state.editingEvent ?: state.replyingTo)?.thumbKey?.let { state.thumbByEvent[it] },
+                )
                 MessageComposer(
                     value = state.input,
                     enabled = true,
