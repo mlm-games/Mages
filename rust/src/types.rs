@@ -207,6 +207,7 @@ pub struct SendAttachmentRequest {
     pub caption: Option<String>,
     pub formatted_caption: Option<String>,
     pub reply_to_event_id: Option<String>,
+    pub thread_root_event_id: Option<String>,
     pub voice_duration_ms: Option<u64>,
     pub voice_waveform: Option<Vec<f32>>,
     pub is_voice: Option<bool>,

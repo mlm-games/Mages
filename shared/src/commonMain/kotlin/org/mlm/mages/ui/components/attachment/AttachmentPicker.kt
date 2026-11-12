@@ -41,7 +41,7 @@ import mages.shared.generated.resources.picker_video_sub
 @Composable
 fun AttachmentPicker(
     onPickImage: () -> Unit,
-    onPickSticker: () -> Unit,
+    onPickSticker: (() -> Unit)?,
     onPickStickerPack: (() -> Unit)? = null,
     onPickVideo: () -> Unit,
     onPickFile: () -> Unit,
@@ -89,11 +89,13 @@ fun AttachmentPicker(
                 ) { onPickStickerPack(); onDismiss() }
             }
 
-            AttachmentOption(
-                painterResource(Res.drawable.ic_sentiment_satisfied),
-                stringResource(Res.string.picker_image_sticker),
-                stringResource(Res.string.picker_image_sticker_sub)
-            ) { onPickSticker(); onDismiss() }
+            if (onPickSticker != null) {
+                AttachmentOption(
+                    painterResource(Res.drawable.ic_sentiment_satisfied),
+                    stringResource(Res.string.picker_image_sticker),
+                    stringResource(Res.string.picker_image_sticker_sub)
+                ) { onPickSticker(); onDismiss() }
+            }
 
             AttachmentOption(
                 painterResource(Res.drawable.ic_video_library),

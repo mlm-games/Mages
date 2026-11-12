@@ -884,12 +884,14 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         caption: String?,
         formattedCaption: String?,
         replyToEventId: String?,
+        threadRootEventId: String?,
         voiceDurationMs: Long?,
         voiceWaveform: List<Float>?,
         isVoice: Boolean?,
         txnId: String?,
         onProgress: ((Long, Long?) -> Unit)?
     ): Boolean {
+        if (threadRootEventId != null) return false
         val bytes = retrieveWebBlob(path) ?: throw Exception("Blob not found for path: $path")
         clearWebBlob(path)
         // Hack: need to switch to a single fn for all platforms later

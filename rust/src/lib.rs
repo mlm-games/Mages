@@ -2765,6 +2765,7 @@ impl Client {
                 caption,
                 formatted_caption,
                 reply_to_event_id,
+                thread_root_event_id,
                 voice_duration_ms,
                 voice_waveform,
                 is_voice,
@@ -2817,12 +2818,30 @@ impl Client {
                 };
                 config = config.caption(Some(text_content));
             }
+            let thread_root = thread_root_event_id.filter(|id| !id.trim().is_empty());
             if let Some(reply_id) = reply_to_event_id {
                 if let Ok(eid) = matrix_sdk::ruma::EventId::parse(&reply_id) {
+                    let enforce_thread = if thread_root.is_some() {
+                        matrix_sdk::room::reply::EnforceThread::Threaded(
+                            matrix_sdk::ruma::events::room::message::ReplyWithinThread::Yes,
+                        )
+                    } else {
+                        matrix_sdk::room::reply::EnforceThread::Unthreaded
+                    };
                     config = config.reply(Some(matrix_sdk::room::reply::Reply {
                         event_id: eid.to_owned(),
-                        enforce_thread: matrix_sdk::room::reply::EnforceThread::Unthreaded,
+                        enforce_thread,
                         add_mentions: matrix_sdk::ruma::events::room::message::AddMentions::Yes,
+                    }));
+                }
+            } else if let Some(root_id) = thread_root {
+                if let Ok(eid) = matrix_sdk::ruma::EventId::parse(&root_id) {
+                    config = config.reply(Some(matrix_sdk::room::reply::Reply {
+                        event_id: eid.to_owned(),
+                        enforce_thread: matrix_sdk::room::reply::EnforceThread::Threaded(
+                            matrix_sdk::ruma::events::room::message::ReplyWithinThread::No,
+                        ),
+                        add_mentions: matrix_sdk::ruma::events::room::message::AddMentions::No,
                     }));
                 }
             }

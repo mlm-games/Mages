@@ -211,13 +211,14 @@ class MatrixService(
         caption: String? = null,
         formattedCaption: String? = null,
         replyToEventId: String? = null,
+        threadRootEventId: String? = null,
         voiceDurationMs: Long? = null,
         voiceWaveform: List<Float>? = null,
         isVoice: Boolean? = null,
         txnId: String? = null,
         onProgress: ((sent: Long, total: Long?) -> Unit)? = null,
     ): Result<Unit> = runCatching {
-        val ok = port.sendAttachmentFromPath(roomId, path, mime, filename, caption, formattedCaption, replyToEventId, voiceDurationMs, voiceWaveform, isVoice, txnId, onProgress)
+        val ok = port.sendAttachmentFromPath(roomId, path, mime, filename, caption, formattedCaption, replyToEventId, threadRootEventId, voiceDurationMs, voiceWaveform, isVoice, txnId, onProgress)
         check(ok) { getString(Res.string.failed_to_send_attachment) }
     }
 

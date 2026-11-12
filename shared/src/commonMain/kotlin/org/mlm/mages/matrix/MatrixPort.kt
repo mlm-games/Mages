@@ -1131,6 +1131,7 @@ interface MatrixPort {
         caption: String? = null,
         formattedCaption: String? = null,
         replyToEventId: String? = null,
+        threadRootEventId: String? = null,
         voiceDurationMs: Long? = null,
         voiceWaveform: List<Float>? = null,
         isVoice: Boolean? = null,

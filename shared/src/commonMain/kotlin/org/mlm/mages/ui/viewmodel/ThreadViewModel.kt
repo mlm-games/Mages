@@ -29,9 +29,11 @@ import org.mlm.mages.emoji.RecentEmojiStore
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.storage.UserProfile
 import org.mlm.mages.ui.MentionProfileUi
+import org.mlm.mages.ui.AttachmentUploadStage
 import org.mlm.mages.ui.isEditableBy
 import org.mlm.mages.ui.ThreadUiState
 import org.mlm.mages.ui.toUi
+import org.mlm.mages.ui.components.AttachmentData
 import org.mlm.mages.ui.components.composer.EmoteSuggestion
 import org.mlm.mages.ui.components.composer.OutgoingText
 import org.mlm.mages.ui.components.composer.SpoilerPlaceholder
@@ -50,9 +52,12 @@ import org.mlm.mages.ui.util.downloadNameHint
 import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.platform.Notifier
 import org.mlm.mages.platform.isTgsSticker
+import org.mlm.mages.platform.deleteDirectory
+import org.mlm.mages.platform.voiceMessageMimeType
 import org.mlm.mages.platform.voiceMessageExtension
 import org.mlm.mages.AttachmentKind
 import kotlin.getValue
+import kotlin.uuid.Uuid
 import org.jetbrains.compose.resources.getString
 import mages.shared.generated.resources.Res
 
@@ -100,6 +105,8 @@ class ThreadViewModel(
     }
 
     private var timelineJob: Job? = null
+    private var uploadJob: Job? = null
+    private var uploadTxnId: String? = null
 
     // Track all events we've seen for this thread (for deduplication)
     private val seenItemIds = mutableSetOf<String>()
@@ -735,6 +742,262 @@ class ThreadViewModel(
             if (result.isFailure) {
                 sendError(result.toUserMessage(getString(Res.string.retry_failed)))
             }
+        }
+    }
+
+    fun showAttachmentPicker() = updateState { copy(showAttachmentPicker = true) }
+
+    fun hideAttachmentPicker() = updateState { copy(showAttachmentPicker = false) }
+
+    fun attachFile(data: AttachmentData) {
+        updateState {
+            copy(
+                attachments = attachments + data,
+                showAttachmentPicker = false
+            )
+        }
+    }
+
+    fun removeAttachment(index: Int) {
+        updateState {
+            copy(attachments = attachments.toMutableList().apply { removeAt(index) })
+        }
+    }
+
+    fun send() {
+        if (currentState.isUploadingAttachment) return
+        if (currentState.editingEvent != null) {
+            launch { confirmEdit() }
+            return
+        }
+
+        val snapshot = currentState
+        val pending = snapshot.attachments
+        if (pending.isEmpty()) {
+            launch { sendMessage(snapshot.input) }
+            return
+        }
+
+        val text = snapshot.input
+        val replyTo = snapshot.replyingTo
+        updateState { copy(input = "", replyingTo = null, attachments = emptyList()) }
+
+        uploadJob = launch {
+            val outgoing = text.trim().takeIf { it.isNotBlank() }?.toOutgoingText()
+            if (outgoing != null &&
+                isMessageTooLong(outgoing.body, outgoing.formattedBody, snapshot.isRoomEncrypted)
+            ) {
+                updateState {
+                    copy(
+                        input = if (input.isBlank()) text else input,
+                        attachments = pending,
+                        replyingTo = replyTo,
+                    )
+                }
+                _events.send(Event.ShowError(getString(Res.string.message_too_long)))
+                return@launch
+            }
+
+            val canUseCaption = outgoing != null && pending.size == 1
+            val sent = sendAttachmentsInternal(
+                items = pending,
+                caption = outgoing?.body.takeIf { canUseCaption },
+                formattedCaption = outgoing?.formattedBody.takeIf { canUseCaption },
+                replyToEventId = replyTo?.eventId,
+            )
+            if (!sent) return@launch
+
+            if (outgoing != null && !canUseCaption) {
+                updateState { copy(replyingTo = replyTo) }
+                sendMessage(text)
+            }
+        }
+    }
+
+    private suspend fun sendAttachmentsInternal(
+        items: List<AttachmentData>,
+        caption: String? = null,
+        formattedCaption: String? = null,
+        replyToEventId: String? = null,
+    ): Boolean {
+        items.forEachIndexed { index, data ->
+            val isLast = index == items.lastIndex
+
+            updateState {
+                copy(
+                    isUploadingAttachment = true,
+                    attachmentProgress = 0f,
+                    attachmentUploadStage = AttachmentUploadStage.Preparing,
+                    uploadingFileName = "${data.fileName} (${index + 1}/${items.size})",
+                )
+            }
+
+            val txn = Uuid.random().toString()
+            uploadTxnId = txn
+            val result = service.sendAttachmentFromPath(
+                roomId = roomId,
+                path = data.path,
+                mime = data.mimeType,
+                filename = data.fileName,
+                caption = if (isLast) caption else null,
+                formattedCaption = if (isLast) formattedCaption else null,
+                replyToEventId = if (isLast) replyToEventId else null,
+                threadRootEventId = rootEventId,
+                txnId = txn,
+            ) { sent, totalBytes ->
+                val denom = (totalBytes ?: data.sizeBytes).coerceAtLeast(1L).toFloat()
+                val progress = (sent.toFloat() / denom).coerceIn(0f, 1f)
+                val stage = when {
+                    sent <= 0L || progress <= 0f -> AttachmentUploadStage.Preparing
+                    progress >= 1f -> AttachmentUploadStage.Sending
+                    else -> AttachmentUploadStage.Uploading
+                }
+                updateState {
+                    copy(
+                        attachmentProgress = progress,
+                        attachmentUploadStage = stage,
+                    )
+                }
+            }
+
+            if (result.isFailure) {
+                updateState {
+                    copy(
+                        isUploadingAttachment = false,
+                        attachmentProgress = 0f,
+                        attachmentUploadStage = null,
+                        uploadingFileName = null,
+                        attachments = items.drop(index + 1),
+                    )
+                }
+                uploadTxnId = null
+                _events.send(
+                    Event.ShowError(
+                        result.toUserMessage(getString(Res.string.upload_failed_named, data.fileName))
+                    )
+                )
+                return false
+            }
+        }
+
+        updateState {
+            copy(
+                isUploadingAttachment = false,
+                attachmentProgress = 0f,
+                attachmentUploadStage = null,
+                uploadingFileName = null,
+            )
+        }
+        uploadTxnId = null
+        return true
+    }
+
+    fun cancelAttachmentUpload() {
+        val txnId = uploadTxnId
+        uploadTxnId = null
+        uploadJob?.cancel()
+        uploadJob = null
+        if (!txnId.isNullOrBlank()) {
+            launch { service.cancelSend(roomId, txnId) }
+        }
+        updateState {
+            copy(
+                isUploadingAttachment = false,
+                attachmentProgress = 0f,
+                attachmentUploadStage = null,
+                uploadingFileName = null,
+                attachments = emptyList(),
+            )
+        }
+    }
+
+    fun onVoiceRecordingComplete(filePath: String, durationMs: Long, waveform: List<Float>) {
+        updateState {
+            copy(
+                isRecordingVoice = false,
+                voiceRecordingPath = filePath,
+                voiceRecordingDurationMs = durationMs,
+                voiceRecordingWaveform = waveform,
+                showVoicePreview = true,
+            )
+        }
+    }
+
+    fun sendVoiceRecording() {
+        val path = currentState.voiceRecordingPath ?: return
+        val durationMs = currentState.voiceRecordingDurationMs.takeIf { it > 0 }
+        val waveform = currentState.voiceRecordingWaveform.takeIf { it.isNotEmpty() }
+
+        updateState {
+            copy(
+                showVoicePreview = false,
+                voiceRecordingPath = null,
+                voiceRecordingDurationMs = 0L,
+                voiceRecordingWaveform = emptyList(),
+            )
+        }
+
+        launch {
+            val result = service.sendAttachmentFromPath(
+                roomId = roomId,
+                path = path,
+                mime = voiceMessageMimeType,
+                filename = "voice_message.$voiceMessageExtension",
+                threadRootEventId = rootEventId,
+                voiceDurationMs = durationMs,
+                voiceWaveform = waveform,
+                isVoice = true,
+            ) { _, _ -> }
+
+            if (result.isFailure) {
+                _events.send(
+                    Event.ShowError(
+                        result.toUserMessage(getString(Res.string.voice_message_upload_failed))
+                    )
+                )
+            }
+        }
+    }
+
+    fun cancelVoicePreview() {
+        currentState.voiceRecordingPath?.let {
+            runCatching { deleteDirectory(it) }
+        }
+        updateState {
+            copy(
+                showVoicePreview = false,
+                voiceRecordingPath = null,
+                voiceRecordingDurationMs = 0L,
+                voiceRecordingWaveform = emptyList(),
+            )
+        }
+    }
+
+    fun reRecordVoice() {
+        currentState.voiceRecordingPath?.let {
+            runCatching { deleteDirectory(it) }
+        }
+        updateState {
+            copy(
+                showVoicePreview = false,
+                voiceRecordingPath = null,
+                voiceRecordingDurationMs = 0L,
+                voiceRecordingWaveform = emptyList(),
+                isRecordingVoice = true,
+            )
+        }
+    }
+
+    fun startVoiceRecording() = updateState { copy(isRecordingVoice = true) }
+
+    fun cancelVoiceRecording() {
+        updateState {
+            copy(
+                isRecordingVoice = false,
+                voiceRecordingPath = null,
+                voiceRecordingDurationMs = 0L,
+                voiceRecordingWaveform = emptyList(),
+            )
         }
     }
 

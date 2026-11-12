@@ -20,7 +20,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -137,7 +139,7 @@ import org.jetbrains.compose.resources.getString
 import kotlin.math.abs
 
 @Suppress("NewApi")
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun RoomScreen(
     viewModel: RoomViewModel,
@@ -155,6 +157,7 @@ fun RoomScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
+    BackHandler(enabled = state.isSelectionMode) { viewModel.clearSelection() }
     val shareHandler = rememberShareHandler()
     var progressText by remember { mutableStateOf<String?>(null) }
     val snackbarManager: SnackbarManager = koinInject()

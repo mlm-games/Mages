@@ -767,6 +767,18 @@ data class ThreadUiState(
     val input: String = "",
     val replyingTo: MessageEvent? = null,
 
+    val attachments: List<AttachmentData> = emptyList(),
+    val showAttachmentPicker: Boolean = false,
+    val isUploadingAttachment: Boolean = false,
+    val attachmentProgress: Float = 0f,
+    val attachmentUploadStage: AttachmentUploadStage? = null,
+    val uploadingFileName: String? = null,
+    val isRecordingVoice: Boolean = false,
+    val voiceRecordingPath: String? = null,
+    val voiceRecordingDurationMs: Long = 0L,
+    val voiceRecordingWaveform: List<Float> = emptyList(),
+    val showVoicePreview: Boolean = false,
+
     val editingEvent: MessageEvent? = null,
     val editInput: String = "",
     val avatarByUserId: Map<String, String> = emptyMap(),

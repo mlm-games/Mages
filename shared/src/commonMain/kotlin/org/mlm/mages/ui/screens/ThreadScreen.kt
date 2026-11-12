@@ -2,11 +2,15 @@ package org.mlm.mages.ui.screens
 
 import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,14 +20,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.backhandler.BackHandler
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import org.koin.compose.koinInject
 import org.mlm.mages.ui.util.dragToScrollIfEnabled
 import org.mlm.mages.ui.util.isSameMessageGroup
@@ -37,11 +47,18 @@ import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.PollData
 import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.ui.MentionProfileUi
+import org.mlm.mages.ui.AttachmentUploadStage
 import org.mlm.mages.ui.ThreadUiState
 import org.mlm.mages.ui.displayPreview
 import org.mlm.mages.ui.components.composer.ActionBanner
 import org.mlm.mages.ui.components.composer.EmoteSuggestion
 import org.mlm.mages.ui.components.composer.MessageComposer
+import org.mlm.mages.ui.components.AttachmentData
+import org.mlm.mages.ui.components.AttachmentSourceKind
+import org.mlm.mages.ui.components.attachment.AttachmentPicker
+import org.mlm.mages.ui.components.attachment.AttachmentProgress
+import org.mlm.mages.ui.components.toMagesAttachment
+import org.mlm.mages.ui.components.voice.VoicePreviewDialog
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.LoadMoreButton
 import org.mlm.mages.ui.components.core.StatusBanner
@@ -65,6 +82,8 @@ import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
 import org.mlm.mages.platform.ShareContent
 import org.mlm.mages.platform.ShareOutcome
+import org.mlm.mages.platform.rememberCameraPickerLauncher
+import org.mlm.mages.platform.toTransferItem
 import org.mlm.mages.platform.rememberFileOpener
 import org.mlm.mages.platform.rememberShareHandler
 import org.mlm.mages.ui.theme.Spacing
@@ -80,8 +99,12 @@ import org.mlm.mages.ui.viewmodel.ThreadViewModel
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import io.github.mlmgames.settings.core.SettingsRepository
+import io.github.vinceglb.filekit.dialogs.FileKitMode
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.MessageMenuAction
+import org.mlm.mages.settings.MessageSwipeAction
 import org.mlm.mages.settings.parseMessageMenuOrder
 import org.mlm.mages.settings.parseQuickReactions
 import org.mlm.mages.settings.defaultQuickReactions
@@ -106,6 +129,59 @@ fun ThreadRoute(
     val shareFailedLabel = stringResource(Res.string.share_failed)
     val downloadFailedLabel = stringResource(Res.string.download_failed)
 
+    val imagePicker = rememberFilePickerLauncher(
+        mode = FileKitMode.Multiple(),
+        type = FileKitType.Image
+    ) { files ->
+        scope.launch {
+            files?.forEach {
+                viewModel.attachFile(
+                    it.toTransferItem().toMagesAttachment(AttachmentSourceKind.LocalPath)
+                )
+            }
+        }
+        viewModel.hideAttachmentPicker()
+    }
+
+    val videoPicker = rememberFilePickerLauncher(
+        mode = FileKitMode.Multiple(),
+        type = FileKitType.Video
+    ) { files ->
+        scope.launch {
+            files?.forEach {
+                viewModel.attachFile(
+                    it.toTransferItem().toMagesAttachment(AttachmentSourceKind.LocalPath)
+                )
+            }
+        }
+        viewModel.hideAttachmentPicker()
+    }
+
+    val filePicker = rememberFilePickerLauncher(
+        mode = FileKitMode.Multiple(),
+        type = FileKitType.File()
+    ) { files ->
+        scope.launch {
+            files?.forEach {
+                viewModel.attachFile(
+                    it.toTransferItem().toMagesAttachment(AttachmentSourceKind.LocalPath)
+                )
+            }
+        }
+        viewModel.hideAttachmentPicker()
+    }
+
+    val cameraPicker = rememberCameraPickerLauncher { file ->
+        scope.launch {
+            file?.let {
+                viewModel.attachFile(
+                    it.toTransferItem().toMagesAttachment(AttachmentSourceKind.LocalPath)
+                )
+            }
+        }
+        viewModel.hideAttachmentPicker()
+    }
+
     LaunchedEffect(Unit) { viewModel.refreshImagePacks() }
 
     var openedImageKey by remember { mutableStateOf<String?>(null) }
@@ -125,21 +201,24 @@ fun ThreadRoute(
         onLoadMore = viewModel::loadMore,
         onClearFocus = viewModel::clearFocusedEvent,
         onFocusMissing = { postError(messageNotFound) },
-        onSend = {
-            scope.launch {
-                if (state.editingEvent != null) {
-                    viewModel.confirmEdit()
-                } else {
-                    viewModel.sendMessage(state.input)
-                }
-            }
-        },
+        onSend = viewModel::send,
         onInputChange = viewModel::setInput,
         onStartReply = viewModel::startReply,
         onCancelReply = viewModel::cancelReply,
         onStartEdit = viewModel::startEdit,
         onCancelEdit = viewModel::cancelEdit,
         onDelete = { ev -> viewModel.delete(ev) },
+        attachments = state.attachments,
+        isUploadingAttachment = state.isUploadingAttachment,
+        isRecordingVoice = state.isRecordingVoice,
+        onAttach = viewModel::showAttachmentPicker,
+        onCancelUpload = viewModel::cancelAttachmentUpload,
+        onRemoveAttachment = viewModel::removeAttachment,
+        onStartVoiceRecording = viewModel::startVoiceRecording,
+        onCancelVoiceRecording = viewModel::cancelVoiceRecording,
+        onVoiceRecordingComplete = viewModel::onVoiceRecordingComplete,
+        swipeRightAction = settings.messageSwipeRightAction,
+        swipeLeftAction = settings.messageSwipeLeftAction,
         onOpenAttachment = { ev -> viewModel.openAttachment(ev) { path, mime -> openExternal(path, mime) } },
         onOpenImage = { ev ->
             openedImageItems = imageViewerItems(state.allMessages) { e ->
@@ -215,6 +294,29 @@ fun ThreadRoute(
 
     AvatarViewerHost(avatarViewer)
 
+    if (state.showAttachmentPicker) {
+        AttachmentPicker(
+            onPickImage = { imagePicker.launch() },
+            onPickVideo = { videoPicker.launch() },
+            onPickFile = { filePicker.launch() },
+            onCamera = { cameraPicker?.launch() },
+            onPasteFromClipboard = null,
+            onDismiss = viewModel::hideAttachmentPicker,
+            onPickSticker = null,
+        )
+    }
+
+    if (state.showVoicePreview && state.voiceRecordingPath != null) {
+        VoicePreviewDialog(
+            filePath = state.voiceRecordingPath!!,
+            durationMs = state.voiceRecordingDurationMs,
+            waveformData = state.voiceRecordingWaveform,
+            onSend = viewModel::sendVoiceRecording,
+            onReRecord = viewModel::reRecordVoice,
+            onCancel = viewModel::cancelVoicePreview,
+        )
+    }
+
     if (state.showStaticLocationViewer) {
         LiveLocationMapViewer(
             shares = emptyMap(),
@@ -231,6 +333,7 @@ fun ThreadRoute(
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ThreadScreen(
     state: ThreadUiState,
@@ -247,6 +350,17 @@ fun ThreadScreen(
     onStartEdit: (MessageEvent) -> Unit,
     onCancelEdit: () -> Unit,
     onDelete: suspend (MessageEvent) -> Boolean,
+    attachments: List<AttachmentData> = emptyList(),
+    isUploadingAttachment: Boolean = false,
+    isRecordingVoice: Boolean = false,
+    onAttach: () -> Unit = {},
+    onCancelUpload: () -> Unit = {},
+    onRemoveAttachment: (Int) -> Unit = {},
+    onStartVoiceRecording: () -> Unit = {},
+    onCancelVoiceRecording: () -> Unit = {},
+    onVoiceRecordingComplete: (String, Long, List<Float>) -> Unit = { _, _, _ -> },
+    swipeRightAction: MessageSwipeAction = MessageSwipeAction.Reply,
+    swipeLeftAction: MessageSwipeAction = MessageSwipeAction.Nothing,
     onOpenAttachment: (MessageEvent) -> Unit = {},
     onOpenImage: (MessageEvent) -> Unit = {},
     enterSendsMessage: Boolean = false,
@@ -286,6 +400,8 @@ fun ThreadScreen(
     val scope = rememberCoroutineScope()
     var sheetItemId by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
+
+    BackHandler(enabled = state.isSelectionMode) { onClearSelection() }
 
     // Calculate total items
     val totalItems = remember(state.nextBatch, state.rootMessage, state.replies) {
@@ -385,18 +501,33 @@ fun ThreadScreen(
                         onCancelEdit = onCancelEdit,
                         resolvedPreviewPath = (state.editingEvent ?: state.replyingTo)?.thumbKey?.let { state.thumbByEvent[it] },
                     )
+                    if (state.isUploadingAttachment) {
+                        AttachmentProgress(
+                            fileName = state.uploadingFileName ?: stringResource(Res.string.uploading),
+                            progress = state.attachmentProgress,
+                            stage = state.attachmentUploadStage ?: AttachmentUploadStage.Preparing,
+                            onCancel = onCancelUpload,
+                        )
+                    }
                     MessageComposer(
                         value = state.input,
                         enabled = state.sendMessageAction.isEnabled,
                         isOffline = false,
                         replyingTo = state.replyingTo,
                         editing = state.editingEvent,
-                        attachments = emptyList(),
-                        isUploadingAttachment = false,
+                        attachments = attachments,
+                        isUploadingAttachment = isUploadingAttachment,
                         onValueChange = onInputChange,
                         onSend = onSend,
                         onCancelReply = onCancelReply,
                         onCancelEdit = onCancelEdit,
+                        onAttach = onAttach,
+                        onCancelUpload = onCancelUpload,
+                        onRemoveAttachment = onRemoveAttachment,
+                        isRecordingVoice = isRecordingVoice,
+                        onStartVoiceRecording = onStartVoiceRecording,
+                        onCancelVoiceRecording = onCancelVoiceRecording,
+                        onVoiceRecordingComplete = onVoiceRecordingComplete,
                         enterSendsMessage = enterSendsMessage,
                         canEditLatest = canEditLatest,
                         onEditLatest = onEditLatest,
@@ -559,6 +690,9 @@ fun ThreadScreen(
                                         reactionImagePaths = state.reactionImagePathByMxc,
                                         reactionShortcodes = reactionShortcodes,
                                         onReact = { emoji -> onReact(bubbleItem.event, emoji) },
+                                        onReply = { onStartReply(bubbleItem.event) },
+                                        swipeRightAction = swipeRightAction,
+                                        swipeLeftAction = swipeLeftAction,
                                         onLongPress = {
                                             if (state.isSelectionMode) {
                                                 onToggleSelection(bubbleItem.event.eventId)
@@ -1115,6 +1249,9 @@ private fun ThreadReplyMessage(
     reactionShortcodes: Map<String, String>,
     onReact: (String) -> Unit,
     onLongPress: () -> Unit,
+    onReply: () -> Unit,
+    swipeRightAction: MessageSwipeAction,
+    swipeLeftAction: MessageSwipeAction,
     onOpenAttachment: (() -> Unit)?,
     grouped: Boolean = false,
     groupedWithNext: Boolean = false,
@@ -1123,6 +1260,20 @@ private fun ThreadReplyMessage(
     previewBlocked: Boolean = false,
     onShowPreview: (() -> Unit)? = null,
 ) {
+    val swipeRight = (if (isMine) swipeLeftAction else swipeRightAction) == MessageSwipeAction.Reply
+    val swipeLeft = (if (isMine) swipeRightAction else swipeLeftAction) == MessageSwipeAction.Reply
+    val swipeEnabled = swipeRight || swipeLeft
+    var swipeOffsetPx by remember { mutableFloatStateOf(0f) }
+    val animatedSwipeOffsetPx by animateFloatAsState(
+        targetValue = swipeOffsetPx,
+        animationSpec = tween(durationMillis = 180, easing = LinearOutSlowInEasing),
+        label = "threadReplySwipe"
+    )
+    val density = LocalDensity.current
+    val swipeThresholdPx = remember(density) { with(density) { 72.dp.toPx() } }
+    var hapticTriggered by remember { mutableStateOf(false) }
+    val haptics = LocalHapticFeedback.current
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1152,7 +1303,57 @@ private fun ThreadReplyMessage(
             )
         }
 
-        Column(modifier = Modifier.weight(1f)) {
+        Box(modifier = Modifier.weight(1f)) {
+            if (swipeEnabled && abs(animatedSwipeOffsetPx) > swipeThresholdPx * 0.05f) {
+                val iconAlpha = (abs(animatedSwipeOffsetPx) / swipeThresholdPx).coerceIn(0f, 1f)
+                Icon(
+                    painterResource(Res.drawable.ic_reply),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = iconAlpha),
+                    modifier = Modifier
+                        .align(
+                            if (animatedSwipeOffsetPx > 0f) Alignment.CenterStart
+                            else Alignment.CenterEnd
+                        )
+                        .padding(horizontal = Spacing.md)
+                        .size(24.dp)
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .pointerInput(isSelectionMode, swipeRight, swipeLeft, density) {
+                        if (isSelectionMode || !swipeEnabled) return@pointerInput
+                        detectHorizontalDragGestures(
+                            onDragEnd = {
+                                val committed = swipeOffsetPx
+                                swipeOffsetPx = 0f
+                                hapticTriggered = false
+                                val committedReply = (committed > 0f && swipeRight) ||
+                                    (committed < 0f && swipeLeft)
+                                if (abs(committed) >= swipeThresholdPx && committedReply) {
+                                    onReply()
+                                }
+                            },
+                            onDragCancel = {
+                                swipeOffsetPx = 0f
+                                hapticTriggered = false
+                            },
+                            onHorizontalDrag = { _, dragAmount ->
+                                val minOffset = if (swipeLeft) -swipeThresholdPx * 1.2f else 0f
+                                val maxOffset = if (swipeRight) swipeThresholdPx * 1.2f else 0f
+                                swipeOffsetPx = (swipeOffsetPx + dragAmount).coerceIn(minOffset, maxOffset)
+                                if (abs(swipeOffsetPx) >= swipeThresholdPx && !hapticTriggered) {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    hapticTriggered = true
+                                } else if (abs(swipeOffsetPx) < swipeThresholdPx && hapticTriggered) {
+                                    hapticTriggered = false
+                                }
+                            }
+                        )
+                    }
+                    .graphicsLayer { translationX = animatedSwipeOffsetPx }
+            ) {
             val bubbleModel = TimelineContent.Bubble(event).toBubbleModel(
                 ctx = MessageBubbleRenderContext(
                     isMine = isMine,
@@ -1228,6 +1429,7 @@ private fun ThreadReplyMessage(
                         )
                     }
                 }
+            }
             }
         }
     }
