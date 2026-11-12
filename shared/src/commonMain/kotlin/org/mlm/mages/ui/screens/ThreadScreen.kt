@@ -85,7 +85,6 @@ import org.mlm.mages.settings.MessageMenuAction
 import org.mlm.mages.settings.parseMessageMenuOrder
 import org.mlm.mages.settings.parseQuickReactions
 import org.mlm.mages.settings.defaultQuickReactions
-import org.jetbrains.compose.resources.pluralStringResource
 
 @Composable
 fun ThreadRoute(
@@ -366,10 +365,6 @@ fun ThreadScreen(
                 )
             } else {
                 ThreadTopBar(
-                    starterName = state.rootMessage?.let { root ->
-                        root.senderDisplayName?.takeIf { it.isNotBlank() }
-                            ?: root.sender.takeIf { it.isNotBlank() }?.let(::formatDisplayName)
-                    },
                     roomName = state.roomName,
                     onBack = onBack
                 )
@@ -845,7 +840,6 @@ fun ThreadScreen(
 
 @Composable
 private fun ThreadTopBar(
-    starterName: String?,
     roomName: String,
     onBack: () -> Unit
 ) {
@@ -874,18 +868,9 @@ private fun ThreadTopBar(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
-                        val replyLabel = if (replyCount > 0) {
-                            pluralStringResource(Res.plurals.reply_count, replyCount, replyCount)
-                        } else {
-                            null
-                        }
-                        val subtitle = listOfNotNull(
-                            replyLabel,
-                            roomName.takeIf { it.isNotBlank() },
-                        ).joinToString(" • ")
-                        if (subtitle.isNotBlank()) {
+                        if (roomName.isNotBlank()) {
                             Text(
-                                subtitle,
+                                roomName,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
