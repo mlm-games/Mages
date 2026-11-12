@@ -20,9 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -32,6 +30,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import org.koin.compose.koinInject
@@ -333,7 +334,6 @@ fun ThreadRoute(
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ThreadScreen(
     state: ThreadUiState,
@@ -401,7 +401,12 @@ fun ThreadScreen(
     var sheetItemId by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
 
-    BackHandler(enabled = state.isSelectionMode) { onClearSelection() }
+    val selectionBackState = rememberNavigationEventState<NavigationEventInfo>(NavigationEventInfo.None)
+    NavigationBackHandler(
+        state = selectionBackState,
+        isBackEnabled = state.isSelectionMode,
+        onBackCompleted = onClearSelection,
+    )
 
     // Calculate total items
     val totalItems = remember(state.nextBatch, state.rootMessage, state.replies) {

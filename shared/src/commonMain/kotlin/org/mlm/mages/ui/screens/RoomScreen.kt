@@ -20,9 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -30,6 +28,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
@@ -139,7 +140,7 @@ import org.jetbrains.compose.resources.getString
 import kotlin.math.abs
 
 @Suppress("NewApi")
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomScreen(
     viewModel: RoomViewModel,
@@ -157,7 +158,12 @@ fun RoomScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
-    BackHandler(enabled = state.isSelectionMode) { viewModel.clearSelection() }
+    val selectionBackState = rememberNavigationEventState<NavigationEventInfo>(NavigationEventInfo.None)
+    NavigationBackHandler(
+        state = selectionBackState,
+        isBackEnabled = state.isSelectionMode,
+        onBackCompleted = viewModel::clearSelection,
+    )
     val shareHandler = rememberShareHandler()
     var progressText by remember { mutableStateOf<String?>(null) }
     val snackbarManager: SnackbarManager = koinInject()

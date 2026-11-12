@@ -28,6 +28,7 @@ markdown = "0.7.14"
 multiplatformMarkdownRenderer = "0.45.0"
 multiplatformMarkdownRendererM3 = "0.45.0"
 navigation3Ui = "1.1.1"
+navigationevent = "1.0.1"
 pagingCompose = "3.5.1"
 slf4jSimple = "2.0.19"
 systemtray = "4.4"
@@ -84,7 +85,7 @@ compass-geolocation = { module = "dev.jordond.compass:geolocation", version.ref 
 compass-geolocation-browser = { module = "dev.jordond.compass:geolocation-browser", version.ref = "compass" }
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
 compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
-compose-ui-backhandler = { module = "org.jetbrains.compose.ui:ui-backhandler", version.ref = "composeMultiplatform" }
+navigationevent-compose = { module = "org.jetbrains.androidx.navigationevent:navigationevent-compose", version.ref = "navigationevent" }
 compose-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 
