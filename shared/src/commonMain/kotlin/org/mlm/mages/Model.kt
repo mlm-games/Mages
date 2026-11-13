@@ -38,6 +38,7 @@ data class MessageEvent(
     var attachment: AttachmentInfo? = null,
     var sticker: StickerInfo? = null,
     var threadRootEventId: String? = null,
+    var threadReplyCount: Int? = null,
     var threadReplyIsFallback: Boolean = false,
     var isEdited: Boolean = false,
     var pollData: PollData? = null,

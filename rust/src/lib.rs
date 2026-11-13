@@ -2766,6 +2766,7 @@ impl Client {
                 formatted_caption,
                 reply_to_event_id,
                 thread_root_event_id,
+                latest_event_id,
                 voice_duration_ms,
                 voice_waveform,
                 is_voice,
@@ -2836,7 +2837,12 @@ impl Client {
                     add_mentions: matrix_sdk::ruma::events::room::message::AddMentions::Yes,
                 }));
             } else if let Some(root_id) = thread_root {
-                if let Ok(eid) = matrix_sdk::ruma::EventId::parse(&root_id) {
+                let fallback_target = latest_event_id
+                    .as_deref()
+                    .filter(|id| !id.trim().is_empty())
+                    .and_then(|id| matrix_sdk::ruma::EventId::parse(id).ok())
+                    .or_else(|| matrix_sdk::ruma::EventId::parse(&root_id).ok());
+                if let Some(eid) = fallback_target {
                     config = config.reply(Some(matrix_sdk::room::reply::Reply {
                         event_id: eid.to_owned(),
                         enforce_thread: matrix_sdk::room::reply::EnforceThread::Threaded(
@@ -4104,6 +4110,12 @@ fn map_timeline_event(
     let mut attachment: Option<AttachmentInfo> = None;
     let mut sticker: Option<StickerInfo> = None;
     let thread_root_event_id = ev.content().thread_root().map(|id| id.to_string());
+    let thread_reply_count = match ev.content() {
+        TimelineItemContent::MsgLike(content) => {
+            content.thread_summary.as_ref().map(|summary| summary.num_replies)
+        }
+        _ => None,
+    };
     let body: String;
     let mut formatted_body: Option<String> = None;
     let mut is_edited = false;
@@ -4328,6 +4340,7 @@ fn map_timeline_event(
         attachment,
         sticker,
         thread_root_event_id,
+        thread_reply_count,
         thread_reply_is_fallback,
         is_edited,
         poll_data,

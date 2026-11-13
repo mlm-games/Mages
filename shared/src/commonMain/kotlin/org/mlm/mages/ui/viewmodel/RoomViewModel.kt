@@ -2584,35 +2584,39 @@ class RoomViewModel(
      * This counts how many events in the timeline reference each root event.
      */
     private fun recomputeThreadCountsFromTimeline() {
-        val threadRootCounts = mutableMapOf<String, Int>()
+        val countedReplies = mutableMapOf<String, Int>()
+        val bundledCounts = mutableMapOf<String, Int>()
 
-        // Count all events that have a threadRootEventId
         currentState.allEvents.forEach { event ->
             val rootId = event.threadRootEventId
             if (!rootId.isNullOrBlank()) {
-                threadRootCounts[rootId] = (threadRootCounts[rootId] ?: 0) + 1
+                countedReplies[rootId] = (countedReplies[rootId] ?: 0) + 1
+            }
+            event.threadReplyCount?.let { count ->
+                bundledCounts[event.eventId] = count
             }
         }
 
-        if (threadRootCounts.isNotEmpty()) {
-            updateState {
-                // Merge with existing counts, preferring higher counts
-                // (API might have found more than timeline has loaded)
-                val merged = threadCount.toMutableMap()
-                threadRootCounts.forEach { (eventId, count) ->
-                    val existing = merged[eventId] ?: 0
-                    merged[eventId] = maxOf(existing, count)
-                }
-                copy(threadCount = merged)
-            }
+        val merged = currentState.threadCount.toMutableMap()
+        countedReplies.forEach { (eventId, count) ->
+            merged[eventId] = maxOf(merged[eventId] ?: 0, count)
+        }
+        bundledCounts.forEach { (eventId, count) ->
+            merged[eventId] = maxOf(merged[eventId] ?: 0, count)
+        }
+        if (merged != currentState.threadCount) {
+            updateState { copy(threadCount = merged) }
+        }
 
-            // For roots we haven't checked via API yet, fetch to get accurate count
-            val uncheckedRoots = threadRootCounts.keys.filter { it !in checkedThreadRootsViaApi }
-            if (uncheckedRoots.isNotEmpty()) {
-                launch {
-                    uncheckedRoots.forEach { rootId ->
-                        fetchThreadCountFromApi(rootId)
-                    }
+        // Bundled aggregations already carry the server's total, so only roots
+        // without one need the /relations fallback.
+        val rootsWithoutSummary = countedReplies.keys.filter {
+            it !in checkedThreadRootsViaApi && it !in bundledCounts
+        }
+        if (rootsWithoutSummary.isNotEmpty()) {
+            launch {
+                rootsWithoutSummary.forEach { rootId ->
+                    fetchThreadCountFromApi(rootId)
                 }
             }
         }

@@ -822,12 +822,16 @@ class ThreadViewModel(
         }
     }
 
+    private fun latestThreadEventId(): String? =
+        currentState.replies.lastOrNull { it.eventId.isNotBlank() && !it.isRedacted }?.eventId
+
     private suspend fun sendAttachmentsInternal(
         items: List<AttachmentData>,
         caption: String? = null,
         formattedCaption: String? = null,
         replyToEventId: String? = null,
     ): Boolean {
+        val latestEventId = latestThreadEventId()
         items.forEachIndexed { index, data ->
             val isLast = index == items.lastIndex
 
@@ -851,6 +855,7 @@ class ThreadViewModel(
                 formattedCaption = if (isLast) formattedCaption else null,
                 replyToEventId = if (isLast) replyToEventId else null,
                 threadRootEventId = rootEventId,
+                latestEventId = latestEventId,
                 txnId = txn,
             ) { sent, totalBytes ->
                 val denom = (totalBytes ?: data.sizeBytes).coerceAtLeast(1L).toFloat()
@@ -955,6 +960,7 @@ class ThreadViewModel(
                 filename = "voice_message.$voiceMessageExtension",
                 replyToEventId = replyTo?.eventId,
                 threadRootEventId = rootEventId,
+                latestEventId = latestThreadEventId(),
                 voiceDurationMs = durationMs,
                 voiceWaveform = waveform,
                 isVoice = true,

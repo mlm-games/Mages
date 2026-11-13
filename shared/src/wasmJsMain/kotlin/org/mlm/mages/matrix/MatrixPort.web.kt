@@ -885,6 +885,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         formattedCaption: String?,
         replyToEventId: String?,
         threadRootEventId: String?,
+        latestEventId: String?,
         voiceDurationMs: Long?,
         voiceWaveform: List<Float>?,
         isVoice: Boolean?,

@@ -109,6 +109,8 @@ pub struct MessageEvent {
     pub attachment: Option<AttachmentInfo>,
     pub sticker: Option<StickerInfo>,
     pub thread_root_event_id: Option<String>,
+    /// MSC3440 bundled aggregation: number of messages in the thread, root excluded.
+    pub thread_reply_count: Option<u32>,
     /// MSC3440 `m.in_reply_to` on a thread event is a fallback for clients without
     /// thread support, not a real reply.
     pub thread_reply_is_fallback: bool,
@@ -211,6 +213,9 @@ pub struct SendAttachmentRequest {
     pub formatted_caption: Option<String>,
     pub reply_to_event_id: Option<String>,
     pub thread_root_event_id: Option<String>,
+    /// Newest message known in the thread, used as the MSC3440 fallback target
+    /// so unthreaded clients reply-chain to the latest message, not the root.
+    pub latest_event_id: Option<String>,
     pub voice_duration_ms: Option<u64>,
     pub voice_waveform: Option<Vec<f32>>,
     pub is_voice: Option<bool>,
