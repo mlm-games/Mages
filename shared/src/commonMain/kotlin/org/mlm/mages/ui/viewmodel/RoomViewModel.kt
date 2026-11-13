@@ -2580,8 +2580,8 @@ class RoomViewModel(
     }
 
     /**
-     * Compute thread counts by looking at threadRootEventId in allEvents.
-     * This counts how many events in the timeline reference each root event.
+     * Thread counts come from the root's bundled `m.relations.m.thread`
+     * aggregation and the replies loaded in this timeline.
      */
     private fun recomputeThreadCountsFromTimeline() {
         val countedReplies = mutableMapOf<String, Int>()
