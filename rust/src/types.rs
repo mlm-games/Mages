@@ -109,6 +109,9 @@ pub struct MessageEvent {
     pub attachment: Option<AttachmentInfo>,
     pub sticker: Option<StickerInfo>,
     pub thread_root_event_id: Option<String>,
+    /// MSC2676 `m.in_reply_to` on a thread event is a fallback for clients without
+    /// thread support, not a real reply.
+    pub thread_reply_is_fallback: bool,
     pub is_edited: bool,
     pub poll_data: Option<PollData>,
     pub reactions: Vec<ReactionSummary>,

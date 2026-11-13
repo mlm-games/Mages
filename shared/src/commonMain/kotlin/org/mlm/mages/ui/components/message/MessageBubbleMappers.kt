@@ -127,7 +127,7 @@ internal fun TimelineContent.Bubble.toBubbleModel(
         showReactionAvatars = ctx.showReactionAvatars,
         reactionImagePaths = ctx.reactionImagePaths,
         reactionShortcodes = ctx.reactionShortcodes,
-        reply = MessageReplyUi(
+        reply = if (event.threadReplyIsFallback) null else MessageReplyUi(
             sender = event.replyToSenderDisplayName,
             // `replyToBody` carries the core's English placeholder, so the
             // localized label has to win over it.

@@ -447,6 +447,14 @@ class ThreadViewModel(
 
     private fun removeSingleEvent(itemId: String) {
         seenItemIds.remove(itemId)
+        updateState {
+            when {
+                rootMessage?.itemId == itemId -> copy(rootMessage = null)
+                replies.any { it.itemId == itemId } ->
+                    copy(replies = replies.filterNot { it.itemId == itemId })
+                else -> this
+            }
+        }
     }
 
     /**
@@ -1286,6 +1294,7 @@ class ThreadViewModel(
 
     private fun prefetchReplyThumbnail(event: MessageEvent, retryAttempt: Int = 0) {
         if (!mediaPreviewsAllowed()) return
+        if (event.threadReplyIsFallback) return
         val replyId = event.replyToEventId?.takeIf { it.isNotBlank() } ?: return
         val preview = event.replyPreview ?: return
         if (preview.kind != ReplyPreviewKind.Image &&

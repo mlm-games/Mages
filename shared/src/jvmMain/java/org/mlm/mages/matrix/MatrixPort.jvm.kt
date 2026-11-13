@@ -2646,6 +2646,7 @@ private fun mages.MessageEvent.toModel() = MessageEvent(
     attachment = attachment?.toModel(),
     sticker = sticker?.toModel(),
     threadRootEventId = threadRootEventId,
+    threadReplyIsFallback = threadReplyIsFallback,
     isEdited = isEdited,
     senderAvatarUrl = senderAvatarUrl,
     senderDisplayName = senderDisplayName,

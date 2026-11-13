@@ -4022,6 +4022,18 @@ fn pending_send_state(state: Option<&EventSendState>) -> Option<SendState> {
     })
 }
 
+fn has_fallback_thread_relation(raw: &Raw<AnySyncTimelineEvent>) -> bool {
+    let Ok(event) = serde_json::to_value(raw) else {
+        return false;
+    };
+    event
+        .get("content")
+        .and_then(|content| content.get("m.relates_to"))
+        .and_then(|relation| relation.get("is_falling_back"))
+        .and_then(|is_fallback| is_fallback.as_bool())
+        .unwrap_or(false)
+}
+
 fn map_timeline_event(
     ev: &EventTimelineItem,
     room_id: &str,
@@ -4037,6 +4049,10 @@ fn map_timeline_event(
         let _ = serde_json::to_string(&*j).map(|s| buf = s);
         if buf.is_empty() { None } else { Some(buf) }
     });
+
+    let thread_reply_is_fallback = ev
+        .original_json()
+        .is_some_and(has_fallback_thread_relation);
 
     let edit_send_state = pending_send_state(ev.edit_send_state());
     let redaction_send_state = pending_send_state(ev.redaction_send_state());
@@ -4302,6 +4318,7 @@ fn map_timeline_event(
         attachment,
         sticker,
         thread_root_event_id,
+        thread_reply_is_fallback,
         is_edited,
         poll_data,
         reactions,
