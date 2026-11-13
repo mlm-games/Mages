@@ -25,7 +25,7 @@ This is experimental-stage software. It is still in its early stages, and might 
 - Android app and Linux desktop builds (Available on/as FDroid, AppImage (updatable via `Gear Lever` or similar tools), AUR (`mages-bin`), snapcraft and flathub)
 - Unsigned Windows and Mac builds
 - Experimental Audio and Video Calls Support (Screen sharing is only available on desktop)
-- Multi account and language (currently only spanish) support 
+- Multi account and language support 
 
 ## Platforms
 
