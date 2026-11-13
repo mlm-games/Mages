@@ -127,16 +127,20 @@ internal fun TimelineContent.Bubble.toBubbleModel(
         showReactionAvatars = ctx.showReactionAvatars,
         reactionImagePaths = ctx.reactionImagePaths,
         reactionShortcodes = ctx.reactionShortcodes,
-        reply = if (event.threadReplyIsFallback) null else MessageReplyUi(
-            sender = event.replyToSenderDisplayName,
-            // `replyToBody` carries the core's English placeholder, so the
-            // localized label has to win over it.
-            body = if (toRedactedEvent) deletedLabel else event.replyToBody,
-            preview = event.replyPreview?.let { preview ->
-                if (toRedactedEvent) preview.copy(text = deletedLabel) else preview
-            },
-            previewPath = ctx.resolvedReplyPreviewPath,
-        ),
+        reply = if (event.threadReplyIsFallback) {
+            null
+        } else {
+            MessageReplyUi(
+                sender = event.replyToSenderDisplayName,
+                // `replyToBody` carries the core's English placeholder, so the
+                // localized label has to win over it.
+                body = if (toRedactedEvent) deletedLabel else event.replyToBody,
+                preview = event.replyPreview?.let { preview ->
+                    if (toRedactedEvent) preview.copy(text = deletedLabel) else preview
+                },
+                previewPath = ctx.resolvedReplyPreviewPath,
+            )
+        },
         sendState = event.sendState,
         sendFailure = event.sendFailure,
         editSendState = event.editSendState,
