@@ -5057,8 +5057,8 @@ impl CoreClient {
     ) -> Result<ThreadPage, FfiError> {
         use matrix_sdk::ruma::{
             api::Direction,
-            api::client::relations::get_relating_events_with_rel_type_and_event_type as get_relating,
-            events::TimelineEventType, events::relation::RelationType,
+            api::client::relations::get_relating_events_with_rel_type as get_relating,
+            events::relation::RelationType,
         };
         let rid = Self::parse_rid(&room_id)?;
         let root = Self::parse_eid(&root_event_id)?;
@@ -5066,7 +5066,6 @@ impl CoreClient {
             rid.clone(),
             root.clone(),
             RelationType::Thread,
-            TimelineEventType::RoomMessage,
         );
         if let Some(f) = from.as_deref() {
             req.from = Some(f.to_owned());
@@ -5115,8 +5114,8 @@ impl CoreClient {
     ) -> Result<ThreadSummary, FfiError> {
         use matrix_sdk::ruma::{
             api::Direction,
-            api::client::relations::get_relating_events_with_rel_type_and_event_type as get_relating,
-            events::TimelineEventType, events::relation::RelationType,
+            api::client::relations::get_relating_events_with_rel_type as get_relating,
+            events::relation::RelationType,
         };
         let rid = Self::parse_rid(&room_id)?;
         let root = Self::parse_eid(&root_event_id)?;
@@ -5133,7 +5132,6 @@ impl CoreClient {
                 rid.clone(),
                 root.clone(),
                 RelationType::Thread,
-                TimelineEventType::RoomMessage,
             );
             req.dir = Direction::Backward;
             if let Some(f) = &from {
@@ -5144,14 +5142,15 @@ impl CoreClient {
             }
             let resp = self.sdk.send(req).await.ffi()?;
             for raw in resp.chunk.iter() {
-                if let Ok(ml) = raw.deserialize() {
-                    let eid = ml.event_id().to_owned();
+                if raw.deserialize().is_ok() {
                     count += 1;
-                    if let Some(mev) =
-                        map_event_id_via_timeline(&self.timeline_mgr, &self.sdk, &rid, &eid).await
-                    {
-                        if latest.map_or(true, |l| mev.timestamp_ms > l) {
-                            latest = Some(mev.timestamp_ms);
+                    let ts = raw
+                        .get_field::<u64>("origin_server_ts")
+                        .ok()
+                        .flatten();
+                    if let Some(ts) = ts {
+                        if latest.map_or(true, |l| ts > l) {
+                            latest = Some(ts);
                         }
                     }
                 }

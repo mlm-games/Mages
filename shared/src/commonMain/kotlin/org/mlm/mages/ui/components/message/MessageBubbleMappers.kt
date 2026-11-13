@@ -127,10 +127,14 @@ internal fun TimelineContent.Bubble.toBubbleModel(
         showReactionAvatars = ctx.showReactionAvatars,
         reactionImagePaths = ctx.reactionImagePaths,
         reactionShortcodes = ctx.reactionShortcodes,
-        reply = if (event.threadReplyIsFallback) {
-            null
-        } else {
-            MessageReplyUi(
+        reply = when {
+            // MSC3440 fallback replies exist only to give unthreaded clients a
+            // reply chain.
+            event.threadReplyIsFallback -> null
+            // A pending thread message has no server JSON yet, so the fallback
+            // flag is unknown and its quote would flash until the echo lands.
+            event.sendState != null && event.threadRootEventId != null -> null
+            else -> MessageReplyUi(
                 sender = event.replyToSenderDisplayName,
                 // `replyToBody` carries the core's English placeholder, so the
                 // localized label has to win over it.

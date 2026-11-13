@@ -2819,21 +2819,22 @@ impl Client {
                 config = config.caption(Some(text_content));
             }
             let thread_root = thread_root_event_id.filter(|id| !id.trim().is_empty());
-            if let Some(reply_id) = reply_to_event_id {
-                if let Ok(eid) = matrix_sdk::ruma::EventId::parse(&reply_id) {
-                    let enforce_thread = if thread_root.is_some() {
-                        matrix_sdk::room::reply::EnforceThread::Threaded(
-                            matrix_sdk::ruma::events::room::message::ReplyWithinThread::Yes,
-                        )
-                    } else {
-                        matrix_sdk::room::reply::EnforceThread::Unthreaded
-                    };
-                    config = config.reply(Some(matrix_sdk::room::reply::Reply {
-                        event_id: eid.to_owned(),
-                        enforce_thread,
-                        add_mentions: matrix_sdk::ruma::events::room::message::AddMentions::Yes,
-                    }));
-                }
+            let reply_target = reply_to_event_id
+                .as_deref()
+                .and_then(|reply_id| matrix_sdk::ruma::EventId::parse(reply_id).ok());
+            if let Some(eid) = reply_target {
+                let enforce_thread = if thread_root.is_some() {
+                    matrix_sdk::room::reply::EnforceThread::Threaded(
+                        matrix_sdk::ruma::events::room::message::ReplyWithinThread::Yes,
+                    )
+                } else {
+                    matrix_sdk::room::reply::EnforceThread::Unthreaded
+                };
+                config = config.reply(Some(matrix_sdk::room::reply::Reply {
+                    event_id: eid.to_owned(),
+                    enforce_thread,
+                    add_mentions: matrix_sdk::ruma::events::room::message::AddMentions::Yes,
+                }));
             } else if let Some(root_id) = thread_root {
                 if let Ok(eid) = matrix_sdk::ruma::EventId::parse(&root_id) {
                     config = config.reply(Some(matrix_sdk::room::reply::Reply {
@@ -4026,12 +4027,21 @@ fn has_fallback_thread_relation(raw: &Raw<AnySyncTimelineEvent>) -> bool {
     let Ok(event) = serde_json::to_value(raw) else {
         return false;
     };
-    event
+    let Some(relation) = event
         .get("content")
         .and_then(|content| content.get("m.relates_to"))
-        .and_then(|relation| relation.get("is_falling_back"))
-        .and_then(|is_fallback| is_fallback.as_bool())
-        .unwrap_or(false)
+    else {
+        return false;
+    };
+    let is_thread = matches!(
+        relation.get("rel_type").and_then(|rel_type| rel_type.as_str()),
+        Some("m.thread") | Some("io.element.thread")
+    );
+    is_thread
+        && relation
+            .get("is_falling_back")
+            .and_then(|is_fallback| is_fallback.as_bool())
+            .unwrap_or(false)
 }
 
 fn map_timeline_event(

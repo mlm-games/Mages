@@ -935,6 +935,7 @@ class ThreadViewModel(
         val path = currentState.voiceRecordingPath ?: return
         val durationMs = currentState.voiceRecordingDurationMs.takeIf { it > 0 }
         val waveform = currentState.voiceRecordingWaveform.takeIf { it.isNotEmpty() }
+        val replyTo = currentState.replyingTo
 
         updateState {
             copy(
@@ -942,6 +943,7 @@ class ThreadViewModel(
                 voiceRecordingPath = null,
                 voiceRecordingDurationMs = 0L,
                 voiceRecordingWaveform = emptyList(),
+                replyingTo = null,
             )
         }
 
@@ -951,6 +953,7 @@ class ThreadViewModel(
                 path = path,
                 mime = voiceMessageMimeType,
                 filename = "voice_message.$voiceMessageExtension",
+                replyToEventId = replyTo?.eventId,
                 threadRootEventId = rootEventId,
                 voiceDurationMs = durationMs,
                 voiceWaveform = waveform,
@@ -958,6 +961,9 @@ class ThreadViewModel(
             ) { _, _ -> }
 
             if (result.isFailure) {
+                updateState {
+                    if (replyingTo == null) copy(replyingTo = replyTo) else this
+                }
                 _events.send(
                     Event.ShowError(
                         result.toUserMessage(getString(Res.string.voice_message_upload_failed))
@@ -1013,6 +1019,7 @@ class ThreadViewModel(
      * Start replying to a message.
      */
     fun startReply(event: MessageEvent) {
+        if (event.eventId.isBlank()) return
         updateState { copy(replyingTo = event) }
     }
 

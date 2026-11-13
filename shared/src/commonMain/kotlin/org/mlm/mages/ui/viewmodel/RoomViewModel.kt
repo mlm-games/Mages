@@ -870,7 +870,10 @@ class RoomViewModel(
 
     //  Reply/Edit
 
-    fun startReply(event: MessageEvent) = updateState { copy(replyingTo = event) }
+    fun startReply(event: MessageEvent) {
+        if (event.eventId.isBlank()) return
+        updateState { copy(replyingTo = event) }
+    }
     fun cancelReply() = updateState { copy(replyingTo = null) }
 
     fun startEdit(event: MessageEvent) {
@@ -1696,13 +1699,15 @@ class RoomViewModel(
         val path = currentState.voiceRecordingPath ?: return
         val durationMs = currentState.voiceRecordingDurationMs.takeIf { it > 0 }
         val waveform = currentState.voiceRecordingWaveform.takeIf { it.isNotEmpty() }
+        val replyTo = currentState.replyingTo
 
         updateState {
             copy(
                 showVoicePreview = false,
                 voiceRecordingPath = null,
                 voiceRecordingDurationMs = 0L,
-                voiceRecordingWaveform = emptyList()
+                voiceRecordingWaveform = emptyList(),
+                replyingTo = null
             )
         }
 
@@ -1713,12 +1718,16 @@ class RoomViewModel(
                 path = path,
                 mime = mime,
                 filename = "voice_message.${voiceMessageExtension}",
+                replyToEventId = replyTo?.eventId,
                 voiceDurationMs = durationMs,
                 voiceWaveform = waveform,
                 isVoice = true,
             ) { _, _ -> }
 
             if (result.isFailure) {
+                updateState {
+                    if (replyingTo == null) copy(replyingTo = replyTo) else this
+                }
                 _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.voice_message_upload_failed))))
             }
         }
