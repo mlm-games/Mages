@@ -10,6 +10,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,6 +60,7 @@ import org.mlm.mages.ui.util.formatDuration
 import org.mlm.mages.ui.util.formatTime
 import org.mlm.mages.ui.util.isAnimatedImageMime
 import org.mlm.mages.ui.util.secondaryClick
+import kotlinx.coroutines.launch
 import kotlin.math.min
 import org.jetbrains.compose.resources.pluralStringResource
 
@@ -70,6 +76,75 @@ fun TimelineSenderAvatar(
         avatarPath = senderAvatarUrl,
         size = size
     )
+}
+
+@Composable
+private fun SenderName(
+    name: String,
+    onSenderClick: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    senderId: String = "",
+    avatarPath: String? = null,
+    showAvatar: Boolean = false,
+) {
+    val tooltipState = rememberTooltipState()
+    val scope = rememberCoroutineScope()
+    var truncated by remember(name) { mutableStateOf(false) }
+    val interactionModifier = if (onSenderClick != null || truncated) {
+        Modifier.combinedClickable(
+            onClick = { onSenderClick?.invoke() },
+            onLongClick = if (truncated) {
+                { scope.launch { tooltipState.show() } }
+            } else null
+        )
+    } else {
+        Modifier
+    }
+
+    val label: @Composable (Modifier) -> Unit = { labelModifier ->
+        TooltipBox(
+            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
+            tooltip = {
+                PlainTooltip {
+                    Text(
+                        text = name,
+                        maxLines = 4,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            },
+            state = tooltipState,
+            enableUserInput = false,
+            modifier = labelModifier
+        ) {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                onTextLayout = { truncated = it.hasVisualOverflow }
+            )
+        }
+    }
+
+    if (showAvatar) {
+        Row(
+            modifier = interactionModifier.then(modifier),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TimelineSenderAvatar(
+                senderDisplayName = name,
+                senderAvatarUrl = avatarPath,
+                senderId = senderId
+            )
+            Spacer(Modifier.width(Spacing.sm))
+            label(Modifier.weight(1f, fill = false))
+        }
+    } else {
+        label(interactionModifier.then(modifier))
+    }
 }
 
 @Composable
@@ -154,42 +229,14 @@ fun MessageBubble(
         horizontalAlignment = horizontalAlignment
     ) {
         if (showSenderInfo) {
-            if (showSenderAvatar) {
-                Row(
-                    modifier = Modifier
-                        .clickable(enabled = onSenderClick != null, onClick = { onSenderClick?.invoke() })
-                        .padding(horizontal = Spacing.md, vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TimelineSenderAvatar(
-                        senderDisplayName = senderName,
-                        senderAvatarUrl = sender?.avatarPath,
-                        senderId = sender?.id.orEmpty()
-                    )
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text(
-                        text = senderName.orEmpty(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                }
-            } else {
-                Text(
-                    text = senderName.orEmpty(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .clickable(enabled = onSenderClick != null, onClick = { onSenderClick?.invoke() })
-                        .padding(horizontal = Spacing.md, vertical = 2.dp)
-                )
-            }
+            SenderName(
+                name = senderName.orEmpty(),
+                onSenderClick = onSenderClick,
+                senderId = sender?.id.orEmpty(),
+                avatarPath = sender?.avatarPath,
+                showAvatar = showSenderAvatar,
+                modifier = Modifier.padding(horizontal = Spacing.md, vertical = 2.dp)
+            )
         }
 
         headerContent?.invoke(this)
@@ -1082,19 +1129,17 @@ private fun StickerMessage(
     ) {
         if (!isMine && model.sender != null && !grouping.groupedWithPrev) {
             val sender = model.sender
-            Text(
-                text = sender.displayName ?: sender.id ?: "",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .padding(bottom = 2.dp)
-                    .then(
-                        if (onSenderClick != null) Modifier.clickable { onSenderClick() }
-                        else Modifier
-                    ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            val senderName = sender.displayName?.takeIf { it.isNotBlank() }
+                ?: sender.id?.takeIf { it.isNotBlank() }?.let(::formatDisplayName)
+            if (senderName != null) {
+                SenderName(
+                    name = senderName,
+                    onSenderClick = onSenderClick,
+                    senderId = sender.id.orEmpty(),
+                    avatarPath = sender.avatarPath,
+                    modifier = Modifier.padding(bottom = 2.dp)
+                )
+            }
         }
 
         model.reply?.let { reply ->
