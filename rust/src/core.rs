@@ -471,7 +471,6 @@ pub(crate) fn map_room_power_levels(
     mapped
 }
 
-#[derive(Clone)]
 type ThreadTimelineKey = (OwnedRoomId, OwnedEventId);
 
 #[derive(Clone)]
@@ -1780,7 +1779,7 @@ impl CoreClient {
             else {
                 continue;
             };
-            let Ok((cache, _)) = room.event_cache().room(&rid).await else {
+            let Ok((cache, _)) = room.event_cache().await else {
                 continue;
             };
             let Ok(Some(event)) = cache.find_event(&eid).await else {

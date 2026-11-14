@@ -387,7 +387,11 @@ class ThreadViewModel(
     }
 
     private fun probeThreadStart() {
-        if (threadStartProbeInFlight || !currentState.hasMore || currentState.replies.size >= 20) return
+        if (threadStartReached ||
+            threadStartProbeInFlight ||
+            !currentState.hasMore ||
+            currentState.replies.size >= 20
+        ) return
         threadStartProbeInFlight = true
         launch {
             val hitStart = runSafe { service.paginateThread(roomId, rootEventId, 20) }
@@ -425,6 +429,7 @@ class ThreadViewModel(
 
     fun retryLoad() {
         threadStartReached = false
+        threadStartProbeInFlight = false
         updateState {
             copy(
                 replies = emptyList(),
@@ -460,7 +465,7 @@ class ThreadViewModel(
             updateState {
                 copy(
                     isLoading = false,
-                    hasMore = if (result.isSuccess) !hitStart else hasMore,
+                    hasMore = if (result.isSuccess) !hitStart && !threadStartReached else hasMore,
                     focusedEventMissing = hitStart &&
                             focusedEventId != null &&
                             rootMessage?.eventId != focusedEventId &&
