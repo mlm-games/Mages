@@ -213,9 +213,6 @@ pub struct SendAttachmentRequest {
     pub formatted_caption: Option<String>,
     pub reply_to_event_id: Option<String>,
     pub thread_root_event_id: Option<String>,
-    /// Newest message known in the thread, used as the MSC3440 fallback target
-    /// so unthreaded clients reply-chain to the latest message, not the root.
-    pub latest_event_id: Option<String>,
     pub voice_duration_ms: Option<u64>,
     pub voice_waveform: Option<Vec<f32>>,
     pub is_voice: Option<bool>,
@@ -613,15 +610,6 @@ pub struct RoomTags {
 }
 
 #[derive(Clone, Serialize, Deserialize, Record)]
-pub struct ThreadPage {
-    pub root_event_id: String,
-    pub room_id: String,
-    pub messages: Vec<MessageEvent>,
-    pub next_batch: Option<String>,
-    pub prev_batch: Option<String>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Record)]
 pub struct ThreadSummary {
     pub root_event_id: String,
     pub room_id: String,
@@ -970,6 +958,7 @@ pub struct SearchHit {
     pub sender: String,
     pub body: String,
     pub timestamp_ms: u64,
+    pub thread_root_event_id: Option<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Record)]

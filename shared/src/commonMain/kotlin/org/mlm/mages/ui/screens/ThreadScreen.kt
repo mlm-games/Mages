@@ -409,9 +409,9 @@ fun ThreadScreen(
     )
 
     // Calculate total items
-    val totalItems = remember(state.nextBatch, state.rootMessage, state.replies) {
+    val totalItems = remember(state.hasMore, state.rootMessage, state.replies) {
         var count = 0
-        if (state.nextBatch != null) count++
+        if (state.hasMore) count++
         if (state.rootMessage != null) count++
         count += state.replies.size
         count
@@ -433,7 +433,7 @@ fun ThreadScreen(
     }
     var focusedLoadAttempts by remember { mutableIntStateOf(0) }
     LaunchedEffect(focusedEventId) { focusedLoadAttempts = 0 }
-    LaunchedEffect(focusedEventId, state.hasInitialLoad, state.replies.size, state.nextBatch, state.isLoading) {
+    LaunchedEffect(focusedEventId, state.hasInitialLoad, state.replies.size, state.hasMore, state.isLoading) {
         val target = focusedEventId ?: return@LaunchedEffect
         if (!state.hasInitialLoad) return@LaunchedEffect
         val replyIndex = state.replies.indexOfFirst { it.eventId == target }
@@ -458,12 +458,12 @@ fun ThreadScreen(
             return@LaunchedEffect
         }
         if (state.isLoading) return@LaunchedEffect
-        if (state.nextBatch != null && focusedLoadAttempts < 20) {
+        if (state.hasMore && focusedLoadAttempts < 20) {
             focusedLoadAttempts++
             onLoadMore()
             return@LaunchedEffect
         }
-        if (focusedLoadAttempts >= 20 || state.nextBatch == null) {
+        if (focusedLoadAttempts >= 20 || !state.hasMore) {
             onFocusMissing()
             onClearFocus()
             focusedLoadAttempts = 0
@@ -588,14 +588,11 @@ fun ThreadScreen(
             )
 
             when {
-                !state.hasInitialLoad &&
-                        state.rootMessage == null &&
-                        state.replies.isEmpty() &&
-                        state.error != null -> {
+                state.rootMessage == null && state.replies.isEmpty() && state.error != null -> {
                     EmptyThreadView(hasError = true, onRetry = onRetryLoad)
                 }
 
-                !state.hasInitialLoad && state.rootMessage == null && state.replies.isEmpty() -> {
+                state.rootMessage == null && state.replies.isEmpty() -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             LoadingIndicator()
@@ -607,13 +604,6 @@ fun ThreadScreen(
                             )
                         }
                     }
-                }
-
-                state.rootMessage == null && state.replies.isEmpty() && state.hasInitialLoad -> {
-                    EmptyThreadView(
-                        hasError = state.error != null,
-                        onRetry = onRetryLoad,
-                    )
                 }
 
                 else -> {
@@ -876,7 +866,7 @@ fun ThreadScreen(
                             }
                         }
 
-                        if (state.nextBatch != null) {
+                        if (state.hasMore) {
                             item(key = "load_more") {
                                 LoadMoreButton(
                                     isLoading = state.isLoading,

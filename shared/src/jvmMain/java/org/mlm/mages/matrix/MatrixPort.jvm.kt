@@ -171,6 +171,13 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
             }
         }
 
+    override suspend fun eventsByIds(roomId: String, eventIds: List<String>): List<MessageEvent> =
+        withContext(matrixDispatcher) {
+            withClient { cl ->
+                cl.eventsByIds(roomId, eventIds).map { it.toModel() }
+            }
+        }
+
     override suspend fun eventDetails(roomId: String, eventId: String): MessageEvent? =
         withContext(matrixDispatcher) {
             withClient { cl ->
@@ -178,7 +185,10 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
             }
         }
 
-    override fun timelineDiffs(roomId: String): Flow<TimelineDiff<MessageEvent>> = callbackFlow {
+    private fun timelineFlow(
+        observe: (mages.TimelineObserver) -> ULong,
+        unobserve: (ULong) -> Unit,
+    ): Flow<TimelineDiff<MessageEvent>> = callbackFlow {
         val obs = object : mages.TimelineObserver {
             override fun onDiff(diff: TimelineDiffKind) {
                 val mapped: TimelineDiff<MessageEvent>? = when (diff) {
@@ -203,16 +213,30 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
             }
         }
 
-        val token = withContext(matrixDispatcher) {
-            withClientOrNull { it.observeTimeline(roomId, obs) }
-        } ?: run {
+        val token = withContext(matrixDispatcher) { observe(obs) }
+        if (token == 0uL) {
             close()
             return@callbackFlow
         }
-        awaitClose {
-            withClientOrNull { it.unobserveTimeline(token) }
-        }
+        awaitClose { unobserve(token) }
     }
+
+    override fun timelineDiffs(roomId: String): Flow<TimelineDiff<MessageEvent>> =
+        timelineFlow(
+            observe = { obs -> withClientOrNull { it.observeTimeline(roomId, obs) } ?: 0uL },
+            unobserve = { token -> withClientOrNull { it.unobserveTimeline(token) } },
+        )
+
+    override fun threadTimelineDiffs(
+        roomId: String,
+        rootEventId: String,
+    ): Flow<TimelineDiff<MessageEvent>> =
+        timelineFlow(
+            observe = { obs ->
+                withClientOrNull { it.observeThreadTimeline(roomId, rootEventId, obs) } ?: 0uL
+            },
+            unobserve = { token -> withClientOrNull { it.unobserveThreadTimeline(token) } },
+        )
 
     override suspend fun observeConnection(observer: MatrixPort.ConnectionObserver): ULong =
         withContext(matrixDispatcher) {
@@ -503,10 +527,13 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
         roomId: String,
         eventId: String,
         key: String,
-        shortcode: String?
+        shortcode: String?,
+        threadRootEventId: String?,
     ): Result<Unit> =
         withContext(matrixDispatcher) {
-            runWithFfiResult { withClient { it.react(roomId, eventId, key, shortcode) } }
+            runWithFfiResult {
+                withClient { it.react(roomId, eventId, key, shortcode, threadRootEventId) }
+            }
         }
 
     override suspend fun reply(roomId: String, inReplyToEventId: String, body: String, formattedBody: String?): Result<Unit> =
@@ -912,7 +939,6 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
         formattedCaption: String?,
         replyToEventId: String?,
         threadRootEventId: String?,
-        latestEventId: String?,
         voiceDurationMs: Long?,
         voiceWaveform: List<Float>?,
         isVoice: Boolean?,
@@ -928,7 +954,6 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
             formattedCaption = formattedCaption,
             replyToEventId = replyToEventId,
             threadRootEventId = threadRootEventId,
-            latestEventId = latestEventId,
             voiceDurationMs = voiceDurationMs?.toULong(),
             voiceWaveform = voiceWaveform,
             isVoice = isVoice,
@@ -1668,21 +1693,12 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
         ThreadSummary(s.rootEventId, s.roomId, s.count.toLong(), s.latestTsMs?.toLong())
     }
 
-    override suspend fun threadReplies(
+    override suspend fun paginateThread(
         roomId: String,
         rootEventId: String,
-        from: String?,
-        limit: Int,
-        forward: Boolean
-    ): ThreadPage = withContext(matrixDispatcher) {
-        val page = withClient { it.threadReplies(roomId, rootEventId, from, limit.toUInt(), forward) }
-        ThreadPage(
-            rootEventId = page.rootEventId,
-            roomId = page.roomId,
-            messages = page.messages.map { it.toModel() },
-            nextBatch = page.nextBatch,
-            prevBatch = page.prevBatch
-        )
+        count: Int
+    ): Result<Boolean> = withContext(matrixDispatcher) {
+        runWithFfiResult { withClient { it.paginateThread(roomId, rootEventId, count.toUShort()) } }
     }
 
     override suspend fun sendThreadText(
@@ -1690,10 +1706,9 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
         rootEventId: String,
         body: String,
         replyToEventId: String?,
-        latestEventId: String?,
         formattedBody: String?
     ): Result<Unit> = withContext(matrixDispatcher) {
-        runWithFfiResult { withClient { it.sendThreadText(roomId, rootEventId, body, replyToEventId, latestEventId, formattedBody) } }
+        runWithFfiResult { withClient { it.sendThreadText(roomId, rootEventId, body, replyToEventId, formattedBody) } }
     }
 
     override suspend fun isSpace(roomId: String): Boolean =
@@ -2980,7 +2995,8 @@ private fun mages.SearchHit.toKotlin(): SearchHit =
         eventId = eventId,
         sender = sender,
         body = body,
-        timestampMs = timestampMs
+        timestampMs = timestampMs,
+        threadRootEventId = threadRootEventId
     )
 
 //private fun mages.DownloadResult.toKotlin(): DownloadResult =

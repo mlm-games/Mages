@@ -666,7 +666,7 @@ fun RoomScreen(
                     videoCallAction = state.videoCallAction,
                     pinnedMessages = state.pinnedMessages,
                     onViewPinnedMessages = viewModel::showPinnedMessagesSheet,
-                    onPinnedEventClick = viewModel::jumpToEvent,
+                    onPinnedEventClick = { eventId -> viewModel.jumpToEvent(eventId) },
                     onBack = onBack,
                     onOpenInfo = onOpenInfo,
                     onOpenSearch = viewModel::showRoomSearch,

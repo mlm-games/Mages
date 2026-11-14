@@ -44,7 +44,8 @@ data class SearchHit (
     var eventId: String,
     var sender: String,
     var body: String,
-    var timestampMs: ULong
+    var timestampMs: ULong,
+    var threadRootEventId: String? = null
 )
 
 @Serializable
@@ -680,14 +681,6 @@ data class ReactionSummary(
 )
 
 @Serializable
-data class ThreadPage(
-    val rootEventId: String,
-    val roomId: String,
-    val messages: List<MessageEvent>,
-    val nextBatch: String? = null,
-    val prevBatch: String? = null
-)
-@Serializable
 data class ThreadSummary(val rootEventId: String, val roomId: String, val count: Long, val latestTsMs: Long?)
 
 @Serializable
@@ -957,8 +950,10 @@ interface MatrixPort {
     suspend fun loginPhone(country: String, phone: String, password: String, deviceDisplayName: String?)
     suspend fun listRooms(): List<RoomSummary>
     suspend fun recent(roomId: String, limit: Int = 50): List<MessageEvent>
+    suspend fun eventsByIds(roomId: String, eventIds: List<String>): List<MessageEvent>
     suspend fun eventDetails(roomId: String, eventId: String): MessageEvent?
     fun timelineDiffs(roomId: String): Flow<TimelineDiff<MessageEvent>>
+    fun threadTimelineDiffs(roomId: String, rootEventId: String): Flow<TimelineDiff<MessageEvent>>
     suspend fun send(roomId: String, body: String, formattedBody: String? = null): Result<Unit>
 
     suspend fun sendQueueSetEnabled(enabled: Boolean): Result<Unit>
@@ -1084,7 +1079,8 @@ interface MatrixPort {
         roomId: String,
         eventId: String,
         key: String,
-        shortcode: String? = null
+        shortcode: String? = null,
+        threadRootEventId: String? = null,
     ): Result<Unit>
     suspend fun reply(roomId: String, inReplyToEventId: String, body: String, formattedBody: String? = null): Result<Unit>
     suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String? = null): Result<Unit>
@@ -1132,7 +1128,6 @@ interface MatrixPort {
         formattedCaption: String? = null,
         replyToEventId: String? = null,
         threadRootEventId: String? = null,
-        latestEventId: String? = null,
         voiceDurationMs: Long? = null,
         voiceWaveform: List<Float>? = null,
         isVoice: Boolean? = null,
@@ -1322,18 +1317,11 @@ interface MatrixPort {
         rootEventId: String,
         body: String,
         replyToEventId: String? = null,
-        latestEventId: String? = null,
         formattedBody: String? = null,
     ): Result<Unit>
     suspend fun threadSummary(roomId: String, rootEventId: String, perPage: Int = 100, maxPages: Int = 10): ThreadSummary
 
-    suspend fun threadReplies(
-        roomId: String,
-        rootEventId: String,
-        from: String? = null,
-        limit: Int = 50,
-        forward: Boolean = false
-    ): ThreadPage
+    suspend fun paginateThread(roomId: String, rootEventId: String, count: Int = 50): Result<Boolean>
 
     suspend fun isSpace(roomId: String): Boolean
     suspend fun mySpaces(): List<SpaceInfo>

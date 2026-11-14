@@ -33,16 +33,14 @@ use matrix_sdk::{
                 unstable_response::UnstablePollResponseEventContent,
             },
             receipt::ReceiptThread,
-            relation::Thread as ThreadRel,
             room::{
                 EncryptedFile, ImageInfo, MediaSource,
                 avatar::{ImageInfo as AvatarImageInfo, RoomAvatarEventContent},
                 message::{
                     AudioInfo, AudioMessageEventContent, FileMessageEventContent,
                     ImageMessageEventContent, LocationMessageEventContent, MessageType,
-                    Relation as MsgRelation, RoomMessageEventContent,
-                    RoomMessageEventContentWithoutRelation as MsgNoRel, SyncRoomMessageEvent,
-                    VideoInfo, VideoMessageEventContent,
+                    RoomMessageEventContent, RoomMessageEventContentWithoutRelation as MsgNoRel,
+                    SyncRoomMessageEvent, VideoInfo, VideoMessageEventContent,
                 },
                 name::RoomNameEventContent,
                 pinned_events::RoomPinnedEventsEventContent,
@@ -79,7 +77,7 @@ use crate::{
     RoomSummary, RoomTags, RoomUpgradeLinks, RoomHeroInfo, SearchHit, SearchPage, SeenByEntry,
     SendState,
     SendUpdate, SpaceChildInfo, SpaceHierarchyPage, SpaceInfo, SpaceParentInfo, SpaceSection,
-    SpaceUnread, SuccessorRoomInfo, ThreadPage, ThreadSummary, UnreadStats,
+    SpaceUnread, SuccessorRoomInfo, ThreadSummary, UnreadStats,
     VerificationInboxObserver, build_unstable_poll_content, latest_room_event_for,
     map_event_id_via_timeline, map_timeline_event, paginate_backwards_visible,
     search_hit_from_event, timeline_event_filter,
@@ -474,9 +472,14 @@ pub(crate) fn map_room_power_levels(
 }
 
 #[derive(Clone)]
+type ThreadTimelineKey = (OwnedRoomId, OwnedEventId);
+
+#[derive(Clone)]
 pub struct TimelineManager {
     pub(crate) client: SdkClient,
     timelines: Arc<Mutex<HashMap<OwnedRoomId, Arc<Timeline>>>>,
+    thread_timelines: Arc<Mutex<HashMap<ThreadTimelineKey, Arc<Timeline>>>>,
+    thread_timeline_counts: Arc<Mutex<HashMap<ThreadTimelineKey, usize>>>,
     members_fetched: Arc<Mutex<HashSet<OwnedRoomId>>>,
 }
 
@@ -485,12 +488,22 @@ impl TimelineManager {
         Self {
             client,
             timelines: Arc::new(Mutex::new(HashMap::new())),
+            thread_timelines: Arc::new(Mutex::new(HashMap::new())),
+            thread_timeline_counts: Arc::new(Mutex::new(HashMap::new())),
             members_fetched: Arc::new(Mutex::new(HashSet::new())),
         }
     }
 
     pub fn clear(&self) {
         self.timelines
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clear();
+        self.thread_timelines
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clear();
+        self.thread_timeline_counts
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .clear();
@@ -514,6 +527,9 @@ impl TimelineManager {
                 let room = self.client.get_room(room_id)?;
                 let built = Arc::new(
                     room.timeline_builder()
+                        .with_focus(TimelineFocus::Live {
+                            hide_threaded_events: true,
+                        })
                         .event_filter(timeline_event_filter)
                         .track_read_marker_and_receipts(
                             TimelineReadReceiptTracking::MessageLikeEvents,
@@ -529,6 +545,91 @@ impl TimelineManager {
 
         self.ensure_members_fetched(room_id, &tl);
         Some(tl)
+    }
+
+    pub async fn thread_timeline_for(
+        &self,
+        room_id: &OwnedRoomId,
+        root_event_id: &OwnedEventId,
+    ) -> Option<Arc<Timeline>> {
+        let key = (room_id.clone(), root_event_id.clone());
+        let cached = self
+            .thread_timelines
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(&key)
+            .cloned();
+
+        let tl = match cached {
+            Some(tl) => tl,
+            None => {
+                let room = self.client.get_room(room_id)?;
+                let built = Arc::new(
+                    room.timeline_builder()
+                        .with_focus(TimelineFocus::Thread {
+                            root_event_id: root_event_id.clone(),
+                        })
+                        .event_filter(timeline_event_filter)
+                        .track_read_marker_and_receipts(
+                            TimelineReadReceiptTracking::MessageLikeEvents,
+                        )
+                        .build()
+                        .await
+                        .ok()?,
+                );
+                let mut map = self
+                    .thread_timelines
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner());
+                map.entry(key).or_insert_with(|| built).clone()
+            }
+        };
+
+        self.ensure_members_fetched(room_id, &tl);
+        Some(tl)
+    }
+
+    pub fn retain_thread_timeline(
+        &self,
+        room_id: &OwnedRoomId,
+        root_event_id: &OwnedEventId,
+    ) {
+        *self
+            .thread_timeline_counts
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .entry((room_id.clone(), root_event_id.clone()))
+            .or_insert(0) += 1;
+    }
+
+    pub fn release_thread_timeline(
+        &self,
+        room_id: &OwnedRoomId,
+        root_event_id: &OwnedEventId,
+    ) {
+        let key = (room_id.clone(), root_event_id.clone());
+        let remove = {
+            let mut counts = self
+                .thread_timeline_counts
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            let Some(count) = counts.get_mut(&key) else {
+                return;
+            };
+            *count = count.saturating_sub(1);
+            if *count == 0 {
+                counts.remove(&key);
+                true
+            } else {
+                false
+            }
+        };
+        if remove {
+            self.thread_timelines
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .remove(&key);
+        }
     }
 
     fn ensure_members_fetched(&self, room_id: &OwnedRoomId, tl: &Arc<Timeline>) {
@@ -665,6 +766,29 @@ impl CoreClient {
     pub async fn timeline(&self, room_id: &str) -> Option<Arc<Timeline>> {
         let rid = OwnedRoomId::try_from(room_id).ok()?;
         self.timeline_mgr.timeline_for(&rid).await
+    }
+
+    pub async fn thread_timeline(
+        &self,
+        room_id: &str,
+        root_event_id: &str,
+    ) -> Option<Arc<Timeline>> {
+        let rid = OwnedRoomId::try_from(room_id).ok()?;
+        let root = OwnedEventId::try_from(root_event_id).ok()?;
+        self.timeline_mgr.thread_timeline_for(&rid, &root).await
+    }
+
+    async fn event_timeline(
+        &self,
+        room_id: &str,
+        event_id: &str,
+        thread_root_event_id: Option<&str>,
+    ) -> Option<Arc<Timeline>> {
+        if let Some(root) = thread_root_event_id.filter(|root| !root.is_empty() && *root != event_id)
+        {
+            return self.thread_timeline(room_id, root).await;
+        }
+        self.timeline(room_id).await
     }
 
     /// Stickers and live location shares match none of the default push rules,
@@ -1077,21 +1201,17 @@ impl CoreClient {
         formatted_body: Option<String>,
     ) -> Result<(), FfiError> {
         use matrix_sdk::room::edit::EditedContent;
-        let tl = self
-            .timeline(&room_id)
-            .await
-            .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
+        let room = self
+            .room(&room_id)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
         let eid = EventId::parse(&target_event_id)
             .map_err(|_| FfiError::Msg("invalid event id".into()))?;
-        let item = tl
-            .item_by_event_id(&eid)
-            .await
-            .ok_or_else(|| FfiError::Msg("event not found".into()))?;
         let edited = EditedContent::RoomMessage(text_content_no_rel(
             &new_body,
             formatted_body.as_deref(),
         ));
-        tl.edit(&item.identifier(), edited).await.ffi()
+        let content = room.make_edit_event(&eid, edited).await.ffi()?;
+        room.send_queue().send(content).await.ffi().map(|_| ())
     }
 
     pub async fn edit_caption(
@@ -1181,17 +1301,40 @@ impl CoreClient {
         event_id: String,
         emoji: String,
         shortcode: Option<String>,
+        thread_root_event_id: Option<String>,
     ) -> Result<(), FfiError> {
         let tl = self
-            .timeline(&room_id)
+            .event_timeline(&room_id, &event_id, thread_root_event_id.as_deref())
             .await
             .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
         let eid =
             EventId::parse(&event_id).map_err(|_| FfiError::Msg("invalid event id".into()))?;
-        let item = tl
-            .item_by_event_id(&eid)
-            .await
-            .ok_or_else(|| FfiError::Msg("event not found".into()))?;
+        let (tl, item) = match tl.item_by_event_id(&eid).await {
+            Some(item) => (tl, item),
+            None => {
+                let room = self
+                    .room(&room_id)
+                    .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+                let focused = room
+                    .timeline_builder()
+                    .with_focus(TimelineFocus::Event {
+                        target: eid.clone(),
+                        num_context_events: 0,
+                        thread_mode: TimelineEventFocusThreadMode::Automatic {
+                            hide_threaded_events: false,
+                        },
+                    })
+                    .event_filter(timeline_event_filter)
+                    .build()
+                    .await
+                    .ffi()?;
+                let item = focused
+                    .item_by_event_id(&eid)
+                    .await
+                    .ok_or_else(|| FfiError::Msg("event not found".into()))?;
+                (Arc::new(focused), item)
+            }
+        };
 
         let extra = shortcode
             .filter(|_| emoji.starts_with("mxc://"))
@@ -1225,33 +1368,26 @@ impl CoreClient {
         root_event_id: String,
         body: String,
         reply_to_event_id: Option<String>,
-        latest_event_id: Option<String>,
         formatted_body: Option<String>,
     ) -> Result<(), FfiError> {
         let tl = self
-            .timeline(&room_id)
+            .thread_timeline(&room_id, &root_event_id)
             .await
             .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
-        let root = OwnedEventId::try_from(root_event_id)
-            .map_err(|_| FfiError::Msg("invalid event id".into()))?;
-        let mut content = text_content(&body, formatted_body.as_deref());
-        let relation = if let Some(reply_to) = reply_to_event_id {
-            if let Ok(eid) = OwnedEventId::try_from(reply_to) {
-                MsgRelation::Thread(ThreadRel::reply(root, eid))
-            } else {
-                MsgRelation::Thread(ThreadRel::without_fallback(root))
-            }
-        } else if let Some(latest) = latest_event_id {
-            if let Ok(eid) = OwnedEventId::try_from(latest) {
-                MsgRelation::Thread(ThreadRel::plain(root, eid))
-            } else {
-                MsgRelation::Thread(ThreadRel::without_fallback(root))
-            }
+        if let Some(reply_to) = reply_to_event_id {
+            let reply_to = OwnedEventId::try_from(reply_to)
+                .map_err(|_| FfiError::Msg("invalid event id".into()))?;
+            tl.send_reply(
+                text_content_no_rel(&body, formatted_body.as_deref()),
+                reply_to,
+            )
+            .await
+            .ffi()
+            .map(|_| ())
         } else {
-            MsgRelation::Thread(ThreadRel::without_fallback(root))
-        };
-        content.relates_to = Some(relation);
-        tl.send(content.into()).await.ffi().map(|_| ())
+            let content = text_content(&body, formatted_body.as_deref());
+            tl.send(content.into()).await.ffi().map(|_| ())
+        }
     }
 
     async fn clear_unread_flag(&self, room_id: &str) {
@@ -1310,24 +1446,21 @@ impl CoreClient {
         event_id: String,
         send_public_receipt: bool,
     ) -> Result<(), FfiError> {
-        let rid = OwnedRoomId::try_from(room_id.as_str())
-            .map_err(|_| FfiError::Msg("invalid room id".into()))?;
-        let thread_id = EventId::parse(&thread_root_event_id)
-            .map_err(|_| FfiError::Msg("invalid thread root event id".into()))?;
+        let tl = self
+            .thread_timeline(&room_id, &thread_root_event_id)
+            .await
+            .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
         let eid =
             EventId::parse(&event_id).map_err(|_| FfiError::Msg("invalid event id".into()))?;
-        let room = self
-            .sdk
-            .get_room(&rid)
-            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
         let receipt_type = if send_public_receipt {
             ReceiptType::Read
         } else {
             ReceiptType::ReadPrivate
         };
-        room.send_single_receipt(receipt_type, ReceiptThread::Thread(thread_id.to_owned()), eid)
+        tl.send_single_receipt(receipt_type, eid.to_owned())
             .await
             .ffi()
+            .map(|_| ())
     }
 
     pub async fn mark_fully_read_at(
@@ -1609,6 +1742,85 @@ impl CoreClient {
 
         out.reverse();
         out
+    }
+
+    pub async fn events_by_ids(
+        &self,
+        room_id: String,
+        event_ids: Vec<String>,
+    ) -> Vec<MessageEvent> {
+        let Ok(rid) = OwnedRoomId::try_from(room_id.as_str()) else {
+            return vec![];
+        };
+        let me = self.user_id_str();
+        let mut slots: Vec<Option<MessageEvent>> = vec![None; event_ids.len()];
+
+        if let Some(tl) = self.timeline_mgr.timeline_for(&rid).await {
+            let items = tl.items().await;
+            for (index, raw) in event_ids.iter().enumerate() {
+                let Ok(eid) = OwnedEventId::try_from(raw.as_str()) else {
+                    continue;
+                };
+                if let Some(item) = items
+                    .iter()
+                    .find(|item| item.as_event().and_then(|ev| ev.event_id()) == Some(eid.as_ref()))
+                {
+                    slots[index] = map_timeline_item(item, &rid, &tl, &me);
+                }
+            }
+        }
+
+        let mut thread_roots: HashMap<OwnedEventId, Vec<usize>> = HashMap::new();
+        let room = self.sdk.get_room(&rid);
+        for (index, raw) in event_ids.iter().enumerate() {
+            if slots[index].is_some() {
+                continue;
+            }
+            let (Some(room), Ok(eid)) = (room.as_ref(), OwnedEventId::try_from(raw.as_str()))
+            else {
+                continue;
+            };
+            let Ok((cache, _)) = room.event_cache().room(&rid).await else {
+                continue;
+            };
+            let Ok(Some(event)) = cache.find_event(&eid).await else {
+                continue;
+            };
+            if let Some(root) = matrix_sdk_base::serde_helpers::extract_thread_root(event.raw()) {
+                thread_roots.entry(root).or_default().push(index);
+            }
+        }
+
+        for (root, indices) in thread_roots {
+            let Some(tl) = self.thread_timeline(rid.as_str(), root.as_str()).await else {
+                continue;
+            };
+            let items = tl.items().await;
+            for index in indices {
+                let Ok(eid) = OwnedEventId::try_from(event_ids[index].as_str()) else {
+                    continue;
+                };
+                if let Some(item) = items
+                    .iter()
+                    .find(|item| item.as_event().and_then(|ev| ev.event_id()) == Some(eid.as_ref()))
+                {
+                    slots[index] = map_timeline_item(item, &rid, &tl, &me);
+                }
+            }
+        }
+
+        for (index, raw) in event_ids.iter().enumerate() {
+            if slots[index].is_some() {
+                continue;
+            }
+            slots[index] = self
+                .event_details(rid.to_string(), raw.clone())
+                .await
+                .ok()
+                .flatten();
+        }
+
+        slots.into_iter().flatten().collect()
     }
 
     pub async fn set_typing(&self, room_id: String, typing: bool) -> Result<(), FfiError> {
@@ -3468,10 +3680,11 @@ impl CoreClient {
     ) -> Result<(), FfiError> {
         use matrix_sdk::ruma::events::{room::ImageInfo, sticker::StickerEventContent};
 
-        let tl = self
-            .timeline(&room_id)
-            .await
-            .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
+        let tl = match thread_root_event_id.as_deref().filter(|root| !root.is_empty()) {
+            Some(root) => self.thread_timeline(&room_id, root).await,
+            None => self.timeline(&room_id).await,
+        }
+        .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
 
         let uri = matrix_sdk::ruma::OwnedMxcUri::try_from(mxc_url.as_str())
             .map_err(|_| FfiError::Msg("invalid mxc uri".into()))?;
@@ -3482,17 +3695,7 @@ impl CoreClient {
             .and_then(|raw| serde_json::from_str::<ImageInfo>(raw).ok())
             .unwrap_or_default();
 
-        let mut content = StickerEventContent::new(body, info, uri);
-
-        // ruma models StickerEventContent as an opaque catch-all, so
-        // Timeline::send cannot infer the relation and would post to the room
-        // instead of the thread. Attach it explicitly.
-        if let Some(root) = thread_root_event_id {
-            if let Ok(root) = OwnedEventId::try_from(root.as_str()) {
-                content.relates_to = Some(MsgRelation::Thread(ThreadRel::without_fallback(root)));
-            }
-        }
-
+        let content = StickerEventContent::new(body, info, uri);
         tl.send(content.into()).await.ffi().map(|_| ())
     }
 
@@ -5047,62 +5250,17 @@ impl CoreClient {
         self.sdk.account().delete_profile_field(field).await.ffi()
     }
 
-    pub async fn thread_replies(
+    pub async fn paginate_thread(
         &self,
         room_id: String,
         root_event_id: String,
-        from: Option<String>,
-        limit: u32,
-        direction_forward: bool,
-    ) -> Result<ThreadPage, FfiError> {
-        use matrix_sdk::ruma::{
-            api::Direction,
-            api::client::relations::get_relating_events_with_rel_type as get_relating,
-            events::relation::RelationType,
-        };
-        let rid = Self::parse_rid(&room_id)?;
-        let root = Self::parse_eid(&root_event_id)?;
-        let mut req = get_relating::v1::Request::new(
-            rid.clone(),
-            root.clone(),
-            RelationType::Thread,
-        );
-        if let Some(f) = from.as_deref() {
-            req.from = Some(f.to_owned());
-        }
-        if limit > 0 {
-            req.limit = Some(limit.into());
-        }
-        req.dir = if direction_forward {
-            Direction::Forward
-        } else {
-            Direction::Backward
-        };
-        let resp = self.sdk.send(req).await.ffi()?;
-        let mut out = Vec::new();
-        if let Some(root_ev) =
-            map_event_id_via_timeline(&self.timeline_mgr, &self.sdk, &rid, &root).await
-        {
-            out.push(root_ev);
-        }
-        for raw in resp.chunk.iter() {
-            if let Ok(ml) = raw.deserialize() {
-                let eid = ml.event_id().to_owned();
-                if let Some(mev) =
-                    map_event_id_via_timeline(&self.timeline_mgr, &self.sdk, &rid, &eid).await
-                {
-                    out.push(mev);
-                }
-            }
-        }
-        out.sort_by_key(|e| e.timestamp_ms);
-        Ok(ThreadPage {
-            root_event_id,
-            room_id,
-            messages: out,
-            next_batch: resp.next_batch.clone(),
-            prev_batch: resp.prev_batch.clone(),
-        })
+        count: u16,
+    ) -> Result<bool, FfiError> {
+        let tl = self
+            .thread_timeline(&room_id, &root_event_id)
+            .await
+            .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
+        tl.paginate_backwards(count).await.ffi()
     }
 
     pub async fn thread_summary(
@@ -5205,6 +5363,7 @@ impl CoreClient {
                     sender: mev.sender.clone(),
                     body: mev.body.clone(),
                     timestamp_ms: mev.timestamp_ms,
+                    thread_root_event_id: mev.thread_root_event_id.clone(),
                 });
             } else {
                 pending.push((index, eid.clone()));

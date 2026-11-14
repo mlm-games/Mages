@@ -758,7 +758,7 @@ data class ThreadUiState(
     val rootMessage: MessageEvent? = null,
     val replies: List<MessageEvent> = emptyList(),
 
-    val nextBatch: String? = null,
+    val hasMore: Boolean = true,
     val hasInitialLoad: Boolean = false,
 
     val isLoading: Boolean = false,

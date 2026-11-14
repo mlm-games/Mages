@@ -2,8 +2,9 @@ use crate::core::CoreClient;
 use crate::spawn_detached;
 use crate::types::*;
 use crate::{
-    count_visible_room_view, map_live_location_share, map_live_location_vec_diff,
-    map_timeline_item, missing_reply_event_id, paginate_backwards_visible, safe_call,
+    count_thread_items, count_visible_room_view, map_live_location_share,
+    map_live_location_vec_diff, map_timeline_item, missing_reply_event_id,
+    paginate_backwards_visible, paginate_thread_items, safe_call,
 };
 use futures_util::StreamExt;
 use matrix_sdk::Room;
@@ -281,12 +282,21 @@ pub(crate) async fn drive_timeline(
     room_id: &OwnedRoomId,
     me: &str,
     obs: Arc<dyn TimelineObserver>,
+    thread_root: Option<&OwnedEventId>,
 ) {
     {
-        let before = count_visible_room_view(&tl, room_id, me).await;
+        let before = if thread_root.is_some() {
+            count_thread_items(&tl, room_id, me).await
+        } else {
+            count_visible_room_view(&tl, room_id, me).await
+        };
         if before < 20 {
-            let _ =
-                paginate_backwards_visible(&tl, room_id, me, 20usize.saturating_sub(before)).await;
+            let want = 20usize.saturating_sub(before);
+            if thread_root.is_some() {
+                let _ = paginate_thread_items(&tl, room_id, me, want).await;
+            } else {
+                let _ = paginate_backwards_visible(&tl, room_id, me, want).await;
+            }
         }
     }
 

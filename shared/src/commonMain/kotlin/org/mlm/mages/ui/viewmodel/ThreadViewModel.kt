@@ -6,6 +6,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -73,6 +74,7 @@ class ThreadViewModel(
         rootEventId = rootEventId,
         roomName = roomName,
         focusedEventId = focusedEventId,
+        isLoading = true,
     )
 ) {
 
@@ -104,14 +106,16 @@ class ThreadViewModel(
         _events.send(Event.NavigateToRoom(roomId, title))
     }
 
-    private var timelineJob: Job? = null
+    private var rootTimelineJob: Job? = null
+    private var threadTimelineJob: Job? = null
     private var uploadJob: Job? = null
     private var uploadTxnId: String? = null
 
-    // Track all events we've seen for this thread (for deduplication)
-    private val seenItemIds = mutableSetOf<String>()
     private val replyThumbnailFetchInFlight = mutableSetOf<String>()
     private var lastMarkedReadEventId: String? = null
+    private var lastMarkedReadTs = 0L
+    private var threadStartProbeInFlight = false
+    private var threadStartReached = false
 
     private val settingsRepo: SettingsRepository<AppSettings> by inject()
 
@@ -119,8 +123,6 @@ class ThreadViewModel(
 
     private val prefs = settingsRepo.flow
         .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
-
-    private var initialPageRequested = false
 
     init {
         Notifier.clearThreadNotification(roomId, rootEventId)
@@ -137,15 +139,9 @@ class ThreadViewModel(
         loadSendActionState()
         loadImagePacks()
         loadRoomEncryption()
-        observeTimeline()
-        // Load the latest page after the timeline snapshot settles.
-        launch {
-            delay(300)
-            if (!initialPageRequested) {
-                initialPageRequested = true
-                loadInitialThread()
-            }
-        }
+        loadRootMessage()
+        observeRootTimeline()
+        observeThreadTimeline()
     }
 
     private fun loadSendActionState() {
@@ -231,136 +227,177 @@ class ThreadViewModel(
         return path
     }
 
-    /**
-     * Observe the room timeline and extract thread events in real-time.
-     */
-    private fun observeTimeline() {
-        timelineJob?.cancel()
-        timelineJob = viewModelScope.launch {
+    private fun observeRootTimeline() {
+        rootTimelineJob?.cancel()
+        rootTimelineJob = viewModelScope.launch {
             service.timelineDiffs(roomId).collect { diff ->
-                processTimelineDiff(diff)
+                applyRootDiff(diff)
             }
         }
     }
 
-    private fun processTimelineDiff(diff: TimelineDiff<MessageEvent>) {
+    private fun applyRootDiff(diff: TimelineDiff<MessageEvent>) {
         when (diff) {
-            is TimelineDiff.Reset -> {
-                // Extract all events belonging to this thread
-                val threadEvents = diff.items.filter { event ->
-                    event.eventId == rootEventId || event.threadRootEventId == rootEventId
-                }
+            is TimelineDiff.Reset -> diff.items.firstOrNull { it.eventId == rootEventId }?.let(::updateRoot)
+            is TimelineDiff.Append -> diff.items.firstOrNull { it.eventId == rootEventId }?.let(::updateRoot)
+            is TimelineDiff.Prepend -> if (diff.item.eventId == rootEventId) updateRoot(diff.item)
+            is TimelineDiff.Insert -> if (diff.item.eventId == rootEventId) updateRoot(diff.item)
+            is TimelineDiff.UpdateByItemId -> if (diff.item.eventId == rootEventId) updateRoot(diff.item)
+            is TimelineDiff.RemoveByItemId, is TimelineDiff.Clear -> Unit
+        }
+    }
 
-                if (threadEvents.isNotEmpty()) {
-                    processThreadEvents(threadEvents, isReset = true)
-                }
+    private fun updateRoot(event: MessageEvent) {
+        val bridged = event.withBridgedThumb(currentState.thumbByEvent)
+        updateState {
+            copy(
+                rootMessage = event,
+                thumbByEvent = bridged ?: thumbByEvent,
+            )
+        }
+        prefetchReplies(listOf(event))
+    }
+
+    private fun loadRootMessage() {
+        launch {
+            val root = runSafe { service.port.eventDetails(roomId, rootEventId) }
+            if (root != null) {
+                updateRoot(root)
+            } else if (currentState.rootMessage == null) {
+                updateState { copy(error = getString(Res.string.failed_to_load_thread)) }
             }
+        }
+    }
 
-            is TimelineDiff.Append -> {
-                val threadEvents = diff.items.filter { event ->
-                    event.eventId == rootEventId || event.threadRootEventId == rootEventId
+    private fun observeThreadTimeline() {
+        threadTimelineJob?.cancel()
+        threadTimelineJob = viewModelScope.launch {
+            service.threadTimelineDiffs(roomId, rootEventId)
+                .catch { e ->
+                    val message = currentState.error ?: e.message
+                        ?: getString(Res.string.failed_to_load_thread)
+                    updateState {
+                        copy(
+                            isLoading = false,
+                            hasMore = false,
+                            hasInitialLoad = true,
+                            error = message,
+                        )
+                    }
                 }
+                .collect { diff -> applyThreadDiff(diff) }
+        }
+    }
 
-                if (threadEvents.isNotEmpty()) {
-                    processThreadEvents(threadEvents, isReset = false)
-                }
-            }
-
-            is TimelineDiff.Prepend -> {
-                val event = diff.item
-                if (event.eventId == rootEventId || event.threadRootEventId == rootEventId) {
-                    upsertSingleEvent(event)
-                }
-            }
-
-            is TimelineDiff.UpdateByItemId -> {
-                val event = diff.item
-                if (event.eventId == rootEventId || event.threadRootEventId == rootEventId) {
-                    updateSingleEvent(event)
-                }
-            }
-
-            is TimelineDiff.Insert -> {
-                val event = diff.item
-                if (event.eventId == rootEventId || event.threadRootEventId == rootEventId) {
-                    upsertSingleEvent(event)
-                }
-            }
-
-            is TimelineDiff.RemoveByItemId -> {
-                removeSingleEvent(diff.itemId)
-            }
-
+    private fun applyThreadDiff(diff: TimelineDiff<MessageEvent>) {
+        when (diff) {
+            is TimelineDiff.Reset -> replaceReplies(diff.items)
+            is TimelineDiff.Append -> appendReplies(diff.items)
+            is TimelineDiff.Prepend -> prependReplies(listOf(diff.item))
+            is TimelineDiff.Insert -> upsertReply(diff.item)
+            is TimelineDiff.UpdateByItemId -> upsertReply(diff.item)
+            is TimelineDiff.RemoveByItemId -> removeReply(diff.itemId)
             is TimelineDiff.Clear -> {
-                seenItemIds.clear()
+                threadStartReached = false
                 updateState {
                     copy(
-                        rootMessage = null,
                         replies = emptyList(),
-                        hasInitialLoad = false
+                        hasInitialLoad = false,
+                        hasMore = true,
+                        isLoading = false,
+                        error = null,
                     )
                 }
-                initialPageRequested = false
-                loadInitialThread()
             }
         }
     }
 
-    /**
-     * Process a batch of thread events (from Reset or Append).
-     */
-    private fun processThreadEvents(events: List<MessageEvent>, isReset: Boolean) {
-        val newEvents = if (isReset) {
-            seenItemIds.clear()
-            events
-        } else {
-            events.filter { it.itemId !in seenItemIds }
+    private fun replaceReplies(events: List<MessageEvent>) {
+        val replies = events
+            .filter { it.eventId != rootEventId }
+            .distinctBy { it.itemId }
+            .sortedForThread()
+        prefetchReplies(events)
+        updateState {
+            copy(
+                replies = replies,
+                hasMore = !threadStartReached,
+                hasInitialLoad = true,
+                isLoading = false,
+                error = null,
+            )
         }
+        markLatestRead(events)
+        probeThreadStart()
+    }
 
-        if (newEvents.isEmpty() && !isReset) return
+    private fun appendReplies(events: List<MessageEvent>) {
+        if (events.isEmpty()) return
+        prefetchReplies(events)
+        updateState {
+            val merged = (events + replies)
+                .filter { it.eventId != rootEventId }
+                .distinctBy { it.itemId }
+                .sortedForThread()
+            copy(replies = merged, isLoading = false)
+        }
+        markLatestRead(events)
+    }
 
-        // Track seen items
-        newEvents.forEach { seenItemIds.add(it.itemId) }
+    private fun prependReplies(events: List<MessageEvent>) {
+        if (events.isEmpty()) return
+        prefetchReplies(events)
+        updateState {
+            val merged = (events + replies)
+                .filter { it.eventId != rootEventId }
+                .distinctBy { it.itemId }
+                .sortedForThread()
+            copy(replies = merged, isLoading = false)
+        }
+    }
+
+    private fun upsertReply(event: MessageEvent) {
+        if (event.eventId == rootEventId) {
+            updateRoot(event)
+            return
+        }
+        prefetchReplies(listOf(event))
+        updateState {
+            val idx = replies.indexOfFirst { it.itemId == event.itemId }
+            val updated = if (idx >= 0) {
+                replies.toMutableList().apply { this[idx] = event }
+            } else {
+                replies + event
+            }
+            copy(replies = updated.distinctBy { it.itemId }.sortedForThread())
+        }
+    }
+
+    private fun removeReply(itemId: String) {
+        updateState { copy(replies = replies.filterNot { it.itemId == itemId }) }
+    }
+
+    private fun prefetchReplies(events: List<MessageEvent>) {
         prefetchSenderAvatars(events)
         prefetchReactionUserAvatars(events)
         prefetchReplyThumbnails(events)
         prefetchLinkPreviews(events)
         prefetchMentionProfiles(events)
         prefetchAudioForEvents(events)
+    }
 
-        val hasOnlyRootSnapshot = isReset && events.none { it.eventId != rootEventId }
-
-        updateState {
-            // Find root message
-            val newRoot = events.find { it.eventId == rootEventId }
-            val updatedRoot = newRoot ?: rootMessage
-
-            // Get all replies (events that are part of thread but not the root)
-            val newReplies = events.filter {
-                it.eventId != rootEventId && it.threadRootEventId == rootEventId
+    private fun probeThreadStart() {
+        if (threadStartProbeInFlight || !currentState.hasMore || currentState.replies.size >= 20) return
+        threadStartProbeInFlight = true
+        launch {
+            val hitStart = runSafe { service.paginateThread(roomId, rootEventId, 20) }
+                ?.getOrNull() == true
+            threadStartProbeInFlight = false
+            if (hitStart) {
+                threadStartReached = true
+                updateState { copy(hasMore = false) }
             }
-
-            // Keep API-loaded replies across timeline resets: the room timeline
-            // does not carry every thread reply.
-            val mergedReplies = (replies + newReplies)
-                .distinctBy { it.itemId }
-                .sortedForThread()
-
-            var thumbs = thumbByEvent
-            events.forEach { ev ->
-                thumbs = ev.withBridgedThumb(thumbs) ?: thumbs
-            }
-
-            copy(
-                rootMessage = updatedRoot,
-                replies = mergedReplies,
-                thumbByEvent = thumbs,
-                hasInitialLoad = hasInitialLoad || !hasOnlyRootSnapshot,
-                isLoading = false,
-                error = null
-            )
         }
-        markLatestRead(newEvents)
     }
 
     private fun markLatestRead(events: List<MessageEvent>) {
@@ -369,6 +406,7 @@ class ThreadViewModel(
             .maxByOrNull { it.timestampMs }
             ?: return
         if (latest.eventId == lastMarkedReadEventId) return
+        if (latest.timestampMs < lastMarkedReadTs) return
         lastMarkedReadEventId = latest.eventId
         launch {
             val result = service.markThreadReadAt(
@@ -379,201 +417,64 @@ class ThreadViewModel(
             )
             if (result.isFailure) {
                 lastMarkedReadEventId = null
+            } else {
+                lastMarkedReadTs = maxOf(lastMarkedReadTs, latest.timestampMs)
             }
-        }
-    }
-
-    /**
-     * Update a single event in place.
-     */
-    private fun updateSingleEvent(event: MessageEvent) {
-        seenItemIds.add(event.itemId)
-        prefetchReplyThumbnails(listOf(event))
-        prefetchLinkPreviews(listOf(event))
-        prefetchAudioForEvents(listOf(event))
-
-        updateState {
-            val bridged = event.withBridgedThumb(thumbByEvent)
-            val base = when {
-                event.eventId == rootEventId -> {
-                    copy(rootMessage = event)
-                }
-                else -> {
-                    val idx = replies.indexOfFirst { it.itemId == event.itemId }
-                    if (idx >= 0) {
-                        copy(replies = replies.toMutableList().apply { this[idx] = event }.sortedForThread())
-                    } else {
-                        this
-                    }
-                }
-            }
-            if (bridged == null) base
-            else base.copy(thumbByEvent = bridged)
-        }
-    }
-
-    /**
-     * Upsert a single event (update if exists, insert if not).
-     */
-    private fun upsertSingleEvent(event: MessageEvent) {
-        seenItemIds.add(event.itemId)
-        prefetchReplyThumbnails(listOf(event))
-        prefetchLinkPreviews(listOf(event))
-        prefetchAudioForEvents(listOf(event))
-
-        updateState {
-            val bridged = event.withBridgedThumb(thumbByEvent)
-            val base = when {
-                event.eventId == rootEventId -> {
-                    copy(rootMessage = event)
-                }
-                else -> {
-                    val idx = replies.indexOfFirst { it.itemId == event.itemId }
-                    if (idx >= 0) {
-                        // Update existing
-                        copy(replies = replies.toMutableList().apply { this[idx] = event }.sortedForThread())
-                    } else {
-                        val newReplies = (replies + event)
-                            .distinctBy { it.itemId }
-                            .sortedForThread()
-                        copy(replies = newReplies)
-                    }
-                }
-            }
-            if (bridged == null) base
-            else base.copy(thumbByEvent = bridged)
-        }
-    }
-
-    private fun removeSingleEvent(itemId: String) {
-        seenItemIds.remove(itemId)
-        updateState {
-            when {
-                rootMessage?.itemId == itemId -> copy(rootMessage = null)
-                replies.any { it.itemId == itemId } ->
-                    copy(replies = replies.filterNot { it.itemId == itemId })
-                else -> this
-            }
-        }
-    }
-
-    /**
-     * Load thread via API as fallback/supplement to timeline data.
-     */
-    private fun loadInitialThread() {
-        if (currentState.isLoading) return
-        updateState { copy(isLoading = true, error = null) }
-        launch(onError = {
-            initialPageRequested = false
-            val failedToLoadThreadFallback = getString(Res.string.failed_to_load_thread)
-            updateState { copy(isLoading = false, error = it.message ?: failedToLoadThreadFallback) }
-        }) {
-            val page = service.port.threadReplies(
-                roomId = roomId,
-                rootEventId = rootEventId,
-                from = null,
-                limit = 100,
-                forward = false
-            )
-
-            val allMessages = page.messages.sortedBy { it.timestampMs }
-            val root = allMessages.find { it.eventId == rootEventId }
-                ?: currentState.rootMessage
-                ?: runSafe { service.port.eventDetails(roomId, rootEventId) }
-            val replies = allMessages.filter { it.eventId != rootEventId }
-            val prefetchEvents = (allMessages + listOfNotNull(root)).distinctBy { it.itemId }
-
-            allMessages.forEach { seenItemIds.add(it.itemId) }
-            prefetchReplyThumbnails(prefetchEvents)
-            prefetchLinkPreviews(prefetchEvents)
-            prefetchMentionProfiles(prefetchEvents)
-            prefetchAudioForEvents(prefetchEvents)
-
-            updateState {
-                val mergedRoot = root ?: rootMessage
-                val mergedReplies = (this.replies + replies)
-                    .distinctBy { it.itemId }
-                    .sortedForThread()
-
-                copy(
-                    rootMessage = mergedRoot,
-                    replies = mergedReplies,
-                    nextBatch = page.nextBatch,
-                    isLoading = false,
-                    hasInitialLoad = true,
-                    focusedEventMissing = focusedEventId != null &&
-                            page.nextBatch == null &&
-                            mergedRoot?.eventId != focusedEventId &&
-                            mergedReplies.none { it.eventId == focusedEventId },
-                )
-            }
-            markLatestRead(prefetchEvents)
         }
     }
 
     fun retryLoad() {
-        initialPageRequested = true
-        loadInitialThread()
+        threadStartReached = false
+        updateState {
+            copy(
+                replies = emptyList(),
+                isLoading = true,
+                error = null,
+                hasInitialLoad = false,
+                hasMore = true,
+            )
+        }
+        loadRootMessage()
+        observeThreadTimeline()
     }
 
     /**
      * Load more (older) messages in the thread.
      */
     fun loadMore() {
-        loadMoreInternal(markFocusedMissingWhenExhausted = currentState.focusedEventId != null)
-    }
-
-    fun clearFocusedEvent() {
-        updateState { copy(focusedEventId = null, focusedEventMissing = false) }
-    }
-
-    private fun loadMoreInternal(markFocusedMissingWhenExhausted: Boolean) {
-        val token = currentState.nextBatch
-        if (token == null) {
-            if (markFocusedMissingWhenExhausted && currentState.focusedEventId != null) {
+        if (!currentState.hasMore || currentState.isLoading) {
+            if (!currentState.hasMore && currentState.focusedEventId != null) {
                 updateState { copy(focusedEventMissing = true) }
             }
             return
         }
-        if (currentState.isLoading) return
 
         updateState { copy(isLoading = true) }
         launch(onError = { e ->
             updateState { copy(isLoading = false) }
             launch { _events.send(Event.ShowError(e.message ?: getString(Res.string.failed_to_load_more_messages))) }
         }) {
-            val page = service.port.threadReplies(
-                roomId = roomId,
-                rootEventId = rootEventId,
-                from = token,
-                limit = 50,
-                forward = false
-            )
-
-            val newReplies = page.messages.filter { it.eventId != rootEventId }
-
-            newReplies.forEach { seenItemIds.add(it.itemId) }
-            prefetchReplyThumbnails(newReplies)
-            prefetchLinkPreviews(newReplies)
-            prefetchMentionProfiles(newReplies)
-            prefetchAudioForEvents(newReplies)
-
+            val result = service.paginateThread(roomId, rootEventId, 50)
+            val hitStart = result.getOrNull() == true
+            if (result.isSuccess && hitStart) threadStartReached = true
             updateState {
-                val merged = (replies + newReplies)
-                    .distinctBy { it.itemId }
-                    .sortedForThread()
                 copy(
-                    replies = merged,
-                    nextBatch = page.nextBatch,
                     isLoading = false,
-                    focusedEventMissing = markFocusedMissingWhenExhausted &&
+                    hasMore = if (result.isSuccess) !hitStart else hasMore,
+                    focusedEventMissing = hitStart &&
                             focusedEventId != null &&
-                            page.nextBatch == null &&
                             rootMessage?.eventId != focusedEventId &&
-                            merged.none { it.eventId == focusedEventId },
+                            replies.none { it.eventId == focusedEventId },
                 )
             }
+            if (result.isFailure) {
+                _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.failed_to_load_more_messages))))
+            }
         }
+    }
+
+    fun clearFocusedEvent() {
+        updateState { copy(focusedEventId = null, focusedEventMissing = false) }
     }
 
     /**
@@ -583,7 +484,15 @@ class ThreadViewModel(
         if (event.eventId.isBlank()) return
         recentEmoji.record(emoji)
         launch {
-            runSafe { service.port.react(roomId, event.eventId, emoji, reactionShortcodeFor(emoji)) }
+            runSafe {
+                service.port.react(
+                    roomId = roomId,
+                    eventId = event.eventId,
+                    key = emoji,
+                    shortcode = reactionShortcodeFor(emoji),
+                    threadRootEventId = rootEventId,
+                )
+            }
         }
     }
 
@@ -822,16 +731,12 @@ class ThreadViewModel(
         }
     }
 
-    private fun latestThreadEventId(): String? =
-        currentState.replies.lastOrNull { it.eventId.isNotBlank() && !it.isRedacted }?.eventId
-
     private suspend fun sendAttachmentsInternal(
         items: List<AttachmentData>,
         caption: String? = null,
         formattedCaption: String? = null,
         replyToEventId: String? = null,
     ): Boolean {
-        val latestEventId = latestThreadEventId()
         items.forEachIndexed { index, data ->
             val isLast = index == items.lastIndex
 
@@ -855,7 +760,6 @@ class ThreadViewModel(
                 formattedCaption = if (isLast) formattedCaption else null,
                 replyToEventId = if (isLast) replyToEventId else null,
                 threadRootEventId = rootEventId,
-                latestEventId = latestEventId,
                 txnId = txn,
             ) { sent, totalBytes ->
                 val denom = (totalBytes ?: data.sizeBytes).coerceAtLeast(1L).toFloat()
@@ -960,7 +864,6 @@ class ThreadViewModel(
                 filename = "voice_message.$voiceMessageExtension",
                 replyToEventId = replyTo?.eventId,
                 threadRootEventId = rootEventId,
-                latestEventId = latestThreadEventId(),
                 voiceDurationMs = durationMs,
                 voiceWaveform = waveform,
                 isVoice = true,
@@ -1465,11 +1368,6 @@ class ThreadViewModel(
 
         val replyToId = currentState.replyingTo?.eventId
         val replyingTo = currentState.replyingTo
-        val latestEventId = if (replyToId == null) {
-            currentState.replies.lastOrNull { it.eventId.isNotBlank() }?.eventId
-        } else {
-            null
-        }
 
         // Clear input immediately for better UX
         updateState {
@@ -1486,7 +1384,6 @@ class ThreadViewModel(
                 rootEventId,
                 outgoing?.body.orEmpty(),
                 replyToId,
-                latestEventId,
                 outgoing?.formattedBody
             )
         }
@@ -1513,8 +1410,8 @@ class ThreadViewModel(
 
     override fun onCleared() {
         super.onCleared()
-        timelineJob?.cancel()
-        seenItemIds.clear()
+        rootTimelineJob?.cancel()
+        threadTimelineJob?.cancel()
     }
 }
 

@@ -470,6 +470,15 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         }.getOrElse { emptyList() }
     }
 
+    override suspend fun eventsByIds(roomId: String, eventIds: List<String>): List<MessageEvent> {
+        val raw = requireClient().eventsByIds(roomId, eventIds.toJsArray()).await<JsAny?>()
+        return runCatching {
+            wasmJson.decodeFromJsonElement<List<MessageEvent>>(raw.toJsonArray())
+        }.onFailure {
+            Logger.w("eventsByIds failed: ${it.message}")
+        }.getOrElse { emptyList() }
+    }
+
     override suspend fun eventDetails(roomId: String, eventId: String): MessageEvent? =
         requireClient().eventDetails(roomId, eventId).awaitValue("eventDetails")
 
@@ -492,8 +501,44 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
                 close(IllegalStateException(message))
             }
         )
+        if (subscription == 0.0) {
+            close()
+            return@callbackFlow
+        }
         awaitClose {
             requireClientOrNull()?.unobserveTimeline(subscription)
+        }
+    }
+
+    override fun threadTimelineDiffs(
+        roomId: String,
+        rootEventId: String,
+    ): Flow<TimelineDiff<MessageEvent>> = callbackFlow {
+        val f = requireClientOrNull() ?: run { close(); return@callbackFlow }
+        val subscription = f.observeThreadTimeline(
+            roomId,
+            rootEventId,
+            jsCallback1 { diffValue: JsAny? ->
+                runCatching {
+                    decodeTimelineDiff(diffValue)
+                }.onFailure {
+                    Logger.w("thread timeline diff decode failed: ${it.message}")
+                }.getOrNull()?.let { diff ->
+                    trySend(diff)
+                }
+            },
+            jsCallback1 { error: JsAny? ->
+                val message = error?.toString() ?: "Thread timeline error"
+                Logger.w("thread timeline observer error = $message")
+                close(IllegalStateException(message))
+            }
+        )
+        if (subscription == 0.0) {
+            close()
+            return@callbackFlow
+        }
+        awaitClose {
+            requireClientOrNull()?.unobserveThreadTimeline(subscription)
         }
     }
 
@@ -766,9 +811,10 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         roomId: String,
         eventId: String,
         key: String,
-        shortcode: String?
+        shortcode: String?,
+        threadRootEventId: String?,
     ): Result<Unit> =
-        requireClient().react(roomId, eventId, key, shortcode).awaitUnitResult()
+        requireClient().react(roomId, eventId, key, shortcode, threadRootEventId).awaitUnitResult()
 
     override suspend fun reply(
         roomId: String,
@@ -885,7 +931,6 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         formattedCaption: String?,
         replyToEventId: String?,
         threadRootEventId: String?,
-        latestEventId: String?,
         voiceDurationMs: Long?,
         voiceWaveform: List<Float>?,
         isVoice: Boolean?,
@@ -1408,7 +1453,6 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         rootEventId: String,
         body: String,
         replyToEventId: String?,
-        latestEventId: String?,
         formattedBody: String?
     ): Result<Unit> =
         requireClient().sendThreadText(
@@ -1416,7 +1460,6 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             rootEventId,
             body,
             replyToEventId,
-            latestEventId,
             formattedBody
         ).awaitUnitResult()
 
@@ -1430,16 +1473,12 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             .awaitValue<ThreadSummary>("threadSummary")
             ?: ThreadSummary(rootEventId, roomId, 0, null)
 
-    override suspend fun threadReplies(
+    override suspend fun paginateThread(
         roomId: String,
         rootEventId: String,
-        from: String?,
-        limit: Int,
-        forward: Boolean
-    ): ThreadPage =
-        requireClient().threadReplies(roomId, rootEventId, from, limit.toDouble(), forward)
-            .awaitValue<ThreadPage>("threadReplies")
-            ?: ThreadPage(rootEventId, roomId, emptyList(), null, null)
+        count: Int
+    ): Result<Boolean> =
+        requireClient().paginateThread(roomId, rootEventId, count.toDouble()).awaitBoolResult()
 
     override suspend fun isSpace(roomId: String): Boolean =
         mySpaces().any { it.roomId == roomId }

@@ -9,7 +9,7 @@ use crate::wasm_delegate;
 use crate::wasm_subscribe;
 use crate::wasm_unobserve;
 use crate::webffi_bool;
-use crate::{latest_room_event_for, mages_client_metadata, strip_matrix_path};
+use crate::{latest_room_event_for, mages_client_metadata, safe_call, strip_matrix_path};
 use crate::{webffi_err, webffi_not_init, webffi_option, webffi_unit, webffi_value};
 
 use futures_util::StreamExt;
@@ -34,8 +34,7 @@ use matrix_sdk::widget::{
 };
 
 use matrix_sdk::{
-    Client as SdkClient,
-    attachment::AttachmentConfig,
+    Client as SdkClient, ThreadingSupport, attachment::AttachmentConfig,
     authentication::AuthSession,
     encryption::{BackupDownloadStrategy, EncryptionSettings},
     media::{MediaFormat, MediaRequestParameters, MediaThumbnailSettings},
@@ -348,6 +347,7 @@ struct WasmAsyncState {
     room_list_subs: RefCell<HashMap<u64, AbortHandle>>,
     room_list_cmds: RefCell<HashMap<u64, tokio::sync::mpsc::UnboundedSender<RoomListCmd>>>,
     timeline_subs: RefCell<HashMap<u64, AbortHandle>>,
+    thread_timeline_sub_keys: RefCell<HashMap<u64, (OwnedRoomId, OwnedEventId)>>,
     connection_subs: RefCell<HashMap<u64, AbortHandle>>,
     typing_subs: RefCell<HashMap<u64, AbortHandle>>,
     receipts_subs: RefCell<HashMap<u64, AbortHandle>>,
@@ -528,7 +528,7 @@ wasm_delegate! { webffi_unit;
     "inviteUser"           => invite_user(room_id: String, user_id: String);
     "enableRoomEncryption" => enable_room_encryption(room_id: String);
     "knock"                => knock(id_or_alias: String, via: Vec<String>);
-    "react"                => react(room_id: String, event_id: String, emoji: String, shortcode: Option<String>);
+    "react"                => react(room_id: String, event_id: String, emoji: String, shortcode: Option<String>, thread_root_event_id: Option<String>);
     "spaceInviteUser"      => space_invite_user(space_id: String, user_id: String);
     "redact"               => redact(room_id: String, event_id: String, reason: Option<String>);
 }
@@ -572,6 +572,7 @@ wasm_delegate! { webffi_unit;
 wasm_delegate! { |r| to_json(&r);
     "rooms"             => rooms()                                                or Vec::<RoomSummary>::new();
     "recentEvents"      => recent_events(room_id: String, limit: u32)             or Vec::<MessageEvent>::new();
+    "eventsByIds"       => events_by_ids(room_id: String, event_ids: Vec<String>) or Vec::<MessageEvent>::new();
     "ownLastRead"       => own_last_read(room_id: String)                         or OwnReceipt { event_id: None, ts_ms: None };
     "reactionsForEvent" => reactions_for_event(room_id: String, event_id: String)  or Vec::<ReactionSummary>::new();
     "mySpaces"          => my_spaces()                                             or Vec::<SpaceInfo>::new();
@@ -604,7 +605,6 @@ wasm_delegate! { webffi_value;
     "deleteSection"    => delete_section(tag: String);
     "moveSection"      => move_section(tag: String, index: u32);
     "setRoomSection"   => set_room_section(room_id: String, tag: Option<String>);
-    "threadReplies"    => thread_replies(room_id: String, root_event_id: String, from: Option<String>, limit: u32, forward: bool);
     "threadSummary"    => thread_summary(room_id: String, root_event_id: String, per_page: u32, max_pages: u32);
     "listMembers"      => list_members(room_id: String);
     "listBannedMembers" => list_banned_members(room_id: String);
@@ -641,7 +641,7 @@ wasm_delegate! { webffi_unit;
     "isEventReadBy"      => is_event_read_by(room_id: String, event_id: String, user_id: String);
     "sendQueueSetEnabled" => send_queue_set_enabled(enabled: bool);
     "setMarkUnread"      => set_mark_unread(room_id: String, unread: bool);
-    "sendThreadText"     => send_thread_text(room_id: String, root_event_id: String, body: String, reply_to_event_id: Option<String>, latest_event_id: Option<String>, formatted_body: Option<String>);
+    "sendThreadText"     => send_thread_text(room_id: String, root_event_id: String, body: String, reply_to_event_id: Option<String>, formatted_body: Option<String>);
     "setReactionNotificationsEnabled" => set_reaction_notifications_enabled(enabled: bool);
     "setEventNotificationsEnabled" => set_event_notifications_enabled(rule_id: String, event_type: String, enabled: bool);
 }
@@ -680,7 +680,6 @@ wasm_delegate! { |r| to_json(&r);
 }
 
 wasm_unobserve! {
-    "unobserveTimeline"          => unobserve_timeline(timeline_subs);
     "unobserveTyping"            => unobserve_typing(typing_subs);
     "unobserveRoomCallState"     => unobserve_room_call_state(call_subs);
     "unobserveRoomInfo"          => unobserve_room_info(call_subs);
@@ -727,7 +726,10 @@ impl WasmClient {
         } else {
             SdkClient::builder().server_name_or_homeserver_url(server_name_or_url)
         }
-        .request_config(crate::request_config(is_probe));
+        .request_config(crate::request_config(is_probe))
+        .with_threading_support(ThreadingSupport::Enabled {
+            with_subscriptions: false,
+        });
 
         if !is_probe {
             builder = builder.indexeddb_store(&store_name, None);
@@ -818,6 +820,7 @@ impl WasmClient {
             room_list_subs: RefCell::new(HashMap::new()),
             room_list_cmds: RefCell::new(HashMap::new()),
             timeline_subs: RefCell::new(HashMap::new()),
+            thread_timeline_sub_keys: RefCell::new(HashMap::new()),
             connection_subs: RefCell::new(HashMap::new()),
             typing_subs: RefCell::new(HashMap::new()),
             receipts_subs: RefCell::new(HashMap::new()),
@@ -1085,6 +1088,23 @@ impl WasmClient {
         webffi_value(s.core.paginate_forwards(room_id, count as u16).await)
     }
 
+    #[wasm_bindgen(js_name = paginateThread)]
+    pub async fn paginate_thread(
+        &self,
+        room_id: String,
+        root_event_id: String,
+        count: u32,
+    ) -> JsValue {
+        let Some(s) = self.state() else {
+            return webffi_not_init();
+        };
+        webffi_value(
+            s.core
+                .paginate_thread(room_id, root_event_id, count as u16)
+                .await,
+        )
+    }
+
     #[wasm_bindgen(js_name = accountManagementUrl)]
     pub async fn account_management_url(&self) -> JsValue {
         let Some(s) = self.state() else {
@@ -1327,8 +1347,96 @@ impl WasmClient {
                 let _ = svc.start().await;
             }
 
-            crate::observe::drive_timeline(tl, &rid, &me, obs).await;
+            crate::observe::drive_timeline(tl, &rid, &me, obs, None).await;
         })
+    }
+
+    #[wasm_bindgen(js_name = observeThreadTimeline)]
+    pub fn observe_thread_timeline(
+        &self,
+        room_id: String,
+        root_event_id: String,
+        on_diff: Function,
+        on_error: Function,
+    ) -> f64 {
+        let Some(state) = self.state() else {
+            return 0.0;
+        };
+        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+            return 0.0;
+        };
+        let Ok(root) = OwnedEventId::try_from(root_event_id) else {
+            return 0.0;
+        };
+        let obs: Arc<dyn TimelineObserver> = Arc::new(JsTimelineObserver(on_diff, on_error));
+        let me = state
+            .client()
+            .user_id()
+            .map(|u| u.to_string())
+            .unwrap_or_default();
+        let mgr = state.tm().clone();
+        let s = state.clone();
+        let key = (rid.clone(), root.clone());
+        let id = state.next_sub_id();
+        state.tm().retain_thread_timeline(&rid, &root);
+        state
+            .thread_timeline_sub_keys
+            .borrow_mut()
+            .insert(id, key);
+        let (ah, ar) = futures_util::future::AbortHandle::new_pair();
+        state.timeline_subs.borrow_mut().insert(id, ah);
+        wasm_bindgen_futures::spawn_local(async move {
+            let _ = futures_util::future::Abortable::new(
+                async move {
+                    let Some(tl) = mgr.thread_timeline_for(&rid, &root).await else {
+                        safe_call(|| obs.on_error("timeline unavailable".into()));
+                        return;
+                    };
+
+                    if let Some(svc) = s.ensure_sync_service().await {
+                        let rls = svc.room_list_service();
+                        rls.set_room_subscriptions(&[rid.as_ref()]).await;
+                        let _ = svc.start().await;
+                    }
+
+                    crate::observe::drive_timeline(tl, &rid, &me, obs, Some(&root)).await;
+                },
+                ar,
+            )
+            .await;
+        });
+        id as f64
+    }
+
+    #[wasm_bindgen(js_name = unobserveTimeline)]
+    pub fn unobserve_timeline(&self, sub_id: f64) -> bool {
+        let Some(state) = self.state() else {
+            return false;
+        };
+        let is_thread = state
+            .thread_timeline_sub_keys
+            .borrow()
+            .contains_key(&(sub_id as u64));
+        if is_thread {
+            return self.unobserve_thread_timeline(sub_id);
+        }
+        Self::abort_sub(&state.timeline_subs, sub_id as u64)
+    }
+
+    #[wasm_bindgen(js_name = unobserveThreadTimeline)]
+    pub fn unobserve_thread_timeline(&self, sub_id: f64) -> bool {
+        let Some(state) = self.state() else {
+            return false;
+        };
+        let key = state
+            .thread_timeline_sub_keys
+            .borrow_mut()
+            .remove(&(sub_id as u64));
+        let aborted = Self::abort_sub(&state.timeline_subs, sub_id as u64);
+        if let Some(key) = key {
+            state.tm().release_thread_timeline(&key.0, &key.1);
+        }
+        aborted
     }
 
     #[wasm_bindgen(js_name = observeRoomList)]

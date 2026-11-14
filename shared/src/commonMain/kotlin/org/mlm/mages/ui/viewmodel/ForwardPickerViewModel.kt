@@ -137,8 +137,15 @@ class ForwardPickerViewModel(
             val snapshotLimit = max(500, eventIds.size * 50)
             val snapshot = runSafe { service.port.recent(sourceRoomId, snapshotLimit) } ?: emptyList()
             val byId = snapshot.associateBy { it.eventId }
+            val missing = eventIds.filterNot { it in byId }
+            val fetched = if (missing.isEmpty()) {
+                emptyList()
+            } else {
+                runSafe { service.port.eventsByIds(sourceRoomId, missing) } ?: emptyList()
+            }
+            val resolved = byId + fetched.associateBy { it.eventId }
 
-            eventsToForward = eventIds.mapNotNull { byId[it] }
+            eventsToForward = eventIds.mapNotNull { resolved[it] }
             updateState { copy(eventCount = eventsToForward.size) }
 
             val missingCount = eventIds.size - eventsToForward.size

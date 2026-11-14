@@ -73,7 +73,7 @@ use macros::*;
 #[cfg(not(target_family = "wasm"))]
 use matrix_sdk::ruma::OwnedUserId;
 use matrix_sdk::{
-    Client as SdkClient, Room, SessionMeta, SessionTokens,
+    Client as SdkClient, Room, SessionMeta, SessionTokens, ThreadingSupport,
     authentication::matrix::MatrixSession,
     authentication::oauth::{ClientId, OAuthSession, UserSession},
     media::{MediaFormat, MediaRequestParameters, MediaRetentionPolicy},
@@ -142,10 +142,9 @@ delegate! { unit;
     edit_caption(room_id: String, target_event_id: String, caption: Option<String>, formatted_caption: Option<String>);
     edit_poll(room_id: String, poll_event_id: String, def: PollDefinition);
     redact(room_id: String, event_id: String, reason: Option<String>);
-    react(room_id: String, event_id: String, emoji: String, shortcode: Option<String>);
+    react(room_id: String, event_id: String, emoji: String, shortcode: Option<String>, thread_root_event_id: Option<String>);
     send_thread_text(room_id: String, root_event_id: String, body: String,
-                     reply_to_event_id: Option<String>, latest_event_id: Option<String>,
-                     formatted_body: Option<String>);
+                     reply_to_event_id: Option<String>, formatted_body: Option<String>);
     mark_read(room_id: String, send_public_receipt: bool);
     mark_read_at(room_id: String, event_id: String, send_public_receipt: bool);
     mark_thread_read_at(room_id: String, thread_root_event_id: String, event_id: String, send_public_receipt: bool);
@@ -207,6 +206,7 @@ delegate! { unit;
 delegate! { result bool; is_user_ignored(user_id: String); is_space(room_id: String);
     paginate_backwards(room_id: String, count: u16);
     paginate_forwards(room_id: String, count: u16);
+    paginate_thread(room_id: String, root_event_id: String, count: u16);
     mark_room_seen_latest(room_id: String, send_public_receipt: bool);
 }
 
@@ -255,7 +255,7 @@ delegate! { option SuccessorRoomInfo; room_successor(room_id: String); }
 delegate! { option PredecessorRoomInfo; room_predecessor(room_id: String); }
 delegate! { option bool; is_marked_unread(room_id: String); }
 
-delegate! { plain Vec<MessageEvent>; recent_events(room_id: String, limit: u32); }
+delegate! { plain Vec<MessageEvent>; recent_events(room_id: String, limit: u32); events_by_ids(room_id: String, event_ids: Vec<String>); }
 delegate! { plain (); apply_sync_presence(state: Presence); }
 delegate! { option MediaPreviewMode; media_preview_config(); }
 delegate! { option LinkPreview; get_link_preview(url: String); }
@@ -304,7 +304,6 @@ delegate! { result Vec<ImagePackSummary>; list_image_packs(room_id: String); lis
 delegate! { result bool; can_edit_image_packs(room_id: String); publish_room_alias(room_id: String, alias: String); unpublish_room_alias(room_id: String, alias: String); }
 delegate! { result Vec<String>; suggest_image_shortcodes(bases: Vec<String>, taken: Vec<String>); }
 delegate! { result Vec<RecentEmojiEntry>; recent_emoji(); }
-delegate! { result ThreadPage; thread_replies(room_id: String, root_event_id: String, from: Option<String>, limit: u32, direction_forward: bool); }
 delegate! { result ThreadSummary; thread_summary(room_id: String, root_event_id: String, per_page: u32, max_pages: u32); }
 delegate! { result PresenceInfo; get_presence(user_id: String); }
 delegate! { option RoomProfile; room_profile(room_id: String); }
@@ -332,6 +331,7 @@ pub struct Client {
     subs_counter: AtomicU64,
     timeline_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     timeline_sub_rooms: Mutex<HashMap<u64, OwnedRoomId>>,
+    thread_timeline_subs: Mutex<HashMap<u64, (OwnedRoomId, OwnedEventId)>>,
     timeline_rooms: Arc<Mutex<HashMap<OwnedRoomId, usize>>>,
     typing_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
     connection_subs: Mutex<HashMap<u64, tokio::task::JoinHandle<()>>>,
@@ -412,30 +412,36 @@ fn mages_client_metadata(redirect_uri: &Url) -> Raw<ClientMetadata> {
     Raw::new(&metadata).expect("Couldn't serialize client metadata")
 }
 
-pub(crate) fn with_uploaded_image_info(
-    config: matrix_sdk::attachment::AttachmentConfig,
+pub(crate) fn uploaded_image_info(
     data: &[u8],
     mime_type: &Mime,
-) -> matrix_sdk::attachment::AttachmentConfig {
+) -> Option<matrix_sdk::attachment::AttachmentInfo> {
     use matrix_sdk::attachment::{AttachmentInfo, BaseImageInfo};
 
     if mime_type.type_() != mime::IMAGE {
-        return config;
+        return None;
     }
-    let Some(image) = decode_upright_image(data) else {
-        return config;
-    };
+    let image = decode_upright_image(data)?;
     let thumb = image.thumbnail(32, 32).to_rgba8();
-    let Ok(blurhash) = blurhash::encode_image(4, 3, &thumb) else {
-        return config;
-    };
-    config.info(AttachmentInfo::Image(BaseImageInfo {
+    let blurhash = blurhash::encode_image(4, 3, &thumb).ok()?;
+    Some(AttachmentInfo::Image(BaseImageInfo {
         width: matrix_sdk::ruma::UInt::new(u64::from(image.width())),
         height: matrix_sdk::ruma::UInt::new(u64::from(image.height())),
         size: matrix_sdk::ruma::UInt::new(data.len() as u64),
         blurhash: Some(blurhash),
         is_animated: (mime_type.essence_str() == "image/gif").then_some(true),
     }))
+}
+
+pub(crate) fn with_uploaded_image_info(
+    config: matrix_sdk::attachment::AttachmentConfig,
+    data: &[u8],
+    mime_type: &Mime,
+) -> matrix_sdk::attachment::AttachmentConfig {
+    match uploaded_image_info(data, mime_type) {
+        Some(info) => config.info(info),
+        None => config,
+    }
 }
 
 fn decode_upright_image(data: &[u8]) -> Option<image::DynamicImage> {
@@ -455,12 +461,12 @@ fn decode_upright_image(data: &[u8]) -> Option<image::DynamicImage> {
     Some(image)
 }
 
-async fn queue_send_attachment(
-    room: &Room,
+async fn queue_send_attachment_on_timeline(
+    tl: &matrix_sdk_ui::timeline::Timeline,
     filename: String,
     mime_type: Mime,
     data: Vec<u8>,
-    mut config: matrix_sdk::attachment::AttachmentConfig,
+    mut config: matrix_sdk_ui::timeline::AttachmentConfig,
     progress: Option<Box<dyn ProgressObserver>>,
 ) -> bool {
     let transaction_id = config
@@ -470,9 +476,10 @@ async fn queue_send_attachment(
     config.txn_id = Some(transaction_id.clone());
     let transaction_id = transaction_id.to_string();
     let total = data.len() as u64;
+    let room = tl.room();
 
     room.client().send_queue().enable_upload_progress(true);
-    let (_local_echoes, mut updates) = match room.send_queue().subscribe().await {
+    let (_local_echoes, updates) = match room.send_queue().subscribe().await {
         Ok(value) => value,
         Err(error) => {
             warn!("cannot subscribe to send queue: {error}");
@@ -484,15 +491,28 @@ async fn queue_send_attachment(
         observer.on_progress(0, Some(total));
     }
 
-    if room
-        .send_queue()
-        .send_attachment(filename, mime_type, data, config)
+    let source = matrix_sdk_ui::timeline::AttachmentSource::Data {
+        bytes: data,
+        filename,
+    };
+    if tl
+        .send_attachment(source, mime_type, config)
+        .use_send_queue()
         .await
         .is_err()
     {
         return false;
     }
 
+    await_attachment_sent(updates, transaction_id, total, progress).await
+}
+
+async fn await_attachment_sent(
+    mut updates: tokio::sync::broadcast::Receiver<matrix_sdk::send_queue::RoomSendQueueUpdate>,
+    transaction_id: String,
+    total: u64,
+    progress: Option<Box<dyn ProgressObserver>>,
+) -> bool {
     loop {
         match updates.recv().await {
             Ok(matrix_sdk::send_queue::RoomSendQueueUpdate::MediaUpload {
@@ -847,7 +867,10 @@ impl Client {
                     ..Default::default()
                 })
                 .dm_room_definition(matrix_sdk_base::DmRoomDefinition::TwoMembers)
-                .handle_refresh_tokens();
+                .handle_refresh_tokens()
+                .with_threading_support(ThreadingSupport::Enabled {
+                    with_subscriptions: false,
+                });
                 if !is_probe {
                     builder = builder.indexeddb_store("mages_store", None);
                 }
@@ -874,7 +897,10 @@ impl Client {
                     ..Default::default()
                 })
                 .dm_room_definition(matrix_sdk_base::DmRoomDefinition::TwoMembers)
-                .handle_refresh_tokens();
+                .handle_refresh_tokens()
+                .with_threading_support(ThreadingSupport::Enabled {
+                    with_subscriptions: false,
+                });
 
                 if let Some(idx) = search_idx {
                     builder = builder
@@ -914,6 +940,7 @@ impl Client {
             subs_counter: AtomicU64::new(0),
             timeline_subs: Mutex::new(HashMap::new()),
             timeline_sub_rooms: Mutex::new(HashMap::new()),
+            thread_timeline_subs: Mutex::new(HashMap::new()),
             timeline_rooms: Arc::new(Mutex::new(HashMap::new())),
             typing_subs: Mutex::new(HashMap::new()),
             connection_subs: Mutex::new(HashMap::new()),
@@ -1301,40 +1328,112 @@ impl Client {
             .unwrap_or_default();
         let mgr = self.core.timeline_mgr.clone();
         let core = self.core.clone();
-        let timeline_rooms = self.timeline_rooms.clone();
         let sub_room_id = room_id.clone();
-        let id = sub_manager!(self, timeline_subs, async move {
+        let is_first = {
+            let mut rooms = self
+                .timeline_rooms
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            let count = rooms.entry(room_id.clone()).or_insert(0usize);
+            *count += 1;
+            *count == 1
+        };
+        let id = self.next_sub_id();
+        self.timeline_sub_rooms
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(id, sub_room_id);
+        let handle = spawn_task!(async move {
             let Some(tl) = mgr.timeline_for(&room_id).await else {
                 safe_call(|| obs.on_error("timeline unavailable".into()));
                 return;
             };
 
-            {
-                let c = core.clone();
-                let _ = spawn_task!(async move {
-                    c.ensure_sync_active().await;
-                });
-                let is_first = {
-                    let mut rooms = timeline_rooms.lock().unwrap_or_else(|e| e.into_inner());
-                    let count = rooms.entry(room_id.clone()).or_insert(0usize);
-                    *count += 1;
-                    *count == 1
-                };
-                if is_first {
-                    core.subscribe_room_full_timeline_when_ready(&room_id).await;
-                }
+            let c = core.clone();
+            let _ = spawn_task!(async move {
+                c.ensure_sync_active().await;
+            });
+            if is_first {
+                core.subscribe_room_full_timeline_when_ready(&room_id).await;
             }
 
-            crate::observe::drive_timeline(tl, &room_id, &me, obs).await;
+            crate::observe::drive_timeline(tl, &room_id, &me, obs, None).await;
         });
+        self.timeline_subs
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(id, handle);
+        id
+    }
+
+    pub fn observe_thread_timeline(
+        &self,
+        room_id: String,
+        root_event_id: String,
+        observer: Box<dyn TimelineObserver>,
+    ) -> u64 {
+        let Ok(room_id) = OwnedRoomId::try_from(room_id) else {
+            return 0;
+        };
+        let Ok(root_event_id) = OwnedEventId::try_from(root_event_id) else {
+            return 0;
+        };
+        let obs: Arc<dyn TimelineObserver> = Arc::from(observer);
+        let me = self
+            .core
+            .sdk
+            .user_id()
+            .map(|u| u.to_string())
+            .unwrap_or_default();
+        let mgr = self.core.timeline_mgr.clone();
+        let core = self.core.clone();
+        let key = (room_id.clone(), root_event_id.clone());
+        let sub_room_id = room_id.clone();
+        self.core
+            .timeline_mgr
+            .retain_thread_timeline(&room_id, &root_event_id);
+        let is_first = {
+            let mut rooms = self
+                .timeline_rooms
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            let count = rooms.entry(room_id.clone()).or_insert(0usize);
+            *count += 1;
+            *count == 1
+        };
+        let id = self.next_sub_id();
+        self.thread_timeline_subs
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(id, key);
         self.timeline_sub_rooms
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .insert(id, sub_room_id);
+        let handle = spawn_task!(async move {
+            let Some(tl) = mgr.thread_timeline_for(&room_id, &root_event_id).await else {
+                safe_call(|| obs.on_error("timeline unavailable".into()));
+                return;
+            };
+
+            let c = core.clone();
+            let _ = spawn_task!(async move {
+                c.ensure_sync_active().await;
+            });
+            if is_first {
+                core.subscribe_room_full_timeline_when_ready(&room_id).await;
+            }
+
+            crate::observe::drive_timeline(tl, &room_id, &me, obs, Some(&root_event_id)).await;
+        });
+        self.timeline_subs
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(id, handle);
         id
     }
 
-    pub fn unobserve_timeline(&self, sub_id: u64) -> bool {
+    fn release_timeline_room(&self, sub_id: u64) {
         if let Some(rid) = self
             .timeline_sub_rooms
             .lock()
@@ -1352,7 +1451,35 @@ impl Client {
                 }
             }
         }
+    }
+
+    pub fn unobserve_timeline(&self, sub_id: u64) -> bool {
+        let is_thread = self
+            .thread_timeline_subs
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .contains_key(&sub_id);
+        if is_thread {
+            return self.unobserve_thread_timeline(sub_id);
+        }
+        self.release_timeline_room(sub_id);
         unsub!(self, timeline_subs, sub_id)
+    }
+
+    pub fn unobserve_thread_timeline(&self, sub_id: u64) -> bool {
+        self.release_timeline_room(sub_id);
+        let key = self
+            .thread_timeline_subs
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&sub_id);
+        let aborted = unsub!(self, timeline_subs, sub_id);
+        if let Some(key) = key {
+            self.core
+                .timeline_mgr
+                .release_thread_timeline(&key.0, &key.1);
+        }
+        aborted
     }
 
     pub fn observe_room_list(&self, observer: Box<dyn RoomListObserver>) -> u64 {
@@ -2766,18 +2893,11 @@ impl Client {
                 formatted_caption,
                 reply_to_event_id,
                 thread_root_event_id,
-                latest_event_id,
                 voice_duration_ms,
                 voice_waveform,
                 is_voice,
                 txn_id,
             } = request;
-            let Ok(rid) = OwnedRoomId::try_from(room_id) else {
-                return false;
-            };
-            let Some(room) = self.core.sdk.get_room(&rid) else {
-                return false;
-            };
             let data = match std::fs::read(&path) {
                 Ok(d) => d,
                 Err(e) => {
@@ -2792,8 +2912,17 @@ impl Client {
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or("file".into())
             });
-            let mut config = matrix_sdk::attachment::AttachmentConfig::new();
-            config = with_uploaded_image_info(config, &data, &mime_type);
+            let thread_root = thread_root_event_id.filter(|id| !id.trim().is_empty());
+            let tl = match thread_root.as_deref() {
+                Some(root) => self.core.thread_timeline(&room_id, root).await,
+                None => self.core.timeline(&room_id).await,
+            };
+            let Some(tl) = tl else {
+                return false;
+            };
+
+            let mut config = matrix_sdk_ui::timeline::AttachmentConfig::default();
+            config.info = uploaded_image_info(&data, &mime_type);
             if mime_type.type_() == mime::AUDIO
                 && (is_voice == Some(true)
                     || voice_duration_ms.is_some()
@@ -2805,57 +2934,29 @@ impl Client {
                     waveform: voice_waveform
                         .map(|w| w.into_iter().map(|v| v.clamp(0.0, 1.0)).collect()),
                 };
-                if is_voice == Some(true) {
-                    config = config.info(matrix_sdk::attachment::AttachmentInfo::Voice(base));
+                config.info = Some(if is_voice == Some(true) {
+                    matrix_sdk::attachment::AttachmentInfo::Voice(base)
                 } else {
-                    config = config.info(matrix_sdk::attachment::AttachmentInfo::Audio(base));
-                }
+                    matrix_sdk::attachment::AttachmentInfo::Audio(base)
+                });
             }
             if let Some(c) = caption {
-                let text_content = if let Some(fc) = formatted_caption {
+                config.caption = Some(if let Some(fc) = formatted_caption {
                     matrix_sdk::ruma::events::room::message::TextMessageEventContent::html(c, fc)
                 } else {
                     matrix_sdk::ruma::events::room::message::TextMessageEventContent::plain(c)
-                };
-                config = config.caption(Some(text_content));
+                });
             }
-            let thread_root = thread_root_event_id.filter(|id| !id.trim().is_empty());
-            let reply_target = reply_to_event_id
+            if let Some(reply_id) = reply_to_event_id
                 .as_deref()
-                .and_then(|reply_id| matrix_sdk::ruma::EventId::parse(reply_id).ok());
-            if let Some(eid) = reply_target {
-                let enforce_thread = if thread_root.is_some() {
-                    matrix_sdk::room::reply::EnforceThread::Threaded(
-                        matrix_sdk::ruma::events::room::message::ReplyWithinThread::Yes,
-                    )
-                } else {
-                    matrix_sdk::room::reply::EnforceThread::Unthreaded
-                };
-                config = config.reply(Some(matrix_sdk::room::reply::Reply {
-                    event_id: eid.to_owned(),
-                    enforce_thread,
-                    add_mentions: matrix_sdk::ruma::events::room::message::AddMentions::Yes,
-                }));
-            } else if let Some(root_id) = thread_root {
-                let fallback_target = latest_event_id
-                    .as_deref()
-                    .filter(|id| !id.trim().is_empty())
-                    .and_then(|id| matrix_sdk::ruma::EventId::parse(id).ok())
-                    .or_else(|| matrix_sdk::ruma::EventId::parse(&root_id).ok());
-                if let Some(eid) = fallback_target {
-                    config = config.reply(Some(matrix_sdk::room::reply::Reply {
-                        event_id: eid.to_owned(),
-                        enforce_thread: matrix_sdk::room::reply::EnforceThread::Threaded(
-                            matrix_sdk::ruma::events::room::message::ReplyWithinThread::No,
-                        ),
-                        add_mentions: matrix_sdk::ruma::events::room::message::AddMentions::No,
-                    }));
-                }
+                .and_then(|reply_id| matrix_sdk::ruma::EventId::parse(reply_id).ok())
+            {
+                config.in_reply_to = Some(reply_id);
             }
             if let Some(t) = txn_id.filter(|t| !t.trim().is_empty()) {
                 config.txn_id = Some(t.into());
             }
-            queue_send_attachment(&room, fname, mime_type, data, config, progress).await
+            queue_send_attachment_on_timeline(&tl, fname, mime_type, data, config, progress).await
         })
     }
 
@@ -3705,6 +3806,19 @@ impl Client {
             beacon_subs, recovery_state_subs, backup_state_subs,
             widget_driver_tasks, widget_recv_tasks
         );
+        self.timeline_sub_rooms
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clear();
+        self.thread_timeline_subs
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clear();
+        self.timeline_rooms
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clear();
+        self.core.timeline_mgr.clear();
         #[cfg(not(target_family = "wasm"))]
         {
             if let Some(task) = self
@@ -4722,6 +4836,8 @@ fn search_hit_from_event(
         sender: ev.sender().map(|user| user.to_string()).unwrap_or_default(),
         body,
         timestamp_ms,
+        thread_root_event_id: matrix_sdk_base::serde_helpers::extract_thread_root(ev.raw())
+            .map(|id| id.to_string()),
     })
 }
 
@@ -5972,6 +6088,41 @@ async fn paginate_backwards_visible(
         hit_start = tl.paginate_backwards(CHUNK).await.unwrap_or(false);
 
         let after = count_visible_room_view(tl, rid, me).await;
+        if after >= target || hit_start {
+            break;
+        }
+    }
+
+    hit_start
+}
+
+async fn count_thread_items(tl: &Arc<Timeline>, rid: &OwnedRoomId, me: &str) -> usize {
+    tl.items()
+        .await
+        .iter()
+        .filter_map(|item| item.as_event())
+        .filter(|ev| map_timeline_event(ev, rid.as_str(), None, me).is_some())
+        .count()
+}
+
+async fn paginate_thread_items(
+    tl: &Arc<Timeline>,
+    rid: &OwnedRoomId,
+    me: &str,
+    want_more: usize,
+) -> bool {
+    const CHUNK: u16 = 20;
+    const MAX_ROUNDS: u8 = 8;
+
+    let before = count_thread_items(tl, rid, me).await;
+    let target = before.saturating_add(want_more);
+
+    let mut hit_start = false;
+
+    for _ in 0..MAX_ROUNDS {
+        hit_start = tl.paginate_backwards(CHUNK).await.unwrap_or(false);
+
+        let after = count_thread_items(tl, rid, me).await;
         if after >= target || hit_start {
             break;
         }

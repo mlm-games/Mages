@@ -148,11 +148,17 @@ class MatrixService(
 
     fun timelineDiffs(roomId: String): Flow<TimelineDiff<MessageEvent>> = port.timelineDiffs(roomId)
 
+    fun threadTimelineDiffs(roomId: String, rootEventId: String): Flow<TimelineDiff<MessageEvent>> =
+        port.threadTimelineDiffs(roomId, rootEventId)
+
     suspend fun sendMessage(roomId: String, body: String, formattedBody: String? = null): Result<Unit> =
         port.send(roomId, body, formattedBody)
 
     suspend fun paginateBack(roomId: String, count: Int): Result<Boolean> =
         port.paginateBack(roomId, count)
+
+    suspend fun paginateThread(roomId: String, rootEventId: String, count: Int): Result<Boolean> =
+        port.paginateThread(roomId, rootEventId, count)
 
     suspend fun markRead(roomId: String, sendPublicReceipt: Boolean = true): Result<Unit> =
         port.markRead(roomId, sendPublicReceipt)
@@ -177,8 +183,9 @@ class MatrixService(
         roomId: String,
         eventId: String,
         key: String,
-        shortcode: String? = null
-    ): Result<Unit> = port.react(roomId, eventId, key, shortcode)
+        shortcode: String? = null,
+        threadRootEventId: String? = null,
+    ): Result<Unit> = port.react(roomId, eventId, key, shortcode, threadRootEventId)
 
     suspend fun reply(roomId: String, inReplyToEventId: String, body: String, formattedBody: String? = null): Result<Unit> =
         port.reply(roomId, inReplyToEventId, body, formattedBody)
@@ -212,14 +219,13 @@ class MatrixService(
         formattedCaption: String? = null,
         replyToEventId: String? = null,
         threadRootEventId: String? = null,
-        latestEventId: String? = null,
         voiceDurationMs: Long? = null,
         voiceWaveform: List<Float>? = null,
         isVoice: Boolean? = null,
         txnId: String? = null,
         onProgress: ((sent: Long, total: Long?) -> Unit)? = null,
     ): Result<Unit> = runCatching {
-        val ok = port.sendAttachmentFromPath(roomId, path, mime, filename, caption, formattedCaption, replyToEventId, threadRootEventId, latestEventId, voiceDurationMs, voiceWaveform, isVoice, txnId, onProgress)
+        val ok = port.sendAttachmentFromPath(roomId, path, mime, filename, caption, formattedCaption, replyToEventId, threadRootEventId, voiceDurationMs, voiceWaveform, isVoice, txnId, onProgress)
         check(ok) { getString(Res.string.failed_to_send_attachment) }
     }
 

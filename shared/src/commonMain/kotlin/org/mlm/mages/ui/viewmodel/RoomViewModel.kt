@@ -2191,17 +2191,21 @@ class RoomViewModel(
 
     fun jumpToSearchResult(hit: SearchHit) {
         hideRoomSearch()
-        jumpToEvent(hit.eventId)
+        jumpToEvent(hit.eventId, hit.threadRootEventId)
     }
 
-    fun jumpToEvent(eventId: String) {
+    fun jumpToEvent(eventId: String, threadRootEventId: String? = null) {
         if (eventId.isBlank()) return
 
         setJumpHighlight(eventId)
         jumpSeekJob?.cancel()
         jumpSeekJob = viewModelScope.launch {
-            val threadRoot = currentState.pinnedResolvedEvents[eventId]?.threadRootEventId
+            val threadRoot = threadRootEventId
+                ?: currentState.pinnedResolvedEvents[eventId]?.threadRootEventId
                 ?: currentState.allEvents.firstOrNull { it.eventId == eventId }?.threadRootEventId
+                ?: runSafe {
+                    service.port.eventDetails(currentState.roomId, eventId)
+                }?.threadRootEventId
             if (threadRoot != null) {
                 clearJumpHighlight()
                 _events.send(
@@ -2456,13 +2460,6 @@ class RoomViewModel(
         }
     }
 
-    fun onReturnFromThread(rootEventId: String) {
-        // Refresh thread count for this specific root when returning from thread view
-        launch {
-            fetchThreadCountFromApi(rootEventId)
-        }
-    }
-
     private fun postProcessNewEvents(newEvents: List<MessageEvent>) {
         val visible = newEvents.filter { it.threadRootEventId == null }
 
@@ -2581,44 +2578,22 @@ class RoomViewModel(
 
     /**
      * Thread counts come from the root's bundled `m.relations.m.thread`
-     * aggregation and the replies loaded in this timeline.
+     * aggregation, which the SDK also maintains locally from thread caches.
      */
     private fun recomputeThreadCountsFromTimeline() {
-        val countedReplies = mutableMapOf<String, Int>()
         val bundledCounts = mutableMapOf<String, Int>()
-
         currentState.allEvents.forEach { event ->
-            val rootId = event.threadRootEventId
-            if (!rootId.isNullOrBlank()) {
-                countedReplies[rootId] = (countedReplies[rootId] ?: 0) + 1
-            }
             event.threadReplyCount?.let { count ->
                 bundledCounts[event.eventId] = count
             }
         }
 
         val merged = currentState.threadCount.toMutableMap()
-        countedReplies.forEach { (eventId, count) ->
-            merged[eventId] = maxOf(merged[eventId] ?: 0, count)
-        }
         bundledCounts.forEach { (eventId, count) ->
-            merged[eventId] = maxOf(merged[eventId] ?: 0, count)
+            merged[eventId] = count
         }
         if (merged != currentState.threadCount) {
             updateState { copy(threadCount = merged) }
-        }
-
-        // Bundled aggregations already carry the server's total, so only roots
-        // without one need the /relations fallback.
-        val rootsWithoutSummary = countedReplies.keys.filter {
-            it !in checkedThreadRootsViaApi && it !in bundledCounts
-        }
-        if (rootsWithoutSummary.isNotEmpty()) {
-            launch {
-                rootsWithoutSummary.forEach { rootId ->
-                    fetchThreadCountFromApi(rootId)
-                }
-            }
         }
     }
 
@@ -2640,11 +2615,10 @@ class RoomViewModel(
             )
         }
 
-        if (summary != null && summary.count > 0) {
+        if (summary != null) {
             updateState {
                 copy(
                     threadCount = threadCount.toMutableMap().apply {
-                        // Use API count as it's more accurate
                         put(rootEventId, summary.count.toInt())
                     }
                 )
