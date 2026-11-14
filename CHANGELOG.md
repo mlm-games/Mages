@@ -1,3 +1,10 @@
+## v5.4.3
+
+- fix: thread timeline
+- colored avatar bgs (#209)
+- tap to expand sender names (#208)
+
+
 ## v5.4.2
 
 - fix duplicate timeline builds (#201)

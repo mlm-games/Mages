@@ -1,0 +1,3 @@
+- fix: thread timeline
+- colored avatar bgs (#209)
+- tap to expand sender names (#208)

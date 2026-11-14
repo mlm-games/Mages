@@ -46,6 +46,15 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="5.4.3" date="2026-11-14" type="stable">
+      <description>
+        <ul>
+          <li>fix: thread timeline</li>
+          <li>colored avatar bgs (#209)</li>
+          <li>tap to expand sender names (#208)</li>
+        </ul>
+      </description>
+    </release>
     <release version="5.4.2" date="2026-11-12" type="stable">
       <description>
         <ul>
