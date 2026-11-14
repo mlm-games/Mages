@@ -2378,6 +2378,7 @@ impl WasmClient {
         caption: Option<String>,
         formatted_caption: Option<String>,
         reply_to_event_id: Option<String>,
+        thread_root_event_id: Option<String>,
         voice_duration_ms: Option<u64>,
         voice_waveform: Option<Vec<f32>>,
         is_voice: Option<bool>,
@@ -2419,7 +2420,38 @@ impl WasmClient {
             };
             config = config.caption(Some(text_content));
         }
-        if let Some(reply_id) = reply_to_event_id {
+        let thread_root = thread_root_event_id.filter(|s| !s.is_empty());
+        if let Some(root_id) = thread_root.as_deref() {
+            let Ok(root) = matrix_sdk::ruma::EventId::parse(root_id) else {
+                return webffi_err("invalid thread_root_event_id");
+            };
+            let reply_to = match reply_to_event_id.as_deref() {
+                Some(id) => match matrix_sdk::ruma::EventId::parse(id) {
+                    Ok(id) => Some(id.to_owned()),
+                    Err(_) => return webffi_err("invalid reply_to_event_id"),
+                },
+                None => None,
+            };
+            let (event_id, enforce_thread) = match reply_to {
+                Some(reply_to) => (
+                    reply_to,
+                    matrix_sdk::room::reply::EnforceThread::Threaded(
+                        matrix_sdk::ruma::events::room::message::ReplyWithinThread::Yes,
+                    ),
+                ),
+                None => (
+                    root.to_owned(),
+                    matrix_sdk::room::reply::EnforceThread::Threaded(
+                        matrix_sdk::ruma::events::room::message::ReplyWithinThread::No,
+                    ),
+                ),
+            };
+            config = config.reply(Some(matrix_sdk::room::reply::Reply {
+                event_id,
+                enforce_thread,
+                add_mentions: matrix_sdk::ruma::events::room::message::AddMentions::Yes,
+            }));
+        } else if let Some(reply_id) = reply_to_event_id {
             if let Ok(eid) = matrix_sdk::ruma::EventId::parse(&reply_id) {
                 config = config.reply(Some(matrix_sdk::room::reply::Reply {
                     event_id: eid.to_owned(),

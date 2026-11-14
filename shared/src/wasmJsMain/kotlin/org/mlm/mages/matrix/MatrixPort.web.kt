@@ -937,11 +937,22 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         txnId: String?,
         onProgress: ((Long, Long?) -> Unit)?
     ): Boolean {
-        if (threadRootEventId != null) return false
         val bytes = retrieveWebBlob(path) ?: throw Exception("Blob not found for path: $path")
         clearWebBlob(path)
         // Hack: need to switch to a single fn for all platforms later
-        val result = requireClient().sendAttachmentBytes(roomId, filename ?: path, mime, bytes.toJsUint8Array(), caption, formattedCaption, replyToEventId, optionalMillisToJs(voiceDurationMs?.toDouble()), voiceWaveform?.map { it.toDouble() }?.toJsArray(), isVoice).awaitUnitResult()
+        val result = requireClient().sendAttachmentBytes(
+            roomId,
+            filename ?: path,
+            mime,
+            bytes.toJsUint8Array(),
+            caption,
+            formattedCaption,
+            replyToEventId,
+            threadRootEventId,
+            optionalMillisToJs(voiceDurationMs?.toDouble()),
+            voiceWaveform?.map { it.toDouble() }?.toJsArray(),
+            isVoice,
+        ).awaitUnitResult()
         return result.isSuccess
     }
 
