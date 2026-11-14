@@ -389,8 +389,7 @@ class ThreadViewModel(
     private fun probeThreadStart() {
         if (threadStartReached ||
             threadStartProbeInFlight ||
-            !currentState.hasMore ||
-            currentState.replies.size >= 20
+            !currentState.hasMore
         ) return
         threadStartProbeInFlight = true
         launch {
