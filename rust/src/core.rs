@@ -5255,11 +5255,18 @@ impl CoreClient {
         root_event_id: String,
         count: u16,
     ) -> Result<bool, FfiError> {
-        let tl = self
-            .thread_timeline(&room_id, &root_event_id)
+        let rid = OwnedRoomId::try_from(room_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid room id".into()))?;
+        let root = OwnedEventId::try_from(root_event_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid event id".into()))?;
+        let (cache, _drop_handles) = self
+            .sdk
+            .event_cache()
+            .thread(&rid, &root)
             .await
-            .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
-        tl.paginate_backwards(count).await.ffi()
+            .ffi()?;
+        let outcome = cache.pagination().run_backwards_once(count).await.ffi()?;
+        Ok(!outcome.reached_start && !outcome.events.is_empty())
     }
 
     pub async fn thread_summary(

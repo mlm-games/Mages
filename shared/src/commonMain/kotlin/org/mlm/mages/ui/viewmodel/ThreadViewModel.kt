@@ -393,12 +393,12 @@ class ThreadViewModel(
         ) return
         threadStartProbeInFlight = true
         launch {
-            val hitStart = runSafe { service.paginateThread(roomId, rootEventId, 20) }
-                ?.getOrNull() == true
+            val result = runSafe { service.paginateThread(roomId, rootEventId, 20) }
+            val hasOlder = result?.getOrNull()
             threadStartProbeInFlight = false
-            if (hitStart) {
-                threadStartReached = true
-                updateState { copy(hasMore = false) }
+            if (hasOlder != null) {
+                threadStartReached = !hasOlder
+                updateState { copy(hasMore = hasOlder) }
             }
         }
     }
@@ -459,13 +459,13 @@ class ThreadViewModel(
             launch { _events.send(Event.ShowError(e.message ?: getString(Res.string.failed_to_load_more_messages))) }
         }) {
             val result = service.paginateThread(roomId, rootEventId, 50)
-            val hitStart = result.getOrNull() == true
-            if (result.isSuccess && hitStart) threadStartReached = true
+            val hasOlder = result.getOrNull() == true
+            if (result.isSuccess) threadStartReached = !hasOlder
             updateState {
                 copy(
                     isLoading = false,
-                    hasMore = if (result.isSuccess) !hitStart && !threadStartReached else hasMore,
-                    focusedEventMissing = hitStart &&
+                    hasMore = if (result.isSuccess) hasOlder else hasMore,
+                    focusedEventMissing = result.isSuccess && !hasOlder &&
                             focusedEventId != null &&
                             rootMessage?.eventId != focusedEventId &&
                             replies.none { it.eventId == focusedEventId },
