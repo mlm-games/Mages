@@ -381,15 +381,12 @@ private fun UserListItem(
                 }
             },
             leadingContent = {
-                if (avatarPath != null) {
-                    Avatar(
-                        name = user.displayName ?: user.userId,
-                        avatarPath = avatarPath,
-                        size = 40.dp
-                    )
-                } else {
-                    Icon(painterResource(Res.drawable.ic_person), contentDescription = null)
-                }
+                Avatar(
+                    name = user.displayName ?: user.userId,
+                    avatarPath = avatarPath,
+                    size = 40.dp,
+                    colorKey = user.userId
+                )
             },
             trailingContent = {
                 TextButton(onClick = onMessage) {

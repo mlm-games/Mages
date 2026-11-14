@@ -18,10 +18,13 @@ private val AvatarPalette = listOf(
     AvatarColors(Color(0xFFF2DE8A), Color(0xFF3D3200)),
 )
 
+private const val FNV_OFFSET_BASIS = -0x7EE3623B
+private const val FNV_PRIME = 0x01000193
+
 internal fun avatarColorsFor(key: String): AvatarColors {
-    var hash = -0x7EE3623B
+    var hash = FNV_OFFSET_BASIS
     for (byte in key.encodeToByteArray()) {
-        hash = (hash xor (byte.toInt() and 0xFF)) * 0x01000193
+        hash = (hash xor (byte.toInt() and 0xFF)) * FNV_PRIME
     }
     return AvatarPalette[(hash and Int.MAX_VALUE) % AvatarPalette.size]
 }

@@ -20,6 +20,8 @@ data class IncomingCall(
     val expiresAtMs: Long,
     val tsMs: Long,
     val isVoiceOnly: Boolean = false,
+    val callerId: String = "",
+    val callerAvatarUrl: String? = null,
 ) {
     companion object
 }
@@ -95,6 +97,8 @@ fun IncomingCall.Companion.ringing(n: RenderedNotification): IncomingCall = Inco
     roomId = n.roomId,
     eventId = n.eventId,
     callerName = n.sender,
+    callerId = n.senderUserId,
+    callerAvatarUrl = n.senderAvatarUrl,
     roomName = n.roomName,
     expiresAtMs = n.expiresAtMs ?: (n.tsMs + INCOMING_CALL_TIMEOUT_MS),
     tsMs = n.tsMs,

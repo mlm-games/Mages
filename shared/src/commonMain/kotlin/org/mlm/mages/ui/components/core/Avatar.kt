@@ -64,8 +64,13 @@ fun Avatar(
     onClickLabel: String? = null,
 ) {
     val initials = rememberSaveable(name) { extractInitials(name) }
-    val palette = remember(colorKey) {
-        colorKey?.takeIf { it.isNotBlank() }?.let(::avatarColorsFor)
+    val usePalette = containerColor == null && contentColor == null
+    val palette = remember(colorKey, usePalette) {
+        if (usePalette) {
+            colorKey?.takeIf { it.isNotBlank() }?.let(::avatarColorsFor)
+        } else {
+            null
+        }
     }
     val resolvedContainerColor = containerColor
         ?: palette?.container

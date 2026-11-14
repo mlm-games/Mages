@@ -34,6 +34,7 @@ import mages.shared.generated.resources.incoming_call
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.calls.IncomingCall
 import org.mlm.mages.ui.components.core.Avatar
+import org.mlm.mages.ui.components.core.rememberResolvedAvatar
 import kotlin.time.Clock
 
 @Composable
@@ -72,8 +73,9 @@ fun IncomingCallOverlay(
             ) {
                 Avatar(
                     name = call.callerName,
-                    avatarPath = null,
-                    size = 48.dp
+                    avatarPath = rememberResolvedAvatar(call.callerAvatarUrl, px = 96),
+                    size = 48.dp,
+                    colorKey = call.callerId.ifBlank { call.callerName }
                 )
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {

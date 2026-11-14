@@ -2200,12 +2200,7 @@ class RoomViewModel(
         setJumpHighlight(eventId)
         jumpSeekJob?.cancel()
         jumpSeekJob = viewModelScope.launch {
-            val threadRoot = threadRootEventId
-                ?: currentState.pinnedResolvedEvents[eventId]?.threadRootEventId
-                ?: currentState.allEvents.firstOrNull { it.eventId == eventId }?.threadRootEventId
-                ?: runSafe {
-                    service.port.eventDetails(currentState.roomId, eventId)
-                }?.threadRootEventId
+            val threadRoot = resolveThreadRoot(eventId, threadRootEventId)
             if (threadRoot != null) {
                 clearJumpHighlight()
                 _events.send(
@@ -2226,6 +2221,22 @@ class RoomViewModel(
             }
             _events.send(Event.JumpToEvent(eventId))
         }
+    }
+
+    private suspend fun resolveThreadRoot(eventId: String, explicit: String? = null): String? {
+        explicit?.takeIf { it.isNotBlank() }?.let { return it }
+        currentState.pinnedResolvedEvents[eventId]
+            ?.threadRootEventId
+            ?.takeIf { it.isNotBlank() }
+            ?.let { return it }
+        currentState.allEvents.firstOrNull { it.eventId == eventId }
+            ?.threadRootEventId
+            ?.takeIf { it.isNotBlank() }
+            ?.let { return it }
+        if (currentState.allEvents.any { it.eventId == eventId }) return null
+        return runSafe {
+            service.port.eventDetails(currentState.roomId, eventId)
+        }?.threadRootEventId?.takeIf { it.isNotBlank() }
     }
 
     private fun setJumpHighlight(eventId: String) {
@@ -2292,6 +2303,21 @@ class RoomViewModel(
         jumpSeekJob?.cancel()
         _state.update { it.copy(jumpHitStart = false, seekingEventId = eventId, seekingDate = false) }
         jumpSeekJob = launch {
+            val threadRoot = resolveThreadRoot(eventId)
+            if (threadRoot != null) {
+                clearJumpHighlight()
+                _state.update { it.copy(seekingEventId = null) }
+                _events.send(
+                    Event.NavigateToThread(
+                        roomId = currentState.roomId,
+                        eventId = threadRoot,
+                        roomName = currentState.roomName,
+                        focusedEventId = eventId,
+                    )
+                )
+                _events.send(Event.JumpSeekEnded)
+                return@launch
+            }
             when (val result = awaitJumpTarget(eventId)) {
                 is JumpTargetResolution.Jump -> {
                     clearJumpHighlightDelayed()

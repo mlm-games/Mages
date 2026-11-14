@@ -1105,14 +1105,7 @@ private fun ThreadRootMessage(
                     name = senderName,
                     avatarPath = state.avatarByUserId[event.sender],
                     size = 36.dp,
-                    containerColor = if (isMine)
-                        MaterialTheme.colorScheme.primaryContainer
-                    else
-                        MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = if (isMine)
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    else
-                        MaterialTheme.colorScheme.onSecondaryContainer
+                    colorKey = event.sender
                 )
                 Spacer(Modifier.width(Spacing.md))
                 Column(Modifier.weight(1f)) {

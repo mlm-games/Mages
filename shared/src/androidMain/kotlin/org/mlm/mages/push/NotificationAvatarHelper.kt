@@ -10,9 +10,10 @@ import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
 import android.graphics.Typeface
 import androidx.core.graphics.drawable.IconCompat
+import androidx.compose.ui.graphics.toArgb
 import co.touchlab.kermit.Logger
 import org.mlm.mages.MatrixService
-import kotlin.math.abs
+import org.mlm.mages.ui.theme.avatarColorsFor
 import androidx.core.graphics.createBitmap
 
 data class AvatarResult(
@@ -23,17 +24,6 @@ data class AvatarResult(
 object NotificationAvatarHelper {
 
     private const val AVATAR_SIZE_PX = 256
-
-    private val AVATAR_COLORS = intArrayOf(
-        0xFF1A7FD4.toInt(),
-        0xFF3DB86B.toInt(),
-        0xFFE85E3A.toInt(),
-        0xFF9C27B0.toInt(),
-        0xFFFF6F00.toInt(),
-        0xFF00897B.toInt(),
-        0xFFE91E63.toInt(),
-        0xFF5C6BC0.toInt(),
-    )
 
     suspend fun resolve(
         context: Context,
@@ -89,13 +79,13 @@ object NotificationAvatarHelper {
         val bitmap = createBitmap(size, size)
         val canvas = Canvas(bitmap)
 
-        val colorIndex = abs((hashKey ?: name).hashCode()) % AVATAR_COLORS.size
-        val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = AVATAR_COLORS[colorIndex] }
+        val colors = avatarColorsFor(hashKey?.takeIf { it.isNotBlank() } ?: name)
+        val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = colors.container.toArgb() }
         canvas.drawCircle(size / 2f, size / 2f, size / 2f, bgPaint)
 
         val initials = extractInitials(name)
         val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFFFFFFFF.toInt()
+            color = colors.content.toArgb()
             textSize = size * 0.33f
             typeface = Typeface.DEFAULT_BOLD
             textAlign = Paint.Align.CENTER

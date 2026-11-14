@@ -79,8 +79,8 @@ use crate::{
     SendUpdate, SpaceChildInfo, SpaceHierarchyPage, SpaceInfo, SpaceParentInfo, SpaceSection,
     SpaceUnread, SuccessorRoomInfo, ThreadSummary, UnreadStats,
     VerificationInboxObserver, build_unstable_poll_content, latest_room_event_for,
-    map_event_id_via_timeline, map_timeline_event, paginate_backwards_visible,
-    search_hit_from_event, timeline_event_filter,
+    map_event_id_via_timeline, map_timeline_event, map_timeline_item,
+    paginate_backwards_visible, search_hit_from_event, timeline_event_filter,
 };
 
 const REACTION_NOTIFY_RULE_ID: &str = "org.mlm.mages.reaction.notify";
