@@ -334,8 +334,6 @@ fun ThreadRoute(
     }
 }
 
-private const val BOTTOM_SPACER_KEY = "thread_bottom_space"
-
 @Composable
 fun ThreadScreen(
     state: ThreadUiState,
@@ -402,18 +400,7 @@ fun ThreadScreen(
     val scope = rememberCoroutineScope()
     var sheetItemId by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
-    val density = LocalDensity.current
-    val bottomPaddingPx = with(density) { Spacing.sm.toPx() }
-    val bottomSpacerHeight by remember(listState, bottomPaddingPx) {
-        derivedStateOf {
-            val info = listState.layoutInfo
-            val contentHeight = info.visibleItemsInfo
-                .filterNot { it.key == BOTTOM_SPACER_KEY }
-                .sumOf { it.size }
-            (info.viewportSize.height - contentHeight - bottomPaddingPx).coerceAtLeast(0f)
-        }
-    }
-    val rootListIndex = 1 + state.replies.size + if (state.hasMore) 1 else 0
+    val rootListIndex = state.replies.size + if (state.hasMore) 1 else 0
 
     val selectionBackState = rememberNavigationEventState<NavigationEventInfo>(NavigationEventInfo.None)
     NavigationBackHandler(
@@ -452,7 +439,7 @@ fun ThreadScreen(
         if (!state.hasInitialLoad) return@LaunchedEffect
         val replyIndex = state.replies.indexOfFirst { it.eventId == target }
         if (replyIndex >= 0) {
-            listState.scrollToItem(1 + state.replies.lastIndex - replyIndex)
+            listState.scrollToItem(state.replies.lastIndex - replyIndex)
             focusedLoadAttempts = 0
             onClearFocus()
             return@LaunchedEffect
@@ -622,10 +609,6 @@ fun ThreadScreen(
                         contentPadding = PaddingValues(bottom = Spacing.sm),
                         reverseLayout = true
                     ) {
-                        item(key = BOTTOM_SPACER_KEY) {
-                            Spacer(Modifier.height(with(density) { bottomSpacerHeight.toDp() }))
-                        }
-
                         items(
                             count = state.replies.size,
                             key = { i -> "reply_${state.replies[state.replies.lastIndex - i].itemId}" }
@@ -670,7 +653,7 @@ fun ThreadScreen(
                                                 val targetIndex = state.replies.indexOfFirst { it.eventId == targetId }
                                                 if (targetIndex >= 0) {
                                                     scope.launch {
-                                                        listState.animateScrollToItem(1 + state.replies.lastIndex - targetIndex)
+                                                        listState.animateScrollToItem(state.replies.lastIndex - targetIndex)
                                                     }
                                                 } else if (state.rootMessage?.eventId == targetId) {
                                                     scope.launch {
@@ -810,7 +793,7 @@ fun ThreadScreen(
                                                     val targetIndex = state.replies.indexOfFirst { it.eventId == targetId }
                                                     if (targetIndex >= 0) {
                                                         scope.launch {
-                                                            listState.animateScrollToItem(1 + state.replies.lastIndex - targetIndex)
+                                                            listState.animateScrollToItem(state.replies.lastIndex - targetIndex)
                                                         }
                                                     } else if (state.rootMessage?.eventId == targetId) {
                                                         scope.launch {
