@@ -194,7 +194,8 @@ private fun ReactionChip(
                         Avatar(
                             name = userId,
                             avatarPath = avatarPathsByUserId[userId],
-                            size = 20.dp
+                            size = 20.dp,
+                            colorKey = userId
                         )
                     }
                 }

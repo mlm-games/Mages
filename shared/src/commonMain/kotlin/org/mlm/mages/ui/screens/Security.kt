@@ -621,6 +621,7 @@ private fun ProfileTab(
                     name = displayName.ifBlank { current.userId },
                     avatarPath = previewPath,
                     size = Sizes.avatarLarge * 2,
+                    colorKey = current.userId,
                     isSaving = isSaving,
                     onAvatarClick = viewAvatar,
                     onEditClick = if (current.canChangeAvatar) {

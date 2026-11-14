@@ -44,6 +44,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.mlm.mages.MatrixService
 import org.mlm.mages.ui.theme.Sizes
+import org.mlm.mages.ui.theme.avatarColorsFor
 
 private const val InitialsFontSizeRatio = 0.45f
 private const val InitialsLineHeightRatio = 0.55f
@@ -56,18 +57,28 @@ fun Avatar(
     avatarPath: String?,
     size: Dp = Sizes.avatarSmall,
     shape: Shape = CircleShape,
-    containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
-    contentColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+    colorKey: String? = null,
+    containerColor: Color? = null,
+    contentColor: Color? = null,
     onClick: (() -> Unit)? = null,
     onClickLabel: String? = null,
 ) {
     val initials = rememberSaveable(name) { extractInitials(name) }
+    val palette = remember(colorKey) {
+        colorKey?.takeIf { it.isNotBlank() }?.let(::avatarColorsFor)
+    }
+    val resolvedContainerColor = containerColor
+        ?: palette?.container
+        ?: MaterialTheme.colorScheme.primaryContainer
+    val resolvedContentColor = contentColor
+        ?: palette?.content
+        ?: MaterialTheme.colorScheme.onPrimaryContainer
     val ctx = LocalPlatformContext.current
     var failedPath by remember { mutableStateOf<String?>(null) }
     val path = avatarPath?.takeUnless { it.startsWith("mxc://") }
 
     Surface(
-        color = containerColor,
+        color = resolvedContainerColor,
         shape = shape,
         modifier = modifier.size(size)
     ) {
@@ -111,7 +122,7 @@ fun Avatar(
                     text = initials,
                     style = style,
                     fontWeight = FontWeight.Bold,
-                    color = contentColor,
+                    color = resolvedContentColor,
                     maxLines = 1
                 )
             }
@@ -125,6 +136,7 @@ fun EditableAvatar(
     avatarPath: String?,
     size: Dp,
     shape: Shape = CircleShape,
+    colorKey: String? = null,
     isSaving: Boolean = false,
     onAvatarClick: (() -> Unit)? = null,
     onEditClick: (() -> Unit)? = null,
@@ -137,6 +149,7 @@ fun EditableAvatar(
             avatarPath = avatarPath,
             size = size,
             shape = shape,
+            colorKey = colorKey,
             onClick = onAvatarClick,
             onClickLabel = viewPhotoLabel,
         )

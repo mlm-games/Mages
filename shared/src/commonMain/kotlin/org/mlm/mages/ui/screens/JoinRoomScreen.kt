@@ -182,6 +182,7 @@ private fun HeroFacepile(state: JoinRoomUiState) {
                 name = hero.displayName ?: hero.userId,
                 avatarPath = hero.avatarUrl?.let { state.heroAvatarPaths[it] },
                 size = 40.dp,
+                colorKey = hero.userId,
                 modifier = Modifier
                     .offset(x = (-12 * index).dp)
                     .clip(CircleShape)

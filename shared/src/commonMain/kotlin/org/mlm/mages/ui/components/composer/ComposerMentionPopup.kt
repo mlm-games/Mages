@@ -66,7 +66,8 @@ private fun MentionSuggestionItem(
         Avatar(
             name = member.displayName ?: member.userId,
             avatarPath = avatarPath,
-            size = Sizes.iconLarge
+            size = Sizes.iconLarge,
+            colorKey = member.userId
         )
         Spacer(Modifier.width(Spacing.sm))
         Column(modifier = Modifier.weight(1f)) {

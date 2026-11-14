@@ -65,6 +65,7 @@ fun LiveLocationBanner(
                         name = share.userId,
                         avatarPath = avatarPathByUserId[share.userId],
                         size = 24.dp,
+                        colorKey = share.userId,
                         modifier = Modifier.offset(x = (-8 * index).dp)
                     )
                 }

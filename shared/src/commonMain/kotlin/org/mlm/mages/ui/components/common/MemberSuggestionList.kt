@@ -110,6 +110,7 @@ private fun MemberSuggestionAvatar(member: MemberSummary) {
         name = member.displayName ?: member.userId,
         avatarPath = rememberResolvedAvatar(member.avatarUrl, px = 32),
         size = 28.dp,
+        colorKey = member.userId,
     )
 }
 

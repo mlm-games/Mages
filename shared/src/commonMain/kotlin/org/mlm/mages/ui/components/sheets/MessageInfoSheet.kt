@@ -583,6 +583,7 @@ private fun ReactionUserRow(user: ReactionUser) {
             name = displayName,
             avatarPath = user.avatarPath,
             size = 32.dp,
+            colorKey = user.userId,
         )
         Spacer(Modifier.width(Spacing.md))
         Column(Modifier.weight(1f)) {
@@ -621,6 +622,7 @@ private fun MessageInfoReaderRow(entry: SeenByEntry) {
             name = displayName,
             avatarPath = entry.avatarUrl,
             size = 28.dp,
+            colorKey = entry.userId,
         )
         Spacer(Modifier.width(Spacing.md))
         Column(Modifier.weight(1f)) {
@@ -679,6 +681,7 @@ fun ReadReceiptsSheet(
                                     name = entry.displayName ?: entry.userId,
                                     avatarPath = entry.avatarUrl,
                                     size = 44.dp,
+                                    colorKey = entry.userId,
                                 )
                             },
                             headlineContent = {

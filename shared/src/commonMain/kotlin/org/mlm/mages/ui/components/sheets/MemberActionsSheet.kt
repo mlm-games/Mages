@@ -90,6 +90,7 @@ fun MemberActionsSheet(
                     name = member.displayName ?: member.userId,
                     avatarPath = member.avatarUrl,
                     size = Sizes.avatarMedium,
+                    colorKey = member.userId,
                     onClick = if (member.avatarUrl.isNullOrBlank()) null else onAvatarClick
                 )
                 Spacer(Modifier.width(Spacing.md))

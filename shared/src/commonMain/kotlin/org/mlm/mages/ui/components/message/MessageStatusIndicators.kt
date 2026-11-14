@@ -121,6 +121,7 @@ private fun AvatarStack(
                     name = entry.displayName ?: entry.userId,
                     avatarPath = entry.avatarUrl,
                     size = size,
+                    colorKey = entry.userId,
                     modifier = Modifier
                         .border(1.dp, MaterialTheme.colorScheme.surface, CircleShape)
                         .clip(CircleShape)

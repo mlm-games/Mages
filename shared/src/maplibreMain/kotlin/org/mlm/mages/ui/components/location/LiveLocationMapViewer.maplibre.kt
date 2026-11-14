@@ -756,6 +756,7 @@ private fun LiveLocationBottomSheetContent(
                         name = displayName,
                         avatarPath = avatarPath,
                         size = 40.dp,
+                        colorKey = share.userId,
                     )
 
                     Spacer(Modifier.width(Spacing.md))

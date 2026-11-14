@@ -166,7 +166,8 @@ private fun MemberListItem(
             Avatar(
                 name = member.displayName ?: member.userId,
                 avatarPath = member.avatarUrl,
-                size = Sizes.avatarSmall
+                size = Sizes.avatarSmall,
+                colorKey = member.userId
             )
         },
         trailingContent = {

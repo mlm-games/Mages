@@ -117,7 +117,8 @@ fun KnockRequestsSheet(
                                 Avatar(
                                     name = request.displayName ?: request.userId,
                                     avatarPath = request.avatarUrl,
-                                    size = Sizes.avatarSmall
+                                    size = Sizes.avatarSmall,
+                                    colorKey = request.userId
                                 )
                             },
                             trailingContent = {

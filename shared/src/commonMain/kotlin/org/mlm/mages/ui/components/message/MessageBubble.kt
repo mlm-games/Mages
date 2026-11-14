@@ -74,7 +74,8 @@ fun TimelineSenderAvatar(
     Avatar(
         name = senderDisplayName ?: senderId,
         avatarPath = senderAvatarUrl,
-        size = size
+        size = size,
+        colorKey = senderId
     )
 }
 

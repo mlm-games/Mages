@@ -105,7 +105,12 @@ internal fun TimelineLocationItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val displayName = senderDisplayName ?: event.senderDisplayName ?: event.sender.substringAfter("@").substringBefore(":")
-                Avatar(name = displayName, avatarPath = senderAvatarPath, size = 24.dp)
+                Avatar(
+                    name = displayName,
+                    avatarPath = senderAvatarPath,
+                    size = 24.dp,
+                    colorKey = event.sender
+                )
                 Spacer(Modifier.width(Spacing.sm))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
