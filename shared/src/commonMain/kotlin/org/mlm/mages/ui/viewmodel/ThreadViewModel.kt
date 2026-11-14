@@ -264,7 +264,7 @@ class ThreadViewModel(
             if (root != null) {
                 updateRoot(root)
             } else if (currentState.rootMessage == null) {
-                updateState { copy(error = getString(Res.string.failed_to_load_thread)) }
+                updateState { copy(error = "Failed to load thread") }
             }
         }
     }
@@ -275,7 +275,7 @@ class ThreadViewModel(
             service.threadTimelineDiffs(roomId, rootEventId)
                 .catch { e ->
                     val message = currentState.error ?: e.message
-                        ?: getString(Res.string.failed_to_load_thread)
+                        ?: "Failed to load thread"
                     updateState {
                         copy(
                             isLoading = false,
