@@ -111,6 +111,7 @@ private data class IncomingCallUiState(
     val isVoiceOnly: Boolean,
     val isDm: Boolean,
     val expiresAtMs: Long = 0L,
+    val callerUserId: String? = null,
 )
 
 class IncomingCallActivity : ComponentActivity() {
@@ -201,6 +202,7 @@ class IncomingCallActivity : ComponentActivity() {
                         callerName = state.callerName,
                         callerAvatarPath = state.callerAvatarPath,
                         isVoiceOnly = state.isVoiceOnly,
+                        callerUserId = state.callerUserId,
                         onAccept = {
                             acceptCall(
                                 roomId = state.roomId,
@@ -250,6 +252,7 @@ class IncomingCallActivity : ComponentActivity() {
             isVoiceOnly = intent.getBooleanExtra(EXTRA_IS_VOICE_ONLY, false),
             isDm = intent.getBooleanExtra(EXTRA_IS_DM, false),
             expiresAtMs = intent.getLongExtra(EXTRA_EXPIRES_AT_MS, 0L),
+            callerUserId = intent.getStringExtra("caller_user_id"),
         )
 
         uiState = newState
@@ -647,6 +650,7 @@ private fun IncomingCallScreen(
     callerName: String,
     callerAvatarPath: String?,
     isVoiceOnly: Boolean = false,
+    callerUserId: String? = null,
     onAccept: () -> Unit,
     onDecline: () -> Unit
 ) {
@@ -677,7 +681,8 @@ private fun IncomingCallScreen(
             CallerHero(
                 callerName = callerName,
                 roomName = roomName,
-                callerAvatarPath = callerAvatarPath
+                callerAvatarPath = callerAvatarPath,
+                callerUserId = callerUserId
             )
 
             Column(
@@ -780,7 +785,8 @@ private fun TopBanner(isVoiceOnly: Boolean = false) {
 private fun CallerHero(
     callerName: String,
     roomName: String,
-    callerAvatarPath: String?
+    callerAvatarPath: String?,
+    callerUserId: String? = null
 ) {
     val scheme = MaterialTheme.colorScheme
 
@@ -878,6 +884,7 @@ private fun CallerHero(
                 avatarPath = callerAvatarPath,
                 size = 132.dp,
                 shape = avatarShape,
+                colorKey = callerUserId,
                 containerColor = scheme.surfaceContainerHigh,
                 contentColor = scheme.onSurface,
                 modifier = Modifier

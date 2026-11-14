@@ -75,6 +75,7 @@ object AndroidNotificationHelper : KoinComponent {
             isVoiceOnly = isVoiceOnly,
             isDm = isDm,
             expiresAtMs = expiresAtMs,
+            callerUserId = callerUserId,
         )
 
         val joinIntent = createCallJoinIntent(ctx, roomId, eventId, notifId, isVoiceOnly)
@@ -89,6 +90,7 @@ object AndroidNotificationHelper : KoinComponent {
             isVoiceOnly = isVoiceOnly,
             isDm = isDm,
             expiresAtMs = expiresAtMs,
+            callerUserId = callerUserId,
         )
         val answerIntent = createAnswerCallIntent(
             ctx = ctx,
@@ -101,6 +103,7 @@ object AndroidNotificationHelper : KoinComponent {
             isVoiceOnly = isVoiceOnly,
             isDm = isDm,
             expiresAtMs = expiresAtMs,
+            callerUserId = callerUserId,
         ) ?: joinIntent
         val declineIntent = createCallDeclineIntent(ctx, roomId, eventId, notifId)
         val deleteIntent = createCallDeleteIntent(ctx, roomId, notifId, eventId, callerName, roomName, isVoiceOnly)
@@ -296,6 +299,7 @@ object AndroidNotificationHelper : KoinComponent {
         isVoiceOnly: Boolean = false,
         isDm: Boolean = false,
         expiresAtMs: Long? = null,
+        callerUserId: String? = null,
     ): PendingIntent? {
         val settingsRepo: SettingsRepository<AppSettings> by inject()
 
@@ -316,6 +320,7 @@ object AndroidNotificationHelper : KoinComponent {
             isDm = isDm,
             expiresAtMs = expiresAtMs,
             answerImmediately = false,
+            callerUserId = callerUserId,
         ) ?: createCallJoinIntentRaw(ctx, roomId, eventId, isVoiceOnly)
 
         return PendingIntent.getActivity(
@@ -337,6 +342,7 @@ object AndroidNotificationHelper : KoinComponent {
         isVoiceOnly: Boolean = false,
         isDm: Boolean = false,
         expiresAtMs: Long? = null,
+        callerUserId: String? = null,
     ): PendingIntent? {
         val intent = createIncomingCallScreenIntent(
             ctx = ctx,
@@ -349,6 +355,7 @@ object AndroidNotificationHelper : KoinComponent {
             isDm = isDm,
             expiresAtMs = expiresAtMs,
             answerImmediately = true,
+            callerUserId = callerUserId,
         ) ?: return null
 
         return PendingIntent.getActivity(
@@ -370,6 +377,7 @@ object AndroidNotificationHelper : KoinComponent {
         isVoiceOnly: Boolean = false,
         isDm: Boolean = false,
         expiresAtMs: Long? = null,
+        callerUserId: String? = null,
     ): PendingIntent? {
         val intent = createIncomingCallScreenIntent(
             ctx = ctx,
@@ -382,6 +390,7 @@ object AndroidNotificationHelper : KoinComponent {
             isDm = isDm,
             expiresAtMs = expiresAtMs,
             answerImmediately = false,
+            callerUserId = callerUserId,
         ) ?: return null
 
         return PendingIntent.getActivity(
@@ -403,6 +412,7 @@ object AndroidNotificationHelper : KoinComponent {
         isDm: Boolean,
         expiresAtMs: Long?,
         answerImmediately: Boolean,
+        callerUserId: String? = null,
     ): Intent? = try {
         val activityClass = Class.forName("org.mlm.mages.activities.IncomingCallActivity")
         Intent(ctx, activityClass).apply {
@@ -414,6 +424,7 @@ object AndroidNotificationHelper : KoinComponent {
             putExtra("is_voice_only", isVoiceOnly)
             putExtra("is_dm", isDm)
             putExtra("answer_immediately", answerImmediately)
+            callerUserId?.let { putExtra("caller_user_id", it) }
             expiresAtMs?.let { putExtra("expires_at_ms", it) }
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP or
