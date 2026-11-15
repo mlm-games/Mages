@@ -469,6 +469,7 @@
         name="showing_first_reactors"
     >Showing the first %1$d reactors</string>
     <string name="sender_name">Sender</string>
+    <string name="sender_name_show_full_name">Show full name</string>
     <string name="sender_id">Sender ID</string>
     <string name="sent_at">Sent at</string>
     <string name="message_type">Message type</string>

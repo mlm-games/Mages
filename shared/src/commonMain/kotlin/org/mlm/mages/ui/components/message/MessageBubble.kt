@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -69,12 +70,16 @@ fun TimelineSenderAvatar(
     senderAvatarUrl: String?,
     senderId: String,
     size: Dp = Sizes.iconMedium,
+    onClick: (() -> Unit)? = null,
+    onClickLabel: String? = null,
 ) {
     Avatar(
         name = senderDisplayName ?: senderId,
         avatarPath = senderAvatarUrl,
         size = size,
-        colorKey = senderId
+        colorKey = senderId,
+        onClick = onClick,
+        onClickLabel = onClickLabel
     )
 }
 
@@ -87,20 +92,22 @@ private fun SenderName(
     avatarPath: String? = null,
     showAvatar: Boolean = false,
 ) {
-    var truncated by remember(name) { mutableStateOf(false) }
-    var showingFullName by remember(name) { mutableStateOf(false) }
-    // A shortened name is the only thing the label can show, so tapping it opens
-    // the full name and the profile moves to a long press.
-    val interactionModifier = if (onSenderClick != null || truncated) {
-        Modifier.combinedClickable(
-            onClick = {
-                if (truncated) showingFullName = true else onSenderClick?.invoke()
-            },
-            onLongClick = onSenderClick.takeIf { truncated }
-        )
-    } else {
-        Modifier
-    }
+    var truncated by remember { mutableStateOf(false) }
+    var showingFullName by remember { mutableStateOf(false) }
+    val fullNameLabel = stringResource(Res.string.sender_name_show_full_name)
+    val profileLabel = stringResource(Res.string.profile)
+    // A shortened name is the only thing the label can show, so a tap opens the
+    // full name and the profile keeps the long press.
+    val nameModifier = Modifier.combinedClickable(
+        enabled = truncated || onSenderClick != null,
+        onClickLabel = if (truncated) fullNameLabel else profileLabel,
+        onLongClickLabel = if (truncated) profileLabel else null,
+        role = Role.Button,
+        onClick = {
+            if (truncated) showingFullName = true else onSenderClick?.invoke()
+        },
+        onLongClick = if (truncated) onSenderClick else null
+    )
 
     val label: @Composable (Modifier) -> Unit = { labelModifier ->
         Text(
@@ -133,19 +140,21 @@ private fun SenderName(
 
     if (showAvatar) {
         Row(
-            modifier = interactionModifier.then(modifier),
+            modifier = modifier,
             verticalAlignment = Alignment.CenterVertically
         ) {
             TimelineSenderAvatar(
                 senderDisplayName = name,
                 senderAvatarUrl = avatarPath,
-                senderId = senderId
+                senderId = senderId,
+                onClick = onSenderClick,
+                onClickLabel = profileLabel
             )
             Spacer(Modifier.width(Spacing.sm))
-            label(Modifier.weight(1f, fill = false))
+            label(Modifier.weight(1f, fill = false).then(nameModifier))
         }
     } else {
-        label(interactionModifier.then(modifier))
+        label(nameModifier.then(modifier))
     }
 }
 
