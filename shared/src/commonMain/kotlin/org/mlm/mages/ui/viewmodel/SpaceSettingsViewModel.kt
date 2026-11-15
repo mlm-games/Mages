@@ -44,6 +44,7 @@ class SpaceSettingsViewModel(
     sealed class Event {
         data class ShowError(val message: String) : Event()
         data class ShowSuccess(val message: String) : Event()
+        data class RoomsLeft(val roomIds: Set<String>) : Event()
         object LeaveSuccess : Event()
     }
 
@@ -545,9 +546,11 @@ class SpaceSettingsViewModel(
             errorMessage = Res.string.could_not_leave_try_again,
             onSuccess = { _events.send(Event.LeaveSuccess) }
         ) {
+            val left = mutableSetOf<String>()
             for (childId in childIds) {
-                service.port.leaveRoom(childId)
+                if (runSafe { service.port.leaveRoom(childId) }?.isSuccess == true) left += childId
             }
+            if (left.isNotEmpty()) _events.send(Event.RoomsLeft(left))
             service.port.leaveRoom(currentState.spaceId)
         }
     }

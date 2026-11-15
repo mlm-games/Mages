@@ -47,6 +47,7 @@ class RoomsViewModel(
     sealed class Event {
         data class OpenRoom(val roomId: String, val name: String) : Event()
         data class OpenSpace(val spaceId: String, val name: String) : Event()
+        data class RoomsLeft(val roomIds: Set<String>) : Event()
         data class ShowError(val message: String) : Event()
     }
 
@@ -285,9 +286,12 @@ class RoomsViewModel(
         if (ids.isEmpty()) return
         clearRoomSelection()
         launch {
-            ids.forEach { roomId ->
-                runCatching { service.port.leaveRoom(roomId) }
+            val left = mutableSetOf<String>()
+            for (roomId in ids) {
+                if (runSafe { service.port.leaveRoom(roomId) }?.isSuccess == true) left += roomId
             }
+            if (left.isNotEmpty()) _events.send(Event.RoomsLeft(left))
+            if (left.size < ids.size) _events.send(Event.ShowError(getString(Res.string.failed_to_leave_room)))
         }
     }
 

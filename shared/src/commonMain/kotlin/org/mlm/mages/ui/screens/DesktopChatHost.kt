@@ -9,15 +9,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.key
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import mages.shared.generated.resources.*
@@ -50,13 +47,18 @@ fun DesktopChatHost(
     onOpenSearch: () -> Unit,
     onOpenAccountSwitcher: () -> Unit,
     onOpenJoinPreview: (String, Boolean) -> Unit,
+    detailViewModelStoreOwner: ViewModelStoreOwner,
     roomListPercent: Int = 40,
     detailContent: @Composable (ChatSelection) -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         if (maxWidth < 840.dp) {
             if (selection != null) {
-                ChatDetailPane(selection = selection, detailContent = detailContent)
+                ChatDetailPane(
+                    selection = selection,
+                    storeOwner = detailViewModelStoreOwner,
+                    detailContent = detailContent
+                )
             } else {
                 RoomsScreen(
                     viewModel = roomsViewModel,
@@ -96,7 +98,11 @@ fun DesktopChatHost(
                     contentAlignment = Alignment.Center
                 ) {
                     if (selection != null) {
-                        ChatDetailPane(selection = selection, detailContent = detailContent)
+                        ChatDetailPane(
+                            selection = selection,
+                            storeOwner = detailViewModelStoreOwner,
+                            detailContent = detailContent
+                        )
                     } else {
                         EmptyState(
                             icon = painterResource(Res.drawable.ic_chat_bubble),
@@ -113,18 +119,11 @@ fun DesktopChatHost(
 @Composable
 private fun ChatDetailPane(
     selection: ChatSelection,
+    storeOwner: ViewModelStoreOwner,
     detailContent: @Composable (ChatSelection) -> Unit
 ) {
     key(selection.roomId) {
-        val owner = remember(selection.roomId) {
-            object : ViewModelStoreOwner {
-                override val viewModelStore: ViewModelStore = ViewModelStore()
-            }
-        }
-        DisposableEffect(selection.roomId) {
-            onDispose { owner.viewModelStore.clear() }
-        }
-        CompositionLocalProvider(LocalViewModelStoreOwner provides owner) {
+        CompositionLocalProvider(LocalViewModelStoreOwner provides storeOwner) {
             detailContent(selection)
         }
     }

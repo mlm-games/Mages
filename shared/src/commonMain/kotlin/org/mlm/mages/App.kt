@@ -23,6 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.rememberViewModelStoreProvider
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
@@ -286,12 +288,33 @@ private fun AppContent(
         ) {
             val languageTag = LocalAppLocale.current
             val scope = rememberCoroutineScope()
-            var sessionEpoch by remember { mutableIntStateOf(0) }
             var showStartChat by remember { mutableStateOf(false) }
             var showCreateRoom by remember { mutableStateOf(false) }
             var showAccountSwitcher by remember { mutableStateOf(false) }
-            var chatSelection by rememberSaveable(activeId, stateSaver = chatSelectionSaver) {
+            var chatSelection by rememberSaveable(stateSaver = chatSelectionSaver) {
                 mutableStateOf<ChatSelection?>(null)
+            }
+            var chatSelectionAccountId by rememberSaveable { mutableStateOf(activeId) }
+            LaunchedEffect(activeId) {
+                if (chatSelectionAccountId != activeId) {
+                    chatSelectionAccountId = activeId
+                    chatSelection = null
+                }
+            }
+            val activeChatRoomId = if (settings.splitPanes) chatSelection?.roomId else null
+            // Lives above the nav host so the open conversation keeps its view model
+            // when a thread or sheet route is pushed over the split view.
+            val chatDetailStoreOwner = remember(activeChatRoomId) {
+                object : ViewModelStoreOwner {
+                    override val viewModelStore: ViewModelStore = ViewModelStore()
+                }
+            }
+            DisposableEffect(chatDetailStoreOwner) {
+                onDispose { chatDetailStoreOwner.viewModelStore.clear() }
+            }
+            val clearChatSelection: (Set<String>) -> Unit = { roomIds ->
+                val selectedRoomId = chatSelection?.roomId
+                if (selectedRoomId != null && selectedRoomId in roomIds) chatSelection = null
             }
             val accounts by accountStore.accounts.collectAsState()
             val activeAccountId by accountStore.activeAccountId.collectAsState()
@@ -557,8 +580,12 @@ private fun AppContent(
                                 // Handle via or put it in here to not go back
                             }
 
-                            isInitialLogin || isRoomsRoot -> {
+                            isInitialLogin -> {
                                 // block back
+                            }
+
+                            isRoomsRoot -> {
+                                if (settings.splitPanes && chatSelection != null) chatSelection = null
                             }
 
                             backStack.size > 1 -> {
@@ -607,6 +634,10 @@ private fun AppContent(
                                             backStack.add(Route.SpaceDetail(event.spaceId, event.name))
                                         }
 
+                                        is RoomsViewModel.Event.RoomsLeft -> {
+                                            clearChatSelection(event.roomIds)
+                                        }
+
                                         is RoomsViewModel.Event.ShowError -> {
                                             postError(event.message)
                                         }
@@ -634,6 +665,7 @@ private fun AppContent(
                                     onOpenJoinPreview = { roomId, isSpace ->
                                         backStack.add(Route.JoinRoom(roomId, emptyList(), isSpace = isSpace))
                                     },
+                                    detailViewModelStoreOwner = chatDetailStoreOwner,
                                     roomListPercent = settings.splitRoomListPercent,
                                 ) { sel ->
                                     RoomEntryContent(
@@ -779,7 +811,6 @@ private fun AppContent(
                                 viewModel.events.collect { event ->
                                     when (event) {
                                         is SecurityViewModel.Event.LogoutSuccess -> {
-                                            sessionEpoch++
                                             backStack.replaceTop(Route.Login)
                                             quitApp()
                                         }
@@ -869,7 +900,7 @@ private fun AppContent(
                                 viewModel.events.collect { event ->
                                     when (event) {
                                         is RoomInfoViewModel.Event.LeaveSuccess -> {
-                                            if (chatSelection?.roomId == key.roomId) chatSelection = null
+                                            clearChatSelection(setOf(key.roomId))
                                             backStack.popUntil { it is Route.Rooms }
                                         }
 
@@ -896,7 +927,7 @@ private fun AppContent(
                                 viewModel = viewModel,
                                 onBack = backStack::popBack,
                                 onLeaveSuccess = {
-                                    if (chatSelection?.roomId == key.roomId) chatSelection = null
+                                    clearChatSelection(setOf(key.roomId))
                                     backStack.popUntil { it is Route.Rooms }
                                 },
                                 onOpenMediaGallery = { backStack.add(Route.MediaGallery(key.roomId)) },
@@ -1088,6 +1119,10 @@ private fun AppContent(
 
                                         is SpaceSettingsViewModel.Event.ShowSuccess -> {
                                             snackbarManager.show(event.message)
+                                        }
+
+                                        is SpaceSettingsViewModel.Event.RoomsLeft -> {
+                                            clearChatSelection(event.roomIds)
                                         }
 
                                         SpaceSettingsViewModel.Event.LeaveSuccess -> {
@@ -1404,7 +1439,6 @@ private fun AppContent(
                         scope.launch {
                             val result = service.switchAccount(account)
                             if (result.isSuccess) {
-                                sessionEpoch++
                                 snackbarManager.show(getString(Res.string.switched_to_account, account.userId))
                             } else {
                                 snackbarManager.showError(result.exceptionOrNull()?.message ?: getString(Res.string.failed_to_switch_account))
@@ -1420,8 +1454,6 @@ private fun AppContent(
                             service.removeAccount(account.id)
                             if (!service.isLoggedInSuspend()) {
                                 backStack.replaceTop(Route.Login)
-                            } else {
-                                sessionEpoch++
                             }
                         }
                     },
