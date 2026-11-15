@@ -12,6 +12,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -27,6 +29,15 @@ private const val MIN_ROOM_LIST_PERCENT = 15
 private const val MAX_ROOM_LIST_PERCENT = 50
 
 data class ChatSelection(val roomId: String, val name: String)
+
+val chatSelectionSaver: Saver<ChatSelection?, Any> = listSaver(
+    save = { selection ->
+        if (selection == null) emptyList() else listOf(selection.roomId, selection.name)
+    },
+    restore = { saved ->
+        if (saved.size == 2) ChatSelection(saved[0], saved[1]) else null
+    }
+)
 
 @Composable
 fun DesktopChatHost(

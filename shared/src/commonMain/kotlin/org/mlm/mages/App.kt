@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -289,6 +290,9 @@ private fun AppContent(
             var showStartChat by remember { mutableStateOf(false) }
             var showCreateRoom by remember { mutableStateOf(false) }
             var showAccountSwitcher by remember { mutableStateOf(false) }
+            var chatSelection by rememberSaveable(activeId, stateSaver = chatSelectionSaver) {
+                mutableStateOf<ChatSelection?>(null)
+            }
             val accounts by accountStore.accounts.collectAsState()
             val activeAccountId by accountStore.activeAccountId.collectAsState()
 
@@ -589,7 +593,6 @@ private fun AppContent(
                         entry<Route.Rooms> {
                             val viewModel: RoomsViewModel = koinViewModel()
                             val chatMode = settings.splitPanes
-                            var chatSelection by remember { mutableStateOf<ChatSelection?>(null) }
                             val latestChatMode by rememberUpdatedState(chatMode)
 
                             LaunchedEffect(Unit) {
@@ -866,6 +869,7 @@ private fun AppContent(
                                 viewModel.events.collect { event ->
                                     when (event) {
                                         is RoomInfoViewModel.Event.LeaveSuccess -> {
+                                            if (chatSelection?.roomId == key.roomId) chatSelection = null
                                             backStack.popUntil { it is Route.Rooms }
                                         }
 
@@ -891,7 +895,10 @@ private fun AppContent(
                             RoomInfoRoute(
                                 viewModel = viewModel,
                                 onBack = backStack::popBack,
-                                onLeaveSuccess = { backStack.popUntil { it is Route.Rooms } },
+                                onLeaveSuccess = {
+                                    if (chatSelection?.roomId == key.roomId) chatSelection = null
+                                    backStack.popUntil { it is Route.Rooms }
+                                },
                                 onOpenMediaGallery = { backStack.add(Route.MediaGallery(key.roomId)) },
                                 onOpenImagePackEditor = { backStack.add(Route.ImagePackEditor(key.roomId)) },
                                 onOpenWallpaper = { backStack.add(Route.RoomWallpaper(key.roomId)) },
