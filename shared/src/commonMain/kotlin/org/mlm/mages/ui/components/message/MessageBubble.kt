@@ -7,13 +7,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,7 +60,6 @@ import org.mlm.mages.ui.util.formatDuration
 import org.mlm.mages.ui.util.formatTime
 import org.mlm.mages.ui.util.isAnimatedImageMime
 import org.mlm.mages.ui.util.secondaryClick
-import kotlinx.coroutines.launch
 import kotlin.math.min
 import org.jetbrains.compose.resources.pluralStringResource
 
@@ -88,46 +87,48 @@ private fun SenderName(
     avatarPath: String? = null,
     showAvatar: Boolean = false,
 ) {
-    val tooltipState = rememberTooltipState()
-    val scope = rememberCoroutineScope()
     var truncated by remember(name) { mutableStateOf(false) }
+    var showingFullName by remember(name) { mutableStateOf(false) }
+    // A shortened name is the only thing the label can show, so tapping it opens
+    // the full name and the profile moves to a long press.
     val interactionModifier = if (onSenderClick != null || truncated) {
         Modifier.combinedClickable(
-            onClick = { onSenderClick?.invoke() },
-            onLongClick = if (truncated) {
-                { scope.launch { tooltipState.show() } }
-            } else null
+            onClick = {
+                if (truncated) showingFullName = true else onSenderClick?.invoke()
+            },
+            onLongClick = onSenderClick.takeIf { truncated }
         )
     } else {
         Modifier
     }
 
     val label: @Composable (Modifier) -> Unit = { labelModifier ->
-        TooltipBox(
-            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
-            tooltip = {
-                PlainTooltip {
-                    Text(
-                        text = name,
-                        maxLines = 4,
-                        overflow = TextOverflow.Ellipsis
-                    )
+        Text(
+            text = name,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            onTextLayout = { truncated = it.hasVisualOverflow },
+            modifier = labelModifier
+        )
+    }
+
+    if (showingFullName) {
+        AlertDialog(
+            onDismissRequest = { showingFullName = false },
+            confirmButton = {
+                TextButton(onClick = { showingFullName = false }) {
+                    Text(stringResource(Res.string.close))
                 }
             },
-            state = tooltipState,
-            enableUserInput = false,
-            modifier = labelModifier
-        ) {
-            Text(
-                text = name,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                onTextLayout = { truncated = it.hasVisualOverflow }
-            )
-        }
+            text = {
+                SelectionContainer {
+                    Text(text = name, style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+        )
     }
 
     if (showAvatar) {
