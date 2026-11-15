@@ -23,6 +23,7 @@ import org.mlm.mages.withBridgedThumb
 import org.mlm.mages.matrix.ImagePackSummary
 import org.mlm.mages.matrix.LINK_PREVIEW_IMAGE_PX
 import org.mlm.mages.matrix.PollData
+import org.mlm.mages.matrix.ThreadReplyIndex
 import org.mlm.mages.matrix.TimelineDiff
 import org.mlm.mages.matrix.allowsLinkPreviews
 import org.mlm.mages.matrix.allowsMediaPreviews
@@ -313,11 +314,13 @@ class ThreadViewModel(
     }
 
     private fun replaceReplies(events: List<MessageEvent>) {
-        val replies = events
+        rememberingThreadRoots(events)
+        val rooted = events.map { it.withKnownThreadRoot() }
+        val replies = rooted
             .filter { it.eventId != rootEventId }
             .distinctBy { it.itemId }
             .sortedForThread()
-        prefetchReplies(events)
+        prefetchReplies(rooted)
         updateState {
             copy(
                 replies = replies,
@@ -327,28 +330,32 @@ class ThreadViewModel(
                 error = null,
             )
         }
-        markLatestRead(events)
+        markLatestRead(rooted)
         probeThreadStart()
     }
 
     private fun appendReplies(events: List<MessageEvent>) {
         if (events.isEmpty()) return
-        prefetchReplies(events)
+        rememberingThreadRoots(events)
+        val rooted = events.map { it.withKnownThreadRoot() }
+        prefetchReplies(rooted)
         updateState {
-            val merged = (events + replies)
+            val merged = (rooted + replies)
                 .filter { it.eventId != rootEventId }
                 .distinctBy { it.itemId }
                 .sortedForThread()
             copy(replies = merged, isLoading = false)
         }
-        markLatestRead(events)
+        markLatestRead(rooted)
     }
 
     private fun prependReplies(events: List<MessageEvent>) {
         if (events.isEmpty()) return
-        prefetchReplies(events)
+        rememberingThreadRoots(events)
+        val rooted = events.map { it.withKnownThreadRoot() }
+        prefetchReplies(rooted)
         updateState {
-            val merged = (events + replies)
+            val merged = (rooted + replies)
                 .filter { it.eventId != rootEventId }
                 .distinctBy { it.itemId }
                 .sortedForThread()
@@ -361,16 +368,38 @@ class ThreadViewModel(
             updateRoot(event)
             return
         }
-        prefetchReplies(listOf(event))
+        rememberingThreadRoots(listOf(event))
+        val reply = event.withKnownThreadRoot()
+        prefetchReplies(listOf(reply))
         updateState {
-            val idx = replies.indexOfFirst { it.itemId == event.itemId }
+            val idx = replies.indexOfFirst { it.itemId == reply.itemId }
             val updated = if (idx >= 0) {
-                replies.toMutableList().apply { this[idx] = event }
+                replies.toMutableList().apply { this[idx] = reply }
             } else {
-                replies + event
+                replies + reply
             }
             copy(replies = updated.distinctBy { it.itemId }.sortedForThread())
         }
+    }
+
+    /**
+     * Replies seen here have no thread root once redacted, because Matrix redaction drops
+     * `m.relates_to` and the SDK maps a redacted item without one.
+     */
+    private fun rememberingThreadRoots(events: List<MessageEvent>) {
+        val replies = events
+            .mapNotNull { event ->
+                val rootId = event.threadRootEventId?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                event.eventId to rootId
+            }
+            .toMap()
+        ThreadReplyIndex.record(roomId, replies)
+    }
+
+    private fun MessageEvent.withKnownThreadRoot(): MessageEvent {
+        if (threadRootEventId != null) return this
+        val rootId = ThreadReplyIndex.rootOf(roomId, eventId) ?: return this
+        return copy(threadRootEventId = rootId)
     }
 
     private fun removeReply(itemId: String) {
@@ -580,6 +609,7 @@ class ThreadViewModel(
 
         launch {
             var deleted = 0
+            ThreadReplyIndex.record(roomId, selected.associate { it.eventId to rootEventId })
             selected.forEach { event ->
                 val result = runSafe { service.port.redact(roomId, event.eventId, null) }
                 if (result?.isSuccess == true) deleted++
@@ -1350,6 +1380,7 @@ class ThreadViewModel(
             return cancelResult.isSuccess
         }
 
+        ThreadReplyIndex.record(roomId, mapOf(event.eventId to rootEventId))
         val result = runSafe { service.redact(roomId, event.eventId, null) }
         if (result?.isSuccess != true) {
             _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.failed_to_delete_message))))

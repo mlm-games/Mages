@@ -119,6 +119,7 @@ class MatrixService(
 
     suspend fun switchAccount(account: MatrixAccount): Result<Unit> {
         resetSyncState()
+        ThreadReplyIndex.clear()
         _avatars?.shutdown()
         _avatars = null
         _linkPreviews?.shutdown()
@@ -136,6 +137,7 @@ class MatrixService(
     suspend fun removeAccount(accountId: String) {
         if (clients.activeAccount.value?.id == accountId) {
             resetSyncState()
+            ThreadReplyIndex.clear()
             _avatars?.shutdown()
             _avatars = null
             _linkPreviews?.shutdown()
@@ -206,6 +208,7 @@ class MatrixService(
 
     suspend fun logout(): Result<Unit> = runCatching {
         supervisedSyncStarted = false
+        ThreadReplyIndex.clear()
         val ok = port.logout()
         check(ok) { getString(Res.string.logout_failed) }
     }

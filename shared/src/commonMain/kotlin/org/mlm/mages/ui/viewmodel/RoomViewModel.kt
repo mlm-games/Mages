@@ -2233,6 +2233,7 @@ class RoomViewModel(
             ?.threadRootEventId
             ?.takeIf { it.isNotBlank() }
             ?.let { return it }
+        ThreadReplyIndex.rootOf(currentState.roomId, eventId)?.let { return it }
         if (currentState.allEvents.any { it.eventId == eventId }) return null
         return runSafe {
             service.port.eventDetails(currentState.roomId, eventId)
@@ -2856,6 +2857,13 @@ class RoomViewModel(
             )
         }
 
+        val threadRootsSeen = delta
+            .mapNotNull { event ->
+                event.threadRootEventId?.takeIf { it.isNotBlank() }?.let { root -> event.eventId to root }
+            }
+            .toMap()
+        ThreadReplyIndex.record(currentState.roomId, threadRootsSeen)
+
         val visibleDelta = filteredDeltaEvents(delta)
         if (diff is TimelineDiff.Reset) {
             scheduleCatchUpTimeout()
@@ -3423,8 +3431,12 @@ class RoomViewModel(
         }
     }
 
-    private fun List<MessageEvent>.withoutThreadReplies(): List<MessageEvent> =
-        this.filter { it.threadRootEventId == null }
+    private fun List<MessageEvent>.withoutThreadReplies(): List<MessageEvent> {
+        val roomId = currentState.roomId
+        return this.filter { event ->
+            event.threadRootEventId == null && ThreadReplyIndex.rootOf(roomId, event.eventId) == null
+        }
+    }
 
     private fun List<MessageEvent>.dedupByItemId(): List<MessageEvent> =
         distinctBy { it.itemId }
