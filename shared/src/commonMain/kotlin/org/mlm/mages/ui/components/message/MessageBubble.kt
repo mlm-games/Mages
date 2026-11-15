@@ -96,18 +96,26 @@ private fun SenderName(
     var showingFullName by remember { mutableStateOf(false) }
     val fullNameLabel = stringResource(Res.string.sender_name_show_full_name)
     val profileLabel = stringResource(Res.string.profile)
+    val canAct = truncated || onSenderClick != null
     // A shortened name is the only thing the label can show, so a tap opens the
     // full name and the profile keeps the long press.
-    val nameModifier = Modifier.combinedClickable(
-        enabled = truncated || onSenderClick != null,
-        onClickLabel = if (truncated) fullNameLabel else profileLabel,
-        onLongClickLabel = if (truncated) profileLabel else null,
-        role = Role.Button,
-        onClick = {
-            if (truncated) showingFullName = true else onSenderClick?.invoke()
-        },
-        onLongClick = if (truncated) onSenderClick else null
-    )
+    val nameModifier = if (canAct) {
+        Modifier.combinedClickable(
+            onClickLabel = when {
+                truncated -> fullNameLabel
+                onSenderClick != null -> profileLabel
+                else -> null
+            },
+            onLongClickLabel = profileLabel.takeIf { truncated && onSenderClick != null },
+            role = Role.Button,
+            onClick = {
+                if (truncated) showingFullName = true else onSenderClick?.invoke()
+            },
+            onLongClick = if (truncated) onSenderClick else null
+        )
+    } else {
+        Modifier
+    }
 
     val label: @Composable (Modifier) -> Unit = { labelModifier ->
         Text(
