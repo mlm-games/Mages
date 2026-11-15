@@ -28,7 +28,7 @@ object ThreadReplyIndex {
             if (merged.size <= MAX_ENTRIES) {
                 merged
             } else {
-                merged.entries.takeLast(MAX_ENTRIES).associate { it.key to it.value }
+                merged.entries.toList().takeLast(MAX_ENTRIES).associate { it.key to it.value }
             }
         }
     }
