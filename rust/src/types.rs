@@ -1360,6 +1360,11 @@ pub trait RoomInfoObserver: Send + Sync {
 }
 
 #[export(callback_interface)]
+pub trait RoomMembershipObserver: Send + Sync {
+    fn on_change(&self, membership: Option<RoomListMembership>);
+}
+
+#[export(callback_interface)]
 pub trait CallDeclineObserver: Send + Sync {
     fn on_decline(&self, decliner_user_id: String);
 }

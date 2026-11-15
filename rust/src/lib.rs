@@ -249,6 +249,7 @@ delegate! { result FfiRoomNotificationMode; get_default_room_notification_mode(i
 delegate! { option UnreadStats; room_unread_stats(room_id: String); }
 delegate! { option RoomCallState; room_call_state(room_id: String); }
 delegate! { option RoomInfoSnapshot; room_info_snapshot(room_id: String); }
+delegate! { option RoomListMembership; room_membership(room_id: String); }
 delegate! { option RoomTags; room_tags(room_id: String); }
 delegate! { option String; dm_peer_user_id(room_id: String); resolve_room_id(id_or_alias: String); account_management_url(); }
 delegate! { option SuccessorRoomInfo; room_successor(room_id: String); }
@@ -1678,6 +1679,26 @@ impl Client {
     }
 
     pub fn unobserve_room_info(&self, sub_id: u64) -> bool {
+        unsub!(self, call_subs, sub_id)
+    }
+
+    pub fn observe_room_membership(
+        &self,
+        room_id: String,
+        observer: Box<dyn RoomMembershipObserver>,
+    ) -> u64 {
+        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+            warn!("observe_room_membership: invalid room id");
+            return 0;
+        };
+        let obs: Arc<dyn RoomMembershipObserver> = Arc::from(observer);
+        let core = self.core.clone();
+        sub_manager!(self, call_subs, async move {
+            core.drive_room_membership(&rid, obs).await;
+        })
+    }
+
+    pub fn unobserve_room_membership(&self, sub_id: u64) -> bool {
         unsub!(self, call_subs, sub_id)
     }
 

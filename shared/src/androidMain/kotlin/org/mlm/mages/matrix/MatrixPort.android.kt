@@ -704,6 +704,27 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
         withClientOrNull { it.unobserveRoomInfo(token) }
     }
 
+    override suspend fun roomMembership(roomId: String): RoomListMembership? =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.roomMembership(roomId) } }
+                .getOrNull()
+                ?.toKotlin()
+        }
+
+    override suspend fun observeRoomMembership(roomId: String, observer: MatrixPort.RoomMembershipObserver): ULong =
+        withContext(matrixDispatcher) {
+            val cb = object : mages.RoomMembershipObserver {
+                override fun onChange(membership: mages.RoomListMembership?) {
+                    observer.onChange(membership?.toKotlin())
+                }
+            }
+            withClient { it.observeRoomMembership(roomId, cb) }
+        }
+
+    override fun unobserveRoomMembership(token: ULong) {
+        withClientOrNull { it.unobserveRoomMembership(token) }
+    }
+
     private fun mages.ImagePackSummary.toModel() = ImagePackSummary(
         packId = packId,
         sourceRoom = sourceRoom,

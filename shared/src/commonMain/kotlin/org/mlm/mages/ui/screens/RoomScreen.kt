@@ -146,6 +146,7 @@ fun RoomScreen(
     viewModel: RoomViewModel,
     initialScrollToEventId: String? = null,
     onBack: () -> Unit,
+    onRoomUnavailable: (String) -> Unit,
     onOpenInfo: () -> Unit,
     onNavigateToRoom: (roomId: String, name: String) -> Unit,
     onNavigateToThread: (roomId: String, eventId: String, roomName: String, focusedEventId: String?) -> Unit,
@@ -532,6 +533,10 @@ fun RoomScreen(
 
                 is RoomViewModel.Event.NavigateBack -> {
                     onBack()
+                }
+
+                is RoomViewModel.Event.RoomUnavailable -> {
+                    onRoomUnavailable(event.roomId)
                 }
 
                 is RoomViewModel.Event.ShareMessage -> {

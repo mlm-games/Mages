@@ -2457,6 +2457,21 @@ impl CoreClient {
         })
     }
 
+    pub(crate) fn room_membership_of(&self, room_id: &OwnedRoomId) -> Option<RoomListMembership> {
+        self.sdk
+            .get_room(room_id)
+            .map(|room| room_list_membership(&room))
+    }
+
+    pub async fn room_membership(
+        &self,
+        room_id: String,
+    ) -> Result<Option<RoomListMembership>, FfiError> {
+        let rid = OwnedRoomId::try_from(room_id.as_str())
+            .map_err(|_| FfiError::Msg("invalid room id".into()))?;
+        Ok(self.room_membership_of(&rid))
+    }
+
     pub async fn build_room_info_snapshot(
         &self,
         room: &Room,

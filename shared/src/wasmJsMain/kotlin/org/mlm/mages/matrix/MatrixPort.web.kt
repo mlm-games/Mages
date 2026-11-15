@@ -1073,6 +1073,23 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         requireClientOrNull()?.unobserveRoomInfo(token.toDouble())
     }
 
+    override suspend fun roomMembership(roomId: String): RoomListMembership? =
+        requireClient().roomMembership(roomId).awaitValue("roomMembership")
+
+    override suspend fun observeRoomMembership(roomId: String, observer: MatrixPort.RoomMembershipObserver): ULong =
+        requireClient().observeRoomMembership(
+            roomId,
+            jsCallback1 { payload: JsAny? ->
+                observer.onChange(
+                    decodeValueOrNull<RoomListMembership>(payload, "observeRoomMembership")
+                )
+            }
+        ).toULong()
+
+    override fun unobserveRoomMembership(token: ULong) {
+        requireClientOrNull()?.unobserveRoomMembership(token.toDouble())
+    }
+
     override suspend fun observeCallDecline(roomId: String, notificationEventId: String, observer: MatrixPort.CallDeclineObserver): ULong =
         requireClient().observeCallDecline(
             roomId,

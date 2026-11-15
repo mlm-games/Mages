@@ -126,6 +126,34 @@ impl CoreClient {
         }
     }
 
+    pub(crate) async fn drive_room_membership(
+        &self,
+        room_id: &OwnedRoomId,
+        obs: Arc<dyn RoomMembershipObserver>,
+    ) {
+        let Some(room) = self.sdk.get_room(room_id) else {
+            safe_call(|| obs.on_change(None));
+            return;
+        };
+        let mut rx = room.subscribe_to_updates();
+        let mut last = self.room_membership_of(room_id);
+        safe_call(|| obs.on_change(last.clone()));
+        loop {
+            match rx.recv().await {
+                Ok(_) => {}
+                Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
+                    warn!(room_id = %room_id, skipped, "room membership updates lagged; re-reading");
+                }
+                Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+            }
+            let current = self.room_membership_of(room_id);
+            if last != current {
+                last = current.clone();
+                safe_call(|| obs.on_change(current));
+            }
+        }
+    }
+
     pub(crate) async fn drive_call_decline(
         &self,
         room_id: &OwnedRoomId,

@@ -65,6 +65,7 @@ import org.mlm.mages.matrix.SasPhase
 import org.mlm.mages.matrix.accountDataSettingsSync
 import org.mlm.mages.matrix.MatrixPort.CallDeclineObserver
 import org.mlm.mages.matrix.RoomCallState
+import org.mlm.mages.matrix.keepsRoomOpen
 import org.mlm.mages.matrix.MatrixPort.RoomCallStateObserver
 import org.mlm.mages.nav.*
 import org.mlm.mages.platform.BindAppLock
@@ -315,6 +316,19 @@ private fun AppContent(
             val clearChatSelection: (Set<String>) -> Unit = { roomIds ->
                 val selectedRoomId = chatSelection?.roomId
                 if (selectedRoomId != null && selectedRoomId in roomIds) chatSelection = null
+            }
+            LaunchedEffect(chatSelection?.roomId, activeId) {
+                val roomId = chatSelection?.roomId ?: return@LaunchedEffect
+                if (activeId == null) return@LaunchedEffect
+                val membership = try {
+                    service.port.roomMembership(roomId)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    return@LaunchedEffect
+                }
+                if (chatSelection?.roomId != roomId) return@LaunchedEffect
+                if (!membership.keepsRoomOpen()) clearChatSelection(setOf(roomId))
             }
             val accounts by accountStore.accounts.collectAsState()
             val activeAccountId by accountStore.activeAccountId.collectAsState()
@@ -672,6 +686,7 @@ private fun AppContent(
                                         route = Route.Room(sel.roomId, sel.name),
                                         backStack = backStack,
                                         onBack = { chatSelection = null },
+                                        onRoomUnavailable = { roomId -> clearChatSelection(setOf(roomId)) },
                                         onSelectRoom = { roomId, name ->
                                             chatSelection = ChatSelection(roomId, name)
                                         },
@@ -743,6 +758,10 @@ private fun AppContent(
                                 route = key,
                                 backStack = backStack,
                                 onBack = backStack::popBack,
+                                onRoomUnavailable = { roomId ->
+                                    clearChatSelection(setOf(roomId))
+                                    backStack.popUntil { it is Route.Rooms }
+                                },
                                 onSelectRoom = { roomId, name ->
                                     backStack.add(Route.Room(roomId, name))
                                 },
@@ -1477,6 +1496,7 @@ private fun RoomEntryContent(
     route: Route.Room,
     backStack: NavBackStack<NavKey>,
     onBack: () -> Unit,
+    onRoomUnavailable: (String) -> Unit,
     onSelectRoom: (roomId: String, name: String) -> Unit,
     onRequestLocationPermissions: ((() -> Unit) -> Unit)?,
     onRequestVideoCallPermissions: ((() -> Unit) -> Unit)?,
@@ -1492,6 +1512,7 @@ private fun RoomEntryContent(
         viewModel = viewModel,
         initialScrollToEventId = route.eventId,
         onBack = onBack,
+        onRoomUnavailable = onRoomUnavailable,
         onOpenInfo = { backStack.add(Route.RoomInfo(route.roomId)) },
         onNavigateToRoom = { roomId, name -> onSelectRoom(roomId, name) },
         onNavigateToThread = { roomId, eventId, roomName, focusedEventId ->

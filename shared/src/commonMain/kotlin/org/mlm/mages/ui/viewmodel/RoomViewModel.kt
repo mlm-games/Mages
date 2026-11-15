@@ -210,6 +210,7 @@ class RoomViewModel(
         data class NavigateToThread(val roomId: String, val eventId: String, val roomName: String, val focusedEventId: String? = null) : Event()
         data class NavigateToRoom(val roomId: String, val name: String) : Event()
         data object NavigateBack : Event()
+        data class RoomUnavailable(val roomId: String) : Event()
 
         data class ShareMessage(
             val text: String?,
@@ -235,6 +236,7 @@ class RoomViewModel(
     private var ownReceiptToken: ULong? = null
     private var roomCallStateToken: ULong? = null
     private var roomInfoToken: ULong? = null
+    private var roomMembershipToken: ULong? = null
     private var lastRoomAvatarMxc: String? = null
     private var localCallActiveForRoom = false
     private var remoteCallActiveForRoom = false
@@ -378,6 +380,7 @@ class RoomViewModel(
         observeOwnReceipt()
         observeRoomCallState()
         observeRoomInfo()
+        observeRoomMembership()
         loadNotificationMode()
         loadUpgradeInfo()
         loadPinnedEvents()
@@ -2963,6 +2966,24 @@ class RoomViewModel(
         }
     }
 
+    private fun observeRoomMembership() {
+        launch {
+            roomMembershipToken?.let { runCatching { service.portOrNull?.unobserveRoomMembership(it) } }
+            roomMembershipToken = null
+            roomMembershipToken = runSafe {
+                service.port.observeRoomMembership(
+                    currentState.roomId,
+                    object : MatrixPort.RoomMembershipObserver {
+                        override fun onChange(membership: RoomListMembership?) {
+                            if (membership.keepsRoomOpen()) return
+                            _events.trySend(Event.RoomUnavailable(currentState.roomId))
+                        }
+                    }
+                )
+            }
+        }
+    }
+
     private fun observeOwnReceipt() {
         launch { refreshOwnLastRead() }
 
@@ -3480,6 +3501,7 @@ class RoomViewModel(
         typingToken?.let { runCatching { service.portOrNull?.stopTypingObserver(it) } }
         ownReceiptToken?.let { runCatching { service.portOrNull?.stopReceiptsObserver(it) } }
         roomCallStateToken?.let { runCatching { service.portOrNull?.unobserveRoomCallState(it) } }
+        roomMembershipToken?.let { runCatching { service.portOrNull?.unobserveRoomMembership(it) } }
         currentState.liveLocationSubToken?.let { runCatching { service.portOrNull?.stopObserveLiveLocation(it) } }
         liveLocationBeaconToken?.let { runCatching { service.portOrNull?.unsubscribeFromOwnBeaconInfoUpdates(it) } }
         LiveLocationSharingCoordinator.onLocationDispatched = null

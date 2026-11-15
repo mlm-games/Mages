@@ -544,6 +544,11 @@ enum class RoomListMembership {
     Banned,
 }
 
+fun RoomListMembership?.keepsRoomOpen(): Boolean =
+    this == RoomListMembership.Joined ||
+        this == RoomListMembership.Invited ||
+        this == RoomListMembership.Knocked
+
 @Serializable
 enum class RoomPreviewMembership {
     Joined,
@@ -1179,6 +1184,11 @@ interface MatrixPort {
     suspend fun roomInfoSnapshot(roomId: String): RoomInfoSnapshot?
     suspend fun observeRoomInfo(roomId: String, observer: RoomInfoObserver): ULong
     fun unobserveRoomInfo(token: ULong)
+
+    interface RoomMembershipObserver { fun onChange(membership: RoomListMembership?) }
+    suspend fun roomMembership(roomId: String): RoomListMembership?
+    suspend fun observeRoomMembership(roomId: String, observer: RoomMembershipObserver): ULong
+    fun unobserveRoomMembership(token: ULong)
 
     interface CallDeclineObserver { fun onDecline(declinerUserId: String) }
     suspend fun observeCallDecline(roomId: String, notificationEventId: String, observer: CallDeclineObserver): ULong

@@ -207,6 +207,7 @@ js_observer_json!(JsTypingObserver: TypingObserver::on_update, names: Vec<String
 js_observer_json!(JsCallObserver: CallObserver::on_invite, invite: CallInvite);
 js_observer_json!(JsRoomCallStateObserver: RoomCallStateObserver::on_update, state: RoomCallState);
 js_observer_json!(JsRoomInfoObserver: RoomInfoObserver::on_update, snapshot: RoomInfoSnapshot);
+js_observer_json!(JsRoomMembershipObserver: RoomMembershipObserver::on_change, membership: Option<RoomListMembership>);
 
 struct JsCallDeclineObserver(Function);
 impl CallDeclineObserver for JsCallDeclineObserver {
@@ -623,6 +624,7 @@ wasm_delegate! { webffi_option;
     "roomUnreadStats"  => room_unread_stats(room_id: String);
     "roomCallState"    => room_call_state(room_id: String);
     "roomInfoSnapshot" => room_info_snapshot(room_id: String);
+    "roomMembership"   => room_membership(room_id: String);
     "roomSuccessor"    => room_successor(room_id: String);
     "roomPredecessor"  => room_predecessor(room_id: String);
     "eventDetails"     => event_details(room_id: String, event_id: String);
@@ -683,6 +685,7 @@ wasm_unobserve! {
     "unobserveTyping"            => unobserve_typing(typing_subs);
     "unobserveRoomCallState"     => unobserve_room_call_state(call_subs);
     "unobserveRoomInfo"          => unobserve_room_info(call_subs);
+    "unobserveRoomMembership"    => unobserve_room_membership(call_subs);
     "unobserveCallDecline"       => unobserve_call_decline(call_subs);
     "unobserveReceipts"          => unobserve_receipts(receipts_subs);
     "unobserveLiveLocation"      => unobserve_live_location(live_location_subs);
@@ -1609,6 +1612,22 @@ impl WasmClient {
         let s = state.clone();
         wasm_subscribe!(state, call_subs, async move {
             s.core.drive_room_info(&rid, obs).await;
+        })
+    }
+
+    #[wasm_bindgen(js_name = observeRoomMembership)]
+    pub fn observe_room_membership(&self, room_id: String, on_change: Function) -> f64 {
+        let Some(state) = self.state() else {
+            return 0.0;
+        };
+        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+            tracing::warn!("observe_room_membership: invalid room id");
+            return 0.0;
+        };
+        let obs: Arc<dyn RoomMembershipObserver> = Arc::new(JsRoomMembershipObserver(on_change));
+        let s = state.clone();
+        wasm_subscribe!(state, call_subs, async move {
+            s.core.drive_room_membership(&rid, obs).await;
         })
     }
 
