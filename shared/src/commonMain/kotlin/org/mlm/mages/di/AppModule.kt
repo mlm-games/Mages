@@ -99,6 +99,7 @@ val viewModelModule = module {
         RoomInfoViewModel(
             service = get(),
             scopeStore = get(),
+            settingsRepo = get(),
             roomId = roomId
         )
     }

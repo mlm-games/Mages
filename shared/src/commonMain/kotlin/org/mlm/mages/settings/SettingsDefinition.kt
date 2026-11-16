@@ -1305,6 +1305,9 @@ data class AppSettings(
     val roomDraftsJson: String = "",
 
     @Persisted
+    val roomPrivacyJson: String = "",
+
+    @Persisted
     val searchHistoryJson: String = "",
 
     @Persisted

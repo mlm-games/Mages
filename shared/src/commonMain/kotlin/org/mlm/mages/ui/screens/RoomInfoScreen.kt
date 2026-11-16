@@ -137,6 +137,9 @@ fun RoomInfoRoute(
         onShowNotificationSettings = viewModel::showNotificationSettings,
         onHideNotificationSettings = viewModel::hideNotificationSettings,
         onSetNotificationMode = viewModel::setNotificationMode,
+        onSetReadReceiptsForRoom = viewModel::setReadReceiptsForRoom,
+        onSetTypingIndicatorsForRoom = viewModel::setTypingIndicatorsForRoom,
+        onResetRoomPrivacy = viewModel::resetRoomPrivacy,
         onShowMembers = viewModel::showMembers,
         onHideMembers = viewModel::hideMembers,
         onShowKnockRequests = viewModel::showKnockRequests,
@@ -200,6 +203,9 @@ fun RoomInfoScreen(
     onShowNotificationSettings: () -> Unit,
     onHideNotificationSettings: () -> Unit,
     onSetNotificationMode: (RoomNotificationMode) -> Unit,
+    onSetReadReceiptsForRoom: (Boolean) -> Unit,
+    onSetTypingIndicatorsForRoom: (Boolean) -> Unit,
+    onResetRoomPrivacy: () -> Unit,
     onShowMembers: () -> Unit,
     onHideMembers: () -> Unit,
     onShowKnockRequests: () -> Unit,
@@ -432,6 +438,37 @@ fun RoomInfoScreen(
                             subtitle = state.notificationMode?.displayName() ?: stringResource(Res.string.default),
                             onClick = onShowNotificationSettings
                         )
+                        HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
+                        SettingSwitchRow(
+                            icon = painterResource(Res.drawable.ic_visibility),
+                            title = stringResource(Res.string.read_receipts),
+                            subtitle = roomPrivacySubtitle(
+                                overridden = state.readReceiptsOverride != null,
+                                accountDefault = state.accountSendReadReceipts,
+                            ),
+                            checked = state.readReceiptsOverride ?: state.accountSendReadReceipts,
+                            onCheckedChange = onSetReadReceiptsForRoom,
+                        )
+                        HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
+                        SettingSwitchRow(
+                            icon = painterResource(Res.drawable.ic_text_fields),
+                            title = stringResource(Res.string.typing_indicators),
+                            subtitle = roomPrivacySubtitle(
+                                overridden = state.typingIndicatorsOverride != null,
+                                accountDefault = state.accountSendTypingIndicators,
+                            ),
+                            checked = state.typingIndicatorsOverride ?: state.accountSendTypingIndicators,
+                            onCheckedChange = onSetTypingIndicatorsForRoom,
+                        )
+                        if (state.readReceiptsOverride != null || state.typingIndicatorsOverride != null) {
+                            HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
+                            SettingsActionRow(
+                                icon = painterResource(Res.drawable.ic_refresh),
+                                title = stringResource(Res.string.room_privacy_reset),
+                                actionText = stringResource(Res.string.reset),
+                                onClick = onResetRoomPrivacy,
+                            )
+                        }
                         HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                         SettingsNavRow(
                             icon = painterResource(Res.drawable.ic_wallpaper),
@@ -904,6 +941,17 @@ private fun UpgradeBanner(
         }
     }
 }
+
+@Composable
+private fun roomPrivacySubtitle(overridden: Boolean, accountDefault: Boolean): String =
+    if (overridden) {
+        stringResource(Res.string.room_privacy_overridden)
+    } else {
+        stringResource(
+            if (accountDefault) Res.string.room_privacy_following_account_on
+            else Res.string.room_privacy_following_account_off
+        )
+    }
 
 /** Groups settings rows inside a card with consistent padding. */
 @Composable

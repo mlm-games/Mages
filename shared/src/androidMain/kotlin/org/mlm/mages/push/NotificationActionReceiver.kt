@@ -18,6 +18,7 @@ import io.github.mlmgames.settings.core.SettingsRepository
 import org.mlm.mages.MatrixService
 import org.mlm.mages.push.NotificationAvatarHelper
 import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.settings.readReceiptsForRoom
 import org.mlm.mages.shared.R
 
 class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
@@ -110,18 +111,19 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                         val port = service.portOrNull
 
                         if (port != null && service.isLoggedIn()) {
+                            val sendReceipt = settingsRepo.flow.first().readReceiptsForRoom(roomId)
                             if (threadId != null) {
                                 port.markThreadReadAt(
                                     roomId,
                                     threadId,
                                     eventId,
-                                    settingsRepo.flow.first().sendReadReceipts
+                                    sendReceipt
                                 )
                             } else {
                                 port.markFullyReadAt(
                                     roomId,
                                     eventId,
-                                    settingsRepo.flow.first().sendReadReceipts
+                                    sendReceipt
                                 )
                             }
                         }
@@ -163,18 +165,19 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
 
                         if (!ok) return@launch
 
+                        val sendReceipt = settingsRepo.flow.first().readReceiptsForRoom(roomId)
                         if (threadId != null) {
                             port.markThreadReadAt(
                                 roomId,
                                 threadId,
                                 eventId,
-                                settingsRepo.flow.first().sendReadReceipts
+                                sendReceipt
                             )
                         } else {
                             port.markFullyReadAt(
                                 roomId,
                                 eventId,
-                                settingsRepo.flow.first().sendReadReceipts
+                                sendReceipt
                             )
                         }
 

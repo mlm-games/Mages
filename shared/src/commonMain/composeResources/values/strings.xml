@@ -852,6 +852,12 @@
     <string name="setting_share_call_status">Share call status</string>
     <string name="setting_share_call_status_description">Show other users you&apos;re on a call (MSC4426 m.call)</string>
     <string name="setting_send_typing_indicators_description">When disabled, Mages will not send typing notifications</string>
+    <string name="typing_indicators">Typing indicators</string>
+    <string name="room_privacy_following_account_on">Following your account setting (on)</string>
+    <string name="room_privacy_following_account_off">Following your account setting (off)</string>
+    <string name="room_privacy_overridden">Overridden for this chat</string>
+    <string name="room_privacy_reset">Use account defaults for this chat</string>
+    <string name="failed_to_update_room_privacy">Couldn&apos;t update privacy settings</string>
     <string name="setting_block_invites">Block room invites</string>
     <string name="setting_block_invites_description">Automatically reject every room invite sent to you. Synced to your other devices</string>
     <string name="setting_link_previews">Show link previews</string>

@@ -29,6 +29,7 @@ import org.mlm.mages.matrix.allowsLinkPreviews
 import org.mlm.mages.matrix.allowsMediaPreviews
 import org.mlm.mages.emoji.RecentEmojiStore
 import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.settings.readReceiptsForRoom
 import org.mlm.mages.storage.UserProfile
 import org.mlm.mages.ui.MentionProfileUi
 import org.mlm.mages.ui.AttachmentUploadStage
@@ -445,7 +446,7 @@ class ThreadViewModel(
                 roomId = roomId,
                 threadRootEventId = rootEventId,
                 eventId = latest.eventId,
-                sendPublicReceipt = prefs.value.sendReadReceipts
+                sendPublicReceipt = prefs.value.readReceiptsForRoom(roomId)
             )
             if (result.isFailure) {
                 lastMarkedReadEventId = null
@@ -666,7 +667,7 @@ class ThreadViewModel(
                 roomId = roomId,
                 threadRootEventId = rootEventId,
                 eventId = event.eventId,
-                sendPublicReceipt = prefs.value.sendReadReceipts,
+                sendPublicReceipt = prefs.value.readReceiptsForRoom(roomId),
             )
             if (result.isSuccess) lastMarkedReadEventId = event.eventId
         }

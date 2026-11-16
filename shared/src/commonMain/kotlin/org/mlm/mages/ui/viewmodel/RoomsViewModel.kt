@@ -26,6 +26,7 @@ import org.mlm.mages.platform.LiveLocationSharingCoordinator
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.MediaPreviewsMode
 import org.mlm.mages.settings.RoomSwipeAction
+import org.mlm.mages.settings.readReceiptsForRoom
 import org.mlm.mages.ui.LastMessageType
 import org.mlm.mages.ui.RoomListItemUi
 import org.mlm.mages.ui.RoomTypeFilter
@@ -155,7 +156,8 @@ class RoomsViewModel(
 
     fun markRead(roomId: String) {
         launch {
-            service.port.markRead(roomId, settings.value.sendReadReceipts).onSuccess {
+            val sendPublicReceipt = settings.value.readReceiptsForRoom(roomId)
+            service.port.markRead(roomId, sendPublicReceipt).onSuccess {
                 updateState {
                     copy(
                         unread = unread - roomId,

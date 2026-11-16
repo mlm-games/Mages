@@ -8,7 +8,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import mages.shared.generated.resources.*
+import io.github.mlmgames.settings.core.SettingsRepository
 import org.mlm.mages.MatrixService
+import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.settings.RoomPrivacyOverride
+import org.mlm.mages.settings.roomPrivacyOverrides
+import org.mlm.mages.settings.withRoomPrivacy
 import org.mlm.mages.matrix.isInviteBlocked
 import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.RoomHero
@@ -70,6 +75,11 @@ data class RoomInfoUiState(
     val isLoadingNotificationMode: Boolean = false,
     val showNotificationSettings: Boolean = false,
 
+    val readReceiptsOverride: Boolean? = null,
+    val typingIndicatorsOverride: Boolean? = null,
+    val accountSendReadReceipts: Boolean = true,
+    val accountSendTypingIndicators: Boolean = true,
+
     val myPowerLevel: Long = 0L,
     val powerLevels: RoomPowerLevels? = null,
     val canEditName: Boolean = false,
@@ -102,6 +112,7 @@ data class RoomInfoUiState(
 class RoomInfoViewModel(
     private val service: MatrixService,
     private val scopeStore: SpaceNotificationScopeStore,
+    private val settingsRepo: SettingsRepository<AppSettings>,
     private val roomId: String
 ) : BaseViewModel<RoomInfoUiState>(RoomInfoUiState()) {
 
@@ -119,6 +130,7 @@ class RoomInfoViewModel(
     private var lastAvatarMxc: String? = null
 
     init {
+        observeRoomPrivacy()
         refresh()
         observeRoomInfo()
     }
@@ -187,6 +199,40 @@ class RoomInfoViewModel(
     fun showNotificationSettings() = updateState { copy(showNotificationSettings = true) }
 
     fun hideNotificationSettings() = updateState { copy(showNotificationSettings = false) }
+
+    fun setReadReceiptsForRoom(enabled: Boolean) =
+        updateRoomPrivacy { it.copy(readReceipts = enabled) }
+
+    fun setTypingIndicatorsForRoom(enabled: Boolean) =
+        updateRoomPrivacy { it.copy(typingIndicators = enabled) }
+
+    fun resetRoomPrivacy() =
+        updateRoomPrivacy { RoomPrivacyOverride() }
+
+    private fun updateRoomPrivacy(transform: (RoomPrivacyOverride) -> RoomPrivacyOverride) {
+        launch {
+            val result = runSafe { settingsRepo.update { it.withRoomPrivacy(roomId, transform) } }
+            if (result == null) {
+                _events.send(Event.ShowError(getString(Res.string.failed_to_update_room_privacy)))
+            }
+        }
+    }
+
+    private fun observeRoomPrivacy() {
+        launch {
+            settingsRepo.flow.collect { account ->
+                val room = account.roomPrivacyOverrides()[roomId]
+                updateState {
+                    copy(
+                        readReceiptsOverride = room?.readReceipts,
+                        typingIndicatorsOverride = room?.typingIndicators,
+                        accountSendReadReceipts = account.sendReadReceipts,
+                        accountSendTypingIndicators = account.sendTypingIndicators,
+                    )
+                }
+            }
+        }
+    }
 
     fun setNotificationMode(mode: RoomNotificationMode) {
         launch {

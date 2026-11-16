@@ -17,6 +17,7 @@ import org.mlm.mages.calls.declineIncomingCall
 import org.mlm.mages.nav.DeepLinkAction
 import org.mlm.mages.platform.BindNotifications
 import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.settings.readReceiptsForRoom
 import javax.swing.SwingUtilities
 
 @Composable
@@ -65,7 +66,7 @@ fun DesktopBackground(
         DesktopNotifActions.markRead = { roomId, eventId ->
             scope.launch {
                 val port = service.portOrNull ?: return@launch
-                val sendReceipt = settingsRepo.flow.first().sendReadReceipts
+                val sendReceipt = settingsRepo.flow.first().readReceiptsForRoom(roomId)
                 port.markFullyReadAt(roomId, eventId, sendReceipt)
             }
         }
@@ -81,7 +82,7 @@ fun DesktopBackground(
             scope.launch {
                 val port = service.portOrNull ?: return@launch
                 port.reply(roomId, eventId, msg)
-                val sendReceipt = settingsRepo.flow.first().sendReadReceipts
+                val sendReceipt = settingsRepo.flow.first().readReceiptsForRoom(roomId)
                 port.markFullyReadAt(roomId, eventId, sendReceipt)
             }
         }

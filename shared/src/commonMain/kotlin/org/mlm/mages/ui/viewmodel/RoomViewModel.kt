@@ -34,6 +34,8 @@ import org.mlm.mages.platform.voiceMessageMimeType
 import org.mlm.mages.platform.voiceMessageExtension
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.AutoMarkReadTrigger
+import org.mlm.mages.settings.readReceiptsForRoom
+import org.mlm.mages.settings.typingIndicatorsForRoom
 import org.mlm.mages.storage.UserProfile
 import org.mlm.mages.ui.toUi
 import org.mlm.mages.ui.ForwardableRoom
@@ -738,7 +740,7 @@ class RoomViewModel(
         }
 
         // only network typing notices are gated
-        if (!settings.value.sendTypingIndicators) return
+        if (!settings.value.typingIndicatorsForRoom(currentState.roomId)) return
 
         typingJob?.cancel()
         typingJob = launch {
@@ -1387,7 +1389,7 @@ class RoomViewModel(
                 service.markFullyReadAt(
                     event.roomId,
                     event.eventId,
-                    settings.value.sendReadReceipts
+                    settings.value.readReceiptsForRoom(event.roomId)
                 )
             }
         }
@@ -1407,7 +1409,7 @@ class RoomViewModel(
             runCatching {
                 service.markRoomSeenLatest(
                     currentState.roomId,
-                    settings.value.sendReadReceipts
+                    settings.value.readReceiptsForRoom(currentState.roomId)
                 )
             }
         }
