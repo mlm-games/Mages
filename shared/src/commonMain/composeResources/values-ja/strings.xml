@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">プロフィール変更を非表示</string>
     <string name="setting_hide_topic_changes">トピック変更を非表示</string>
     <string name="setting_hide_redacted_events">編集済みイベントを非表示</string>
+    <string name="setting_hide_deleted_messages_after">削除済みを遅延後に非表示</string>
     <string name="setting_hide_room_name_changes">ルーム名変更を非表示</string>
     <string name="setting_hide_room_avatar_changes">ルームアバター変更を非表示</string>
     <string name="setting_hide_encryption_changes">暗号化変更を非表示</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">_ルームでの表示名/アバターの変更</string>
     <string name="setting_hide_topic_changes_description">_ルームでのトピックの変更_</string>
     <string name="setting_hide_redacted_events_description">_内容が編集によって削除されたイベント</string>
+    <string name="setting_hide_deleted_messages_after_description">削除済みメッセージを遅延後にタイムラインから削除</string>
     <string name="setting_hide_room_name_changes_description">_ルーム名の変更</string>
     <string name="setting_hide_room_avatar_changes_description">_ルームのアバターの変更</string>
     <string name="setting_hide_encryption_changes_description">暗号化状態変更</string>
@@ -192,6 +194,13 @@
         <item>公開ルーム</item>
         <item>DMではない</item>
         <item>常に</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>なし</item>
+        <item>1分</item>
+        <item>5分</item>
+        <item>15分</item>
+        <item>1時間</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>即時</item>

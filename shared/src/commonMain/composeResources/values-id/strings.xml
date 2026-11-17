@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">Sembunyikan perubahan profil</string>
     <string name="setting_hide_topic_changes">Sembunyikan perubahan topik</string>
     <string name="setting_hide_redacted_events">Sembunyikan event yang disensor</string>
+    <string name="setting_hide_deleted_messages_after">Sembunyikan yang dihapus setelah jeda</string>
     <string name="setting_hide_room_name_changes">Sembunyikan perubahan nama ruang</string>
     <string name="setting_hide_room_avatar_changes">Sembunyikan perubahan avatar ruang</string>
     <string name="setting_hide_encryption_changes">Sembunyikan perubahan enkripsi</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">Menampilkan perubahan nama/avatar di ruangan</string>
     <string name="setting_hide_topic_changes_description">Perubahan topik di ruangan</string>
     <string name="setting_hide_redacted_events_description">Acara yang kontennya dihapus karena redaksi</string>
+    <string name="setting_hide_deleted_messages_after_description">Hapus pesan yang dihapus dari linimasa setelah jeda</string>
     <string name="setting_hide_room_name_changes_description">Perubahan nama ruangan</string>
     <string name="setting_hide_room_avatar_changes_description">Perubahan avatar ruangan</string>
     <string name="setting_hide_encryption_changes_description">Keadaan enkripsi perubahan</string>
@@ -192,6 +194,13 @@
         <item>Ruang publik</item>
         <item>Bukan DM</item>
         <item>Selalu</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>Tidak pernah</item>
+        <item>1 menit</item>
+        <item>5 menit</item>
+        <item>15 menit</item>
+        <item>1 jam</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>Segera</item>

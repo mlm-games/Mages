@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">隱藏個人資料變更</string>
     <string name="setting_hide_topic_changes">隱藏主題變更</string>
     <string name="setting_hide_redacted_events">隱藏已編輯事件</string>
+    <string name="setting_hide_deleted_messages_after">延遲隱藏已刪除訊息</string>
     <string name="setting_hide_room_name_changes">隱藏聊天室名稱變更</string>
     <string name="setting_hide_room_avatar_changes">隱藏聊天室大頭貼變更</string>
     <string name="setting_hide_encryption_changes">隱藏加密變更</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">聊天室中的顯示名稱或大頭貼變更</string>
     <string name="setting_hide_topic_changes_description">聊天室中的主題變更</string>
     <string name="setting_hide_redacted_events_description">內容已被編輯移除的事件</string>
+    <string name="setting_hide_deleted_messages_after_description">延遲後從時間軸移除已刪除訊息</string>
     <string name="setting_hide_room_name_changes_description">聊天室名稱變更</string>
     <string name="setting_hide_room_avatar_changes_description">聊天室大頭貼變更</string>
     <string name="setting_hide_encryption_changes_description">加密狀態變更</string>
@@ -192,6 +194,13 @@
         <item>公開聊天室</item>
         <item>非私訊</item>
         <item>一律</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>永不</item>
+        <item>1 分鐘</item>
+        <item>5 分鐘</item>
+        <item>15 分鐘</item>
+        <item>1 小時</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>立即</item>

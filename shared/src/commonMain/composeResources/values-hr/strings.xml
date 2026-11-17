@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">Sakrij promjene profila</string>
     <string name="setting_hide_topic_changes">Sakrij promjene teme</string>
     <string name="setting_hide_redacted_events">Sakrij redigirane događaje</string>
+    <string name="setting_hide_deleted_messages_after">Sakrij izbrisano nakon odgode</string>
     <string name="setting_hide_room_name_changes">Sakrij promjene naziva sobe</string>
     <string name="setting_hide_room_avatar_changes">Sakrij promjene avatara sobe</string>
     <string name="setting_hide_encryption_changes">Sakrij promjene šifriranja</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">Prikaži promjene imena/avatara u sobama</string>
     <string name="setting_hide_topic_changes_description">Promjene tema u sobama</string>
     <string name="setting_hide_redacted_events_description">Događaji čiji je sadržaj uklonio redakcija</string>
+    <string name="setting_hide_deleted_messages_after_description">Ukloni izbrisane poruke s vremenske crte nakon odgode</string>
     <string name="setting_hide_room_name_changes_description">Promjene naziva sobe</string>
     <string name="setting_hide_room_avatar_changes_description">Promjene avatara sobe</string>
     <string name="setting_hide_encryption_changes_description">Promjene stanja šifriranja</string>
@@ -192,6 +194,13 @@
         <item>Javne sobe</item>
         <item>Nema DM</item>
         <item>Uvijek</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>Nikad</item>
+        <item>1 minuta</item>
+        <item>5 minuta</item>
+        <item>15 minuta</item>
+        <item>1 sat</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>Odmah</item>

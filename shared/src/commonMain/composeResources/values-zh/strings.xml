@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">隐藏个人资料变化</string>
     <string name="setting_hide_topic_changes">隐藏主题变化</string>
     <string name="setting_hide_redacted_events">隐藏已编辑事件</string>
+    <string name="setting_hide_deleted_messages_after">延迟隐藏已删除消息</string>
     <string name="setting_hide_room_name_changes">隐藏房间名称变化</string>
     <string name="setting_hide_room_avatar_changes">隐藏房间头像变化</string>
     <string name="setting_hide_encryption_changes">隐藏加密变化</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">房间中的显示名称或头像变化</string>
     <string name="setting_hide_topic_changes_description">房间中的主题变化</string>
     <string name="setting_hide_redacted_events_description">内容已被编辑删除的事件</string>
+    <string name="setting_hide_deleted_messages_after_description">延迟后从时间线移除已删除消息</string>
     <string name="setting_hide_room_name_changes_description">房间名称变化</string>
     <string name="setting_hide_room_avatar_changes_description">房间头像变化</string>
     <string name="setting_hide_encryption_changes_description">加密状态变化</string>
@@ -192,6 +194,13 @@
         <item>公共房间</item>
         <item>非私聊</item>
         <item>始终</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>从不</item>
+        <item>1 分钟</item>
+        <item>5 分钟</item>
+        <item>15 分钟</item>
+        <item>1 小时</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>立即</item>

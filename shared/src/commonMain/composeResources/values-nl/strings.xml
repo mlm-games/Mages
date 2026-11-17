@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">Profielwijzigingen verbergen</string>
     <string name="setting_hide_topic_changes">Onderwerpwijzigingen verbergen</string>
     <string name="setting_hide_redacted_events">Bewerkte gebeurtenissen verbergen</string>
+    <string name="setting_hide_deleted_messages_after">Verwijderde items na een vertraging verbergen</string>
     <string name="setting_hide_room_name_changes">Wijzigingen van ruimtenamen verbergen</string>
     <string name="setting_hide_room_avatar_changes">Wijzigingen van ruimteavatars verbergen</string>
     <string name="setting_hide_encryption_changes">Encryptiewijzigingen verbergen</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">Naam-/avatarwijzigingen in kamers weergeven</string>
     <string name="setting_hide_topic_changes_description">Onderwerpwijzigingen in kamers</string>
     <string name="setting_hide_redacted_events_description">Evenementen waarvan de inhoud door redactie is verwijderd</string>
+    <string name="setting_hide_deleted_messages_after_description">Verwijderde berichten na een vertraging uit de tijdlijn verwijderen</string>
     <string name="setting_hide_room_name_changes_description">Naam van kamer verandert</string>
     <string name="setting_hide_room_avatar_changes_description">Kameravatar verandert</string>
     <string name="setting_hide_encryption_changes_description">Coderingsstatus verandert</string>
@@ -192,6 +194,13 @@
         <item>Openbare kamers</item>
         <item>Geen DM</item>
         <item>Altijd</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>Nooit</item>
+        <item>1 minuut</item>
+        <item>5 minuten</item>
+        <item>15 minuten</item>
+        <item>1 uur</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>Direct</item>

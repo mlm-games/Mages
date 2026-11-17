@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">Ocultar alterações de perfil</string>
     <string name="setting_hide_topic_changes">Ocultar alterações de tópico</string>
     <string name="setting_hide_redacted_events">Ocultar eventos editados</string>
+    <string name="setting_hide_deleted_messages_after">Ocultar eliminados após um atraso</string>
     <string name="setting_hide_room_name_changes">Ocultar alterações do nome da sala</string>
     <string name="setting_hide_room_avatar_changes">Ocultar alterações do avatar da sala</string>
     <string name="setting_hide_encryption_changes">Ocultar alterações de criptografia</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">Exibir alterações de nome/avatar nas salas</string>
     <string name="setting_hide_topic_changes_description">Mudanças de tópico nas salas</string>
     <string name="setting_hide_redacted_events_description">Eventos cujo conteúdo foi removido por redação</string>
+    <string name="setting_hide_deleted_messages_after_description">Remover mensagens eliminadas da linha do tempo após um atraso</string>
     <string name="setting_hide_room_name_changes_description">Alterações no nome da sala</string>
     <string name="setting_hide_room_avatar_changes_description">Alterações no avatar da sala</string>
     <string name="setting_hide_encryption_changes_description">Estado de criptografia alterações</string>
@@ -192,6 +194,13 @@
         <item>Salas públicas</item>
         <item>Sem DM</item>
         <item>Sempre</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>Nunca</item>
+        <item>1 minuto</item>
+        <item>5 minutos</item>
+        <item>15 minutos</item>
+        <item>1 hora</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>Imediatamente</item>

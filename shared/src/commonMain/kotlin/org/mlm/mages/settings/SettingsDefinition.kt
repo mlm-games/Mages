@@ -373,7 +373,7 @@ data class AppSettings(
     val compactPublicRoomRedactedEvents: HideInRoomsMode = HideInRoomsMode.Never,
 
     @Setting(
-        title = "Hide deleted messages",
+        title = "Hide deleted after a delay",
         titleKey = MagesSettingsKeys.HIDE_DELETED_MESSAGES_AFTER,
         description = "Remove deleted messages from the timeline after a delay",
         descriptionKey = MagesSettingsKeys.HIDE_DELETED_MESSAGES_AFTER_DESCRIPTION,

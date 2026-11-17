@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">Απόκρυψη αλλαγών προφίλ</string>
     <string name="setting_hide_topic_changes">Απόκρυψη αλλαγών θέματος</string>
     <string name="setting_hide_redacted_events">Απόκρυψη διαγραμμένων συμβάντων</string>
+    <string name="setting_hide_deleted_messages_after">Απόκρυψη διαγραμμένων μετά από καθυστέρηση</string>
     <string name="setting_hide_room_name_changes">Απόκρυψη αλλαγών ονόματος δωματίου</string>
     <string name="setting_hide_room_avatar_changes">Απόκρυψη αλλαγών avatar δωματίου</string>
     <string name="setting_hide_encryption_changes">Απόκρυψη αλλαγών κρυπτογράφησης</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">Εμφάνιση ονόματος/αλλαγών avatar στα δωμάτια</string>
     <string name="setting_hide_topic_changes_description">Αλλαγές θέματος στα δωμάτια</string>
     <string name="setting_hide_redacted_events_description">Συμβάντα των οποίων το περιεχόμενο καταργήθηκε με διαγραφή</string>
+    <string name="setting_hide_deleted_messages_after_description">Αφαίρεση διαγραμμένων μηνυμάτων από το χρονολόγιο μετά από καθυστέρηση</string>
     <string name="setting_hide_room_name_changes_description">Αλλαγές ονόματος δωματίου</string>
     <string name="setting_hide_room_avatar_changes_description">Αλλαγές avatar δωματίου</string>
     <string name="setting_hide_encryption_changes_description">Αλλαγές στην κατάσταση κρυπτογράφησης</string>
@@ -192,6 +194,13 @@
         <item>Δημόσια δωμάτια</item>
         <item>Όχι DM</item>
         <item>Πάντα</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>Ποτέ</item>
+        <item>1 λεπτό</item>
+        <item>5 λεπτά</item>
+        <item>15 λεπτά</item>
+        <item>1 ώρα</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>Άμεσα</item>

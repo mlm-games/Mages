@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">הסתרת שינויי פרופיל</string>
     <string name="setting_hide_topic_changes">הסתרת שינויי נושא</string>
     <string name="setting_hide_redacted_events">הסתרת אירועים שעברו עריכה</string>
+    <string name="setting_hide_deleted_messages_after">הסתרת נמחקים לאחר השהיה</string>
     <string name="setting_hide_room_name_changes">הסתרת שינויי שם חדר</string>
     <string name="setting_hide_room_avatar_changes">הסתרת שינויי תמונת חדר</string>
     <string name="setting_hide_encryption_changes">הסתרת שינויי הצפנה</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">שינויי שם תצוגה או תמונה בחדרים</string>
     <string name="setting_hide_topic_changes_description">שינויי נושא בחדרים</string>
     <string name="setting_hide_redacted_events_description">אירועים שתוכן הוסר בעריכה</string>
+    <string name="setting_hide_deleted_messages_after_description">הסרת הודעות נמחקות מציר הזמן לאחר השהיה</string>
     <string name="setting_hide_room_name_changes_description">שינויי שם חדר</string>
     <string name="setting_hide_room_avatar_changes_description">שינויי תמונת חדר</string>
     <string name="setting_hide_encryption_changes_description">שינויי מצב הצפנה</string>
@@ -192,6 +194,13 @@
         <item>חדרים ציבוריים</item>
         <item>לא DM</item>
         <item>תמיד</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>אף פעם</item>
+        <item>דקה</item>
+        <item>5 דקות</item>
+        <item>15 דקות</item>
+        <item>שעה</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>מיד</item>

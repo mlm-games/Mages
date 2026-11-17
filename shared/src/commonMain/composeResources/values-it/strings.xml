@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">Nascondi modifiche al profilo</string>
     <string name="setting_hide_topic_changes">Nascondi modifiche all’argomento</string>
     <string name="setting_hide_redacted_events">Nascondi eventi redatti</string>
+    <string name="setting_hide_deleted_messages_after">Nascondi gli eliminati dopo un ritardo</string>
     <string name="setting_hide_room_name_changes">Nascondi modifiche al nome della stanza</string>
     <string name="setting_hide_room_avatar_changes">Nascondi modifiche all’avatar della stanza</string>
     <string name="setting_hide_encryption_changes">Nascondi modifiche alla crittografia</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">Modifiche al nome visualizzato o all’avatar nelle stanze</string>
     <string name="setting_hide_topic_changes_description">Modifiche all’argomento nelle stanze</string>
     <string name="setting_hide_redacted_events_description">Eventi il cui contenuto è stato rimosso dalla redazione</string>
+    <string name="setting_hide_deleted_messages_after_description">Rimuovi i messaggi eliminati dalla cronologia dopo un ritardo</string>
     <string name="setting_hide_room_name_changes_description">Modifiche al nome della stanza</string>
     <string name="setting_hide_room_avatar_changes_description">Modifiche all’avatar della stanza</string>
     <string name="setting_hide_encryption_changes_description">Modifiche allo stato di crittografia</string>
@@ -192,6 +194,13 @@
         <item>Stanze pubbliche</item>
         <item>Non DM</item>
         <item>Sempre</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>Mai</item>
+        <item>1 minuto</item>
+        <item>5 minuti</item>
+        <item>15 minuti</item>
+        <item>1 ora</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>Immediatamente</item>

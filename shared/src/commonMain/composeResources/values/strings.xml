@@ -682,7 +682,7 @@
     <string name="setting_hide_topic_changes_description">Topic changes in rooms</string>
     <string name="setting_hide_redacted_events">Hide redacted events</string>
     <string name="setting_hide_redacted_events_description">Events whose content was removed by redaction</string>
-    <string name="setting_hide_deleted_messages_after">Hide deleted messages</string>
+    <string name="setting_hide_deleted_messages_after">Hide deleted after a delay</string>
     <string name="setting_hide_deleted_messages_after_description">Remove deleted messages from the timeline after a delay</string>
     <string name="setting_hide_room_name_changes">Hide room name changes</string>
     <string name="setting_hide_room_name_changes_description">Room name changes</string>

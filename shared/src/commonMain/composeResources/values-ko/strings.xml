@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">프로필 변경 숨기기</string>
     <string name="setting_hide_topic_changes">주제 변경 숨기기</string>
     <string name="setting_hide_redacted_events">편집된 이벤트 숨기기</string>
+    <string name="setting_hide_deleted_messages_after">삭제된 항목을 지연 후 숨기기</string>
     <string name="setting_hide_room_name_changes">방 이름 변경 숨기기</string>
     <string name="setting_hide_room_avatar_changes">방 아바타 변경 숨기기</string>
     <string name="setting_hide_encryption_changes">암호화 변경 숨기기</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">방의 표시 이름/아바타 변경</string>
     <string name="setting_hide_topic_changes_description">방의 주제 변경</string>
     <string name="setting_hide_redacted_events_description">수정으로 콘텐츠가 제거된 이벤트</string>
+    <string name="setting_hide_deleted_messages_after_description">삭제된 메시지를 지연 후 타임라인에서 제거</string>
     <string name="setting_hide_room_name_changes_description">방 이름 변경</string>
     <string name="setting_hide_room_avatar_changes_description">방 아바타 변경</string>
     <string name="setting_hide_encryption_changes_description">암호화 상태 변경</string>
@@ -192,6 +194,13 @@
         <item>공개 방</item>
         <item>DM 아님</item>
         <item>항상</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>사용 안 함</item>
+        <item>1분</item>
+        <item>5분</item>
+        <item>15분</item>
+        <item>1시간</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>즉시</item>

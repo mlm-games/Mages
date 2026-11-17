@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">Ukryj zmiany profilu</string>
     <string name="setting_hide_topic_changes">Ukryj zmiany tematu</string>
     <string name="setting_hide_redacted_events">Ukryj zdarzenia zredagowane</string>
+    <string name="setting_hide_deleted_messages_after">Ukryj usunięte po opóźnieniu</string>
     <string name="setting_hide_room_name_changes">Ukryj zmiany nazwy pokoju</string>
     <string name="setting_hide_room_avatar_changes">Ukryj zmiany awataru pokoju</string>
     <string name="setting_hide_encryption_changes">Ukryj zmiany szyfrowania</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">Zmiany nazwy wyświetlanej lub awataru w pokojach</string>
     <string name="setting_hide_topic_changes_description">Zmiany tematu w pokojach</string>
     <string name="setting_hide_redacted_events_description">Zdarzenia, których treść została usunięta przez redakcję</string>
+    <string name="setting_hide_deleted_messages_after_description">Usuwaj usunięte wiadomości z osi czasu po opóźnieniu</string>
     <string name="setting_hide_room_name_changes_description">Zmiany nazwy pokoju</string>
     <string name="setting_hide_room_avatar_changes_description">Zmiany awataru pokoju</string>
     <string name="setting_hide_encryption_changes_description">Zmiany stanu szyfrowania</string>
@@ -192,6 +194,13 @@
         <item>Pokoje publiczne</item>
         <item>Brak DM</item>
         <item>Zawsze</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>Nigdy</item>
+        <item>1 minuta</item>
+        <item>5 minut</item>
+        <item>15 minut</item>
+        <item>1 godzina</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>Natychmiast</item>

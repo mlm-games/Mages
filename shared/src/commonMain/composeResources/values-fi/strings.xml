@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">Piilota profiilimuutokset</string>
     <string name="setting_hide_topic_changes">Piilota aiheen muutokset</string>
     <string name="setting_hide_redacted_events">Piilota muokatut tapahtumat</string>
+    <string name="setting_hide_deleted_messages_after">Piilota poistetut viiveen jälkeen</string>
     <string name="setting_hide_room_name_changes">Piilota huoneen nimen muutokset</string>
     <string name="setting_hide_room_avatar_changes">Piilota huoneen avatar-muutokset</string>
     <string name="setting_hide_encryption_changes">Piilota salauksen muutokset</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">Näytä nimen/avatarin muutokset huoneissa</string>
     <string name="setting_hide_topic_changes_description">Aihemuutokset huoneissa</string>
     <string name="setting_hide_redacted_events_description">Tapahtumat, joiden sisältö on poistettu muokkauksella</string>
+    <string name="setting_hide_deleted_messages_after_description">Poista poistetut viestit aikajanasta viiveen jälkeen</string>
     <string name="setting_hide_room_name_changes_description">Huoneen nimi muuttuu</string>
     <string name="setting_hide_room_avatar_changes_description">Huoneen avatar muuttuu</string>
     <string name="setting_hide_encryption_changes_description">Salauksen tila muuttuu</string>
@@ -192,6 +194,13 @@
         <item>Julkiset huoneet</item>
         <item>Ei DM</item>
         <item>Aina</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>Ei koskaan</item>
+        <item>1 minuutti</item>
+        <item>5 minuuttia</item>
+        <item>15 minuuttia</item>
+        <item>1 tunti</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>Heti</item>

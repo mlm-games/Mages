@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">Приховувати зміни профілю</string>
     <string name="setting_hide_topic_changes">Приховувати зміни теми</string>
     <string name="setting_hide_redacted_events">Приховувати відредаговані події</string>
+    <string name="setting_hide_deleted_messages_after">Приховувати видалені із затримкою</string>
     <string name="setting_hide_room_name_changes">Приховувати зміни назви кімнати</string>
     <string name="setting_hide_room_avatar_changes">Приховувати зміни аватара кімнати</string>
     <string name="setting_hide_encryption_changes">Приховувати зміни шифрування</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">Зміни відображеного імені або аватара в кімнатах</string>
     <string name="setting_hide_topic_changes_description">Зміни теми в кімнатах</string>
     <string name="setting_hide_redacted_events_description">Події, вміст яких було видалено редагуванням</string>
+    <string name="setting_hide_deleted_messages_after_description">Вилучати видалені повідомлення зі стрічки із затримкою</string>
     <string name="setting_hide_room_name_changes_description">Зміни назви кімнати</string>
     <string name="setting_hide_room_avatar_changes_description">Зміни аватара кімнати</string>
     <string name="setting_hide_encryption_changes_description">Зміни стану шифрування</string>
@@ -192,6 +194,13 @@
         <item>Пубічні кімнати</item>
         <item>Не DM</item>
         <item>Завжди</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>Ніколи</item>
+        <item>1 хвилина</item>
+        <item>5 хвилин</item>
+        <item>15 хвилин</item>
+        <item>1 година</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>Негайно</item>

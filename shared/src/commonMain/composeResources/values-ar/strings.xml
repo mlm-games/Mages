@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">إخفاء تغييرات الملف الشخصي</string>
     <string name="setting_hide_topic_changes">إخفاء تغييرات الموضوع</string>
     <string name="setting_hide_redacted_events">إخفاء الأحداث المحجوبة</string>
+    <string name="setting_hide_deleted_messages_after">إخفاء المحذوف بعد مهلة</string>
     <string name="setting_hide_room_name_changes">إخفاء تغييرات اسم الغرفة</string>
     <string name="setting_hide_room_avatar_changes">إخفاء تغييرات الصورة الرمزية للغرفة</string>
     <string name="setting_hide_encryption_changes">إخفاء تغييرات التشفير</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">عرض تغييرات الاسم/الصورة الرمزية في الغرف</string>
     <string name="setting_hide_topic_changes_description">تغييرات الموضوع في الغرف</string>
     <string name="setting_hide_redacted_events_description">الأحداث التي تمت إزالة محتواها عن طريق التنقيح</string>
+    <string name="setting_hide_deleted_messages_after_description">إزالة الرسائل المحذوفة من الجدول الزمني بعد مهلة</string>
     <string name="setting_hide_room_name_changes_description">تغييرات اسم الغرفة</string>
     <string name="setting_hide_room_avatar_changes_description">تغييرات الصورة الرمزية للغرفة</string>
     <string name="setting_hide_encryption_changes_description">تغييرات حالة التشفير</string>
@@ -192,6 +194,13 @@
         <item>الغرف العامة</item>
         <item>غير الرسائل الخاصة</item>
         <item>دائمًا</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>أبدًا</item>
+        <item>دقيقة واحدة</item>
+        <item>5 دقائق</item>
+        <item>15 دقيقة</item>
+        <item>ساعة واحدة</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>فورًا</item>

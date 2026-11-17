@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">Profilváltozások elrejtése</string>
     <string name="setting_hide_topic_changes">Témaváltozások elrejtése</string>
     <string name="setting_hide_redacted_events">Szerkesztett események elrejtése</string>
+    <string name="setting_hide_deleted_messages_after">Töröltek elrejtése késleltetés után</string>
     <string name="setting_hide_room_name_changes">Szobanév-változások elrejtése</string>
     <string name="setting_hide_room_avatar_changes">Szobaavatar-változások elrejtése</string>
     <string name="setting_hide_encryption_changes">Titkosítási változások elrejtése</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">Megjelenítési név/avatar változás a szobákban</string>
     <string name="setting_hide_topic_changes_description">Témaváltozások a szobákban</string>
     <string name="setting_hide_redacted_events_description">Események, amelyek tartalmát szerkesztéssel eltávolították</string>
+    <string name="setting_hide_deleted_messages_after_description">Törölt üzenetek eltávolítása az idővonalról késleltetés után</string>
     <string name="setting_hide_room_name_changes_description">A szoba neve megváltozik</string>
     <string name="setting_hide_room_avatar_changes_description">A szoba avatar megváltozik</string>
     <string name="setting_hide_encryption_changes_description">A titkosítás állapota megváltozik</string>
@@ -192,6 +194,13 @@
         <item>Nyilvános szobák</item>
         <item>Nem DM</item>
         <item>Mindig</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>Soha</item>
+        <item>1 perc</item>
+        <item>5 perc</item>
+        <item>15 perc</item>
+        <item>1 óra</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>Azonnal</item>

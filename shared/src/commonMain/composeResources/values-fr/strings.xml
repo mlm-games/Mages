@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">Masquer les modifications de profil</string>
     <string name="setting_hide_topic_changes">Masquer les modifications de sujet</string>
     <string name="setting_hide_redacted_events">Masquer les événements caviardés</string>
+    <string name="setting_hide_deleted_messages_after">Masquer les supprimés après un délai</string>
     <string name="setting_hide_room_name_changes">Masquer les modifications du nom de la salle</string>
     <string name="setting_hide_room_avatar_changes">Masquer les modifications de l’avatar de la salle</string>
     <string name="setting_hide_encryption_changes">Masquer les modifications de chiffrement</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">Afficher les changements de nom/avatar dans les salons</string>
     <string name="setting_hide_topic_changes_description">Changements de sujet dans les salles</string>
     <string name="setting_hide_redacted_events_description">Événements dont le contenu a été supprimé par rédaction</string>
+    <string name="setting_hide_deleted_messages_after_description">Retirer les messages supprimés de la chronologie après un délai</string>
     <string name="setting_hide_room_name_changes_description">Changements de nom de salle</string>
     <string name="setting_hide_room_avatar_changes_description">Modifications de l'avatar de la salle</string>
     <string name="setting_hide_encryption_changes_description">Modifications de l'état du chiffrement</string>
@@ -192,6 +194,13 @@
         <item>Salles publiques</item>
         <item>Pas de DM</item>
         <item>Toujours</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>Jamais</item>
+        <item>1 minute</item>
+        <item>5 minutes</item>
+        <item>15 minutes</item>
+        <item>1 heure</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>Immédiat</item>

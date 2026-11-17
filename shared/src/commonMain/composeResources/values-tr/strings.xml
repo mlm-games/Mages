@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">Profil değişikliklerini gizle</string>
     <string name="setting_hide_topic_changes">Konu değişikliklerini gizle</string>
     <string name="setting_hide_redacted_events">Düzenlenen olayları gizle</string>
+    <string name="setting_hide_deleted_messages_after">Silinenleri gecikmeden sonra gizle</string>
     <string name="setting_hide_room_name_changes">Oda adı değişikliklerini gizle</string>
     <string name="setting_hide_room_avatar_changes">Oda avatarı değişikliklerini gizle</string>
     <string name="setting_hide_encryption_changes">Şifreleme değişikliklerini gizle</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">_Odalarda görünen ad/avatar değişiklikleri_</string>
     <string name="setting_hide_topic_changes_description">_Odalarda konu değişiklikleri_</string>
     <string name="setting_hide_redacted_events_description">_İçeriği düzenleme yoluyla kaldırılan etkinlikler_</string>
+    <string name="setting_hide_deleted_messages_after_description">Silinen mesajları gecikmeden sonra zaman çizelgesinden kaldır</string>
     <string name="setting_hide_room_name_changes_description">_Oda adı değişiklikleri_</string>
     <string name="setting_hide_room_avatar_changes_description">_Oda avatarı değişiklikleri_</string>
     <string name="setting_hide_encryption_changes_description">_Şifreleme durumu değişiklikler</string>
@@ -192,6 +194,13 @@
         <item>Herkese açık odalar</item>
         <item>DM değil</item>
         <item>Her zaman</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>Asla</item>
+        <item>1 dakika</item>
+        <item>5 dakika</item>
+        <item>15 dakika</item>
+        <item>1 saat</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>Hemen</item>

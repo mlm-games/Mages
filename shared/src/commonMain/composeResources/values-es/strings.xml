@@ -526,7 +526,9 @@
     <string name="setting_hide_topic_changes">Ocultar cambios de tema</string>
     <string name="setting_hide_topic_changes_description">Cambios de tema en las salas</string>
     <string name="setting_hide_redacted_events">Ocultar eventos redactados</string>
+    <string name="setting_hide_deleted_messages_after">Ocultar eliminados tras un retraso</string>
     <string name="setting_hide_redacted_events_description">Eventos cuyo contenido fue eliminado por una redacción</string>
+    <string name="setting_hide_deleted_messages_after_description">Quitar los mensajes eliminados de la línea de tiempo tras un retraso</string>
     <string name="setting_hide_room_name_changes">Ocultar cambios de nombre de sala</string>
     <string name="setting_hide_room_name_changes_description">Cambios de nombre de la sala</string>
     <string name="setting_hide_room_avatar_changes">Ocultar cambios de avatar de sala</string>
@@ -679,6 +681,13 @@
         <item>Salas públicas</item>
         <item>No DM</item>
         <item>Siempre</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>Nunca</item>
+        <item>1 minuto</item>
+        <item>5 minutos</item>
+        <item>15 minutos</item>
+        <item>1 hora</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>Inmediatamente</item>

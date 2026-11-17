@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">Ẩn thay đổi hồ sơ</string>
     <string name="setting_hide_topic_changes">Ẩn thay đổi chủ đề</string>
     <string name="setting_hide_redacted_events">Ẩn sự kiện đã chỉnh sửa</string>
+    <string name="setting_hide_deleted_messages_after">Ẩn tin đã xóa sau một khoảng trễ</string>
     <string name="setting_hide_room_name_changes">Ẩn thay đổi tên phòng</string>
     <string name="setting_hide_room_avatar_changes">Ẩn thay đổi ảnh đại diện phòng</string>
     <string name="setting_hide_encryption_changes">Ẩn thay đổi mã hóa</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">Thay đổi tên hiển thị hoặc ảnh đại diện trong phòng</string>
     <string name="setting_hide_topic_changes_description">Thay đổi chủ đề trong phòng</string>
     <string name="setting_hide_redacted_events_description">Sự kiện có nội dung đã bị xóa bởi thao tác chỉnh sửa</string>
+    <string name="setting_hide_deleted_messages_after_description">Xóa tin nhắn đã xóa khỏi dòng thời gian sau một khoảng trễ</string>
     <string name="setting_hide_room_name_changes_description">Thay đổi tên phòng</string>
     <string name="setting_hide_room_avatar_changes_description">Thay đổi ảnh đại diện phòng</string>
     <string name="setting_hide_encryption_changes_description">Thay đổi trạng thái mã hóa</string>
@@ -192,6 +194,13 @@
         <item>Phòng công khai</item>
         <item>Không DM</item>
         <item>Luôn</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>Không bao giờ</item>
+        <item>1 phút</item>
+        <item>5 phút</item>
+        <item>15 phút</item>
+        <item>1 giờ</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>Ngay lập tức</item>

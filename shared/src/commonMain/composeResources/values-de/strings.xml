@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">Profiländerungen ausblenden</string>
     <string name="setting_hide_topic_changes">Themenänderungen ausblenden</string>
     <string name="setting_hide_redacted_events">Redigierte Ereignisse ausblenden</string>
+    <string name="setting_hide_deleted_messages_after">Gelöschtes nach einer Verzögerung ausblenden</string>
     <string name="setting_hide_room_name_changes">Änderungen des Raumnamens ausblenden</string>
     <string name="setting_hide_room_avatar_changes">Änderungen des Raumavatars ausblenden</string>
     <string name="setting_hide_encryption_changes">Verschlüsselungsänderungen ausblenden</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">Änderungen an Anzeigename oder Avatar in Räumen</string>
     <string name="setting_hide_topic_changes_description">Themenänderungen in Räumen</string>
     <string name="setting_hide_redacted_events_description">Ereignisse, deren Inhalt durch Redaktion entfernt wurde</string>
+    <string name="setting_hide_deleted_messages_after_description">Gelöschte Nachrichten nach einer Verzögerung aus der Zeitleiste entfernen</string>
     <string name="setting_hide_room_name_changes_description">Änderungen des Raumnamens</string>
     <string name="setting_hide_room_avatar_changes_description">Änderungen des Raumavatars</string>
     <string name="setting_hide_encryption_changes_description">Änderungen des Verschlüsselungsstatus</string>
@@ -192,6 +194,13 @@
         <item>Öffentliche Räume</item>
         <item>Keine DMs</item>
         <item>Immer</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>Nie</item>
+        <item>1 Minute</item>
+        <item>5 Minuten</item>
+        <item>15 Minuten</item>
+        <item>1 Stunde</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>Sofort</item>

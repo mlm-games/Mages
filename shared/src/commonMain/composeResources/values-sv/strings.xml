@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">Dölj profiländringar</string>
     <string name="setting_hide_topic_changes">Dölj ämnesändringar</string>
     <string name="setting_hide_redacted_events">Dölj redigerade händelser</string>
+    <string name="setting_hide_deleted_messages_after">Dölj borttagna efter en fördröjning</string>
     <string name="setting_hide_room_name_changes">Dölj ändringar av rumsnamn</string>
     <string name="setting_hide_room_avatar_changes">Dölj ändringar av rumsavatarer</string>
     <string name="setting_hide_encryption_changes">Dölj krypteringsändringar</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">Visningsnamn/avatarändringar i rum</string>
     <string name="setting_hide_topic_changes_description">Ämnesändringar i rum</string>
     <string name="setting_hide_redacted_events_description">Händelser vars innehåll togs bort genom redigering</string>
+    <string name="setting_hide_deleted_messages_after_description">Ta bort borttagna meddelanden från tidslinjen efter en fördröjning</string>
     <string name="setting_hide_room_name_changes_description">Rumsnamn ändras</string>
     <string name="setting_hide_room_avatar_changes_description">Rumsavatar ändras</string>
     <string name="setting_hide_encryption_changes_description">Krypteringsstatus ändras</string>
@@ -192,6 +194,13 @@
         <item>Offentliga rum</item>
         <item>Inga DM</item>
         <item>Alltid</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>Aldrig</item>
+        <item>1 minut</item>
+        <item>5 minuter</item>
+        <item>15 minuter</item>
+        <item>1 timme</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>Omedelbart</item>

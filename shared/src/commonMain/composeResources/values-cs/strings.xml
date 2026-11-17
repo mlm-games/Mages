@@ -21,6 +21,7 @@
     <string name="setting_hide_profile_changes">Skrýt změny profilu</string>
     <string name="setting_hide_topic_changes">Skrýt změny tématu</string>
     <string name="setting_hide_redacted_events">Skrýt zredigované události</string>
+    <string name="setting_hide_deleted_messages_after">Skrýt smazané po prodlevě</string>
     <string name="setting_hide_room_name_changes">Skrýt změny názvu místnosti</string>
     <string name="setting_hide_room_avatar_changes">Skrýt změny avatara místnosti</string>
     <string name="setting_hide_encryption_changes">Skrýt změny šifrování</string>
@@ -88,6 +89,7 @@
     <string name="setting_hide_profile_changes_description">Změny zobrazovaného jména/avatara v místnostech</string>
     <string name="setting_hide_topic_changes_description">Změny tématu v pokojích</string>
     <string name="setting_hide_redacted_events_description">Události, jejichž obsah byl odstraněn redigováním</string>
+    <string name="setting_hide_deleted_messages_after_description">Odstranit smazané zprávy z časové osy po prodlevě</string>
     <string name="setting_hide_room_name_changes_description">Změny názvu pokoje</string>
     <string name="setting_hide_room_avatar_changes_description">Změny avatara pokoje</string>
     <string name="setting_hide_encryption_changes_description">Změny stavu šifrování</string>
@@ -192,6 +194,13 @@
         <item>Veřejné místnosti</item>
         <item>Ne DM</item>
         <item>Vždy</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>Nikdy</item>
+        <item>1 minuta</item>
+        <item>5 minut</item>
+        <item>15 minut</item>
+        <item>1 hodina</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>Hned</item>
