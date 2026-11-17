@@ -2933,7 +2933,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics-redaction#84a19d737c042f12cfaa6772e14f06fd968f938b"
 dependencies = [
  "anymap2",
  "as_variant",
@@ -2992,7 +2992,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-base"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics-redaction#84a19d737c042f12cfaa6772e14f06fd968f938b"
 dependencies = [
  "as_variant",
  "async-trait",
@@ -3019,7 +3019,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-common"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics-redaction#84a19d737c042f12cfaa6772e14f06fd968f938b"
 dependencies = [
  "eyeball-im",
  "futures-core",
@@ -3042,7 +3042,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-crypto"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics-redaction#84a19d737c042f12cfaa6772e14f06fd968f938b"
 dependencies = [
  "aes",
  "as_variant",
@@ -3082,7 +3082,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-indexeddb"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics-redaction#84a19d737c042f12cfaa6772e14f06fd968f938b"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
@@ -3115,7 +3115,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-qrcode"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics-redaction#84a19d737c042f12cfaa6772e14f06fd968f938b"
 dependencies = [
  "byteorder",
  "qrcode",
@@ -3127,7 +3127,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-search"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics-redaction#84a19d737c042f12cfaa6772e14f06fd968f938b"
 dependencies = [
  "aes",
  "byteorder",
@@ -3148,7 +3148,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-sqlite"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics-redaction#84a19d737c042f12cfaa6772e14f06fd968f938b"
 dependencies = [
  "as_variant",
  "async-trait",
@@ -3176,7 +3176,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-store-encryption"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics-redaction#84a19d737c042f12cfaa6772e14f06fd968f938b"
 dependencies = [
  "base64 0.23.1",
  "blake3",
@@ -3198,7 +3198,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-ui"
 version = "0.19.0"
-source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics#594ef8b5bcd50fb2d773c39d396bdfc46bd38feb"
+source = "git+https://github.com/mlm-games/matrix-rust-sdk?branch=media-metrics-redaction#84a19d737c042f12cfaa6772e14f06fd968f938b"
 dependencies = [
  "as_variant",
  "async-rx",
