@@ -14,6 +14,7 @@
     <string name="setting_font_size">Veličina fonta</string>
     <string name="setting_show_message_avatars">Prikaži avatare poruka</string>
     <string name="setting_show_reaction_avatars">Prikaži avatare reakcija</string>
+    <string name="setting_show_thread_reply_count">Prikaži broj odgovora u niti</string>
     <string name="setting_show_username_in_dms">Prikaži korisničko ime u DM-u</string>
     <string name="setting_bubble_animations">Animacije mjehurića poruka</string>
     <string name="setting_reduce_motion">Smanji kretanje</string>

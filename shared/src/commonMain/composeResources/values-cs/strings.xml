@@ -14,6 +14,7 @@
     <string name="setting_font_size">Velikost písma</string>
     <string name="setting_show_message_avatars">Zobrazit avatary zpráv</string>
     <string name="setting_show_reaction_avatars">Zobrazit reakční avatary</string>
+    <string name="setting_show_thread_reply_count">Zobrazit počet odpovědí ve vláknu</string>
     <string name="setting_show_username_in_dms">Zobrazit uživatelské jméno v DM</string>
     <string name="setting_bubble_animations">Animace bublin zpráv</string>
     <string name="setting_reduce_motion">Omezit pohyb</string>

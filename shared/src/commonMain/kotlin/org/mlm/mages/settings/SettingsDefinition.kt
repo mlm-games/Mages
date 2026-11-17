@@ -285,6 +285,14 @@ data class AppSettings(
     val showReactionAvatars: Boolean = false,
 
     @Setting(
+        title = "Show thread reply count",
+        titleKey = MagesSettingsKeys.SHOW_THREAD_REPLY_COUNT,
+        category = Appearance::class,
+        type = Toggle::class
+    )
+    val showThreadReplyCount: Boolean = false,
+
+    @Setting(
         title = "Show read receipt avatars",
         titleKey = MagesSettingsKeys.SHOW_READ_RECEIPT_AVATARS,
         description = "Display avatars under the last message each person has read",

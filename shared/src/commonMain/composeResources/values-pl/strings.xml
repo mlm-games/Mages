@@ -14,6 +14,7 @@
     <string name="setting_font_size">Rozmiar czcionki</string>
     <string name="setting_show_message_avatars">Pokaż awatary wiadomości</string>
     <string name="setting_show_reaction_avatars">Pokaż awatary reakcji</string>
+    <string name="setting_show_thread_reply_count">Pokaż liczbę odpowiedzi w wątku</string>
     <string name="setting_show_username_in_dms">Pokaż nazwę użytkownika w DM</string>
     <string name="setting_bubble_animations">Animacje bąbelków wiadomości</string>
     <string name="setting_reduce_motion">Ogranicz ruch</string>

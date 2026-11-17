@@ -513,6 +513,7 @@
     <string name="setting_show_reaction_avatars_description">Mostrar avatares de usuario en las reacciones</string>
     <string name="setting_show_switch_account_button">Mostrar el botón de cuenta en la pantalla de inicio</string>
     <string name="setting_show_switch_account_button_description">Muestra el botón de cuenta en la pantalla de inicio en lugar de en los ajustes</string>
+    <string name="setting_show_thread_reply_count">Mostrar número de respuestas del hilo</string>
     <string name="setting_show_username_in_dms">Mostrar nombre de usuario en DM</string>
     <string name="setting_show_username_in_dms_description">Mostrar nombres de usuario en mensajes directos</string>
     <string name="setting_bubble_animations">Animaciones de burbujas de mensajes</string>

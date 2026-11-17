@@ -14,6 +14,7 @@
     <string name="setting_font_size">Betűméret</string>
     <string name="setting_show_message_avatars">Üzenetek avatarjainak megjelenítése</string>
     <string name="setting_show_reaction_avatars">Reakciók avatarjainak megjelenítése</string>
+    <string name="setting_show_thread_reply_count">A válaszok számának megjelenítése a szálban</string>
     <string name="setting_show_username_in_dms">Felhasználónév megjelenítése DM-ekben</string>
     <string name="setting_bubble_animations">Üzenetbuborék animációk</string>
     <string name="setting_reduce_motion">Mozgás csökkentése</string>

@@ -14,6 +14,7 @@
     <string name="setting_font_size">حجم الخط</string>
     <string name="setting_show_message_avatars">عرض الصور الرمزية للرسالة</string>
     <string name="setting_show_reaction_avatars">إظهار الصور الرمزية لرد الفعل</string>
+    <string name="setting_show_thread_reply_count">إظهار عدد ردود السلسلة</string>
     <string name="setting_show_username_in_dms">عرض اسم المستخدم في الرسائل المباشرة</string>
     <string name="setting_bubble_animations">رسوم متحركة فقاعية للرسائل</string>
     <string name="setting_reduce_motion">تقليل الحركة</string>

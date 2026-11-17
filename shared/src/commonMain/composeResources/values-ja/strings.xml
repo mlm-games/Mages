@@ -14,6 +14,7 @@
     <string name="setting_font_size">文字サイズ</string>
     <string name="setting_show_message_avatars">メッセージのアバターを表示</string>
     <string name="setting_show_reaction_avatars">リアクションのアバターを表示</string>
+    <string name="setting_show_thread_reply_count">スレッドの返信数を表示</string>
     <string name="setting_show_username_in_dms">DMでユーザー名を表示</string>
     <string name="setting_bubble_animations">メッセージバブルのアニメーション</string>
     <string name="setting_reduce_motion">モーションを減らす</string>

@@ -14,6 +14,7 @@
     <string name="setting_font_size">Yazı tipi boyutu</string>
     <string name="setting_show_message_avatars">Mesaj avatarlarını göster</string>
     <string name="setting_show_reaction_avatars">Reaksiyon avatarlarını göster</string>
+    <string name="setting_show_thread_reply_count">Konu dizisi yanıt sayısını göster</string>
     <string name="setting_show_username_in_dms">DM’lerde kullanıcı adını göster</string>
     <string name="setting_bubble_animations">Mesaj balonu animasyonları</string>
     <string name="setting_reduce_motion">Hareketi azalt</string>

@@ -28,6 +28,7 @@ object MagesSettingsKeys {
     const val DRAG_TO_SCROLL = "mages.settings.drag_to_scroll"
     const val SHOW_MESSAGE_AVATARS = "mages.settings.show_message_avatars"
     const val SHOW_REACTION_AVATARS = "mages.settings.show_reaction_avatars"
+    const val SHOW_THREAD_REPLY_COUNT = "mages.settings.show_thread_reply_count"
     const val SHOW_READ_RECEIPT_AVATARS = "mages.settings.show_read_receipt_avatars"
     const val SHOW_USERNAME_IN_DMS = "mages.settings.show_username_in_dms"
     const val BUBBLE_ANIMATIONS = "mages.settings.bubble_animations"

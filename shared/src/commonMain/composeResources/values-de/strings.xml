@@ -14,6 +14,7 @@
     <string name="setting_font_size">Schriftgröße</string>
     <string name="setting_show_message_avatars">Nachrichtenavatars anzeigen</string>
     <string name="setting_show_reaction_avatars">Reaktionsavatars anzeigen</string>
+    <string name="setting_show_thread_reply_count">Anzahl der Thread-Antworten anzeigen</string>
     <string name="setting_show_username_in_dms">Benutzernamen in DMs anzeigen</string>
     <string name="setting_bubble_animations">Nachrichtenblasen-Animationen</string>
     <string name="setting_reduce_motion">Bewegung reduzieren</string>

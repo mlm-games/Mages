@@ -14,6 +14,7 @@
     <string name="setting_font_size">Teckenstorlek</string>
     <string name="setting_show_message_avatars">Visa avatarer för meddelanden</string>
     <string name="setting_show_reaction_avatars">Visa avatarer för reaktioner</string>
+    <string name="setting_show_thread_reply_count">Visa antal svar i tråden</string>
     <string name="setting_show_username_in_dms">Visa användarnamn i DM</string>
     <string name="setting_bubble_animations">Animationer av meddelandebubblor</string>
     <string name="setting_reduce_motion">Minska rörelse</string>

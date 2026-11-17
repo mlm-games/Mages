@@ -14,6 +14,7 @@
     <string name="setting_font_size">Taille de police</string>
     <string name="setting_show_message_avatars">Afficher les avatars des messages</string>
     <string name="setting_show_reaction_avatars">Afficher les avatars des réactions</string>
+    <string name="setting_show_thread_reply_count">Afficher le nombre de réponses du fil</string>
     <string name="setting_show_username_in_dms">Afficher le nom d’utilisateur dans les DM</string>
     <string name="setting_bubble_animations">Animations des bulles de message</string>
     <string name="setting_reduce_motion">Réduire les animations</string>

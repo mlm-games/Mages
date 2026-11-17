@@ -14,6 +14,7 @@
     <string name="setting_font_size">גודל גופן</string>
     <string name="setting_show_message_avatars">הצגת תמונות משתמש בהודעות</string>
     <string name="setting_show_reaction_avatars">הצגת תמונות משתמש בתגובות</string>
+    <string name="setting_show_thread_reply_count">הצגת מספר התגובות בשרשור</string>
     <string name="setting_show_username_in_dms">הצגת שם משתמש בהודעות ישירות</string>
     <string name="setting_bubble_animations">אנימציות בועות הודעה</string>
     <string name="setting_reduce_motion">צמצום תנועה</string>

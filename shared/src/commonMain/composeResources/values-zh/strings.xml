@@ -14,6 +14,7 @@
     <string name="setting_font_size">字体大小</string>
     <string name="setting_show_message_avatars">显示消息头像</string>
     <string name="setting_show_reaction_avatars">显示反应头像</string>
+    <string name="setting_show_thread_reply_count">显示线程回复数</string>
     <string name="setting_show_username_in_dms">在私聊中显示用户名</string>
     <string name="setting_bubble_animations">消息气泡动画</string>
     <string name="setting_reduce_motion">减少动态效果</string>

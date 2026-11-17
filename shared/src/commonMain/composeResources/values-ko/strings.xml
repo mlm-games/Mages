@@ -14,6 +14,7 @@
     <string name="setting_font_size">글꼴 크기</string>
     <string name="setting_show_message_avatars">메시지 아바타 표시</string>
     <string name="setting_show_reaction_avatars">반응 아바타 표시</string>
+    <string name="setting_show_thread_reply_count">스레드 답글 수 표시</string>
     <string name="setting_show_username_in_dms">DM에서 사용자 이름 표시</string>
     <string name="setting_bubble_animations">메시지 버블 애니메이션</string>
     <string name="setting_reduce_motion">동작 줄이기</string>

@@ -220,6 +220,7 @@ fun MessageBubble(
 
     val isRedacted = model.isRedacted
     val threadCount = model.thread?.count?.takeIf { it > 0 }
+    val showThreadReplyCount = model.thread?.showCount == true
     val reply = model.reply?.takeIf {
         !it.body.isNullOrBlank() || it.preview != null || !it.sender.isNullOrBlank()
     }
@@ -266,6 +267,7 @@ fun MessageBubble(
                 if (isMine && threadCount != null && onOpenThread != null) {
                     ThreadBadge(
                         count = threadCount,
+                        showCount = showThreadReplyCount,
                         onClick = onOpenThread,
                         modifier = Modifier.padding(end = Spacing.xs)
                     )
@@ -275,6 +277,7 @@ fun MessageBubble(
                 if (!isMine && threadCount != null && onOpenThread != null) {
                     ThreadBadge(
                         count = threadCount,
+                        showCount = showThreadReplyCount,
                         onClick = onOpenThread,
                         modifier = Modifier.padding(start = Spacing.xs)
                     )
@@ -1286,6 +1289,7 @@ private fun StickerMessage(
 @Composable
 private fun ThreadBadge(
     count: Int,
+    showCount: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -1293,10 +1297,10 @@ private fun ThreadBadge(
     Surface(
         onClick = onClick,
         color = MaterialTheme.colorScheme.secondaryContainer,
-        shape = if (count > 1) RoundedCornerShape(50) else CircleShape,
+        shape = if (showCount) RoundedCornerShape(50) else CircleShape,
         modifier = modifier.semantics { contentDescription = a11yLabel }
     ) {
-        if (count > 1) {
+        if (showCount) {
             Row(
                 modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
                 verticalAlignment = Alignment.CenterVertically

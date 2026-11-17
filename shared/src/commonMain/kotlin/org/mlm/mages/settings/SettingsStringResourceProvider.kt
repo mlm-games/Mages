@@ -63,6 +63,7 @@ private val titleResources: Map<String, StringResource> = mapOf(
     MagesSettingsKeys.DRAG_TO_SCROLL to Res.string.setting_drag_to_scroll,
     MagesSettingsKeys.SHOW_MESSAGE_AVATARS to Res.string.setting_show_message_avatars,
     MagesSettingsKeys.SHOW_REACTION_AVATARS to Res.string.setting_show_reaction_avatars,
+    MagesSettingsKeys.SHOW_THREAD_REPLY_COUNT to Res.string.setting_show_thread_reply_count,
     MagesSettingsKeys.SHOW_READ_RECEIPT_AVATARS to Res.string.setting_show_read_receipt_avatars,
     MagesSettingsKeys.SHOW_USERNAME_IN_DMS to Res.string.setting_show_username_in_dms,
     MagesSettingsKeys.BUBBLE_ANIMATIONS to Res.string.setting_bubble_animations,

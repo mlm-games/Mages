@@ -82,6 +82,7 @@ sealed interface MessageAttachmentUi {
 
 data class MessageThreadUi(
     val count: Int = 0,
+    val showCount: Boolean = false,
 )
 
 data class MessageStickerUi(
@@ -109,6 +110,7 @@ data class MessageBubbleRenderContext(
     /** Shortcodes for MSC4027 image reactions, where the key is a known pack image. */
     val reactionShortcodes: Map<String, String> = emptyMap(),
     val threadCount: Int? = null,
+    val showThreadReplyCount: Boolean = false,
     val variant: MessageBubbleVariant = MessageBubbleVariant.Timeline,
     val resolvedPreviewPath: String? = null,
     val previewBlocked: Boolean = false,

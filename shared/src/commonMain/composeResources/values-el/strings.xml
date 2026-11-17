@@ -14,6 +14,7 @@
     <string name="setting_font_size">Μέγεθος γραμματοσειράς</string>
     <string name="setting_show_message_avatars">Εμφάνιση άβαταρ μηνυμάτων</string>
     <string name="setting_show_reaction_avatars">Εμφάνιση άβαταρ αντίδρασης</string>
+    <string name="setting_show_thread_reply_count">Εμφάνιση αριθμού απαντήσεων νήματος</string>
     <string name="setting_show_username_in_dms">Εμφάνιση ονόματος χρήστη σε DMs</string>
     <string name="setting_bubble_animations">Κινούμενα σχέδια φυσαλίδων μηνυμάτων</string>
     <string name="setting_reduce_motion">Μείωση κίνησης</string>

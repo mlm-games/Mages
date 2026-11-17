@@ -158,7 +158,9 @@ internal fun TimelineContent.Bubble.toBubbleModel(
         isPinned = ctx.isPinned,
         isRedacted = event.isRedacted,
         poll = event.pollData,
-        thread = ctx.threadCount?.let { count -> MessageThreadUi(count) },
+        thread = ctx.threadCount?.let { count ->
+            MessageThreadUi(count = count, showCount = ctx.showThreadReplyCount)
+        },
         linkPreview = if (toRedactedEvent) null else ctx.resolvedLinkPreview,
         linkPreviewImage = if (toRedactedEvent) null else ctx.resolvedLinkPreviewImage,
         variant = ctx.variant,
