@@ -45,6 +45,7 @@ data class MessageEvent(
     var reactions: List<ReactionSummary> = emptyList(),
     var eventType: EventType = EventType.Message,
     var isRedacted: Boolean = false,
+    var redactedAtMs: Long? = null,
     var stateEventType: String? = null,
     var callType: String? = null,
     var callDeclined: Boolean = false,

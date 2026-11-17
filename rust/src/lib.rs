@@ -4259,6 +4259,11 @@ fn map_timeline_event(
     let mut event_type = EventType::Message;
     let content = ev.content();
     let is_redacted = content.is_redacted();
+    let redacted_at_ms = if is_redacted {
+        raw_json.as_deref().and_then(redacted_at_ms_of)
+    } else {
+        None
+    };
     let mut state_event_type: Option<String> = None;
     let mut call_type: Option<String> = None;
     let mut call_declined = false;
@@ -4482,6 +4487,7 @@ fn map_timeline_event(
         reactions,
         event_type,
         is_redacted,
+        redacted_at_ms,
         state_event_type,
         call_type,
         call_declined,
@@ -4492,6 +4498,13 @@ fn map_timeline_event(
         utd,
         read_receipts,
     })
+}
+
+fn redacted_at_ms_of(raw: &str) -> Option<u64> {
+    serde_json::from_str::<serde_json::Value>(raw)
+        .ok()?
+        .pointer("/unsigned/redacted_because/origin_server_ts")?
+        .as_u64()
 }
 
 fn map_shield(ev: &EventTimelineItem) -> Option<MessageShield> {

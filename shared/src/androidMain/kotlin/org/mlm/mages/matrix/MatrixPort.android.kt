@@ -2726,6 +2726,7 @@ private fun mages.MessageEvent.toModel() = MessageEvent(
     reactions = reactions.map { ReactionSummary(it.key, it.count.toInt(), it.mine, it.userIds) },
     eventType = eventType.toKotlin(),
     isRedacted = isRedacted,
+    redactedAtMs = redactedAtMs?.toLong(),
     stateEventType = stateEventType,
     callType = callType,
     callDeclined = callDeclined,

@@ -119,6 +119,7 @@ pub struct MessageEvent {
     pub reactions: Vec<ReactionSummary>,
     pub event_type: EventType,
     pub is_redacted: bool,
+    pub redacted_at_ms: Option<u64>,
     pub state_event_type: Option<String>,
     /// `"audio"`/`"video"` for a `m.rtc.notification`, otherwise `None`.
     pub call_type: Option<String>,
