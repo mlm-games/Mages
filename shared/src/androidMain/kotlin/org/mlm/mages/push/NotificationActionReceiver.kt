@@ -37,11 +37,21 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
 
             val roomId = intent.getStringExtra(EXTRA_ROOM_ID)
             val eventId = intent.getStringExtra(EXTRA_EVENT_ID)
-            val threadId = intent.getStringExtra(EXTRA_THREAD_ID)
+            val threadId = intent.getStringExtra(EXTRA_THREAD_ID)?.takeIf { it.isNotBlank() }
             val notifId = intent.getIntExtra(EXTRA_NOTIF_ID, 0)
 
             try {
                 when (intent.action) {
+                    ACTION_DISMISSED -> {
+                        if (roomId != null) {
+                            if (threadId != null) {
+                                AndroidNotificationHelper.cancelThreadNotification(context, roomId, threadId)
+                            } else {
+                                Notifier.updateSummaryNotification(context)
+                            }
+                        }
+                    }
+
                     ACTION_DECLINE_CALL -> {
                         if (roomId != null && eventId != null) {
                             runCatching { service.initFromDisk() }
@@ -279,6 +289,7 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
 
     companion object {
         const val ACTION_MARK_READ = "org.mlm.mages.ACTION_MARK_READ"
+        const val ACTION_DISMISSED = "org.mlm.mages.ACTION_DISMISSED"
         const val ACTION_REPLY = "org.mlm.mages.ACTION_REPLY"
         const val ACTION_DECLINE_CALL = "org.mlm.mages.ACTION_DECLINE_CALL"
         const val ACTION_DISMISS_CALL = "org.mlm.mages.ACTION_DISMISS_CALL"

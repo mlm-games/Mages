@@ -16,6 +16,8 @@ import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.getString
 
 object NotifierImpl {
+    private const val CONVERSATION_SEPARATOR = '\u001f'
+
     private val lock = Any()
 
     private var conn: DBusConnection? = null
@@ -27,8 +29,10 @@ object NotifierImpl {
     private var handlersInstalledFor: DBusConnection? = null
 
 
-    private val notifCtx = ConcurrentHashMap<UInt32, Pair<String, String>>()
-    private val notifIdByRoom = ConcurrentHashMap<String, UInt32>()
+    private data class NotifContext(val roomId: String, val eventId: String, val threadId: String?)
+
+    private val notifCtx = ConcurrentHashMap<UInt32, NotifContext>()
+    private val notifIdByConversation = ConcurrentHashMap<String, UInt32>()
     private val callNotifIdByRoom = ConcurrentHashMap<String, UInt32>()
     private val inviteNotifIdByRoom = ConcurrentHashMap<String, UInt32>()
 
@@ -36,7 +40,10 @@ object NotifierImpl {
     val unreadRooms: StateFlow<Int> = _unreadRooms.asStateFlow()
 
     private fun publishUnread() {
-        val count = notifIdByRoom.size
+        val count = notifIdByConversation.keys
+            .map { it.substringBefore(CONVERSATION_SEPARATOR) }
+            .distinct()
+            .size
         if (_unreadRooms.value != count) _unreadRooms.value = count
     }
 
@@ -50,7 +57,7 @@ object NotifierImpl {
                 actionsSupported = false
                 inlineReplySupported = false
                 notifCtx.clear()
-                notifIdByRoom.clear()
+                notifIdByConversation.clear()
                 callNotifIdByRoom.clear()
                 publishUnread()
                 Logger.w("[notification] D-Bus connection invalidated")
@@ -99,17 +106,16 @@ object NotifierImpl {
         runCatching {
             c.addSigHandler(Notifications.ActionInvoked::class.java) { sig ->
                 val ctx = notifCtx[sig.id] ?: return@addSigHandler
-                val (roomId, eventId) = ctx
 
                 when (sig.actionKey) {
-                    "", "default" -> DesktopNotifActions.openRoom(roomId)
-                    "mark_read" -> DesktopNotifActions.markRead(roomId, eventId)
-                    "reply" -> DesktopNotifActions.reply(roomId, eventId)
-                    "inline-reply" -> DesktopNotifActions.reply(roomId, eventId)
-                    "answer" -> DesktopNotifActions.answerCall(roomId, eventId)
-                    "decline" -> DesktopNotifActions.declineCall(roomId, eventId)
-                    "accept_invite" -> DesktopNotifActions.acceptInvite(roomId)
-                    "decline_invite" -> DesktopNotifActions.declineInvite(roomId)
+                    "", "default" -> DesktopNotifActions.openRoom(ctx.roomId, ctx.threadId)
+                    "mark_read" -> DesktopNotifActions.markRead(ctx.roomId, ctx.eventId, ctx.threadId)
+                    "reply" -> DesktopNotifActions.reply(ctx.roomId, ctx.eventId, ctx.threadId)
+                    "inline-reply" -> DesktopNotifActions.reply(ctx.roomId, ctx.eventId, ctx.threadId)
+                    "answer" -> DesktopNotifActions.answerCall(ctx.roomId, ctx.eventId)
+                    "decline" -> DesktopNotifActions.declineCall(ctx.roomId, ctx.eventId)
+                    "accept_invite" -> DesktopNotifActions.acceptInvite(ctx.roomId)
+                    "decline_invite" -> DesktopNotifActions.declineInvite(ctx.roomId)
                 }
             }
         }
@@ -117,8 +123,7 @@ object NotifierImpl {
         runCatching {
             c.addSigHandler(Notifications.NotificationReplied::class.java) { sig ->
                 val ctx = notifCtx[sig.id] ?: return@addSigHandler
-                val (roomId, eventId) = ctx
-                DesktopNotifActions.replyText(roomId, eventId, sig.replyText)
+                DesktopNotifActions.replyText(ctx.roomId, ctx.eventId, ctx.threadId, sig.replyText)
             }
         }
 
@@ -128,11 +133,11 @@ object NotifierImpl {
                 val ctx = notifCtx[sig.id]
                 val dismissedCall = ctx != null && callNotifIdByRoom.values.contains(sig.id)
                 notifCtx.remove(sig.id)
-                notifIdByRoom.entries.removeIf { it.value == sig.id }
+                notifIdByConversation.entries.removeIf { it.value == sig.id }
                 callNotifIdByRoom.entries.removeIf { it.value == sig.id }
                 inviteNotifIdByRoom.entries.removeIf { it.value == sig.id }
                 if (dismissedCall && ctx != null) {
-                    DesktopNotifActions.declineCall(ctx.first, ctx.second)
+                    DesktopNotifActions.declineCall(ctx.roomId, ctx.eventId)
                 }
                 publishUnread()
             }
@@ -184,7 +189,8 @@ object NotifierImpl {
         playSound: Boolean = true,
         desktopEntry: String? = "mages",
         iconPath: String? = null,
-        imagePath: String? = null
+        imagePath: String? = null,
+        threadId: String? = null,
     ) {
         val persistent = hasMention && capabilities.contains("persistence")
         val actions: Array<String> =
@@ -216,10 +222,11 @@ object NotifierImpl {
             resident = persistent,
             actions = actions,
             expireTimeout = if (persistent) 0 else -1,
-            replacesId = notifIdByRoom[roomId] ?: UInt32(0),
-            logTag = "message"
+            replacesId = notifIdByConversation[conversationKey(roomId, threadId)] ?: UInt32(0),
+            logTag = "message",
+            threadId = threadId,
         ) ?: return
-        notifIdByRoom[roomId] = id
+        notifIdByConversation[conversationKey(roomId, threadId)] = id
         publishUnread()
     }
 
@@ -228,7 +235,15 @@ object NotifierImpl {
     }
 
     fun closeRoomNotification(roomId: String) {
-        val id = notifIdByRoom.remove(roomId) ?: return
+        closeConversationNotification(conversationKey(roomId, null))
+    }
+
+    fun closeThreadNotification(roomId: String, threadId: String) {
+        closeConversationNotification(conversationKey(roomId, threadId))
+    }
+
+    private fun closeConversationNotification(key: String) {
+        val id = notifIdByConversation.remove(key) ?: return
         publishUnread()
         notifCtx.remove(id)
         val c = ensure() ?: return
@@ -290,7 +305,11 @@ object NotifierImpl {
         }
     }
 
-    fun trackedRoomIds(): Set<String> = notifIdByRoom.keys.toSet()
+    fun trackedRoomIds(): Set<String> =
+        notifIdByConversation.keys.filter { !it.contains(CONVERSATION_SEPARATOR) }.toSet()
+
+    private fun conversationKey(roomId: String, threadId: String?): String =
+        if (threadId.isNullOrBlank()) roomId else "$roomId$CONVERSATION_SEPARATOR$threadId"
 
     suspend fun notifyInvite(title: String, body: String, roomId: String, roomName: String) {
         val actions: Array<String> =
@@ -346,6 +365,7 @@ object NotifierImpl {
         expireTimeout: Int,
         replacesId: UInt32,
         logTag: String,
+        threadId: String? = null,
     ): UInt32? {
         repeat(2) { attempt ->
             val c = ensure() ?: return null
@@ -373,7 +393,7 @@ object NotifierImpl {
                     expireTimeout
                 )
 
-                notifCtx[id] = roomId to eventId
+                notifCtx[id] = NotifContext(roomId, eventId, threadId)
 
                 Logger.w(
                     "[notification] D-Bus $logTag Notify succeeded: id=$id room=$roomId event=$eventId"
@@ -457,11 +477,11 @@ object NotifierImpl {
 }
 
 object DesktopNotifActions {
-    @Volatile var openRoom: (String) -> Unit = {}
-    @Volatile var markRead: (String, String) -> Unit = { _, _ -> }
-    @Volatile var reply: (String, String) -> Unit = { _, _ -> }
-    @Volatile var replyText: (String, String, String) -> Unit = { _, _, _ -> }
-    @Volatile var answerCall: (String, String) -> Unit = { roomId, _ -> openRoom(roomId) }
+    @Volatile var openRoom: (String, String?) -> Unit = { _, _ -> }
+    @Volatile var markRead: (String, String, String?) -> Unit = { _, _, _ -> }
+    @Volatile var reply: (String, String, String?) -> Unit = { _, _, _ -> }
+    @Volatile var replyText: (String, String, String?, String) -> Unit = { _, _, _, _ -> }
+    @Volatile var answerCall: (String, String) -> Unit = { roomId, _ -> openRoom(roomId, null) }
     @Volatile var declineCall: (String, String) -> Unit = { _, _ -> }
     @Volatile var acceptInvite: (String) -> Unit = {}
     @Volatile var declineInvite: (String) -> Unit = {}

@@ -1095,6 +1095,9 @@ data class AppSettings(
     val roomDraftsJson: String = "",
 
     @Persisted
+    val threadReadMarksJson: String = "",
+
+    @Persisted
     val roomPrivacyJson: String = "",
 
     @Persisted

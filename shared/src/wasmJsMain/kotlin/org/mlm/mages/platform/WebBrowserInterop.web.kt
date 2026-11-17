@@ -86,6 +86,9 @@ fun requestNotificationPermissionFromUserGesture(
             n.onclick = (event) => {
                 try {
                     event.preventDefault();
+                    if (tag !== null && tag !== undefined) {
+                        window.dispatchEvent(new CustomEvent('mages-notif-click', { detail: { tag: tag } }));
+                    }
                     if (window.focus) window.focus();
                 } catch (e) {}
             };
@@ -146,6 +149,9 @@ private external fun closeBrowserNotificationByTagJs(tag: String): Boolean
 
 internal fun closeBrowserNotificationByTag(tag: String): Boolean =
     closeBrowserNotificationByTagJs(tag)
+
+internal fun notificationClickTag(event: Event): String? =
+    js("event.detail && event.detail.tag ? event.detail.tag : null")
 
 internal fun clipboardDataOf(event: Event): JsAny? =
     js("event.clipboardData ? event.clipboardData : null")

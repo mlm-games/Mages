@@ -7,6 +7,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -29,6 +30,9 @@ import org.mlm.mages.matrix.allowsLinkPreviews
 import org.mlm.mages.matrix.allowsMediaPreviews
 import org.mlm.mages.emoji.RecentEmojiStore
 import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.settings.AutoMarkReadTrigger
+import org.mlm.mages.settings.ComposerDrafts
+import org.mlm.mages.settings.ThreadReadMarks
 import org.mlm.mages.settings.readReceiptsForRoom
 import org.mlm.mages.storage.UserProfile
 import org.mlm.mages.ui.MentionProfileUi
@@ -36,6 +40,7 @@ import org.mlm.mages.ui.AttachmentUploadStage
 import org.mlm.mages.ui.isEditableBy
 import org.mlm.mages.ui.ThreadUiState
 import org.mlm.mages.ui.toUi
+import org.mlm.mages.ui.theme.Durations
 import org.mlm.mages.ui.components.AttachmentData
 import org.mlm.mages.ui.components.composer.EmoteSuggestion
 import org.mlm.mages.ui.components.composer.OutgoingText
@@ -112,6 +117,10 @@ class ThreadViewModel(
     private var threadTimelineJob: Job? = null
     private var uploadJob: Job? = null
     private var uploadTxnId: String? = null
+    private var draftJob: Job? = null
+    private var typingJob: Job? = null
+    private var composerTouched = false
+    private val draftKey = ComposerDrafts.threadKey(roomId, rootEventId)
 
     private val replyThumbnailFetchInFlight = mutableSetOf<String>()
     private var lastMarkedReadEventId: String? = null
@@ -129,6 +138,18 @@ class ThreadViewModel(
     init {
         Notifier.clearThreadNotification(roomId, rootEventId)
         preloadRoomMembers()
+        launch {
+            val saved = ComposerDrafts.text(settingsRepo.flow.first().roomDraftsJson, draftKey)
+            if (!saved.isNullOrBlank()) {
+                updateState {
+                    if (!composerTouched && input.isEmpty() && editingEvent == null) {
+                        copy(input = saved)
+                    } else {
+                        this
+                    }
+                }
+            }
+        }
         launch {
             val profile = runSafe { service.port.roomProfile(roomId) } ?: return@launch
             updateState { copy(isDm = profile.isDm) }
@@ -331,7 +352,6 @@ class ThreadViewModel(
                 error = null,
             )
         }
-        markLatestRead(rooted)
         probeThreadStart()
     }
 
@@ -347,7 +367,6 @@ class ThreadViewModel(
                 .sortedForThread()
             copy(replies = merged, isLoading = false)
         }
-        markLatestRead(rooted)
     }
 
     private fun prependReplies(events: List<MessageEvent>) {
@@ -433,6 +452,10 @@ class ThreadViewModel(
         }
     }
 
+    fun markThreadSeen() {
+        markLatestRead(currentState.replies)
+    }
+
     private fun markLatestRead(events: List<MessageEvent>) {
         val latest = events
             .filter { it.eventId.isNotBlank() && it.threadRootEventId == rootEventId }
@@ -442,6 +465,7 @@ class ThreadViewModel(
         if (latest.timestampMs < lastMarkedReadTs) return
         lastMarkedReadEventId = latest.eventId
         launch {
+            persistReadMark(latest.timestampMs)
             val result = service.markThreadReadAt(
                 roomId = roomId,
                 threadRootEventId = rootEventId,
@@ -453,6 +477,19 @@ class ThreadViewModel(
             } else {
                 lastMarkedReadTs = maxOf(lastMarkedReadTs, latest.timestampMs)
             }
+        }
+    }
+
+    private suspend fun persistReadMark(timestampMs: Long) {
+        settingsRepo.update { settings ->
+            settings.copy(
+                threadReadMarksJson = ThreadReadMarks.marked(
+                    settings.threadReadMarksJson,
+                    roomId,
+                    rootEventId,
+                    timestampMs,
+                )
+            )
         }
     }
 
@@ -663,13 +700,17 @@ class ThreadViewModel(
     fun markReadHere(event: MessageEvent) {
         if (event.eventId.isBlank()) return
         launch {
+            persistReadMark(event.timestampMs)
             val result = service.markThreadReadAt(
                 roomId = roomId,
                 threadRootEventId = rootEventId,
                 eventId = event.eventId,
                 sendPublicReceipt = prefs.value.readReceiptsForRoom(roomId),
             )
-            if (result.isSuccess) lastMarkedReadEventId = event.eventId
+            if (result.isSuccess) {
+                lastMarkedReadEventId = event.eventId
+                lastMarkedReadTs = maxOf(lastMarkedReadTs, event.timestampMs)
+            }
         }
     }
 
@@ -733,6 +774,9 @@ class ThreadViewModel(
         val text = snapshot.input
         val replyTo = snapshot.replyingTo
         updateState { copy(input = "", replyingTo = null, attachments = emptyList()) }
+        draftJob?.cancel()
+        launch { saveDraft("") }
+        stopTyping()
 
         uploadJob = launch {
             val outgoing = text.trim().takeIf { it.isNotBlank() }?.toOutgoingText()
@@ -746,6 +790,7 @@ class ThreadViewModel(
                         replyingTo = replyTo,
                     )
                 }
+                if (currentState.input.isNotBlank()) saveDraft(currentState.input)
                 _events.send(Event.ShowError(getString(Res.string.message_too_long)))
                 return@launch
             }
@@ -841,6 +886,7 @@ class ThreadViewModel(
             )
         }
         uploadTxnId = null
+        if (prefs.value.autoMarkReadTrigger == AutoMarkReadTrigger.OnSend) markThreadSeen()
         return true
     }
 
@@ -913,6 +959,8 @@ class ThreadViewModel(
                         result.toUserMessage(getString(Res.string.voice_message_upload_failed))
                     )
                 )
+            } else if (prefs.value.autoMarkReadTrigger == AutoMarkReadTrigger.OnSend) {
+                markThreadSeen()
             }
         }
     }
@@ -1002,8 +1050,44 @@ class ThreadViewModel(
      * Update the input text.
      */
     fun setInput(value: String) {
+        composerTouched = true
         updateState { copy(input = value) }
+        if (currentState.editingEvent == null) {
+            draftJob?.cancel()
+            draftJob = launch {
+                delay(Durations.draftSaveDebounce)
+                saveDraft(value)
+            }
+        }
         if (!prefs.value.sendTypingIndicators) return
+        typingJob?.cancel()
+        typingJob = launch {
+            if (value.isBlank()) {
+                runSafe { service.port.setTyping(roomId, false) }
+            } else {
+                runSafe { service.port.setTyping(roomId, true) }
+                delay(Durations.typingTimeout)
+                runSafe { service.port.setTyping(roomId, false) }
+            }
+        }
+    }
+
+    fun stopTyping() {
+        typingJob?.cancel()
+        typingJob = null
+        launch { runSafe { service.port.setTyping(roomId, false) } }
+    }
+
+    private suspend fun saveDraft(text: String) {
+        settingsRepo.update { settings ->
+            settings.copy(
+                roomDraftsJson = ComposerDrafts.updated(
+                    settings.roomDraftsJson,
+                    draftKey,
+                    text,
+                )
+            )
+        }
     }
 
     private fun mediaPreviewsAllowed(): Boolean =
@@ -1412,6 +1496,9 @@ class ThreadViewModel(
                 input = ""
             )
         }
+        draftJob?.cancel()
+        saveDraft("")
+        stopTyping()
 
         // Send to server - message will appear via timeline diff
         val result = runSafe {
@@ -1432,7 +1519,10 @@ class ThreadViewModel(
                     replyingTo = if (restoreDraft) replyingTo else this.replyingTo,
                 )
             }
+            saveDraft(text)
             _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.failed_to_send_message))))
+        } else if (prefs.value.autoMarkReadTrigger == AutoMarkReadTrigger.OnSend) {
+            markThreadSeen()
         }
 
         return result?.isSuccess == true
@@ -1448,6 +1538,7 @@ class ThreadViewModel(
         super.onCleared()
         rootTimelineJob?.cancel()
         threadTimelineJob?.cancel()
+        typingJob?.cancel()
     }
 }
 

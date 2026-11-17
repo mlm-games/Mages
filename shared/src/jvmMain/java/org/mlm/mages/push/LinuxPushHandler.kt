@@ -17,6 +17,7 @@ import org.mlm.mages.platform.Notifier
 import org.mlm.mages.push.NotificationMediaPolicy
 import org.mlm.mages.push.NotificationPresentation
 import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.settings.ThreadReadMarks
 import org.mlm.mages.settings.appLanguageTagOrDefault
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.getString
@@ -96,12 +97,18 @@ class LinuxPushHandler(
             val eventId = eventPush.eventId
             val n = port.fetchNotification(roomId, eventId) ?: continue
 
-            val lastReadTs = runCatching { port.ownLastRead(n.roomId).second }.getOrNull()
-            if (lastReadTs != null && n.tsMs <= lastReadTs) continue
+            val settings = settingsRepository.flow.first()
+
+            if (n.threadId == null) {
+                val lastReadTs = runCatching { port.ownLastRead(n.roomId).second }.getOrNull()
+                if (lastReadTs != null && n.tsMs <= lastReadTs) continue
+            } else {
+                val readTs = ThreadReadMarks.latestTs(settings.threadReadMarksJson, n.roomId, n.threadId)
+                if (readTs > 0L && n.tsMs <= readTs) continue
+            }
 
             val me = port.whoami()
             val senderIsMe = me != null && me == n.senderUserId
-            val settings = settingsRepository.flow.first()
             if (!settings.notifyWhileRoomOpen && !Notifier.shouldNotify(n.roomId, n.threadId, senderIsMe)) continue
 
             val notifMode = runCatching { port.roomNotificationMode(n.roomId) }.getOrNull()
@@ -146,7 +153,8 @@ class LinuxPushHandler(
                 hasMention = n.hasMention,
                 playSound = settings.notificationSound && n.isNoisy,
                 iconPath = avatarPath,
-                imagePath = mediaPath
+                imagePath = mediaPath,
+                threadId = n.threadId,
             )
         }
     }

@@ -26,6 +26,7 @@ import org.mlm.mages.push.LinuxPushHandler
 import org.mlm.mages.push.NotificationMediaPolicy
 import org.mlm.mages.push.NotificationPresentation
 import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.settings.ThreadReadMarks
 import org.mlm.mages.settings.autoDownloadRules
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.getString
@@ -74,7 +75,8 @@ actual object Notifier {
         return true
     }
 
-    actual fun clearThreadNotification(roomId: String, threadId: String) = Unit
+    actual fun clearThreadNotification(roomId: String, threadId: String) =
+        NotifierImpl.closeThreadNotification(roomId, threadId)
 
     fun shouldPlaySound(roomId: String, soundEnabled: Boolean, oncePerRoomEnabled: Boolean): Boolean {
         if (!soundEnabled) return false
@@ -198,10 +200,15 @@ actual fun BindNotifications(
                 if (notifMode == RoomNotificationMode.Mute) continue
                 if (notifMode == RoomNotificationMode.MentionsAndKeywordsOnly && !n.hasMention) continue
 
-                val lastReadTs = lastReadByRoom[n.roomId] ?: runCatching {
-                    port.ownLastRead(n.roomId).second ?: 0L
-                }.getOrDefault(0L).also { lastReadByRoom[n.roomId] = it }
-                if (lastReadTs > 0L && n.tsMs <= lastReadTs) continue
+                if (n.threadId == null) {
+                    val lastReadTs = lastReadByRoom[n.roomId] ?: runCatching {
+                        port.ownLastRead(n.roomId).second ?: 0L
+                    }.getOrDefault(0L).also { lastReadByRoom[n.roomId] = it }
+                    if (lastReadTs > 0L && n.tsMs <= lastReadTs) continue
+                } else {
+                    val readTs = ThreadReadMarks.latestTs(settings.threadReadMarksJson, n.roomId, n.threadId)
+                    if (readTs > 0L && n.tsMs <= readTs) continue
+                }
 
                 if (n.kind == NotificationKind.StateEvent) continue
 
@@ -255,7 +262,8 @@ actual fun BindNotifications(
                     hasMention = n.hasMention,
                     playSound = playSound,
                     iconPath = avatarPath,
-                    imagePath = mediaPath
+                    imagePath = mediaPath,
+                    threadId = n.threadId,
                 )
                 lastNotifiedTsByRoom[n.roomId] = maxOf(lastNotifiedTsByRoom[n.roomId] ?: 0L, n.tsMs)
             }

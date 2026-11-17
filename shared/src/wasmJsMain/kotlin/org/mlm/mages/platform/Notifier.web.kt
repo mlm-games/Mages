@@ -19,11 +19,13 @@ import org.mlm.mages.calls.isExpired
 import org.mlm.mages.calls.isRingingCall
 import org.mlm.mages.calls.ringing
 import org.mlm.mages.matrix.NotificationKind
+import org.mlm.mages.nav.PendingDeepLinks
 import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.settings.autoDownloadRules
 import org.mlm.mages.push.NotificationMediaPolicy
 import org.mlm.mages.push.NotificationPresentation
 import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.settings.ThreadReadMarks
 import org.mlm.mages.ui.util.nowMs
 import org.w3c.dom.events.Event
 import mages.shared.generated.resources.*
@@ -75,8 +77,21 @@ actual object Notifier {
         return true
     }
 
-    actual fun clearThreadNotification(roomId: String, threadId: String) = Unit
+    actual fun clearThreadNotification(roomId: String, threadId: String) {
+        runCatching { closeBrowserNotificationByTag(notificationTag(roomId, threadId)) }
+    }
 }
+
+private const val THREAD_TAG_SEPARATOR = '\u001f'
+
+private fun notificationTag(roomId: String, threadId: String?): String =
+    if (threadId.isNullOrBlank()) roomId else "$roomId$THREAD_TAG_SEPARATOR$threadId"
+
+private fun notificationTagRoomId(tag: String): String =
+    tag.substringBefore(THREAD_TAG_SEPARATOR)
+
+private fun notificationTagThreadId(tag: String): String? =
+    tag.substringAfter(THREAD_TAG_SEPARATOR, "").takeIf { it.isNotBlank() }
 
 @Composable
 actual fun BindLifecycle(service: MatrixService, resetSyncState: Boolean) {
@@ -110,6 +125,24 @@ actual fun BindNotifications(
     val activeId = activeAccount?.id
     val incomingCalls: IncomingCallTracker = koinInject()
 
+    DisposableEffect(Unit) {
+        val handler: (Event) -> Unit = { event ->
+            val tag = notificationClickTag(event)
+            if (!tag.isNullOrBlank()) {
+                val roomId = notificationTagRoomId(tag)
+                val threadId = notificationTagThreadId(tag)
+                PendingDeepLinks.offer(
+                    buildString {
+                        append("mages://room?id=").append(roomId)
+                        if (threadId != null) append("&thread=").append(threadId)
+                    }
+                )
+            }
+        }
+        window.addEventListener("mages-notif-click", handler)
+        onDispose { window.removeEventListener("mages-notif-click", handler) }
+    }
+
     LaunchedEffect(activeId) {
         if (activeId == null) return@LaunchedEffect
         incomingCalls.dismissed.collect { closeBrowserNotificationByTag(it.roomId) }
@@ -120,7 +153,7 @@ actual fun BindNotifications(
         var firstPoll = true
         val recentlyNotified = LinkedHashSet<String>()
         val lastReadByRoom = HashMap<String, Long>()
-        val lastNotifiedTsByRoom = HashMap<String, Long>()
+        val lastNotifiedTsByConversation = HashMap<String, Long>()
 
         while (isActive) {
             val settings = settingsRepository.flow.first()
@@ -135,7 +168,7 @@ actual fun BindNotifications(
                 firstPoll = true
                 recentlyNotified.clear()
                 lastReadByRoom.clear()
-                lastNotifiedTsByRoom.clear()
+                lastNotifiedTsByConversation.clear()
                 delay(5_000)
                 continue
             }
@@ -192,10 +225,19 @@ actual fun BindNotifications(
                 if (notifMode == RoomNotificationMode.Mute) continue
                 if (notifMode == RoomNotificationMode.MentionsAndKeywordsOnly && !notification.hasMention) continue
 
-                val lastReadTs = lastReadByRoom[notification.roomId] ?: runCatching {
-                    port.ownLastRead(notification.roomId).second ?: 0L
-                }.getOrDefault(0L).also { lastReadByRoom[notification.roomId] = it }
-                if (lastReadTs > 0L && notification.tsMs <= lastReadTs) continue
+                if (notification.threadId == null) {
+                    val lastReadTs = lastReadByRoom[notification.roomId] ?: runCatching {
+                        port.ownLastRead(notification.roomId).second ?: 0L
+                    }.getOrDefault(0L).also { lastReadByRoom[notification.roomId] = it }
+                    if (lastReadTs > 0L && notification.tsMs <= lastReadTs) continue
+                } else {
+                    val readTs = ThreadReadMarks.latestTs(
+                        settings.threadReadMarksJson,
+                        notification.roomId,
+                        notification.threadId,
+                    )
+                    if (readTs > 0L && notification.tsMs <= readTs) continue
+                }
 
                 if (notification.kind == NotificationKind.Invite && settings.autoJoinInvites) {
                     runCatching { port.acceptInvite(notification.roomId) }
@@ -222,8 +264,9 @@ actual fun BindNotifications(
                             notification.roomId
                         )
                     ) {
-                        lastNotifiedTsByRoom[notification.roomId] =
-                            maxOf(lastNotifiedTsByRoom[notification.roomId] ?: 0L, notification.tsMs)
+                        val tag = notificationTag(notification.roomId, null)
+                        lastNotifiedTsByConversation[tag] =
+                            maxOf(lastNotifiedTsByConversation[tag] ?: 0L, notification.tsMs)
                     }
                     continue
                 }
@@ -250,33 +293,43 @@ actual fun BindNotifications(
                     ?.takeIf { NotificationMediaPolicy.allowed(settings) }
                     ?.let { NotificationMediaPolicy.preview(port, it.attachment) }
 
+                val tag = notificationTag(notification.roomId, notification.threadId)
                 if (createBrowserNotification(
                         presentation.title,
                         if (resolvedImage != null) presentation.bodyWithMedia.ifBlank { presentation.body } else presentation.body,
                         resolvedIcon,
-                        notification.roomId,
+                        tag,
                         resolvedImage
                     )
                 ) {
-                    lastNotifiedTsByRoom[notification.roomId] =
-                        maxOf(lastNotifiedTsByRoom[notification.roomId] ?: 0L, notification.tsMs)
+                    lastNotifiedTsByConversation[tag] =
+                        maxOf(lastNotifiedTsByConversation[tag] ?: 0L, notification.tsMs)
                 }
             }
 
-            for (roomId in lastNotifiedTsByRoom.keys.toList()) {
+            for (tag in lastNotifiedTsByConversation.keys.toList()) {
+                val roomId = notificationTagRoomId(tag)
+                val threadId = notificationTagThreadId(tag)
                 if (Notifier.isRoomVisible(roomId)) continue
-                val notifiedTs = lastNotifiedTsByRoom[roomId] ?: continue
+                if (threadId != null) {
+                    if (Notifier.isThreadVisible(roomId, threadId)) {
+                        runCatching { closeBrowserNotificationByTag(tag) }
+                        lastNotifiedTsByConversation.remove(tag)
+                    }
+                    continue
+                }
+                val notifiedTs = lastNotifiedTsByConversation[tag] ?: continue
                 val readTs = runCatching { port.ownLastRead(roomId).second }.getOrNull()
                 if (readTs != null && readTs >= notifiedTs) {
-                    runCatching { closeBrowserNotificationByTag(roomId) }
-                    lastNotifiedTsByRoom.remove(roomId)
+                    runCatching { closeBrowserNotificationByTag(tag) }
+                    lastNotifiedTsByConversation.remove(tag)
                     lastReadByRoom[roomId] = readTs
                     continue
                 }
                 val stats = runCatching { port.roomUnreadStats(roomId) }.getOrNull()
                 if (stats != null && stats.notifications == 0L && stats.mentions == 0L) {
-                    runCatching { closeBrowserNotificationByTag(roomId) }
-                    lastNotifiedTsByRoom.remove(roomId)
+                    runCatching { closeBrowserNotificationByTag(tag) }
+                    lastNotifiedTsByConversation.remove(tag)
                 }
             }
 

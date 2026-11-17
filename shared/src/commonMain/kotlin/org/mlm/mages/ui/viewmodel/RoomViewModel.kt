@@ -9,7 +9,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.serialization.json.Json
 import kotlin.uuid.Uuid
 import mages.shared.generated.resources.*
 import org.koin.core.component.inject
@@ -33,6 +32,7 @@ import org.mlm.mages.platform.platformEmbeddedElementCallUrlOrNull
 import org.mlm.mages.platform.voiceMessageMimeType
 import org.mlm.mages.platform.voiceMessageExtension
 import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.settings.ComposerDrafts
 import org.mlm.mages.settings.toRetentionMs
 import org.mlm.mages.settings.AutoMarkReadTrigger
 import org.mlm.mages.settings.readReceiptsForRoom
@@ -268,7 +268,6 @@ class RoomViewModel(
 
     private val settingsRepo: SettingsRepository<AppSettings> by inject()
 
-    private val json: Json by inject()
 
     private val callManager: CallManager by inject()
 
@@ -3506,27 +3505,18 @@ class RoomViewModel(
 
     //  Draft helpers
 
-    private suspend fun loadDraft(roomId: String): String? {
-        val raw = settingsRepo.flow.first().roomDraftsJson
-        if (raw.isBlank()) return null
-        return try {
-            json.decodeFromString<Map<String, String>>(raw)[roomId]
-        } catch (e: Exception) {
-            Logger.w { "RoomVM: corrupt roomDraftsJson, ignoring: ${e.message}" }
-            null
-        }
-    }
+    private suspend fun loadDraft(roomId: String): String? =
+        ComposerDrafts.text(settingsRepo.flow.first().roomDraftsJson, ComposerDrafts.roomKey(roomId))
 
     private suspend fun saveDraft(roomId: String, text: String) {
         settingsRepo.update { settings ->
-            val current: Map<String, String> = if (settings.roomDraftsJson.isBlank()) emptyMap() else {
-                try { json.decodeFromString(settings.roomDraftsJson) } catch (e: Exception) {
-                    Logger.w { "RoomVM: corrupt roomDraftsJson on save, resetting: ${e.message}" }
-                    emptyMap()
-                }
-            }
-            val updated = if (text.isBlank()) current - roomId else current + (roomId to text)
-            settings.copy(roomDraftsJson = json.encodeToString(updated))
+            settings.copy(
+                roomDraftsJson = ComposerDrafts.updated(
+                    settings.roomDraftsJson,
+                    ComposerDrafts.roomKey(roomId),
+                    text,
+                )
+            )
         }
     }
 

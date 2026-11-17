@@ -17,6 +17,7 @@ import org.mlm.mages.calls.declineIncomingCall
 import org.mlm.mages.nav.DeepLinkAction
 import org.mlm.mages.platform.BindNotifications
 import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.settings.ThreadReadMarks
 import org.mlm.mages.settings.readReceiptsForRoom
 import javax.swing.SwingUtilities
 
@@ -44,9 +45,9 @@ fun DesktopBackground(
     }
 
     LaunchedEffect(service) {
-        DesktopNotifActions.openRoom = { roomId ->
+        DesktopNotifActions.openRoom = { roomId, threadId ->
             SwingUtilities.invokeLater { onShowWindow() }
-            deepLinkEmitter.tryEmit(DeepLinkAction(roomId = roomId))
+            deepLinkEmitter.tryEmit(DeepLinkAction(roomId = roomId, threadId = threadId))
         }
 
         DesktopNotifActions.acceptInvite = { roomId ->
@@ -63,27 +64,56 @@ fun DesktopBackground(
             }
         }
 
-        DesktopNotifActions.markRead = { roomId, eventId ->
-            scope.launch {
-                val port = service.portOrNull ?: return@launch
-                val sendReceipt = settingsRepo.flow.first().readReceiptsForRoom(roomId)
-                port.markFullyReadAt(roomId, eventId, sendReceipt)
+        suspend fun markThreadRead(roomId: String, threadId: String, eventId: String, sendReceipt: Boolean) {
+            val port = service.portOrNull ?: return
+            port.markThreadReadAt(roomId, threadId, eventId, sendReceipt)
+            val readAt = port.fetchNotification(roomId, eventId)?.tsMs ?: return
+            settingsRepo.update { settings ->
+                settings.copy(
+                    threadReadMarksJson = ThreadReadMarks.marked(
+                        settings.threadReadMarksJson,
+                        roomId,
+                        threadId,
+                        readAt,
+                    )
+                )
             }
         }
 
-        DesktopNotifActions.reply = { roomId, _ ->
-            DesktopNotifActions.openRoom(roomId)
+        DesktopNotifActions.markRead = { roomId, eventId, threadId ->
+            scope.launch {
+                val port = service.portOrNull ?: return@launch
+                val sendReceipt = settingsRepo.flow.first().readReceiptsForRoom(roomId)
+                if (threadId == null) {
+                    port.markFullyReadAt(roomId, eventId, sendReceipt)
+                } else {
+                    markThreadRead(roomId, threadId, eventId, sendReceipt)
+                    NotifierImpl.closeThreadNotification(roomId, threadId)
+                }
+            }
         }
 
-        DesktopNotifActions.replyText = replyText@{ roomId, eventId, text ->
+        DesktopNotifActions.reply = { roomId, _, threadId ->
+            DesktopNotifActions.openRoom(roomId, threadId)
+        }
+
+        DesktopNotifActions.replyText = replyText@{ roomId, eventId, threadId, text ->
             val msg = text.trim()
             if (msg.isBlank()) return@replyText
 
             scope.launch {
                 val port = service.portOrNull ?: return@launch
-                port.reply(roomId, eventId, msg)
+                if (threadId == null) {
+                    port.reply(roomId, eventId, msg)
+                } else {
+                    port.sendThreadText(roomId, threadId, msg)
+                }
                 val sendReceipt = settingsRepo.flow.first().readReceiptsForRoom(roomId)
-                port.markFullyReadAt(roomId, eventId, sendReceipt)
+                if (threadId == null) {
+                    port.markFullyReadAt(roomId, eventId, sendReceipt)
+                } else {
+                    markThreadRead(roomId, threadId, eventId, sendReceipt)
+                }
             }
         }
 

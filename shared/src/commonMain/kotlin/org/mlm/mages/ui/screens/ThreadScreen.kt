@@ -4,6 +4,7 @@ import org.jetbrains.compose.resources.painterResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.currentStateAsState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -108,6 +109,7 @@ import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.settings.AutoMarkReadTrigger
 import org.mlm.mages.settings.MessageMenuAction
 import org.mlm.mages.settings.MessageSwipeAction
 import org.mlm.mages.settings.parseMessageMenuOrder
@@ -159,7 +161,18 @@ fun ThreadRoute(
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
             report(false)
+            viewModel.stopTyping()
         }
+    }
+    DisposableEffect(lifecycleOwner, settings.autoMarkReadTrigger) {
+        if (settings.autoMarkReadTrigger != AutoMarkReadTrigger.OnRoomClose) {
+            return@DisposableEffect onDispose {}
+        }
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) viewModel.markThreadSeen()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     val imagePicker = rememberFilePickerLauncher(
@@ -261,6 +274,8 @@ fun ThreadRoute(
         },
         enterSendsMessage = settings.enterSendsMessage,
         showReactionAvatars = settings.showReactionAvatars,
+        markReadTrigger = settings.autoMarkReadTrigger,
+        onMarkThreadSeen = viewModel::markThreadSeen,
         canEditLatest = settings.editLatestWithUpArrow && state.editingEvent == null && viewModel.hasEditableLatest(),
         onEditLatest = viewModel::startEditLatestEditable,
         onMentionClick = viewModel::selectMemberForAction,
@@ -420,6 +435,8 @@ fun ThreadScreen(
     onIgnore: (String) -> Unit = { },
     onOpenAvatar: (MemberSummary) -> Unit = { },
     showReactionAvatars: Boolean = true,
+    markReadTrigger: AutoMarkReadTrigger = AutoMarkReadTrigger.WhileOpen,
+    onMarkThreadSeen: () -> Unit = {},
     emoteSuggestions: List<EmoteSuggestion> = emptyList(),
     resolveEmotePreview: suspend (thumbnailMxcUri: String?, mxcUrl: String, mime: String?, full: Boolean) -> String? = { _, _, _, _ -> null },
     reactionShortcodes: Map<String, String> = emptyMap(),
@@ -457,6 +474,17 @@ fun ThreadScreen(
             val first = listState.layoutInfo.visibleItemsInfo.firstOrNull()
             totalItems == 0 || first == null ||
                 (if (first.index == 0) first.offset >= -nearBottomOffset else first.index <= 3)
+        }
+    }
+
+    val newestReplyId = state.replies.lastOrNull()?.itemId
+    val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
+    LaunchedEffect(newestReplyId, isNearBottom, state.hasInitialLoad, state.focusedEventId, lifecycleState) {
+        if (markReadTrigger != AutoMarkReadTrigger.WhileOpen) return@LaunchedEffect
+        if (lifecycleState.isAtLeast(Lifecycle.State.STARTED) &&
+            state.hasInitialLoad && isNearBottom && state.focusedEventId == null
+        ) {
+            onMarkThreadSeen()
         }
     }
 

@@ -711,6 +711,7 @@ object Notifier {
     private const val REQUEST_CONTENT = 3000
     private const val REQUEST_REPLY = 4000
     private const val REQUEST_READ = 5000
+    private const val REQUEST_DISMISS = 6000
     private const val KEY_TEXT_REPLY = "key_text_reply"
 
     fun showConversationNotification(
@@ -733,7 +734,7 @@ object Notifier {
         mediaPath: String? = null,
         caption: String = "",
     ) {
-        val isThread = threadId != null
+        val isThread = !threadId.isNullOrBlank()
         val channelId = if (playSound) {
             AppNotificationChannels.CHANNEL_MESSAGES
         } else {
@@ -741,7 +742,7 @@ object Notifier {
         }
         val conversationId = ConversationShortcutPublisher.shortcutId(roomId, threadId)
         val shortcutIntent = when {
-            threadId != null -> threadShortcutIntent(context, roomId, threadId)
+            !threadId.isNullOrBlank() -> threadShortcutIntent(context, roomId, threadId)
             bubbleActivityClass != null -> Intent(context, bubbleActivityClass)
                 .setAction(Intent.ACTION_VIEW)
                 .putExtra(ConversationShortcutPublisher.EXTRA_ROOM_ID, roomId)
@@ -826,7 +827,7 @@ object Notifier {
                 .putExtra(NotificationActionReceiver.EXTRA_SENDER_NAME, senderName)
                 .putExtra(NotificationActionReceiver.EXTRA_SENDER_USER_ID, senderUserId)
                 .putExtra(NotificationActionReceiver.EXTRA_MESSAGE_BODY, messageBody)
-                .apply { threadId?.let { putExtra(NotificationActionReceiver.EXTRA_THREAD_ID, it) } },
+                .apply { if (!threadId.isNullOrBlank()) putExtra(NotificationActionReceiver.EXTRA_THREAD_ID, threadId) },
             PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val replyAction = NotificationCompat.Action.Builder(
@@ -844,12 +845,22 @@ object Notifier {
                 .putExtra(NotificationActionReceiver.EXTRA_ROOM_NAME, roomName)
                 .putExtra(NotificationActionReceiver.EXTRA_SENDER_NAME, senderName)
                 .putExtra(NotificationActionReceiver.EXTRA_MESSAGE_BODY, messageBody)
-                .apply { threadId?.let { putExtra(NotificationActionReceiver.EXTRA_THREAD_ID, it) } },
+                .apply { if (!threadId.isNullOrBlank()) putExtra(NotificationActionReceiver.EXTRA_THREAD_ID, threadId) },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val markReadAction = NotificationCompat.Action.Builder(
             R.drawable.ic_notif_status_bar, context.getString(R.string.notif_mark_read), markReadIntent
         ).build()
+
+        val dismissIntent = PendingIntent.getBroadcast(
+            context,
+            REQUEST_DISMISS + notificationId,
+            Intent(context, NotificationActionReceiver::class.java)
+                .setAction(NotificationActionReceiver.ACTION_DISMISSED)
+                .putExtra(NotificationActionReceiver.EXTRA_ROOM_ID, roomId)
+                .apply { if (!threadId.isNullOrBlank()) putExtra(NotificationActionReceiver.EXTRA_THREAD_ID, threadId) },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
 
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_notif_status_bar)
@@ -858,6 +869,7 @@ object Notifier {
             .addAction(replyAction)
             .addAction(markReadAction)
             .setAutoCancel(true)
+            .setDeleteIntent(dismissIntent)
             .setOnlyAlertOnce(false)
             .setCategory(Notification.CATEGORY_MESSAGE)
             .setGroup(groupKey(context))
@@ -973,12 +985,12 @@ object Notifier {
         threadId: String? = null,
         roomAvatar: AvatarResult? = null,
     ) {
-        val isThread = threadId != null
+        val isThread = !threadId.isNullOrBlank()
         val channelId = AppNotificationChannels.CHANNEL_MESSAGES_SILENT
         val bubbleIcon = if (isDm) myAvatar.icon else contactAvatar.icon
         val conversationId = ConversationShortcutPublisher.shortcutId(roomId, threadId)
         val shortcutIntent = when {
-            threadId != null -> threadShortcutIntent(context, roomId, threadId)
+            !threadId.isNullOrBlank() -> threadShortcutIntent(context, roomId, threadId)
             bubbleActivityClass != null -> Intent(context, bubbleActivityClass)
                 .setAction(Intent.ACTION_VIEW)
                 .putExtra(ConversationShortcutPublisher.EXTRA_ROOM_ID, roomId)
@@ -1048,7 +1060,7 @@ object Notifier {
                 .putExtra(NotificationActionReceiver.EXTRA_SENDER_NAME, contactName)
                 .putExtra(NotificationActionReceiver.EXTRA_MESSAGE_BODY, replyText)
                 .putExtra(NotificationActionReceiver.EXTRA_LAST_MESSAGE_FROM_ME, true)
-                .apply { threadId?.let { putExtra(NotificationActionReceiver.EXTRA_THREAD_ID, it) } },
+                .apply { if (!threadId.isNullOrBlank()) putExtra(NotificationActionReceiver.EXTRA_THREAD_ID, threadId) },
             PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val replyAction = NotificationCompat.Action.Builder(
@@ -1063,12 +1075,22 @@ object Notifier {
                 .putExtra(NotificationActionReceiver.EXTRA_ROOM_ID, roomId)
                 .putExtra(NotificationActionReceiver.EXTRA_EVENT_ID, eventId)
                 .putExtra(NotificationActionReceiver.EXTRA_NOTIF_ID, notificationId)
-                .apply { threadId?.let { putExtra(NotificationActionReceiver.EXTRA_THREAD_ID, it) } },
+                .apply { if (!threadId.isNullOrBlank()) putExtra(NotificationActionReceiver.EXTRA_THREAD_ID, threadId) },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val markReadAction = NotificationCompat.Action.Builder(
             R.drawable.ic_notif_status_bar, context.getString(R.string.notif_mark_read), markReadIntent
         ).build()
+
+        val dismissIntent = PendingIntent.getBroadcast(
+            context,
+            REQUEST_DISMISS + notificationId,
+            Intent(context, NotificationActionReceiver::class.java)
+                .setAction(NotificationActionReceiver.ACTION_DISMISSED)
+                .putExtra(NotificationActionReceiver.EXTRA_ROOM_ID, roomId)
+                .apply { if (!threadId.isNullOrBlank()) putExtra(NotificationActionReceiver.EXTRA_THREAD_ID, threadId) },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
 
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_notif_status_bar)
@@ -1077,6 +1099,7 @@ object Notifier {
             .addAction(replyAction)
             .addAction(markReadAction)
             .setAutoCancel(true)
+            .setDeleteIntent(dismissIntent)
             .setOnlyAlertOnce(false)
             .setCategory(Notification.CATEGORY_MESSAGE)
             .setGroup(groupKey(context))

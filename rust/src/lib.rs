@@ -6375,12 +6375,17 @@ fn classify_notification_content(
 }
 
 fn notification_thread_id(item: &NotificationItem) -> Option<String> {
-    let content = raw_notification_content(item)?;
-    let relates = content.get("m.relates_to")?;
-    if relates.get("rel_type")?.as_str()? != "m.thread" {
-        return None;
-    }
-    relates.get("event_id")?.as_str().map(ToOwned::to_owned)
+    item.thread_id
+        .as_ref()
+        .map(|thread_id| thread_id.to_string())
+        .or_else(|| {
+            let content = raw_notification_content(item)?;
+            let relates = content.get("m.relates_to")?;
+            if relates.get("rel_type")?.as_str()? != "m.thread" {
+                return None;
+            }
+            relates.get("event_id")?.as_str().map(ToOwned::to_owned)
+        })
 }
 
 pub fn map_notification_item_to_rendered(
