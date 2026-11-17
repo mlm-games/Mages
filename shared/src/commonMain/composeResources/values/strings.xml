@@ -682,6 +682,8 @@
     <string name="setting_hide_topic_changes_description">Topic changes in rooms</string>
     <string name="setting_hide_redacted_events">Hide redacted events</string>
     <string name="setting_hide_redacted_events_description">Events whose content was removed by redaction</string>
+    <string name="setting_hide_deleted_messages_after">Hide deleted messages</string>
+    <string name="setting_hide_deleted_messages_after_description">Remove deleted messages from the timeline after a delay</string>
     <string name="setting_hide_room_name_changes">Hide room name changes</string>
     <string name="setting_hide_room_name_changes_description">Room name changes</string>
     <string name="setting_hide_room_avatar_changes">Hide room avatar changes</string>
@@ -952,6 +954,13 @@
         <item>Public Rooms</item>
         <item>Non-DMs</item>
         <item>Always</item>
+    </string-array>
+    <string-array name="setting_hide_deleted_after_options">
+        <item>Never</item>
+        <item>1 minute</item>
+        <item>5 minutes</item>
+        <item>15 minutes</item>
+        <item>1 hour</item>
     </string-array>
     <string-array name="setting_app_lock_timeout_options">
         <item>Immediate</item>

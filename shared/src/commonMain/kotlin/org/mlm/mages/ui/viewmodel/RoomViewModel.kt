@@ -33,6 +33,7 @@ import org.mlm.mages.platform.platformEmbeddedElementCallUrlOrNull
 import org.mlm.mages.platform.voiceMessageMimeType
 import org.mlm.mages.platform.voiceMessageExtension
 import org.mlm.mages.settings.AppSettings
+import org.mlm.mages.settings.toRetentionMs
 import org.mlm.mages.settings.AutoMarkReadTrigger
 import org.mlm.mages.settings.readReceiptsForRoom
 import org.mlm.mages.settings.typingIndicatorsForRoom
@@ -313,6 +314,10 @@ class RoomViewModel(
     private val settings = settingsRepo.flow
         .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
 
+    private val deletedMessageVisibility = DeletedMessageVisibility { nowMs() }
+    private var deletedMessageExpiryJob: Job? = null
+    private var deletedMessageExpiryAtMs: Long? = null
+
     private companion object {
         const val MESSAGE_INFO_READERS_LIMIT = 100
         const val MAX_REACTION_PROFILE_FETCHES = 50
@@ -332,18 +337,45 @@ class RoomViewModel(
     }
 
     private fun filteredVisibleEvents(items: List<MessageEvent>): List<MessageEvent> =
-        items
-            .withoutThreadReplies()
-            .applySystemEventVisibility(roomClass, settings.value.toSystemEventVisibilitySettings())
+        deletedMessageVisibility.visible(
+            items
+                .withoutThreadReplies()
+                .applySystemEventVisibility(roomClass, settings.value.toSystemEventVisibilitySettings()),
+            settings.value.hideDeletedMessagesAfter.toRetentionMs(),
+        )
 
     private fun filteredDeltaEvents(items: List<MessageEvent>): List<MessageEvent> =
-        items.applySystemEventVisibility(roomClass, settings.value.toSystemEventVisibilitySettings())
+        deletedMessageVisibility.visible(
+            items.applySystemEventVisibility(roomClass, settings.value.toSystemEventVisibilitySettings()),
+            settings.value.hideDeletedMessagesAfter.toRetentionMs(),
+        )
 
     private fun recomputeVisibleEvents() {
         updateState {
             copy(events = filteredVisibleEvents(allEvents))
         }
         recomputeDerived()
+        armDeletedMessageTimer()
+    }
+
+    private fun armDeletedMessageTimer() {
+        val retentionMs = settings.value.hideDeletedMessagesAfter.toRetentionMs()
+        val nextHideAtMs =
+            retentionMs?.let { deletedMessageVisibility.nextHideAtMs(currentState.allEvents, it) }
+
+        if (nextHideAtMs == deletedMessageExpiryAtMs && deletedMessageExpiryJob?.isActive == true) {
+            return
+        }
+
+        deletedMessageExpiryJob?.cancel()
+        deletedMessageExpiryAtMs = nextHideAtMs
+
+        if (nextHideAtMs == null) return
+
+        deletedMessageExpiryJob = viewModelScope.launch {
+            delay((nextHideAtMs - nowMs()).coerceAtLeast(1L))
+            recomputeVisibleEvents()
+        }
     }
 
     private var messageInfoRequestVersion: Long = 0L
@@ -2881,6 +2913,7 @@ class RoomViewModel(
 
         recomputeLiveLocationShares()
         recomputeDerived()
+        armDeletedMessageTimer()
     }
 
     private fun observeTyping() {

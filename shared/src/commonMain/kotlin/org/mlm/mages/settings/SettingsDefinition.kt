@@ -68,6 +68,17 @@ fun AppLockTimeout.toSeconds(): Long = when (this) {
 enum class HideInRoomsMode { Never, PublicRooms, NonDMs, Always }
 
 @Serializable
+enum class DeletedMessageRetention { Never, OneMinute, FiveMinutes, FifteenMinutes, OneHour }
+
+fun DeletedMessageRetention.toRetentionMs(): Long? = when (this) {
+    DeletedMessageRetention.Never -> null
+    DeletedMessageRetention.OneMinute -> 60_000L
+    DeletedMessageRetention.FiveMinutes -> 300_000L
+    DeletedMessageRetention.FifteenMinutes -> 900_000L
+    DeletedMessageRetention.OneHour -> 3_600_000L
+}
+
+@Serializable
 enum class RoomSwipeAction { MarkRead, MarkUnread, Nothing, ToggleUnread }
 
 @Serializable
@@ -360,6 +371,18 @@ data class AppSettings(
         optionsKey = MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS,
     )
     val compactPublicRoomRedactedEvents: HideInRoomsMode = HideInRoomsMode.Never,
+
+    @Setting(
+        title = "Hide deleted messages",
+        titleKey = MagesSettingsKeys.HIDE_DELETED_MESSAGES_AFTER,
+        description = "Remove deleted messages from the timeline after a delay",
+        descriptionKey = MagesSettingsKeys.HIDE_DELETED_MESSAGES_AFTER_DESCRIPTION,
+        category = Timeline::class,
+        type = Dropdown::class,
+        options = ["Never", "1 minute", "5 minutes", "15 minutes", "1 hour"],
+        optionsKey = MagesSettingsKeys.HIDE_DELETED_AFTER_OPTIONS,
+    )
+    val hideDeletedMessagesAfter: DeletedMessageRetention = DeletedMessageRetention.Never,
 
     @Setting(
         title = "Hide room name changes",
