@@ -128,10 +128,7 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                             }
                         }
                         if (threadId != null) {
-                            if (notifId != 0) {
-                                nm.cancel(notifId)
-                                Notifier.updateSummaryNotification(context)
-                            }
+                            AndroidNotificationHelper.cancelThreadNotification(context, roomId, threadId)
                         } else if (notifId != 0) {
                             AndroidNotificationHelper.cancelRoomNotification(context, roomId, force = true)
                         }
@@ -210,6 +207,15 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                             fallbackRes = R.drawable.ic_notif_status_bar,
                         )
 
+                        val roomAvatar = NotificationAvatarHelper.resolve(
+                            context = context,
+                            service = service,
+                            avatarUrl = runCatching { port.roomProfile(roomId)?.avatarUrl }.getOrNull(),
+                            displayName = roomName,
+                            userId = roomId,
+                            fallbackRes = R.drawable.ic_notif_status_bar,
+                        )
+
                         val bubbleActivityClass = try {
                             Class.forName("org.mlm.mages.activities.BubbleConversationActivity")
                         } catch (_: ClassNotFoundException) {
@@ -258,6 +264,7 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                             fullOpenIntent = fullOpenIntent,
                             isDm = isDm,
                             threadId = threadId,
+                            roomAvatar = roomAvatar,
                         )
                     }
                 }

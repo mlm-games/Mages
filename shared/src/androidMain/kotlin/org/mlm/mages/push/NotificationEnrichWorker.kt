@@ -199,7 +199,7 @@ class NotificationEnrichWorker(
                 val me = service.activeAccount.value?.userId
                 val senderIsMe = me != null && me == rendered.senderUserId
                 if (!settings.notifyWhileRoomOpen &&
-                    !PlatformNotifier.shouldNotify(roomId, senderIsMe)
+                    !PlatformNotifier.shouldNotify(roomId, rendered.threadId, senderIsMe)
                 ) {
                     return Result.success()
                 }

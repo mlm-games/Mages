@@ -31,6 +31,7 @@ import org.jetbrains.compose.resources.getString
 
 actual object Notifier {
     private val visibleRooms = RoomVisibilityTracker()
+    private val visibleThreads = ThreadVisibilityTracker()
     private var windowFocused: Boolean = true
 
     actual fun notifyRoom(title: String, body: String, icon: String?) {
@@ -54,6 +55,9 @@ actual object Notifier {
     actual fun setRoomVisible(roomId: String, visible: Boolean) =
         visibleRooms.set(roomId, visible)
 
+    actual fun setThreadVisible(roomId: String, threadId: String, visible: Boolean) =
+        visibleThreads.set(roomId, threadId, visible)
+
     actual fun setWindowFocused(focused: Boolean) {
         windowFocused = focused
     }
@@ -61,9 +65,13 @@ actual object Notifier {
     internal fun isRoomVisible(roomId: String): Boolean =
         windowFocused && visibleRooms.isVisible(roomId)
 
-    actual fun shouldNotify(roomId: String, senderIsMe: Boolean): Boolean {
+    internal fun isThreadVisible(roomId: String, threadId: String): Boolean =
+        windowFocused && visibleThreads.isVisible(roomId, threadId)
+
+    actual fun shouldNotify(roomId: String, threadId: String?, senderIsMe: Boolean): Boolean {
         if (senderIsMe) return false
         if (isRoomVisible(roomId)) return false
+        if (threadId != null && isThreadVisible(roomId, threadId)) return false
         return true
     }
 
@@ -173,7 +181,7 @@ actual fun BindNotifications(
 
                 val senderIsMe = ownUserId != null && notification.senderUserId == ownUserId
                 if (!settings.notifyWhileRoomOpen &&
-                    !Notifier.shouldNotify(notification.roomId, senderIsMe)
+                    !Notifier.shouldNotify(notification.roomId, notification.threadId, senderIsMe)
                 ) {
                     continue
                 }
@@ -199,7 +207,7 @@ actual fun BindNotifications(
                 if (notification.kind.isRingingCall()) {
                     if (!settings.callNotificationsEnabled) continue
                     incomingCalls.report(IncomingCall.ringing(notification))
-                    if (!Notifier.shouldNotify(notification.roomId, senderIsMe)) continue
+                    if (!Notifier.shouldNotify(notification.roomId, notification.threadId, senderIsMe)) continue
                     val callBody = if (notification.roomName.isNotBlank() &&
                         notification.roomName != notification.sender
                     ) {

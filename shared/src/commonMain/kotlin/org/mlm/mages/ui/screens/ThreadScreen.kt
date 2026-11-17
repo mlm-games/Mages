@@ -1,6 +1,9 @@
 package org.mlm.mages.ui.screens
 
 import org.jetbrains.compose.resources.painterResource
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -83,6 +86,7 @@ import org.mlm.mages.ui.components.snackbar.SnackbarManager
 import org.mlm.mages.ui.components.snackbar.rememberErrorPoster
 import org.mlm.mages.platform.ShareContent
 import org.mlm.mages.platform.ShareOutcome
+import org.mlm.mages.platform.Notifier
 import org.mlm.mages.platform.rememberCameraPickerLauncher
 import org.mlm.mages.platform.toTransferItem
 import org.mlm.mages.platform.rememberFileOpener
@@ -129,6 +133,34 @@ fun ThreadRoute(
     val copiedLabel = stringResource(Res.string.copied_to_clipboard)
     val shareFailedLabel = stringResource(Res.string.share_failed)
     val downloadFailedLabel = stringResource(Res.string.download_failed)
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val visibleRoomId = state.roomId
+    val visibleThreadId = state.rootEventId
+    DisposableEffect(lifecycleOwner, visibleRoomId, visibleThreadId) {
+        var reported = false
+        fun report(visible: Boolean) {
+            if (reported == visible) return
+            reported = visible
+            Notifier.setThreadVisible(visibleRoomId, visibleThreadId, visible)
+            if (visible && visibleThreadId.isNotBlank()) {
+                Notifier.clearThreadNotification(visibleRoomId, visibleThreadId)
+            }
+        }
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> report(true)
+                Lifecycle.Event.ON_STOP, Lifecycle.Event.ON_DESTROY -> report(false)
+                else -> Unit
+            }
+        }
+        report(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            report(false)
+        }
+    }
 
     val imagePicker = rememberFilePickerLauncher(
         mode = FileKitMode.Multiple(),

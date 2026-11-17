@@ -33,6 +33,7 @@ import kotlin.system.exitProcess
 
 actual object Notifier {
     private val visibleRooms = RoomVisibilityTracker()
+    private val visibleThreads = ThreadVisibilityTracker()
     private var windowFocused: Boolean = true
     private val roomsNotifiedWithSound = HashSet<String>()
 
@@ -53,6 +54,9 @@ actual object Notifier {
     actual fun setRoomVisible(roomId: String, visible: Boolean) =
         visibleRooms.set(roomId, visible)
 
+    actual fun setThreadVisible(roomId: String, threadId: String, visible: Boolean) =
+        visibleThreads.set(roomId, threadId, visible)
+
     actual fun setWindowFocused(focused: Boolean) {
         windowFocused = focused
     }
@@ -60,9 +64,13 @@ actual object Notifier {
     internal fun isRoomVisible(roomId: String): Boolean =
         windowFocused && visibleRooms.isVisible(roomId)
 
-    actual fun shouldNotify(roomId: String, senderIsMe: Boolean): Boolean {
+    internal fun isThreadVisible(roomId: String, threadId: String): Boolean =
+        windowFocused && visibleThreads.isVisible(roomId, threadId)
+
+    actual fun shouldNotify(roomId: String, threadId: String?, senderIsMe: Boolean): Boolean {
         if (senderIsMe) return false
         if (isRoomVisible(roomId)) return false
+        if (threadId != null && isThreadVisible(roomId, threadId)) return false
         return true
     }
 
@@ -182,7 +190,7 @@ actual fun BindNotifications(
                 }
 
                 val senderIsMe = me != null && me == n.senderUserId
-                if (!settings.notifyWhileRoomOpen && !Notifier.shouldNotify(n.roomId, senderIsMe)) continue
+                if (!settings.notifyWhileRoomOpen && !Notifier.shouldNotify(n.roomId, n.threadId, senderIsMe)) continue
 
                 val notifMode = notifModeCache.getOrPut(n.roomId) {
                     runCatching { port.roomNotificationMode(n.roomId) }.getOrNull()
@@ -201,7 +209,7 @@ actual fun BindNotifications(
                     if (!settings.callNotificationsEnabled) continue
                     if (n.isExpired()) continue
                     incomingCalls.report(IncomingCall.ringing(n))
-                    if (!Notifier.shouldNotify(n.roomId, senderIsMe)) continue
+                    if (!Notifier.shouldNotify(n.roomId, n.threadId, senderIsMe)) continue
                     val callAvatarPath = runCatching {
                         val profile = port.roomProfile(n.roomId)
                         service.avatars.resolve(profile?.avatarUrl, px = 96, crop = true)

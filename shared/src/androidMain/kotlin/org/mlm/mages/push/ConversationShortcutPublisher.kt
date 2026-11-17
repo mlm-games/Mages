@@ -9,40 +9,38 @@ import androidx.core.graphics.drawable.IconCompat
 
 object ConversationShortcutPublisher {
 
-    fun shortcutId(roomId: String): String = "conv_$roomId"
+    fun shortcutId(roomId: String, threadId: String? = null): String =
+        if (threadId.isNullOrBlank()) "conv_$roomId" else "conv_$roomId:$threadId"
 
     fun publishOrUpdate(
         context: Context,
-        roomId: String,
-        roomName: String,
-        senderName: String,
+        id: String,
+        label: String,
+        personName: String,
+        personKey: String,
         icon: IconCompat,
-        bubbleActivityClass: Class<*>,
-    ) {
+        intent: Intent,
+    ): Boolean = runCatching {
         val person = Person.Builder()
-            .setName(senderName)
-            .setKey(roomId)
+            .setName(personName)
+            .setKey(personKey)
             .setImportant(true)
             .build()
 
-        val shortcut = ShortcutInfoCompat.Builder(context, shortcutId(roomId))
-            .setShortLabel(roomName)
+        val shortcut = ShortcutInfoCompat.Builder(context, id)
+            .setShortLabel(label)
             .setLongLived(true)
             .setIsConversation()
             .setIcon(icon)
             .setPerson(person)
-            .setIntent(
-                Intent(context, bubbleActivityClass)
-                    .setAction(Intent.ACTION_VIEW)
-                    .putExtra(EXTRA_ROOM_ID, roomId)
-            )
+            .setIntent(intent)
             .build()
 
         ShortcutManagerCompat.pushDynamicShortcut(context, shortcut)
-    }
+    }.getOrDefault(false)
 
-    fun remove(context: Context, roomId: String) {
-        ShortcutManagerCompat.removeDynamicShortcuts(context, listOf(shortcutId(roomId)))
+    fun remove(context: Context, roomId: String, threadId: String? = null) {
+        ShortcutManagerCompat.removeDynamicShortcuts(context, listOf(shortcutId(roomId, threadId)))
     }
 
     const val EXTRA_ROOM_ID = "room_id"

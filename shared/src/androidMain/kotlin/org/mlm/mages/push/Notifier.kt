@@ -189,7 +189,7 @@ object AndroidNotificationHelper : KoinComponent {
     ) {
         val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val id = roomId.hashCode()
-        val messageIds = mgr.activeNotifications
+        val conversationNotifications = mgr.activeNotifications
             .filter {
                 it.notification.extras
                     .getString(NotificationReconcileWorker.EXTRA_MATRIX_ROOM_ID) == roomId &&
@@ -198,6 +198,7 @@ object AndroidNotificationHelper : KoinComponent {
                     (includeThreads || it.notification.extras
                         .getString(NotificationReconcileWorker.EXTRA_MATRIX_THREAD_ID) == null)
             }
+        val messageIds = conversationNotifications
             .map { it.id }
             .toMutableSet()
             .apply { add(id) }
@@ -212,6 +213,14 @@ object AndroidNotificationHelper : KoinComponent {
         }
 
         messageIds.forEach { mgr.cancel(it) }
+        if (includeThreads) {
+            conversationNotifications
+                .mapNotNull {
+                    it.notification.extras
+                        .getString(NotificationReconcileWorker.EXTRA_MATRIX_THREAD_ID)
+                }
+                .forEach { runCatching { ConversationShortcutPublisher.remove(ctx, roomId, it) } }
+        }
         Notifier.updateSummaryNotification(ctx)
     }
 
@@ -225,6 +234,7 @@ object AndroidNotificationHelper : KoinComponent {
                         .getString(NotificationReconcileWorker.EXTRA_MATRIX_THREAD_ID) == threadId
             }
             .forEach { mgr.cancel(it.id) }
+        runCatching { ConversationShortcutPublisher.remove(ctx, roomId, threadId) }
         Notifier.updateSummaryNotification(ctx)
     }
 
@@ -729,11 +739,28 @@ object Notifier {
         } else {
             AppNotificationChannels.CHANNEL_MESSAGES_SILENT
         }
-        if (bubbleActivityClass != null && !isThread) {
-            ConversationShortcutPublisher.publishOrUpdate(
-                context, roomId, roomName, senderName, roomAvatar.icon, bubbleActivityClass
-            )
+        val conversationId = ConversationShortcutPublisher.shortcutId(roomId, threadId)
+        val shortcutIntent = when {
+            threadId != null -> threadShortcutIntent(context, roomId, threadId)
+            bubbleActivityClass != null -> Intent(context, bubbleActivityClass)
+                .setAction(Intent.ACTION_VIEW)
+                .putExtra(ConversationShortcutPublisher.EXTRA_ROOM_ID, roomId)
+            else -> null
         }
+        val conversationShortcutReady = shortcutIntent != null &&
+            ConversationShortcutPublisher.publishOrUpdate(
+                context = context,
+                id = conversationId,
+                label = if (isThread) {
+                    context.getString(R.string.notif_thread_title, roomName)
+                } else {
+                    roomName
+                },
+                personName = if (isThread) roomName else senderName,
+                personKey = conversationId,
+                icon = roomAvatar.icon,
+                intent = shortcutIntent,
+            )
 
         val sender = Person.Builder()
             .setName(senderName)
@@ -835,11 +862,7 @@ object Notifier {
             .setCategory(Notification.CATEGORY_MESSAGE)
             .setGroup(groupKey(context))
             .setGroupSummary(false)
-            .apply {
-                if (!isThread) {
-                    setShortcutId(ConversationShortcutPublisher.shortcutId(roomId))
-                }
-            }
+            .apply { if (conversationShortcutReady) setShortcutId(conversationId) }
 
         val largeIconBitmap = if (isDm) senderAvatar.bitmap else roomAvatar.bitmap
         builder.setLargeIcon(largeIconBitmap)
@@ -899,9 +922,12 @@ object Notifier {
                 !isSuppressedBubble(it.notification)
             }
             .map {
-                it.notification.extras
+                val roomId = it.notification.extras
                     .getString(NotificationReconcileWorker.EXTRA_MATRIX_ROOM_ID)
                     ?: it.id.toString()
+                val threadId = it.notification.extras
+                    .getString(NotificationReconcileWorker.EXTRA_MATRIX_THREAD_ID)
+                if (threadId.isNullOrBlank()) roomId else "$roomId:$threadId"
             }
             .distinct()
 
@@ -945,15 +971,33 @@ object Notifier {
         fullOpenIntent: PendingIntent,
         isDm: Boolean,
         threadId: String? = null,
+        roomAvatar: AvatarResult? = null,
     ) {
         val isThread = threadId != null
         val channelId = AppNotificationChannels.CHANNEL_MESSAGES_SILENT
         val bubbleIcon = if (isDm) myAvatar.icon else contactAvatar.icon
-        if (bubbleActivityClass != null && !isThread) {
-            ConversationShortcutPublisher.publishOrUpdate(
-                context, roomId, roomName, contactName, bubbleIcon, bubbleActivityClass
-            )
+        val conversationId = ConversationShortcutPublisher.shortcutId(roomId, threadId)
+        val shortcutIntent = when {
+            threadId != null -> threadShortcutIntent(context, roomId, threadId)
+            bubbleActivityClass != null -> Intent(context, bubbleActivityClass)
+                .setAction(Intent.ACTION_VIEW)
+                .putExtra(ConversationShortcutPublisher.EXTRA_ROOM_ID, roomId)
+            else -> null
         }
+        val conversationShortcutReady = shortcutIntent != null &&
+            ConversationShortcutPublisher.publishOrUpdate(
+                context = context,
+                id = conversationId,
+                label = if (isThread) {
+                    context.getString(R.string.notif_thread_title, roomName)
+                } else {
+                    roomName
+                },
+                personName = if (isThread) roomName else contactName,
+                personKey = conversationId,
+                icon = roomAvatar?.icon ?: bubbleIcon,
+                intent = shortcutIntent,
+            )
 
         val me = Person.Builder()
             .setName(myUserName)
@@ -1037,11 +1081,7 @@ object Notifier {
             .setCategory(Notification.CATEGORY_MESSAGE)
             .setGroup(groupKey(context))
             .setGroupSummary(false)
-            .apply {
-                if (!isThread) {
-                    setShortcutId(ConversationShortcutPublisher.shortcutId(roomId))
-                }
-            }
+            .apply { if (conversationShortcutReady) setShortcutId(conversationId) }
 
         if (isDm) {
             builder.setLargeIcon(myAvatar.bitmap)
@@ -1082,5 +1122,18 @@ object Notifier {
         }
 
         updateSummaryNotification(context)
+    }
+}
+
+private fun threadShortcutIntent(context: Context, roomId: String, threadId: String): Intent {
+    val uri = Uri.Builder()
+        .scheme("mages")
+        .authority("room")
+        .appendQueryParameter("id", roomId)
+        .appendQueryParameter("thread", threadId)
+        .build()
+    return Intent(Intent.ACTION_VIEW, uri).apply {
+        setPackage(context.packageName)
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
     }
 }

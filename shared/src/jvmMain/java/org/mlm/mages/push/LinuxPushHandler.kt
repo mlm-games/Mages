@@ -102,7 +102,7 @@ class LinuxPushHandler(
             val me = port.whoami()
             val senderIsMe = me != null && me == n.senderUserId
             val settings = settingsRepository.flow.first()
-            if (!settings.notifyWhileRoomOpen && !Notifier.shouldNotify(n.roomId, senderIsMe)) continue
+            if (!settings.notifyWhileRoomOpen && !Notifier.shouldNotify(n.roomId, n.threadId, senderIsMe)) continue
 
             val notifMode = runCatching { port.roomNotificationMode(n.roomId) }.getOrNull()
             if (notifMode == RoomNotificationMode.Mute) continue

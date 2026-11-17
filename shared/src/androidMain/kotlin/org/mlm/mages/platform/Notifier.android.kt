@@ -42,6 +42,7 @@ private fun parseNotifiedRooms(json: String): Set<String> {
 actual object Notifier {
     private const val CHANNEL_ID = "messages"
     private val visibleRooms = RoomVisibilityTracker()
+    private val visibleThreads = ThreadVisibilityTracker()
 
     private fun appContextOrNull(): Context? =
         runCatching { GlobalContext.get().get<Context>() }.getOrNull()
@@ -98,13 +99,20 @@ actual object Notifier {
     actual fun setRoomVisible(roomId: String, visible: Boolean) =
         visibleRooms.set(roomId, visible)
 
+    actual fun setThreadVisible(roomId: String, threadId: String, visible: Boolean) =
+        visibleThreads.set(roomId, threadId, visible)
+
     actual fun setWindowFocused(focused: Boolean) = Unit
 
     internal fun isRoomVisible(roomId: String): Boolean = visibleRooms.isVisible(roomId)
 
-    actual fun shouldNotify(roomId: String, senderIsMe: Boolean): Boolean {
+    internal fun isThreadVisible(roomId: String, threadId: String): Boolean =
+        visibleThreads.isVisible(roomId, threadId)
+
+    actual fun shouldNotify(roomId: String, threadId: String?, senderIsMe: Boolean): Boolean {
         if (senderIsMe) return false
         if (isRoomVisible(roomId)) return false
+        if (threadId != null && isThreadVisible(roomId, threadId)) return false
         return true
     }
 
