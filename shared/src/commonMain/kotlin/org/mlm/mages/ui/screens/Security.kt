@@ -1276,7 +1276,7 @@ private fun SettingsTab(
     snackbarHostState: SnackbarHostState,
     remoteStates: Map<String, RemoteFieldState> = emptyMap(),
 ) {
-    val stringResourceProvider = rememberSettingsStringResourceProvider()
+    val stringResourceProvider = rememberSettingsStringResourceProvider(schema)
     ProvideStringResources(stringResourceProvider) {
         val query = searchQuery.trim()
         val shownSchema = remember(schema, query, stringResourceProvider) {

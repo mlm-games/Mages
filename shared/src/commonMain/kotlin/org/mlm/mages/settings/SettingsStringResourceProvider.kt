@@ -2,10 +2,9 @@ package org.mlm.mages.settings
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import io.github.mlmgames.settings.core.SettingsSchema
 import io.github.mlmgames.settings.core.resources.StringResourceProvider
 import mages.shared.generated.resources.*
-import org.jetbrains.compose.resources.StringArrayResource
-import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.platform.LocalAppLocale
@@ -37,275 +36,26 @@ private class ComposeSettingsStringResourceProvider(
     }
 }
 
-private val categoryResources: Map<String, StringResource> = mapOf(
-    MagesSettingsKeys.CATEGORY_ACCOUNT to Res.string.account,
-    MagesSettingsKeys.CATEGORY_APPEARANCE to Res.string.appearance,
-    MagesSettingsKeys.CATEGORY_TIMELINE to Res.string.timeline,
-    MagesSettingsKeys.CATEGORY_NOTIFICATIONS to Res.string.notifications,
-    MagesSettingsKeys.CATEGORY_PRIVACY to Res.string.privacy,
-    MagesSettingsKeys.CATEGORY_CALLS to Res.string.calls,
-    MagesSettingsKeys.CATEGORY_STORAGE to Res.string.storage,
-    MagesSettingsKeys.CATEGORY_ADVANCED to Res.string.advanced,
-)
-
-private val titleResources: Map<String, StringResource> = mapOf(
-    MagesSettingsKeys.THEME_MODE to Res.string.setting_theme,
-    MagesSettingsKeys.DYNAMIC_COLORS to Res.string.setting_dynamic_colors,
-    MagesSettingsKeys.OLED_BLACK to Res.string.setting_oled_black,
-    MagesSettingsKeys.USE_24_HOUR_TIME to Res.string.setting_use_24_hour_time,
-    MagesSettingsKeys.CHAT_WALLPAPER to Res.string.setting_chat_wallpaper,
-    MagesSettingsKeys.LANGUAGE to Res.string.setting_language,
-    MagesSettingsKeys.APP_FONT to Res.string.setting_app_font,
-    MagesSettingsKeys.APP_FONT_WIDTH to Res.string.setting_app_font_width,
-    MagesSettingsKeys.APP_FONT_ROUNDNESS to Res.string.setting_app_font_roundness,
-    MagesSettingsKeys.FONT_SIZE to Res.string.setting_font_size,
-    MagesSettingsKeys.UI_SCALE to Res.string.setting_ui_scale,
-    MagesSettingsKeys.DRAG_TO_SCROLL to Res.string.setting_drag_to_scroll,
-    MagesSettingsKeys.SHOW_MESSAGE_AVATARS to Res.string.setting_show_message_avatars,
-    MagesSettingsKeys.SHOW_REACTION_AVATARS to Res.string.setting_show_reaction_avatars,
-    MagesSettingsKeys.SHOW_THREAD_REPLY_COUNT to Res.string.setting_show_thread_reply_count,
-    MagesSettingsKeys.SHOW_READ_RECEIPT_AVATARS to Res.string.setting_show_read_receipt_avatars,
-    MagesSettingsKeys.SHOW_USERNAME_IN_DMS to Res.string.setting_show_username_in_dms,
-    MagesSettingsKeys.BUBBLE_ANIMATIONS to Res.string.setting_bubble_animations,
-    MagesSettingsKeys.REDUCE_MOTION to Res.string.setting_reduce_motion,
-    MagesSettingsKeys.HIDE_MEMBERSHIP_EVENTS to Res.string.setting_hide_membership_events,
-    MagesSettingsKeys.HIDE_PROFILE_CHANGES to Res.string.setting_hide_profile_changes,
-    MagesSettingsKeys.HIDE_TOPIC_CHANGES to Res.string.setting_hide_topic_changes,
-    MagesSettingsKeys.HIDE_REDACTED_EVENTS to Res.string.setting_hide_redacted_events,
-    MagesSettingsKeys.HIDE_DELETED_MESSAGES_AFTER to Res.string.setting_hide_deleted_messages_after,
-    MagesSettingsKeys.HIDE_ROOM_NAME_CHANGES to Res.string.setting_hide_room_name_changes,
-    MagesSettingsKeys.HIDE_ROOM_AVATAR_CHANGES to Res.string.setting_hide_room_avatar_changes,
-    MagesSettingsKeys.HIDE_ENCRYPTION_CHANGES to Res.string.setting_hide_encryption_changes,
-    MagesSettingsKeys.HIDE_PINNED_EVENT_UPDATES to Res.string.setting_hide_pinned_event_updates,
-    MagesSettingsKeys.HIDE_POWER_LEVEL_CHANGES to Res.string.setting_hide_power_level_changes,
-    MagesSettingsKeys.HIDE_CANONICAL_ALIAS_CHANGES to Res.string.setting_hide_canonical_alias_changes,
-    MagesSettingsKeys.HIDE_JOIN_RULE_CHANGES to Res.string.setting_hide_join_rule_changes,
-    MagesSettingsKeys.HIDE_HISTORY_VISIBILITY_CHANGES to Res.string.setting_hide_history_visibility_changes,
-    MagesSettingsKeys.HIDE_GUEST_ACCESS_CHANGES to Res.string.setting_hide_guest_access_changes,
-    MagesSettingsKeys.HIDE_SERVER_ACL_CHANGES to Res.string.setting_hide_server_acl_changes,
-    MagesSettingsKeys.HIDE_TOMBSTONE_EVENTS to Res.string.setting_hide_tombstone_events,
-    MagesSettingsKeys.HIDE_SPACE_CHILD_EVENTS to Res.string.setting_hide_space_child_events,
-    MagesSettingsKeys.HIDE_OTHER_STATE_EVENTS to Res.string.setting_hide_other_state_events,
-    MagesSettingsKeys.AUTO_PAGINATE_OLDER_MESSAGES to Res.string.setting_auto_paginate_older_messages,
-    MagesSettingsKeys.INCLUDE_SILENT_UNREAD_IN_FILTER to Res.string.setting_include_silent_unread_in_filter,
-    MagesSettingsKeys.SHOW_SPACE_BADGE_IN_ROOM_LIST to Res.string.setting_show_space_badge_in_room_list,
-    MagesSettingsKeys.HIDE_SPACE_ROOMS_IN_ROOM_LIST to Res.string.setting_hide_space_rooms_in_room_list,
-    MagesSettingsKeys.CHAT_BUBBLES to Res.string.setting_chat_bubbles,
-    MagesSettingsKeys.NOTIFICATION_RULES to Res.string.setting_notification_rules,
-    MagesSettingsKeys.ENABLE_NOTIFICATIONS to Res.string.setting_enable_notifications,
-    MagesSettingsKeys.REQUEST_NOTIFICATION_PERMISSION to Res.string.setting_request_notification_permission,
-    MagesSettingsKeys.TEST_BROWSER_NOTIFICATION to Res.string.setting_test_browser_notification,
-    MagesSettingsKeys.SHOW_MESSAGE_PREVIEW to Res.string.setting_show_message_preview,
-    MagesSettingsKeys.SHOW_MEDIA_PREVIEW to Res.string.setting_show_media_preview,
-    MagesSettingsKeys.VIBRATE to Res.string.setting_vibrate,
-    MagesSettingsKeys.NOTIFICATION_SOUND to Res.string.setting_notification_sound,
-    MagesSettingsKeys.SOUND_ONCE_PER_ROOM to Res.string.setting_sound_once_per_room,
-    MagesSettingsKeys.NOTIFY_WHILE_ROOM_OPEN to Res.string.setting_notify_while_room_open,
-    MagesSettingsKeys.QUIET_HOURS to Res.string.setting_quiet_hours,
-    MagesSettingsKeys.QUIET_HOURS_START_TIME to Res.string.setting_quiet_hours_start_time,
-    MagesSettingsKeys.QUIET_HOURS_END_TIME to Res.string.setting_quiet_hours_end_time,
-    MagesSettingsKeys.AUTO_JOIN_ROOM_INVITES to Res.string.setting_auto_join_room_invites,
-    MagesSettingsKeys.SEND_PUBLIC_READ_RECEIPTS to Res.string.setting_send_public_read_receipts,
-    MagesSettingsKeys.SEND_TYPING_INDICATORS to Res.string.setting_send_typing_indicators,
-    MagesSettingsKeys.SHARE_CALL_STATUS to Res.string.setting_share_call_status,
-    MagesSettingsKeys.BLOCK_INVITES to Res.string.setting_block_invites,
-    MagesSettingsKeys.LINK_PREVIEWS to Res.string.setting_link_previews,
-    MagesSettingsKeys.PRESENCE to Res.string.setting_presence,
-    MagesSettingsKeys.STATUS_MESSAGE to Res.string.setting_status_message,
-    MagesSettingsKeys.APP_LOCK to Res.string.setting_app_lock,
-    MagesSettingsKeys.APP_LOCK_TIMEOUT to Res.string.setting_app_lock_timeout,
-    MagesSettingsKeys.SCREEN_SECURITY to Res.string.setting_screen_security,
-    MagesSettingsKeys.SHOW_CALL_SCREEN to Res.string.setting_show_call_screen,
-    MagesSettingsKeys.ANSWER_CALLS_WHEN_LOCKED to Res.string.setting_answer_calls_when_locked,
-    MagesSettingsKeys.CALL_NOTIFICATIONS to Res.string.setting_call_notifications,
-    MagesSettingsKeys.SELECT_UNIFIED_PUSH_DISTRIBUTOR to Res.string.setting_select_unified_push_distributor,
-    MagesSettingsKeys.RE_REGISTER_UNIFIED_PUSH to Res.string.setting_re_register_unified_push,
-    MagesSettingsKeys.COPY_UNIFIED_PUSH_ENDPOINT to Res.string.setting_copy_unified_push_endpoint,
-    MagesSettingsKeys.BLOCK_MEDIA_PREVIEWS to Res.string.setting_block_media_previews,
-    MagesSettingsKeys.AUTO_DOWNLOAD_PHOTOS to Res.string.setting_auto_download_photos,
-    MagesSettingsKeys.AUTO_DOWNLOAD_AUDIO to Res.string.setting_auto_download_audio,
-    MagesSettingsKeys.AUTO_DOWNLOAD_VIDEO to Res.string.setting_auto_download_video,
-    MagesSettingsKeys.AUTO_DOWNLOAD_DOCUMENTS to Res.string.setting_auto_download_documents,
-    MagesSettingsKeys.MEDIA_CACHE to Res.string.setting_media_cache,
-    MagesSettingsKeys.START_IN_TRAY to Res.string.setting_start_in_tray,
-    MagesSettingsKeys.ENABLE_TRAY to Res.string.setting_enable_tray,
-    MagesSettingsKeys.ENTER_SENDS_MESSAGE to Res.string.setting_enter_sends_message,
-    MagesSettingsKeys.EDIT_LATEST_WITH_UP_ARROW to Res.string.setting_edit_latest_with_up_arrow,
-    MagesSettingsKeys.USE_PROXY to Res.string.setting_use_proxy,
-    MagesSettingsKeys.PROXY_URL to Res.string.setting_proxy_url,
-    MagesSettingsKeys.LIVE_LOCATION_UPDATE_INTERVAL to Res.string.setting_live_location_update_interval,
-    MagesSettingsKeys.ROOM_LIST_SWIPE_RIGHT to Res.string.setting_room_list_swipe_right,
-    MagesSettingsKeys.ROOM_LIST_SWIPE_LEFT to Res.string.setting_room_list_swipe_left,
-    MagesSettingsKeys.MESSAGE_SWIPE_RIGHT to Res.string.setting_message_swipe_right,
-    MagesSettingsKeys.MESSAGE_SWIPE_LEFT to Res.string.setting_message_swipe_left,
-    MagesSettingsKeys.MESSAGE_DOUBLE_TAP to Res.string.setting_message_double_tap,
-    MagesSettingsKeys.MESSAGE_DOUBLE_TAP_REACTION to Res.string.setting_message_double_tap_reaction,
-    MagesSettingsKeys.MESSAGE_RIGHT_CLICK to Res.string.setting_message_right_click,
-    MagesSettingsKeys.MESSAGE_MENU_ORDER to Res.string.setting_message_menu_order,
-    MagesSettingsKeys.QUICK_REACTIONS to Res.string.setting_quick_reactions,
-    MagesSettingsKeys.SPLIT_PANES to Res.string.setting_split_panes,
-    MagesSettingsKeys.SPLIT_ROOM_LIST_PERCENT to Res.string.setting_split_room_list_percent,
-    MagesSettingsKeys.SORT_BY_UNREAD to Res.string.setting_sort_by_unread,
-    MagesSettingsKeys.SHOW_SILENT_UNREAD_COUNT to Res.string.setting_show_silent_unread_count,
-    MagesSettingsKeys.EXCLUDE_LOW_PRIORITY_FROM_UNREAD_BADGE to Res.string.setting_exclude_low_priority_from_unread_badge,
-    MagesSettingsKeys.OPEN_AT_UNREAD to Res.string.setting_open_at_unread,
-    MagesSettingsKeys.FLOATING_DATE to Res.string.setting_floating_date,
-    MagesSettingsKeys.AUTO_MARK_READ_TRIGGER to Res.string.setting_auto_mark_read_trigger,
-    MagesSettingsKeys.COMPOSER_MAX_LINES to Res.string.setting_composer_max_lines,
-    MagesSettingsKeys.COMPOSER_MAX_LINES_UNFOCUSED to Res.string.setting_composer_max_lines_unfocused,
-    MagesSettingsKeys.SKIKO_VSYNC to Res.string.setting_skiko_vsync,
-    MagesSettingsKeys.HIDE_WINDOW_DECORATION to Res.string.setting_hide_window_decoration,
-    MagesSettingsKeys.WINDOW_BACKGROUND_ALPHA to Res.string.setting_window_background_alpha,
-
-    MagesSettingsKeys.SHOW_SWITCH_ACCOUNT_BUTTON to Res.string.setting_show_switch_account_button,
-)
-
-private val descriptionResources: Map<String, StringResource> = mapOf(
-    MagesSettingsKeys.THEME_MODE_DESCRIPTION to Res.string.setting_theme_description,
-    MagesSettingsKeys.DYNAMIC_COLORS_DESCRIPTION to Res.string.setting_dynamic_colors_description,
-    MagesSettingsKeys.OLED_BLACK_DESCRIPTION to Res.string.setting_oled_black_description,
-    MagesSettingsKeys.USE_24_HOUR_TIME_DESCRIPTION to Res.string.setting_use_24_hour_time_description,
-    MagesSettingsKeys.CHAT_WALLPAPER_DESCRIPTION to Res.string.setting_chat_wallpaper_description,
-    MagesSettingsKeys.LANGUAGE_DESCRIPTION to Res.string.setting_language_description,
-    MagesSettingsKeys.APP_FONT_DESCRIPTION to Res.string.setting_app_font_description,
-    MagesSettingsKeys.APP_FONT_WIDTH_DESCRIPTION to Res.string.setting_app_font_width_description,
-    MagesSettingsKeys.APP_FONT_ROUNDNESS_DESCRIPTION to Res.string.setting_app_font_roundness_description,
-    MagesSettingsKeys.FONT_SIZE_DESCRIPTION to Res.string.setting_font_size_description,
-    MagesSettingsKeys.UI_SCALE_DESCRIPTION to Res.string.setting_ui_scale_description,
-    MagesSettingsKeys.DRAG_TO_SCROLL_DESCRIPTION to Res.string.setting_drag_to_scroll_description,
-    MagesSettingsKeys.SHOW_MESSAGE_AVATARS_DESCRIPTION to Res.string.setting_show_message_avatars_description,
-    MagesSettingsKeys.SHOW_REACTION_AVATARS_DESCRIPTION to Res.string.setting_show_reaction_avatars_description,
-    MagesSettingsKeys.SHOW_READ_RECEIPT_AVATARS_DESCRIPTION to Res.string.setting_show_read_receipt_avatars_description,
-    MagesSettingsKeys.SHOW_USERNAME_IN_DMS_DESCRIPTION to Res.string.setting_show_username_in_dms_description,
-    MagesSettingsKeys.BUBBLE_ANIMATIONS_DESCRIPTION to Res.string.setting_bubble_animations_description,
-    MagesSettingsKeys.REDUCE_MOTION_DESCRIPTION to Res.string.setting_reduce_motion_description,
-    MagesSettingsKeys.HIDE_MEMBERSHIP_EVENTS_DESCRIPTION to Res.string.setting_hide_membership_events_description,
-    MagesSettingsKeys.HIDE_PROFILE_CHANGES_DESCRIPTION to Res.string.setting_hide_profile_changes_description,
-    MagesSettingsKeys.HIDE_TOPIC_CHANGES_DESCRIPTION to Res.string.setting_hide_topic_changes_description,
-    MagesSettingsKeys.HIDE_REDACTED_EVENTS_DESCRIPTION to Res.string.setting_hide_redacted_events_description,
-    MagesSettingsKeys.HIDE_DELETED_MESSAGES_AFTER_DESCRIPTION to Res.string.setting_hide_deleted_messages_after_description,
-    MagesSettingsKeys.HIDE_ROOM_NAME_CHANGES_DESCRIPTION to Res.string.setting_hide_room_name_changes_description,
-    MagesSettingsKeys.HIDE_ROOM_AVATAR_CHANGES_DESCRIPTION to Res.string.setting_hide_room_avatar_changes_description,
-    MagesSettingsKeys.HIDE_ENCRYPTION_CHANGES_DESCRIPTION to Res.string.setting_hide_encryption_changes_description,
-    MagesSettingsKeys.HIDE_PINNED_EVENT_UPDATES_DESCRIPTION to Res.string.setting_hide_pinned_event_updates_description,
-    MagesSettingsKeys.HIDE_POWER_LEVEL_CHANGES_DESCRIPTION to Res.string.setting_hide_power_level_changes_description,
-    MagesSettingsKeys.HIDE_CANONICAL_ALIAS_CHANGES_DESCRIPTION to Res.string.setting_hide_canonical_alias_changes_description,
-    MagesSettingsKeys.HIDE_JOIN_RULE_CHANGES_DESCRIPTION to Res.string.setting_hide_join_rule_changes_description,
-    MagesSettingsKeys.HIDE_HISTORY_VISIBILITY_CHANGES_DESCRIPTION to Res.string.setting_hide_history_visibility_changes_description,
-    MagesSettingsKeys.HIDE_GUEST_ACCESS_CHANGES_DESCRIPTION to Res.string.setting_hide_guest_access_changes_description,
-    MagesSettingsKeys.HIDE_SERVER_ACL_CHANGES_DESCRIPTION to Res.string.setting_hide_server_acl_changes_description,
-    MagesSettingsKeys.HIDE_TOMBSTONE_EVENTS_DESCRIPTION to Res.string.setting_hide_tombstone_events_description,
-    MagesSettingsKeys.HIDE_SPACE_CHILD_EVENTS_DESCRIPTION to Res.string.setting_hide_space_child_events_description,
-    MagesSettingsKeys.HIDE_OTHER_STATE_EVENTS_DESCRIPTION to Res.string.setting_hide_other_state_events_description,
-    MagesSettingsKeys.AUTO_PAGINATE_OLDER_MESSAGES_DESCRIPTION to Res.string.setting_auto_paginate_older_messages_description,
-    MagesSettingsKeys.INCLUDE_SILENT_UNREAD_IN_FILTER_DESCRIPTION to Res.string.setting_include_silent_unread_in_filter_description,
-    MagesSettingsKeys.SHOW_SPACE_BADGE_IN_ROOM_LIST_DESCRIPTION to Res.string.setting_show_space_badge_in_room_list_description,
-    MagesSettingsKeys.CHAT_BUBBLES_DESCRIPTION to Res.string.setting_chat_bubbles_description,
-    MagesSettingsKeys.NOTIFICATION_RULES_DESCRIPTION to Res.string.setting_notification_rules_description,
-    MagesSettingsKeys.ENABLE_NOTIFICATIONS_DESCRIPTION to Res.string.setting_enable_notifications_description,
-    MagesSettingsKeys.REQUEST_NOTIFICATION_PERMISSION_DESCRIPTION to Res.string.setting_request_notification_permission_description,
-    MagesSettingsKeys.TEST_BROWSER_NOTIFICATION_DESCRIPTION to Res.string.setting_test_browser_notification_description,
-    MagesSettingsKeys.SHOW_MESSAGE_PREVIEW_DESCRIPTION to Res.string.setting_show_message_preview_description,
-    MagesSettingsKeys.SHOW_MEDIA_PREVIEW_DESCRIPTION to Res.string.setting_show_media_preview_description,
-    MagesSettingsKeys.VIBRATE_DESCRIPTION to Res.string.setting_vibrate_description,
-    MagesSettingsKeys.NOTIFICATION_SOUND_DESCRIPTION to Res.string.setting_notification_sound_description,
-    MagesSettingsKeys.SOUND_ONCE_PER_ROOM_DESCRIPTION to Res.string.setting_sound_once_per_room_description,
-    MagesSettingsKeys.NOTIFY_WHILE_ROOM_OPEN_DESCRIPTION to Res.string.setting_notify_while_room_open_description,
-    MagesSettingsKeys.QUIET_HOURS_DESCRIPTION to Res.string.setting_quiet_hours_description,
-    MagesSettingsKeys.QUIET_HOURS_START_TIME_DESCRIPTION to Res.string.setting_quiet_hours_start_time_description,
-    MagesSettingsKeys.QUIET_HOURS_END_TIME_DESCRIPTION to Res.string.setting_quiet_hours_end_time_description,
-    MagesSettingsKeys.AUTO_JOIN_ROOM_INVITES_DESCRIPTION to Res.string.setting_auto_join_room_invites_description,
-    MagesSettingsKeys.SEND_PUBLIC_READ_RECEIPTS_DESCRIPTION to Res.string.setting_send_public_read_receipts_description,
-    MagesSettingsKeys.SEND_TYPING_INDICATORS_DESCRIPTION to Res.string.setting_send_typing_indicators_description,
-    MagesSettingsKeys.SHARE_CALL_STATUS_DESCRIPTION to Res.string.setting_share_call_status_description,
-    MagesSettingsKeys.BLOCK_INVITES_DESCRIPTION to Res.string.setting_block_invites_description,
-    MagesSettingsKeys.LINK_PREVIEWS_DESCRIPTION to Res.string.setting_link_previews_description,
-    MagesSettingsKeys.PRESENCE_DESCRIPTION to Res.string.setting_presence_description,
-    MagesSettingsKeys.STATUS_MESSAGE_DESCRIPTION to Res.string.setting_status_message_description,
-    MagesSettingsKeys.APP_LOCK_DESCRIPTION to Res.string.setting_app_lock_description,
-    MagesSettingsKeys.APP_LOCK_TIMEOUT_DESCRIPTION to Res.string.setting_app_lock_timeout_description,
-    MagesSettingsKeys.SCREEN_SECURITY_DESCRIPTION to Res.string.setting_screen_security_description,
-    MagesSettingsKeys.SHOW_CALL_SCREEN_DESCRIPTION to Res.string.setting_show_call_screen_description,
-    MagesSettingsKeys.ANSWER_CALLS_WHEN_LOCKED_DESCRIPTION to Res.string.setting_answer_calls_when_locked_description,
-    MagesSettingsKeys.CALL_NOTIFICATIONS_DESCRIPTION to Res.string.setting_call_notifications_description,
-    MagesSettingsKeys.SELECT_UNIFIED_PUSH_DISTRIBUTOR_DESCRIPTION to Res.string.setting_select_unified_push_distributor_description,
-    MagesSettingsKeys.RE_REGISTER_UNIFIED_PUSH_DESCRIPTION to Res.string.setting_re_register_unified_push_description,
-    MagesSettingsKeys.COPY_UNIFIED_PUSH_ENDPOINT_DESCRIPTION to Res.string.setting_copy_unified_push_endpoint_description,
-    MagesSettingsKeys.BLOCK_MEDIA_PREVIEWS_DESCRIPTION to Res.string.setting_block_media_previews_description,
-    MagesSettingsKeys.AUTO_DOWNLOAD_PHOTOS_DESCRIPTION to Res.string.setting_auto_download_photos_description,
-    MagesSettingsKeys.AUTO_DOWNLOAD_AUDIO_DESCRIPTION to Res.string.setting_auto_download_audio_description,
-    MagesSettingsKeys.AUTO_DOWNLOAD_VIDEO_DESCRIPTION to Res.string.setting_auto_download_video_description,
-    MagesSettingsKeys.AUTO_DOWNLOAD_DOCUMENTS_DESCRIPTION to Res.string.setting_auto_download_documents_description,
-    MagesSettingsKeys.MEDIA_CACHE_DESCRIPTION to Res.string.setting_media_cache_description,
-    MagesSettingsKeys.START_IN_TRAY_DESCRIPTION to Res.string.setting_start_in_tray_description,
-    MagesSettingsKeys.ENABLE_TRAY_DESCRIPTION to Res.string.setting_enable_tray_description,
-    MagesSettingsKeys.ENTER_SENDS_MESSAGE_DESCRIPTION to Res.string.setting_enter_sends_message_description,
-    MagesSettingsKeys.EDIT_LATEST_WITH_UP_ARROW_DESCRIPTION to Res.string.setting_edit_latest_with_up_arrow_description,
-    MagesSettingsKeys.USE_PROXY_DESCRIPTION to Res.string.setting_use_proxy_description,
-    MagesSettingsKeys.PROXY_URL_DESCRIPTION to Res.string.setting_proxy_url_description,
-    MagesSettingsKeys.LIVE_LOCATION_UPDATE_INTERVAL_DESCRIPTION to Res.string.setting_live_location_update_interval_description,
-    MagesSettingsKeys.ROOM_LIST_SWIPE_RIGHT_DESCRIPTION to Res.string.setting_room_list_swipe_right_description,
-    MagesSettingsKeys.ROOM_LIST_SWIPE_LEFT_DESCRIPTION to Res.string.setting_room_list_swipe_left_description,
-    MagesSettingsKeys.MESSAGE_SWIPE_RIGHT_DESCRIPTION to Res.string.setting_message_swipe_right_description,
-    MagesSettingsKeys.MESSAGE_SWIPE_LEFT_DESCRIPTION to Res.string.setting_message_swipe_left_description,
-    MagesSettingsKeys.MESSAGE_DOUBLE_TAP_DESCRIPTION to Res.string.setting_message_double_tap_description,
-    MagesSettingsKeys.MESSAGE_DOUBLE_TAP_REACTION_DESCRIPTION to Res.string.setting_message_double_tap_reaction_description,
-    MagesSettingsKeys.MESSAGE_RIGHT_CLICK_DESCRIPTION to Res.string.setting_message_right_click_description,
-    MagesSettingsKeys.MESSAGE_MENU_ORDER_DESCRIPTION to Res.string.setting_message_menu_order_description,
-    MagesSettingsKeys.QUICK_REACTIONS_DESCRIPTION to Res.string.setting_quick_reactions_description,
-    MagesSettingsKeys.SPLIT_PANES_DESCRIPTION to Res.string.setting_split_panes_description,
-    MagesSettingsKeys.SPLIT_ROOM_LIST_PERCENT_DESCRIPTION to Res.string.setting_split_room_list_percent_description,
-    MagesSettingsKeys.SORT_BY_UNREAD_DESCRIPTION to Res.string.setting_sort_by_unread_description,
-    MagesSettingsKeys.SHOW_SILENT_UNREAD_COUNT_DESCRIPTION to Res.string.setting_show_silent_unread_count_description,
-    MagesSettingsKeys.EXCLUDE_LOW_PRIORITY_FROM_UNREAD_BADGE_DESCRIPTION to Res.string.setting_exclude_low_priority_from_unread_badge_description,
-    MagesSettingsKeys.OPEN_AT_UNREAD_DESCRIPTION to Res.string.setting_open_at_unread_description,
-    MagesSettingsKeys.FLOATING_DATE_DESCRIPTION to Res.string.setting_floating_date_description,
-    MagesSettingsKeys.AUTO_MARK_READ_TRIGGER_DESCRIPTION to Res.string.setting_auto_mark_read_trigger_description,
-    MagesSettingsKeys.COMPOSER_MAX_LINES_DESCRIPTION to Res.string.setting_composer_max_lines_description,
-    MagesSettingsKeys.COMPOSER_MAX_LINES_UNFOCUSED_DESCRIPTION to Res.string.setting_composer_max_lines_unfocused_description,
-    MagesSettingsKeys.SKIKO_VSYNC_DESCRIPTION to Res.string.setting_skiko_vsync_description,
-    MagesSettingsKeys.HIDE_WINDOW_DECORATION_DESCRIPTION to Res.string.setting_hide_window_decoration_description,
-    MagesSettingsKeys.WINDOW_BACKGROUND_ALPHA_DESCRIPTION to Res.string.setting_window_background_alpha_description,
-
-    MagesSettingsKeys.SHOW_SWITCH_ACCOUNT_BUTTON_DESCRIPTION to Res.string.setting_show_switch_account_button_description,
-)
-
-private val arrayResources: Map<String, StringArrayResource> = mapOf(
-    MagesSettingsKeys.APP_FONT_OPTIONS to Res.array.setting_app_font_options,
-    MagesSettingsKeys.THEME_OPTIONS to Res.array.setting_theme_options,
-    MagesSettingsKeys.LANGUAGE_OPTIONS to Res.array.setting_language_options,
-    MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS to Res.array.setting_hide_in_rooms_options,
-    MagesSettingsKeys.HIDE_DELETED_AFTER_OPTIONS to Res.array.setting_hide_deleted_after_options,
-    MagesSettingsKeys.APP_LOCK_TIMEOUT_OPTIONS to Res.array.setting_app_lock_timeout_options,
-    MagesSettingsKeys.PRESENCE_OPTIONS to Res.array.setting_presence_options,
-    MagesSettingsKeys.BLOCK_MEDIA_PREVIEWS_OPTIONS to Res.array.setting_media_previews_options,
-    MagesSettingsKeys.AUTO_DOWNLOAD_NETWORKS_OPTIONS to Res.array.setting_auto_download_networks_options,
-    MagesSettingsKeys.LINK_PREVIEWS_OPTIONS to Res.array.setting_link_previews_options,
-    MagesSettingsKeys.ROOM_LIST_SWIPE_OPTIONS to Res.array.setting_room_list_swipe_options,
-    MagesSettingsKeys.MESSAGE_SWIPE_OPTIONS to Res.array.setting_message_swipe_options,
-    MagesSettingsKeys.MESSAGE_DOUBLE_TAP_OPTIONS to Res.array.setting_message_double_tap_options,
-    MagesSettingsKeys.MESSAGE_DOUBLE_TAP_REACTION_OPTIONS to Res.array.setting_message_double_tap_reaction_options,
-    MagesSettingsKeys.MESSAGE_RIGHT_CLICK_OPTIONS to Res.array.setting_message_right_click_options,
-    MagesSettingsKeys.AUTO_MARK_READ_TRIGGER_OPTIONS to Res.array.setting_auto_mark_read_trigger_options,
-)
+private fun SettingsSchema<*>.localizationKeys(): List<String> = buildList {
+    fields.forEach { field ->
+        val meta = field.meta ?: return@forEach
+        add(meta.titleKey)
+        add(meta.descriptionKey)
+        add(meta.optionsKey)
+    }
+    addAll(categoryTitleKeys.values)
+}.filter { it.isNotBlank() }.distinct()
 
 @Composable
-fun rememberSettingsStringResourceProvider(): StringResourceProvider {
+fun rememberSettingsStringResourceProvider(schema: SettingsSchema<*>): StringResourceProvider {
     val locale = LocalAppLocale.current
-    val strings = mutableMapOf<String, String>()
-    for ((key, resource) in categoryResources) {
-        strings[key] = stringResource(resource)
-    }
-    for ((key, resource) in titleResources) {
-        strings[key] = stringResource(resource)
-    }
-    for ((key, resource) in descriptionResources) {
-        strings[key] = stringResource(resource)
-    }
-    val arrays = mutableMapOf<String, List<String>>()
-    for ((key, resource) in arrayResources) {
-        arrays[key] = stringArrayResource(resource)
-    }
+    val keys = remember(schema) { schema.localizationKeys() }
+    val strings = keys.mapNotNull { key ->
+        Res.allStringResources[key]?.let { key to stringResource(it) }
+    }.toMap()
+    val arrays = keys.mapNotNull { key ->
+        Res.allStringArrayResources[key]?.let { key to stringArrayResource(it) }
+    }.toMap()
     return remember(locale, strings, arrays) {
         ComposeSettingsStringResourceProvider(strings, arrays)
     }

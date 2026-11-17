@@ -105,8 +105,6 @@ data class AppSettings(
     val activeAccountId: String? = null,
 
     @Setting(
-        title = "Show account button on home screen",
-        description = "Show the account button on the home screen instead of in settings",
         titleKey = MagesSettingsKeys.SHOW_SWITCH_ACCOUNT_BUTTON,
         descriptionKey = MagesSettingsKeys.SHOW_SWITCH_ACCOUNT_BUTTON_DESCRIPTION,
         category = Appearance::class,
@@ -115,21 +113,16 @@ data class AppSettings(
     val showSwitchAccountButton: Boolean = false,
 
     @Setting(
-        title = "Theme",
         titleKey = MagesSettingsKeys.THEME_MODE,
-        description = "System / Light / Dark",
         descriptionKey = MagesSettingsKeys.THEME_MODE_DESCRIPTION,
         category = Appearance::class,
         type = Dropdown::class,
-        options = ["System", "Light", "Dark"],
         optionsKey = MagesSettingsKeys.THEME_OPTIONS,
     )
     val themeMode: ThemeMode = ThemeMode.System,
 
     @Setting(
-        title = "Dynamic Colors",
         titleKey = MagesSettingsKeys.DYNAMIC_COLORS,
-        description = "Use Material You colors (Android 12+)",
         descriptionKey = MagesSettingsKeys.DYNAMIC_COLORS_DESCRIPTION,
         category = Appearance::class,
         type = Toggle::class,
@@ -138,9 +131,7 @@ data class AppSettings(
     val dynamicColors: Boolean = false,
 
     @Setting(
-        title = "Pure black (OLED)",
         titleKey = MagesSettingsKeys.OLED_BLACK,
-        description = "Use a true black background in dark mode for OLED displays",
         descriptionKey = MagesSettingsKeys.OLED_BLACK_DESCRIPTION,
         category = Appearance::class,
         type = Toggle::class,
@@ -149,9 +140,7 @@ data class AppSettings(
     val oledBlack: Boolean = false,
 
     @Setting(
-        title = "Use 24-hour time",
         titleKey = MagesSettingsKeys.USE_24_HOUR_TIME,
-        description = "Show timestamps as 24-hour clock instead of AM/PM",
         descriptionKey = MagesSettingsKeys.USE_24_HOUR_TIME_DESCRIPTION,
         category = Appearance::class,
         type = Toggle::class,
@@ -159,9 +148,7 @@ data class AppSettings(
     val use24HourTime: Boolean = true,
 
     @Setting(
-        title = "Chat wallpaper",
         titleKey = MagesSettingsKeys.CHAT_WALLPAPER,
-        description = "Set a background image for the message list",
         descriptionKey = MagesSettingsKeys.CHAT_WALLPAPER_DESCRIPTION,
         category = Appearance::class,
         type = Button::class,
@@ -170,38 +157,25 @@ data class AppSettings(
     val openWallpaper: Unit = Unit,
 
     @Setting(
-        title = "Language",
         titleKey = MagesSettingsKeys.LANGUAGE,
-        description = "Application language",
         descriptionKey = MagesSettingsKeys.LANGUAGE_DESCRIPTION,
         category = Appearance::class,
         type = Dropdown::class,
-        options = [
-            "System", "English", "Spanish", "Arabic", "Czech", "German", "Greek", "Persian",
-            "Finnish", "French", "Croatian", "Hungarian", "Indonesian", "Italian", "Hebrew",
-            "Japanese", "Korean", "Dutch", "Polish", "Portuguese", "Russian", "Swedish", "Turkish",
-            "Ukrainian", "Vietnamese", "Simplified Chinese", "Traditional Chinese"
-        ],
         optionsKey = MagesSettingsKeys.LANGUAGE_OPTIONS,
     )
     val language: AppLanguage = AppLanguage.System,
 
     @Setting(
-        title = "Font",
         titleKey = MagesSettingsKeys.APP_FONT,
-        description = "System font or Google Sans Flex",
         descriptionKey = MagesSettingsKeys.APP_FONT_DESCRIPTION,
         category = Appearance::class,
         type = Dropdown::class,
-        options = ["System", "Google Sans Flex"],
         optionsKey = MagesSettingsKeys.APP_FONT_OPTIONS,
     )
     val appFont: AppFontFamily = AppFontFamily.System,
 
     @Setting(
-        title = "Font width",
         titleKey = MagesSettingsKeys.APP_FONT_WIDTH,
-        description = "Width axis of Google Sans Flex",
         descriptionKey = MagesSettingsKeys.APP_FONT_WIDTH_DESCRIPTION,
         category = Appearance::class,
         type = Slider::class,
@@ -214,9 +188,7 @@ data class AppSettings(
     val appFontWidth: Float = 100f,
 
     @Setting(
-        title = "Font roundness",
         titleKey = MagesSettingsKeys.APP_FONT_ROUNDNESS,
-        description = "Roundness axis of Google Sans Flex",
         descriptionKey = MagesSettingsKeys.APP_FONT_ROUNDNESS_DESCRIPTION,
         category = Appearance::class,
         type = Slider::class,
@@ -229,9 +201,7 @@ data class AppSettings(
     val appFontRoundness: Float = 0f,
 
     @Setting(
-        title = "Font size",
         titleKey = MagesSettingsKeys.FONT_SIZE,
-        description = "Message font size",
         descriptionKey = MagesSettingsKeys.FONT_SIZE_DESCRIPTION,
         category = Appearance::class,
         type = Slider::class,
@@ -242,9 +212,7 @@ data class AppSettings(
     val fontSize: Float = 16f,
 
     @Setting(
-        title = "UI scale",
         titleKey = MagesSettingsKeys.UI_SCALE,
-        description = "Integer only. Use 2 or 3 on phones, where no display scale is reported",
         descriptionKey = MagesSettingsKeys.UI_SCALE_DESCRIPTION,
         category = Appearance::class,
         type = Dropdown::class,
@@ -254,9 +222,7 @@ data class AppSettings(
     val uiScaleIndex: Int = 0,
 
     @Setting(
-        title = "Drag to scroll",
         titleKey = MagesSettingsKeys.DRAG_TO_SCROLL,
-        description = "Scroll lists by dragging instead of the mouse wheel",
         descriptionKey = MagesSettingsKeys.DRAG_TO_SCROLL_DESCRIPTION,
         category = Appearance::class,
         type = Toggle::class,
@@ -265,9 +231,7 @@ data class AppSettings(
     val dragToScroll: Boolean = false,
 
     @Setting(
-        title = "Show message avatars",
         titleKey = MagesSettingsKeys.SHOW_MESSAGE_AVATARS,
-        description = "Display user avatars next to messages",
         descriptionKey = MagesSettingsKeys.SHOW_MESSAGE_AVATARS_DESCRIPTION,
         category = Appearance::class,
         type = Toggle::class
@@ -275,9 +239,7 @@ data class AppSettings(
     val showMessageAvatars: Boolean = true,
 
     @Setting(
-        title = "Show reaction avatars",
         titleKey = MagesSettingsKeys.SHOW_REACTION_AVATARS,
-        description = "Display user avatars on reaction chips",
         descriptionKey = MagesSettingsKeys.SHOW_REACTION_AVATARS_DESCRIPTION,
         category = Appearance::class,
         type = Toggle::class
@@ -285,7 +247,6 @@ data class AppSettings(
     val showReactionAvatars: Boolean = false,
 
     @Setting(
-        title = "Show thread reply count",
         titleKey = MagesSettingsKeys.SHOW_THREAD_REPLY_COUNT,
         category = Appearance::class,
         type = Toggle::class
@@ -293,9 +254,7 @@ data class AppSettings(
     val showThreadReplyCount: Boolean = false,
 
     @Setting(
-        title = "Show read receipt avatars",
         titleKey = MagesSettingsKeys.SHOW_READ_RECEIPT_AVATARS,
-        description = "Display avatars under the last message each person has read",
         descriptionKey = MagesSettingsKeys.SHOW_READ_RECEIPT_AVATARS_DESCRIPTION,
         category = Appearance::class,
         type = Toggle::class
@@ -303,9 +262,7 @@ data class AppSettings(
     val showReadReceiptAvatars: Boolean = true,
 
     @Setting(
-        title = "Show username in DMs",
         titleKey = MagesSettingsKeys.SHOW_USERNAME_IN_DMS,
-        description = "Show usernames in direct messages",
         descriptionKey = MagesSettingsKeys.SHOW_USERNAME_IN_DMS_DESCRIPTION,
         category = Appearance::class,
         type = Toggle::class
@@ -313,9 +270,7 @@ data class AppSettings(
     val showUsernameInDms: Boolean = false,
 
     @Setting(
-        title = "Message bubble animations",
         titleKey = MagesSettingsKeys.BUBBLE_ANIMATIONS,
-        description = "Animate messages as they appear",
         descriptionKey = MagesSettingsKeys.BUBBLE_ANIMATIONS_DESCRIPTION,
         category = Appearance::class,
         type = Toggle::class,
@@ -323,9 +278,7 @@ data class AppSettings(
     val bubbleAnimations: Boolean = false,
 
     @Setting(
-        title = "Reduce motion",
         titleKey = MagesSettingsKeys.REDUCE_MOTION,
-        description = "Fade between screens instead of sliding, and stop decorative animations",
         descriptionKey = MagesSettingsKeys.REDUCE_MOTION_DESCRIPTION,
         category = Appearance::class,
         type = Toggle::class,
@@ -333,226 +286,169 @@ data class AppSettings(
     val reduceMotion: Boolean = false,
 
     @Setting(
-        title = "Hide membership events",
         titleKey = MagesSettingsKeys.HIDE_MEMBERSHIP_EVENTS,
-        description = "Join/leave/invite events in rooms",
         descriptionKey = MagesSettingsKeys.HIDE_MEMBERSHIP_EVENTS_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Never", "Public Rooms", "Non-DMs", "Always"],
         optionsKey = MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS,
     )
     val compactPublicRoomMembershipEvents: HideInRoomsMode = HideInRoomsMode.PublicRooms,
 
     @Setting(
-        title = "Hide profile changes",
         titleKey = MagesSettingsKeys.HIDE_PROFILE_CHANGES,
-        description = "Display name/avatar changes in rooms",
         descriptionKey = MagesSettingsKeys.HIDE_PROFILE_CHANGES_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Never", "Public Rooms", "Non-DMs", "Always"],
         optionsKey = MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS,
     )
     val compactPublicRoomProfileChangeEvents: HideInRoomsMode = HideInRoomsMode.PublicRooms,
 
     @Setting(
-        title = "Hide topic changes",
         titleKey = MagesSettingsKeys.HIDE_TOPIC_CHANGES,
-        description = "Topic changes in rooms",
         descriptionKey = MagesSettingsKeys.HIDE_TOPIC_CHANGES_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Never", "Public Rooms", "Non-DMs", "Always"],
         optionsKey = MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS,
     )
     val compactPublicRoomTopicEvents: HideInRoomsMode = HideInRoomsMode.PublicRooms,
 
     @Setting(
-        title = "Hide redacted events",
         titleKey = MagesSettingsKeys.HIDE_REDACTED_EVENTS,
-        description = "Events whose content was removed by redaction",
         descriptionKey = MagesSettingsKeys.HIDE_REDACTED_EVENTS_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Never", "Public Rooms", "Non-DMs", "Always"],
         optionsKey = MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS,
     )
     val compactPublicRoomRedactedEvents: HideInRoomsMode = HideInRoomsMode.Never,
 
     @Setting(
-        title = "Hide deleted after a delay",
         titleKey = MagesSettingsKeys.HIDE_DELETED_MESSAGES_AFTER,
-        description = "Remove deleted messages from the timeline after a delay",
         descriptionKey = MagesSettingsKeys.HIDE_DELETED_MESSAGES_AFTER_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Never", "1 minute", "5 minutes", "15 minutes", "1 hour"],
         optionsKey = MagesSettingsKeys.HIDE_DELETED_AFTER_OPTIONS,
     )
     val hideDeletedMessagesAfter: DeletedMessageRetention = DeletedMessageRetention.Never,
 
     @Setting(
-        title = "Hide room name changes",
         titleKey = MagesSettingsKeys.HIDE_ROOM_NAME_CHANGES,
-        description = "Room name changes",
         descriptionKey = MagesSettingsKeys.HIDE_ROOM_NAME_CHANGES_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Never", "Public Rooms", "Non-DMs", "Always"],
         optionsKey = MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS,
     )
     val compactPublicRoomRoomNameEvents: HideInRoomsMode = HideInRoomsMode.Never,
 
     @Setting(
-        title = "Hide room avatar changes",
         titleKey = MagesSettingsKeys.HIDE_ROOM_AVATAR_CHANGES,
-        description = "Room avatar changes",
         descriptionKey = MagesSettingsKeys.HIDE_ROOM_AVATAR_CHANGES_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Never", "Public Rooms", "Non-DMs", "Always"],
         optionsKey = MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS,
     )
     val compactPublicRoomRoomAvatarEvents: HideInRoomsMode = HideInRoomsMode.Never,
 
     @Setting(
-        title = "Hide encryption changes",
         titleKey = MagesSettingsKeys.HIDE_ENCRYPTION_CHANGES,
-        description = "Encryption state changes",
         descriptionKey = MagesSettingsKeys.HIDE_ENCRYPTION_CHANGES_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Never", "Public Rooms", "Non-DMs", "Always"],
         optionsKey = MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS,
     )
     val compactPublicRoomRoomEncryptionEvents: HideInRoomsMode = HideInRoomsMode.Never,
 
     @Setting(
-        title = "Hide pinned-event updates",
         titleKey = MagesSettingsKeys.HIDE_PINNED_EVENT_UPDATES,
-        description = "Pinned event updates",
         descriptionKey = MagesSettingsKeys.HIDE_PINNED_EVENT_UPDATES_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Never", "Public Rooms", "Non-DMs", "Always"],
         optionsKey = MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS,
     )
     val compactPublicRoomRoomPinnedEvents: HideInRoomsMode = HideInRoomsMode.Never,
 
     @Setting(
-        title = "Hide power-level changes",
         titleKey = MagesSettingsKeys.HIDE_POWER_LEVEL_CHANGES,
-        description = "Moderator/admin permission changes",
         descriptionKey = MagesSettingsKeys.HIDE_POWER_LEVEL_CHANGES_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Never", "Public Rooms", "Non-DMs", "Always"],
         optionsKey = MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS,
     )
     val compactPublicRoomRoomPowerLevelsEvents: HideInRoomsMode = HideInRoomsMode.Never,
 
     @Setting(
-        title = "Hide canonical alias changes",
         titleKey = MagesSettingsKeys.HIDE_CANONICAL_ALIAS_CHANGES,
-        description = "Primary alias changes",
         descriptionKey = MagesSettingsKeys.HIDE_CANONICAL_ALIAS_CHANGES_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Never", "Public Rooms", "Non-DMs", "Always"],
         optionsKey = MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS,
     )
     val compactPublicRoomRoomCanonicalAliasEvents: HideInRoomsMode = HideInRoomsMode.Never,
 
     @Setting(
-        title = "Hide join-rule changes",
         titleKey = MagesSettingsKeys.HIDE_JOIN_RULE_CHANGES,
-        description = "Who can join the room",
         descriptionKey = MagesSettingsKeys.HIDE_JOIN_RULE_CHANGES_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Never", "Public Rooms", "Non-DMs", "Always"],
         optionsKey = MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS,
     )
     val compactPublicRoomJoinRulesEvents: HideInRoomsMode = HideInRoomsMode.Never,
 
     @Setting(
-        title = "Hide history-visibility changes",
         titleKey = MagesSettingsKeys.HIDE_HISTORY_VISIBILITY_CHANGES,
-        description = "Who can read room history",
         descriptionKey = MagesSettingsKeys.HIDE_HISTORY_VISIBILITY_CHANGES_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Never", "Public Rooms", "Non-DMs", "Always"],
         optionsKey = MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS,
     )
     val compactPublicRoomHistoryVisibilityEvents: HideInRoomsMode = HideInRoomsMode.Never,
 
     @Setting(
-        title = "Hide guest-access changes",
         titleKey = MagesSettingsKeys.HIDE_GUEST_ACCESS_CHANGES,
-        description = "Guest access changes",
         descriptionKey = MagesSettingsKeys.HIDE_GUEST_ACCESS_CHANGES_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Never", "Public Rooms", "Non-DMs", "Always"],
         optionsKey = MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS,
     )
     val compactPublicRoomGuestAccessEvents: HideInRoomsMode = HideInRoomsMode.Never,
 
     @Setting(
-        title = "Hide server ACL changes",
         titleKey = MagesSettingsKeys.HIDE_SERVER_ACL_CHANGES,
-        description = "Server access control list changes",
         descriptionKey = MagesSettingsKeys.HIDE_SERVER_ACL_CHANGES_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Never", "Public Rooms", "Non-DMs", "Always"],
         optionsKey = MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS,
     )
     val compactPublicRoomServerAclEvents: HideInRoomsMode = HideInRoomsMode.Never,
 
     @Setting(
-        title = "Hide tombstone events",
         titleKey = MagesSettingsKeys.HIDE_TOMBSTONE_EVENTS,
-        description = "Room replacement / upgrade notices",
         descriptionKey = MagesSettingsKeys.HIDE_TOMBSTONE_EVENTS_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Never", "Public Rooms", "Non-DMs", "Always"],
         optionsKey = MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS,
     )
     val compactPublicRoomTombstoneEvents: HideInRoomsMode = HideInRoomsMode.Never,
 
     @Setting(
-        title = "Hide space-child events",
         titleKey = MagesSettingsKeys.HIDE_SPACE_CHILD_EVENTS,
-        description = "Space child changes",
         descriptionKey = MagesSettingsKeys.HIDE_SPACE_CHILD_EVENTS_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Never", "Public Rooms", "Non-DMs", "Always"],
         optionsKey = MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS,
     )
     val compactPublicRoomSpaceChildEvents: HideInRoomsMode = HideInRoomsMode.Never,
 
     @Setting(
-        title = "Hide other state events",
         titleKey = MagesSettingsKeys.HIDE_OTHER_STATE_EVENTS,
-        description = "Unknown or uncategorized room state updates",
         descriptionKey = MagesSettingsKeys.HIDE_OTHER_STATE_EVENTS_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Never", "Public Rooms", "Non-DMs", "Always"],
         optionsKey = MagesSettingsKeys.HIDE_IN_ROOMS_OPTIONS,
     )
     val compactPublicRoomOtherStateEvents: HideInRoomsMode = HideInRoomsMode.Never,
 
     @Setting(
-        title = "Auto-paginate older messages",
         titleKey = MagesSettingsKeys.AUTO_PAGINATE_OLDER_MESSAGES,
-
-        description = "Automatically load older messages when scrolling to top",
         descriptionKey = MagesSettingsKeys.AUTO_PAGINATE_OLDER_MESSAGES_DESCRIPTION,
         category = Timeline::class,
         type = Toggle::class
@@ -560,9 +456,7 @@ data class AppSettings(
     val autoBackPagination: Boolean = false,
 
     @Setting(
-        title = "Include silent unread in filter",
         titleKey = MagesSettingsKeys.INCLUDE_SILENT_UNREAD_IN_FILTER,
-        description = "When on, the unread filter shows rooms with any unread messages (notifications first). When off, only rooms with notifications are shown.",
         descriptionKey = MagesSettingsKeys.INCLUDE_SILENT_UNREAD_IN_FILTER_DESCRIPTION,
         category = Timeline::class,
         type = Toggle::class,
@@ -570,9 +464,7 @@ data class AppSettings(
     val includeSilentUnreadInFilter: Boolean = false,
 
     @Setting(
-        title = "Show space badge in room list",
         titleKey = MagesSettingsKeys.SHOW_SPACE_BADGE_IN_ROOM_LIST,
-        description = "Show a small space avatar next to rooms that belong to a space",
         descriptionKey = MagesSettingsKeys.SHOW_SPACE_BADGE_IN_ROOM_LIST_DESCRIPTION,
         category = Timeline::class,
         type = Toggle::class,
@@ -580,7 +472,6 @@ data class AppSettings(
     val showSpaceBadgeInRoomList: Boolean = false,
 
     @Setting(
-        title = "Hide rooms in spaces",
         titleKey = MagesSettingsKeys.HIDE_SPACE_ROOMS_IN_ROOM_LIST,
         category = Timeline::class,
         type = Toggle::class,
@@ -588,69 +479,52 @@ data class AppSettings(
     val hideSpaceRoomsInRoomList: Boolean = false,
 
     @Setting(
-        title = "Swipe right action",
         titleKey = MagesSettingsKeys.ROOM_LIST_SWIPE_RIGHT,
-        description = "Action performed when swiping a room to the right in the room list",
         descriptionKey = MagesSettingsKeys.ROOM_LIST_SWIPE_RIGHT_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Mark as read", "Mark as unread", "Nothing", "Toggle read/unread"],
         optionsKey = MagesSettingsKeys.ROOM_LIST_SWIPE_OPTIONS,
     )
     val swipeRightAction: RoomSwipeAction = RoomSwipeAction.Nothing,
 
     @Setting(
-        title = "Swipe left action",
         titleKey = MagesSettingsKeys.ROOM_LIST_SWIPE_LEFT,
-        description = "Action performed when swiping a room to the left in the room list",
         descriptionKey = MagesSettingsKeys.ROOM_LIST_SWIPE_LEFT_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Mark as read", "Mark as unread", "Nothing", "Toggle read/unread"],
         optionsKey = MagesSettingsKeys.ROOM_LIST_SWIPE_OPTIONS,
     )
     val swipeLeftAction: RoomSwipeAction = RoomSwipeAction.Nothing,
 
     @Setting(
-        title = "Message swipe right action",
         titleKey = MagesSettingsKeys.MESSAGE_SWIPE_RIGHT,
-        description = "Action performed when swiping a message to the right",
         descriptionKey = MagesSettingsKeys.MESSAGE_SWIPE_RIGHT_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Reply", "React", "Pin", "Copy", "Nothing"],
         optionsKey = MagesSettingsKeys.MESSAGE_SWIPE_OPTIONS,
     )
     val messageSwipeRightAction: MessageSwipeAction = MessageSwipeAction.Reply,
 
     @Setting(
-        title = "Message swipe left action",
         titleKey = MagesSettingsKeys.MESSAGE_SWIPE_LEFT,
-        description = "Action performed when swiping a message to the left",
         descriptionKey = MagesSettingsKeys.MESSAGE_SWIPE_LEFT_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Reply", "React", "Pin", "Copy", "Nothing"],
         optionsKey = MagesSettingsKeys.MESSAGE_SWIPE_OPTIONS,
     )
     val messageSwipeLeftAction: MessageSwipeAction = MessageSwipeAction.Nothing,
 
     @Setting(
-        title = "Double-tap action",
         titleKey = MagesSettingsKeys.MESSAGE_DOUBLE_TAP,
-        description = "Action performed when double-tapping a message",
         descriptionKey = MagesSettingsKeys.MESSAGE_DOUBLE_TAP_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["React", "Reply", "Pin", "Copy", "Nothing"],
         optionsKey = MagesSettingsKeys.MESSAGE_DOUBLE_TAP_OPTIONS,
     )
     val messageDoubleTapAction: MessageDoubleTapAction = MessageDoubleTapAction.React,
 
     @Setting(
-        title = "Double-tap reaction",
         titleKey = MagesSettingsKeys.MESSAGE_DOUBLE_TAP_REACTION,
-        description = "Reaction sent when the double-tap action is React",
         descriptionKey = MagesSettingsKeys.MESSAGE_DOUBLE_TAP_REACTION_DESCRIPTION,
         category = Timeline::class,
         type = ReactionEmojiPicker::class,
@@ -660,22 +534,17 @@ data class AppSettings(
     val messageDoubleTapReaction: String = "👍",
 
     @Setting(
-        title = "Right-click action",
         titleKey = MagesSettingsKeys.MESSAGE_RIGHT_CLICK,
-        description = "Action performed when right-clicking a message",
         descriptionKey = MagesSettingsKeys.MESSAGE_RIGHT_CLICK_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["Open message menu", "Copy", "Reply", "Pin", "Nothing"],
         optionsKey = MagesSettingsKeys.MESSAGE_RIGHT_CLICK_OPTIONS,
         platforms = [SettingPlatform.JVM, SettingPlatform.WEB],
     )
     val messageRightClickAction: MessageRightClickAction = MessageRightClickAction.Menu,
 
     @Setting(
-        title = "Message menu",
         titleKey = MagesSettingsKeys.MESSAGE_MENU_ORDER,
-        description = "Choose the order of actions in the message menu",
         descriptionKey = MagesSettingsKeys.MESSAGE_MENU_ORDER_DESCRIPTION,
         category = Timeline::class,
         type = Button::class,
@@ -687,9 +556,7 @@ data class AppSettings(
     val messageMenuOrder: String = "",
 
     @Setting(
-        title = "Quick reactions",
         titleKey = MagesSettingsKeys.QUICK_REACTIONS,
-        description = "Choose which reactions appear above the message actions",
         descriptionKey = MagesSettingsKeys.QUICK_REACTIONS_DESCRIPTION,
         category = Timeline::class,
         type = Button::class,
@@ -701,9 +568,7 @@ data class AppSettings(
     val quickReactions: String = "",
 
     @Setting(
-        title = "Split panes",
         titleKey = MagesSettingsKeys.SPLIT_PANES,
-        description = "Show the room list and conversation side by side on wide screens",
         descriptionKey = MagesSettingsKeys.SPLIT_PANES_DESCRIPTION,
         category = Appearance::class,
         type = Toggle::class,
@@ -711,9 +576,7 @@ data class AppSettings(
     val splitPanes: Boolean = false,
 
     @Setting(
-        title = "Room list width",
         titleKey = MagesSettingsKeys.SPLIT_ROOM_LIST_PERCENT,
-        description = "Percentage of the window used by the room list when split panes are on",
         descriptionKey = MagesSettingsKeys.SPLIT_ROOM_LIST_PERCENT_DESCRIPTION,
         category = Appearance::class,
         type = Slider::class,
@@ -725,9 +588,7 @@ data class AppSettings(
     val splitRoomListPercent: Int = 40,
 
     @Setting(
-        title = "Sort unread first",
         titleKey = MagesSettingsKeys.SORT_BY_UNREAD,
-        description = "Keep rooms with unread activity at the top of each section",
         descriptionKey = MagesSettingsKeys.SORT_BY_UNREAD_DESCRIPTION,
         category = Timeline::class,
         type = Toggle::class,
@@ -735,9 +596,7 @@ data class AppSettings(
     val sortByUnread: Boolean = false,
 
     @Setting(
-        title = "Show silent unread count",
         titleKey = MagesSettingsKeys.SHOW_SILENT_UNREAD_COUNT,
-        description = "Count every unread message in the badge instead of only highlighted ones",
         descriptionKey = MagesSettingsKeys.SHOW_SILENT_UNREAD_COUNT_DESCRIPTION,
         category = Timeline::class,
         type = Toggle::class,
@@ -745,9 +604,7 @@ data class AppSettings(
     val showSilentUnreadCount: Boolean = true,
 
     @Setting(
-        title = "Exclude low priority from unread badge",
         titleKey = MagesSettingsKeys.EXCLUDE_LOW_PRIORITY_FROM_UNREAD_BADGE,
-        description = "Leave low priority rooms out of the filter chip counts",
         descriptionKey = MagesSettingsKeys.EXCLUDE_LOW_PRIORITY_FROM_UNREAD_BADGE_DESCRIPTION,
         category = Timeline::class,
         type = Toggle::class,
@@ -755,9 +612,7 @@ data class AppSettings(
     val excludeLowPriorityFromUnreadBadge: Boolean = true,
 
     @Setting(
-        title = "Open rooms at first unread",
         titleKey = MagesSettingsKeys.OPEN_AT_UNREAD,
-        description = "Jump back to the first unread message when opening a room",
         descriptionKey = MagesSettingsKeys.OPEN_AT_UNREAD_DESCRIPTION,
         category = Timeline::class,
         type = Toggle::class,
@@ -765,9 +620,7 @@ data class AppSettings(
     val openAtUnread: Boolean = true,
 
     @Setting(
-        title = "Floating date separator",
         titleKey = MagesSettingsKeys.FLOATING_DATE,
-        description = "Show a date chip while scrolling through the timeline",
         descriptionKey = MagesSettingsKeys.FLOATING_DATE_DESCRIPTION,
         category = Timeline::class,
         type = Toggle::class,
@@ -775,21 +628,16 @@ data class AppSettings(
     val floatingDate: Boolean = true,
 
     @Setting(
-        title = "Mark as read",
         titleKey = MagesSettingsKeys.AUTO_MARK_READ_TRIGGER,
-        description = "When to mark a room as read",
         descriptionKey = MagesSettingsKeys.AUTO_MARK_READ_TRIGGER_DESCRIPTION,
         category = Timeline::class,
         type = Dropdown::class,
-        options = ["On send", "While open", "On room close", "Never"],
         optionsKey = MagesSettingsKeys.AUTO_MARK_READ_TRIGGER_OPTIONS,
     )
     val autoMarkReadTrigger: AutoMarkReadTrigger = AutoMarkReadTrigger.WhileOpen,
 
     @Setting(
-        title = "Composer lines",
         titleKey = MagesSettingsKeys.COMPOSER_MAX_LINES,
-        description = "Maximum height of the message composer",
         descriptionKey = MagesSettingsKeys.COMPOSER_MAX_LINES_DESCRIPTION,
         category = Appearance::class,
         type = Slider::class,
@@ -800,9 +648,7 @@ data class AppSettings(
     val composerMaxLines: Int = 6,
 
     @Setting(
-        title = "Composer lines when unfocused",
         titleKey = MagesSettingsKeys.COMPOSER_MAX_LINES_UNFOCUSED,
-        description = "Maximum height of the message composer while it is not focused",
         descriptionKey = MagesSettingsKeys.COMPOSER_MAX_LINES_UNFOCUSED_DESCRIPTION,
         category = Appearance::class,
         type = Slider::class,
@@ -813,9 +659,7 @@ data class AppSettings(
     val composerMaxLinesUnfocused: Int = 2,
 
     @Setting(
-        title = "Sync vsync",
         titleKey = MagesSettingsKeys.SKIKO_VSYNC,
-        description = "Synchronise drawing with the display refresh rate. Turn off to save battery",
         descriptionKey = MagesSettingsKeys.SKIKO_VSYNC_DESCRIPTION,
         category = Advanced::class,
         type = Toggle::class,
@@ -824,9 +668,7 @@ data class AppSettings(
     val skikoVsync: Boolean = true,
 
     @Setting(
-        title = "Hide window decoration",
         titleKey = MagesSettingsKeys.HIDE_WINDOW_DECORATION,
-        description = "Draw the window without a title bar. Requires a restart",
         descriptionKey = MagesSettingsKeys.HIDE_WINDOW_DECORATION_DESCRIPTION,
         category = Appearance::class,
         type = Toggle::class,
@@ -835,9 +677,7 @@ data class AppSettings(
     val hideWindowDecoration: Boolean = false,
 
     @Setting(
-        title = "Window opacity",
         titleKey = MagesSettingsKeys.WINDOW_BACKGROUND_ALPHA,
-        description = "Transparency of the whole window",
         descriptionKey = MagesSettingsKeys.WINDOW_BACKGROUND_ALPHA_DESCRIPTION,
         category = Appearance::class,
         type = Slider::class,
@@ -849,9 +689,7 @@ data class AppSettings(
     val windowBackgroundAlpha: Float = 1f,
 
     @Setting(
-        title = "Chat bubbles",
         titleKey = MagesSettingsKeys.CHAT_BUBBLES,
-        description = "Open system settings to enable (or disable) conversation bubbles",
         descriptionKey = MagesSettingsKeys.CHAT_BUBBLES_DESCRIPTION,
         category = Notifications::class,
         type = Button::class,
@@ -861,9 +699,7 @@ data class AppSettings(
     val openBubbleSettings: Unit = Unit,
 
     @Setting(
-        title = "Notification rules",
         titleKey = MagesSettingsKeys.NOTIFICATION_RULES,
-        description = "Manage messages, mentions, reactions, invites, and other server-backed notification rules",
         descriptionKey = MagesSettingsKeys.NOTIFICATION_RULES_DESCRIPTION,
         category = Notifications::class,
         type = Button::class,
@@ -873,9 +709,7 @@ data class AppSettings(
     val openNotificationRules: Unit = Unit,
 
     @Setting(
-        title = "Enable notifications",
         titleKey = MagesSettingsKeys.ENABLE_NOTIFICATIONS,
-        description = "Show notifications (desktop & web polling + Android push)",
         descriptionKey = MagesSettingsKeys.ENABLE_NOTIFICATIONS_DESCRIPTION,
         category = Notifications::class,
         type = Toggle::class
@@ -883,9 +717,7 @@ data class AppSettings(
     val notificationsEnabled: Boolean = true,
 
     @Setting(
-        title = "Request notification permission",
         titleKey = MagesSettingsKeys.REQUEST_NOTIFICATION_PERMISSION,
-        description = "Click to enable browser notifications",
         descriptionKey = MagesSettingsKeys.REQUEST_NOTIFICATION_PERMISSION_DESCRIPTION,
         category = Notifications::class,
         type = Button::class,
@@ -895,9 +727,7 @@ data class AppSettings(
     val requestNotificationPermission: Unit = Unit,
 
     @Setting(
-        title = "Test browser notification",
         titleKey = MagesSettingsKeys.TEST_BROWSER_NOTIFICATION,
-        description = "Click to test if notifications work",
         descriptionKey = MagesSettingsKeys.TEST_BROWSER_NOTIFICATION_DESCRIPTION,
         category = Notifications::class,
         type = Button::class,
@@ -907,9 +737,7 @@ data class AppSettings(
     val testNotification: Unit = Unit,
 
     @Setting(
-        title = "Show message preview",
         titleKey = MagesSettingsKeys.SHOW_MESSAGE_PREVIEW,
-        description = "Show message content in notifications",
         descriptionKey = MagesSettingsKeys.SHOW_MESSAGE_PREVIEW_DESCRIPTION,
         category = Notifications::class,
         type = Toggle::class,
@@ -918,9 +746,7 @@ data class AppSettings(
     val notificationShowPreview: Boolean = true,
 
     @Setting(
-        title = "Show media preview",
         titleKey = MagesSettingsKeys.SHOW_MEDIA_PREVIEW,
-        description = "Download images to show in notifications",
         descriptionKey = MagesSettingsKeys.SHOW_MEDIA_PREVIEW_DESCRIPTION,
         category = Notifications::class,
         type = Toggle::class,
@@ -929,9 +755,7 @@ data class AppSettings(
     val notificationShowMedia: Boolean = true,
 
     @Setting(
-        title = "Vibrate",
         titleKey = MagesSettingsKeys.VIBRATE,
-        description = "Vibrate on notification",
         descriptionKey = MagesSettingsKeys.VIBRATE_DESCRIPTION,
         category = Notifications::class,
         type = Toggle::class,
@@ -941,9 +765,7 @@ data class AppSettings(
     val notificationVibrate: Boolean = true,
 
     @Setting(
-        title = "Notification sound",
         titleKey = MagesSettingsKeys.NOTIFICATION_SOUND,
-        description = "Play sound for notifications (platform support varies)",
         descriptionKey = MagesSettingsKeys.NOTIFICATION_SOUND_DESCRIPTION,
         category = Notifications::class,
         type = Toggle::class,
@@ -952,9 +774,7 @@ data class AppSettings(
     val notificationSound: Boolean = true,
 
     @Setting(
-        title = "Sound once per room",
         titleKey = MagesSettingsKeys.SOUND_ONCE_PER_ROOM,
-        description = "Only play sound for first message until you check the room",
         descriptionKey = MagesSettingsKeys.SOUND_ONCE_PER_ROOM_DESCRIPTION,
         category = Notifications::class,
         type = Toggle::class,
@@ -963,9 +783,7 @@ data class AppSettings(
     val notifySoundOncePerRoom: Boolean = false,
 
     @Setting(
-        title = "Notify while room is open",
         titleKey = MagesSettingsKeys.NOTIFY_WHILE_ROOM_OPEN,
-        description = "Show notifications and bubbles for the room you have open",
         descriptionKey = MagesSettingsKeys.NOTIFY_WHILE_ROOM_OPEN_DESCRIPTION,
         category = Notifications::class,
         type = Toggle::class,
@@ -974,9 +792,7 @@ data class AppSettings(
     val notifyWhileRoomOpen: Boolean = false,
 
     @Setting(
-        title = "Quiet hours",
         titleKey = MagesSettingsKeys.QUIET_HOURS,
-        description = "Suppress audible notifications during quiet hours",
         descriptionKey = MagesSettingsKeys.QUIET_HOURS_DESCRIPTION,
         category = Notifications::class,
         type = Toggle::class,
@@ -985,19 +801,16 @@ data class AppSettings(
     val quietHoursEnabled: Boolean = false,
 
     @Setting(
-        title = "Quiet hours start time", category = Notifications::class,
         titleKey = MagesSettingsKeys.QUIET_HOURS_START_TIME,
-        description = "Start time for quiet hours",
         descriptionKey = MagesSettingsKeys.QUIET_HOURS_START_TIME_DESCRIPTION,
+        category = Notifications::class,
         type = TimePickerType::class,
         dependsOn = "quietHoursEnabled"
     )
     val quietHoursStartMinutes: Int = 1380,
 
     @Setting(
-        title = "Quiet hours end time",
         titleKey = MagesSettingsKeys.QUIET_HOURS_END_TIME,
-        description = "End time for quiet hours",
         descriptionKey = MagesSettingsKeys.QUIET_HOURS_END_TIME_DESCRIPTION,
         category = Notifications::class,
         type = TimePickerType::class,
@@ -1006,9 +819,7 @@ data class AppSettings(
     val quietHoursEndMinutes: Int = 420,
 
     @Setting(
-        title = "Auto-join room invites",
         titleKey = MagesSettingsKeys.AUTO_JOIN_ROOM_INVITES,
-        description = "Automatically join rooms when invited",
         descriptionKey = MagesSettingsKeys.AUTO_JOIN_ROOM_INVITES_DESCRIPTION,
         category = Notifications::class,
         type = Toggle::class,
@@ -1026,9 +837,7 @@ data class AppSettings(
     val androidNotifBaselineMs: Long = 0L,
 
     @Setting(
-        title = "Send public read receipts",
         titleKey = MagesSettingsKeys.SEND_PUBLIC_READ_RECEIPTS,
-        description = "When enabled, other users can see when you've read their messages",
         descriptionKey = MagesSettingsKeys.SEND_PUBLIC_READ_RECEIPTS_DESCRIPTION,
         category = Privacy::class,
         type = Toggle::class
@@ -1036,9 +845,7 @@ data class AppSettings(
     val sendReadReceipts: Boolean = true,
 
     @Setting(
-        title = "Send typing indicators",
         titleKey = MagesSettingsKeys.SEND_TYPING_INDICATORS,
-        description = "When disabled, Mages will not send typing notifications",
         descriptionKey = MagesSettingsKeys.SEND_TYPING_INDICATORS_DESCRIPTION,
         category = Privacy::class,
         type = Toggle::class
@@ -1046,9 +853,7 @@ data class AppSettings(
     val sendTypingIndicators: Boolean = true,
 
     @Setting(
-        title = "Share call status",
         titleKey = MagesSettingsKeys.SHARE_CALL_STATUS,
-        description = "Show other users you're on a call (MSC4426 m.call)",
         descriptionKey = MagesSettingsKeys.SHARE_CALL_STATUS_DESCRIPTION,
         category = Privacy::class,
         type = Toggle::class
@@ -1056,9 +861,7 @@ data class AppSettings(
     val shareCallStatus: Boolean = false,
 
     @Setting(
-        title = "Block room invites",
         titleKey = MagesSettingsKeys.BLOCK_INVITES,
-        description = "Automatically reject every room invite sent to you. Synced to your other devices",
         descriptionKey = MagesSettingsKeys.BLOCK_INVITES_DESCRIPTION,
         category = Privacy::class,
         type = Toggle::class
@@ -1066,33 +869,25 @@ data class AppSettings(
     val blockInvites: Boolean = false,
 
     @Setting(
-        title = "Show link previews",
         titleKey = MagesSettingsKeys.LINK_PREVIEWS,
-        description = "Ask your homeserver to preview links posted in messages. It is handed the URL to do so, so encrypted rooms are left unpreviewed unless you choose Always",
         descriptionKey = MagesSettingsKeys.LINK_PREVIEWS_DESCRIPTION,
         category = Privacy::class,
         type = Dropdown::class,
-        options = ["Always", "Except in encrypted rooms", "Never"],
         optionsKey = MagesSettingsKeys.LINK_PREVIEWS_OPTIONS,
     )
     val linkPreviews: LinkPreviewsMode = LinkPreviewsMode.UnencryptedOnly,
 
     @Setting(
-        title = "Presence",
         titleKey = MagesSettingsKeys.PRESENCE,
-        description = "Set a global presence status",
         descriptionKey = MagesSettingsKeys.PRESENCE_DESCRIPTION,
         category = Privacy::class,
         type = Dropdown::class,
-        options = ["Online", "Offline", "Unavailable"],
         optionsKey = MagesSettingsKeys.PRESENCE_OPTIONS,
     )
     val presence: PresenceMode = PresenceMode.Online,
 
     @Setting(
-        title = "Status message",
         titleKey = MagesSettingsKeys.STATUS_MESSAGE,
-        description = "Shown next to your presence",
         descriptionKey = MagesSettingsKeys.STATUS_MESSAGE_DESCRIPTION,
         category = Privacy::class,
         type = TextInput::class,
@@ -1100,9 +895,7 @@ data class AppSettings(
     val statusMessage: String = "",
 
     @Setting(
-        title = "App lock",
         titleKey = MagesSettingsKeys.APP_LOCK,
-        description = "Require biometrics or device PIN to open",
         descriptionKey = MagesSettingsKeys.APP_LOCK_DESCRIPTION,
         category = Privacy::class,
         type = Toggle::class,
@@ -1111,13 +904,10 @@ data class AppSettings(
     val appLockEnabled: Boolean = false,
 
     @Setting(
-        title = "App lock timeout",
         titleKey = MagesSettingsKeys.APP_LOCK_TIMEOUT,
-        description = "Lock after this much time in the background",
         descriptionKey = MagesSettingsKeys.APP_LOCK_TIMEOUT_DESCRIPTION,
         category = Privacy::class,
         type = Dropdown::class,
-        options = ["Immediate", "One Minute", "Five Minutes", "Thirty Minutes", "One Hour", "Never"],
         optionsKey = MagesSettingsKeys.APP_LOCK_TIMEOUT_OPTIONS,
         dependsOn = "appLockEnabled",
         platforms = [SettingPlatform.ANDROID],
@@ -1125,9 +915,7 @@ data class AppSettings(
     val appLockTimeout: AppLockTimeout = AppLockTimeout.OneMinute,
 
     @Setting(
-        title = "Screen security",
         titleKey = MagesSettingsKeys.SCREEN_SECURITY,
-        description = "Block screenshots and hide content in the app switcher",
         descriptionKey = MagesSettingsKeys.SCREEN_SECURITY_DESCRIPTION,
         category = Privacy::class,
         type = Toggle::class,
@@ -1148,9 +936,7 @@ data class AppSettings(
     @Setting(
         category = Calls::class,
         type = Toggle::class,
-        title = "Show call screen",
         titleKey = MagesSettingsKeys.SHOW_CALL_SCREEN,
-        description = "Show full-screen incoming call UI",
         descriptionKey = MagesSettingsKeys.SHOW_CALL_SCREEN_DESCRIPTION,
         dependsOn = "callNotificationsEnabled",
         platforms = [SettingPlatform.ANDROID]
@@ -1160,9 +946,7 @@ data class AppSettings(
     @Setting(
         category = Calls::class,
         type = Toggle::class,
-        title = "Answer calls when locked",
         titleKey = MagesSettingsKeys.ANSWER_CALLS_WHEN_LOCKED,
-        description = "Require device unlock before answering an incoming call",
         descriptionKey = MagesSettingsKeys.ANSWER_CALLS_WHEN_LOCKED_DESCRIPTION,
         dependsOn = "callNotificationsEnabled",
         platforms = [SettingPlatform.ANDROID]
@@ -1172,9 +956,7 @@ data class AppSettings(
     @Setting(
         category = Calls::class,
         type = Toggle::class,
-        title = "Call notifications",
         titleKey = MagesSettingsKeys.CALL_NOTIFICATIONS,
-        description = "Incoming call notifications",
         descriptionKey = MagesSettingsKeys.CALL_NOTIFICATIONS_DESCRIPTION,
         platforms = [SettingPlatform.ANDROID]
     )
@@ -1203,9 +985,7 @@ data class AppSettings(
     @Setting(
         category = Notifications::class,
         type = Button::class,
-        title = "Select UnifiedPush distributor",
         titleKey = MagesSettingsKeys.SELECT_UNIFIED_PUSH_DISTRIBUTOR,
-        description = "Choose the app that delivers pushes (gcompat/sunup/ntfy/etc.)",
         descriptionKey = MagesSettingsKeys.SELECT_UNIFIED_PUSH_DISTRIBUTOR_DESCRIPTION,
         platforms = [SettingPlatform.ANDROID],
     )
@@ -1215,9 +995,7 @@ data class AppSettings(
     @Setting(
         category = Notifications::class,
         type = Button::class,
-        title = "Re-register UnifiedPush",
         titleKey = MagesSettingsKeys.RE_REGISTER_UNIFIED_PUSH,
-        description = "Fix push issues after update/reboot or distributor change",
         descriptionKey = MagesSettingsKeys.RE_REGISTER_UNIFIED_PUSH_DESCRIPTION,
         platforms = [SettingPlatform.ANDROID],
     )
@@ -1227,9 +1005,7 @@ data class AppSettings(
     @Setting(
         category = Notifications::class,
         type = Button::class,
-        title = "Copy UnifiedPush endpoint",
         titleKey = MagesSettingsKeys.COPY_UNIFIED_PUSH_ENDPOINT,
-        description = "For debugging; shows what endpoint is registered",
         descriptionKey = MagesSettingsKeys.COPY_UNIFIED_PUSH_ENDPOINT_DESCRIPTION,
         platforms = [SettingPlatform.ANDROID],
     )
@@ -1237,21 +1013,16 @@ data class AppSettings(
     val copyUnifiedPushEndpoint: Unit = Unit,
 
     @Setting(
-        title = "Media previews",
         titleKey = MagesSettingsKeys.BLOCK_MEDIA_PREVIEWS,
-        description = "Automatically download thumbnails, images, voice and video. Synced to your other devices",
         descriptionKey = MagesSettingsKeys.BLOCK_MEDIA_PREVIEWS_DESCRIPTION,
         category = Storage::class,
         type = Dropdown::class,
-        options = ["On", "Private", "Off"],
         optionsKey = MagesSettingsKeys.BLOCK_MEDIA_PREVIEWS_OPTIONS,
     )
     val mediaPreviews: MediaPreviewsMode = MediaPreviewsMode.On,
 
     @Setting(
-        title = "Auto-download photos",
         titleKey = MagesSettingsKeys.AUTO_DOWNLOAD_PHOTOS,
-        description = "Download full-size photos automatically",
         descriptionKey = MagesSettingsKeys.AUTO_DOWNLOAD_PHOTOS_DESCRIPTION,
         category = Storage::class,
         type = MultiSelect::class,
@@ -1261,9 +1032,7 @@ data class AppSettings(
     val autoDownloadPhotos: Set<String> = setOf(AUTO_DOWNLOAD_WIFI),
 
     @Setting(
-        title = "Auto-download audio",
         titleKey = MagesSettingsKeys.AUTO_DOWNLOAD_AUDIO,
-        description = "Download voice messages and audio automatically",
         descriptionKey = MagesSettingsKeys.AUTO_DOWNLOAD_AUDIO_DESCRIPTION,
         category = Storage::class,
         type = MultiSelect::class,
@@ -1273,9 +1042,7 @@ data class AppSettings(
     val autoDownloadAudio: Set<String> = setOf(AUTO_DOWNLOAD_WIFI),
 
     @Setting(
-        title = "Auto-download videos",
         titleKey = MagesSettingsKeys.AUTO_DOWNLOAD_VIDEO,
-        description = "Download videos automatically",
         descriptionKey = MagesSettingsKeys.AUTO_DOWNLOAD_VIDEO_DESCRIPTION,
         category = Storage::class,
         type = MultiSelect::class,
@@ -1285,9 +1052,7 @@ data class AppSettings(
     val autoDownloadVideo: Set<String> = setOf(AUTO_DOWNLOAD_WIFI),
 
     @Setting(
-        title = "Auto-download documents",
         titleKey = MagesSettingsKeys.AUTO_DOWNLOAD_DOCUMENTS,
-        description = "Download file attachments automatically",
         descriptionKey = MagesSettingsKeys.AUTO_DOWNLOAD_DOCUMENTS_DESCRIPTION,
         category = Storage::class,
         type = MultiSelect::class,
@@ -1297,9 +1062,7 @@ data class AppSettings(
     val autoDownloadDocuments: Set<String> = emptySet(),
 
     @Setting(
-        title = "Media Cache",
         titleKey = MagesSettingsKeys.MEDIA_CACHE,
-        description = "View and manage cached media",
         descriptionKey = MagesSettingsKeys.MEDIA_CACHE_DESCRIPTION,
         category = Storage::class,
         type = Button::class,
@@ -1308,9 +1071,7 @@ data class AppSettings(
     val openMediaCache: Unit = Unit,
 
     @Setting(
-        title = "Start in tray",
         titleKey = MagesSettingsKeys.START_IN_TRAY,
-        description = "Minimize to tray on launch",
         descriptionKey = MagesSettingsKeys.START_IN_TRAY_DESCRIPTION,
         category = Advanced::class,
         type = Toggle::class,
@@ -1319,9 +1080,7 @@ data class AppSettings(
     val startInTray: Boolean = false,
 
     @Setting(
-        title = "Enable system tray",
         titleKey = MagesSettingsKeys.ENABLE_TRAY,
-        description = "Show a tray icon with quick actions. Turn off if the tray crashes on your system",
         descriptionKey = MagesSettingsKeys.ENABLE_TRAY_DESCRIPTION,
         category = Advanced::class,
         type = Toggle::class,
@@ -1345,9 +1104,7 @@ data class AppSettings(
     val spaceNotificationScopesJson: String = "",
 
     @Setting(
-        title = "Enter sends message",
         titleKey = MagesSettingsKeys.ENTER_SENDS_MESSAGE,
-        description = "When enabled, pressing Enter will send the message and Shift, Ctrl or Cmd + Enter will insert a new line",
         descriptionKey = MagesSettingsKeys.ENTER_SENDS_MESSAGE_DESCRIPTION,
         category = Advanced::class,
         type = Toggle::class
@@ -1355,9 +1112,7 @@ data class AppSettings(
     val enterSendsMessage: Boolean = false,
 
     @Setting(
-        title = "Edit latest message with up arrow",
         titleKey = MagesSettingsKeys.EDIT_LATEST_WITH_UP_ARROW,
-        description = "When enabled, pressing the up arrow while the message box is empty starts editing your latest editable message or caption",
         descriptionKey = MagesSettingsKeys.EDIT_LATEST_WITH_UP_ARROW_DESCRIPTION,
         category = Advanced::class,
         type = Toggle::class
@@ -1365,9 +1120,7 @@ data class AppSettings(
     val editLatestWithUpArrow: Boolean = false,
 
     @Setting(
-        title = "Use proxy",
         titleKey = MagesSettingsKeys.USE_PROXY,
-        description = "Route all traffic through a SOCKS5 or HTTP proxy",
         descriptionKey = MagesSettingsKeys.USE_PROXY_DESCRIPTION,
         category = Advanced::class,
         type = Toggle::class,
@@ -1376,9 +1129,7 @@ data class AppSettings(
     val proxyEnabled: Boolean = false,
 
     @Setting(
-        title = "Proxy URL",
         titleKey = MagesSettingsKeys.PROXY_URL,
-        description = "SOCKS5 or HTTP proxy address",
         descriptionKey = MagesSettingsKeys.PROXY_URL_DESCRIPTION,
         category = Advanced::class,
         type = TextInput::class,
@@ -1388,9 +1139,7 @@ data class AppSettings(
     val proxyUrl: String = "",
 
     @Setting(
-        title = "Live location update interval",
         titleKey = MagesSettingsKeys.LIVE_LOCATION_UPDATE_INTERVAL,
-        description = "Minimum distance (in meters) traveled before sending a location update",
         descriptionKey = MagesSettingsKeys.LIVE_LOCATION_UPDATE_INTERVAL_DESCRIPTION,
         category = Advanced::class,
         type = Slider::class,
