@@ -89,6 +89,15 @@ class NotificationReconcileWorker(
                 ?: continue
             if (targetRoomId != null && roomId != targetRoomId) continue
 
+            val threadId = notif.notification.extras.getString(EXTRA_MATRIX_THREAD_ID)
+            if (!threadId.isNullOrBlank()) {
+                if (PlatformNotifier.isThreadVisible(roomId, threadId)) continue
+                if (ThreadUnreadGate.isRead(service, roomId, threadId)) {
+                    AndroidNotificationHelper.cancelThreadNotification(ctx, roomId, threadId)
+                }
+                continue
+            }
+
             // A failed read is not evidence the room is read. Only a real zero retires it.
             val stats = runCatching { port.roomUnreadStats(roomId) }.getOrNull() ?: continue
 

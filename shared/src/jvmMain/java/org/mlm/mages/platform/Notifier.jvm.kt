@@ -25,6 +25,7 @@ import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.push.LinuxPushHandler
 import org.mlm.mages.push.NotificationMediaPolicy
 import org.mlm.mages.push.NotificationPresentation
+import org.mlm.mages.push.ThreadUnreadGate
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.ThreadReadMarks
 import org.mlm.mages.settings.autoDownloadRules
@@ -282,6 +283,13 @@ actual fun BindNotifications(
                 if (stats != null && stats.notifications == 0L && stats.mentions == 0L) {
                     NotifierImpl.closeRoomNotification(roomId)
                     lastNotifiedTsByRoom.remove(roomId)
+                }
+            }
+
+            for ((roomId, threadId) in NotifierImpl.trackedThreadIds()) {
+                if (Notifier.isThreadVisible(roomId, threadId)) continue
+                if (ThreadUnreadGate.isRead(service, roomId, threadId)) {
+                    NotifierImpl.closeThreadNotification(roomId, threadId)
                 }
             }
 

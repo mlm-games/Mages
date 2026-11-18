@@ -24,6 +24,7 @@ import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.settings.autoDownloadRules
 import org.mlm.mages.push.NotificationMediaPolicy
 import org.mlm.mages.push.NotificationPresentation
+import org.mlm.mages.push.ThreadUnreadGate
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.ThreadReadMarks
 import org.mlm.mages.ui.util.nowMs
@@ -313,6 +314,11 @@ actual fun BindNotifications(
                 if (Notifier.isRoomVisible(roomId)) continue
                 if (threadId != null) {
                     if (Notifier.isThreadVisible(roomId, threadId)) {
+                        runCatching { closeBrowserNotificationByTag(tag) }
+                        lastNotifiedTsByConversation.remove(tag)
+                        continue
+                    }
+                    if (ThreadUnreadGate.isRead(service, roomId, threadId)) {
                         runCatching { closeBrowserNotificationByTag(tag) }
                         lastNotifiedTsByConversation.remove(tag)
                     }

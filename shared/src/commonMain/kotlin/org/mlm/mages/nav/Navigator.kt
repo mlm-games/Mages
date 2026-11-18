@@ -104,6 +104,15 @@ data class DeepLinkAction(
     val via: List<String> = emptyList(),
 )
 
+private suspend fun DeepLinkAction.resolveThreadRoot(service: MatrixService): DeepLinkAction {
+    val target = eventId
+    if (threadId != null || target == null) return this
+    val root = runCatching {
+        service.portOrNull?.eventDetails(roomId, target)?.threadRootEventId
+    }.getOrNull()?.takeIf { it.isNotBlank() && it != target }
+    return if (root == null) this else copy(threadId = root)
+}
+
 // Deep links: push Room keys when links arrive
 @Composable
 fun BindDeepLinks(
@@ -120,7 +129,8 @@ fun BindDeepLinks(
 ) {
     val coroutineScope = rememberCoroutineScope()
 
-    suspend fun openResolved(resolved: DeepLinkAction) {
+    suspend fun openResolved(action: DeepLinkAction) {
+        val resolved = action.resolveThreadRoot(service)
         val top = backStack.lastOrNull()
         val threadId = resolved.threadId
         if (threadId != null) {

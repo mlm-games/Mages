@@ -308,6 +308,16 @@ object NotifierImpl {
     fun trackedRoomIds(): Set<String> =
         notifIdByConversation.keys.filter { !it.contains(CONVERSATION_SEPARATOR) }.toSet()
 
+    fun trackedThreadIds(): Set<Pair<String, String>> =
+        notifIdByConversation.keys
+            .filter { it.contains(CONVERSATION_SEPARATOR) }
+            .mapNotNull { key ->
+                val index = key.indexOf(CONVERSATION_SEPARATOR)
+                if (index <= 0 || index == key.lastIndex) return@mapNotNull null
+                key.substring(0, index) to key.substring(index + 1)
+            }
+            .toSet()
+
     private fun conversationKey(roomId: String, threadId: String?): String =
         if (threadId.isNullOrBlank()) roomId else "$roomId$CONVERSATION_SEPARATOR$threadId"
 
