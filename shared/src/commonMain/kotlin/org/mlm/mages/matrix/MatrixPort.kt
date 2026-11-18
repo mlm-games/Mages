@@ -689,6 +689,14 @@ data class ReactionSummary(
 data class ThreadSummary(val rootEventId: String, val roomId: String, val count: Long, val latestTsMs: Long?)
 
 @Serializable
+data class ThreadUnreadCount(
+    val threadId: String,
+    val unreadMessages: ULong,
+    val unreadNotifications: ULong,
+    val unreadMentions: ULong,
+)
+
+@Serializable
 data class SpaceInfo(
     val roomId: String,
     val name: String,
@@ -1330,6 +1338,8 @@ interface MatrixPort {
         formattedBody: String? = null,
     ): Result<Unit>
     suspend fun threadSummary(roomId: String, rootEventId: String, perPage: Int = 100, maxPages: Int = 10): ThreadSummary
+
+    suspend fun threadUnreadCounts(roomId: String): Result<List<ThreadUnreadCount>>
 
     suspend fun paginateThread(roomId: String, rootEventId: String, count: Int = 50): Result<Boolean>
 

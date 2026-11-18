@@ -669,6 +669,12 @@
     <string name="setting_show_switch_account_button">Show account button on home screen</string>
     <string name="setting_show_switch_account_button_description">Show the account button on the home screen instead of in settings</string>
     <string name="setting_show_thread_reply_count">Show thread reply count</string>
+    <string name="setting_thread_unread_indicator">Thread unread indicator</string>
+    <string-array name="setting_thread_unread_indicator_options">
+        <item>Off</item>
+        <item>Dot</item>
+        <item>Count</item>
+    </string-array>
     <string name="setting_show_username_in_dms">Show username in DMs</string>
     <string name="setting_show_username_in_dms_description">Show usernames in direct messages</string>
     <string name="setting_bubble_animations">Message bubble animations</string>

@@ -29,6 +29,8 @@ object MagesSettingsKeys {
     const val SHOW_MESSAGE_AVATARS = "setting_show_message_avatars"
     const val SHOW_REACTION_AVATARS = "setting_show_reaction_avatars"
     const val SHOW_THREAD_REPLY_COUNT = "setting_show_thread_reply_count"
+    const val THREAD_UNREAD_INDICATOR = "setting_thread_unread_indicator"
+    const val THREAD_UNREAD_INDICATOR_OPTIONS = "setting_thread_unread_indicator_options"
     const val SHOW_READ_RECEIPT_AVATARS = "setting_show_read_receipt_avatars"
     const val SHOW_USERNAME_IN_DMS = "setting_show_username_in_dms"
     const val BUBBLE_ANIMATIONS = "setting_bubble_animations"

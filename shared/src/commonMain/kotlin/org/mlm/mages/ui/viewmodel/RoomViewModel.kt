@@ -43,6 +43,8 @@ import org.mlm.mages.ui.ForwardableRoom
 import org.mlm.mages.ui.loadForwardableRooms
 import org.mlm.mages.ui.AttachmentUploadStage
 import org.mlm.mages.ui.MessageActionStateUi
+import org.mlm.mages.settings.ThreadUnreadIndicator
+import org.mlm.mages.ui.ThreadUnreadUi
 import org.mlm.mages.ui.MentionProfileUi
 import org.mlm.mages.ui.ReactionDetail
 import org.mlm.mages.ui.ReactionUser
@@ -256,6 +258,7 @@ class RoomViewModel(
     private var searchJob: Job? = null
     private var paginationRecomputeJob: Job? = null
     private var catchUpTimeoutJob: Job? = null
+    private var threadUnreadJob: Job? = null
 
     private var roomClass: RoomClass = RoomClass.PrivateGroup
 
@@ -327,6 +330,7 @@ class RoomViewModel(
         const val JUMP_SNAPSHOT_TIMEOUT_MS = 15_000L
         const val JUMP_PAGE_SETTLE_TIMEOUT_MS = 10_000L
         const val JUMP_PAGINATE_POLL_MS = 50L
+        const val THREAD_UNREAD_REFRESH_MS = 15_000L
 
         /** Custom emotes render at 32dp, so this covers high-density screens. */
         const val EMOTE_PX = 128
@@ -2813,11 +2817,40 @@ class RoomViewModel(
         )
         updateState { copy(isCatchingUp = true) }
         scheduleCatchUpTimeout()
+        observeThreadUnread()
 
         viewModelScope.launch(Dispatchers.Default) {
             service.timelineDiffs(currentState.roomId)
                 .buffer(capacity = Channel.BUFFERED)
                 .collect { diff -> processDiff(diff) }
+        }
+    }
+
+    private fun observeThreadUnread() {
+        threadUnreadJob?.cancel()
+        threadUnreadJob = viewModelScope.launch {
+            while (isActive) {
+                if (settings.value.threadUnreadIndicator != ThreadUnreadIndicator.Off) {
+                    refreshThreadUnread()
+                }
+                delay(THREAD_UNREAD_REFRESH_MS)
+            }
+        }
+    }
+
+    private suspend fun refreshThreadUnread() {
+        val roomId = currentState.roomId
+        if (roomId.isBlank()) return
+        val counts = service.port.threadUnreadCounts(roomId).getOrNull() ?: return
+        val unread = counts.associate { counts ->
+            counts.threadId to ThreadUnreadUi(
+                messages = counts.unreadMessages,
+                notifications = counts.unreadNotifications,
+                mentions = counts.unreadMentions,
+            )
+        }
+        if (unread != currentState.threadUnread) {
+            updateState { copy(threadUnread = unread) }
         }
     }
 
@@ -3527,6 +3560,7 @@ class RoomViewModel(
         ownReceiptToken?.let { runCatching { service.portOrNull?.stopReceiptsObserver(it) } }
         roomCallStateToken?.let { runCatching { service.portOrNull?.unobserveRoomCallState(it) } }
         roomMembershipToken?.let { runCatching { service.portOrNull?.unobserveRoomMembership(it) } }
+        threadUnreadJob?.cancel()
         currentState.liveLocationSubToken?.let { runCatching { service.portOrNull?.stopObserveLiveLocation(it) } }
         liveLocationBeaconToken?.let { runCatching { service.portOrNull?.unsubscribeFromOwnBeaconInfoUpdates(it) } }
         LiveLocationSharingCoordinator.onLocationDispatched = null

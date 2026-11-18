@@ -378,6 +378,7 @@ data class RoomUiState(
     val avatarUrlByUserId: Map<String, String> = emptyMap(),
     override val roomMembers: List<MemberSummary> = emptyList(),
     val threadCount: Map<String, Int> = emptyMap(),
+    val threadUnread: Map<String, ThreadUnreadUi> = emptyMap(),
     val audioFileByEvent: Map<String, String> = emptyMap(),
     val waveformByEvent: Map<String, List<Float>> = emptyMap(),
 
@@ -891,6 +892,21 @@ data class SpaceBadgeUi(
     val name: String? = null,
     val avatarUrl: String? = null,
 )
+
+data class ThreadUnreadUi(
+    val messages: ULong = 0uL,
+    val notifications: ULong = 0uL,
+    val mentions: ULong = 0uL,
+) {
+    val hasUnread: Boolean get() = messages > 0uL || notifications > 0uL || mentions > 0uL
+
+    val count: Int
+        get() = when {
+            notifications > 0uL -> notifications.coerceAtMost(Int.MAX_VALUE.toULong()).toInt()
+            mentions > 0uL -> mentions.coerceAtMost(Int.MAX_VALUE.toULong()).toInt()
+            else -> messages.coerceAtMost(Int.MAX_VALUE.toULong()).toInt()
+        }
+}
 
 data class UnreadBadgeUi(
     val messages: Int = 0,

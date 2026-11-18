@@ -15,6 +15,12 @@
     <string name="setting_show_message_avatars">Üzenetek avatarjainak megjelenítése</string>
     <string name="setting_show_reaction_avatars">Reakciók avatarjainak megjelenítése</string>
     <string name="setting_show_thread_reply_count">A válaszok számának megjelenítése a szálban</string>
+    <string name="setting_thread_unread_indicator">Olvasatlan szálak jelzője</string>
+    <string-array name="setting_thread_unread_indicator_options">
+        <item>Ki</item>
+        <item>Pont</item>
+        <item>Szám</item>
+    </string-array>
     <string name="setting_show_username_in_dms">Felhasználónév megjelenítése DM-ekben</string>
     <string name="setting_bubble_animations">Üzenetbuborék animációk</string>
     <string name="setting_reduce_motion">Mozgás csökkentése</string>

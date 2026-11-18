@@ -15,6 +15,12 @@
     <string name="setting_show_message_avatars">Zobrazit avatary zpráv</string>
     <string name="setting_show_reaction_avatars">Zobrazit reakční avatary</string>
     <string name="setting_show_thread_reply_count">Zobrazit počet odpovědí ve vláknu</string>
+    <string name="setting_thread_unread_indicator">Ukazatel nepřečtených vláken</string>
+    <string-array name="setting_thread_unread_indicator_options">
+        <item>Vypnuto</item>
+        <item>Tečka</item>
+        <item>Počet</item>
+    </string-array>
     <string name="setting_show_username_in_dms">Zobrazit uživatelské jméno v DM</string>
     <string name="setting_bubble_animations">Animace bublin zpráv</string>
     <string name="setting_reduce_motion">Omezit pohyb</string>

@@ -15,6 +15,12 @@
     <string name="setting_show_message_avatars">Tampilkan avatar pesan</string>
     <string name="setting_show_reaction_avatars">Tampilkan avatar reaksi</string>
     <string name="setting_show_thread_reply_count">Tampilkan jumlah balasan benang</string>
+    <string name="setting_thread_unread_indicator">Indikator utas belum dibaca</string>
+    <string-array name="setting_thread_unread_indicator_options">
+        <item>Mati</item>
+        <item>Titik</item>
+        <item>Jumlah</item>
+    </string-array>
     <string name="setting_show_username_in_dms">Tampilkan nama pengguna di DM</string>
     <string name="setting_bubble_animations">Animasi gelembung pesan</string>
     <string name="setting_reduce_motion">Kurangi gerakan</string>

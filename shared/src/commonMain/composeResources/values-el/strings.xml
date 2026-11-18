@@ -15,6 +15,12 @@
     <string name="setting_show_message_avatars">Εμφάνιση άβαταρ μηνυμάτων</string>
     <string name="setting_show_reaction_avatars">Εμφάνιση άβαταρ αντίδρασης</string>
     <string name="setting_show_thread_reply_count">Εμφάνιση αριθμού απαντήσεων νήματος</string>
+    <string name="setting_thread_unread_indicator">Ένδειξη μη αναγνωσμένου νήματος</string>
+    <string-array name="setting_thread_unread_indicator_options">
+        <item>Ανενεργό</item>
+        <item>Κουκκίδα</item>
+        <item>Πλήθος</item>
+    </string-array>
     <string name="setting_show_username_in_dms">Εμφάνιση ονόματος χρήστη σε DMs</string>
     <string name="setting_bubble_animations">Κινούμενα σχέδια φυσαλίδων μηνυμάτων</string>
     <string name="setting_reduce_motion">Μείωση κίνησης</string>

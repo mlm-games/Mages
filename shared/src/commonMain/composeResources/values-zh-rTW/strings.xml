@@ -15,6 +15,12 @@
     <string name="setting_show_message_avatars">顯示訊息大頭貼</string>
     <string name="setting_show_reaction_avatars">顯示反應大頭貼</string>
     <string name="setting_show_thread_reply_count">顯示討論串回覆數</string>
+    <string name="setting_thread_unread_indicator">未讀討論串指示器</string>
+    <string-array name="setting_thread_unread_indicator_options">
+        <item>關閉</item>
+        <item>圓點</item>
+        <item>數量</item>
+    </string-array>
     <string name="setting_show_username_in_dms">在私訊中顯示使用者名稱</string>
     <string name="setting_bubble_animations">訊息氣泡動畫</string>
     <string name="setting_reduce_motion">減少動態效果</string>

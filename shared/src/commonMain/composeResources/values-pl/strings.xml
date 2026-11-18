@@ -15,6 +15,12 @@
     <string name="setting_show_message_avatars">Pokaż awatary wiadomości</string>
     <string name="setting_show_reaction_avatars">Pokaż awatary reakcji</string>
     <string name="setting_show_thread_reply_count">Pokaż liczbę odpowiedzi w wątku</string>
+    <string name="setting_thread_unread_indicator">Wskaźnik nieprzeczytanych wątków</string>
+    <string-array name="setting_thread_unread_indicator_options">
+        <item>Wyłączony</item>
+        <item>Kropka</item>
+        <item>Liczba</item>
+    </string-array>
     <string name="setting_show_username_in_dms">Pokaż nazwę użytkownika w DM</string>
     <string name="setting_bubble_animations">Animacje bąbelków wiadomości</string>
     <string name="setting_reduce_motion">Ogranicz ruch</string>

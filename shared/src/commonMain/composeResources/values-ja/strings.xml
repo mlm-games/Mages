@@ -15,6 +15,12 @@
     <string name="setting_show_message_avatars">メッセージのアバターを表示</string>
     <string name="setting_show_reaction_avatars">リアクションのアバターを表示</string>
     <string name="setting_show_thread_reply_count">スレッドの返信数を表示</string>
+    <string name="setting_thread_unread_indicator">未読スレッドインジケーター</string>
+    <string-array name="setting_thread_unread_indicator_options">
+        <item>オフ</item>
+        <item>ドット</item>
+        <item>数</item>
+    </string-array>
     <string name="setting_show_username_in_dms">DMでユーザー名を表示</string>
     <string name="setting_bubble_animations">メッセージバブルのアニメーション</string>
     <string name="setting_reduce_motion">モーションを減らす</string>

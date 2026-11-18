@@ -1714,6 +1714,20 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
         ThreadSummary(s.rootEventId, s.roomId, s.count.toLong(), s.latestTsMs?.toLong())
     }
 
+    override suspend fun threadUnreadCounts(roomId: String): Result<List<ThreadUnreadCount>> =
+        withContext(matrixDispatcher) {
+            runCatching {
+                withClient { it.threadUnreadCounts(roomId) }.map { counts ->
+                    ThreadUnreadCount(
+                        threadId = counts.threadId,
+                        unreadMessages = counts.unreadMessages,
+                        unreadNotifications = counts.unreadNotifications,
+                        unreadMentions = counts.unreadMentions,
+                    )
+                }
+            }
+        }
+
     override suspend fun paginateThread(
         roomId: String,
         rootEventId: String,

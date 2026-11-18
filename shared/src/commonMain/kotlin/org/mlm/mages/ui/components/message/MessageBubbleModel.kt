@@ -6,6 +6,8 @@ import org.mlm.mages.SendFailureReason
 import org.mlm.mages.matrix.PollData
 import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.matrix.SendState
+import org.mlm.mages.settings.ThreadUnreadIndicator
+import org.mlm.mages.ui.ThreadUnreadUi
 import org.mlm.mages.ui.components.core.MentionRef
 
 enum class MessageBubbleVariant {
@@ -83,6 +85,8 @@ sealed interface MessageAttachmentUi {
 data class MessageThreadUi(
     val count: Int = 0,
     val showCount: Boolean = false,
+    val unreadCount: Int = 0,
+    val unreadIndicator: ThreadUnreadIndicator = ThreadUnreadIndicator.Off,
 )
 
 data class MessageStickerUi(
@@ -111,6 +115,8 @@ data class MessageBubbleRenderContext(
     val reactionShortcodes: Map<String, String> = emptyMap(),
     val threadCount: Int? = null,
     val showThreadReplyCount: Boolean = false,
+    val threadUnread: ThreadUnreadUi? = null,
+    val threadUnreadIndicator: ThreadUnreadIndicator = ThreadUnreadIndicator.Off,
     val variant: MessageBubbleVariant = MessageBubbleVariant.Timeline,
     val resolvedPreviewPath: String? = null,
     val previewBlocked: Boolean = false,

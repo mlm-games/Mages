@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +46,8 @@ import org.mlm.mages.ReplyPreview
 import org.mlm.mages.ReplyPreviewKind
 import org.mlm.mages.SendFailureReason
 import org.mlm.mages.matrix.SendState
+import org.mlm.mages.settings.ThreadUnreadIndicator
+import org.mlm.mages.ui.theme.Limits
 import org.mlm.mages.ui.components.blurHashBackground
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.FormattedBodyText
@@ -221,6 +224,8 @@ fun MessageBubble(
     val isRedacted = model.isRedacted
     val threadCount = model.thread?.count?.takeIf { it > 0 }
     val showThreadReplyCount = model.thread?.showCount == true
+    val threadUnreadCount = model.thread?.unreadCount?.takeIf { it > 0 } ?: 0
+    val threadUnreadIndicator = model.thread?.unreadIndicator ?: ThreadUnreadIndicator.Off
     val reply = model.reply?.takeIf {
         !it.body.isNullOrBlank() || it.preview != null || !it.sender.isNullOrBlank()
     }
@@ -268,6 +273,8 @@ fun MessageBubble(
                     ThreadBadge(
                         count = threadCount,
                         showCount = showThreadReplyCount,
+                        unreadCount = threadUnreadCount,
+                        unreadIndicator = threadUnreadIndicator,
                         onClick = onOpenThread,
                         modifier = Modifier.padding(end = Spacing.xs)
                     )
@@ -278,6 +285,8 @@ fun MessageBubble(
                     ThreadBadge(
                         count = threadCount,
                         showCount = showThreadReplyCount,
+                        unreadCount = threadUnreadCount,
+                        unreadIndicator = threadUnreadIndicator,
                         onClick = onOpenThread,
                         modifier = Modifier.padding(start = Spacing.xs)
                     )
@@ -1290,47 +1299,93 @@ private fun StickerMessage(
 private fun ThreadBadge(
     count: Int,
     showCount: Boolean,
+    unreadCount: Int,
+    unreadIndicator: ThreadUnreadIndicator,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val a11yLabel = pluralStringResource(Res.plurals.reply_count, count, count)
-    Surface(
-        onClick = onClick,
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        shape = if (showCount) RoundedCornerShape(50) else CircleShape,
-        modifier = modifier.semantics { contentDescription = a11yLabel }
-    ) {
-        if (showCount) {
-            Row(
-                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                verticalAlignment = Alignment.CenterVertically
+    val repliesLabel = pluralStringResource(Res.plurals.reply_count, count, count)
+    val a11yLabel = if (unreadIndicator != ThreadUnreadIndicator.Off && unreadCount > 0) {
+        "$repliesLabel, $unreadCount ${stringResource(Res.string.unread_only)}"
+    } else {
+        repliesLabel
+    }
+    val threadBadge = @Composable {
+        Surface(
+            onClick = onClick,
+            color = MaterialTheme.colorScheme.secondaryContainer,
+            shape = if (showCount) RoundedCornerShape(50) else CircleShape,
+            modifier = Modifier.semantics { contentDescription = a11yLabel }
+        ) {
+            if (showCount) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_gesture),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = count.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            } else {
+                Box(
+                    modifier = Modifier.size(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_gesture),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+    }
+
+    if (unreadIndicator == ThreadUnreadIndicator.Off || unreadCount <= 0) {
+        threadBadge()
+        return
+    }
+
+    Box(modifier) {
+        threadBadge()
+        when (unreadIndicator) {
+            ThreadUnreadIndicator.Count -> Badge(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 4.dp, y = (-4).dp)
+                    .clearAndSetSemantics {}
             ) {
-                Icon(
-                    painter = painterResource(Res.drawable.ic_gesture),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.size(15.dp)
-                )
-                Spacer(Modifier.width(4.dp))
                 Text(
-                    text = count.toString(),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                    text = if (unreadCount > Limits.unreadBadgeCap) "${Limits.unreadBadgeCap}+" else unreadCount.toString(),
+                    style = MaterialTheme.typography.labelSmall
                 )
             }
-        } else {
-            Box(
-                modifier = Modifier.size(24.dp),
-                contentAlignment = Alignment.Center
+
+            ThreadUnreadIndicator.Dot -> Badge(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 4.dp, y = (-4).dp)
+                    .clearAndSetSemantics {},
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
             ) {
-                Icon(
-                    painter = painterResource(Res.drawable.ic_gesture),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.size(16.dp)
+                Text(
+                    text = "•",
+                    style = MaterialTheme.typography.labelSmall
                 )
             }
+
+            ThreadUnreadIndicator.Off -> Unit
         }
     }
 }

@@ -117,6 +117,7 @@ import org.mlm.mages.settings.AutoMarkReadTrigger
 import org.mlm.mages.settings.MessageDoubleTapAction
 import org.mlm.mages.settings.MessageRightClickAction
 import org.mlm.mages.settings.MessageSwipeAction
+import org.mlm.mages.settings.ThreadUnreadIndicator
 import org.mlm.mages.settings.parseMessageMenuOrder
 import org.mlm.mages.settings.parseQuickReactions
 import org.mlm.mages.ui.AttachmentUploadStage
@@ -953,6 +954,7 @@ fun RoomScreen(
                                                 enableBubbleAnimations = listSettings.bubbleAnimations && !settings.reduceMotion,
                                                 showReactionAvatars = listSettings.showReactionAvatars,
                                                 showThreadReplyCount = listSettings.showThreadReplyCount,
+                                                threadUnreadIndicator = listSettings.threadUnreadIndicator,
                                                 swipeRightAction = listSettings.messageSwipeRightAction,
                                                 swipeLeftAction = listSettings.messageSwipeLeftAction,
                                                 doubleTapAction = listSettings.messageDoubleTapAction,
@@ -1933,6 +1935,7 @@ private fun MessageItem(
     enableBubbleAnimations: Boolean = true,
     showReactionAvatars: Boolean = true,
     showThreadReplyCount: Boolean = false,
+    threadUnreadIndicator: ThreadUnreadIndicator = ThreadUnreadIndicator.Off,
     swipeRightAction: MessageSwipeAction = MessageSwipeAction.Reply,
     swipeLeftAction: MessageSwipeAction = MessageSwipeAction.Nothing,
     doubleTapAction: MessageDoubleTapAction = MessageDoubleTapAction.React,
@@ -2216,6 +2219,8 @@ private fun MessageItem(
                             reactionShortcodes = viewModel.reactionShortcodes,
                             threadCount = state.threadCount[event.eventId],
                             showThreadReplyCount = showThreadReplyCount,
+                            threadUnread = state.threadUnread[event.eventId],
+                            threadUnreadIndicator = threadUnreadIndicator,
                             variant = MessageBubbleVariant.Timeline,
                             previewBlocked = previewBlocked,
                             resolvedPreviewPath = event.thumbKey?.let { state.thumbByEvent[it] },

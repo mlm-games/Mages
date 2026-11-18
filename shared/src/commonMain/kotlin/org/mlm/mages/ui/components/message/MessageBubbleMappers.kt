@@ -5,6 +5,7 @@ import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.ReplyPreviewKind
 import org.mlm.mages.captionOr
+import org.mlm.mages.settings.ThreadUnreadIndicator
 import org.mlm.mages.ui.components.timeline.TimelineContent
 import org.mlm.mages.ui.util.formatBytes
 import androidx.compose.runtime.Composable
@@ -159,7 +160,15 @@ internal fun TimelineContent.Bubble.toBubbleModel(
         isRedacted = event.isRedacted,
         poll = event.pollData,
         thread = ctx.threadCount?.let { count ->
-            MessageThreadUi(count = count, showCount = ctx.showThreadReplyCount)
+            val unread = ctx.threadUnread?.takeIf {
+                ctx.threadUnreadIndicator != ThreadUnreadIndicator.Off && it.hasUnread
+            }
+            MessageThreadUi(
+                count = count,
+                showCount = ctx.showThreadReplyCount,
+                unreadCount = unread?.count ?: 0,
+                unreadIndicator = ctx.threadUnreadIndicator,
+            )
         },
         linkPreview = if (toRedactedEvent) null else ctx.resolvedLinkPreview,
         linkPreviewImage = if (toRedactedEvent) null else ctx.resolvedLinkPreviewImage,

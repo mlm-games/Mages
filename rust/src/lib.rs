@@ -306,6 +306,7 @@ delegate! { result bool; can_edit_image_packs(room_id: String); publish_room_ali
 delegate! { result Vec<String>; suggest_image_shortcodes(bases: Vec<String>, taken: Vec<String>); }
 delegate! { result Vec<RecentEmojiEntry>; recent_emoji(); }
 delegate! { result ThreadSummary; thread_summary(room_id: String, root_event_id: String, per_page: u32, max_pages: u32); }
+delegate! { result Vec<ThreadUnreadCount>; thread_unread_counts(room_id: String); }
 delegate! { result PresenceInfo; get_presence(user_id: String); }
 delegate! { option RoomProfile; room_profile(room_id: String); }
 delegate! { plain Vec<SpaceUnread>; space_unread_counts(); }

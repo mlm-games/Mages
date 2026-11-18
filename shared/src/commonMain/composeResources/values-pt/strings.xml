@@ -15,6 +15,12 @@
     <string name="setting_show_message_avatars">Mostrar avatares das mensagens</string>
     <string name="setting_show_reaction_avatars">Mostrar avatares das reações</string>
     <string name="setting_show_thread_reply_count">Mostrar número de respostas do thread</string>
+    <string name="setting_thread_unread_indicator">Indicador de tópicos não lidos</string>
+    <string-array name="setting_thread_unread_indicator_options">
+        <item>Desligado</item>
+        <item>Ponto</item>
+        <item>Número</item>
+    </string-array>
     <string name="setting_show_username_in_dms">Mostrar nome de usuário nas MPs</string>
     <string name="setting_bubble_animations">Animações de balões de mensagem</string>
     <string name="setting_reduce_motion">Reduzir movimento</string>

@@ -618,6 +618,14 @@ pub struct ThreadSummary {
     pub latest_ts_ms: Option<u64>,
 }
 
+#[derive(Clone, Serialize, Deserialize, Record)]
+pub struct ThreadUnreadCount {
+    pub thread_id: String,
+    pub unread_messages: u64,
+    pub unread_notifications: u64,
+    pub unread_mentions: u64,
+}
+
 #[derive(Serialize, Deserialize, Record, Clone)]
 pub struct OwnReceipt {
     pub event_id: Option<String>,

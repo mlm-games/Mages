@@ -77,7 +77,7 @@ use crate::{
     RoomSummary, RoomTags, RoomUpgradeLinks, RoomHeroInfo, SearchHit, SearchPage, SeenByEntry,
     SendState,
     SendUpdate, SpaceChildInfo, SpaceHierarchyPage, SpaceInfo, SpaceParentInfo, SpaceSection,
-    SpaceUnread, SuccessorRoomInfo, ThreadSummary, UnreadStats,
+    SpaceUnread, SuccessorRoomInfo, ThreadSummary, ThreadUnreadCount, UnreadStats,
     VerificationInboxObserver, build_unstable_poll_content, latest_room_event_for,
     map_event_id_via_timeline, map_timeline_event, map_timeline_item,
     paginate_backwards_visible, search_hit_from_event, timeline_event_filter,
@@ -2390,6 +2390,22 @@ impl CoreClient {
             .collect())
     }
 
+    pub(crate) async fn room_thread_unread_totals(room: &matrix_sdk::Room) -> (u64, u64, u64) {
+        let counts = match room.thread_unread_counts().await {
+            Ok(counts) => counts,
+            Err(err) => {
+                warn!("failed to read thread unread counts for {}: {err:?}", room.room_id());
+                return (0, 0, 0);
+            }
+        };
+
+        (
+            counts.iter().map(|counts| counts.unread_messages).sum(),
+            counts.iter().map(|counts| counts.unread_notifications).sum(),
+            counts.iter().map(|counts| counts.unread_mentions).sum(),
+        )
+    }
+
     pub async fn room_unread_stats(
         &self,
         room_id: String,
@@ -4555,8 +4571,12 @@ impl CoreClient {
         let mut counts: HashMap<OwnedRoomId, SpaceUnread> = HashMap::new();
 
         for room in self.sdk.joined_rooms() {
-            let messages = room.num_unread_messages();
-            let notifications = room.num_unread_notifications();
+            let (thread_messages, thread_notifications, _) =
+                Self::room_thread_unread_totals(&room).await;
+            let server_counts = room.unread_notification_counts();
+            let messages = room.num_unread_messages() + thread_messages;
+            let notifications = (room.num_unread_notifications() + thread_notifications)
+                .max(server_counts.notification_count);
             if messages == 0 && notifications == 0 {
                 continue;
             }
@@ -5347,6 +5367,31 @@ impl CoreClient {
         })
     }
 
+    pub async fn thread_unread_counts(
+        &self,
+        room_id: String,
+    ) -> Result<Vec<ThreadUnreadCount>, FfiError> {
+        let room = self.require_room(&room_id)?;
+
+        let counts = match room.thread_unread_counts().await {
+            Ok(counts) => counts,
+            Err(err) => {
+                warn!("failed to read thread unread counts for {room_id}: {err:?}");
+                Vec::new()
+            }
+        };
+
+        Ok(counts
+            .into_iter()
+            .map(|counts| ThreadUnreadCount {
+                thread_id: counts.thread_id.to_string(),
+                unread_messages: counts.unread_messages,
+                unread_notifications: counts.unread_notifications,
+                unread_mentions: counts.unread_mentions,
+            })
+            .collect())
+    }
+
     pub async fn send_queue_set_enabled(&self, enabled: bool) -> Result<(), FfiError> {
         self.sdk.send_queue().set_enabled(enabled).await;
         Ok(())
@@ -5590,6 +5635,12 @@ impl CoreClient {
             }
             let latest_event = latest_room_event_for(room, &self.timeline_mgr).await;
             let membership = room_list_membership(room);
+            let (thread_messages, thread_notifications, thread_mentions) =
+                if matches!(room.state(), RoomState::Joined) {
+                    Self::room_thread_unread_totals(room).await
+                } else {
+                    (0, 0, 0)
+                };
             let (peer_status_emoji, peer_status_text, peer_call_joined_ts_ms) = if is_dm {
                 Self::dm_peer_member(&room, self.sdk.user_id())
                     .await
@@ -5618,9 +5669,11 @@ impl CoreClient {
                 peer_status_emoji,
                 peer_status_text,
                 peer_call_joined_ts_ms,
-                notifications: room.num_unread_notifications(),
-                messages: room.num_unread_messages(),
-                mentions: room.num_unread_mentions(),
+                notifications: (room.num_unread_notifications() + thread_notifications)
+                    .max(room.unread_notification_counts().notification_count),
+                messages: room.num_unread_messages() + thread_messages,
+                mentions: (room.num_unread_mentions() + thread_mentions)
+                    .max(room.unread_notification_counts().highlight_count),
                 marked_unread: room.is_marked_unread(),
                 is_favourite: room.is_favourite(),
                 is_low_priority: room.is_low_priority(),

@@ -15,6 +15,12 @@
     <string name="setting_show_message_avatars">메시지 아바타 표시</string>
     <string name="setting_show_reaction_avatars">반응 아바타 표시</string>
     <string name="setting_show_thread_reply_count">스레드 답글 수 표시</string>
+    <string name="setting_thread_unread_indicator">읽지 않은 스레드 표시기</string>
+    <string-array name="setting_thread_unread_indicator_options">
+        <item>꺼짐</item>
+        <item>점</item>
+        <item>개수</item>
+    </string-array>
     <string name="setting_show_username_in_dms">DM에서 사용자 이름 표시</string>
     <string name="setting_bubble_animations">메시지 버블 애니메이션</string>
     <string name="setting_reduce_motion">동작 줄이기</string>

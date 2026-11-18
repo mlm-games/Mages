@@ -15,6 +15,12 @@
     <string name="setting_show_message_avatars">Показувати аватари повідомлень</string>
     <string name="setting_show_reaction_avatars">Показувати аватари реакцій</string>
     <string name="setting_show_thread_reply_count">Показувати кількість відповідей у потоці</string>
+    <string name="setting_thread_unread_indicator">Індикатор непрочитаних тем</string>
+    <string-array name="setting_thread_unread_indicator_options">
+        <item>Вимк.</item>
+        <item>Точка</item>
+        <item>Кількість</item>
+    </string-array>
     <string name="setting_show_username_in_dms">Показувати ім’я користувача в приватних повідомленнях</string>
     <string name="setting_bubble_animations">Анімація бульбашок повідомлень</string>
     <string name="setting_reduce_motion">Зменшити рух</string>

@@ -15,6 +15,12 @@
     <string name="setting_show_message_avatars">显示消息头像</string>
     <string name="setting_show_reaction_avatars">显示反应头像</string>
     <string name="setting_show_thread_reply_count">显示线程回复数</string>
+    <string name="setting_thread_unread_indicator">未读讨论串指示器</string>
+    <string-array name="setting_thread_unread_indicator_options">
+        <item>关闭</item>
+        <item>圆点</item>
+        <item>数量</item>
+    </string-array>
     <string name="setting_show_username_in_dms">在私聊中显示用户名</string>
     <string name="setting_bubble_animations">消息气泡动画</string>
     <string name="setting_reduce_motion">减少动态效果</string>

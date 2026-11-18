@@ -94,6 +94,9 @@ enum class MessageRightClickAction { Menu, Copy, Reply, Pin, Nothing }
 enum class AutoMarkReadTrigger { OnSend, WhileOpen, OnRoomClose, Never }
 
 @Serializable
+enum class ThreadUnreadIndicator { Off, Dot, Count }
+
+@Serializable
 data class AppSettings(
     @Persisted
     val homeserver: String = "https://matrix.org",
@@ -252,6 +255,14 @@ data class AppSettings(
         type = Toggle::class
     )
     val showThreadReplyCount: Boolean = false,
+
+    @Setting(
+        titleKey = MagesSettingsKeys.THREAD_UNREAD_INDICATOR,
+        category = Appearance::class,
+        type = Dropdown::class,
+        optionsKey = MagesSettingsKeys.THREAD_UNREAD_INDICATOR_OPTIONS,
+    )
+    val threadUnreadIndicator: ThreadUnreadIndicator = ThreadUnreadIndicator.Off,
 
     @Setting(
         titleKey = MagesSettingsKeys.SHOW_READ_RECEIPT_AVATARS,

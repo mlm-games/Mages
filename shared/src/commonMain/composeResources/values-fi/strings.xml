@@ -15,6 +15,12 @@
     <string name="setting_show_message_avatars">Näytä viestin avatarit</string>
     <string name="setting_show_reaction_avatars">Näytä reaktioavatarit</string>
     <string name="setting_show_thread_reply_count">Näytä säikeen vastausten määrä</string>
+    <string name="setting_thread_unread_indicator">Lukemattomien säikeiden ilmaisin</string>
+    <string-array name="setting_thread_unread_indicator_options">
+        <item>Ei käytössä</item>
+        <item>Piste</item>
+        <item>Määrä</item>
+    </string-array>
     <string name="setting_show_username_in_dms">Näytä käyttäjänimi DM: issä</string>
     <string name="setting_bubble_animations">Viestikupla-animaatiot</string>
     <string name="setting_reduce_motion">Vähennä liikettä</string>

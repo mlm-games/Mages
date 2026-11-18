@@ -1501,6 +1501,13 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             .awaitValue<ThreadSummary>("threadSummary")
             ?: ThreadSummary(rootEventId, roomId, 0, null)
 
+    override suspend fun threadUnreadCounts(roomId: String): Result<List<ThreadUnreadCount>> =
+        runCatching {
+            requireClient().threadUnreadCounts(roomId)
+                .awaitValue<List<ThreadUnreadCount>>("threadUnreadCounts")
+                ?: error("threadUnreadCounts failed")
+        }
+
     override suspend fun paginateThread(
         roomId: String,
         rootEventId: String,

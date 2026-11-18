@@ -15,6 +15,12 @@
     <string name="setting_show_message_avatars">Mesaj avatarlarını göster</string>
     <string name="setting_show_reaction_avatars">Reaksiyon avatarlarını göster</string>
     <string name="setting_show_thread_reply_count">Konu dizisi yanıt sayısını göster</string>
+    <string name="setting_thread_unread_indicator">Okunmamış konu göstergesi</string>
+    <string-array name="setting_thread_unread_indicator_options">
+        <item>Kapalı</item>
+        <item>Nokta</item>
+        <item>Sayı</item>
+    </string-array>
     <string name="setting_show_username_in_dms">DM’lerde kullanıcı adını göster</string>
     <string name="setting_bubble_animations">Mesaj balonu animasyonları</string>
     <string name="setting_reduce_motion">Hareketi azalt</string>

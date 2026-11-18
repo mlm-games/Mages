@@ -15,6 +15,12 @@
     <string name="setting_show_message_avatars">Hiển thị ảnh đại diện tin nhắn</string>
     <string name="setting_show_reaction_avatars">Hiển thị ảnh đại diện phản ứng</string>
     <string name="setting_show_thread_reply_count">Hiện số câu trả lời trong luồng</string>
+    <string name="setting_thread_unread_indicator">Chỉ báo chủ đề chưa đọc</string>
+    <string-array name="setting_thread_unread_indicator_options">
+        <item>Tắt</item>
+        <item>Dấu chấm</item>
+        <item>Số lượng</item>
+    </string-array>
     <string name="setting_show_username_in_dms">Hiển thị tên người dùng trong tin nhắn trực tiếp</string>
     <string name="setting_bubble_animations">Hiệu ứng bong bóng tin nhắn</string>
     <string name="setting_reduce_motion">Giảm chuyển động</string>

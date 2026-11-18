@@ -15,6 +15,12 @@
     <string name="setting_show_message_avatars">نمایش آواتار پیام‌ها</string>
     <string name="setting_show_reaction_avatars">نمایش آواتار واکنش‌ها</string>
     <string name="setting_show_thread_reply_count">نمایش تعداد پاسخ‌های رشته</string>
+    <string name="setting_thread_unread_indicator">نشانگر رشته‌های خوانده‌نشده</string>
+    <string-array name="setting_thread_unread_indicator_options">
+        <item>خاموش</item>
+        <item>نقطه</item>
+        <item>تعداد</item>
+    </string-array>
     <string name="setting_show_username_in_dms">نمایش نام کاربری در پیام‌های مستقیم</string>
     <string name="setting_bubble_animations">انیمیشن حباب پیام</string>
     <string name="setting_reduce_motion">کاهش حرکت</string>

@@ -15,6 +15,12 @@
     <string name="setting_show_message_avatars">Avatars van berichten tonen</string>
     <string name="setting_show_reaction_avatars">Avatars van reacties tonen</string>
     <string name="setting_show_thread_reply_count">Aantal thread-antwoorden tonen</string>
+    <string name="setting_thread_unread_indicator">Indicator voor ongelezen threads</string>
+    <string-array name="setting_thread_unread_indicator_options">
+        <item>Uit</item>
+        <item>Stip</item>
+        <item>Aantal</item>
+    </string-array>
     <string name="setting_show_username_in_dms">Gebruikersnaam in DM’s tonen</string>
     <string name="setting_bubble_animations">Animaties van berichtbubbels</string>
     <string name="setting_reduce_motion">Beweging beperken</string>

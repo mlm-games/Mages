@@ -15,6 +15,12 @@
     <string name="setting_show_message_avatars">عرض الصور الرمزية للرسالة</string>
     <string name="setting_show_reaction_avatars">إظهار الصور الرمزية لرد الفعل</string>
     <string name="setting_show_thread_reply_count">إظهار عدد ردود السلسلة</string>
+    <string name="setting_thread_unread_indicator">مؤشر عدم القراءة في السلسلة</string>
+    <string-array name="setting_thread_unread_indicator_options">
+        <item>إيقاف</item>
+        <item>نقطة</item>
+        <item>عدد</item>
+    </string-array>
     <string name="setting_show_username_in_dms">عرض اسم المستخدم في الرسائل المباشرة</string>
     <string name="setting_bubble_animations">رسوم متحركة فقاعية للرسائل</string>
     <string name="setting_reduce_motion">تقليل الحركة</string>
