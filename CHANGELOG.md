@@ -1,3 +1,12 @@
+## v5.4.4
+
+- fix thread deeplinks
+- add an option to show unread indicators for threads
+- threads drafts parity and notification fixes
+- add an option to hide the thread count (hidden by default)
+- fix: close chats whose room membership is gone
+
+
 ## v5.4.3
 
 - fix: thread timeline

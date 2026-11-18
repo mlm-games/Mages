@@ -46,6 +46,17 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="5.4.4" date="2026-11-18" type="stable">
+      <description>
+        <ul>
+          <li>fix thread deeplinks</li>
+          <li>add an option to show unread indicators for threads</li>
+          <li>threads drafts parity and notification fixes</li>
+          <li>add an option to hide the thread count (hidden by default)</li>
+          <li>fix: close chats whose room membership is gone</li>
+        </ul>
+      </description>
+    </release>
     <release version="5.4.3" date="2026-11-14" type="stable">
       <description>
         <ul>
