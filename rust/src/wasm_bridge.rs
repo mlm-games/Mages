@@ -2415,6 +2415,12 @@ impl WasmClient {
         let mime_type: Mime = mime.parse().unwrap_or(mime::APPLICATION_OCTET_STREAM);
         let mut config = AttachmentConfig::new();
         config = crate::with_uploaded_image_info(config, &data, &mime_type);
+        if mime_type.type_() == mime::VIDEO
+            && let Some((info, thumbnail)) =
+                crate::video_poster_attachment(&data, crate::attachment_extension(&filename))
+        {
+            config = config.info(info).thumbnail(thumbnail);
+        }
         if mime_type.type_() == mime::AUDIO
             && (is_voice == Some(true)
                 || voice_duration_ms.is_some()

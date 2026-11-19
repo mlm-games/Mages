@@ -3321,6 +3321,24 @@ impl CoreClient {
                 info.width = att.width.map(UInt::from);
                 info.height = att.height.map(UInt::from);
                 info.duration = att.duration_ms.map(Duration::from_millis);
+                info.blurhash = att.blurhash.clone();
+                if let Some(thumb_mxc) = att
+                    .thumbnail_mxc_uri
+                    .as_ref()
+                    .filter(|thumb| thumb.as_str() != att.mxc_uri.as_str())
+                {
+                    info.thumbnail_source = Some(MediaSource::Plain(thumb_mxc.clone().into()));
+                } else if let Some(enc) = att.thumbnail_encrypted.as_ref() {
+                    let is_main_file = att
+                        .encrypted
+                        .as_ref()
+                        .is_some_and(|main| main.url == enc.url);
+                    if !is_main_file
+                        && let Ok(ef) = serde_json::from_str::<EncryptedFile>(&enc.json)
+                    {
+                        info.thumbnail_source = Some(MediaSource::Encrypted(Box::new(ef)));
+                    }
+                }
                 let mut vid = match typed_caption.clone() {
                     Some(c) => {
                         let mut content = VideoMessageEventContent::new(c, media_source);

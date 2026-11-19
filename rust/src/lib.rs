@@ -61,6 +61,7 @@ mod qr_login;
 mod sections;
 mod types;
 mod verification_flow;
+mod video_meta;
 #[cfg(target_family = "wasm")]
 mod wasm_bridge;
 
@@ -444,6 +445,39 @@ pub(crate) fn with_uploaded_image_info(
         Some(info) => config.info(info),
         None => config,
     }
+}
+
+pub(crate) fn video_poster_attachment(
+    data: &[u8],
+    ext: Option<&str>,
+) -> Option<(
+    matrix_sdk::attachment::AttachmentInfo,
+    Option<matrix_sdk::attachment::Thumbnail>,
+)> {
+    use matrix_sdk::attachment::{AttachmentInfo, BaseVideoInfo, Thumbnail};
+
+    let poster = video_meta::poster_from_bytes(data, ext)?;
+    let info = AttachmentInfo::Video(BaseVideoInfo {
+        duration: poster.duration_ms.map(Duration::from_millis),
+        width: UInt::new(u64::from(poster.width)),
+        height: UInt::new(u64::from(poster.height)),
+        size: UInt::new(data.len() as u64),
+        blurhash: poster.blurhash,
+    });
+    let thumbnail = UInt::new(poster.thumbnail.len() as u64).map(|size| Thumbnail {
+        data: poster.thumbnail,
+        content_type: mime::IMAGE_JPEG,
+        height: UInt::new(u64::from(poster.thumbnail_height)).unwrap_or_default(),
+        width: UInt::new(u64::from(poster.thumbnail_width)).unwrap_or_default(),
+        size,
+    });
+    Some((info, thumbnail))
+}
+
+fn attachment_extension(filename: &str) -> Option<&str> {
+    std::path::Path::new(filename)
+        .extension()
+        .and_then(|e| e.to_str())
 }
 
 fn decode_upright_image(data: &[u8]) -> Option<image::DynamicImage> {
@@ -2945,6 +2979,13 @@ impl Client {
 
             let mut config = matrix_sdk_ui::timeline::AttachmentConfig::default();
             config.info = uploaded_image_info(&data, &mime_type);
+            if mime_type.type_() == mime::VIDEO
+                && let Some((info, thumbnail)) =
+                    video_poster_attachment(&data, attachment_extension(&fname))
+            {
+                config.info = Some(info);
+                config.thumbnail = thumbnail;
+            }
             if mime_type.type_() == mime::AUDIO
                 && (is_voice == Some(true)
                     || voice_duration_ms.is_some()

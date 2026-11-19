@@ -5,7 +5,7 @@ edition = "2024"
 license = "AGPL-3.0"
 repository = "https://github.com/mlm-games/Mages"
 description = "Mages FFI (matrix-sdk)"
-rust-version = "1.85"
+rust-version = "1.98"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -47,6 +47,13 @@ image = { version = "0.25", default-features = false, features = [
     "png",
     "webp",
 ] }
+videoson = { version = "0.7", default-features = false, features = [
+    "h264",
+    "h265",
+    "vp8",
+    "vp9",
+] }
+symphonia = { version = "0.6", default-features = false, features = ["isomp4", "mkv"] }
 futures-util = "0.3"
 tracing = { version = "0.1", default-features = false, features = ["std"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = [
@@ -157,3 +164,6 @@ matrix-sdk-store-encryption = { git = "https://github.com/mlm-games/matrix-rust-
 matrix-sdk-ui = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-metrics-redaction" }
 matrix-sdk-search = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-metrics-redaction" }
 matrix-sdk-indexeddb = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-metrics-redaction" }
+symphonia-core = { git = "https://github.com/mlm-games/symphonia", package = "symphonia-core" }
+symphonia-format-isomp4 = { git = "https://github.com/mlm-games/symphonia", package = "symphonia-format-isomp4" }
+symphonia-format-mkv = { git = "https://github.com/mlm-games/symphonia", package = "symphonia-format-mkv" }

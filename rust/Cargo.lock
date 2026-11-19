@@ -1480,7 +1480,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2861,6 +2861,7 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
+ "symphonia",
  "thiserror 2.0.20",
  "tokio",
  "tracing",
@@ -2870,6 +2871,7 @@ dependencies = [
  "uniffi",
  "uniffi_bindgen",
  "uuid",
+ "videoson",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -3441,7 +3443,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3637,6 +3639,51 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2fbd56f7631767e61784dc43f8580f403f4475bd4aaa4da003e6295e1bab4a7e"
 dependencies = [
  "stable_deref_trait",
+]
+
+[[package]]
+name = "oxideav-core"
+version = "0.1.43"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce90bfbe978dfc46d0c98d137b7c4566ac8eaae8c9209585eb53a8aedb0ef53c"
+dependencies = [
+ "bytemuck",
+ "serde_json",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "oxideav-h264"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f509707312399382fbf8d45443ed31ccc41182e1713a92bd24f4f72ce902488"
+dependencies = [
+ "oxideav-core",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "oxideav-h265"
+version = "0.0.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0e3a6b34d2c009977b06424cc1cede2fdf5a54b4ff63848a5b9e0deed3433d16"
+dependencies = [
+ "oxideav-core",
+]
+
+[[package]]
+name = "oxideav-vp8"
+version = "0.2.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "506f2495a728488c2fee1ee54bc7f819ca934dc3246369b4100c83848f057852"
+
+[[package]]
+name = "oxideav-vp9"
+version = "0.0.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8393dcba264eff599aab26a41d1a296eeeed556f0b34d06df52b0d1889fa7732"
+dependencies = [
+ "oxideav-core",
 ]
 
 [[package]]
@@ -4018,7 +4065,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4267,6 +4314,12 @@ dependencies = [
  "memchr",
  "regex-syntax",
 ]
+
+[[package]]
+name = "regex-lite"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cab834c73d247e67f4fae452806d17d3c7501756d98c8808d7c9c7aa7d18f973"
 
 [[package]]
 name = "regex-syntax"
@@ -4540,6 +4593,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust_h264"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fbedf5e104105e8783a77926f1e212ea37e78fd3b38b2c928938a283d083d6f1"
+
+[[package]]
 name = "rustc-demangle"
 version = "0.1.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4570,7 +4629,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4627,7 +4686,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5034,7 +5093,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5084,6 +5143,89 @@ name = "subtle"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
+
+[[package]]
+name = "symphonia"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7edef6a96b696d4e0cab5ee9ebb7ca155ed95f30a6b45bbb8b97d2727f02424"
+dependencies = [
+ "lazy_static",
+ "symphonia-core",
+ "symphonia-format-isomp4",
+ "symphonia-format-mkv",
+ "symphonia-metadata 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "symphonia-common"
+version = "0.6.1"
+source = "git+https://github.com/mlm-games/symphonia#d26004c5dad03e6863ec8e2a14467089fed037ca"
+dependencies = [
+ "log",
+ "symphonia-core",
+ "symphonia-metadata 0.6.1 (git+https://github.com/mlm-games/symphonia)",
+]
+
+[[package]]
+name = "symphonia-core"
+version = "0.6.1"
+source = "git+https://github.com/mlm-games/symphonia#d26004c5dad03e6863ec8e2a14467089fed037ca"
+dependencies = [
+ "bitflags",
+ "bytemuck",
+ "lazy_static",
+ "log",
+ "num-complex",
+ "smallvec",
+]
+
+[[package]]
+name = "symphonia-format-isomp4"
+version = "0.6.1"
+source = "git+https://github.com/mlm-games/symphonia#d26004c5dad03e6863ec8e2a14467089fed037ca"
+dependencies = [
+ "log",
+ "symphonia-common",
+ "symphonia-core",
+ "symphonia-metadata 0.6.1 (git+https://github.com/mlm-games/symphonia)",
+]
+
+[[package]]
+name = "symphonia-format-mkv"
+version = "0.6.1"
+source = "git+https://github.com/mlm-games/symphonia#d26004c5dad03e6863ec8e2a14467089fed037ca"
+dependencies = [
+ "lazy_static",
+ "log",
+ "symphonia-common",
+ "symphonia-core",
+]
+
+[[package]]
+name = "symphonia-metadata"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "83713a97705d77bdef7cdbc0768fd6e5a54e4cd7e48d60a806ae85639e2c87c6"
+dependencies = [
+ "lazy_static",
+ "log",
+ "regex-lite",
+ "smallvec",
+ "symphonia-core",
+]
+
+[[package]]
+name = "symphonia-metadata"
+version = "0.6.1"
+source = "git+https://github.com/mlm-games/symphonia#d26004c5dad03e6863ec8e2a14467089fed037ca"
+dependencies = [
+ "lazy_static",
+ "log",
+ "regex-lite",
+ "smallvec",
+ "symphonia-core",
+]
 
 [[package]]
 name = "syn"
@@ -5296,7 +5438,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5728,7 +5870,7 @@ checksum = "f2f6fb2847f6742cd76af783a2a2c49e9375d0a111c7bef6f71cd9e738c72d6e"
 dependencies = [
  "memoffset",
  "tempfile",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5988,6 +6130,77 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
+name = "videoson"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c78c946894bb178d5683ff33f4e95747fd0ce786559dc228db3a9994414c2a5"
+dependencies = [
+ "oxideav-h265",
+ "videoson-codec-h264",
+ "videoson-codec-h265",
+ "videoson-codec-vp8",
+ "videoson-codec-vp9",
+ "videoson-common",
+ "videoson-core",
+]
+
+[[package]]
+name = "videoson-codec-h264"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "024cae6d875604d554b14b3f75c572caf7b16159518f1081284db29a75c9b80e"
+dependencies = [
+ "oxideav-h264",
+ "rust_h264",
+ "videoson-core",
+]
+
+[[package]]
+name = "videoson-codec-h265"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "defc10c2c9bc775bf04b7b29a5428c2df7bfc4f836019b76709111d7bd1672a4"
+dependencies = [
+ "oxideav-core",
+ "oxideav-h265",
+ "videoson-common",
+ "videoson-core",
+]
+
+[[package]]
+name = "videoson-codec-vp8"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9fc6942ef540cd3c70e4c6177844d547ecfd6c23537f0577d4bb7ae878bb129"
+dependencies = [
+ "oxideav-vp8",
+ "videoson-core",
+]
+
+[[package]]
+name = "videoson-codec-vp9"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d41f61f9b0f8180e57c8f5995dcadd29ece6b23bbd2a95327af9f68e49d6339b"
+dependencies = [
+ "oxideav-core",
+ "oxideav-vp9",
+ "videoson-core",
+]
+
+[[package]]
+name = "videoson-common"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfede61e9d77ba424bdfe2c0759a120781f28f58b539c295493c5b9e1c31ae0e"
+
+[[package]]
+name = "videoson-core"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd3420739eda1dafdbde0f3f5ec37c01313af0a58344fbf912f934067c8b1d6d"
+
+[[package]]
 name = "vodozemac"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6234,7 +6447,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
