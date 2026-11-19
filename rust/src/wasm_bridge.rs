@@ -2417,7 +2417,7 @@ impl WasmClient {
         config = crate::with_uploaded_image_info(config, &data, &mime_type);
         if mime_type.type_() == mime::VIDEO
             && let Some((info, thumbnail)) =
-                crate::video_poster_attachment(&data, crate::attachment_extension(&filename))
+                crate::video_attachment_info(&data, crate::attachment_extension(&filename))
         {
             config = config.info(info).thumbnail(thumbnail);
         }

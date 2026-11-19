@@ -25,19 +25,23 @@ const DECODE_FRAME_BUDGET: usize = 150;
 const POSTER_TARGET_US: i64 = 1_000_000;
 const MAX_SOURCE_PIXELS: u64 = 4096 * 2304;
 
-pub(crate) struct VideoPoster {
+pub(crate) struct VideoMeta {
     pub width: u32,
     pub height: u32,
     pub duration_ms: Option<u64>,
-    pub thumbnail: Vec<u8>,
-    pub thumbnail_width: u32,
-    pub thumbnail_height: u32,
+    pub poster: Option<VideoPoster>,
+}
+
+pub(crate) struct VideoPoster {
+    pub jpeg: Vec<u8>,
+    pub width: u32,
+    pub height: u32,
     pub blurhash: Option<String>,
 }
 
 struct VideoSource {
     track_id: u32,
-    codec: CodecType,
+    codec: Option<CodecType>,
     coded_width: u32,
     coded_height: u32,
     extradata: Vec<u8>,
@@ -46,27 +50,61 @@ struct VideoSource {
     duration_ms: Option<u64>,
 }
 
+pub(crate) fn video_meta_from_bytes(bytes: &[u8], ext: Option<&str>) -> Option<VideoMeta> {
+    let reader = open_reader(bytes, ext)?;
+    let source = video_source(reader.tracks())?;
+    let (rotation, width, height) =
+        iso_bmff_orientation(bytes).unwrap_or((0, source.coded_width, source.coded_height));
+    Some(VideoMeta {
+        width,
+        height,
+        duration_ms: source.duration_ms,
+        poster: poster_for(bytes, ext, &source, rotation),
+    })
+}
+
+fn open_reader<'a>(bytes: &'a [u8], ext: Option<&str>) -> Option<Box<dyn FormatReader + 'a>> {
+    let mss = MediaSourceStream::new(Box::new(Cursor::new(bytes)), Default::default());
+    let mut hint = Hint::new();
+    if let Some(ext) = ext.filter(|e| !e.is_empty()) {
+        hint.with_extension(ext);
+    }
+    symphonia::default::get_probe()
+        .probe(
+            &hint,
+            mss,
+            FormatOptions::default(),
+            MetadataOptions::default(),
+        )
+        .ok()
+}
+
 fn video_source(tracks: &[Track]) -> Option<VideoSource> {
     let track = tracks
         .iter()
         .find(|t| t.codec_params.as_ref().and_then(|p| p.video()).is_some())?;
     let params = track.codec_params.as_ref()?.video()?;
-    let codec = codec_type(params.codec)?;
+    let codec = codec_type(params.codec);
     let extradata = match codec {
-        CodecType::H264 => decoder_config(VIDEO_EXTRA_DATA_ID_AVC_DECODER_CONFIG, params)?,
-        CodecType::H265 => decoder_config(VIDEO_EXTRA_DATA_ID_HEVC_DECODER_CONFIG, params)?,
-        CodecType::VP9 => {
+        Some(CodecType::H264) => {
+            decoder_config(VIDEO_EXTRA_DATA_ID_AVC_DECODER_CONFIG, params).unwrap_or_default()
+        }
+        Some(CodecType::H265) => {
+            decoder_config(VIDEO_EXTRA_DATA_ID_HEVC_DECODER_CONFIG, params).unwrap_or_default()
+        }
+        Some(CodecType::VP9) => {
             decoder_config(VIDEO_EXTRA_DATA_ID_VP9_DECODER_CONFIG, params).unwrap_or_default()
         }
         _ => Vec::new(),
     };
+    let nal_format = codec.and_then(|codec| nal_format_for(codec, &extradata));
     Some(VideoSource {
         track_id: track.id,
         codec,
         coded_width: u32::from(params.width?),
         coded_height: u32::from(params.height?),
-        nal_format: nal_format_for(codec, &extradata),
         extradata,
+        nal_format,
         time_base: track.time_base,
         duration_ms: track
             .duration
@@ -77,54 +115,41 @@ fn video_source(tracks: &[Track]) -> Option<VideoSource> {
     })
 }
 
-pub(crate) fn poster_from_bytes(bytes: &[u8], ext: Option<&str>) -> Option<VideoPoster> {
-    let (source, frame) =
-        decode_source(bytes, ext, true).or_else(|| decode_source(bytes, ext, false))?;
-
-    let (rotation, display_width, display_height) = iso_bmff_orientation(bytes)
-        .unwrap_or((0, source.coded_width, source.coded_height));
-    let rotated = rotate(frame, rotation);
-    let (thumbnail, thumbnail_width, thumbnail_height) = resized_jpeg(&rotated)?;
-
-    Some(VideoPoster {
-        width: display_width,
-        height: display_height,
-        duration_ms: source.duration_ms,
-        blurhash: blurhash_of(&rotated),
-        thumbnail,
-        thumbnail_width,
-        thumbnail_height,
-    })
-}
-
-fn decode_source(
+fn poster_for(
     bytes: &[u8],
     ext: Option<&str>,
-    seek: bool,
-) -> Option<(VideoSource, RgbImage)> {
-    let mss = MediaSourceStream::new(Box::new(Cursor::new(bytes)), Default::default());
-    let mut hint = Hint::new();
-    if let Some(ext) = ext.filter(|e| !e.is_empty()) {
-        hint.with_extension(ext);
+    source: &VideoSource,
+    rotation: i32,
+) -> Option<VideoPoster> {
+    if source.codec.is_none() {
+        return None;
     }
-    let reader = symphonia::default::get_probe()
-        .probe(
-            &hint,
-            mss,
-            FormatOptions::default(),
-            MetadataOptions::default(),
-        )
-        .ok()?;
-
-    let source = video_source(reader.tracks())?;
     let target_us = source
         .duration_ms
         .map(|ms| (ms.saturating_mul(1000) / 10) as i64)
         .unwrap_or(0)
         .clamp(0, POSTER_TARGET_US);
 
-    let frame = decode_poster_frame(reader, &source, target_us, seek)?;
-    Some((source, frame))
+    let frame = decode_frame(bytes, ext, source, target_us, true)
+        .or_else(|| decode_frame(bytes, ext, source, target_us, false))?;
+    let rotated = rotate(frame, rotation);
+    let (jpeg, width, height) = resized_jpeg(&rotated)?;
+    Some(VideoPoster {
+        blurhash: blurhash_of(&rotated),
+        jpeg,
+        width,
+        height,
+    })
+}
+
+fn decode_frame(
+    bytes: &[u8],
+    ext: Option<&str>,
+    source: &VideoSource,
+    target_us: i64,
+    seek: bool,
+) -> Option<RgbImage> {
+    decode_poster_frame(open_reader(bytes, ext)?, source, target_us, seek)
 }
 
 fn codec_type(codec: VideoCodecId) -> Option<CodecType> {
@@ -210,6 +235,7 @@ fn decode_poster_frame(
     target_us: i64,
     seek: bool,
 ) -> Option<RgbImage> {
+    let codec = source.codec?;
     if seek && target_us > 0 {
         let time = Time::try_new(
             (target_us / 1_000_000) as i64,
@@ -226,7 +252,7 @@ fn decode_poster_frame(
             .ok()?;
     }
     let mut decoder = new_decoder(
-        source.codec,
+        codec,
         source.coded_width,
         source.coded_height,
         source.extradata.clone(),

@@ -447,7 +447,7 @@ pub(crate) fn with_uploaded_image_info(
     }
 }
 
-pub(crate) fn video_poster_attachment(
+pub(crate) fn video_attachment_info(
     data: &[u8],
     ext: Option<&str>,
 ) -> Option<(
@@ -456,20 +456,26 @@ pub(crate) fn video_poster_attachment(
 )> {
     use matrix_sdk::attachment::{AttachmentInfo, BaseVideoInfo, Thumbnail};
 
-    let poster = video_meta::poster_from_bytes(data, ext)?;
+    let meta = video_meta::video_meta_from_bytes(data, ext)?;
+    let poster = meta.poster;
     let info = AttachmentInfo::Video(BaseVideoInfo {
-        duration: poster.duration_ms.map(Duration::from_millis),
-        width: UInt::new(u64::from(poster.width)),
-        height: UInt::new(u64::from(poster.height)),
+        duration: meta.duration_ms.map(Duration::from_millis),
+        width: UInt::new(u64::from(meta.width)),
+        height: UInt::new(u64::from(meta.height)),
         size: UInt::new(data.len() as u64),
-        blurhash: poster.blurhash,
+        blurhash: poster.as_ref().and_then(|p| p.blurhash.clone()),
     });
-    let thumbnail = UInt::new(poster.thumbnail.len() as u64).map(|size| Thumbnail {
-        data: poster.thumbnail,
-        content_type: mime::IMAGE_JPEG,
-        height: UInt::new(u64::from(poster.thumbnail_height)).unwrap_or_default(),
-        width: UInt::new(u64::from(poster.thumbnail_width)).unwrap_or_default(),
-        size,
+    let thumbnail = poster.and_then(|poster| {
+        let width = poster.width;
+        let height = poster.height;
+        let size = UInt::new(poster.jpeg.len() as u64)?;
+        Some(Thumbnail {
+            data: poster.jpeg,
+            content_type: mime::IMAGE_JPEG,
+            height: UInt::new(u64::from(height)).unwrap_or_default(),
+            width: UInt::new(u64::from(width)).unwrap_or_default(),
+            size,
+        })
     });
     Some((info, thumbnail))
 }
@@ -2981,7 +2987,7 @@ impl Client {
             config.info = uploaded_image_info(&data, &mime_type);
             if mime_type.type_() == mime::VIDEO
                 && let Some((info, thumbnail)) =
-                    video_poster_attachment(&data, attachment_extension(&fname))
+                    video_attachment_info(&data, attachment_extension(&fname))
             {
                 config.info = Some(info);
                 config.thumbnail = thumbnail;
