@@ -520,25 +520,3 @@ fn child_boxes(bytes: &[u8], start: usize, end: usize) -> Vec<([u8; 4], usize, u
     }
     boxes
 }
-
-#[cfg(test)]
-mod tmp_probe {
-    use super::*;
-
-    #[test]
-    fn writes_poster() {
-        let Ok(path) = std::env::var("VIDEO_PROBE") else {
-            return;
-        };
-        let bytes = std::fs::read(&path).unwrap();
-        let ext = std::path::Path::new(&path).extension().and_then(|e| e.to_str());
-        match poster_from_bytes(&bytes, ext) {
-            Some(poster) => println!(
-                "OK dims={}x{} duration={:?} thumb={}x{} bytes={}",
-                poster.width, poster.height, poster.duration_ms,
-                poster.thumbnail_width, poster.thumbnail_height, poster.thumbnail.len()
-            ),
-            None => println!("NO POSTER"),
-        }
-    }
-}
