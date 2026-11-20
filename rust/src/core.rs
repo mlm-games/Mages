@@ -32,7 +32,7 @@ use matrix_sdk::{
                 unstable_end::UnstablePollEndEventContent,
                 unstable_response::UnstablePollResponseEventContent,
             },
-            receipt::ReceiptThread,
+            receipt::{ReceiptThread, ReceiptType as EventsReceiptType},
             room::{
                 EncryptedFile, ImageInfo, MediaSource,
                 avatar::{ImageInfo as AvatarImageInfo, RoomAvatarEventContent},
@@ -700,15 +700,15 @@ async fn latest_own_receipt(
     me: &UserId,
 ) -> Option<(OwnedEventId, u64)> {
     let mut best: Option<(OwnedEventId, u64)> = None;
-    for receipt_type in [ReceiptType::ReadPrivate, ReceiptType::Read] {
+    for receipt_type in [EventsReceiptType::ReadPrivate, EventsReceiptType::Read] {
         let Ok(Some((event_id, receipt))) =
             room.load_user_receipt(receipt_type, &thread, me).await
         else {
             continue;
         };
         let Some(ts) = receipt.ts else { continue };
-        if best.as_ref().is_none_or(|(_, current)| ts.0 > *current) {
-            best = Some((event_id, ts.0));
+        if best.as_ref().is_none_or(|(_, current)| u64::from(ts.0) > *current) {
+            best = Some((event_id, ts.0.into()));
         }
     }
     best
@@ -1609,7 +1609,7 @@ impl CoreClient {
         {
             return OwnReceipt {
                 event_id: Some(eid.to_string()),
-                ts_ms: receipt.ts.map(|t| t.0),
+                ts_ms: receipt.ts.map(|t| t.0.into()),
             };
         }
 
@@ -1621,7 +1621,7 @@ impl CoreClient {
             .await
             .ok()
             .and_then(|event| event.timestamp())
-            .map(|ts| ts.0);
+            .map(|ts| ts.0.into());
         OwnReceipt {
             event_id: Some(latest.event_id.to_string()),
             ts_ms,
