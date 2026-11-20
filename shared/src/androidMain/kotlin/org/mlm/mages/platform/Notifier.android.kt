@@ -190,11 +190,18 @@ actual fun BindNotifications(
 
             observerToken = port.observeRoomList(object : MatrixPort.RoomListObserver {
                 override fun onReset(items: List<RoomListEntry>) {
-                    previousUnreadState.clear()
-                    for (item in items) {
-                        val hasUnread = item.notifications != 0UL || item.mentions != 0UL
-                        previousUnreadState[item.roomId] = hasUnread
+                    val current = items.associate {
+                        it.roomId to (it.notifications != 0UL || it.mentions != 0UL)
                     }
+                    for ((roomId, hasUnread) in current) {
+                        if (previousUnreadState[roomId] == true && !hasUnread &&
+                            !Notifier.isRoomVisible(roomId)
+                        ) {
+                            org.mlm.mages.push.enqueueNotificationReconciliation(context)
+                        }
+                    }
+                    previousUnreadState.clear()
+                    previousUnreadState.putAll(current)
                 }
 
                 override fun onUpdate(item: RoomListEntry) {

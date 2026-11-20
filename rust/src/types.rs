@@ -489,6 +489,8 @@ pub struct UnreadStats {
     pub messages: u64,
     pub notifications: u64,
     pub mentions: u64,
+    pub server_notifications: u64,
+    pub server_mentions: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Record)]

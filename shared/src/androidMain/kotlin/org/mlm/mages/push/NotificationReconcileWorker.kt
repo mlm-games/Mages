@@ -2,11 +2,11 @@ package org.mlm.mages.push
 
 import android.app.NotificationManager
 import android.content.Context
+import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.core.component.KoinComponent
@@ -22,6 +22,7 @@ import org.mlm.mages.platform.Notifier as PlatformNotifier
 import kotlin.time.Clock
 
 private const val LIVE_STATE_TIMEOUT_MS = 4_000L
+private const val TAG = "NotifReconcile"
 
 class NotificationReconcileWorker(
     appContext: Context,
@@ -76,65 +77,82 @@ class NotificationReconcileWorker(
 
         var raisedForeground = false
         try {
+            val active = mgr.activeNotifications ?: return Result.success()
+            val conversation = active.filter { entry ->
+                val roomId = entry.notification.extras.getString(EXTRA_MATRIX_ROOM_ID)
+                    ?: return@filter false
+                if (targetRoomId != null && roomId != targetRoomId) return@filter false
+                val channel = entry.notification.channelId
+                channel == AppNotificationChannels.CHANNEL_MESSAGES ||
+                    channel == AppNotificationChannels.CHANNEL_MESSAGES_SILENT
+            }
+
+            val latestTsByRoom = mutableMapOf<String, Long>()
+            val notifiedRooms = linkedSetOf<String>()
+            for (entry in conversation) {
+                val roomId = entry.notification.extras.getString(EXTRA_MATRIX_ROOM_ID) ?: continue
+                notifiedRooms += roomId
+                val ts = entry.notification.extras.getLong(EXTRA_MATRIX_TS, 0L)
+                if (ts > 0L) latestTsByRoom[roomId] = maxOf(latestTsByRoom[roomId] ?: 0L, ts)
+            }
+
+            val wasForeground = port.isForegrounded()
             runCatching { port.enterForeground() }
             raisedForeground = true
+
+            if (!wasForeground && notifiedRooms.isNotEmpty()) {
+                runCatching { port.subscribeToVisibleRooms(notifiedRooms.toList()) }
+            }
             runCatching { service.startSupervisedSync() }
-            delay(SYNC_SETTLE_MS)
 
-        val active = mgr.activeNotifications ?: return Result.success()
+            val targets = notifiedRooms
+                .filterNot { PlatformNotifier.isRoomVisible(it) }
+                .toList()
+            val readRooms = NotificationReadState.awaitCleared(port, targets, latestTsByRoom)
+            Log.i(TAG, "reconcile notified=$notifiedRooms read=$readRooms")
+            for (roomId in readRooms) {
+                AndroidNotificationHelper.cancelRoomNotification(ctx, roomId)
+            }
 
-        for (notif in active) {
-            val roomId = notif.notification.extras
-                .getString(EXTRA_MATRIX_ROOM_ID)
-                ?: continue
-            if (targetRoomId != null && roomId != targetRoomId) continue
+            for (notif in active) {
+                val roomId = notif.notification.extras
+                    .getString(EXTRA_MATRIX_ROOM_ID)
+                    ?: continue
+                if (targetRoomId != null && roomId != targetRoomId) continue
 
-            val threadId = notif.notification.extras.getString(EXTRA_MATRIX_THREAD_ID)
-            if (!threadId.isNullOrBlank()) {
+                val threadId = notif.notification.extras.getString(EXTRA_MATRIX_THREAD_ID) ?: continue
+                if (threadId.isBlank()) continue
                 if (PlatformNotifier.isThreadVisible(roomId, threadId)) continue
                 if (ThreadUnreadGate.isRead(service, roomId, threadId)) {
                     AndroidNotificationHelper.cancelThreadNotification(ctx, roomId, threadId)
                 }
-                continue
             }
 
-            // A failed read is not evidence the room is read. Only a real zero retires it.
-            val stats = runCatching { port.roomUnreadStats(roomId) }.getOrNull() ?: continue
-
-            if (stats.notifications == 0L && stats.mentions == 0L &&
-                !PlatformNotifier.isRoomVisible(roomId)
-            ) {
-                AndroidNotificationHelper.cancelRoomNotification(ctx, roomId)
-            }
-
-            if (targetRoomId != null) break
-        }
-
-        runCatching {
-            val callNotifs = (mgr.activeNotifications ?: emptyArray())
-                .filter { it.notification.channelId == AppNotificationChannels.CHANNEL_CALLS }
-            for (entry in callNotifs) {
-                val roomId = entry.notification.extras.getString(EXTRA_MATRIX_ROOM_ID)
-                    ?: continue
-                if (targetRoomId != null && roomId != targetRoomId) continue
-                val eventId = entry.notification.extras.getString(EXTRA_MATRIX_EVENT_ID)
-                    ?: continue
-                val rendered = runCatching { port.fetchNotification(roomId, eventId) }.getOrNull()
-                val stale = when {
-                    rendered == null -> true
-                    !rendered.kind.isRingingCall() -> true
-                    rendered.isExpired() -> true
-                    liveCallEnded(port, roomId, rendered.tsMs) -> true
-                    else -> false
+            runCatching {
+                val callNotifs = (mgr.activeNotifications ?: emptyArray())
+                    .filter { it.notification.channelId == AppNotificationChannels.CHANNEL_CALLS }
+                for (entry in callNotifs) {
+                    val roomId = entry.notification.extras.getString(EXTRA_MATRIX_ROOM_ID)
+                        ?: continue
+                    if (targetRoomId != null && roomId != targetRoomId) continue
+                    val eventId = entry.notification.extras.getString(EXTRA_MATRIX_EVENT_ID)
+                        ?: continue
+                    val rendered = runCatching { port.fetchNotification(roomId, eventId) }.getOrNull()
+                    val stale = when {
+                        rendered == null -> true
+                        !rendered.kind.isRingingCall() -> true
+                        rendered.isExpired() -> true
+                        liveCallEnded(port, roomId, rendered.tsMs) -> true
+                        else -> false
+                    }
+                    if (stale) {
+                        AndroidNotificationHelper.dismissCallUi(ctx, roomId, eventId, silent = false)
+                    }
+                    if (targetRoomId != null) break
                 }
-                if (stale) {
-                    AndroidNotificationHelper.dismissCallUi(ctx, roomId, eventId, silent = false)
-                }
-                if (targetRoomId != null) break
             }
-        }
 
-        return Result.success()
+            return Result.success()
         } finally {
             if (raisedForeground) {
                 runCatching { service.portOrNull?.enterBackground() }
@@ -147,13 +165,12 @@ class NotificationReconcileWorker(
         const val EXTRA_MATRIX_EVENT_ID = "org.mlm.mages.notification.EVENT_ID"
         const val EXTRA_MATRIX_THREAD_ID = "org.mlm.mages.notification.THREAD_ID"
         const val EXTRA_MATRIX_ACCOUNT_ID = "org.mlm.mages.notification.ACCOUNT_ID"
+        const val EXTRA_MATRIX_TS = "org.mlm.mages.notification.TS"
 
         const val KEY_ROOM_ID = "reconcileRoomId"
         const val KEY_UNREAD = "reconcileUnread"
         const val KEY_MENTIONS = "reconcileMentions"
         const val KEY_HAS_COUNTS = "reconcileHasCounts"
-
-        private const val SYNC_SETTLE_MS = 2_500L
     }
 }
 

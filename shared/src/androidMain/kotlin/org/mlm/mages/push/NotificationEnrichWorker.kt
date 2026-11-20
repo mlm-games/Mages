@@ -99,8 +99,12 @@ class NotificationEnrichWorker(
 
         var raisedForeground = false
         try {
+            val wasForeground = port.isForegrounded()
             runCatching { port.enterForeground() }
             raisedForeground = true
+            if (!wasForeground) {
+                runCatching { port.subscribeToVisibleRooms(listOf(roomId)) }
+            }
 
         // Distinguish timeout from "null result".
         data class Fetch(val timedOut: Boolean, val rendered: RenderedNotification?)
@@ -196,6 +200,10 @@ class NotificationEnrichWorker(
 
             NotificationKind.Reaction,
             NotificationKind.Message -> {
+                if (NotificationReadState.isEventRead(port, roomId, rendered.tsMs)) {
+                    return Result.success()
+                }
+
                 val me = service.activeAccount.value?.userId
                 val senderIsMe = me != null && me == rendered.senderUserId
                 if (!settings.notifyWhileRoomOpen &&

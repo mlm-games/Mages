@@ -464,7 +464,13 @@ data class RenderedNotification(
 )
 
 @Serializable
-data class UnreadStats(val messages: Long, val notifications: Long, val mentions: Long)
+data class UnreadStats(
+    val messages: Long,
+    val notifications: Long,
+    val mentions: Long,
+    @SerialName("server_notifications") val serverNotifications: Long = 0,
+    @SerialName("server_mentions") val serverMentions: Long = 0,
+)
 @Serializable
 data class DirectoryUser(val userId: String, val displayName: String? = null, val avatarUrl: String? = null)
 @Serializable
@@ -1134,6 +1140,8 @@ interface MatrixPort {
     suspend fun isUserVerified(userId: String): Boolean
 
     suspend fun allUsersVerified(roomId: String): Boolean
+
+    fun isForegrounded(): Boolean
 
     fun enterForeground()
     fun enterBackground()

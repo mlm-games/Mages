@@ -906,6 +906,7 @@ object Notifier {
             Bundle().apply {
                 putString(NotificationReconcileWorker.EXTRA_MATRIX_ROOM_ID, roomId)
                 putString(NotificationReconcileWorker.EXTRA_MATRIX_EVENT_ID, eventId)
+                putLong(NotificationReconcileWorker.EXTRA_MATRIX_TS, timestamp)
                 putBoolean(NotificationActionReceiver.EXTRA_IS_DM, isDm)
                 threadId?.let {
                     putString(NotificationReconcileWorker.EXTRA_MATRIX_THREAD_ID, it)

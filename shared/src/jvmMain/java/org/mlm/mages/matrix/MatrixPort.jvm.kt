@@ -939,6 +939,8 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
             runWithFfiResult { withClient { it.cancelByTxn(roomId, txnId) } }.isSuccess
         }
 
+    override fun isForegrounded(): Boolean = withClientOrNull { it.isForegrounded() } ?: false
+
     override fun enterForeground() {
         withClientOrNull { it.enterForeground() }
     }
@@ -1053,7 +1055,9 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
                         UnreadStats(
                             s.messages.toLong(),
                             s.notifications.toLong(),
-                            s.mentions.toLong()
+                            s.mentions.toLong(),
+                            s.serverNotifications.toLong(),
+                            s.serverMentions.toLong()
                         )
                     }
                 }

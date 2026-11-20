@@ -1910,6 +1910,10 @@ impl Client {
         RT.block_on(async { platform::load_room_list_cache(&self.store_dir).await })
     }
 
+    pub fn is_foregrounded(&self) -> bool {
+        self.app_in_foreground.load(Ordering::Acquire) > 0
+    }
+
     pub fn enter_foreground(&self) {
         let prev = self.app_in_foreground.fetch_add(1, Ordering::AcqRel);
         if prev == 0 {

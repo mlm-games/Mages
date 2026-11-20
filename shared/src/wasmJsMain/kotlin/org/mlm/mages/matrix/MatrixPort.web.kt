@@ -904,6 +904,8 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun listMyDevices(): List<DeviceSummary> =
         decodeValueOrNull(requireClient().listMyDevices().awaitAny(), "listMyDevices") ?: emptyList()
 
+    override fun isForegrounded(): Boolean = isInForeground
+
     override fun enterForeground() {
         isInForeground = true
     }

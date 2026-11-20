@@ -1542,19 +1542,55 @@ impl CoreClient {
         let Ok(rid) = OwnedRoomId::try_from(room_id) else {
             return empty;
         };
-        let Some(tl) = self.timeline_mgr.timeline_for(&rid).await else {
+        let Some(room) = self.sdk.get_room(&rid) else {
             return empty;
         };
         let Some(me) = self.sdk.user_id() else {
             return empty;
         };
-        if let Some((eid, receipt)) = tl.latest_user_read_receipt(me).await {
-            OwnReceipt {
-                event_id: Some(eid.to_string()),
-                ts_ms: receipt.ts.map(|t| t.0.into()),
+
+        let mut best: Option<(OwnedEventId, u64)> = None;
+        for receipt_type in [ReceiptType::ReadPrivate, ReceiptType::Read] {
+            let Ok(Some((event_id, receipt))) = room
+                .load_user_receipt(receipt_type, &ReceiptThread::Unthreaded, me)
+                .await
+            else {
+                continue;
+            };
+            let Some(ts) = receipt.ts else { continue };
+            if best.as_ref().is_none_or(|(_, current)| ts.0 > *current) {
+                best = Some((event_id, ts.0));
             }
-        } else {
-            empty
+        }
+
+        if let Some((event_id, ts)) = best {
+            return OwnReceipt {
+                event_id: Some(event_id.to_string()),
+                ts_ms: Some(ts),
+            };
+        }
+
+        if let Some(tl) = self.timeline_mgr.timeline_for(&rid).await
+            && let Some((eid, receipt)) = tl.latest_user_read_receipt(me).await
+        {
+            return OwnReceipt {
+                event_id: Some(eid.to_string()),
+                ts_ms: receipt.ts.map(|t| t.0),
+            };
+        }
+
+        let Some(latest) = room.read_receipts().latest_active else {
+            return empty;
+        };
+        let ts_ms = room
+            .load_or_fetch_event(&latest.event_id, None)
+            .await
+            .ok()
+            .and_then(|event| event.timestamp())
+            .map(|ts| ts.0);
+        OwnReceipt {
+            event_id: Some(latest.event_id.to_string()),
+            ts_ms,
         }
     }
 
@@ -2422,10 +2458,13 @@ impl CoreClient {
             .sdk
             .get_room(&rid)
             .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        let counts = room.unread_notification_counts();
         Ok(Some(UnreadStats {
             messages: room.num_unread_messages(),
             notifications: room.num_unread_notifications(),
             mentions: room.num_unread_mentions(),
+            server_notifications: counts.notification_count,
+            server_mentions: counts.highlight_count,
         }))
     }
 
