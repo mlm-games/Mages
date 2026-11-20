@@ -200,7 +200,15 @@ class NotificationEnrichWorker(
 
             NotificationKind.Reaction,
             NotificationKind.Message -> {
-                if (NotificationReadState.isEventRead(port, roomId, rendered.tsMs)) {
+                val notificationThreadId = rendered.threadId
+                val alreadyRead = if (notificationThreadId.isNullOrBlank()) {
+                    NotificationReadState.isEventRead(port, roomId, rendered.tsMs)
+                } else {
+                    NotificationReadState.isThreadEventRead(
+                        port, roomId, notificationThreadId, rendered.tsMs
+                    )
+                }
+                if (alreadyRead) {
                     return Result.success()
                 }
 

@@ -575,6 +575,7 @@ wasm_delegate! { |r| to_json(&r);
     "recentEvents"      => recent_events(room_id: String, limit: u32)             or Vec::<MessageEvent>::new();
     "eventsByIds"       => events_by_ids(room_id: String, event_ids: Vec<String>) or Vec::<MessageEvent>::new();
     "ownLastRead"       => own_last_read(room_id: String)                         or OwnReceipt { event_id: None, ts_ms: None };
+    "ownThreadLastRead" => own_thread_last_read(room_id: String, thread_id: String)   or OwnReceipt { event_id: None, ts_ms: None };
     "reactionsForEvent" => reactions_for_event(room_id: String, event_id: String)  or Vec::<ReactionSummary>::new();
     "mySpaces"          => my_spaces()                                             or Vec::<SpaceInfo>::new();
 }

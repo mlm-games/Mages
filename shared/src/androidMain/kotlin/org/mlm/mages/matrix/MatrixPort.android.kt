@@ -946,7 +946,7 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
             runWithFfiResult { withClient { it.cancelByTxn(roomId, txnId) } }.isSuccess
         }
 
-    override fun isForegrounded(): Boolean = withClientOrNull { it.isForegrounded() } ?: false
+    override fun isForegrounded(): Boolean = org.mlm.mages.platform.isUiInForeground()
 
     override fun enterForeground() {
         withClientOrNull { it.enterForeground() }
@@ -1159,6 +1159,13 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
             withClient { it.setDefaultRoomNotificationMode(isEncrypted, isOneToOne, mode.toFfi()) }
         }
     }
+
+    override suspend fun ownThreadLastRead(roomId: String, threadId: String): Pair<String?, Long?> =
+        withContext(matrixDispatcher) {
+            runCatching {
+                withClient { it.ownThreadLastRead(roomId, threadId).let { r -> r.eventId to r.tsMs?.toLong() } }
+            }.getOrElse { null to null }
+        }
 
     override suspend fun ownLastRead(roomId: String): Pair<String?, Long?> =
         withContext(matrixDispatcher) {

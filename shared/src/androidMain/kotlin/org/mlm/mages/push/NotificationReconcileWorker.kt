@@ -89,11 +89,17 @@ class NotificationReconcileWorker(
 
             val latestTsByRoom = mutableMapOf<String, Long>()
             val notifiedRooms = linkedSetOf<String>()
+            val threadTargets = mutableListOf<ThreadReadTarget>()
             for (entry in conversation) {
                 val roomId = entry.notification.extras.getString(EXTRA_MATRIX_ROOM_ID) ?: continue
                 notifiedRooms += roomId
                 val ts = entry.notification.extras.getLong(EXTRA_MATRIX_TS, 0L)
                 if (ts > 0L) latestTsByRoom[roomId] = maxOf(latestTsByRoom[roomId] ?: 0L, ts)
+
+                val threadId = entry.notification.extras.getString(EXTRA_MATRIX_THREAD_ID)
+                if (!threadId.isNullOrBlank() && !PlatformNotifier.isThreadVisible(roomId, threadId)) {
+                    threadTargets += ThreadReadTarget(roomId, threadId, ts.takeIf { it > 0L })
+                }
             }
 
             val wasForeground = port.isForegrounded()
@@ -105,27 +111,22 @@ class NotificationReconcileWorker(
             }
             runCatching { service.startSupervisedSync() }
 
-            val targets = notifiedRooms
+            val roomTargets = notifiedRooms
                 .filterNot { PlatformNotifier.isRoomVisible(it) }
                 .toList()
-            val readRooms = NotificationReadState.awaitCleared(port, targets, latestTsByRoom)
-            Log.i(TAG, "reconcile notified=$notifiedRooms read=$readRooms")
-            for (roomId in readRooms) {
+            val cleared = NotificationReadState.awaitCleared(
+                port = port,
+                rooms = roomTargets,
+                threads = threadTargets,
+                latestTsByRoom = latestTsByRoom,
+                threadCountsRead = { roomId, threadId -> ThreadUnreadGate.isRead(service, roomId, threadId) },
+            )
+            Log.i(TAG, "reconcile rooms=$roomTargets threads=$threadTargets cleared=${cleared.rooms} ${cleared.threads}")
+            for (roomId in cleared.rooms) {
                 AndroidNotificationHelper.cancelRoomNotification(ctx, roomId)
             }
-
-            for (notif in active) {
-                val roomId = notif.notification.extras
-                    .getString(EXTRA_MATRIX_ROOM_ID)
-                    ?: continue
-                if (targetRoomId != null && roomId != targetRoomId) continue
-
-                val threadId = notif.notification.extras.getString(EXTRA_MATRIX_THREAD_ID) ?: continue
-                if (threadId.isBlank()) continue
-                if (PlatformNotifier.isThreadVisible(roomId, threadId)) continue
-                if (ThreadUnreadGate.isRead(service, roomId, threadId)) {
-                    AndroidNotificationHelper.cancelThreadNotification(ctx, roomId, threadId)
-                }
+            for ((roomId, threadId) in cleared.threads) {
+                AndroidNotificationHelper.cancelThreadNotification(ctx, roomId, threadId)
             }
 
             runCatching {

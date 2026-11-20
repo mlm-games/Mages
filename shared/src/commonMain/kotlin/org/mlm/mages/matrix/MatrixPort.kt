@@ -1223,6 +1223,7 @@ interface MatrixPort {
 
     suspend fun roomUnreadStats(roomId: String): UnreadStats?
     suspend fun ownLastRead(roomId: String): Pair<String?, Long?>
+    suspend fun ownThreadLastRead(roomId: String, threadId: String): Pair<String?, Long?>
     suspend fun observeOwnReceipt(roomId: String, observer: ReceiptsObserver): ULong
     suspend fun markFullyReadAt(roomId: String, eventId: String, sendPublicReceipt: Boolean = true): Result<Unit>
     suspend fun markRoomSeenLatest(roomId: String, sendPublicReceipt: Boolean): Result<Boolean>

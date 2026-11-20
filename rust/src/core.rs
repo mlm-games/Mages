@@ -694,6 +694,26 @@ fn ffi_notification_mode(mode: RoomNotificationMode) -> FfiRoomNotificationMode 
     }
 }
 
+async fn latest_own_receipt(
+    room: &Room,
+    thread: ReceiptThread,
+    me: &UserId,
+) -> Option<(OwnedEventId, u64)> {
+    let mut best: Option<(OwnedEventId, u64)> = None;
+    for receipt_type in [ReceiptType::ReadPrivate, ReceiptType::Read] {
+        let Ok(Some((event_id, receipt))) =
+            room.load_user_receipt(receipt_type, &thread, me).await
+        else {
+            continue;
+        };
+        let Some(ts) = receipt.ts else { continue };
+        if best.as_ref().is_none_or(|(_, current)| ts.0 > *current) {
+            best = Some((event_id, ts.0));
+        }
+    }
+    best
+}
+
 impl CoreClient {
     pub async fn new(sdk: SdkClient) -> Self {
         let timeline_mgr = TimelineManager::new(sdk.clone());
@@ -1534,6 +1554,32 @@ impl CoreClient {
         Ok(Some(room.is_marked_unread()))
     }
 
+    pub async fn own_thread_last_read(&self, room_id: String, thread_id: String) -> OwnReceipt {
+        let empty = OwnReceipt {
+            event_id: None,
+            ts_ms: None,
+        };
+        let Ok(rid) = OwnedRoomId::try_from(room_id) else {
+            return empty;
+        };
+        let Ok(root) = OwnedEventId::try_from(thread_id) else {
+            return empty;
+        };
+        let Some(room) = self.sdk.get_room(&rid) else {
+            return empty;
+        };
+        let Some(me) = self.sdk.user_id() else {
+            return empty;
+        };
+        match latest_own_receipt(&room, ReceiptThread::Thread(root), me).await {
+            Some((event_id, ts)) => OwnReceipt {
+                event_id: Some(event_id.to_string()),
+                ts_ms: Some(ts),
+            },
+            None => empty,
+        }
+    }
+
     pub async fn own_last_read(&self, room_id: String) -> OwnReceipt {
         let empty = OwnReceipt {
             event_id: None,
@@ -1549,21 +1595,9 @@ impl CoreClient {
             return empty;
         };
 
-        let mut best: Option<(OwnedEventId, u64)> = None;
-        for receipt_type in [ReceiptType::ReadPrivate, ReceiptType::Read] {
-            let Ok(Some((event_id, receipt))) = room
-                .load_user_receipt(receipt_type, &ReceiptThread::Unthreaded, me)
-                .await
-            else {
-                continue;
-            };
-            let Some(ts) = receipt.ts else { continue };
-            if best.as_ref().is_none_or(|(_, current)| ts.0 > *current) {
-                best = Some((event_id, ts.0));
-            }
-        }
-
-        if let Some((event_id, ts)) = best {
+        if let Some((event_id, ts)) =
+            latest_own_receipt(&room, ReceiptThread::Unthreaded, me).await
+        {
             return OwnReceipt {
                 event_id: Some(event_id.to_string()),
                 ts_ms: Some(ts),

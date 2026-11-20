@@ -17,6 +17,7 @@ import androidx.core.content.getSystemService
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import java.util.concurrent.atomic.AtomicBoolean
 import io.github.mlmgames.settings.core.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +34,12 @@ import org.mlm.mages.push.PusherReconciler
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.autoDownloadRules
 import org.mlm.mages.shared.R
+
+private val uiInForeground = AtomicBoolean(false)
+
+fun setUiInForeground(value: Boolean) { uiInForeground.set(value) }
+
+fun isUiInForeground(): Boolean = uiInForeground.get()
 
 private fun parseNotifiedRooms(json: String): Set<String> {
     if (json.isBlank()) return emptySet()
@@ -131,6 +138,7 @@ actual fun BindLifecycle(service: MatrixService, resetSyncState: Boolean) {
         val obs = object : DefaultLifecycleObserver {
 
             override fun onStart(owner: LifecycleOwner) {
+                setUiInForeground(true)
                 scope.launch {
                     SessionBootstrapper.ensureSessionReady(service)
 
@@ -153,6 +161,7 @@ actual fun BindLifecycle(service: MatrixService, resetSyncState: Boolean) {
             }
 
             override fun onStop(owner: LifecycleOwner) {
+                setUiInForeground(false)
                 scope.launch {
                     val port = service.portOrNull ?: return@launch
                     runCatching { port.enterBackground() }

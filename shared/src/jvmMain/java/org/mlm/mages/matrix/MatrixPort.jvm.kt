@@ -1153,6 +1153,13 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
         }
     }
 
+    override suspend fun ownThreadLastRead(roomId: String, threadId: String): Pair<String?, Long?> =
+        withContext(matrixDispatcher) {
+            runCatching {
+                withClient { it.ownThreadLastRead(roomId, threadId).let { r -> r.eventId to r.tsMs?.toLong() } }
+            }.getOrElse { null to null }
+        }
+
     override suspend fun ownLastRead(roomId: String): Pair<String?, Long?> =
         withContext(matrixDispatcher) {
             runCatching {

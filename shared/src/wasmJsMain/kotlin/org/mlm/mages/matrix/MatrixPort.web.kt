@@ -1123,6 +1123,9 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun ownLastRead(roomId: String): Pair<String?, Long?> =
         decodeOwnLastRead(requireClient().ownLastRead(roomId).awaitAny())
 
+    override suspend fun ownThreadLastRead(roomId: String, threadId: String): Pair<String?, Long?> =
+        decodeOwnLastRead(requireClient().ownThreadLastRead(roomId, threadId).awaitAny())
+
     override suspend fun observeOwnReceipt(roomId: String, observer: ReceiptsObserver): ULong =
         requireClient().observeOwnReceipt(roomId, jsCallback0 { observer.onChanged() }).toULong()
 
