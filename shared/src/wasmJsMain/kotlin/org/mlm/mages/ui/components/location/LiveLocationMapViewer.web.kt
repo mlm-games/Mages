@@ -21,11 +21,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import mages.shared.generated.resources.*
 import org.mlm.mages.matrix.LiveLocationShare
+import org.mlm.mages.platform.rememberClipboardCopy
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.live_location_web_foreground_desc
@@ -47,18 +46,18 @@ actual fun LiveLocationMapViewer(
     modifier: Modifier,
 ) {
     if (mode is LocationViewerMode.ViewStatic) {
-        val clipboardManager = LocalClipboardManager.current
+        val copyToClipboard = rememberClipboardCopy()
         LaunchedEffect(Unit) {
-            clipboardManager.setText(AnnotatedString("${mode.lat}, ${mode.lon}"))
+            copyToClipboard("${mode.lat}, ${mode.lon}", false)
             onDismiss()
         }
         return
     }
 
     if (mode is LocationViewerMode.PickStatic) {
-        val clipboardManager = LocalClipboardManager.current
+        val copyToClipboard = rememberClipboardCopy()
         LaunchedEffect(Unit) {
-            clipboardManager.setText(AnnotatedString("-25.947028, 133.209639"))
+            copyToClipboard("-25.947028, 133.209639", false)
             onDismiss()
         }
         return

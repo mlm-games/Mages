@@ -134,6 +134,7 @@ class BubbleConversationActivity : ComponentActivity() {
                     RoomScreen(
                         viewModel = vm,
                         onBack = { finish() },
+                        onRoomUnavailable = { finish() },
                         onOpenInfo = { },
                         onNavigateToRoom = { _, _ -> },
                         onNavigateToThread = { _, _, _, _ -> },

@@ -10,8 +10,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -52,6 +50,7 @@ import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.mimeType
 import kotlinx.coroutines.launch
+import org.mlm.mages.platform.rememberClipboardCopy
 import org.mlm.mages.platform.toTransferItem
 import org.mlm.mages.platform.RoomPlatformShortcuts
 import org.mlm.mages.ui.components.viewer.AvatarViewerHost
@@ -236,7 +235,7 @@ fun RoomInfoScreen(
     var showAdvanced by remember { mutableStateOf(false) }
     val snackbarManager: SnackbarManager = koinInject()
     val postError = rememberErrorPoster(snackbarManager)
-    val clipboard = LocalClipboardManager.current
+    val copyToClipboard = rememberClipboardCopy()
     val dmPartner = state.dmPartner
 
     val pickScope = rememberCoroutineScope()
@@ -646,7 +645,7 @@ fun RoomInfoScreen(
                                     icon = painterResource(Res.drawable.ic_tag),
                                     title = stringResource(Res.string.room_id),
                                     value = roomId,
-                                    onCopy = { clipboard.setText(AnnotatedString(roomId)) }
+                                    onCopy = { copyToClipboard(roomId, false) }
                                 )
                             }
                             state.profile?.canonicalAlias?.let { alias ->
@@ -655,7 +654,7 @@ fun RoomInfoScreen(
                                     icon = painterResource(Res.drawable.ic_alternate_email),
                                     title = stringResource(Res.string.primary_address),
                                     value = alias,
-                                    onCopy = { clipboard.setText(AnnotatedString(alias)) }
+                                    onCopy = { copyToClipboard(alias, false) }
                                 )
                             }
                             val altCount = state.profile?.altAliases?.size ?: 0

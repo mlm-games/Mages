@@ -8,8 +8,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import mages.shared.generated.resources.Res
@@ -18,6 +16,7 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import org.mlm.mages.platform.rememberClipboardCopy
 
 class SnackbarManager {
     // Buffer so events aren't lost if emitted quickly (e.g., rapid actions)
@@ -81,14 +80,14 @@ class SnackbarManager {
 
 @Composable
 fun rememberErrorPoster(manager: SnackbarManager): (String) -> Unit {
-    val clipboard = LocalClipboardManager.current
+    val copyToClipboard = rememberClipboardCopy()
     val copyLabel = stringResource(Res.string.copy)
-    return remember(manager, clipboard, copyLabel) {
+    return remember(manager, copyToClipboard, copyLabel) {
         { message: String ->
             manager.showError(
                 message = message,
                 actionLabel = copyLabel,
-                onAction = { clipboard.setText(AnnotatedString(message)) }
+                onAction = { copyToClipboard(message, false) }
             )
         }
     }

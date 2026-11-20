@@ -199,11 +199,12 @@ class SpaceSettingsViewModel(
         scopeReconcileInFlight = true
         launch {
             try {
-                val scope = scopeStore.get(accountId, spaceId)
+                val storedScope = scopeStore.get(accountId, spaceId)
                 val spaceMode = readUserDefinedMode(spaceId).getOrNull() ?: return@launch
                 val descendants = descendantRoomIds(spaceId) ?: return@launch
-                val known = scope?.rooms?.toSet().orEmpty()
-                val scopeMode = scope?.mode ?: spaceMode
+                val scope = storedScope ?: SpaceNotificationScope(spaceMode, emptyList())
+                val known = scope.rooms.toSet()
+                val scopeMode = storedScope?.mode ?: spaceMode
                 val owned = mutableListOf<String>()
                 for (roomId in descendants) {
                     val currentResult = readUserDefinedMode(roomId)
@@ -220,7 +221,7 @@ class SpaceSettingsViewModel(
                         }
                     }
                 }
-                if (owned != scope?.rooms || spaceMode != scope?.mode) {
+                if (storedScope == null || owned != scope.rooms || spaceMode != scope.mode) {
                     scopeStore.put(accountId, spaceId, SpaceNotificationScope(spaceMode, owned))
                 }
             } finally {

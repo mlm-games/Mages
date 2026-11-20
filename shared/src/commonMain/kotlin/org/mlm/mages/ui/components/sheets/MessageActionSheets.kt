@@ -13,8 +13,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -29,6 +27,7 @@ import org.mlm.mages.matrix.EventType
 import org.mlm.mages.matrix.ImagePackSummary
 import org.mlm.mages.matrix.SendState
 import org.mlm.mages.settings.MessageMenuAction
+import org.mlm.mages.platform.rememberClipboardCopy
 import org.mlm.mages.settings.defaultQuickReactions
 import org.mlm.mages.ui.canCancelSend
 import org.mlm.mages.ui.components.core.ReactionGlyph
@@ -72,7 +71,7 @@ fun MessageActionSheet(
     menuOrder: List<MessageMenuAction> = MessageMenuAction.entries,
     quickReactions: List<String> = defaultQuickReactions,
 ) {
-    val clipboardManager = LocalClipboardManager.current
+    val copyToClipboard = rememberClipboardCopy()
     val isRedacted = event.isRedacted
     var showEmojiPicker by remember { mutableStateOf(false) }
     var showImagePicker by remember { mutableStateOf(false) }
@@ -184,7 +183,7 @@ fun MessageActionSheet(
 
                         MessageMenuAction.Copy -> add(
                             MenuEntry(painterResource(Res.drawable.ic_content_copy), stringResource(Res.string.copy)) {
-                                clipboardManager.setText(AnnotatedString(event.body))
+                                copyToClipboard(event.body, false)
                                 onDismiss()
                             }
                         )

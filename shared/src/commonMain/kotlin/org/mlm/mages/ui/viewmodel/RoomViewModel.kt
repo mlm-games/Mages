@@ -845,7 +845,7 @@ class RoomViewModel(
                 } else {
                     service.sendMessage(s.roomId, outgoing.body, outgoing.formattedBody)
                 }
-                if (result?.isSuccess != true) {
+                if (!result.isSuccess) {
                     updateState { copy(input = originalInput) }
                     launch { saveDraft(s.roomId, originalInput) }
                     _events.send(Event.ShowError(result.toUserMessage(if (replyTo != null) getString(Res.string.reply_failed) else getString(Res.string.send_failed))))
@@ -875,7 +875,7 @@ class RoomViewModel(
                 } else {
                     service.sendMessage(s.roomId, outgoing?.body.orEmpty(), outgoing?.formattedBody)
                 }
-                if (result?.isSuccess != true) {
+                if (!result.isSuccess) {
                     updateState { copy(input = originalInput) }
                     launch { saveDraft(s.roomId, originalInput) }
                     _events.send(Event.ShowError(result.toUserMessage(if (replyTo != null) getString(Res.string.reply_failed) else getString(Res.string.send_failed))))
@@ -1113,7 +1113,7 @@ class RoomViewModel(
         }
         launch {
             val result = service.redact(currentState.roomId, event.eventId, null)
-            if (result?.isSuccess != true) {
+            if (!result.isSuccess) {
                 _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.delete_failed))))
             }
         }
@@ -2624,7 +2624,7 @@ class RoomViewModel(
                             val profile = withTimeoutOrNull(8_000) {
                                 runCatching { service.port.getUserProfile(userId) }.getOrNull()
                             } ?: return@async null
-                            val avatarUrl = profile?.avatarUrl ?: return@async null
+                            val avatarUrl = profile.avatarUrl ?: return@async null
                             val path = withTimeoutOrNull(8_000) {
                                 service.avatars.resolve(avatarUrl, px = 64, crop = true)
                             }
@@ -3401,9 +3401,9 @@ class RoomViewModel(
         val hasValidMedia = when {
             a != null -> {
                 if (a.kind != AttachmentKind.Image && a.kind != AttachmentKind.Video && a.thumbnailMxcUri == null) false
-                else (a.thumbnailMxcUri ?: a.mxcUri) != null
+                else (a.thumbnailMxcUri ?: a.mxcUri).isNotBlank()
             }
-            s != null -> (s.thumbnailMxcUri ?: s.mxcUri) != null
+            s != null -> (s.thumbnailMxcUri ?: s.mxcUri).isNotBlank()
             else -> false
         }
         if (!hasValidMedia) return

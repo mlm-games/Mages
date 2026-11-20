@@ -29,8 +29,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,6 +39,7 @@ import org.mlm.mages.AttachmentInfo
 import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.matrix.SeenByEntry
+import org.mlm.mages.platform.rememberClipboardCopy
 import org.mlm.mages.ui.ReactionDetail
 import org.mlm.mages.ui.ReactionUser
 import org.mlm.mages.ui.components.core.Avatar
@@ -70,14 +69,14 @@ fun MessageInfoSheet(
     reactionShortcodes: Map<String, String> = emptyMap(),
     onRetryReactions: () -> Unit = {},
 ) {
-    val clipboardManager = LocalClipboardManager.current
+    val copyToClipboard = rememberClipboardCopy()
     val attachment = event.attachment
     val caption = event.body
         .trim()
         .takeIf { it.isNotEmpty() && attachment?.fileName != null && it != attachment.fileName }
 
     fun copy(value: String) {
-        clipboardManager.setText(AnnotatedString(value))
+        copyToClipboard(value, false)
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {

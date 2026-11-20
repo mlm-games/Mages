@@ -35,7 +35,8 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -48,8 +49,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -89,6 +88,7 @@ import org.maplibre.spatialk.geojson.Position
 import org.mlm.mages.matrix.LiveLocationShare
 import org.mlm.mages.platform.LiveLocationProvider
 import org.mlm.mages.platform.LocationResult
+import org.mlm.mages.platform.rememberClipboardCopy
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.ThemeMode
 import org.mlm.mages.ui.components.core.Avatar
@@ -286,13 +286,16 @@ actual fun LiveLocationMapViewer(
         )
     }
 
-    val clipboardManager = LocalClipboardManager.current
+    val copyToClipboard = rememberClipboardCopy()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
     var isCentering by remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberBottomSheetState(
+        initialValue = SheetValue.Hidden,
+        enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+    )
     var selectedUserId by remember { mutableStateOf<String?>(null) }
     var focusRequest by remember { mutableStateOf<CameraFocus?>(null) }
     var focusRequestCounter by remember { mutableStateOf(0L) }
@@ -582,12 +585,11 @@ actual fun LiveLocationMapViewer(
                 }
 
                 if (isStatic) {
-                    val staticMode = mode as LocationViewerMode.ViewStatic
-                    val staticLat = staticMode.lat
-                    val staticLon = staticMode.lon
+                    val staticLat = mode.lat
+                    val staticLon = mode.lon
                     FloatingActionButton(
                         onClick = {
-                            clipboardManager.setText(AnnotatedString("$staticLat, $staticLon"))
+                            copyToClipboard("$staticLat, $staticLon", false)
                             scope.launch {
                                 snackbarHostState.showSnackbar(getString(Res.string.map_coordinates_copied))
                             }

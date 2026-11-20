@@ -23,7 +23,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalDensity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -34,7 +33,6 @@ import androidx.navigationevent.compose.rememberNavigationEventState
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -2043,7 +2041,7 @@ private fun MessageItem(
         val swipeThresholdPx = remember(density) { with(density) { 72.dp.toPx() } }
         var hapticTriggered by remember { mutableStateOf(false) }
         val haptics = LocalHapticFeedback.current
-        val clipboardManager = LocalClipboardManager.current
+        val copyToClipboard = rememberClipboardCopy()
 
         val onRowLongPress: () -> Unit = {
             if (state.isSelectionMode) viewModel.toggleSelected(event.eventId)
@@ -2057,7 +2055,7 @@ private fun MessageItem(
                 when (rightClickAction) {
                     MessageRightClickAction.Menu -> onLongPress()
                     MessageRightClickAction.Copy ->
-                        clipboardManager.setText(AnnotatedString(event.body))
+                        copyToClipboard(event.body, false)
                     MessageRightClickAction.Reply -> onReply()
                     MessageRightClickAction.Pin ->
                         if (event.eventId in pinnedEventIdSet) viewModel.unpinEvent(event.eventId)
@@ -2084,7 +2082,7 @@ private fun MessageItem(
                             if (event.eventId in pinnedEventIdSet) viewModel.unpinEvent(event.eventId)
                             else viewModel.pinEvent(event)
                         MessageDoubleTapAction.Copy ->
-                            clipboardManager.setText(AnnotatedString(event.body))
+                            copyToClipboard(event.body, false)
                         MessageDoubleTapAction.Nothing -> Unit
                     }
                 }
@@ -2127,7 +2125,7 @@ private fun MessageItem(
                                         if (event.eventId in pinnedEventIdSet) viewModel.unpinEvent(event.eventId)
                                         else viewModel.pinEvent(event)
                                     MessageSwipeAction.Copy ->
-                                        clipboardManager.setText(AnnotatedString(event.body))
+                                        copyToClipboard(event.body, false)
                                     MessageSwipeAction.Nothing -> Unit
                                 }
                             }
