@@ -1,3 +1,8 @@
+- fix long sender names not being truncated in notifications
+- remove preview message clipping
+- non-voice notes now play via the voice note player
+- add support for bio/gender/status display (reads the same fields as sable)
+- feat: desktop ogg (opus) playback support via rust
 - fix thread deeplinks
 - add an option to show unread indicators for threads
 - threads drafts parity and notification fixes
