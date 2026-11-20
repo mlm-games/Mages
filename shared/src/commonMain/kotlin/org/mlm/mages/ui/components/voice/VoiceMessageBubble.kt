@@ -146,7 +146,11 @@ fun VoiceMessageBubble(
                 WaveformSeekBar(
                     waveformData = waveformData,
                     progress = progress,
-                    onSeek = { player.seekTo((it * displayDuration).toLong()) },
+                    onSeek = { fraction ->
+                        if (displayDuration > 0L) {
+                            player.seekTo((fraction * displayDuration).toLong())
+                        }
+                    },
                     activeColor = onBubble,
                     inactiveColor = onBubble.copy(alpha = 0.28f),
                     modifier = Modifier.fillMaxWidth()

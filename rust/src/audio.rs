@@ -20,10 +20,10 @@ use symphonia::core::{
         registry::CodecRegistry,
     },
     errors::Error as SymphoniaError,
-    formats::{FormatOptions, FormatReader, SeekMode, SeekTo, Track, probe::Hint},
+    formats::{FormatOptions, FormatReader, SeekMode, SeekTo, SeekedTo, Track, probe::Hint},
     io::MediaSourceStream,
     meta::MetadataOptions,
-    units::Time,
+    units::{Time, Timestamp},
 };
 
 use crate::types::FfiError;
@@ -675,9 +675,9 @@ fn reset_position(
     output: &Output,
     shared: &Shared,
     target: u64,
-) -> Result<(), String> {
+) -> Result<usize, String> {
     let time = Time::try_from_secs_f64(target as f64 / 1000.0).unwrap_or(Time::ZERO);
-    prepared
+    let seeked = prepared
         .reader
         .seek(
             SeekMode::Accurate,
@@ -693,7 +693,28 @@ fn reset_position(
     shared.played_frames.store(0, Ordering::Release);
     shared.base_ms.store(target, Ordering::Release);
     shared.finished.store(false, Ordering::Release);
-    Ok(())
+    Ok(frames_to_skip(prepared, &seeked))
+}
+
+fn frames_to_skip(prepared: &Prepared, seeked: &SeekedTo) -> usize {
+    let delta = seeked.required_ts.get().saturating_sub(seeked.actual_ts.get());
+    if delta <= 0 {
+        return 0;
+    }
+    let Some(base) = prepared
+        .reader
+        .tracks()
+        .iter()
+        .find(|track| track.id == seeked.track_id)
+        .and_then(|track| track.time_base)
+    else {
+        return 0;
+    };
+    let seconds = base
+        .calc_time(Timestamp::new(delta))
+        .map(|time| time.as_secs_f64())
+        .unwrap_or(0.0);
+    (seconds * prepared.sample_rate as f64).ceil().max(0.0) as usize
 }
 
 fn apply_seek(
@@ -701,23 +722,21 @@ fn apply_seek(
     resampler: &mut ResampledAudio,
     output: &Output,
     shared: &Shared,
-) -> bool {
-    let Some(target) = take_seek(shared) else {
-        return false;
-    };
+) -> Option<usize> {
+    let target = take_seek(shared)?;
     match reset_position(prepared, output, shared, target) {
-        Ok(()) => {
+        Ok(skip) => {
             resampler.reset();
             shared
                 .error
                 .lock()
                 .unwrap_or_else(|error| error.into_inner())
                 .take();
-            true
+            Some(skip)
         }
         Err(message) => {
             shared.set_error(message);
-            false
+            None
         }
     }
 }
@@ -775,6 +794,7 @@ fn run_session(
 
     let mut speed_serial = shared.speed_serial.load(Ordering::Acquire);
     let mut eof = false;
+    let mut discard_frames = 0usize;
 
     loop {
         if shared.stop.load(Ordering::Acquire) {
@@ -785,10 +805,11 @@ fn run_session(
             Err(crossbeam_channel::TryRecvError::Empty) => {}
         }
 
-        if shared.seek_ms.load(Ordering::Acquire) != NO_SEEK
-            && apply_seek(&mut prepared, &mut resampler, &output, &shared)
-        {
-            eof = false;
+        if shared.seek_ms.load(Ordering::Acquire) != NO_SEEK {
+            if let Some(skip) = apply_seek(&mut prepared, &mut resampler, &output, &shared) {
+                discard_frames = skip;
+                eof = false;
+            }
         }
 
         let serial = shared.speed_serial.load(Ordering::Acquire);
@@ -804,8 +825,9 @@ fn run_session(
                 Ok(rebuilt) => {
                     let position = shared.resume_ms.load(Ordering::Acquire);
                     match reset_position(&mut prepared, &output, &shared, position) {
-                        Ok(()) => {
+                        Ok(skip) => {
                             resampler = rebuilt;
+                            discard_frames = skip;
                             shared
                                 .speed_bits
                                 .store(requested.to_bits(), Ordering::Release);
@@ -885,6 +907,17 @@ fn run_session(
         let in_channels = decoded.spec().channels().count().max(1);
         let mut samples = vec![0.0f32; decoded.samples_interleaved()];
         decoded.copy_to_slice_interleaved(&mut samples);
+        if discard_frames > 0 {
+            let frames = samples.len() / in_channels;
+            let drop = discard_frames.min(frames);
+            if drop > 0 {
+                samples.drain(..drop * in_channels);
+                discard_frames -= drop;
+            }
+            if samples.is_empty() {
+                continue;
+            }
+        }
         let converted = match resampler.process(&samples, in_channels) {
             Ok(converted) => converted,
             Err(message) => {

@@ -117,7 +117,11 @@ fun VoicePreviewDialog(
                         WaveformSeekBar(
                             waveformData = waveformData,
                             progress = progress,
-                            onSeek = { player.seekTo((it * displayDuration).toLong()) },
+                            onSeek = { fraction ->
+                                if (displayDuration > 0L) {
+                                    player.seekTo((fraction * displayDuration).toLong())
+                                }
+                            },
                             activeColor = MaterialTheme.colorScheme.primary,
                             inactiveColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.20f),
                             modifier = Modifier.fillMaxWidth()

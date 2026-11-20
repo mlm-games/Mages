@@ -26,6 +26,7 @@ fun WaveformSeekBar(
 ) {
     var size by remember { mutableStateOf(IntSize.Zero) }
     var dragProgress by remember { mutableStateOf<Float?>(null) }
+    val seekAction by rememberUpdatedState(onSeek)
 
     val bars = remember(waveformData, barCount) {
         when {
@@ -63,7 +64,7 @@ fun WaveformSeekBar(
             .pointerInput(Unit) {
                 detectTapGestures { offset ->
                     dragProgress = null
-                    onSeek(progressFromX(offset.x))
+                    seekAction(progressFromX(offset.x))
                 }
             }
             .pointerInput(Unit) {
@@ -78,7 +79,7 @@ fun WaveformSeekBar(
                         val seek = dragProgress
                         dragProgress = null
                         if (seek != null) {
-                            onSeek(seek)
+                            seekAction(seek)
                         }
                     },
                 ) { change, _ ->
