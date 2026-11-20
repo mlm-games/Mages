@@ -10,9 +10,11 @@ import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.draganddrop.awtTransferable
 import org.mlm.mages.content.TransferItem
+import org.mlm.mages.ui.util.guessMimeType
 import java.awt.datatransfer.DataFlavor
 import java.io.File
 import java.net.URI
+import java.nio.file.Files
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 actual fun Modifier.fileDrop(
@@ -101,10 +103,16 @@ actual fun Modifier.fileDrop(
 }
 
 private fun File.toTransferItem(): TransferItem {
+    val mime = guessMimeType(name).takeUnless { it == "application/octet-stream" }
+        ?: runCatching { Files.probeContentType(toPath()) }
+            .getOrNull()
+            ?.takeUnless { it == "application/octet-stream" }
+        ?: "application/octet-stream"
+
     return TransferItem(
         fileName = name,
         path = absolutePath,
-        mimeType = "application/octet-stream",
+        mimeType = mime,
         sizeBytes = length(),
     )
 }

@@ -63,9 +63,11 @@ actual fun rememberCameraPickerLauncher(
 
 actual suspend fun PlatformFile.toTransferItem(): TransferItem {
     val file = this.file
-    val mime = runCatching {
-        Files.probeContentType(file.toPath())
-    }.getOrNull() ?: guessMimeType(file.name)
+    val mime = guessMimeType(file.name).takeUnless { it == "application/octet-stream" }
+        ?: runCatching { Files.probeContentType(file.toPath()) }
+            .getOrNull()
+            ?.takeUnless { it == "application/octet-stream" }
+        ?: "application/octet-stream"
 
     return TransferItem(
         fileName = file.name,
