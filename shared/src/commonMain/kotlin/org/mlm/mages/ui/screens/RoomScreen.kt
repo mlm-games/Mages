@@ -1379,7 +1379,8 @@ fun RoomScreen(
     if (state.showReadReceiptsSheet) {
         ReadReceiptsSheet(
             entries = state.readReceiptsForEvent,
-            onDismiss = viewModel::hideReadReceiptsSheet
+            onDismiss = viewModel::hideReadReceiptsSheet,
+            onUserClick = viewModel::selectMemberFromReceipt,
         )
     }
 

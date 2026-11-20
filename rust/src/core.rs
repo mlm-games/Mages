@@ -70,7 +70,8 @@ use crate::{
     FfiError, FfiPushRuleKind, FfiRoomNotificationMode, ForwardResult, ImagePackSummary,
     KnockRequestSummary, LinkPreview, MediaPreviewMode, MemberActionState, MemberSummary,
     MessageActionState, MessageEvent, MutualRooms, OwnProfile, OwnReceipt, PasswordLoginKind,
-    PollDefinition, PredecessorRoomInfo, Presence, PresenceInfo, ProfileField, PublicRoom,
+    PollDefinition, PredecessorRoomInfo, Presence, PresenceInfo, ProfileCard, ProfileField,
+    PublicRoom,
     PublicRoomsPage, ReactionSummary, RecentEmojiEntry, RoomActionState, RoomCallState,
     RoomDirectoryVisibility, RoomHistoryVisibility, RoomInfoSnapshot, RoomJoinRule, RoomListEntry,
     RoomListMembership, RoomPowerLevelChanges, RoomPowerLevels, RoomPreview, RoomPreviewMembership,
@@ -94,6 +95,11 @@ const MSC4027_SHORTCODE_MAX_BYTES: usize = 100;
 const MSC4027_SHORTCODE_FIELD: &str = "com.beeper.reaction.shortcode";
 
 const SEARCH_HIT_LOAD_CONCURRENCY: usize = 8;
+
+const PROFILE_PRONOUN_SUMMARY_MAX_CHARS: usize = 16;
+const PROFILE_PRONOUNS_MAX: usize = 8;
+
+type ProfileResponse = matrix_sdk::ruma::api::client::profile::get_profile::v3::Response;
 
 fn ffi_member_summary(m: &matrix_sdk::BaseRoomMember, me: Option<&UserId>) -> MemberSummary {
     MemberSummary {
@@ -3813,6 +3819,90 @@ impl CoreClient {
             .collect())
     }
 
+    fn profile_field_value<'a>(
+        response: &'a ProfileResponse,
+        name: &str,
+    ) -> Option<&'a serde_json::Value> {
+        response
+            .iter()
+            .find(|(field, _)| field.as_str() == name)
+            .map(|(_, value)| value)
+    }
+
+    fn json_text(value: &serde_json::Value) -> Option<String> {
+        value
+            .as_str()
+            .map(str::trim)
+            .filter(|text| !text.is_empty())
+            .map(ToOwned::to_owned)
+    }
+
+    fn profile_bio_text(value: &serde_json::Value) -> Option<String> {
+        let texts = value.get("m.text")?.as_array()?;
+        texts
+            .iter()
+            .find(|entry| {
+                entry.get("mimetype").and_then(serde_json::Value::as_str) == Some("text/plain")
+            })
+            .or_else(|| texts.iter().find(|entry| entry.get("mimetype").is_none()))
+            .and_then(|entry| entry.get("body"))
+            .and_then(Self::json_text)
+    }
+
+    fn profile_bio(response: &ProfileResponse) -> Option<String> {
+        ["m.biography", "gay.fomx.biography"]
+            .into_iter()
+            .filter_map(|name| Self::profile_field_value(response, name))
+            .find_map(Self::profile_bio_text)
+    }
+
+    fn profile_pronouns(response: &ProfileResponse) -> Vec<String> {
+        Self::profile_field_value(response, "io.fsky.nyx.pronouns")
+            .and_then(serde_json::Value::as_array)
+            .map(|sets| {
+                sets.iter()
+                    .filter_map(|set| set.get("summary").and_then(Self::json_text))
+                    .map(|summary| {
+                        summary
+                            .chars()
+                            .take(PROFILE_PRONOUN_SUMMARY_MAX_CHARS)
+                            .collect()
+                    })
+                    .take(PROFILE_PRONOUNS_MAX)
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    fn profile_status(response: &ProfileResponse) -> (Option<String>, Option<String>) {
+        for name in ["org.matrix.msc4426.status", "m.status"] {
+            if let Some(value) = Self::profile_field_value(response, name) {
+                if let Some(text) = value.get("text").and_then(Self::json_text) {
+                    let emoji = value.get("emoji").and_then(Self::json_text);
+                    return (emoji, Some(text));
+                }
+            }
+        }
+        (
+            None,
+            Self::profile_field_value(response, "chat.commet.profile_status")
+                .and_then(Self::json_text),
+        )
+    }
+
+    pub async fn profile_card(&self, user_id: String) -> Result<ProfileCard, FfiError> {
+        let uid = Self::parse_uid(&user_id)?;
+        let profile = self.sdk.account().fetch_user_profile_of(&uid).await.ffi()?;
+        let (status_emoji, status_text) = Self::profile_status(&profile);
+        Ok(ProfileCard {
+            user_id,
+            pronouns: Self::profile_pronouns(&profile),
+            bio: Self::profile_bio(&profile),
+            status_emoji,
+            status_text,
+        })
+    }
+
     pub async fn get_user_profile(&self, user_id: String) -> Result<DirectoryUser, FfiError> {
         use matrix_sdk::ruma::api::client::profile::{AvatarUrl, DisplayName};
         let uid = Self::parse_uid(&user_id)?;
@@ -5794,5 +5884,58 @@ pub(crate) fn room_call_is_audio(room: &matrix_sdk::Room) -> Option<bool> {
             matrix_sdk::ruma::events::rtc::notification::CallIntent::Audio
         )),
         matrix_sdk::CallIntentConsensus::None => None,
+    }
+}
+
+#[cfg(test)]
+mod profile_card_tests {
+    use super::*;
+    use serde_json::json;
+
+    fn response(fields: serde_json::Value) -> ProfileResponse {
+        fields
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(name, value)| (name.clone(), value.clone()))
+            .collect()
+    }
+
+    #[test]
+    fn bio_uses_plain_text_from_the_preferred_field() {
+        let profile = response(json!({
+            "m.biography": { "m.text": [
+                { "body": "<b>ignored</b>", "mimetype": "text/html" },
+                { "body": "plain bio" }
+            ]},
+            "gay.fomx.biography": { "m.text": [{ "body": "older bio" }] },
+        }));
+        assert_eq!(CoreClient::profile_bio(&profile).as_deref(), Some("plain bio"));
+    }
+
+    #[test]
+    fn bio_falls_back_when_preferred_field_is_malformed() {
+        let profile = response(json!({
+            "m.biography": { "m.text": "not an array" },
+            "gay.fomx.biography": { "m.text": [{ "body": "older bio" }] },
+        }));
+        assert_eq!(CoreClient::profile_bio(&profile).as_deref(), Some("older bio"));
+    }
+
+    #[test]
+    fn pronouns_and_status_follow_sable_shape() {
+        let profile = response(json!({
+            "io.fsky.nyx.pronouns": [
+                { "summary": "they/them", "language": "en" },
+                { "summary": 5 }
+            ],
+            "org.matrix.msc4426.status": { "text": "waiting", "emoji": "⌛" },
+            "m.status": { "text": "newer" },
+        }));
+        assert_eq!(CoreClient::profile_pronouns(&profile), ["they/them"]);
+        assert_eq!(
+            CoreClient::profile_status(&profile),
+            (Some("⌛".to_owned()), Some("waiting".to_owned()))
+        );
     }
 }

@@ -619,6 +619,7 @@ wasm_delegate! { webffi_value;
     "ownProfile"       => own_profile();
     "ownProfileFields" => own_profile_fields();
     "mutualRooms"      => mutual_rooms(user_id: String);
+    "profileCard"      => profile_card(user_id: String);
 }
 
 wasm_delegate! { webffi_option;

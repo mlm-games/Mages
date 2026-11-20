@@ -841,6 +841,15 @@ data class OwnProfile(
 @Serializable
 data class ProfileField(val name: String, val value: String)
 
+@Serializable
+data class ProfileCard(
+    val userId: String,
+    val pronouns: List<String> = emptyList(),
+    val bio: String? = null,
+    val statusEmoji: String? = null,
+    val statusText: String? = null,
+)
+
 /** MSC2666: rooms the local user and another user are both joined to. */
 @Serializable
 data class MutualRooms(val count: Long, val roomIds: List<String>)
@@ -1507,6 +1516,7 @@ interface MatrixPort {
     /** MSC4133: false when the homeserver has no `m.profile_fields` capability. */
     suspend fun canSetProfileFields(): Boolean
     suspend fun ownProfileFields(): List<ProfileField>
+    suspend fun profileCard(userId: String): ProfileCard?
     suspend fun setProfileField(name: String, value: String): Result<Unit>
     suspend fun deleteProfileField(name: String): Result<Unit>
 

@@ -781,6 +781,15 @@ pub struct ProfileField {
     pub value: String,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, Record)]
+pub struct ProfileCard {
+    pub user_id: String,
+    pub pronouns: Vec<String>,
+    pub bio: Option<String>,
+    pub status_emoji: Option<String>,
+    pub status_text: Option<String>,
+}
+
 /// MSC2666: rooms the local user and another user are both joined to.
 #[derive(Clone, Serialize, Deserialize, Record)]
 pub struct MutualRooms {

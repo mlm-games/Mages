@@ -13,10 +13,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import co.touchlab.kermit.Logger
 import mages.shared.generated.resources.*
 import org.koin.compose.koinInject
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.MemberSummary
+import org.mlm.mages.matrix.ProfileCard
 import org.mlm.mages.ui.ActionAvailabilityUi
 import org.mlm.mages.ui.ActionPresentationUi
 import org.mlm.mages.ui.components.core.Avatar
@@ -66,6 +68,13 @@ fun MemberActionsSheet(
         }.getOrNull()
     }
 
+    var profileCard by remember(member.userId) { mutableStateOf<ProfileCard?>(null) }
+    LaunchedEffect(member.userId) {
+        profileCard = runCatching { service.portOrNull?.profileCard(member.userId) }
+            .onFailure { Logger.w(it) { "Member profile fetch failed for ${member.userId}" } }
+            .getOrNull()
+    }
+
     val scope = rememberCoroutineScope()
     val shareHandler = rememberShareHandler()
     val snackbarManager: SnackbarManager = koinInject()
@@ -102,6 +111,16 @@ fun MemberActionsSheet(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    profileCard?.pronouns?.takeIf { it.isNotEmpty() }?.joinToString(", ")
+                        ?.takeIf { it.isNotBlank() }?.let { pronouns ->
+                            Text(
+                                pronouns,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     Text(
                         member.userId,
                         style = MaterialTheme.typography.bodySmall,
@@ -109,10 +128,11 @@ fun MemberActionsSheet(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    val statusLine = listOfNotNull(
-                        member.statusEmoji?.takeIf { it.isNotBlank() },
-                        member.statusText?.takeIf { it.isNotBlank() }
-                    ).joinToString(" ")
+                    val statusEmoji = profileCard?.statusEmoji?.takeIf { it.isNotBlank() }
+                        ?: member.statusEmoji?.takeIf { it.isNotBlank() }
+                    val statusText = profileCard?.statusText?.takeIf { it.isNotBlank() }
+                        ?: member.statusText?.takeIf { it.isNotBlank() }
+                    val statusLine = listOfNotNull(statusEmoji, statusText).joinToString(" ")
                     if (statusLine.isNotBlank()) {
                         Text(
                             statusLine,
@@ -145,6 +165,24 @@ fun MemberActionsSheet(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                }
+            }
+
+            profileCard?.bio?.takeIf { it.isNotBlank() }?.let { bio ->
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    shape = MaterialTheme.shapes.medium,
+                ) {
+                    Text(
+                        bio,
+                        modifier = Modifier.padding(Spacing.md),
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 6,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
 

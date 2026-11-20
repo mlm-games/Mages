@@ -1687,6 +1687,9 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun ownProfileFields(): List<ProfileField> =
         requireClient().ownProfileFields().awaitValue("ownProfileFields") ?: emptyList()
 
+    override suspend fun profileCard(userId: String): ProfileCard? =
+        requireClient().profileCard(userId).awaitValue("profileCard")
+
     override suspend fun setProfileField(name: String, value: String): Result<Unit> {
         val result = requireClient().setProfileField(name, value).awaitResult()
         return unitResult(result.ok, "set profile field", result.error)

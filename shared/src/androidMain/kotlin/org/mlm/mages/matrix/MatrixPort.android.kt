@@ -2056,6 +2056,21 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
             }.getOrDefault(emptyList())
         }
 
+    override suspend fun profileCard(userId: String): ProfileCard? =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.profileCard(userId) } }
+                .getOrNull()
+                ?.let {
+                    ProfileCard(
+                        userId = it.userId,
+                        pronouns = it.pronouns,
+                        bio = it.bio,
+                        statusEmoji = it.statusEmoji,
+                        statusText = it.statusText,
+                    )
+                }
+        }
+
     override suspend fun setProfileField(name: String, value: String): Result<Unit> =
         withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.setProfileField(name, value) } }.map { }

@@ -647,6 +647,7 @@ private fun MessageInfoReaderRow(entry: SeenByEntry) {
 fun ReadReceiptsSheet(
     entries: List<SeenByEntry>,
     onDismiss: () -> Unit,
+    onUserClick: (SeenByEntry) -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         LazyColumn(
@@ -674,6 +675,7 @@ fun ReadReceiptsSheet(
                     Surface(
                         color = ListItemDefaults.colors().containerColor,
                         tonalElevation = 0.dp,
+                        onClick = { onUserClick(entry) },
                     ) {
                         ListItem(
                             leadingContent = {

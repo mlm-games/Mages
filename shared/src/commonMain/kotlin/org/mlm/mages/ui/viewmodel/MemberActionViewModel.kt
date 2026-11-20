@@ -52,10 +52,12 @@ abstract class MemberActionViewModel<S : MemberActionState<S>>(
 
     protected open fun memberFallbackEvents(): List<MessageEvent> = emptyList()
 
-    fun selectMemberForAction(userId: String) {
+    fun selectMemberForAction(userId: String) = selectMemberForAction(userId, null)
+
+    fun selectMemberForAction(userId: String, fallback: MemberSummary?) {
         if (userId.isBlank() || userId == myUserId) return
         if (memberSelectionBlocked()) return
-        val member = knownMember(userId) ?: return
+        val member = knownMember(userId) ?: fallback ?: return
         clearSelectedMember()
         updateState { withSelectedMember(member) }
         launch {

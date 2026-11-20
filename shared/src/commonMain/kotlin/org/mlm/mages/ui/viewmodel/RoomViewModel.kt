@@ -2744,6 +2744,18 @@ class RoomViewModel(
         }
     }
 
+    fun selectMemberFromReceipt(entry: SeenByEntry) {
+        hideReadReceiptsSheet()
+        selectMemberForAction(
+            entry.userId,
+            MemberSummary(
+                userId = entry.userId,
+                displayName = entry.displayName,
+                avatarUrl = entry.avatarUrl,
+            ),
+        )
+    }
+
     private suspend fun forwardMessage(event: MessageEvent, targetRoomId: String): Boolean {
         return try {
             val attachment = event.attachment
