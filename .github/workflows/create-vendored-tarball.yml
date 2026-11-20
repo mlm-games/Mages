@@ -44,7 +44,7 @@ jobs:
       - name: Checkout repository at tag
         uses: actions/checkout@v6
         with:
-          ref: ${{ steps.version.outputs.version }}
+          # ref: ${{ steps.version.outputs.version }}
           fetch-depth: 0
           submodules: recursive
 
