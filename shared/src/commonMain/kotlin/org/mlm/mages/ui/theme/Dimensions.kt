@@ -30,8 +30,5 @@ object Durations {
 }
 
 object Limits {
-    const val previewCharsLong = 150   // message action sheet, pinned messages sheet
-    const val previewCharsMedium = 100 // room list preview, discover topic
-    const val previewCharsShort = 80   // reply banner, pinned message banner
     const val unreadBadgeCap = 99      // "99+" display cap on unread badges
 }

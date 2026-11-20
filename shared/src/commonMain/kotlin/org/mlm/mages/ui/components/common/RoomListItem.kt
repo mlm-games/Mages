@@ -447,7 +447,7 @@ private fun formatMessagePreview(
 
     return when (type) {
         LastMessageType.Text -> {
-            val text = body?.take(Limits.previewCharsMedium)?.replace('\n', ' ') ?: stringResource(Res.string.no_messages_yet)
+            val text = body?.replace('\n', ' ') ?: stringResource(Res.string.no_messages_yet)
             MessagePreview(text = senderPrefix + text)
         }
 
@@ -503,11 +503,11 @@ private fun formatMessagePreview(
         )
 
         LastMessageType.Membership -> MessagePreview(
-            text = body?.take(Limits.previewCharsMedium)?.replace('\n', ' ') ?: stringResource(Res.string.membership_changed)
+            text = body?.replace('\n', ' ') ?: stringResource(Res.string.membership_changed)
         )
 
         LastMessageType.Unknown -> MessagePreview(
-            text = body?.take(Limits.previewCharsMedium)?.replace('\n', ' ') ?: stringResource(Res.string.encrypted_or_unknown_message)
+            text = body?.replace('\n', ' ') ?: stringResource(Res.string.encrypted_or_unknown_message)
         )
     }
 }

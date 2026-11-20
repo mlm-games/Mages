@@ -36,7 +36,6 @@ import org.mlm.mages.ui.displayPreview
 import org.mlm.mages.ui.hasCaption
 import org.mlm.mages.ui.isForwardable
 import org.mlm.mages.ui.theme.Spacing
-import org.mlm.mages.ui.theme.Limits
 import org.mlm.mages.ui.util.formatTime
 
 @Composable
@@ -308,7 +307,7 @@ private fun MessagePreview(event: MessageEvent) {
                 )
             }
             Spacer(Modifier.height(Spacing.xs))
-            Text(event.displayPreview().take(Limits.previewCharsLong), style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(event.displayPreview(), style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
     }
 }

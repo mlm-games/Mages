@@ -82,7 +82,6 @@ import org.mlm.mages.ui.components.voice.VoicePreviewDialog
 import org.mlm.mages.bookmarks.BookmarksStore
 import org.mlm.mages.ui.components.wallpaper.WallpaperBackground
 import org.mlm.mages.ui.displayPreview
-import org.mlm.mages.ui.theme.Limits
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.theme.AppColors
 import org.mlm.mages.ui.util.dragToScrollIfEnabled
@@ -1250,7 +1249,7 @@ fun RoomScreen(
         val isMine = event.sender == state.myUserId
         val isPinned = event.eventId in state.pinnedEventIds
         val isBookmarked = bookmarks.any { it.roomId == state.roomId && it.eventId == event.eventId }
-        val bookmarkPreview = event.displayPreview().take(Limits.previewCharsLong)
+        val bookmarkPreview = event.displayPreview()
         val msgActions = state.selectedMessageActions
         MessageActionSheet(
             event = event,
