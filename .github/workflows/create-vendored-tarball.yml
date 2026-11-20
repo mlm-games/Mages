@@ -108,11 +108,9 @@ jobs:
           rm -rf "$GRADLE_USER_HOME" gradle-deps
           mkdir -p "$GRADLE_USER_HOME"
 
-          JAVAFX_VERSION="$(awk -F'"' '/^javafx = / { print $2; exit }' gradle/libs.versions.toml)"
           COMPOSE_VERSION="$(awk -F'"' '/^composeMultiplatform = / { print $2; exit }' gradle/libs.versions.toml)"
           MAPLIBRE_VERSION="$(awk -F'"' '/^maplibreCompose = / { print $2; exit }' gradle/libs.versions.toml)"
 
-          echo "JavaFX version: ${JAVAFX_VERSION}"
           echo "Compose version: ${COMPOSE_VERSION}"
           echo "MapLibre version: ${MAPLIBRE_VERSION}"
           echo "Gradle user home: ${GRADLE_USER_HOME}"
@@ -123,7 +121,7 @@ jobs:
             --no-configuration-cache \
             --no-build-cache
 
-          echo "Fetch explicit Linux x86_64 and Linux aarch64 JavaFX/Compose classifier artifacts"
+          echo "Fetch explicit Linux x86_64 and Linux aarch64 Compose classifier artifacts"
           rm -rf /tmp/fetch-project
           mkdir -p /tmp/fetch-project
           cp gradlew /tmp/fetch-project/
@@ -155,7 +153,6 @@ jobs:
               id("java")
           }
 
-          val jfxVersion: String by project
           val composeVersion: String by project
           val maplibreVersion: String by project
 
@@ -168,13 +165,6 @@ jobs:
               // Compose Desktop uses linux-x64 / linux-arm64 classifier names.
               flatpakOfflineDeps("org.jetbrains.compose.desktop:desktop-jvm-linux-x64:$composeVersion")
               flatpakOfflineDeps("org.jetbrains.compose.desktop:desktop-jvm-linux-arm64:$composeVersion")
-
-              // OpenJFX uses linux / linux-aarch64 classifier names.
-              for (platform in listOf("linux", "linux-aarch64")) {
-                  for (module in listOf("base", "graphics", "media", "swing")) {
-                      flatpakOfflineDeps("org.openjfx:javafx-$module:$jfxVersion:$platform")
-                  }
-              }
 
               flatpakOfflineDeps("org.maplibre.compose:maplibre-compose:$maplibreVersion")
               flatpakOfflineDeps("org.maplibre.compose:maplibre-compose-runtime-vulkan-linux-x64:$maplibreVersion")
@@ -195,7 +185,6 @@ jobs:
             ./gradlew \
               --no-daemon \
               -g "$GRADLE_USER_HOME" \
-              -PjfxVersion="$JAVAFX_VERSION" \
               -PcomposeVersion="$COMPOSE_VERSION" \
               -PmaplibreVersion="$MAPLIBRE_VERSION" \
               fetchFlatpakOfflineDeps
@@ -208,37 +197,10 @@ jobs:
               --offline \
               --no-daemon \
               -g "$GRADLE_USER_HOME" \
-              -PjfxVersion="$JAVAFX_VERSION" \
               -PcomposeVersion="$COMPOSE_VERSION" \
               -PmaplibreVersion="$MAPLIBRE_VERSION" \
               fetchFlatpakOfflineDeps
           )
-
-          echo "Resolve aarch64 JavaFX via the real javafxplugin metadata-rule path"
-          cat > /tmp/force-javafx-aarch64.init.gradle <<'EOF'
-          allprojects { p ->
-              p.plugins.withId('org.openjfx.javafxplugin') {
-                  p.extensions.configure('javafx') { opt ->
-                      opt.setPlatform('linux-aarch64')
-                  }
-              }
-          }
-          EOF
-
-          echo "Download linux-aarch64 jars the same way Flatpak aarch64 will request them"
-          ./gradlew :desktopApp:compileKotlin \
-            --no-daemon \
-            --no-configuration-cache \
-            --no-build-cache \
-            -I /tmp/force-javafx-aarch64.init.gradle
-
-          echo "Prove aarch64 JavaFX resolves offline through the plugin path"
-          ./gradlew :desktopApp:compileKotlin \
-            --offline \
-            --no-daemon \
-            --no-configuration-cache \
-            --no-build-cache \
-            -I /tmp/force-javafx-aarch64.init.gradle
 
           echo "Download MapLibre linux-arm64 runtime the way Flatpak aarch64 will request it"
           ./gradlew :desktopApp:dependencies \
