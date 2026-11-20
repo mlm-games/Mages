@@ -179,6 +179,7 @@ matrix-sdk-ui = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch =
 matrix-sdk-search = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-metrics-redaction" }
 matrix-sdk-indexeddb = { git = "https://github.com/mlm-games/matrix-rust-sdk", branch = "media-metrics-redaction" }
 symphonia-core = { git = "https://github.com/mlm-games/symphonia", package = "symphonia-core" }
+symphonia-metadata = { git = "https://github.com/mlm-games/symphonia", package = "symphonia-metadata" }
 symphonia-format-isomp4 = { git = "https://github.com/mlm-games/symphonia", package = "symphonia-format-isomp4" }
 symphonia-format-mkv = { git = "https://github.com/mlm-games/symphonia", package = "symphonia-format-mkv" }
 symphonia-bundle-flac = { git = "https://github.com/mlm-games/symphonia", package = "symphonia-bundle-flac" }
