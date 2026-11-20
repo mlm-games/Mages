@@ -9,6 +9,15 @@ import org.mlm.mages.matrix.RenderedNotification
 import org.mlm.mages.matrix.classify
 import org.mlm.mages.matrix.notificationSummary
 
+const val NOTIFICATION_NAME_MAX_CHARS = 40
+
+fun truncateNotificationName(name: String): String =
+    if (name.length <= NOTIFICATION_NAME_MAX_CHARS) {
+        name
+    } else {
+        name.take(NOTIFICATION_NAME_MAX_CHARS - 1) + "…"
+    }
+
 data class NotificationPresentation(
     val title: String,
     val body: String,
@@ -30,13 +39,13 @@ data class NotificationPresentation(
             senderShownByPlatform: Boolean = false
         ): NotificationPresentation {
             val content = notification.content.classify()
-            val sender = notification.sender
-            val roomName = notification.roomName
+            val sender = truncateNotificationName(notification.sender)
+            val roomName = truncateNotificationName(notification.roomName)
 
             val title = when (content) {
                 is ClassifiedNotification.Call, ClassifiedNotification.Invite -> sender
                 else ->
-                    if (notification.isDm || sender == roomName) sender else roomName
+                    if (notification.isDm || notification.sender == notification.roomName) sender else roomName
             }
 
             val accent = when {

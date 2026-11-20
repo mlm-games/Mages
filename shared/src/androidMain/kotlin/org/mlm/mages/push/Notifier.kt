@@ -116,7 +116,7 @@ object AndroidNotificationHelper : KoinComponent {
         }
 
         val caller = Person.Builder()
-            .setName(callerName)
+            .setName(truncateNotificationName(callerName))
             .setKey(callerUserId ?: roomId)
             .apply { callerIcon?.let { setIcon(IconCompat.createWithBitmap(it)) } }
             .build()
@@ -278,13 +278,15 @@ object AndroidNotificationHelper : KoinComponent {
         AppNotificationChannels.ensureCreated(ctx)
         val mgr = ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val notifId = ("invite_$roomId").hashCode()
+        val shownInviterName = truncateNotificationName(inviterName)
+        val shownRoomName = truncateNotificationName(roomName)
 
         val notification = NotificationCompat.Builder(ctx, AppNotificationChannels.CHANNEL_INVITES)
             .setSmallIcon(R.drawable.ic_notif_status_bar)
             .setContentTitle(ctx.getString(R.string.notif_invite_title))
-            .setContentText(ctx.getString(R.string.notif_invite_body, inviterName, roomName))
+            .setContentText(ctx.getString(R.string.notif_invite_body, shownInviterName, shownRoomName))
             .setStyle(NotificationCompat.BigTextStyle()
-                .bigText(ctx.getString(R.string.notif_invite_body, inviterName, roomName)))
+                .bigText(ctx.getString(R.string.notif_invite_body, shownInviterName, shownRoomName)))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
@@ -576,10 +578,12 @@ object AndroidNotificationHelper : KoinComponent {
         val title = ctx.getString(
             if (isVoiceOnly) R.string.notif_missed_voice else R.string.notif_missed_call
         )
+        val shownCallerName = truncateNotificationName(callerName)
+        val shownRoomName = truncateNotificationName(roomName)
         val body = if (callerName == roomName) {
-            ctx.getString(R.string.notif_from_caller, callerName)
+            ctx.getString(R.string.notif_from_caller, shownCallerName)
         } else {
-            ctx.getString(R.string.notif_from_caller_in_room, callerName, roomName)
+            ctx.getString(R.string.notif_from_caller_in_room, shownCallerName, shownRoomName)
         }
 
         val notification = NotificationCompat.Builder(ctx, AppNotificationChannels.CHANNEL_CALLS_SILENT)
@@ -735,6 +739,8 @@ object Notifier {
         caption: String = "",
     ) {
         val isThread = !threadId.isNullOrBlank()
+        val shownSenderName = truncateNotificationName(senderName)
+        val shownRoomName = truncateNotificationName(roomName)
         val channelId = if (playSound) {
             AppNotificationChannels.CHANNEL_MESSAGES
         } else {
@@ -753,18 +759,18 @@ object Notifier {
                 context = context,
                 id = conversationId,
                 label = if (isThread) {
-                    context.getString(R.string.notif_thread_title, roomName)
+                    context.getString(R.string.notif_thread_title, shownRoomName)
                 } else {
-                    roomName
+                    shownRoomName
                 },
-                personName = if (isThread) roomName else senderName,
+                personName = if (isThread) shownRoomName else shownSenderName,
                 personKey = conversationId,
                 icon = roomAvatar.icon,
                 intent = shortcutIntent,
             )
 
         val sender = Person.Builder()
-            .setName(senderName)
+            .setName(shownSenderName)
             .setKey(senderUserId)
             .setIcon(senderAvatar.icon)
             .build()
@@ -789,9 +795,9 @@ object Notifier {
         val style = existingStyle ?: NotificationCompat.MessagingStyle(sender)
             .setConversationTitle(
                 when {
-                    isThread -> context.getString(R.string.notif_thread_title, roomName)
+                    isThread -> context.getString(R.string.notif_thread_title, shownRoomName)
                     isDm -> null
-                    else -> roomName
+                    else -> shownRoomName
                 }
             )
             .setGroupConversation(!isDm || isThread)
@@ -823,8 +829,8 @@ object Notifier {
                 .putExtra(NotificationActionReceiver.EXTRA_ROOM_ID, roomId)
                 .putExtra(NotificationActionReceiver.EXTRA_EVENT_ID, eventId)
                 .putExtra(NotificationActionReceiver.EXTRA_NOTIF_ID, notificationId)
-                .putExtra(NotificationActionReceiver.EXTRA_ROOM_NAME, roomName)
-                .putExtra(NotificationActionReceiver.EXTRA_SENDER_NAME, senderName)
+                .putExtra(NotificationActionReceiver.EXTRA_ROOM_NAME, shownRoomName)
+                .putExtra(NotificationActionReceiver.EXTRA_SENDER_NAME, shownSenderName)
                 .putExtra(NotificationActionReceiver.EXTRA_SENDER_USER_ID, senderUserId)
                 .putExtra(NotificationActionReceiver.EXTRA_MESSAGE_BODY, messageBody)
                 .apply { if (!threadId.isNullOrBlank()) putExtra(NotificationActionReceiver.EXTRA_THREAD_ID, threadId) },
@@ -842,8 +848,8 @@ object Notifier {
                 .putExtra(NotificationActionReceiver.EXTRA_ROOM_ID, roomId)
                 .putExtra(NotificationActionReceiver.EXTRA_EVENT_ID, eventId)
                 .putExtra(NotificationActionReceiver.EXTRA_NOTIF_ID, notificationId)
-                .putExtra(NotificationActionReceiver.EXTRA_ROOM_NAME, roomName)
-                .putExtra(NotificationActionReceiver.EXTRA_SENDER_NAME, senderName)
+                .putExtra(NotificationActionReceiver.EXTRA_ROOM_NAME, shownRoomName)
+                .putExtra(NotificationActionReceiver.EXTRA_SENDER_NAME, shownSenderName)
                 .putExtra(NotificationActionReceiver.EXTRA_MESSAGE_BODY, messageBody)
                 .apply { if (!threadId.isNullOrBlank()) putExtra(NotificationActionReceiver.EXTRA_THREAD_ID, threadId) },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
@@ -987,6 +993,9 @@ object Notifier {
     ) {
         val isThread = !threadId.isNullOrBlank()
         val channelId = AppNotificationChannels.CHANNEL_MESSAGES_SILENT
+        val shownRoomName = truncateNotificationName(roomName)
+        val shownContactName = truncateNotificationName(contactName)
+        val shownMyName = truncateNotificationName(myUserName)
         val bubbleIcon = if (isDm) myAvatar.icon else contactAvatar.icon
         val conversationId = ConversationShortcutPublisher.shortcutId(roomId, threadId)
         val shortcutIntent = when {
@@ -1001,24 +1010,24 @@ object Notifier {
                 context = context,
                 id = conversationId,
                 label = if (isThread) {
-                    context.getString(R.string.notif_thread_title, roomName)
+                    context.getString(R.string.notif_thread_title, shownRoomName)
                 } else {
-                    roomName
+                    shownRoomName
                 },
-                personName = if (isThread) roomName else contactName,
+                personName = if (isThread) shownRoomName else shownContactName,
                 personKey = conversationId,
                 icon = roomAvatar?.icon ?: bubbleIcon,
                 intent = shortcutIntent,
             )
 
         val me = Person.Builder()
-            .setName(myUserName)
+            .setName(shownMyName)
             .setKey(myUserId)
             .setIcon(myAvatar.icon)
             .build()
 
         val contact = Person.Builder()
-            .setName(contactName)
+            .setName(shownContactName)
             .setKey(contactUserId ?: contactName)
             .setIcon(contactAvatar.icon)
             .build()
@@ -1032,9 +1041,9 @@ object Notifier {
         val style = (existingStyle ?: NotificationCompat.MessagingStyle(me)
             .setConversationTitle(
                 when {
-                    isThread -> context.getString(R.string.notif_thread_title, roomName)
+                    isThread -> context.getString(R.string.notif_thread_title, shownRoomName)
                     isDm -> null
-                    else -> roomName
+                    else -> shownRoomName
                 }
             )
             .setGroupConversation(!isDm || isThread))
@@ -1056,8 +1065,8 @@ object Notifier {
                 .putExtra(NotificationActionReceiver.EXTRA_ROOM_ID, roomId)
                 .putExtra(NotificationActionReceiver.EXTRA_EVENT_ID, eventId)
                 .putExtra(NotificationActionReceiver.EXTRA_NOTIF_ID, notificationId)
-                .putExtra(NotificationActionReceiver.EXTRA_ROOM_NAME, roomName)
-                .putExtra(NotificationActionReceiver.EXTRA_SENDER_NAME, contactName)
+                .putExtra(NotificationActionReceiver.EXTRA_ROOM_NAME, shownRoomName)
+                .putExtra(NotificationActionReceiver.EXTRA_SENDER_NAME, shownContactName)
                 .putExtra(NotificationActionReceiver.EXTRA_MESSAGE_BODY, replyText)
                 .putExtra(NotificationActionReceiver.EXTRA_LAST_MESSAGE_FROM_ME, true)
                 .apply { if (!threadId.isNullOrBlank()) putExtra(NotificationActionReceiver.EXTRA_THREAD_ID, threadId) },
