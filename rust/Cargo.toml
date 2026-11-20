@@ -138,6 +138,20 @@ reqwest = { version = "0.13", default-features = false, features = [
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
 robius-location = "=0.3.1"
+cpal = "0.18"
+crossbeam-channel = "0.5"
+rubato = "5"
+symphonia-adapter-oporus = "0.1"
+symphonia = { version = "0.6", default-features = false, features = [
+    "aac",
+    "alac",
+    "flac",
+    "mp3",
+    "ogg",
+    "pcm",
+    "vorbis",
+    "wav",
+] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 dispatch2 = "=0.3.1"
@@ -167,3 +181,11 @@ matrix-sdk-indexeddb = { git = "https://github.com/mlm-games/matrix-rust-sdk", b
 symphonia-core = { git = "https://github.com/mlm-games/symphonia", package = "symphonia-core" }
 symphonia-format-isomp4 = { git = "https://github.com/mlm-games/symphonia", package = "symphonia-format-isomp4" }
 symphonia-format-mkv = { git = "https://github.com/mlm-games/symphonia", package = "symphonia-format-mkv" }
+symphonia-bundle-flac = { git = "https://github.com/mlm-games/symphonia", package = "symphonia-bundle-flac" }
+symphonia-bundle-mp3 = { git = "https://github.com/mlm-games/symphonia", package = "symphonia-bundle-mp3" }
+symphonia-codec-aac = { git = "https://github.com/mlm-games/symphonia", package = "symphonia-codec-aac" }
+symphonia-codec-alac = { git = "https://github.com/mlm-games/symphonia", package = "symphonia-codec-alac" }
+symphonia-codec-pcm = { git = "https://github.com/mlm-games/symphonia", package = "symphonia-codec-pcm" }
+symphonia-codec-vorbis = { git = "https://github.com/mlm-games/symphonia", package = "symphonia-codec-vorbis" }
+symphonia-format-ogg = { git = "https://github.com/mlm-games/symphonia", package = "symphonia-format-ogg" }
+symphonia-format-riff = { git = "https://github.com/mlm-games/symphonia", package = "symphonia-format-riff" }

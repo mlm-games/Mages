@@ -5,7 +5,6 @@ plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.javafx)
 }
 
 val desktopJavaHome = providers.gradleProperty("desktop.java.home")
@@ -14,11 +13,6 @@ val desktopJavaHome = providers.gradleProperty("desktop.java.home")
 
 kotlin {
     jvmToolchain(25)
-}
-
-javafx {
-    version = libs.versions.javafx.get()
-    modules("javafx.base", "javafx.graphics", "javafx.media", "javafx.swing")
 }
 
 val maplibreRuntime: Provider<MinimalExternalModuleDependency>? = run {

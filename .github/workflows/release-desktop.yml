@@ -54,6 +54,11 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install ALSA headers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev
+
       - name: Build Rust JNI (host)
         run: cargo build --release --manifest-path rust/Cargo.toml
 

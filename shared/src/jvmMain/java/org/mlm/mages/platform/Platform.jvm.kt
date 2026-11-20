@@ -75,7 +75,7 @@ actual suspend fun PlatformFile.toTransferItem(): TransferItem {
     )
 }
 
-actual val audioPlayerDispatcher: CoroutineDispatcher = Dispatchers.Swing
+actual val audioPlayerDispatcher: CoroutineDispatcher = Dispatchers.IO
 
 internal actual fun platformPreparePlaybackUrl(input: String): String = input
 

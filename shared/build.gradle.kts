@@ -93,8 +93,14 @@ kotlin {
 
             implementation(libs.filekit.core)
             implementation(libs.filekit.dialogs.compose)
-            implementation(libs.gadulka)
             implementation(libs.kermit)
+        }
+
+        val gadulkaMain by creating {
+            dependsOn(commonMain.get())
+            dependencies {
+                implementation(libs.gadulka)
+            }
         }
 
         val maplibreMain by creating {
@@ -106,6 +112,7 @@ kotlin {
 
         androidMain {
             dependsOn(maplibreMain)
+            dependsOn(gadulkaMain)
             dependencies {
                 implementation(project.dependencies.platform(libs.androidx.compose.bom))
 
@@ -148,13 +155,16 @@ kotlin {
             }
         }
 
-        wasmJsMain.dependencies {
-            implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.kotlinx.serialization.json)
-            implementation(libs.kotlinx.browser)
-            implementation(libs.compass.geolocation)
-            implementation(libs.compass.geolocation.browser)
-            implementation(libs.kmp.zip)
+        wasmJsMain {
+            dependsOn(gadulkaMain)
+            dependencies {
+                implementation(libs.kotlinx.coroutines.core)
+                implementation(libs.kotlinx.serialization.json)
+                implementation(libs.kotlinx.browser)
+                implementation(libs.compass.geolocation)
+                implementation(libs.compass.geolocation.browser)
+                implementation(libs.kmp.zip)
+            }
         }
 
         commonTest.dependencies {

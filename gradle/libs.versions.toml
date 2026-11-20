@@ -17,8 +17,6 @@ compottie = "2.3.3"
 kflate = "1.1.0"
 connector = "3.3.5"
 elementCallEmbedded = "0.26.0"
-javafx = "21.0.1"
-javafxPlugin = "0.1.0"
 jcefmaven = "146.0.10"
 json = "20260814"
 koinComposeNavigation3 = "4.2.2"
@@ -109,12 +107,6 @@ embedded-fcm-distributor = { module = "org.unifiedpush.android:embedded-fcm-dist
 dbus-java-transport-native-unixsocket = { module = "com.github.hypfvieh:dbus-java-transport-native-unixsocket", version.ref = "dbusJavaTransportNativeUnixsocket" }
 dbus-java-core = { module = "com.github.hypfvieh:dbus-java-core", version.ref = "dbusJavaCore" }
 element-call-embedded = { module = "io.element.android:element-call-embedded", version.ref = "elementCallEmbedded" }
-javafx-base     = { module = "org.openjfx:javafx-base",     version.ref = "javafx" }
-javafx-graphics = { module = "org.openjfx:javafx-graphics", version.ref = "javafx" }
-javafx-controls = { module = "org.openjfx:javafx-controls", version.ref = "javafx" }
-javafx-swing    = { module = "org.openjfx:javafx-swing",    version.ref = "javafx" }
-javafx-web      = { module = "org.openjfx:javafx-web",      version.ref = "javafx" }
-javafx-media    = { module = "org.openjfx:javafx-media",    version.ref = "javafx" }
 jcefmaven = { module = "me.friwi:jcefmaven", version.ref = "jcefmaven" }
 json = { module = "org.json:json", version.ref = "json" }
 koin-compose-navigation3 = { module = "io.insert-koin:koin-compose-navigation3", version.ref = "koinComposeNavigation3" }
@@ -186,5 +178,4 @@ rustUniffi = { id = "io.github.mlm-games.rust-uniffi", version.ref = "rustUniffi
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-javafx = { id = "org.openjfx.javafxplugin", version.ref = "javafxPlugin" }
 kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
