@@ -19,6 +19,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import mages.shared.generated.resources.*
@@ -37,7 +39,9 @@ fun VoiceMessageBubble(
     durationMs: Long,
     waveformData: List<Float>,
     isMine: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    title: String? = null,
+    subtitle: String? = null,
 ) {
     val player = remember(filePath) { createAudioPlayer() }
     val playbackState by player.state.collectAsState()
@@ -116,6 +120,29 @@ fun VoiceMessageBubble(
             Spacer(Modifier.width(Spacing.sm))
 
             Column(modifier = Modifier.weight(1f)) {
+                if (!title.isNullOrBlank()) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = onBubble,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (!subtitle.isNullOrBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = onBubble.copy(alpha = 0.7f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (!title.isNullOrBlank() || !subtitle.isNullOrBlank()) {
+                    Spacer(Modifier.height(4.dp))
+                }
+
                 WaveformSeekBar(
                     waveformData = waveformData,
                     progress = progress,

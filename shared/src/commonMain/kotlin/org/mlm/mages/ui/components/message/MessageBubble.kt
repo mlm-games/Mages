@@ -417,16 +417,14 @@ fun MessageBubble(
                                 }
                                 null -> { /* no attachment */ }
                                 is MessageAttachmentUi.Audio -> {
-                                    if (attachment.isVoice) {
-                                        VoiceMessageBubble(
-                                            filePath = attachment.filePath,
-                                            durationMs = attachment.durationMs ?: 0L,
-                                            waveformData = attachment.waveform,
-                                            isMine = isMine,
-                                        )
-                                    } else {
-                                        AudioFileBubble(attachment, isMine, bubbleTextColor, onOpenAttachment, onLongPress)
-                                    }
+                                    VoiceMessageBubble(
+                                        filePath = attachment.filePath,
+                                        durationMs = attachment.durationMs ?: 0L,
+                                        waveformData = attachment.waveform,
+                                        isMine = isMine,
+                                        title = attachment.title.takeUnless { attachment.isVoice },
+                                        subtitle = attachment.subtitle.takeUnless { attachment.isVoice },
+                                    )
                                     if (!attachment.caption.isNullOrBlank()) {
                                         Spacer(Modifier.height(Spacing.xs))
                                         TimestampLayout(
@@ -765,79 +763,6 @@ private fun FileAttachmentBubble(
                 )
 
                 attachment.subtitle?.let { subtitle ->
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = contentColor.copy(alpha = 0.72f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AudioFileBubble(
-    attachment: MessageAttachmentUi.Audio,
-    isMine: Boolean,
-    contentColor: Color,
-    onOpen: (() -> Unit)?,
-    onLongPress: (() -> Unit)?,
-) {
-    val accentColor = if (isMine) MaterialTheme.colorScheme.primary
-    else MaterialTheme.colorScheme.secondary
-    val details = listOfNotNull(
-        attachment.subtitle,
-        attachment.durationMs?.let { formatDuration(it) },
-    ).joinToString(" • ").takeIf { it.isNotBlank() }
-
-    Box(
-        modifier = Modifier
-            .widthIn(max = 320.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(contentColor.copy(alpha = 0.08f))
-            .border(1.dp, contentColor.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
-            .combinedClickable(
-                enabled = onOpen != null,
-                onClick = { onOpen?.invoke() },
-                onLongClick = onLongPress,
-            )
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(accentColor.copy(alpha = 0.15f))
-            ) {
-                Icon(
-                    painter = painterResource(Res.drawable.ic_description),
-                    contentDescription = null,
-                    tint = accentColor,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-
-            Spacer(Modifier.width(10.dp))
-
-            Column(modifier = Modifier.widthIn(max = 240.dp)) {
-                Text(
-                    text = attachment.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = contentColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                details?.let { subtitle ->
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = subtitle,
