@@ -85,6 +85,7 @@ class BubbleConversationActivity : ComponentActivity() {
                     runCatching { service.portOrNull?.enterBackground() }
                     bubbleSlotHeld = false
                 }
+                enqueueNotificationReconciliation(this@BubbleConversationActivity)
             }
         })
 

@@ -236,7 +236,7 @@ fun enqueueNotificationReconciliation(context: Context) {
         .build()
     WorkManager.getInstance(context).enqueueUniqueWork(
         "reconcile-notifications",
-        ExistingWorkPolicy.REPLACE,
+        ExistingWorkPolicy.KEEP,
         req
     )
 }
