@@ -7,7 +7,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -16,7 +15,6 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import io.github.mlmgames.settings.core.SettingsRepository
 import org.mlm.mages.MatrixService
-import org.mlm.mages.push.NotificationAvatarHelper
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.readReceiptsForRoom
 import org.mlm.mages.shared.R
@@ -47,6 +45,7 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
                             if (threadId != null) {
                                 AndroidNotificationHelper.cancelThreadNotification(context, roomId, threadId)
                             } else {
+                                BubbleActivityTracker.clear(roomId)
                                 Notifier.updateSummaryNotification(context)
                             }
                         }

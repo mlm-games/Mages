@@ -17,5 +17,9 @@ object BubbleActivityTracker {
         }
     }
 
+    fun clear(roomId: String) {
+        openRooms.remove(roomId)
+    }
+
     fun isBubbleOpen(roomId: String): Boolean = (openRooms[roomId]?.get() ?: 0) > 0
 }

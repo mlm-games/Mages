@@ -180,6 +180,10 @@ object AndroidNotificationHelper : KoinComponent {
         CallTelecomBridge.sendCallDismissed(ctx, roomId, eventId, silent)
     }
 
+    private fun isFlaggedBubble(notification: Notification): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+            (notification.flags and Notification.FLAG_BUBBLE) != 0
+
     private fun hasBubbleMetadata(notification: Notification): Boolean =
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && notification.bubbleMetadata != null
 
@@ -201,23 +205,20 @@ object AndroidNotificationHelper : KoinComponent {
                     (includeThreads || it.notification.extras
                         .getString(NotificationReconcileWorker.EXTRA_MATRIX_THREAD_ID) == null)
             }
-        val bubbleIds = conversationNotifications
-            .filter { hasBubbleMetadata(it.notification) }
+        val bubbleOpen = BubbleActivityTracker.isBubbleOpen(roomId)
+        val keepIds = conversationNotifications
+            .filter {
+                isFlaggedBubble(it.notification) ||
+                    (bubbleOpen && hasBubbleMetadata(it.notification))
+            }
             .map { it.id }
             .toSet()
         val messageIds = conversationNotifications.map { it.id }.toMutableSet()
-        messageIds.removeAll(bubbleIds)
-        val bubbleOpen = BubbleActivityTracker.isBubbleOpen(roomId)
-
-        if (force) {
-            if (bubbleOpen) messageIds.remove(id)
-        } else if (bubbleOpen || bubbleIds.isNotEmpty()) {
-            messageIds.remove(id)
-            if (BubbleEligibilityEvaluator.canBubble(ctx, roomId)) {
-                suppressBubbledNotification(ctx, mgr, id)
-            }
-        } else if (BubbleEligibilityEvaluator.canBubble(ctx, roomId)) {
-            if (suppressBubbledNotification(ctx, mgr, id)) messageIds.remove(id)
+        if (!force) {
+            messageIds.removeAll(keepIds)
+            if (keepIds.isNotEmpty()) suppressBubbledNotification(ctx, mgr, id)
+        } else if (keepIds.isNotEmpty()) {
+            BubbleActivityTracker.clear(roomId)
         }
 
         messageIds.forEach { mgr.cancel(it) }
@@ -1042,9 +1043,8 @@ object Notifier {
             .build()
 
         val nm = NotificationManagerCompat.from(context)
-        val existingStyle = nm.activeNotifications
-            .find { it.id == notificationId }
-            ?.notification
+        val existing = nm.activeNotifications.find { it.id == notificationId }?.notification
+        val existingStyle = existing
             ?.let { runCatching { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it) }.getOrNull() }
 
         val style = (existingStyle ?: NotificationCompat.MessagingStyle(me)
@@ -1142,7 +1142,7 @@ object Notifier {
                 bubblePendingIntent, bubbleIcon
             )
                 .setDesiredHeight((Resources.getSystem().displayMetrics.density * 480).toInt())
-                .setSuppressNotification(false)
+                .setSuppressNotification(existing?.let(::isSuppressedBubble) ?: false)
                 .build()
             builder.setBubbleMetadata(bubbleMetadata)
         }
