@@ -1,3 +1,8 @@
+## v5.4.5
+
+- No user-facing changes were mentioned since previous release
+
+
 ## v5.4.4
 
 - fix thread deeplinks
