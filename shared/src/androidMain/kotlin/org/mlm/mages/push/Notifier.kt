@@ -180,6 +180,9 @@ object AndroidNotificationHelper : KoinComponent {
         CallTelecomBridge.sendCallDismissed(ctx, roomId, eventId, silent)
     }
 
+    private fun hasBubbleMetadata(notification: Notification): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && notification.bubbleMetadata != null
+
     // Room receipts exclude threads, so a room-level clear must keep them by default.
     fun cancelRoomNotification(
         ctx: Context,
@@ -198,18 +201,23 @@ object AndroidNotificationHelper : KoinComponent {
                     (includeThreads || it.notification.extras
                         .getString(NotificationReconcileWorker.EXTRA_MATRIX_THREAD_ID) == null)
             }
-        val messageIds = conversationNotifications
+        val bubbleIds = conversationNotifications
+            .filter { hasBubbleMetadata(it.notification) }
             .map { it.id }
-            .toMutableSet()
-            .apply { add(id) }
+            .toSet()
+        val messageIds = conversationNotifications.map { it.id }.toMutableSet()
+        messageIds.removeAll(bubbleIds)
+        val bubbleOpen = BubbleActivityTracker.isBubbleOpen(roomId)
 
-        if (BubbleActivityTracker.isBubbleOpen(roomId)) {
+        if (force) {
+            if (bubbleOpen) messageIds.remove(id)
+        } else if (bubbleOpen || bubbleIds.isNotEmpty()) {
             messageIds.remove(id)
-        } else {
-            val keptAsBubble = !force &&
-                BubbleEligibilityEvaluator.canBubble(ctx, roomId) &&
+            if (BubbleEligibilityEvaluator.canBubble(ctx, roomId)) {
                 suppressBubbledNotification(ctx, mgr, id)
-            if (keptAsBubble) messageIds.remove(id)
+            }
+        } else if (BubbleEligibilityEvaluator.canBubble(ctx, roomId)) {
+            if (suppressBubbledNotification(ctx, mgr, id)) messageIds.remove(id)
         }
 
         messageIds.forEach { mgr.cancel(it) }
