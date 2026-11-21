@@ -3386,6 +3386,9 @@ impl Client {
 
         #[cfg(not(target_family = "wasm"))]
         {
+            if out.metadata().map(|m| m.is_file() && m.len() > 0).unwrap_or(false) {
+                return Ok(out.to_string_lossy().to_string());
+            }
             if let Some(parent) = out.parent() {
                 std::fs::create_dir_all(parent)?;
             }
@@ -3433,55 +3436,64 @@ impl Client {
             "mxc_thumbnail_to_cache: not supported on wasm".into(),
         ));
         #[cfg(not(target_family = "wasm"))]
-        RT.block_on(async {
+        {
             let dir = cache_dir(&self.store_dir);
             platform::ensure_dir(&dir);
-            let method = if crop {
-                matrix_sdk::ruma::api::client::media::get_content_thumbnail::v3::Method::Crop
-            } else {
-                matrix_sdk::ruma::api::client::media::get_content_thumbnail::v3::Method::Scale
-            };
-            let settings = matrix_sdk::media::MediaThumbnailSettings::with_method(
-                method,
-                UInt::from(width.max(1)),
-                UInt::from(height.max(1)),
-            );
-            let req = MediaRequestParameters {
-                source: MediaSource::Plain(mxc_uri.clone().into()),
-                format: MediaFormat::Thumbnail(settings),
-            };
-            let bytes = match self.core.sdk.media().get_media_content(&req, true).await {
-                Ok(b) => b,
-                Err(thumb_err) => {
-                    // Federated or thumbnail-hostile media frequently has no
-                    // server-side thumb, so fall back to the original exactly
-                    // like `thumbnail_to_cache` does.
-                    let full = MediaRequestParameters {
-                        source: MediaSource::Plain(mxc_uri.clone().into()),
-                        format: MediaFormat::File,
-                    };
-                    match self.core.sdk.media().get_media_content(&full, true).await {
-                        Ok(b) => b,
-                        Err(_) => return Err(FfiError::Msg(thumb_err.to_string())),
-                    }
-                }
-            };
-            let ext = if bytes.starts_with(&[0x89, b'P', b'N', b'G']) {
-                "png"
-            } else if bytes.starts_with(&[0xFF, 0xD8, 0xFF]) {
-                "jpg"
-            } else if bytes.starts_with(b"GIF8") {
-                "gif"
-            } else {
-                "img"
-            };
             let key = blake3::hash(format!("{mxc_uri}|{width}x{height}|{crop}").as_bytes())
                 .to_hex()
                 .to_string();
-            let out = dir.join(format!("mxc_thumb_{key}.{ext}"));
-            std::fs::write(&out, bytes).ffi()?;
-            Ok(out.to_string_lossy().to_string())
-        })
+            let stem = format!("mxc_thumb_{key}");
+            for ext in ["png", "jpg", "gif", "img"] {
+                let cached = dir.join(format!("{stem}.{ext}"));
+                if cached.metadata().map(|m| m.is_file() && m.len() > 0).unwrap_or(false) {
+                    return Ok(cached.to_string_lossy().to_string());
+                }
+            }
+            RT.block_on(async {
+                let method = if crop {
+                    matrix_sdk::ruma::api::client::media::get_content_thumbnail::v3::Method::Crop
+                } else {
+                    matrix_sdk::ruma::api::client::media::get_content_thumbnail::v3::Method::Scale
+                };
+                let settings = matrix_sdk::media::MediaThumbnailSettings::with_method(
+                    method,
+                    UInt::from(width.max(1)),
+                    UInt::from(height.max(1)),
+                );
+                let req = MediaRequestParameters {
+                    source: MediaSource::Plain(mxc_uri.clone().into()),
+                    format: MediaFormat::Thumbnail(settings),
+                };
+                let bytes = match self.core.sdk.media().get_media_content(&req, true).await {
+                    Ok(b) => b,
+                    Err(thumb_err) => {
+                        // Federated or thumbnail-hostile media frequently has no
+                        // server-side thumb, so fall back to the original exactly
+                        // like `thumbnail_to_cache` does.
+                        let full = MediaRequestParameters {
+                            source: MediaSource::Plain(mxc_uri.clone().into()),
+                            format: MediaFormat::File,
+                        };
+                        match self.core.sdk.media().get_media_content(&full, true).await {
+                            Ok(b) => b,
+                            Err(_) => return Err(FfiError::Msg(thumb_err.to_string())),
+                        }
+                    }
+                };
+                let ext = if bytes.starts_with(&[0x89, b'P', b'N', b'G']) {
+                    "png"
+                } else if bytes.starts_with(&[0xFF, 0xD8, 0xFF]) {
+                    "jpg"
+                } else if bytes.starts_with(b"GIF8") {
+                    "gif"
+                } else {
+                    "img"
+                };
+                let out = dir.join(format!("{stem}.{ext}"));
+                write_cache_file(&dir, &out, &bytes)?;
+                Ok(out.to_string_lossy().to_string())
+            })
+        }
     }
 
     pub fn media_cache_overview(&self) -> MediaCacheOverview {
