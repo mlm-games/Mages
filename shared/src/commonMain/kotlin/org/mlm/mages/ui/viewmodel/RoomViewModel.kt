@@ -283,6 +283,7 @@ class RoomViewModel(
     private var liveLocationBeaconToken: ULong? = null
     private val paginateLock = Mutex()
     private val thumbnailFetchInFlight = mutableSetOf<String>()
+    private val audioFetchInFlight = mutableSetOf<String>()
     private val linkPreviewFetchInFlight = mutableSetOf<String>()
     private val previewPathByMxc = mutableMapOf<String, String>()
     private val previewLock = Mutex()
@@ -3452,6 +3453,7 @@ class RoomViewModel(
         if (missing.isEmpty()) return
 
         launch {
+            var retryPending = false
             try {
                 val resolved = missing.mapNotNull { mxc ->
                     runCatching { service.port.mxcThumbnailToCache(mxc, EMOTE_PX, EMOTE_PX, false) }
@@ -3464,13 +3466,16 @@ class RoomViewModel(
                 }
                 val stillMissing = missing.filterNot { resolved.containsKey(it) }
                 if (stillMissing.isNotEmpty() && attempt < EMOTE_FETCH_ATTEMPTS) {
-                    // Released before the delay so the retry re-claims them itself.
                     stillMissing.forEach { emoteFetchInFlight.remove(it) }
-                    delay(1_000L * (attempt + 1))
-                    ensureEmotes(event, attempt + 1)
+                    retryPending = true
+                    launch {
+                        delay(1_000L * (attempt + 1))
+                        ensureEmotes(event, attempt + 1)
+                    }
                 }
+                resolved.keys.forEach { emoteFetchInFlight.remove(it) }
             } finally {
-                missing.forEach { emoteFetchInFlight.remove(it) }
+                if (!retryPending) missing.forEach { emoteFetchInFlight.remove(it) }
             }
         }
     }
@@ -3525,25 +3530,33 @@ class RoomViewModel(
     }
 
     private fun prefetchAudioForEvents(events: List<MessageEvent>) {
-        // No on-demand retry, so a wrong call here would stick for the rest of the session.
-        if (!settings.value.mediaPreviews.allowsMediaPreviews(isPrivateRoom = null)) return
+        if (!mediaPreviewsAllowed()) return
         events.forEach { ev ->
             val a = ev.attachment ?: return@forEach
             if (a.kind != AttachmentKind.Audio) return@forEach
             if (currentState.audioFileByEvent.containsKey(ev.eventId)) return@forEach
             if (ev.eventId.isBlank()) return@forEach
+            val eventId = ev.eventId
+            if (!audioFetchInFlight.add(eventId)) return@forEach
 
             launch {
-                val nameHint = "voice_${ev.eventId}.${voiceMessageExtension}"
-                service.port.downloadAttachmentToCache(a, nameHint)
-                    .onSuccess { path ->
+                try {
+                    val nameHint = "voice_${eventId}.${voiceMessageExtension}"
+                    val path = retryUntilPresent(attempts = 3, delayMs = 1_000) {
+                        service.port.downloadAttachmentToCache(a, nameHint).getOrNull()
+                            ?.takeIf { it.isNotBlank() }
+                    }
+                    if (path != null) {
                         updateState {
                             copy(
-                                audioFileByEvent = audioFileByEvent + (ev.eventId to path),
-                                waveformByEvent = a.waveform?.let { waveformByEvent + (ev.eventId to it) } ?: waveformByEvent
+                                audioFileByEvent = audioFileByEvent + (eventId to path),
+                                waveformByEvent = a.waveform?.let { waveformByEvent + (eventId to it) } ?: waveformByEvent
                             )
                         }
                     }
+                } finally {
+                    audioFetchInFlight.remove(eventId)
+                }
             }
         }
     }

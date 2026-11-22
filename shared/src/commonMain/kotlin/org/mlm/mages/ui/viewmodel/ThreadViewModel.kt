@@ -1112,19 +1112,28 @@ class ThreadViewModel(
             if (attachment.kind != AttachmentKind.Audio) return@forEach
             if (event.eventId.isBlank()) return@forEach
             if (currentState.audioFileByEvent.containsKey(event.eventId)) return@forEach
+            val eventId = event.eventId
+            if (!audioFetchInFlight.add(eventId)) return@forEach
             launch {
-                val nameHint = "voice_${event.eventId}.$voiceMessageExtension"
-                service.port.downloadAttachmentToCache(attachment, nameHint)
-                    .onSuccess { path ->
+                try {
+                    val nameHint = "voice_${eventId}.$voiceMessageExtension"
+                    val path = retryUntilPresent(attempts = 3, delayMs = 1_000) {
+                        service.port.downloadAttachmentToCache(attachment, nameHint).getOrNull()
+                            ?.takeIf { it.isNotBlank() }
+                    }
+                    if (path != null) {
                         updateState {
                             copy(
-                                audioFileByEvent = audioFileByEvent + (event.eventId to path),
+                                audioFileByEvent = audioFileByEvent + (eventId to path),
                                 waveformByEvent = attachment.waveform?.let {
-                                    waveformByEvent + (event.eventId to it)
+                                    waveformByEvent + (eventId to it)
                                 } ?: waveformByEvent
                             )
                         }
                     }
+                } finally {
+                    audioFetchInFlight.remove(eventId)
+                }
             }
         }
     }
@@ -1214,6 +1223,7 @@ class ThreadViewModel(
     }
 
     private val thumbnailFetchInFlight = mutableSetOf<String>()
+    private val audioFetchInFlight = mutableSetOf<String>()
     private val linkPreviewFetchInFlight = mutableSetOf<String>()
 
     fun showMediaPreview(event: MessageEvent) {
@@ -1317,25 +1327,41 @@ class ThreadViewModel(
     private companion object {
         /** Custom emotes render at 32dp, so this covers high-density screens. */
         const val EMOTE_PX = 128
+        const val EMOTE_FETCH_ATTEMPTS = 2
         const val THUMBNAIL_FETCH_ATTEMPTS = 3
     }
 
-    private fun prefetchEmotes(event: MessageEvent) {
+    private fun prefetchEmotes(event: MessageEvent, attempt: Int = 0) {
+        if (!mediaPreviewsAllowed()) return
         val missing = emoteMxcUrisFrom(event.formattedBody)
             .filterNot { currentState.emotePathByMxc.containsKey(it) }
+            .filter { emoteFetchInFlight.add(it) }
         if (missing.isEmpty()) return
 
         launch {
-            val resolved = missing
-                .filter { emoteFetchInFlight.add(it) }
-                .mapNotNull { mxc ->
+            var retryPending = false
+            try {
+                val resolved = missing.mapNotNull { mxc ->
                     runSafe { service.port.mxcThumbnailToCache(mxc, EMOTE_PX, EMOTE_PX, false) }
+                        ?.takeIf { it.isNotBlank() }
                         ?.let { mxc to it }
+                }.toMap()
+                if (resolved.isNotEmpty()) {
+                    updateState { copy(emotePathByMxc = emotePathByMxc + resolved) }
                 }
-                .toMap()
-            missing.forEach { emoteFetchInFlight.remove(it) }
-            if (resolved.isEmpty()) return@launch
-            updateState { copy(emotePathByMxc = emotePathByMxc + resolved) }
+                val stillMissing = missing.filterNot { resolved.containsKey(it) }
+                if (stillMissing.isNotEmpty() && attempt < EMOTE_FETCH_ATTEMPTS) {
+                    stillMissing.forEach { emoteFetchInFlight.remove(it) }
+                    retryPending = true
+                    launch {
+                        delay(1_000L * (attempt + 1))
+                        prefetchEmotes(event, attempt + 1)
+                    }
+                }
+                resolved.keys.forEach { emoteFetchInFlight.remove(it) }
+            } finally {
+                if (!retryPending) missing.forEach { emoteFetchInFlight.remove(it) }
+            }
         }
     }
 
