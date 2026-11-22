@@ -1224,7 +1224,7 @@ class ThreadViewModel(
         ensureThumbnail(event)
     }
 
-    fun ensureThumbnail(event: MessageEvent) {
+    fun ensureThumbnail(event: MessageEvent, retryAttempt: Int = 0) {
         if (!mediaPreviewsAllowed() && event.eventId !in currentState.revealedPreviewEventIds) return
         val key = event.thumbKey ?: return
         if (currentState.thumbByEvent.containsKey(key)) return
@@ -1250,14 +1250,25 @@ class ThreadViewModel(
         if (!thumbnailFetchInFlight.add(key)) return
 
         launch {
+            var retryPending = false
             try {
                 val path = attachment?.let { service.previewThumbnail(it).getOrNull() }
                     ?: sticker?.let { service.port.downloadStickerToCache(it).getOrNull() }
                 if (!path.isNullOrBlank()) {
                     updateState { copy(thumbByEvent = thumbByEvent + (key to path)) }
+                } else if (retryAttempt < THUMBNAIL_FETCH_ATTEMPTS - 1) {
+                    retryPending = true
+                    launch {
+                        try {
+                            delay(1_000L * (retryAttempt + 1))
+                        } finally {
+                            thumbnailFetchInFlight.remove(key)
+                        }
+                        ensureThumbnail(event, retryAttempt + 1)
+                    }
                 }
             } finally {
-                thumbnailFetchInFlight.remove(key)
+                if (!retryPending) thumbnailFetchInFlight.remove(key)
             }
         }
     }
@@ -1306,6 +1317,7 @@ class ThreadViewModel(
     private companion object {
         /** Custom emotes render at 32dp, so this covers high-density screens. */
         const val EMOTE_PX = 128
+        const val THUMBNAIL_FETCH_ATTEMPTS = 3
     }
 
     private fun prefetchEmotes(event: MessageEvent) {
@@ -1344,6 +1356,7 @@ class ThreadViewModel(
         val attachment = preview.attachment
         val sticker = preview.sticker
         launch {
+            var retryPending = false
             try {
                 val result = attachment?.let { service.thumbnailToCache(it, 320, 320, true) }
                     ?: sticker?.let { service.port.downloadStickerToCache(it) }
@@ -1352,14 +1365,19 @@ class ThreadViewModel(
                     updateState {
                         copy(replyThumbByEvent = replyThumbByEvent + (replyId to path))
                     }
-                } else if (retryAttempt < 2) {
+                } else if (retryAttempt < THUMBNAIL_FETCH_ATTEMPTS - 1) {
+                    retryPending = true
                     launch {
-                        delay(1_000L * (retryAttempt + 1))
+                        try {
+                            delay(1_000L * (retryAttempt + 1))
+                        } finally {
+                            replyThumbnailFetchInFlight.remove(inFlightKey)
+                        }
                         prefetchReplyThumbnail(event, retryAttempt + 1)
                     }
                 }
             } finally {
-                replyThumbnailFetchInFlight.remove(inFlightKey)
+                if (!retryPending) replyThumbnailFetchInFlight.remove(inFlightKey)
             }
         }
     }

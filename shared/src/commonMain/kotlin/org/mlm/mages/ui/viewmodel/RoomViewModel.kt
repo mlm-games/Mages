@@ -337,6 +337,7 @@ class RoomViewModel(
 
         /** Retries after the first attempt, so a transient failure is not terminal. */
         const val EMOTE_FETCH_ATTEMPTS = 2
+        const val THUMBNAIL_FETCH_ATTEMPTS = 3
     }
 
     private fun filteredVisibleEvents(items: List<MessageEvent>): List<MessageEvent> =
@@ -3382,7 +3383,7 @@ class RoomViewModel(
         ensureThumbnail(event)
     }
 
-    fun ensureThumbnail(event: MessageEvent) {
+    fun ensureThumbnail(event: MessageEvent, retryAttempt: Int = 0) {
         ensureReplyThumbnail(event)
         ensureEmotes(event)
         if (!mediaPreviewsAllowed() && event.eventId !in currentState.revealedPreviewEventIds) return
@@ -3410,16 +3411,26 @@ class RoomViewModel(
         if (!thumbnailFetchInFlight.add(key)) return
 
         launch {
+            var retryPending = false
             try {
                 val thumbRequest = a?.let { service.previewThumbnail(it) }
                     ?: s?.let { service.downloadStickerToCache(it) }
-                thumbRequest?.onSuccess { path ->
-                    updateState {
-                        copy(thumbByEvent = thumbByEvent + (key to path))
+                val path = thumbRequest?.getOrNull()?.takeIf { it.isNotBlank() }
+                if (path != null) {
+                    updateState { copy(thumbByEvent = thumbByEvent + (key to path)) }
+                } else if (retryAttempt < THUMBNAIL_FETCH_ATTEMPTS - 1) {
+                    retryPending = true
+                    launch {
+                        try {
+                            delay(1_000L * (retryAttempt + 1))
+                        } finally {
+                            thumbnailFetchInFlight.remove(key)
+                        }
+                        ensureThumbnail(event, retryAttempt + 1)
                     }
                 }
             } finally {
-                thumbnailFetchInFlight.remove(key)
+                if (!retryPending) thumbnailFetchInFlight.remove(key)
             }
         }
     }
@@ -3487,6 +3498,7 @@ class RoomViewModel(
         }
 
         launch {
+            var retryPending = false
             try {
                 val result = attachment?.let { service.thumbnailToCache(it, 320, 320, true) }
                     ?: sticker?.let { service.port.downloadStickerToCache(it) }
@@ -3495,14 +3507,19 @@ class RoomViewModel(
                     updateState {
                         copy(replyThumbByEvent = replyThumbByEvent + (replyId to path))
                     }
-                } else if (retryAttempt < 2) {
+                } else if (retryAttempt < THUMBNAIL_FETCH_ATTEMPTS - 1) {
+                    retryPending = true
                     launch {
-                        delay(1_000L * (retryAttempt + 1))
+                        try {
+                            delay(1_000L * (retryAttempt + 1))
+                        } finally {
+                            thumbnailFetchInFlight.remove(inFlightKey)
+                        }
                         ensureReplyThumbnail(event, retryAttempt + 1)
                     }
                 }
             } finally {
-                thumbnailFetchInFlight.remove(inFlightKey)
+                if (!retryPending) thumbnailFetchInFlight.remove(inFlightKey)
             }
         }
     }
