@@ -584,7 +584,7 @@ data class AppSettings(
         category = Appearance::class,
         type = Toggle::class,
     )
-    val splitPanes: Boolean = false,
+    val splitPanes: Boolean = true,
 
     @Setting(
         titleKey = MagesSettingsKeys.SPLIT_ROOM_LIST_PERCENT,
@@ -1123,7 +1123,7 @@ data class AppSettings(
         category = Advanced::class,
         type = Toggle::class
     )
-    val enterSendsMessage: Boolean = false,
+    val enterSendsMessage: Boolean = true,
 
     @Setting(
         titleKey = MagesSettingsKeys.EDIT_LATEST_WITH_UP_ARROW,
