@@ -1131,7 +1131,7 @@ data class AppSettings(
         category = Advanced::class,
         type = Toggle::class
     )
-    val enableSlashCommands: Boolean = true,
+    val enableSlashCommands: Boolean = false,
 
     @Setting(
         titleKey = MagesSettingsKeys.EDIT_LATEST_WITH_UP_ARROW,
