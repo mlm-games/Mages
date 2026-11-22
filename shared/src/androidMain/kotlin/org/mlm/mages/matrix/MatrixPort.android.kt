@@ -289,6 +289,17 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
             runWithFfiResult { withClient { it.sendMessage(roomId, body, formattedBody) } }
         }
 
+    override suspend fun sendTyped(
+        roomId: String,
+        body: String,
+        formattedBody: String?,
+        sendType: MessageSendType,
+    ): Result<Unit> = withContext(matrixDispatcher) {
+        runWithFfiResult {
+            withClient { it.sendMessageTyped(roomId, body, formattedBody, sendType.toFfi()) }
+        }
+    }
+
     override suspend fun sendQueueSetEnabled(enabled: Boolean): Result<Unit> =
         withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.sendQueueSetEnabled(enabled) } }
@@ -547,6 +558,18 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
         withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.reply(roomId, inReplyToEventId, body, formattedBody) } }
         }
+
+    override suspend fun replyTyped(
+        roomId: String,
+        inReplyToEventId: String,
+        body: String,
+        formattedBody: String?,
+        sendType: MessageSendType,
+    ): Result<Unit> = withContext(matrixDispatcher) {
+        runWithFfiResult {
+            withClient { it.replyTyped(roomId, inReplyToEventId, body, formattedBody, sendType.toFfi()) }
+        }
+    }
 
     override suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String?, isEmote: Boolean): Result<Unit> =
         withContext(matrixDispatcher) {
@@ -1788,6 +1811,23 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
         runWithFfiResult { withClient { it.sendThreadText(roomId, rootEventId, body, replyToEventId, formattedBody) } }
     }
 
+    override suspend fun sendThreadTextTyped(
+        roomId: String,
+        rootEventId: String,
+        body: String,
+        replyToEventId: String?,
+        formattedBody: String?,
+        sendType: MessageSendType,
+    ): Result<Unit> = withContext(matrixDispatcher) {
+        runWithFfiResult {
+            withClient {
+                it.sendThreadTextTyped(
+                    roomId, rootEventId, body, replyToEventId, formattedBody, sendType.toFfi()
+                )
+            }
+        }
+    }
+
     override suspend fun isSpace(roomId: String): Boolean =
         withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.isSpace(roomId) } }.getOrDefault(false)
@@ -3011,6 +3051,11 @@ private fun mages.Presence.toKotlin(): Presence = when (this) {
     mages.Presence.ONLINE -> Presence.Online
     mages.Presence.OFFLINE -> Presence.Offline
     mages.Presence.UNAVAILABLE -> Presence.Unavailable
+}
+
+private fun MessageSendType.toFfi(): mages.MessageSendType = when (this) {
+    MessageSendType.Text -> mages.MessageSendType.TEXT
+    MessageSendType.Emote -> mages.MessageSendType.EMOTE
 }
 
 private fun MediaPreviewMode.toFfi(): mages.MediaPreviewMode = when (this) {

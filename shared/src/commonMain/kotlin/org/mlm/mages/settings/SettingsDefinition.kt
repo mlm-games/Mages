@@ -1126,6 +1126,14 @@ data class AppSettings(
     val enterSendsMessage: Boolean = true,
 
     @Setting(
+        titleKey = MagesSettingsKeys.ENABLE_SLASH_COMMANDS,
+        descriptionKey = MagesSettingsKeys.ENABLE_SLASH_COMMANDS_DESCRIPTION,
+        category = Advanced::class,
+        type = Toggle::class
+    )
+    val enableSlashCommands: Boolean = true,
+
+    @Setting(
         titleKey = MagesSettingsKeys.EDIT_LATEST_WITH_UP_ARROW,
         descriptionKey = MagesSettingsKeys.EDIT_LATEST_WITH_UP_ARROW_DESCRIPTION,
         category = Advanced::class,

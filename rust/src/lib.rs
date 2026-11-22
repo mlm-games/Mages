@@ -140,7 +140,9 @@ delegate! { unit;
     send_queue_set_enabled(enabled: bool);
     set_typing(room_id: String, typing: bool);
     send_message(room_id: String, body: String, formatted_body: Option<String>);
+    send_message_typed(room_id: String, body: String, formatted_body: Option<String>, send_type: MessageSendType);
     reply(room_id: String, in_reply_to: String, body: String, formatted_body: Option<String>);
+    reply_typed(room_id: String, in_reply_to: String, body: String, formatted_body: Option<String>, send_type: MessageSendType);
     edit(room_id: String, target_event_id: String, new_body: String, formatted_body: Option<String>, is_emote: bool);
     edit_caption(room_id: String, target_event_id: String, caption: Option<String>, formatted_caption: Option<String>);
     edit_poll(room_id: String, poll_event_id: String, def: PollDefinition);
@@ -148,6 +150,9 @@ delegate! { unit;
     react(room_id: String, event_id: String, emoji: String, shortcode: Option<String>, thread_root_event_id: Option<String>);
     send_thread_text(room_id: String, root_event_id: String, body: String,
                      reply_to_event_id: Option<String>, formatted_body: Option<String>);
+    send_thread_text_typed(room_id: String, root_event_id: String, body: String,
+                     reply_to_event_id: Option<String>, formatted_body: Option<String>,
+                     send_type: MessageSendType);
     mark_read(room_id: String, send_public_receipt: bool);
     mark_read_at(room_id: String, event_id: String, send_public_receipt: bool);
     mark_thread_read_at(room_id: String, thread_root_event_id: String, event_id: String, send_public_receipt: bool);

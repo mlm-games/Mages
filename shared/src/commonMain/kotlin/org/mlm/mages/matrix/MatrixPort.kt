@@ -152,6 +152,12 @@ enum class EventType {
 }
 
 @Serializable
+enum class MessageSendType {
+    Text,
+    Emote,
+}
+
+@Serializable
 data class SendUpdate(
     val roomId: String,
     val txnId: String,
@@ -985,6 +991,17 @@ interface MatrixPort {
     fun threadTimelineDiffs(roomId: String, rootEventId: String): Flow<TimelineDiff<MessageEvent>>
     suspend fun send(roomId: String, body: String, formattedBody: String? = null): Result<Unit>
 
+    suspend fun sendTyped(
+        roomId: String,
+        body: String,
+        formattedBody: String? = null,
+        sendType: MessageSendType = MessageSendType.Text,
+    ): Result<Unit> = if (sendType == MessageSendType.Text) {
+        send(roomId, body, formattedBody)
+    } else {
+        Result.failure(UnsupportedOperationException("Typed send is not supported by this MatrixPort implementation"))
+    }
+
     suspend fun sendQueueSetEnabled(enabled: Boolean): Result<Unit>
 
     suspend fun sendExistingAttachment(
@@ -1112,6 +1129,19 @@ interface MatrixPort {
         threadRootEventId: String? = null,
     ): Result<Unit>
     suspend fun reply(roomId: String, inReplyToEventId: String, body: String, formattedBody: String? = null): Result<Unit>
+
+    suspend fun replyTyped(
+        roomId: String,
+        inReplyToEventId: String,
+        body: String,
+        formattedBody: String? = null,
+        sendType: MessageSendType = MessageSendType.Text,
+    ): Result<Unit> = if (sendType == MessageSendType.Text) {
+        reply(roomId, inReplyToEventId, body, formattedBody)
+    } else {
+        Result.failure(UnsupportedOperationException("Typed reply is not supported by this MatrixPort implementation"))
+    }
+
     suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String? = null, isEmote: Boolean = false): Result<Unit>
     suspend fun editCaption(
         roomId: String,
@@ -1356,6 +1386,20 @@ interface MatrixPort {
         replyToEventId: String? = null,
         formattedBody: String? = null,
     ): Result<Unit>
+
+    suspend fun sendThreadTextTyped(
+        roomId: String,
+        rootEventId: String,
+        body: String,
+        replyToEventId: String? = null,
+        formattedBody: String? = null,
+        sendType: MessageSendType = MessageSendType.Text,
+    ): Result<Unit> = if (sendType == MessageSendType.Text) {
+        sendThreadText(roomId, rootEventId, body, replyToEventId, formattedBody)
+    } else {
+        Result.failure(UnsupportedOperationException("Typed thread send is not supported by this MatrixPort implementation"))
+    }
+
     suspend fun threadSummary(roomId: String, rootEventId: String, perPage: Int = 100, maxPages: Int = 10): ThreadSummary
 
     suspend fun threadUnreadCounts(roomId: String): Result<List<ThreadUnreadCount>>

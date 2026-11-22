@@ -29,20 +29,30 @@ fun Modifier.sendShortcutHandler(
     enabled: Boolean,
     enterSendsMessage: Boolean,
     onInsertNewline: () -> Unit,
-    onSend: () -> Unit
+    onSend: () -> Unit,
+    onAcceptSuggestion: (() -> Unit)? = null,
 ): Modifier = if (!enabled) this else this
-    .onPreInterceptKeyBeforeSoftKeyboard { event -> handleEnterShortcut(event, enterSendsMessage, onInsertNewline, onSend) }
-    .onPreviewKeyEvent { event -> handleEnterShortcut(event, enterSendsMessage, onInsertNewline, onSend) }
+    .onPreInterceptKeyBeforeSoftKeyboard { event ->
+        handleEnterShortcut(event, enterSendsMessage, onInsertNewline, onSend, onAcceptSuggestion)
+    }
+    .onPreviewKeyEvent { event ->
+        handleEnterShortcut(event, enterSendsMessage, onInsertNewline, onSend, onAcceptSuggestion)
+    }
 
 private fun handleEnterShortcut(
     event: KeyEvent,
     enterSendsMessage: Boolean,
     onInsertNewline: () -> Unit,
-    onSend: () -> Unit
+    onSend: () -> Unit,
+    onAcceptSuggestion: (() -> Unit)?,
 ): Boolean {
     if (event.type != KeyEventType.KeyDown) return false
     if (event.key != Key.Enter && event.key != Key.NumPadEnter) return false
     val bypassesSend = event.isShiftPressed || event.isCtrlPressed || event.isMetaPressed
+    if (onAcceptSuggestion != null && !bypassesSend && !event.isAltPressed) {
+        onAcceptSuggestion()
+        return true
+    }
     if (enterSendsMessage) {
         if (bypassesSend) onInsertNewline() else onSend()
         return true

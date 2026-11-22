@@ -1134,6 +1134,12 @@ pub enum EventType {
     Unsupported,
 }
 
+#[derive(Clone, Copy, Serialize, Deserialize, Enum)]
+pub enum MessageSendType {
+    Text,
+    Emote,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, Enum)]
 pub enum AttachmentKind {
     Image,

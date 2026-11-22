@@ -156,6 +156,32 @@ class MatrixService(
     suspend fun sendMessage(roomId: String, body: String, formattedBody: String? = null): Result<Unit> =
         port.send(roomId, body, formattedBody)
 
+    suspend fun sendMessageTyped(
+        roomId: String,
+        body: String,
+        formattedBody: String? = null,
+        sendType: MessageSendType = MessageSendType.Text,
+    ): Result<Unit> = port.sendTyped(roomId, body, formattedBody, sendType)
+
+    suspend fun replyTyped(
+        roomId: String,
+        inReplyToEventId: String,
+        body: String,
+        formattedBody: String? = null,
+        sendType: MessageSendType = MessageSendType.Text,
+    ): Result<Unit> = port.replyTyped(roomId, inReplyToEventId, body, formattedBody, sendType)
+
+    suspend fun sendThreadTextTyped(
+        roomId: String,
+        rootEventId: String,
+        body: String,
+        replyToEventId: String? = null,
+        formattedBody: String? = null,
+        sendType: MessageSendType = MessageSendType.Text,
+    ): Result<Unit> = port.sendThreadTextTyped(
+        roomId, rootEventId, body, replyToEventId, formattedBody, sendType
+    )
+
     suspend fun paginateBack(roomId: String, count: Int): Result<Boolean> =
         port.paginateBack(roomId, count)
 

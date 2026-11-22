@@ -14,6 +14,10 @@ import mages.shared.generated.resources.*
 import org.koin.core.component.inject
 import org.mlm.mages.*
 import org.mlm.mages.calls.CallManager
+import org.mlm.mages.commands.ParsedSlashCommand
+import org.mlm.mages.commands.SlashCommand
+import org.mlm.mages.commands.SlashCommands
+import org.mlm.mages.commands.executeSendCommand
 import org.mlm.mages.emoji.RecentEmojiStore
 import org.mlm.mages.notifications.SpaceNotificationScopeStore
 import org.mlm.mages.notifications.spaceInheritanceLabel
@@ -865,6 +869,27 @@ class RoomViewModel(
             launch {
                 saveDraft(s.roomId, "")
                 val replyTo = s.replyingTo
+
+                when (val parsed = SlashCommands.parse(text, settings.value.enableSlashCommands, isInThread = false)) {
+                    ParsedSlashCommand.NotACommand -> Unit
+                    is ParsedSlashCommand.Error -> {
+                        updateState { copy(input = originalInput) }
+                        saveDraft(s.roomId, originalInput)
+                        _events.send(Event.ShowError(parsed.message))
+                        return@launch
+                    }
+                    is ParsedSlashCommand.Command -> {
+                        val result = executeSlashCommand(parsed.value, replyTo?.eventId)
+                        if (!result.isSuccess) {
+                            updateState { copy(input = originalInput) }
+                            saveDraft(s.roomId, originalInput)
+                            _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.send_failed))))
+                        }
+                        updateState { copy(replyingTo = null, lastOutgoingRead = false) }
+                        return@launch
+                    }
+                }
+
                 val outgoing = text.toOutgoingText()
                 if (isMessageTooLong(outgoing?.body.orEmpty(), outgoing?.formattedBody, s.isRoomEncrypted)) {
                     updateState { copy(input = originalInput) }
@@ -887,6 +912,55 @@ class RoomViewModel(
         }
     }
 
+
+    private suspend fun executeSlashCommand(
+        command: SlashCommand,
+        replyToEventId: String?,
+    ): Result<Unit> = when (command) {
+        is SlashCommand.Send -> {
+            val outgoing = if (command.asPlainText) {
+                OutgoingText(command.message, null)
+            } else {
+                command.message.toOutgoingText()
+            }
+            if (isMessageTooLong(outgoing?.body.orEmpty(), outgoing?.formattedBody, currentState.isRoomEncrypted)) {
+                return Result.failure(IllegalStateException(getString(Res.string.message_too_long)))
+            }
+            service.executeSendCommand(
+                roomId = currentState.roomId,
+                command = command,
+                body = outgoing?.body.orEmpty(),
+                formattedBody = outgoing?.formattedBody,
+                replyToEventId = replyToEventId,
+            )
+        }
+
+        is SlashCommand.Ban -> service.port.banUser(currentState.roomId, command.userId, command.reason)
+        is SlashCommand.Unban -> service.port.unbanUser(currentState.roomId, command.userId, command.reason)
+        is SlashCommand.Kick -> service.port.kickUser(currentState.roomId, command.userId, command.reason)
+        is SlashCommand.Invite -> service.port.inviteUser(currentState.roomId, command.userId)
+        is SlashCommand.Ignore -> service.port.ignoreUser(command.userId)
+        is SlashCommand.Unignore -> service.port.unignoreUser(command.userId)
+        is SlashCommand.SetRoomName -> service.port.setRoomName(currentState.roomId, command.name)
+        is SlashCommand.SetRoomTopic -> service.port.setRoomTopic(currentState.roomId, command.topic)
+        is SlashCommand.JoinRoom -> {
+            val joined = service.port.joinByIdOrAlias(command.roomIdOrAlias)
+            if (joined.isSuccess) {
+                val roomId = runSafe { service.port.resolveRoomId(command.roomIdOrAlias) }
+                    ?: command.roomIdOrAlias
+                val roomName = runSafe { service.port.roomProfile(roomId) }?.name
+                    ?: command.roomIdOrAlias
+                _events.send(Event.NavigateToRoom(roomId, roomName))
+            }
+            joined
+        }
+
+        SlashCommand.LeaveRoom -> {
+            val left = service.port.leaveRoom(currentState.roomId)
+            if (left.isSuccess) _events.send(Event.NavigateBack)
+            left
+        }
+    }
 
     fun attachFile(data: AttachmentData) {
         updateState {

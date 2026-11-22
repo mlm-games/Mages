@@ -69,7 +69,7 @@ use crate::{
     ActionAvailability, ActionPresentation, AttachmentInfo, AttachmentKind, DirectoryUser,
     FfiError, FfiPushRuleKind, FfiRoomNotificationMode, ForwardResult, ImagePackSummary,
     KnockRequestSummary, LinkPreview, MediaPreviewMode, MemberActionState, MemberSummary,
-    MessageActionState, MessageEvent, MutualRooms, OwnProfile, OwnReceipt, PasswordLoginKind,
+    MessageActionState, MessageEvent, MessageSendType, MutualRooms, OwnProfile, OwnReceipt, PasswordLoginKind,
     PollDefinition, PredecessorRoomInfo, Presence, PresenceInfo, ProfileCard, ProfileField,
     PublicRoom,
     PublicRoomsPage, ReactionSummary, RecentEmojiEntry, RoomActionState, RoomCallState,
@@ -252,10 +252,10 @@ fn mentions_for(body: &str, formatted_body: Option<&str>) -> Option<Mentions> {
     Some(mentions)
 }
 
-fn text_content(body: &str, formatted_body: Option<&str>) -> RoomMessageEventContent {
+fn text_content_no_rel(body: &str, formatted_body: Option<&str>) -> MsgNoRel {
     let mut content = match formatted_body {
-        Some(fmt) => RoomMessageEventContent::text_html(body, fmt),
-        None => RoomMessageEventContent::text_plain(body),
+        Some(fmt) => MsgNoRel::text_html(body, fmt),
+        None => MsgNoRel::text_plain(body),
     };
     if let Some(mentions) = mentions_for(body, formatted_body) {
         content = content.add_mentions(mentions);
@@ -263,10 +263,33 @@ fn text_content(body: &str, formatted_body: Option<&str>) -> RoomMessageEventCon
     content
 }
 
-fn text_content_no_rel(body: &str, formatted_body: Option<&str>) -> MsgNoRel {
-    let mut content = match formatted_body {
-        Some(fmt) => MsgNoRel::text_html(body, fmt),
-        None => MsgNoRel::text_plain(body),
+fn typed_content(
+    body: &str,
+    formatted_body: Option<&str>,
+    send_type: MessageSendType,
+) -> RoomMessageEventContent {
+    let mut content = match (formatted_body, send_type) {
+        (Some(fmt), MessageSendType::Text) => RoomMessageEventContent::text_html(body, fmt),
+        (None, MessageSendType::Text) => RoomMessageEventContent::text_plain(body),
+        (Some(fmt), MessageSendType::Emote) => RoomMessageEventContent::emote_html(body, fmt),
+        (None, MessageSendType::Emote) => RoomMessageEventContent::emote_plain(body),
+    };
+    if let Some(mentions) = mentions_for(body, formatted_body) {
+        content = content.add_mentions(mentions);
+    }
+    content
+}
+
+fn typed_content_no_rel(
+    body: &str,
+    formatted_body: Option<&str>,
+    send_type: MessageSendType,
+) -> MsgNoRel {
+    let mut content = match (formatted_body, send_type) {
+        (Some(fmt), MessageSendType::Text) => MsgNoRel::text_html(body, fmt),
+        (None, MessageSendType::Text) => MsgNoRel::text_plain(body),
+        (Some(fmt), MessageSendType::Emote) => MsgNoRel::emote_html(body, fmt),
+        (None, MessageSendType::Emote) => MsgNoRel::emote_plain(body),
     };
     if let Some(mentions) = mentions_for(body, formatted_body) {
         content = content.add_mentions(mentions);
@@ -1164,12 +1187,23 @@ impl CoreClient {
         body: String,
         formatted_body: Option<String>,
     ) -> Result<(), FfiError> {
+        self.send_message_typed(room_id, body, formatted_body, MessageSendType::Text)
+            .await
+    }
+
+    pub async fn send_message_typed(
+        &self,
+        room_id: String,
+        body: String,
+        formatted_body: Option<String>,
+        send_type: MessageSendType,
+    ) -> Result<(), FfiError> {
         self.ensure_sync_active().await;
         let tl = self
             .timeline(&room_id)
             .await
             .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
-        let content = text_content(&body, formatted_body.as_deref());
+        let content = typed_content(&body, formatted_body.as_deref(), send_type);
         tl.send(content.into()).await.ffi().map(|_| ())
     }
 
@@ -1204,6 +1238,18 @@ impl CoreClient {
         body: String,
         formatted_body: Option<String>,
     ) -> Result<(), FfiError> {
+        self.reply_typed(room_id, in_reply_to, body, formatted_body, MessageSendType::Text)
+            .await
+    }
+
+    pub async fn reply_typed(
+        &self,
+        room_id: String,
+        in_reply_to: String,
+        body: String,
+        formatted_body: Option<String>,
+        send_type: MessageSendType,
+    ) -> Result<(), FfiError> {
         self.ensure_sync_active().await;
         let tl = self
             .timeline(&room_id)
@@ -1211,7 +1257,7 @@ impl CoreClient {
             .ok_or_else(|| FfiError::Msg("timeline not found".into()))?;
         let reply_to =
             EventId::parse(&in_reply_to).map_err(|_| FfiError::Msg("invalid event id".into()))?;
-        let content = text_content_no_rel(&body, formatted_body.as_deref());
+        let content = typed_content_no_rel(&body, formatted_body.as_deref(), send_type);
         tl.send_reply(content, reply_to.to_owned())
             .await
             .ffi()
@@ -1405,6 +1451,26 @@ impl CoreClient {
         reply_to_event_id: Option<String>,
         formatted_body: Option<String>,
     ) -> Result<(), FfiError> {
+        self.send_thread_text_typed(
+            room_id,
+            root_event_id,
+            body,
+            reply_to_event_id,
+            formatted_body,
+            MessageSendType::Text,
+        )
+        .await
+    }
+
+    pub async fn send_thread_text_typed(
+        &self,
+        room_id: String,
+        root_event_id: String,
+        body: String,
+        reply_to_event_id: Option<String>,
+        formatted_body: Option<String>,
+        send_type: MessageSendType,
+    ) -> Result<(), FfiError> {
         let tl = self
             .thread_timeline(&room_id, &root_event_id)
             .await
@@ -1413,14 +1479,14 @@ impl CoreClient {
             let reply_to = OwnedEventId::try_from(reply_to)
                 .map_err(|_| FfiError::Msg("invalid event id".into()))?;
             tl.send_reply(
-                text_content_no_rel(&body, formatted_body.as_deref()),
+                typed_content_no_rel(&body, formatted_body.as_deref(), send_type),
                 reply_to,
             )
             .await
             .ffi()
             .map(|_| ())
         } else {
-            let content = text_content(&body, formatted_body.as_deref());
+            let content = typed_content(&body, formatted_body.as_deref(), send_type);
             tl.send(content.into()).await.ffi().map(|_| ())
         }
     }

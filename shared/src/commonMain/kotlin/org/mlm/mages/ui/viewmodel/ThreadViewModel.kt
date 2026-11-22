@@ -19,6 +19,10 @@ import org.mlm.mages.MatrixService
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.ReplyPreviewKind
 import org.mlm.mages.StickerInfo
+import org.mlm.mages.commands.ParsedSlashCommand
+import org.mlm.mages.commands.SlashCommand
+import org.mlm.mages.commands.SlashCommands
+import org.mlm.mages.commands.executeSendCommand
 import org.mlm.mages.thumbKey
 import org.mlm.mages.withBridgedThumb
 import org.mlm.mages.matrix.EventType
@@ -1531,6 +1535,25 @@ class ThreadViewModel(
         val body = text.trim()
         if (body.isBlank()) return false
 
+        when (val parsed = SlashCommands.parse(body, prefs.value.enableSlashCommands, isInThread = true)) {
+            ParsedSlashCommand.NotACommand -> Unit
+            is ParsedSlashCommand.Error -> {
+                _events.send(Event.ShowError(parsed.message))
+                return false
+            }
+            is ParsedSlashCommand.Command -> {
+                val result = executeThreadSlashCommand(parsed.value)
+                if (result.isSuccess) {
+                    updateState { copy(replyingTo = null, input = "") }
+                    draftJob?.cancel()
+                    saveDraft("")
+                } else {
+                    _events.send(Event.ShowError(result.toUserMessage(getString(Res.string.failed_to_send_message))))
+                }
+                return result.isSuccess
+            }
+        }
+
         val outgoing = body.toOutgoingText()
         if (isMessageTooLong(outgoing?.body.orEmpty(), outgoing?.formattedBody, currentState.isRoomEncrypted)) {
             _events.send(Event.ShowError(getString(Res.string.message_too_long)))
@@ -1577,6 +1600,28 @@ class ThreadViewModel(
         }
 
         return result?.isSuccess == true
+    }
+
+    private suspend fun executeThreadSlashCommand(command: SlashCommand): Result<Unit> {
+        if (command !is SlashCommand.Send) {
+            return Result.failure(IllegalStateException("Command is not supported in threads"))
+        }
+        val outgoing = if (command.asPlainText) {
+            OutgoingText(command.message, null)
+        } else {
+            command.message.toOutgoingText()
+        }
+        if (isMessageTooLong(outgoing?.body.orEmpty(), outgoing?.formattedBody, currentState.isRoomEncrypted)) {
+            return Result.failure(IllegalStateException(getString(Res.string.message_too_long)))
+        }
+        return service.executeSendCommand(
+            roomId = roomId,
+            command = command,
+            body = outgoing?.body.orEmpty(),
+            formattedBody = outgoing?.formattedBody,
+            replyToEventId = currentState.replyingTo?.eventId,
+            threadRootEventId = rootEventId,
+        )
     }
 
     private suspend fun String.toOutgoingText(): OutgoingText? =

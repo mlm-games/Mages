@@ -22,6 +22,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import mages.shared.generated.resources.*
 import org.mlm.mages.MessageEvent
+import org.mlm.mages.commands.SlashCommandSuggestion
+import org.mlm.mages.commands.SlashCommands
 import org.mlm.mages.matrix.MEMBER_SUGGESTION_CANDIDATES
 import org.mlm.mages.matrix.MEMBER_SUGGESTION_LIMIT
 import org.mlm.mages.matrix.MemberSummary
@@ -62,6 +64,8 @@ fun MessageComposer(
     clipboardHandler: ClipboardAttachmentHandler? = null,
     onAttachmentPasted: ((AttachmentData) -> Unit)? = null,
     enterSendsMessage: Boolean = false,
+    enableSlashCommands: Boolean = true,
+    isInThread: Boolean = false,
     canEditLatest: Boolean = false,
     onEditLatest: () -> Unit = {},
     roomMembers: List<MemberSummary> = emptyList(),
@@ -103,6 +107,26 @@ fun MessageComposer(
     val emotePickerVisible = emoteQuery != null &&
         (emoteQuery.query.isEmpty() || visibleEmotes.isNotEmpty() || visibleEmoji.isNotEmpty())
 
+    val slashQuery = remember(fieldValue, enableSlashCommands) {
+        if (enableSlashCommands) findSlashQueryInternal(fieldValue) else null
+    }
+    val slashSuggestions = remember(slashQuery, isInThread) {
+        if (slashQuery == null) emptyList() else SlashCommands.suggestionsFor(slashQuery.query, isInThread)
+    }
+
+    fun applySlashSuggestion(suggestion: SlashCommandSuggestion) {
+        val query = slashQuery ?: return
+        val updated = insertSlashCommandInternal(fieldValue, suggestion, query)
+        fieldValue = updated
+        onValueChange(updated.text)
+    }
+
+    val slashPopupVisible = mentionQuery == null && emoteQuery == null &&
+        slashQuery != null && slashSuggestions.isNotEmpty()
+    val acceptSlashSuggestion = if (slashPopupVisible) {
+        { applySlashSuggestion(slashSuggestions.first()) }
+    } else null
+
     val visualTransformation = remember { ComposerVisualTransformation() }
 
     if (isRecordingVoice && onStartVoiceRecording != null && onCancelVoiceRecording != null && onVoiceRecordingComplete != null) {
@@ -139,6 +163,17 @@ fun MessageComposer(
                         fieldValue = updated
                         onValueChange(updated.text)
                     },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.lg)
+                        .padding(top = Spacing.xs)
+                )
+            }
+
+            AnimatedVisibility(visible = slashPopupVisible) {
+                ComposerSlashPopup(
+                    suggestions = slashSuggestions,
+                    onSuggestionSelected = { applySlashSuggestion(it) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = Spacing.lg)
@@ -184,6 +219,7 @@ fun MessageComposer(
                 },
                 onSend = onSend,
                 enterSendsMessage = enterSendsMessage,
+                onAcceptSuggestion = acceptSlashSuggestion,
                 canEditLatest = canEditLatest,
                 onEditLatest = onEditLatest,
                 clipboardHandler = clipboardHandler,
@@ -211,6 +247,7 @@ private fun ComposerInputRow(
     onValueChange: (TextFieldValue) -> Unit,
     onSend: () -> Unit,
     enterSendsMessage: Boolean,
+    onAcceptSuggestion: (() -> Unit)? = null,
     canEditLatest: Boolean,
     onEditLatest: () -> Unit,
     clipboardHandler: ClipboardAttachmentHandler?,
@@ -276,6 +313,7 @@ private fun ComposerInputRow(
             .sendShortcutHandler(
                 enabled = enabled && !isUploadingAttachment,
                 enterSendsMessage = enterSendsMessage,
+                onAcceptSuggestion = onAcceptSuggestion,
                 onInsertNewline = {
                     val newValue = insertNewlineInternal(fieldValue)
                     onValueChange(newValue)
@@ -517,4 +555,36 @@ internal fun insertEmojiInternal(
     }
     val newCursor = query.start + emojiText.length
     return TextFieldValue(newText, selection = TextRange(newCursor))
+}
+
+private data class SlashQueryInternal(
+    val start: Int,
+    val end: Int,
+    val query: String,
+)
+
+private fun findSlashQueryInternal(value: TextFieldValue): SlashQueryInternal? {
+    val text = value.text
+    val cursor = value.selection.start
+    if (!text.startsWith('/') || cursor < 1 || cursor > text.length) return null
+
+    val commandEnd = text.indexOfFirst { it.isWhitespace() }.let { if (it == -1) text.length else it }
+    if (cursor > commandEnd) return null
+
+    return SlashQueryInternal(
+        start = 0,
+        end = commandEnd,
+        query = text.substring(1, commandEnd),
+    )
+}
+
+private fun insertSlashCommandInternal(
+    current: TextFieldValue,
+    suggestion: SlashCommandSuggestion,
+    slashQuery: SlashQueryInternal,
+): TextFieldValue {
+    val suffix = current.text.substring(slashQuery.end).trimStart()
+    val replacement = suggestion.command + " "
+    val newText = if (suffix.isEmpty()) replacement else replacement + suffix
+    return TextFieldValue(newText, selection = TextRange(replacement.length))
 }

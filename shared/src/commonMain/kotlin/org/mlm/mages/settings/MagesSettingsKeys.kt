@@ -186,6 +186,9 @@ object MagesSettingsKeys {
     const val START_IN_TRAY_DESCRIPTION = "setting_start_in_tray_description"
     const val ENABLE_TRAY_DESCRIPTION = "setting_enable_tray_description"
     const val ENTER_SENDS_MESSAGE_DESCRIPTION = "setting_enter_sends_message_description"
+
+    const val ENABLE_SLASH_COMMANDS = "setting_enable_slash_commands"
+    const val ENABLE_SLASH_COMMANDS_DESCRIPTION = "setting_enable_slash_commands_description"
     const val EDIT_LATEST_WITH_UP_ARROW_DESCRIPTION = "setting_edit_latest_with_up_arrow_description"
     const val USE_PROXY_DESCRIPTION = "setting_use_proxy_description"
     const val PROXY_URL_DESCRIPTION = "setting_proxy_url_description"
