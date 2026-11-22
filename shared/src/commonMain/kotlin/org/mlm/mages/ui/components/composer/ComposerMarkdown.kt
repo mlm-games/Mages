@@ -166,7 +166,7 @@ private fun markEmoteImages(html: String, emoteImages: List<ImagePackImageEntry>
     return if (changed) out else null
 }
 
-private fun escapeHtml(text: String): String = text
+internal fun escapeHtml(text: String): String = text
     .replace("&", "&amp;")
     .replace("<", "&lt;")
     .replace(">", "&gt;")

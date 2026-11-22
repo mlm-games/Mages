@@ -21,6 +21,7 @@ import org.mlm.mages.ReplyPreviewKind
 import org.mlm.mages.StickerInfo
 import org.mlm.mages.thumbKey
 import org.mlm.mages.withBridgedThumb
+import org.mlm.mages.matrix.EventType
 import org.mlm.mages.matrix.ImagePackSummary
 import org.mlm.mages.matrix.LINK_PREVIEW_IMAGE_PX
 import org.mlm.mages.matrix.PollData
@@ -1483,7 +1484,13 @@ class ThreadViewModel(
             return false
         }
         val result = runSafe {
-            service.edit(roomId, editEvent.eventId, outgoing?.body.orEmpty(), outgoing?.formattedBody)
+            service.edit(
+                roomId,
+                editEvent.eventId,
+                outgoing?.body.orEmpty(),
+                outgoing?.formattedBody,
+                isEmote = editEvent.eventType == EventType.Emote,
+            )
         }
 
         if (result?.isSuccess == true) {

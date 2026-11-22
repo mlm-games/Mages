@@ -828,9 +828,10 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         roomId: String,
         targetEventId: String,
         newBody: String,
-        formattedBody: String?
+        formattedBody: String?,
+        isEmote: Boolean
     ): Result<Unit> =
-        requireClient().edit(roomId, targetEventId, newBody, formattedBody).awaitUnitResult()
+        requireClient().edit(roomId, targetEventId, newBody, formattedBody, isEmote).awaitUnitResult()
 
     override suspend fun editCaption(
         roomId: String,

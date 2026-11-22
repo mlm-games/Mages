@@ -639,7 +639,7 @@ wasm_delegate! { webffi_option;
 wasm_delegate! { webffi_unit;
     "sendMessage"        => send_message(room_id: String, body: String, formatted_body: Option<String>);
     "reply"              => reply(room_id: String, in_reply_to: String, body: String, formatted_body: Option<String>);
-    "edit"               => edit(room_id: String, target_event_id: String, new_body: String, formatted_body: Option<String>);
+    "edit"               => edit(room_id: String, target_event_id: String, new_body: String, formatted_body: Option<String>, is_emote: bool);
     "setImagePackEnabled" => set_image_pack_enabled(room_id: String, state_key: String, enabled: bool);
     "removeImagePack"    => remove_image_pack(room_id: String, state_key: String);
     "recordEmojiUse"     => record_emoji_use(emoji: String);

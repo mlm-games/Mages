@@ -141,7 +141,7 @@ delegate! { unit;
     set_typing(room_id: String, typing: bool);
     send_message(room_id: String, body: String, formatted_body: Option<String>);
     reply(room_id: String, in_reply_to: String, body: String, formatted_body: Option<String>);
-    edit(room_id: String, target_event_id: String, new_body: String, formatted_body: Option<String>);
+    edit(room_id: String, target_event_id: String, new_body: String, formatted_body: Option<String>, is_emote: bool);
     edit_caption(room_id: String, target_event_id: String, caption: Option<String>, formatted_caption: Option<String>);
     edit_poll(room_id: String, poll_event_id: String, def: PollDefinition);
     redact(room_id: String, event_id: String, reason: Option<String>);
@@ -4382,6 +4382,7 @@ fn map_timeline_event(
                         }
                         MessageType::Emote(c) => {
                             formatted_body = c.formatted.as_ref().map(|f| f.body.clone());
+                            event_type = EventType::Emote;
                         }
                         MessageType::Image(c) => {
                             formatted_body = c.formatted_caption().map(|f| f.body.clone());

@@ -548,9 +548,9 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
             runWithFfiResult { withClient { it.reply(roomId, inReplyToEventId, body, formattedBody) } }
         }
 
-    override suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String?): Result<Unit> =
+    override suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String?, isEmote: Boolean): Result<Unit> =
         withContext(matrixDispatcher) {
-            runWithFfiResult { withClient { it.edit(roomId, targetEventId, newBody, formattedBody) } }
+            runWithFfiResult { withClient { it.edit(roomId, targetEventId, newBody, formattedBody, isEmote) } }
         }
 
     override suspend fun editCaption(
@@ -2846,6 +2846,7 @@ private fun mages.SendState.toKotlin(): SendState = when (this) {
 
 private fun mages.EventType.toKotlin(): EventType = when (this) {
     mages.EventType.MESSAGE -> EventType.Message
+    mages.EventType.EMOTE -> EventType.Emote
     mages.EventType.MEMBERSHIP_CHANGE -> EventType.MembershipChange
     mages.EventType.PROFILE_CHANGE -> EventType.ProfileChange
     mages.EventType.ROOM_NAME -> EventType.RoomName

@@ -1224,6 +1224,7 @@ impl CoreClient {
         target_event_id: String,
         new_body: String,
         formatted_body: Option<String>,
+        is_emote: bool,
     ) -> Result<(), FfiError> {
         use matrix_sdk::room::edit::EditedContent;
         let room = self
@@ -1231,10 +1232,19 @@ impl CoreClient {
             .ok_or_else(|| FfiError::Msg("room not found".into()))?;
         let eid = EventId::parse(&target_event_id)
             .map_err(|_| FfiError::Msg("invalid event id".into()))?;
-        let edited = EditedContent::RoomMessage(text_content_no_rel(
-            &new_body,
-            formatted_body.as_deref(),
-        ));
+        let content = if is_emote {
+            let mut emote = match formatted_body.as_deref() {
+                Some(html) => MsgNoRel::emote_html(&new_body, html),
+                None => MsgNoRel::emote_plain(&new_body),
+            };
+            if let Some(mentions) = mentions_for(&new_body, formatted_body.as_deref()) {
+                emote = emote.add_mentions(mentions);
+            }
+            emote
+        } else {
+            text_content_no_rel(&new_body, formatted_body.as_deref())
+        };
+        let edited = EditedContent::RoomMessage(content);
         let content = room.make_edit_event(&eid, edited).await.ffi()?;
         room.send_queue().send(content).await.ffi().map(|_| ())
     }

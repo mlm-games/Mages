@@ -1114,6 +1114,7 @@ pub enum ConnectionState {
 #[derive(Clone, Serialize, Deserialize, Enum)]
 pub enum EventType {
     Message,
+    Emote,
     MembershipChange,
     ProfileChange,
     RoomName,

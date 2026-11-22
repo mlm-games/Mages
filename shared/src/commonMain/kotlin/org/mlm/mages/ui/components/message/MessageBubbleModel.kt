@@ -157,6 +157,8 @@ data class MessageBubbleModel(
     val isEdited: Boolean = false,
     val isPinned: Boolean = false,
     val isRedacted: Boolean = false,
+    val isEmote: Boolean = false,
+    val emoteSenderName: String? = null,
     val poll: PollData? = null,
     val thread: MessageThreadUi? = null,
     val linkPreview: LinkPreview? = null,

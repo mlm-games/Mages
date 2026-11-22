@@ -55,6 +55,7 @@ import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.FormattedBodyText
 import org.mlm.mages.ui.components.core.MentionRef
 import org.mlm.mages.ui.components.core.formatDisplayName
+import org.mlm.mages.ui.components.composer.escapeHtml
 import org.mlm.mages.platform.isTgsSticker
 import org.mlm.mages.ui.components.rememberBlurHashImage
 import org.mlm.mages.ui.components.sticker.TgsSticker
@@ -195,7 +196,8 @@ fun MessageBubble(
     emotePaths: Map<String, String> = emptyMap(),
 ) {
     val isMine = model.isMine
-    val horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
+    val isEmote = model.isEmote
+    val horizontalAlignment = if (isEmote) Alignment.Start else if (isMine) Alignment.End else Alignment.Start
 
     if (model.isSticker) {
         StickerMessage(
@@ -220,7 +222,7 @@ fun MessageBubble(
     val sender = model.sender
     val senderName = sender?.displayName?.takeIf { it.isNotBlank() }
         ?: sender?.id?.takeIf { it.isNotBlank() }?.let(::formatDisplayName)
-    val showSenderInfo = !isMine && senderName != null && (
+    val showSenderInfo = !isEmote && !isMine && senderName != null && (
             if (isDm) { model.showUsernameInDms && !grouping.groupedWithPrev } else { !grouping.groupedWithPrev }
             )
     val showSenderAvatar = showSenderInfo && showMessageAvatars && !sender?.id.isNullOrBlank()
@@ -245,8 +247,27 @@ fun MessageBubble(
             ))
 
     val bubbleColors = messageBubbleColors(isMine, isRedacted)
-    val bubbleContainerColor = bubbleColors.container
-    val bubbleTextColor = bubbleColors.content
+    val bubbleContainerColor = if (isEmote) Color.Transparent else bubbleColors.container
+    val bubbleTextColor = if (isEmote) {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    } else bubbleColors.content
+    val bodyStyle = if (isEmote) {
+        MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic)
+    } else {
+        MaterialTheme.typography.bodyMedium
+    }
+    val emoteName = if (isEmote) {
+        (model.emoteSenderName ?: senderName).takeUnless { it.isNullOrBlank() }
+            ?.let(::formatDisplayName).orEmpty()
+    } else ""
+    val emoteNameHtml = if (isEmote) escapeHtml(emoteName) else ""
+    val displayBody = if (isEmote) "* $emoteName ${model.body}" else model.body
+    val displayFormattedBody = if (!isEmote) {
+        model.formattedBody
+    } else {
+        model.formattedBody?.let { "* $emoteNameHtml $it" }
+            ?: "<i>* $emoteNameHtml ${escapeHtml(model.body)}</i>"
+    }
 
     Column(
         modifier = modifier
@@ -301,7 +322,7 @@ fun MessageBubble(
                 color = bubbleContainerColor,
                 contentColor = bubbleTextColor,
                 shape = bubbleShape(isMine, grouping.groupedWithPrev, grouping.groupedWithNext),
-                tonalElevation = if (isRedacted) 0.dp else if (isMine) 3.dp else 1.dp,
+                tonalElevation = if (isEmote || isRedacted) 0.dp else if (isMine) 3.dp else 1.dp,
             ) {
                 val timestampContent = @Composable { textColor: Color ->
                     MessageTimeAndStatus(
@@ -320,14 +341,15 @@ fun MessageBubble(
                         timestamp = { timestampContent(bubbleTextColor) },
                     ) {
                         LongMessageBody(
-                            formattedBody = model.formattedBody,
-                            fallbackBody = model.body,
+                            formattedBody = displayFormattedBody,
+                            fallbackBody = displayBody,
                             emotePaths = emotePaths,
                             color = bubbleTextColor,
                             containerColor = bubbleContainerColor,
                             mentionRefs = model.mentions,
                             mentionsRoom = model.mentionsRoom,
-                            onMentionClick = onMentionClick
+                            onMentionClick = onMentionClick,
+                            style = bodyStyle,
                         )
                     }
                 }

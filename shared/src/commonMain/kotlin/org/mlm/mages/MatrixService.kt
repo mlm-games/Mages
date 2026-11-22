@@ -192,8 +192,8 @@ class MatrixService(
     suspend fun reply(roomId: String, inReplyToEventId: String, body: String, formattedBody: String? = null): Result<Unit> =
         port.reply(roomId, inReplyToEventId, body, formattedBody)
 
-    suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String? = null): Result<Unit> =
-        port.edit(roomId, targetEventId, newBody, formattedBody)
+    suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String? = null, isEmote: Boolean = false): Result<Unit> =
+        port.edit(roomId, targetEventId, newBody, formattedBody, isEmote)
 
     suspend fun redact(roomId: String, eventId: String, reason: String? = null): Result<Unit> =
         port.redact(roomId, eventId, reason)

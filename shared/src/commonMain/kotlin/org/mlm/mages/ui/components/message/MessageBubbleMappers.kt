@@ -5,6 +5,7 @@ import org.mlm.mages.AttachmentKind
 import org.mlm.mages.MessageEvent
 import org.mlm.mages.ReplyPreviewKind
 import org.mlm.mages.captionOr
+import org.mlm.mages.matrix.EventType
 import org.mlm.mages.settings.ThreadUnreadIndicator
 import org.mlm.mages.ui.components.timeline.TimelineContent
 import org.mlm.mages.ui.util.formatBytes
@@ -158,6 +159,8 @@ internal fun TimelineContent.Bubble.toBubbleModel(
         isEdited = event.isEdited,
         isPinned = ctx.isPinned,
         isRedacted = event.isRedacted,
+        isEmote = event.eventType == EventType.Emote && !event.isRedacted,
+        emoteSenderName = event.senderDisplayName?.takeIf { it.isNotBlank() } ?: event.sender,
         poll = event.pollData,
         thread = ctx.threadCount?.let { count ->
             val unread = ctx.threadUnread?.takeIf {

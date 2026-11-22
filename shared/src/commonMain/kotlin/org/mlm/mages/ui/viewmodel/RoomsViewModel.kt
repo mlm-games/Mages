@@ -507,6 +507,7 @@ class RoomsViewModel(
         val body = event.body
 
         if (body != null && body.startsWith("mxc://")) return null
+        if (event.msgtype == "m.emote" && body != null) return "* $body"
         return body
     }
 

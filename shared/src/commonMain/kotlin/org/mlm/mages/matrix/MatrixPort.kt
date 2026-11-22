@@ -130,6 +130,7 @@ data class MessageActionState(
 @Serializable
 enum class EventType {
     Message,
+    Emote,
     MembershipChange,
     ProfileChange,
     RoomName,
@@ -1111,7 +1112,7 @@ interface MatrixPort {
         threadRootEventId: String? = null,
     ): Result<Unit>
     suspend fun reply(roomId: String, inReplyToEventId: String, body: String, formattedBody: String? = null): Result<Unit>
-    suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String? = null): Result<Unit>
+    suspend fun edit(roomId: String, targetEventId: String, newBody: String, formattedBody: String? = null, isEmote: Boolean = false): Result<Unit>
     suspend fun editCaption(
         roomId: String,
         targetEventId: String,

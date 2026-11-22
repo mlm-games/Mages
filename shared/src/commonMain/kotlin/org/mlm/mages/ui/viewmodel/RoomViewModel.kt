@@ -978,7 +978,13 @@ class RoomViewModel(
                     outgoing?.formattedBody.takeIf { caption != null }
                 )
             } else {
-                service.edit(s.roomId, target.eventId, outgoing?.body.orEmpty(), outgoing?.formattedBody)
+                service.edit(
+                    s.roomId,
+                    target.eventId,
+                    outgoing?.body.orEmpty(),
+                    outgoing?.formattedBody,
+                    isEmote = target.eventType == EventType.Emote,
+                )
             }
             if (result.isSuccess) {
                 updateState {

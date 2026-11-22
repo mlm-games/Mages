@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -51,6 +52,7 @@ internal fun LongMessageBody(
     mentionRefs: Map<String, MentionRef>,
     mentionsRoom: Boolean,
     onMentionClick: ((String) -> Unit)?,
+    style: TextStyle = MaterialTheme.typography.bodyMedium,
 ) {
     val collapsible = remember(fallbackBody) {
         fallbackBody.length > LONG_MESSAGE_CHARS ||
@@ -70,6 +72,7 @@ internal fun LongMessageBody(
             onMentionClick = onMentionClick,
             maxLines = if (collapsible) COLLAPSED_LINES else Int.MAX_VALUE,
             overflow = if (collapsible) TextOverflow.Ellipsis else TextOverflow.Clip,
+            style = style,
         )
 
         if (collapsible) {

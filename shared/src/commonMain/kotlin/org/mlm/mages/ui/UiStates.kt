@@ -165,7 +165,7 @@ fun MessageEvent.mediaCaption(): String? {
 fun MessageEvent.hasCaption(): Boolean = mediaCaption() != null
 
 fun MessageEvent.isForwardable(): Boolean = when (eventType) {
-    EventType.Message, EventType.Sticker, EventType.Location -> true
+    EventType.Message, EventType.Emote, EventType.Sticker, EventType.Location -> true
     else -> false
 }
 
@@ -176,7 +176,7 @@ fun MessageEvent.isEditableBy(myUserId: String?): Boolean {
     if (myUserId == null || sender != myUserId) return false
     if (isRedacted || sendState == SendState.Failed || eventId.isBlank()) return false
     if (eventType == EventType.Poll) return pollData?.isEnded == false
-    return eventType == EventType.Message
+    return eventType == EventType.Message || eventType == EventType.Emote
 }
 
 @Composable

@@ -34,6 +34,7 @@ internal sealed interface TimelineContent {
 internal fun MessageEvent.toTimelineContent(): TimelineContent =
     when (eventType) {
         EventType.Message,
+        EventType.Emote,
         EventType.Poll,
         EventType.Sticker ->
             TimelineContent.Bubble(this)
