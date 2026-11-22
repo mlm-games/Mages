@@ -699,8 +699,84 @@ wasm_unobserve! {
     "unobserveRoomList"          => unobserve_room_list(room_list_subs);
 }
 
+fn parse_send_type(value: &str) -> Result<MessageSendType, JsValue> {
+    match value {
+        "Text" => Ok(MessageSendType::Text),
+        "Emote" => Ok(MessageSendType::Emote),
+        _ => Err(webffi_err("invalid message send type")),
+    }
+}
+
 #[wasm_bindgen]
 impl WasmClient {
+    #[wasm_bindgen(js_name = sendMessageTyped)]
+    pub async fn send_message_typed(
+        &self,
+        room_id: String,
+        body: String,
+        formatted_body: Option<String>,
+        send_type: String,
+    ) -> JsValue {
+        let st = match parse_send_type(&send_type) {
+            Ok(st) => st,
+            Err(err) => return err,
+        };
+        let Some(s) = self.state() else {
+            return webffi_not_init();
+        };
+        webffi_unit(s.core.send_message_typed(room_id, body, formatted_body, st).await)
+    }
+
+    #[wasm_bindgen(js_name = replyTyped)]
+    pub async fn reply_typed(
+        &self,
+        room_id: String,
+        in_reply_to: String,
+        body: String,
+        formatted_body: Option<String>,
+        send_type: String,
+    ) -> JsValue {
+        let st = match parse_send_type(&send_type) {
+            Ok(st) => st,
+            Err(err) => return err,
+        };
+        let Some(s) = self.state() else {
+            return webffi_not_init();
+        };
+        webffi_unit(s.core.reply_typed(room_id, in_reply_to, body, formatted_body, st).await)
+    }
+
+    #[wasm_bindgen(js_name = sendThreadTextTyped)]
+    pub async fn send_thread_text_typed(
+        &self,
+        room_id: String,
+        root_event_id: String,
+        body: String,
+        reply_to_event_id: Option<String>,
+        formatted_body: Option<String>,
+        send_type: String,
+    ) -> JsValue {
+        let st = match parse_send_type(&send_type) {
+            Ok(st) => st,
+            Err(err) => return err,
+        };
+        let Some(s) = self.state() else {
+            return webffi_not_init();
+        };
+        webffi_unit(
+            s.core
+                .send_thread_text_typed(
+                    room_id,
+                    root_event_id,
+                    body,
+                    reply_to_event_id,
+                    formatted_body,
+                    st,
+                )
+                .await,
+        )
+    }
+
     #[wasm_bindgen(js_name = createAsync)]
     pub async fn create_async(
         homeserver_url: String,

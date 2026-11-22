@@ -546,6 +546,15 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         return requireClient().sendMessage(roomId, body, formattedBody).awaitUnitResult()
     }
 
+    override suspend fun sendTyped(
+        roomId: String,
+        body: String,
+        formattedBody: String?,
+        sendType: MessageSendType,
+    ): Result<Unit> = requireClient()
+        .sendMessageTyped(roomId, body, formattedBody, sendType.name)
+        .awaitUnitResult()
+
     override suspend fun sendQueueSetEnabled(enabled: Boolean): Result<Unit> =
         requireClient().sendQueueSetEnabled(enabled).awaitUnitResult()
 
@@ -823,6 +832,16 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         formattedBody: String?
     ): Result<Unit> =
         requireClient().reply(roomId, inReplyToEventId, body, formattedBody).awaitUnitResult()
+
+    override suspend fun replyTyped(
+        roomId: String,
+        inReplyToEventId: String,
+        body: String,
+        formattedBody: String?,
+        sendType: MessageSendType,
+    ): Result<Unit> = requireClient()
+        .replyTyped(roomId, inReplyToEventId, body, formattedBody, sendType.name)
+        .awaitUnitResult()
 
     override suspend fun edit(
         roomId: String,
@@ -1495,6 +1514,23 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             body,
             replyToEventId,
             formattedBody
+        ).awaitUnitResult()
+
+    override suspend fun sendThreadTextTyped(
+        roomId: String,
+        rootEventId: String,
+        body: String,
+        replyToEventId: String?,
+        formattedBody: String?,
+        sendType: MessageSendType,
+    ): Result<Unit> = requireClient()
+        .sendThreadTextTyped(
+            roomId,
+            rootEventId,
+            body,
+            replyToEventId,
+            formattedBody,
+            sendType.name,
         ).awaitUnitResult()
 
     override suspend fun threadSummary(
