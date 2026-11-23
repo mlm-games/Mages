@@ -16,6 +16,7 @@ import org.mlm.mages.matrix.RoomNotificationMode
 import org.mlm.mages.platform.Notifier
 import org.mlm.mages.push.NotificationMediaPolicy
 import org.mlm.mages.push.NotificationPresentation
+import org.mlm.mages.push.PushHistoryStore
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.ThreadReadMarks
 import org.mlm.mages.settings.appLanguageTagOrDefault
@@ -73,6 +74,7 @@ class LinuxPushHandler(
     }
 
     private suspend fun handlePushMessage(raw: String) {
+        PushHistoryStore.record("Desktop", raw)
         val pushes = extractMatrixPushPayload(raw)
         val port = service.portOrNull ?: return
 

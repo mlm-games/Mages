@@ -650,6 +650,9 @@ wasm_delegate! { webffi_unit;
     "sendThreadText"     => send_thread_text(room_id: String, root_event_id: String, body: String, reply_to_event_id: Option<String>, formatted_body: Option<String>);
     "setReactionNotificationsEnabled" => set_reaction_notifications_enabled(enabled: bool);
     "setEventNotificationsEnabled" => set_event_notifications_enabled(rule_id: String, event_type: String, enabled: bool);
+    "optimizeStores"    => optimize_stores();
+    "setAvatarFromMxc"  => set_avatar_from_mxc(mxc: String);
+    "setRoomAvatarFromMxc" => set_room_avatar_from_mxc(room_id: String, mxc: String);
 }
 
 wasm_delegate! { webffi_value;
@@ -668,6 +671,7 @@ wasm_delegate! { webffi_value;
     "recentEmoji"        => recent_emoji();
     "isReactionNotificationsEnabled" => is_reaction_notifications_enabled();
     "markRoomSeenLatest" => mark_room_seen_latest(room_id: String, send_public_receipt: bool);
+    "pushRules"          => push_rules();
 }
 
 wasm_delegate! { webffi_option;

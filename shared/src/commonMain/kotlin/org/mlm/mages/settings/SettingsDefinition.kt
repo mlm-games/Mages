@@ -1134,12 +1134,19 @@ data class AppSettings(
     val enableSlashCommands: Boolean = false,
 
     @Setting(
-        titleKey = MagesSettingsKeys.DEVELOPER_MODE,
-        descriptionKey = MagesSettingsKeys.DEVELOPER_MODE_DESCRIPTION,
+        titleKey = MagesSettingsKeys.ABOUT,
+        descriptionKey = MagesSettingsKeys.ABOUT_DESCRIPTION,
         category = Advanced::class,
-        type = Toggle::class
+        type = Button::class,
     )
+    @ActionHandler(OpenAboutAction::class)
+    val openAbout: Unit = Unit,
+
+    @Persisted(key = "developer_mode")
     val developerMode: Boolean = false,
+
+    @Persisted(key = "developer_log_level")
+    val developerLogLevel: String = "Info",
 
     @Setting(
         titleKey = MagesSettingsKeys.EDIT_LATEST_WITH_UP_ARROW,
@@ -1190,6 +1197,7 @@ object OpenBubbleSettingsAction : SettingAction
 object OpenWallpaperAction : SettingAction
 object OpenMessageMenuSettingsAction : SettingAction
 object OpenQuickReactionsAction : SettingAction
+object OpenAboutAction : SettingAction
 object OpenNotificationRulesAction : SettingAction
 object OpenMediaCacheAction : SettingAction
 object RequestNotificationPermissionAction : SettingAction

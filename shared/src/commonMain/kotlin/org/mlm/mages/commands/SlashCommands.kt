@@ -40,6 +40,11 @@ sealed interface SlashCommand {
 
     data class JoinRoom(val roomIdOrAlias: String) : SlashCommand
     data object LeaveRoom : SlashCommand
+    data object DevTools : SlashCommand
+    data object Crash : SlashCommand
+    data class SetMyAvatarFromMxc(val mxc: String) : SlashCommand
+    data class SetRoomAvatarFromMxc(val mxc: String) : SlashCommand
+    data class UpgradeRoom(val version: String) : SlashCommand
     data class DevOnly(val command: String) : SlashCommand
 }
 
@@ -217,8 +222,21 @@ object SlashCommands {
                 }
             }
 
-            "/devtools", "/crash", "/roomavatar", "/myavatar", "/myroomavatar", "/upgraderoom" ->
-                ParsedSlashCommand.Command(SlashCommand.DevOnly(commandToken))
+            "/devtools" -> ParsedSlashCommand.Command(SlashCommand.DevTools)
+
+            "/crash" -> ParsedSlashCommand.Command(SlashCommand.Crash)
+
+            "/roomavatar", "/myroomavatar" -> parseRequiredMessage(commandToken, args) { mxc ->
+                SlashCommand.SetRoomAvatarFromMxc(mxc)
+            }
+
+            "/myavatar" -> parseRequiredMessage(commandToken, args) { mxc ->
+                SlashCommand.SetMyAvatarFromMxc(mxc)
+            }
+
+            "/upgraderoom" -> parseRequiredMessage(commandToken, args) { version ->
+                SlashCommand.UpgradeRoom(version)
+            }
 
             else -> ParsedSlashCommand.Error("Unknown slash command: $commandToken")
         }

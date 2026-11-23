@@ -23,6 +23,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.mlm.mages.MatrixService
 import org.mlm.mages.platform.SettingsProvider
+import org.mlm.mages.push.PushHistoryStore
 import org.mlm.mages.push.extractMatrixPushPayload
 import org.mlm.mages.settings.appLanguageTagOrDefault
 import org.unifiedpush.android.connector.FailedReason
@@ -69,6 +70,7 @@ class AppPushService : PushService(), KoinComponent {
             ""
         }
 
+        PushHistoryStore.record("Android", raw)
         val pushes = extractMatrixPushPayload(raw)
         Log.i(TAG, "Extracted ${pushes.size} pushes: $pushes")
 

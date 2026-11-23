@@ -208,6 +208,9 @@ delegate! { unit;
     set_user_call(joined_ts_ms: Option<i64>);
     clear_user_call();
     remove_avatar();
+    optimize_stores();
+    set_avatar_from_mxc(mxc: String);
+    set_room_avatar_from_mxc(room_id: String, mxc: String);
     accept_knock_request(room_id: String, user_id: String);
     decline_knock_request(room_id: String, user_id: String, reason: Option<String>);
 }
@@ -246,6 +249,7 @@ delegate! { result bool; can_user_ban(room_id: String, user_id: String); can_use
 delegate! { option FfiRoomNotificationMode; room_notification_mode(room_id: String); }
 delegate! { option FfiRoomNotificationMode; user_defined_room_notification_mode(room_id: String); }
 delegate! { result bool; is_push_rule_enabled(kind: FfiPushRuleKind, rule_id: String); }
+delegate! { result Vec<FfiPushRule>; push_rules(); }
 delegate! { result Vec<String>; get_notification_keywords(); }
 delegate! { unit; add_notification_keyword(keyword: String); remove_notification_keyword(keyword: String); }
 delegate! { option String; event_at_timestamp(room_id: String, ts_ms: i64, backward: bool); }

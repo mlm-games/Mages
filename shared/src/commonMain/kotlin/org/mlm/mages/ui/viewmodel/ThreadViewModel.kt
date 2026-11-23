@@ -96,6 +96,8 @@ class ThreadViewModel(
         data class ShowError(val message: String) : Event()
         data class ShowSuccess(val message: String) : Event()
         data class NavigateToRoom(val roomId: String, val title: String) : Event()
+        data object NavigateToDeveloperTools : Event()
+        data object CrashApp : Event()
         data class OpenForwardPicker(val roomId: String, val eventIds: List<String>) : Event()
     }
 
@@ -1653,6 +1655,18 @@ class ThreadViewModel(
                 )
             }
         }
+        SlashCommand.DevTools -> {
+            _events.send(Event.NavigateToDeveloperTools)
+            Result.success(Unit)
+        }
+
+        SlashCommand.Crash -> {
+            _events.send(Event.CrashApp)
+            Result.success(Unit)
+        }
+
+        is SlashCommand.SetMyAvatarFromMxc -> service.port.setAvatarFromMxc(command.mxc)
+
         is SlashCommand.DevOnly -> Result.failure(
             IllegalStateException("${command.command} is not available in Mages")
         )

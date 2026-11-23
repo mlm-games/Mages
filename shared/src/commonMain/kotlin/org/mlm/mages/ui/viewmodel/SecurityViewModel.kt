@@ -15,6 +15,7 @@ import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.MatrixPort
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.CopyUnifiedPushEndpointAction
+import org.mlm.mages.settings.OpenAboutAction
 import org.mlm.mages.settings.OpenBubbleSettingsAction
 import org.mlm.mages.settings.OpenMediaCacheAction
 import org.mlm.mages.settings.OpenMessageMenuSettingsAction
@@ -54,6 +55,7 @@ class SecurityViewModel(
         data object NavigateToWallpaper : Event()
         data object NavigateToMessageMenu : Event()
         data object NavigateToQuickReactions : Event()
+        data object NavigateToAbout : Event()
     }
 
     private val _events = Channel<Event>(Channel.BUFFERED)
@@ -610,6 +612,10 @@ class SecurityViewModel(
         }
         if (actionClass == OpenQuickReactionsAction::class) {
             _events.send(Event.NavigateToQuickReactions)
+            return
+        }
+        if (actionClass == OpenAboutAction::class) {
+            _events.send(Event.NavigateToAbout)
             return
         }
         ActionRegistry.execute(actionClass)

@@ -49,6 +49,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import co.touchlab.kermit.Logger
+import co.touchlab.kermit.Severity
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.getString
 import org.koin.compose.koinInject
@@ -117,6 +118,7 @@ import org.mlm.mages.ui.components.AttachmentSourceKind
 import org.mlm.mages.ui.components.toMagesAttachment
 import org.mlm.mages.ui.theme.MainTheme
 import org.mlm.mages.ui.theme.appFontFamily
+import org.mlm.mages.ui.util.crashApp
 import org.mlm.mages.ui.util.popBack
 import org.mlm.mages.ui.viewmodel.*
 import org.mlm.mages.verification.VerificationCoordinator
@@ -289,6 +291,10 @@ private fun AppContent(
         ) {
             val languageTag = LocalAppLocale.current
             val scope = rememberCoroutineScope()
+            LaunchedEffect(settings.developerLogLevel) {
+                val severity = runCatching { Severity.valueOf(settings.developerLogLevel) }.getOrDefault(Severity.Info)
+                Logger.setMinSeverity(severity)
+            }
             var showStartChat by remember { mutableStateOf(false) }
             var showCreateRoom by remember { mutableStateOf(false) }
             var showAccountSwitcher by remember { mutableStateOf(false) }
@@ -861,6 +867,10 @@ private fun AppContent(
                                         SecurityViewModel.Event.NavigateToMessageMenu -> {
                                             backStack.add(Route.MessageMenu)
                                         }
+
+                                        SecurityViewModel.Event.NavigateToAbout -> {
+                                            backStack.add(Route.About)
+                                        }
                                     }
                                 }
                             }
@@ -1009,6 +1019,14 @@ private fun AppContent(
 
                                         is ThreadViewModel.Event.NavigateToRoom -> {
                                             backStack.add(Route.Room(event.roomId, event.title))
+                                        }
+
+                                        is ThreadViewModel.Event.NavigateToDeveloperTools -> {
+                                            backStack.add(Route.DeveloperTools)
+                                        }
+
+                                        is ThreadViewModel.Event.CrashApp -> {
+                                            crashApp()
                                         }
 
                                         is ThreadViewModel.Event.OpenForwardPicker -> {
@@ -1302,6 +1320,20 @@ private fun AppContent(
                                 }
                             )
                         }
+
+                        entry<Route.About> {
+                            AboutRoute(
+                                onBack = backStack::popBack,
+                                onOpenDeveloperTools = { backStack.add(Route.DeveloperTools) },
+                            )
+                        }
+
+                        entry<Route.DeveloperTools> {
+                            DeveloperToolsRoute(
+                                onBack = backStack::popBack,
+                                onOpenMediaCache = { backStack.add(Route.MediaCache) },
+                            )
+                        }
                     }
                     )
                 }
@@ -1518,6 +1550,8 @@ private fun RoomEntryContent(
         onNavigateToThread = { roomId, eventId, roomName, focusedEventId ->
             backStack.add(Route.Thread(roomId, eventId, roomName, focusedEventId))
         },
+        onOpenDeveloperTools = { backStack.add(Route.DeveloperTools) },
+        onCrashApp = ::crashApp,
         onRequestLocationPermissions = onRequestLocationPermissions,
         onStartCall = {
             onRequestVideoCallPermissions?.invoke {

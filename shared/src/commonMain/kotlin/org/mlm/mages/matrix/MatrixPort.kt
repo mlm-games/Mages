@@ -183,6 +183,15 @@ enum class PushRuleKind {
     Content
 }
 
+@Serializable
+data class PushRuleInfo(
+    val kind: PushRuleKind,
+    @SerialName("rule_id") val ruleId: String,
+    val enabled: Boolean,
+    @SerialName("is_default") val isDefault: Boolean,
+    val actions: List<String>,
+)
+
 @Composable
 fun RoomNotificationMode.displayName(): String = when (this) {
     RoomNotificationMode.AllMessages -> stringResource(Res.string.all_messages)
@@ -1344,6 +1353,7 @@ interface MatrixPort {
 
     suspend fun isPushRuleEnabled(kind: PushRuleKind, ruleId: String): Result<Boolean>
     suspend fun setPushRuleEnabled(kind: PushRuleKind, ruleId: String, enabled: Boolean): Result<Unit>
+    suspend fun pushRules(): Result<List<PushRuleInfo>>
 
     suspend fun getNotificationKeywords(): List<String>
 
@@ -1553,6 +1563,8 @@ interface MatrixPort {
 
     suspend fun setAvatarFromPath(path: String, mime: String): Result<String>
 
+    suspend fun setAvatarFromMxc(mxc: String): Result<Unit>
+
     /** Uploads arbitrary bytes and returns the resulting `mxc://` URI. */
     suspend fun uploadBytes(bytes: ByteArray, mime: String): Result<String>
 
@@ -1565,6 +1577,10 @@ interface MatrixPort {
     suspend fun removeAvatar(): Result<Unit>
 
     suspend fun setRoomAvatarFromPath(roomId: String, path: String, mime: String): Result<String>
+
+    suspend fun setRoomAvatarFromMxc(roomId: String, mxc: String): Result<Unit>
+
+    suspend fun upgradeRoom(roomId: String, newVersion: String): Result<String>
 
     suspend fun removeRoomAvatar(roomId: String): Result<Unit>
 
@@ -1673,6 +1689,8 @@ interface MatrixPort {
     suspend fun clearMediaType(kind: String): Result<Unit>
     suspend fun clearMediaAboveSize(minSize: ULong): Result<Unit>
     suspend fun clearMediaCache(): Result<Unit>
+
+    suspend fun optimizeStores(): Result<Unit>
     suspend fun mediaRetentionPolicy(): MediaRetentionPolicyInfo?
     suspend fun setMediaRetentionPolicy(policy: MediaRetentionPolicyInfo): Result<Unit>
     suspend fun clearMediaCacheOlderThan(days: Long): Result<Unit>

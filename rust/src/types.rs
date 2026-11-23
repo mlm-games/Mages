@@ -1202,6 +1202,15 @@ pub enum FfiPushRuleKind {
     Content,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, Record)]
+pub struct FfiPushRule {
+    pub kind: FfiPushRuleKind,
+    pub rule_id: String,
+    pub enabled: bool,
+    pub is_default: bool,
+    pub actions: Vec<String>,
+}
+
 #[derive(Clone, Serialize, Deserialize, Enum)]
 pub enum TimelineDiffKind {
     Append {

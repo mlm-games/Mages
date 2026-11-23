@@ -1438,6 +1438,12 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         "set push rule enabled"
     )
 
+    override suspend fun pushRules(): Result<List<PushRuleInfo>> {
+        val rules = requireClient().pushRules().awaitValue<List<PushRuleInfo>>("pushRules")
+            ?: return Result.failure(Exception("Failed to load push rules"))
+        return Result.success(rules)
+    }
+
     override suspend fun getNotificationKeywords(): List<String> =
         decodeNullableStringList(requireClient().getNotificationKeywords().awaitAny()).orEmpty()
 
@@ -1692,6 +1698,9 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             .awaitStringResult()
     }
 
+    override suspend fun setAvatarFromMxc(mxc: String): Result<Unit> =
+        requireClient().setAvatarFromMxc(mxc).awaitUnitResult()
+
     override suspend fun uploadBytes(bytes: ByteArray, mime: String): Result<String> {
         return requireClient()
             .uploadBytes(bytes.toJsUint8Array(), mime)
@@ -1722,6 +1731,12 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             .setRoomAvatarBytes(roomId, bytes.toJsUint8Array(), mime)
             .awaitStringResult()
     }
+
+    override suspend fun setRoomAvatarFromMxc(roomId: String, mxc: String): Result<Unit> =
+        requireClient().setRoomAvatarFromMxc(roomId, mxc).awaitUnitResult()
+
+    override suspend fun upgradeRoom(roomId: String, newVersion: String): Result<String> =
+        requireClient().upgradeRoom(roomId, newVersion).awaitStringResult()
 
     override suspend fun removeRoomAvatar(roomId: String): Result<Unit> {
         val result = requireClient().removeRoomAvatar(roomId).awaitResult()
@@ -2050,6 +2065,9 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
 
     override suspend fun clearMediaCache(): Result<Unit> =
         requireClient().clearMediaCache().awaitUnitResult()
+
+    override suspend fun optimizeStores(): Result<Unit> =
+        requireClient().optimizeStores().awaitUnitResult()
 
     override suspend fun mediaRetentionPolicy(): MediaRetentionPolicyInfo? =
         requireClientOrNull()?.mediaRetentionPolicy()?.awaitValue("mediaRetentionPolicy")

@@ -2,6 +2,7 @@
 
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
+import java.io.ByteArrayOutputStream
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -11,6 +12,58 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.rustUniffi)
+}
+
+abstract class GenerateGitInfoTask @Inject constructor(
+    private val execOps: ExecOperations,
+) : DefaultTask() {
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun generate() {
+        fun git(vararg args: String): String = runCatching {
+            val stdout = ByteArrayOutputStream()
+            execOps.exec {
+                commandLine("git", *args)
+                standardOutput = stdout
+                errorOutput = ByteArrayOutputStream()
+                isIgnoreExitValue = true
+            }
+            stdout.toString(Charsets.UTF_8).trim()
+        }.getOrDefault("")
+
+        fun kotlinString(value: String) = buildString {
+            for (c in value) when (c) {
+                '\\' -> { append('\\'); append('\\') }
+                '"' -> { append('\\'); append('"') }
+                '$' -> { append('\\'); append('$') }
+                else -> append(c)
+            }
+        }
+
+        val branch = kotlinString(git("rev-parse", "--abbrev-ref", "HEAD").ifBlank { "unknown" })
+        val sha = kotlinString(git("rev-parse", "HEAD").ifBlank { "unknown" })
+        val output = outputDir.get().asFile.resolve("org/mlm/mages/GitInfo.kt")
+        val content = """
+            package org.mlm.mages
+
+            object GitInfo {
+                const val BRANCH = "$branch"
+                const val SHA = "$sha"
+            }
+            """.trimIndent() + "\n"
+        output.parentFile.mkdirs()
+        if (!output.exists() || output.readText() != content) {
+            output.writeText(content)
+        }
+    }
+}
+
+val gitInfoOutputDir = layout.buildDirectory.dir("generated/gitInfo/commonMain/kotlin")
+val generateGitInfo = tasks.register<GenerateGitInfoTask>("generateGitInfo") {
+    outputDir.set(gitInfoOutputDir)
+    outputs.upToDateWhen { false }
 }
 
 kotlin {
@@ -208,6 +261,7 @@ kotlin {
         commonMain {
             kotlin.srcDir(layout.buildDirectory.dir("generated/ksp/metadata/commonMain/kotlin"))
             kotlin.srcDir(layout.buildDirectory.dir("generated/ksp/metadata/commonMain/java"))
+            kotlin.srcDir(generateGitInfo.map { it.outputDir.get().asFile })
         }
     }
 }
@@ -220,6 +274,7 @@ tasks.matching { it.name.startsWith("ksp") && it.name != "kspCommonMainKotlinMet
 
 tasks.withType<KotlinCompilationTask<*>>().configureEach {
     dependsOn("kspCommonMainKotlinMetadata")
+    dependsOn(generateGitInfo)
 }
 
 dependencies {

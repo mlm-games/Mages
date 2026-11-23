@@ -67,6 +67,8 @@ sealed interface Route : NavKey {
     @Serializable data object MessageMenu : Route
     @Serializable data object QuickReactions : Route
     @Serializable data class RoomWallpaper(val roomId: String) : Route
+    @Serializable data object About : Route
+    @Serializable data object DeveloperTools : Route
 }
 
 fun <T : NavKey> NavBackStack<T>.replaceTop(key: T) {
@@ -304,6 +306,8 @@ val routeSerializersModule = SerializersModule {
         subclass(Route.Bookmarks::class, Route.Bookmarks.serializer())
         subclass(Route.Wallpaper::class, Route.Wallpaper.serializer())
         subclass(Route.RoomWallpaper::class, Route.RoomWallpaper.serializer())
+        subclass(Route.About::class, Route.About.serializer())
+        subclass(Route.DeveloperTools::class, Route.DeveloperTools.serializer())
     }
 }
 

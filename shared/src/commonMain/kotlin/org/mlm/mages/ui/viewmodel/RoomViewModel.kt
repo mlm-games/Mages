@@ -220,6 +220,8 @@ class RoomViewModel(
         data class NavigateToThread(val roomId: String, val eventId: String, val roomName: String, val focusedEventId: String? = null) : Event()
         data class NavigateToRoom(val roomId: String, val name: String) : Event()
         data object NavigateBack : Event()
+        data object NavigateToDeveloperTools : Event()
+        data object CrashApp : Event()
         data class RoomUnavailable(val roomId: String) : Event()
 
         data class ShareMessage(
@@ -983,6 +985,29 @@ class RoomViewModel(
             val left = service.port.leaveRoom(currentState.roomId)
             if (left.isSuccess) _events.send(Event.NavigateBack)
             left
+        }
+
+        SlashCommand.DevTools -> {
+            _events.send(Event.NavigateToDeveloperTools)
+            Result.success(Unit)
+        }
+
+        SlashCommand.Crash -> {
+            _events.send(Event.CrashApp)
+            Result.success(Unit)
+        }
+
+        is SlashCommand.SetMyAvatarFromMxc -> service.port.setAvatarFromMxc(command.mxc)
+
+        is SlashCommand.SetRoomAvatarFromMxc ->
+            service.port.setRoomAvatarFromMxc(currentState.roomId, command.mxc)
+
+        is SlashCommand.UpgradeRoom -> {
+            val result = service.port.upgradeRoom(currentState.roomId, command.version)
+            if (result.isSuccess) {
+                _events.send(Event.ShowSuccess("Room upgraded to ${command.version}: ${result.getOrThrow()}"))
+            }
+            result.map { }
         }
 
         is SlashCommand.DevOnly -> Result.failure(

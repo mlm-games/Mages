@@ -1119,6 +1119,21 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
         runWithFfiResult { withClient { it.setPushRuleEnabled(kind.toFfi(), ruleId, enabled) } }
     }
 
+    override suspend fun pushRules(): Result<List<PushRuleInfo>> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.pushRules() } }.map { rules ->
+                rules.map { rule ->
+                    PushRuleInfo(
+                        kind = rule.kind.toPushRuleKind(),
+                        ruleId = rule.ruleId,
+                        enabled = rule.enabled,
+                        isDefault = rule.isDefault,
+                        actions = rule.actions,
+                    )
+                }
+            }
+        }
+
     override suspend fun getNotificationKeywords(): List<String> =
         withContext(matrixDispatcher) {
             runWithFfiResult { withClient { it.getNotificationKeywords() } }.getOrDefault(emptyList())
@@ -2035,6 +2050,11 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
             runWithFfiResult { withClient { it.setAvatarFromPath(path, mime) } }
         }
 
+    override suspend fun setAvatarFromMxc(mxc: String): Result<Unit> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.setAvatarFromMxc(mxc) } }.map { }
+        }
+
     override suspend fun uploadBytes(bytes: ByteArray, mime: String): Result<String> =
         withContext(mediaDispatcher) {
             runWithFfiResult { withClient { it.uploadBytes(bytes, mime) } }
@@ -2062,6 +2082,16 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
     ): Result<String> =
         withContext(mediaDispatcher) {
             runWithFfiResult { withClient { it.setRoomAvatarFromPath(roomId, path, mime) } }
+        }
+
+    override suspend fun setRoomAvatarFromMxc(roomId: String, mxc: String): Result<Unit> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.setRoomAvatarFromMxc(roomId, mxc) } }.map { }
+        }
+
+    override suspend fun upgradeRoom(roomId: String, newVersion: String): Result<String> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.upgradeRoom(roomId, newVersion) } }
         }
 
     override suspend fun removeRoomAvatar(roomId: String): Result<Unit> =
@@ -2659,6 +2689,12 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
         }
     }
 
+    override suspend fun optimizeStores(): Result<Unit> = withContext(matrixDispatcher) {
+        withClient {
+            runWithFfiResult { it.optimizeStores() }
+        }
+    }
+
     override suspend fun mediaRetentionPolicy(): MediaRetentionPolicyInfo? = withContext(matrixDispatcher) {
         withClient {
             runCatching {
@@ -3013,6 +3049,14 @@ private fun PushRuleKind.toFfi(): FfiPushRuleKind = when (this) {
     PushRuleKind.Sender -> FfiPushRuleKind.SENDER
     PushRuleKind.Room -> FfiPushRuleKind.ROOM
     PushRuleKind.Content -> FfiPushRuleKind.CONTENT
+}
+
+private fun FfiPushRuleKind.toPushRuleKind(): PushRuleKind = when (this) {
+    FfiPushRuleKind.OVERRIDE -> PushRuleKind.Override
+    FfiPushRuleKind.UNDERRIDE -> PushRuleKind.Underride
+    FfiPushRuleKind.SENDER -> PushRuleKind.Sender
+    FfiPushRuleKind.ROOM -> PushRuleKind.Room
+    FfiPushRuleKind.CONTENT -> PushRuleKind.Content
 }
 
 private fun Presence.toFfi(): mages.Presence = when (this) {

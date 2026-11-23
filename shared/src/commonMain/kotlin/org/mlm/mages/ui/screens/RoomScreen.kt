@@ -148,6 +148,8 @@ fun RoomScreen(
     onOpenInfo: () -> Unit,
     onNavigateToRoom: (roomId: String, name: String) -> Unit,
     onNavigateToThread: (roomId: String, eventId: String, roomName: String, focusedEventId: String?) -> Unit,
+    onOpenDeveloperTools: () -> Unit,
+    onCrashApp: () -> Unit,
     onRequestLocationPermissions: ((() -> Unit) -> Unit)? = null,
     onStartCall: () -> Unit,
     onStartVoiceCall: () -> Unit,
@@ -531,6 +533,14 @@ fun RoomScreen(
 
                 is RoomViewModel.Event.NavigateBack -> {
                     onBack()
+                }
+
+                is RoomViewModel.Event.NavigateToDeveloperTools -> {
+                    onOpenDeveloperTools()
+                }
+
+                is RoomViewModel.Event.CrashApp -> {
+                    onCrashApp()
                 }
 
                 is RoomViewModel.Event.RoomUnavailable -> {

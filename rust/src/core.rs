@@ -67,7 +67,7 @@ use tracing::warn;
 
 use crate::{
     ActionAvailability, ActionPresentation, AttachmentInfo, AttachmentKind, DirectoryUser,
-    FfiError, FfiPushRuleKind, FfiRoomNotificationMode, ForwardResult, ImagePackSummary,
+    FfiError, FfiPushRule, FfiPushRuleKind, FfiRoomNotificationMode, ForwardResult, ImagePackSummary,
     KnockRequestSummary, LinkPreview, MediaPreviewMode, MemberActionState, MemberSummary,
     MessageActionState, MessageEvent, MessageSendType, MutualRooms, OwnProfile, OwnReceipt, PasswordLoginKind,
     PollDefinition, PredecessorRoomInfo, Presence, PresenceInfo, ProfileCard, ProfileField,
@@ -2760,6 +2760,34 @@ impl CoreClient {
             .ffi()
     }
 
+    pub async fn push_rules(&self) -> Result<Vec<FfiPushRule>, FfiError> {
+        use matrix_sdk::ruma::push::AnyPushRuleRef;
+        let settings = self.sdk.notification_settings().await;
+        let ruleset = settings.ruleset().await;
+        let mut result = Vec::new();
+        for rule in ruleset.iter() {
+            let kind = match rule {
+                AnyPushRuleRef::Override(_) => FfiPushRuleKind::Override,
+                AnyPushRuleRef::Underride(_) => FfiPushRuleKind::Underride,
+                AnyPushRuleRef::Sender(_) => FfiPushRuleKind::Sender,
+                AnyPushRuleRef::Room(_) => FfiPushRuleKind::Room,
+                _ => FfiPushRuleKind::Content,
+            };
+            result.push(FfiPushRule {
+                kind,
+                rule_id: rule.rule_id().to_string(),
+                enabled: rule.enabled(),
+                is_default: rule.is_server_default(),
+                actions: rule.actions().iter().map(|action| format!("{action:?}")).collect(),
+            });
+        }
+        Ok(result)
+    }
+
+    pub async fn optimize_stores(&self) -> Result<(), FfiError> {
+        self.sdk.optimize_stores().await.ffi()
+    }
+
     pub async fn is_push_rule_enabled(
         &self,
         kind: FfiPushRuleKind,
@@ -3059,6 +3087,20 @@ impl CoreClient {
 
         room.send_state_event(content).await.ffi()?;
         Ok(upload.content_uri.to_string())
+    }
+
+    pub async fn set_room_avatar_from_mxc(
+        &self,
+        room_id: String,
+        mxc: String,
+    ) -> Result<(), FfiError> {
+        let uri = <&matrix_sdk::ruma::MxcUri>::try_from(mxc.as_str())
+            .map_err(|e| FfiError::Msg(e.to_string()))?;
+        let room = self
+            .room(&room_id)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        room.set_avatar_url(uri, None).await.ffi()?;
+        Ok(())
     }
 
     pub async fn remove_room_avatar(&self, room_id: String) -> Result<(), FfiError> {
@@ -5469,6 +5511,12 @@ impl CoreClient {
             .await
             .map_err(FfiError::from)?;
         Ok(mxc.to_string())
+    }
+
+    pub async fn set_avatar_from_mxc(&self, mxc: String) -> Result<(), FfiError> {
+        let uri = <&matrix_sdk::ruma::MxcUri>::try_from(mxc.as_str())
+            .map_err(|e| FfiError::Msg(e.to_string()))?;
+        self.sdk.account().set_avatar_url(Some(uri)).await.ffi()
     }
 
     pub async fn remove_avatar(&self) -> Result<(), FfiError> {
