@@ -1334,6 +1334,7 @@ interface MatrixPort {
     suspend fun createRoom(name: String?, topic: String?, invitees: List<String>, isPublic: Boolean, roomAlias: String?): String?
     suspend fun setRoomName(roomId: String, name: String): Result<Unit>
     suspend fun setRoomTopic(roomId: String, topic: String): Result<Unit>
+    suspend fun setRoomDisplayName(roomId: String, name: String): Result<Unit>
 
     suspend fun roomProfile(roomId: String): RoomProfile?
 

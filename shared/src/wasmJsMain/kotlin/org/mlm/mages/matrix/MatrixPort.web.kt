@@ -1375,6 +1375,11 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         return unitResult(result.ok, "set room topic", result.error)
     }
 
+    override suspend fun setRoomDisplayName(roomId: String, name: String): Result<Unit> {
+        val result = requireClient().setRoomDisplayName(roomId, name).awaitResult()
+        return unitResult(result.ok, "set room display name", result.error)
+    }
+
     override suspend fun roomProfile(roomId: String): RoomProfile? =
         decodeValueOrNull(
             requireClient().roomProfile(roomId).awaitAny(),

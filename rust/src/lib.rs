@@ -166,6 +166,7 @@ delegate! { unit;
     enable_room_encryption(room_id: String);
     set_room_name(room_id: String, name: String);
     set_room_topic(room_id: String, topic: String);
+    set_room_display_name(room_id: String, name: String);
     remove_room_avatar(room_id: String);
     set_pinned_events(room_id: String, event_ids: Vec<String>);
     set_room_favourite(room_id: String, fav: bool);

@@ -3010,6 +3010,20 @@ impl CoreClient {
             .map(|_| ())
     }
 
+    pub async fn set_room_display_name(
+        &self,
+        room_id: String,
+        name: String,
+    ) -> Result<(), FfiError> {
+        let room = self
+            .room(&room_id)
+            .ok_or_else(|| FfiError::Msg("room not found".into()))?;
+        room.set_own_member_display_name(Some(name))
+            .await
+            .ffi()
+            .map(|_| ())
+    }
+
     pub async fn set_room_avatar(
         &self,
         room_id: String,

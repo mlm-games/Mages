@@ -20,6 +20,7 @@ import org.mlm.mages.MessageEvent
 import org.mlm.mages.ReplyPreviewKind
 import org.mlm.mages.StickerInfo
 import org.mlm.mages.commands.ParsedSlashCommand
+import org.mlm.mages.commands.RainbowGenerator
 import org.mlm.mages.commands.SlashCommand
 import org.mlm.mages.commands.SlashCommands
 import org.mlm.mages.commands.executeSendCommand
@@ -28,6 +29,7 @@ import org.mlm.mages.withBridgedThumb
 import org.mlm.mages.matrix.EventType
 import org.mlm.mages.matrix.ImagePackSummary
 import org.mlm.mages.matrix.LINK_PREVIEW_IMAGE_PX
+import org.mlm.mages.matrix.MessageSendType
 import org.mlm.mages.matrix.PollData
 import org.mlm.mages.matrix.ThreadReplyIndex
 import org.mlm.mages.matrix.TimelineDiff
@@ -1602,26 +1604,51 @@ class ThreadViewModel(
         return result?.isSuccess == true
     }
 
-    private suspend fun executeThreadSlashCommand(command: SlashCommand): Result<Unit> {
-        if (command !is SlashCommand.Send) {
-            return Result.failure(IllegalStateException("Command is not supported in threads"))
+    private suspend fun executeThreadSlashCommand(command: SlashCommand): Result<Unit> = when (command) {
+        is SlashCommand.SetDisplayName -> service.port.setDisplayName(command.name)
+        is SlashCommand.ShowUser -> {
+            selectMemberForAction(command.userId)
+            Result.success(Unit)
         }
-        val outgoing = if (command.asPlainText) {
-            OutgoingText(command.message, null)
-        } else {
-            command.message.toOutgoingText()
-        }
-        if (isMessageTooLong(outgoing?.body.orEmpty(), outgoing?.formattedBody, currentState.isRoomEncrypted)) {
-            return Result.failure(IllegalStateException(getString(Res.string.message_too_long)))
-        }
-        return service.executeSendCommand(
-            roomId = roomId,
-            command = command,
-            body = outgoing?.body.orEmpty(),
-            formattedBody = outgoing?.formattedBody,
-            replyToEventId = currentState.replyingTo?.eventId,
-            threadRootEventId = rootEventId,
+        is SlashCommand.SendRainbow -> service.sendThreadTextTyped(
+            roomId,
+            rootEventId,
+            command.message,
+            currentState.replyingTo?.eventId,
+            RainbowGenerator.generate(command.message),
+            MessageSendType.Text,
         )
+        is SlashCommand.SendRainbowEmote -> service.sendThreadTextTyped(
+            roomId,
+            rootEventId,
+            command.message,
+            currentState.replyingTo?.eventId,
+            RainbowGenerator.generate(command.message),
+            MessageSendType.Emote,
+        )
+        is SlashCommand.SendSpoiler -> executeThreadSlashCommand(
+            SlashCommand.Send("||${command.message}||")
+        )
+        is SlashCommand.Send -> {
+            val outgoing = if (command.asPlainText) {
+                OutgoingText(command.message, null)
+            } else {
+                command.message.toOutgoingText()
+            }
+            if (isMessageTooLong(outgoing?.body.orEmpty(), outgoing?.formattedBody, currentState.isRoomEncrypted)) {
+                Result.failure(IllegalStateException(getString(Res.string.message_too_long)))
+            } else {
+                service.executeSendCommand(
+                    roomId = roomId,
+                    command = command,
+                    body = outgoing?.body.orEmpty(),
+                    formattedBody = outgoing?.formattedBody,
+                    replyToEventId = currentState.replyingTo?.eventId,
+                    threadRootEventId = rootEventId,
+                )
+            }
+        }
+        else -> Result.failure(IllegalStateException("Command is not supported in threads"))
     }
 
     private suspend fun String.toOutgoingText(): OutgoingText? =

@@ -17,6 +17,7 @@ import org.mlm.mages.calls.CallManager
 import org.mlm.mages.commands.ParsedSlashCommand
 import org.mlm.mages.commands.SlashCommand
 import org.mlm.mages.commands.SlashCommands
+import org.mlm.mages.commands.RainbowGenerator
 import org.mlm.mages.commands.executeSendCommand
 import org.mlm.mages.emoji.RecentEmojiStore
 import org.mlm.mages.notifications.SpaceNotificationScopeStore
@@ -943,6 +944,24 @@ class RoomViewModel(
         is SlashCommand.Unignore -> service.port.unignoreUser(command.userId)
         is SlashCommand.SetRoomName -> service.port.setRoomName(currentState.roomId, command.name)
         is SlashCommand.SetRoomTopic -> service.port.setRoomTopic(currentState.roomId, command.topic)
+        is SlashCommand.SetDisplayName -> service.port.setDisplayName(command.name)
+        is SlashCommand.SetRoomDisplayName -> service.port.setRoomDisplayName(currentState.roomId, command.name)
+        is SlashCommand.ShowUser -> {
+            selectMemberForAction(command.userId)
+            Result.success(Unit)
+        }
+        is SlashCommand.SendRainbow -> {
+            val html = RainbowGenerator.generate(command.message)
+            service.sendMessageTyped(currentState.roomId, command.message, html, MessageSendType.Text)
+        }
+        is SlashCommand.SendRainbowEmote -> {
+            val html = RainbowGenerator.generate(command.message)
+            service.sendMessageTyped(currentState.roomId, command.message, html, MessageSendType.Emote)
+        }
+        is SlashCommand.SendSpoiler -> executeSlashCommand(
+            SlashCommand.Send("||${command.message}||"),
+            replyToEventId,
+        )
         is SlashCommand.JoinRoom -> {
             val joined = service.port.joinByIdOrAlias(command.roomIdOrAlias)
             if (joined.isSuccess) {

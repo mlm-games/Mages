@@ -30,6 +30,12 @@ sealed interface SlashCommand {
     data class Unignore(val userId: String) : SlashCommand
     data class SetRoomName(val name: String) : SlashCommand
     data class SetRoomTopic(val topic: String) : SlashCommand
+    data class SetDisplayName(val name: String) : SlashCommand
+    data class SetRoomDisplayName(val name: String) : SlashCommand
+    data class ShowUser(val userId: String) : SlashCommand
+    data class SendRainbow(val message: String) : SlashCommand
+    data class SendRainbowEmote(val message: String) : SlashCommand
+    data class SendSpoiler(val message: String) : SlashCommand
 
     data class JoinRoom(val roomIdOrAlias: String) : SlashCommand
     data object LeaveRoom : SlashCommand
@@ -58,6 +64,12 @@ object SlashCommands {
         CommandSpec(listOf("/unignore"), "/unignore <@user:server>", "Unignore a user", false),
         CommandSpec(listOf("/roomname"), "/roomname <name>", "Set room name", false),
         CommandSpec(listOf("/topic"), "/topic <topic>", "Set room topic", false),
+        CommandSpec(listOf("/nick"), "/nick <display-name>", "Set your display name", true),
+        CommandSpec(listOf("/myroomnick", "/roomnick"), "/myroomnick <display-name>", "Set your display name in this room", false),
+        CommandSpec(listOf("/whois"), "/whois <@user:server>", "Show user information", true),
+        CommandSpec(listOf("/rainbow"), "/rainbow <message>", "Send a rainbow message", true),
+        CommandSpec(listOf("/rainbowme"), "/rainbowme <message>", "Send a rainbow emote", true),
+        CommandSpec(listOf("/spoiler"), "/spoiler <message>", "Send a spoiler message", true),
         CommandSpec(listOf("/join", "/j", "/goto"), "/join <#alias:server|!id:server>", "Join a room", false),
         CommandSpec(listOf("/leave", "/part"), "/leave", "Leave current room", false),
     )
@@ -150,6 +162,30 @@ object SlashCommands {
                 SlashCommand.SetRoomTopic(topic)
             }
 
+            "/nick" -> parseRequiredMessage(commandToken, args) { name ->
+                SlashCommand.SetDisplayName(name)
+            }
+
+            "/myroomnick", "/roomnick" -> parseRequiredMessage(commandToken, args) { name ->
+                SlashCommand.SetRoomDisplayName(name)
+            }
+
+            "/whois" -> parseRequiredUser(commandToken, args) { userId ->
+                SlashCommand.ShowUser(userId)
+            }
+
+            "/rainbow" -> parseRequiredMessage(commandToken, args) { message ->
+                SlashCommand.SendRainbow(message)
+            }
+
+            "/rainbowme" -> parseRequiredMessage(commandToken, args) { message ->
+                SlashCommand.SendRainbowEmote(message)
+            }
+
+            "/spoiler" -> parseRequiredMessage(commandToken, args) { message ->
+                SlashCommand.SendSpoiler(message)
+            }
+
             "/join", "/j", "/goto" -> {
                 val room = args.substringBefore(' ').trim()
                 when {
@@ -180,7 +216,7 @@ object SlashCommands {
             .asSequence()
             .filter { !isInThread || it.threadSupported }
             .filter { it.command.startsWith("/$normalized") }
-            .take(6)
+            .take(12)
             .toList()
     }
 

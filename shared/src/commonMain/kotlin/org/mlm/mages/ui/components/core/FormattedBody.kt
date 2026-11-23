@@ -143,6 +143,16 @@ private val BOLD_TAGS = setOf("b", "strong")
 private val ITALIC_TAGS = setOf("i", "em")
 private val UNDERLINE_TAGS = setOf("u", "ins")
 private val STRIKE_TAGS = setOf("s", "del", "strike")
+private val namedColors = mapOf(
+    "black" to Color.Black,
+    "white" to Color.White,
+    "red" to Color.Red,
+    "green" to Color.Green,
+    "blue" to Color.Blue,
+    "yellow" to Color.Yellow,
+    "cyan" to Color.Cyan,
+    "magenta" to Color.Magenta,
+)
 
 /** Block elements that start on their own line. Lists break lines per item instead. */
 private val BLOCK_TAGS = setOf("p", "div", "h1", "h2", "h3", "h4", "h5", "h6")
@@ -625,8 +635,11 @@ private class Builder(
 
         val link = if (tag == "a" && concealedDepth == 0) linkFor(element) else null
         val style = styleFor(tag, link != null)
+        val fontColor = if (tag == "font") parseHtmlColor(element.attr("color")) else null
+        val fontStyle = fontColor?.let { SpanStyle(color = it) }
 
         if (style != null) text.pushStyle(style)
+        if (fontStyle != null) text.pushStyle(fontStyle)
         if (link != null) {
             text.pushLink(
                 LinkAnnotation.Url(
@@ -638,7 +651,22 @@ private class Builder(
         val childLinkify = linkify && tag != "a" && tag !in CODE_TAGS
         element.childNodes().forEach { walk(it, childLinkify) }
         if (link != null) text.pop()
+        if (fontStyle != null) text.pop()
         if (style != null) text.pop()
+    }
+
+    private fun parseHtmlColor(value: String): Color? {
+        val raw = value.trim()
+        if (raw.startsWith("#")) {
+            val hex = raw.removePrefix("#")
+            val expanded = if (hex.length == 3) hex.map { "$it$it" }.joinToString("") else hex
+            if (expanded.length == 6) {
+                val rgb = expanded.toULongOrNull(16)?.toLong()?.toInt() ?: return null
+                return Color(rgb or 0xFF000000.toInt())
+            }
+            return null
+        }
+        return namedColors[raw.lowercase()]
     }
 
     private fun isSpoiler(element: Element): Boolean =

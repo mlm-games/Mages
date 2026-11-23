@@ -523,6 +523,7 @@ wasm_delegate! { webffi_unit;
     "setRoomLowPriority"   => set_room_low_priority(room_id: String, low: bool);
     "setRoomName"          => set_room_name(room_id: String, name: String);
     "setRoomTopic"         => set_room_topic(room_id: String, topic: String);
+    "setRoomDisplayName"   => set_room_display_name(room_id: String, name: String);
     "banUser"              => ban_user(room_id: String, user_id: String, reason: Option<String>);
     "unbanUser"            => unban_user(room_id: String, user_id: String, reason: Option<String>);
     "kickUser"             => kick_user(room_id: String, user_id: String, reason: Option<String>);

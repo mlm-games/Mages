@@ -1605,6 +1605,11 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
             runWithFfiResult { withClient { it.setRoomTopic(roomId, topic) } }.map { }
         }
 
+    override suspend fun setRoomDisplayName(roomId: String, name: String): Result<Unit> =
+        withContext(matrixDispatcher) {
+            runWithFfiResult { withClient { it.setRoomDisplayName(roomId, name) } }.map { }
+        }
+
     override suspend fun roomProfile(roomId: String): RoomProfile? = withContext(matrixDispatcher) {
         runWithFfiResult { withClient { it.roomProfile(roomId) } }.getOrNull()?.let {
             RoomProfile(
