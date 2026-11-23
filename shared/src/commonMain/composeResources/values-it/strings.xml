@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">Attiva il vassoio di sistema</string>
     <string name="setting_enable_tray_description">Mostra un’icona nel vassoio con azioni rapide. Disattiva se il vassoio si blocca sul tuo sistema</string>
     <string name="setting_enter_sends_message_description">Se attivo, Invio invia il messaggio e Maiusc, Ctrl o Cmd + Invio inserisce una nuova riga</string>
+    <string name="setting_developer_mode">Modalità sviluppatore</string>
+    <string name="setting_developer_mode_description">Al momento riguarda solo i comandi. Altri usi in seguito.</string>
     <string name="setting_edit_latest_with_up_arrow">Modifica l&apos;ultimo messaggio con la freccia su</string>
     <string name="setting_edit_latest_with_up_arrow_description">Se attivato, premere la freccia su quando il campo del messaggio è vuoto modifica l&apos;ultimo messaggio modificabile o la sua didascalia</string>
     <string name="setting_use_proxy_description">Instrada tutto il traffico attraverso un proxy SOCKS5 o HTTP</string>

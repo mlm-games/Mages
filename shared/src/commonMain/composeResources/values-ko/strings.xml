@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">시스템 트레이 사용</string>
     <string name="setting_enable_tray_description">빠른 작업이 있는 트레이 아이콘을 표시합니다. 시스템에서 트레이가 충돌하면 끄세요</string>
     <string name="setting_enter_sends_message_description">활성화되면 Enter를 누르면 메시지가 전송되고 Shift, Ctrl 또는 Cmd Enter를 누르면 새 줄이 삽입됩니다.</string>
+    <string name="setting_developer_mode">개발자 모드</string>
+    <string name="setting_developer_mode_description">현재는 슬래시 명령에만 영향을 줍니다. 추후 더 많은 용도로 사용됩니다.</string>
     <string name="setting_edit_latest_with_up_arrow">위 화살표로 마지막 메시지 편집</string>
     <string name="setting_edit_latest_with_up_arrow_description">켜져 있으면 메시지 입력란이 비어 있는 상태에서 위 화살표를 누르면 마지막으로 편집할 수 있는 메시지 또는 캡션 편집이 시작됩니다</string>
     <string name="setting_use_proxy_description">SOCKS5 또는 HTTP 프록시</string>

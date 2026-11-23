@@ -65,6 +65,7 @@ fun MessageComposer(
     onAttachmentPasted: ((AttachmentData) -> Unit)? = null,
     enterSendsMessage: Boolean = false,
     enableSlashCommands: Boolean = true,
+    developerMode: Boolean = false,
     isInThread: Boolean = false,
     canEditLatest: Boolean = false,
     onEditLatest: () -> Unit = {},
@@ -110,8 +111,12 @@ fun MessageComposer(
     val slashQuery = remember(fieldValue, enableSlashCommands) {
         if (enableSlashCommands) findSlashQueryInternal(fieldValue) else null
     }
-    val slashSuggestions = remember(slashQuery, isInThread) {
-        if (slashQuery == null) emptyList() else SlashCommands.suggestionsFor(slashQuery.query, isInThread)
+    val slashSuggestions = remember(slashQuery, isInThread, developerMode) {
+        if (slashQuery == null) {
+            emptyList()
+        } else {
+            SlashCommands.suggestionsFor(slashQuery.query, isInThread, developerMode)
+        }
     }
 
     fun applySlashSuggestion(suggestion: SlashCommandSuggestion) {

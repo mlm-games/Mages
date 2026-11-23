@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">Zapnout systémový zásobník</string>
     <string name="setting_enable_tray_description">Zobrazit ikonu v zásobníku s rychlými akcemi. Vypněte, pokud zásobník na vašem systému padá</string>
     <string name="setting_enter_sends_message_description">Pokud je povoleno, stisknutím klávesy Enter odešlete zprávu a Shift, Ctrl nebo Cmd + Enter vloží nový řádek</string>
+    <string name="setting_developer_mode">Režim vývojáře</string>
+    <string name="setting_developer_mode_description">Momentálně ovlivňuje pouze příkazy. Další použití přibudou později.</string>
     <string name="setting_edit_latest_with_up_arrow">Upravit poslední zprávu šipkou nahoru</string>
     <string name="setting_edit_latest_with_up_arrow_description">Když je zapnuto, stisknutí šipky nahoru při prázdném poli zprávy začne upravovat poslední upravitelnou zprávu nebo její popisek</string>
     <string name="setting_use_proxy_description">Směrování veškerého provozu přes SOCKS5 nebo http proxy</string>

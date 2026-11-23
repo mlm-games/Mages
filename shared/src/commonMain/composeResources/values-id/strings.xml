@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">Aktifkan baki sistem</string>
     <string name="setting_enable_tray_description">Tampilkan ikon di baki dengan aksi cepat. Matikan jika baki bermasalah di sistem Anda</string>
     <string name="setting_enter_sends_message_description">Saat diaktifkan, menekan Enter akan mengirim pesan dan Shift, Ctrl atau Cmd Enter akan menyisipkan baris baru</string>
+    <string name="setting_developer_mode">Mode pengembang</string>
+    <string name="setting_developer_mode_description">Saat ini hanya memengaruhi perintah slash. Kegunaan lain menyusul kemudian.</string>
     <string name="setting_edit_latest_with_up_arrow">Edit pesan terakhir dengan panah ke atas</string>
     <string name="setting_edit_latest_with_up_arrow_description">Jika diaktifkan, menekan panah ke atas saat kotak pesan kosong akan mulai mengedit pesan terakhir yang dapat diedit atau keterangannya</string>
     <string name="setting_use_proxy_description">Rutekan semua lalu lintas melalui SOCKS5 atau proksi HTTP</string>

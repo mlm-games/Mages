@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">فعال کردن سینی سیستم</string>
     <string name="setting_enable_tray_description">نمایش نماد در سینی همراه با کنش‌های سریع. اگر سینی در سیستم شما از کار می‌افتد خاموش کنید</string>
     <string name="setting_enter_sends_message_description">اگر فعال باشد، Enter پیام را می‌فرستد و Shift، Ctrl یا Cmd + Enter خط جدید درج می‌کند</string>
+    <string name="setting_developer_mode">حالت توسعهدهنده</string>
+    <string name="setting_developer_mode_description">در حال حاضر فقط بر دستورات اسلش تأثیر میگذارد. کاربردهای بیشتر بعداً اضافه میشوند.</string>
     <string name="setting_edit_latest_with_up_arrow">ویرایش آخرین پیام با فلش بالا</string>
     <string name="setting_edit_latest_with_up_arrow_description">در صورت فعال بودن، فشردن فلش بالا هنگامی که کادر پیام خالی است، ویرایش آخرین پیام قابل ویرایش یا عنوان آن را آغاز می‌کند</string>
     <string name="setting_use_proxy_description">هدایت همه ترافیک از پراکسی SOCKS5 یا HTTP</string>

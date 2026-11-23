@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">הפעלת מגש המערכת</string>
     <string name="setting_enable_tray_description">הצגת סמל במגש המערכת עם פעולות מהירות. כבה אם המגש קורס במערכת שלך</string>
     <string name="setting_enter_sends_message_description">כשהאפשרות פעילה, Enter שולח את ההודעה ו- Shift, Ctrl או Cmd + Enter מוסיף שורה חדשה</string>
+    <string name="setting_developer_mode">מצב מפתחים</string>
+    <string name="setting_developer_mode_description">כרגע משפיע רק על פקודות. שימושים נוספים יתווספו בהמשך.</string>
     <string name="setting_edit_latest_with_up_arrow">עריכת ההודעה האחרונה עם החץ למעלה</string>
     <string name="setting_edit_latest_with_up_arrow_description">כאשר מופעל, לחיצה על החץ למעלה כשתיבת ההודעה ריקה מתחילה לערוך את ההודעה האחרונה שניתן לערוך או את הכותרת שלה</string>
     <string name="setting_use_proxy_description">ניתוב כל התעבורה דרך פרוקסי SOCKS5 או HTTP</string>

@@ -911,6 +911,8 @@
     <string name="setting_enter_sends_message_description">When enabled, pressing Enter will send the message and Shift, Ctrl or Cmd + Enter will insert a new line</string>
     <string name="setting_enable_slash_commands">Enable slash commands</string>
     <string name="setting_enable_slash_commands_description">Use commands such as /me, /shrug and /join from the message box</string>
+    <string name="setting_developer_mode">Developer mode</string>
+    <string name="setting_developer_mode_description">Currently only affects slash commands. More uses later.</string>
     <string name="setting_edit_latest_with_up_arrow">Edit latest message with up arrow</string>
     <string name="setting_edit_latest_with_up_arrow_description">When enabled, pressing the up arrow while the message box is empty starts editing your latest editable message or caption</string>
     <string name="setting_use_proxy">Use proxy</string>

@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">启用系统托盘</string>
     <string name="setting_enable_tray_description">在托盘中显示图标和快捷操作。如果托盘在你的系统上崩溃，请关闭此项</string>
     <string name="setting_enter_sends_message_description">启用后，Enter 发送消息，Shift、Ctrl 或 Cmd + Enter 插入新行</string>
+    <string name="setting_developer_mode">开发者模式</string>
+    <string name="setting_developer_mode_description">目前仅影响斜杠命令，以后会用于更多功能。</string>
     <string name="setting_edit_latest_with_up_arrow">用上方向键编辑最新消息</string>
     <string name="setting_edit_latest_with_up_arrow_description">启用后，在消息框为空时按上方向键即可开始编辑最新的可编辑消息或其标题</string>
     <string name="setting_use_proxy_description">通过 SOCKS5 或 HTTP 代理转发所有流量</string>

@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">システムトレイを有効にする</string>
     <string name="setting_enable_tray_description">トレイにアイコンを表示し、クイック操作を使えるようにします。お使いのシステムでトレイがクラッシュする場合はオフにしてください</string>
     <string name="setting_enter_sends_message_description">有効にすると、Enter を押すとメッセージが送信され、Shift、Ctrl、または Cmd Enter を押すと新しい行が挿入されます</string>
+    <string name="setting_developer_mode">開発者モード</string>
+    <string name="setting_developer_mode_description">現在はスラッシュコマンドにのみ影響します。他の用途は後ほど追加されます。</string>
     <string name="setting_edit_latest_with_up_arrow">上矢印で最新のメッセージを編集</string>
     <string name="setting_edit_latest_with_up_arrow_description">有効にすると、メッセージ欄が空の状態で上矢印を押すと、編集可能な最新のメッセージまたはキャプションの編集が始まります</string>
     <string name="setting_use_proxy_description">すべてのトラフィックを SOCKS5 または HTTP プロキシ経由でルーティング</string>

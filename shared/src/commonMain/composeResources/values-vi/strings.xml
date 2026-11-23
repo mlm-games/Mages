@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">Bật khay hệ thống</string>
     <string name="setting_enable_tray_description">Hiện biểu tượng trên khay với thao tác nhanh. Tắt nếu khay bị lỗi trên hệ thống của bạn</string>
     <string name="setting_enter_sends_message_description">Khi bật, Enter gửi tin nhắn và Shift, Ctrl hoặc Cmd + Enter chèn dòng mới</string>
+    <string name="setting_developer_mode">Chế độ nhà phát triển</string>
+    <string name="setting_developer_mode_description">Hiện chỉ ảnh hưởng đến các lệnh gạch chéo. Sẽ có thêm mục đích sử dụng sau.</string>
     <string name="setting_edit_latest_with_up_arrow">Chỉnh sửa tin nhắn gần nhất bằng phím mũi tên lên</string>
     <string name="setting_edit_latest_with_up_arrow_description">Khi bật, nhấn mũi tên lên khi khung tin nhắn trống sẽ bắt đầu chỉnh sửa tin nhắn có thể chỉnh sửa gần nhất hoặc chú thích của nó</string>
     <string name="setting_use_proxy_description">Định tuyến toàn bộ lưu lượng qua proxy SOCKS5 hoặc HTTP</string>

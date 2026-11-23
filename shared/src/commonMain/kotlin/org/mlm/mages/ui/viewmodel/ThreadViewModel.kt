@@ -1537,7 +1537,12 @@ class ThreadViewModel(
         val body = text.trim()
         if (body.isBlank()) return false
 
-        when (val parsed = SlashCommands.parse(body, prefs.value.enableSlashCommands, isInThread = true)) {
+        when (val parsed = SlashCommands.parse(
+                body,
+                prefs.value.enableSlashCommands,
+                isInThread = true,
+                developerMode = prefs.value.developerMode,
+            )) {
             ParsedSlashCommand.NotACommand -> Unit
             is ParsedSlashCommand.Error -> {
                 _events.send(Event.ShowError(parsed.message))
@@ -1648,6 +1653,9 @@ class ThreadViewModel(
                 )
             }
         }
+        is SlashCommand.DevOnly -> Result.failure(
+            IllegalStateException("${command.command} is not available in Mages")
+        )
         else -> Result.failure(IllegalStateException("Command is not supported in threads"))
     }
 

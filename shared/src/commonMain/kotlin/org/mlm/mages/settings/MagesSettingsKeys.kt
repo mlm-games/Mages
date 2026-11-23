@@ -189,6 +189,9 @@ object MagesSettingsKeys {
 
     const val ENABLE_SLASH_COMMANDS = "setting_enable_slash_commands"
     const val ENABLE_SLASH_COMMANDS_DESCRIPTION = "setting_enable_slash_commands_description"
+
+    const val DEVELOPER_MODE = "setting_developer_mode"
+    const val DEVELOPER_MODE_DESCRIPTION = "setting_developer_mode_description"
     const val EDIT_LATEST_WITH_UP_ARROW_DESCRIPTION = "setting_edit_latest_with_up_arrow_description"
     const val USE_PROXY_DESCRIPTION = "setting_use_proxy_description"
     const val PROXY_URL_DESCRIPTION = "setting_proxy_url_description"

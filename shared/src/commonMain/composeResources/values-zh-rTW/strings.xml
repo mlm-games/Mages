@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">啟用系統匣</string>
     <string name="setting_enable_tray_description">在系統匣中顯示圖示和快速操作。如果系統匣在你的系統上當掉，請關閉此項</string>
     <string name="setting_enter_sends_message_description">啟用後，Enter 傳送訊息，Shift、Ctrl 或 Cmd + Enter 插入新行</string>
+    <string name="setting_developer_mode">開發者模式</string>
+    <string name="setting_developer_mode_description">目前僅影響斜線指令，日後會有更多用途。</string>
     <string name="setting_edit_latest_with_up_arrow">用上方向鍵編輯最新訊息</string>
     <string name="setting_edit_latest_with_up_arrow_description">啟用後，在訊息框為空時按上方向鍵即可開始編輯最新的可編輯訊息或其標題</string>
     <string name="setting_use_proxy_description">透過 SOCKS5 或 HTTP proxy 路由所有流量</string>

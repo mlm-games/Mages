@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">Ota järjestelmälokero käyttöön</string>
     <string name="setting_enable_tray_description">Näytä kuvake lokerossa ja pikatoiminnot. Poista käytöstä, jos lokero kaatuu järjestelmässäsi</string>
     <string name="setting_enter_sends_message_description">Kun tämä on käytössä, Enter-näppäin lähettää viestin ja Shift, Ctrl tai Cmd Enter lisää uuden rivin</string>
+    <string name="setting_developer_mode">Kehittäjätila</string>
+    <string name="setting_developer_mode_description">Tällä hetkellä vaikuttaa vain komentoihin. Myöhemmin myös muuhun.</string>
     <string name="setting_edit_latest_with_up_arrow">Muokkaa viimeistä viestiä ylänuolella</string>
     <string name="setting_edit_latest_with_up_arrow_description">Kun asetus on käytössä, viestikentän ollessa tyhjä ylänuolen painallus aloittaa viimeisen muokattavan viestin tai sen kuvatekstin muokkaamisen</string>
     <string name="setting_use_proxy_description">Ohjaa kaikki liikenne SOCKS5- tai HTTP-välityspalvelimen kautta</string>

@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">Activer la zone de notification</string>
     <string name="setting_enable_tray_description">Afficher une icône dans la zone de notification avec des actions rapides. Désactivez si la zone de notification plante sur votre système</string>
     <string name="setting_enter_sends_message_description">Lorsque cette option est activée, appuyer sur Entrée enverra le message et Shift, Ctrl ou Cmd Enter insérera une nouvelle ligne</string>
+    <string name="setting_developer_mode">Mode développeur</string>
+    <string name="setting_developer_mode_description">N&apos;affecte actuellement que les commandes. D&apos;autres usages viendront plus tard.</string>
     <string name="setting_edit_latest_with_up_arrow">Modifier le dernier message avec la flèche vers le haut</string>
     <string name="setting_edit_latest_with_up_arrow_description">Si activé, appuyer sur la flèche vers le haut lorsque la zone de message est vide lance la modification du dernier message modifiable ou de sa légende</string>
     <string name="setting_use_proxy_description">Acheminez tout le trafic via un proxy SOCKS5 ou HTTP</string>

@@ -871,7 +871,12 @@ class RoomViewModel(
                 saveDraft(s.roomId, "")
                 val replyTo = s.replyingTo
 
-                when (val parsed = SlashCommands.parse(text, settings.value.enableSlashCommands, isInThread = false)) {
+                when (val parsed = SlashCommands.parse(
+                        text,
+                        settings.value.enableSlashCommands,
+                        isInThread = false,
+                        developerMode = settings.value.developerMode,
+                    )) {
                     ParsedSlashCommand.NotACommand -> Unit
                     is ParsedSlashCommand.Error -> {
                         updateState { copy(input = originalInput) }
@@ -979,6 +984,10 @@ class RoomViewModel(
             if (left.isSuccess) _events.send(Event.NavigateBack)
             left
         }
+
+        is SlashCommand.DevOnly -> Result.failure(
+            IllegalStateException("${command.command} is not available in Mages")
+        )
     }
 
     fun attachFile(data: AttachmentData) {

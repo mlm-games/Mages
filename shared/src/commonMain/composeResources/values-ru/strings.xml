@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">Включить системный трей</string>
     <string name="setting_enable_tray_description">Показывать значок в трее с быстрыми действиями. Отключите, если трей падает в вашей системе</string>
     <string name="setting_enter_sends_message_description">Если включено, Enter отправляет сообщение, а Shift, Ctrl или Cmd + Enter вставляет новую строку</string>
+    <string name="setting_developer_mode">Режим разработчика</string>
+    <string name="setting_developer_mode_description">Сейчас влияет только на команды. Дополнительные возможности появятся позже.</string>
     <string name="setting_edit_latest_with_up_arrow">Изменить последнее сообщение стрелкой вверх</string>
     <string name="setting_edit_latest_with_up_arrow_description">Если включено, нажатие стрелки вверх при пустом поле сообщения начнёт изменение последнего доступного для изменения сообщения или его подписи</string>
     <string name="setting_use_proxy_description">Направлять весь трафик через SOCKS5- или HTTP-прокси</string>

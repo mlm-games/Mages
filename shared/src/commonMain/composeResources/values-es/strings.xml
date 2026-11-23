@@ -640,6 +640,8 @@
     <string name="setting_enable_tray_description">Mostrar un icono en la bandeja con acciones rápidas. Desactívalo si la bandeja falla en tu sistema</string>
     <string name="setting_enter_sends_message">Enter envía el mensaje</string>
     <string name="setting_enter_sends_message_description">Al activarlo, Enter enviará el mensaje y Shift, Ctrl o Cmd + Enter insertará una nueva línea</string>
+    <string name="setting_developer_mode">Modo desarrollador</string>
+    <string name="setting_developer_mode_description">Por ahora solo afecta a los comandos. Habrá más usos más adelante.</string>
     <string name="setting_edit_latest_with_up_arrow">Editar el último mensaje con la flecha hacia arriba</string>
     <string name="setting_edit_latest_with_up_arrow_description">Si está activado, pulsar la flecha hacia arriba cuando el campo de mensaje está vacío comienza a editar el último mensaje editable o su pie de foto</string>
     <string name="setting_use_proxy">Usar proxy</string>

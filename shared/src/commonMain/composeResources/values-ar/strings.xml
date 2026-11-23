@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">تفعيل درج النظام</string>
     <string name="setting_enable_tray_description">إظهار أيقونة في الدرج مع إجراءات سريعة. أوقفه إذا تعطّل الدرج على نظامك</string>
     <string name="setting_enter_sends_message_description">عند التمكين، سيؤدي الضغط على Enter إلى إرسال الرسالة وسيقوم Shift أو Ctrl أو Cmd + Enter بإدراج سطر جديد</string>
+    <string name="setting_developer_mode">وضع المطوّر</string>
+    <string name="setting_developer_mode_description">يؤثر حالياً على أوامر الشرطة المائلة فقط. ستضاف استخدامات أخرى لاحقاً.</string>
     <string name="setting_edit_latest_with_up_arrow">تعديل آخر رسالة بالسهم للأعلى</string>
     <string name="setting_edit_latest_with_up_arrow_description">عند تفعيله، يبدأ الضغط على السهم للأعلى عندما يكون مربع الرسالة فارغًا بتعديل آخر رسالة قابلة للتعديل أو التسمية التوضيحية لها</string>
     <string name="setting_use_proxy_description">توجيه جميع حركة المرور من خلال وكيل SOCKS5 أو HTTP</string>

@@ -7,6 +7,7 @@ data class SlashCommandSuggestion(
     val usage: String,
     val description: String,
     val threadSupported: Boolean,
+    val devOnly: Boolean = false,
 )
 
 sealed interface ParsedSlashCommand {
@@ -39,6 +40,7 @@ sealed interface SlashCommand {
 
     data class JoinRoom(val roomIdOrAlias: String) : SlashCommand
     data object LeaveRoom : SlashCommand
+    data class DevOnly(val command: String) : SlashCommand
 }
 
 private data class CommandSpec(
@@ -46,6 +48,7 @@ private data class CommandSpec(
     val usage: String,
     val description: String,
     val threadSupported: Boolean,
+    val devOnly: Boolean = false,
 )
 
 object SlashCommands {
@@ -72,6 +75,12 @@ object SlashCommands {
         CommandSpec(listOf("/spoiler"), "/spoiler <message>", "Send a spoiler message", true),
         CommandSpec(listOf("/join", "/j", "/goto"), "/join <#alias:server|!id:server>", "Join a room", false),
         CommandSpec(listOf("/leave", "/part"), "/leave", "Leave current room", false),
+        CommandSpec(listOf("/devtools"), "/devtools", "Open developer settings", true, devOnly = true),
+        CommandSpec(listOf("/crash"), "/crash", "Crash the application", true, devOnly = true),
+        CommandSpec(listOf("/roomavatar"), "/roomavatar <mxc-url>", "Set the room avatar", false, devOnly = true),
+        CommandSpec(listOf("/myavatar"), "/myavatar <mxc-url>", "Set your avatar", true, devOnly = true),
+        CommandSpec(listOf("/myroomavatar"), "/myroomavatar <mxc-url>", "Set your avatar in this room", false, devOnly = true),
+        CommandSpec(listOf("/upgraderoom"), "/upgraderoom <version>", "Upgrade this room", false, devOnly = true),
     )
 
     val suggestions: List<SlashCommandSuggestion> =
@@ -82,6 +91,7 @@ object SlashCommands {
                     usage = spec.usage,
                     description = spec.description,
                     threadSupported = spec.threadSupported,
+                    devOnly = spec.devOnly,
                 )
             }
         }
@@ -90,6 +100,7 @@ object SlashCommands {
         rawInput: String,
         enabled: Boolean,
         isInThread: Boolean,
+        developerMode: Boolean = false,
     ): ParsedSlashCommand {
         if (!enabled) return ParsedSlashCommand.NotACommand
         val input = rawInput.trim()
@@ -101,6 +112,9 @@ object SlashCommands {
 
         val spec = commandSpecs.firstOrNull { commandToken in it.aliases }
             ?: return ParsedSlashCommand.Error("Unknown slash command: $commandToken")
+        if (spec.devOnly && !developerMode) {
+            return ParsedSlashCommand.Error("Unknown slash command: $commandToken")
+        }
         if (isInThread && !spec.threadSupported) {
             return ParsedSlashCommand.Error("$commandToken is not supported in threads")
         }
@@ -203,6 +217,9 @@ object SlashCommands {
                 }
             }
 
+            "/devtools", "/crash", "/roomavatar", "/myavatar", "/myroomavatar", "/upgraderoom" ->
+                ParsedSlashCommand.Command(SlashCommand.DevOnly(commandToken))
+
             else -> ParsedSlashCommand.Error("Unknown slash command: $commandToken")
         }
     }
@@ -210,11 +227,13 @@ object SlashCommands {
     fun suggestionsFor(
         query: String,
         isInThread: Boolean,
+        developerMode: Boolean = false,
     ): List<SlashCommandSuggestion> {
         val normalized = query.lowercase()
         return suggestions
             .asSequence()
             .filter { !isInThread || it.threadSupported }
+            .filter { developerMode || !it.devOnly }
             .filter { it.command.startsWith("/$normalized") }
             .take(12)
             .toList()

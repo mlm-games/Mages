@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">Włącz zasobnik systemowy</string>
     <string name="setting_enable_tray_description">Pokaż ikonę w zasobniku z szybkimi akcjami. Wyłącz, jeśli zasobnik zawiesza się w twoim systemie</string>
     <string name="setting_enter_sends_message_description">Po włączeniu Enter wysyła wiadomość, a Shift, Ctrl lub Cmd + Enter wstawia nową linię</string>
+    <string name="setting_developer_mode">Tryb dewelopera</string>
+    <string name="setting_developer_mode_description">Na razie wpływa tylko na polecenia. Więcej zastosowań w przyszłości.</string>
     <string name="setting_edit_latest_with_up_arrow">Edytuj ostatnią wiadomość strzałką w górę</string>
     <string name="setting_edit_latest_with_up_arrow_description">Po włączeniu naciśnięcie strzałki w górę, gdy pole wiadomości jest puste, zaczyna edytować ostatnią edytowalną wiadomość lub jej podpis</string>
     <string name="setting_use_proxy_description">Kieruj cały ruch przez proxy SOCKS5 lub HTTP</string>

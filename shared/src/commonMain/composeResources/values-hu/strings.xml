@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">Rendszertálca engedélyezése</string>
     <string name="setting_enable_tray_description">Tálcaikon megjelenítése gyorsműveletekkel. Kapcsold ki, ha a tálca összeomlik a rendszereden</string>
     <string name="setting_enter_sends_message_description">Ha engedélyezve van, az Enter megnyomása elküldi az üzenetet, a Shift, Ctrl vagy Cmd Enter pedig új sort szúr be</string>
+    <string name="setting_developer_mode">Fejlesztői mód</string>
+    <string name="setting_developer_mode_description">Jelenleg csak a parancsokat befolyásolja. Több felhasználási terület később jön.</string>
     <string name="setting_edit_latest_with_up_arrow">Utolsó üzenet szerkesztése a felfelé nyíllal</string>
     <string name="setting_edit_latest_with_up_arrow_description">Ha be van kapcsolva, az üzenetmező üres állapotában a felfelé nyíl megnyomása elkezdi szerkeszteni az utolsó szerkeszthető üzenetet vagy annak feliratát</string>
     <string name="setting_use_proxy_description">A teljes forgalom átirányítása SOCKS5- vagy HTTP-proxyn keresztül</string>

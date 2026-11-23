@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">Aktivera systemfältet</string>
     <string name="setting_enable_tray_description">Visa en ikon i systemfältet med snabbåtgärder. Stäng av om systemfältet kraschar på ditt system</string>
     <string name="setting_enter_sends_message_description">När aktiverad, trycker du på Retur skickas meddelandet och Shift, Ctrl eller Cmd Enter infogas en ny rad</string>
+    <string name="setting_developer_mode">Utvecklarmode</string>
+    <string name="setting_developer_mode_description">Påverkar bara slash-kommandon just nu. Fler användningar kommer senare.</string>
     <string name="setting_edit_latest_with_up_arrow">Redigera senaste meddelandet med uppåtpilen</string>
     <string name="setting_edit_latest_with_up_arrow_description">När det är aktiverat startar ett tryck på uppåtpilen när meddelandefältet är tomt redigering av det senaste redigerbara meddelandet eller dess bildtext</string>
     <string name="setting_use_proxy_description">Dirigera all trafik genom en SOCKS5- eller HTTP-proxy</string>

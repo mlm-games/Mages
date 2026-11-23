@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">Ativar bandeja do sistema</string>
     <string name="setting_enable_tray_description">Mostrar um ícone na bandeja com ações rápidas. Desative se a bandeja falhar no seu sistema</string>
     <string name="setting_enter_sends_message_description">Quando ativado, pressionar Enter enviará a mensagem e Shift, Ctrl ou Cmd Enter inserirá uma nova linha</string>
+    <string name="setting_developer_mode">Modo desenvolvedor</string>
+    <string name="setting_developer_mode_description">Por enquanto afeta apenas os comandos. Mais usos depois.</string>
     <string name="setting_edit_latest_with_up_arrow">Editar a última mensagem com a seta para cima</string>
     <string name="setting_edit_latest_with_up_arrow_description">Quando ativado, pressionar a seta para cima com a caixa de mensagem vazia começa a editar a última mensagem editável ou sua rubrica</string>
     <string name="setting_use_proxy_description">Roteie todo o tráfego por meio de um proxy SOCKS5 ou HTTP</string>

@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">Sistem tepsisini etkinleştir</string>
     <string name="setting_enable_tray_description">Tepside hızlı eylemler içeren bir simge göster. Sistem tepside çöküyorsa kapat</string>
     <string name="setting_enter_sends_message_description">Etkinleştirildiğinde, Enter tuşuna basmak mesajı gönderir ve Shift, Ctrl veya Cmd Enter yeni bir satır ekler</string>
+    <string name="setting_developer_mode">Geliştirici modu</string>
+    <string name="setting_developer_mode_description">Şu an sadece eğik çizgi komutlarını etkiler. Daha fazla kullanım alanı sonra eklenecek.</string>
     <string name="setting_edit_latest_with_up_arrow">Son mesajı yukarı ok ile düzenle</string>
     <string name="setting_edit_latest_with_up_arrow_description">Etkinleştirildiğinde, mesaj kutusu boşken yukarı oka basmak düzenlenebilir son mesajın veya altyazısının düzenlenmesini başlatır</string>
     <string name="setting_use_proxy_description">Tüm trafiği bir SOCKS5 veya HTTP proxy</string>

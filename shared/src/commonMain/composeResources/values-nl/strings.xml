@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">Systeemvak inschakelen</string>
     <string name="setting_enable_tray_description">Toon een pictogram in het systeemvak met snelle acties. Zet uit als het systeemvak vastloopt op je systeem</string>
     <string name="setting_enter_sends_message_description">Wanneer ingeschakeld, wordt door op Enter te drukken het bericht verzonden en wordt met Shift, Ctrl of Cmd Enter een nieuwe regel ingevoegd</string>
+    <string name="setting_developer_mode">Ontwikkelaarsmodus</string>
+    <string name="setting_developer_mode_description">Beïnvloedt momenteel alleen slash-commando's. Meer toepassingen volgen later.</string>
     <string name="setting_edit_latest_with_up_arrow">Laatste bericht bewerken met de pijl omhoog</string>
     <string name="setting_edit_latest_with_up_arrow_description">Indien ingeschakeld, begint het indrukken van de pijl omhoog wanneer het berichtveld leeg is met het bewerken van het laatste bewerkbare bericht of het bijschrift</string>
     <string name="setting_use_proxy_description">Leid al het verkeer via een SOCKS5- of HTTP-proxy</string>

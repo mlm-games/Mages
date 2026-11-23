@@ -1134,6 +1134,14 @@ data class AppSettings(
     val enableSlashCommands: Boolean = false,
 
     @Setting(
+        titleKey = MagesSettingsKeys.DEVELOPER_MODE,
+        descriptionKey = MagesSettingsKeys.DEVELOPER_MODE_DESCRIPTION,
+        category = Advanced::class,
+        type = Toggle::class
+    )
+    val developerMode: Boolean = false,
+
+    @Setting(
         titleKey = MagesSettingsKeys.EDIT_LATEST_WITH_UP_ARROW,
         descriptionKey = MagesSettingsKeys.EDIT_LATEST_WITH_UP_ARROW_DESCRIPTION,
         category = Advanced::class,

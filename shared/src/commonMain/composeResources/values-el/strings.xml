@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">Ενεργοποίηση δίσκου συστήματος</string>
     <string name="setting_enable_tray_description">Εμφάνιση εικονιδίου στον δίσκο με γρήγορες ενέργειες. Απενεργοποίησε αν ο δίσκος καταρρέει στο σύστημά σου</string>
     <string name="setting_enter_sends_message_description">Όταν είναι ενεργοποιημένο, πατώντας Enter θα στείλει το μήνυμα και Shift, Ctrl ή Cmd + Enter θα εισαγάγει μια νέα γραμμή</string>
+    <string name="setting_developer_mode">Λειτουργία προγραμματιστή</string>
+    <string name="setting_developer_mode_description">Προς το παρόν επηρεάζει μόνο τις εντολές. Περισσότερες χρήσεις αργότερα.</string>
     <string name="setting_edit_latest_with_up_arrow">Επεξεργασία τελευταίου μηνύματος με το βελάκι προς τα πάνω</string>
     <string name="setting_edit_latest_with_up_arrow_description">Όταν είναι ενεργοποιημένο, η πίεση του βελακιού προς τα πάνω όταν το πλαίσιο μηνύματος είναι κενό ξεκινά την επεξεργασία του τελευταίου επεξεργάσιμου μηνύματος ή της λεζάντας του</string>
     <string name="setting_use_proxy_description">Δρομολογήστε όλη την κυκλοφορία μέσω ενός διακομιστή μεσολάβησης SOCKS5 ή http</string>

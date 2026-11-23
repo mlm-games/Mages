@@ -157,6 +157,8 @@
     <string name="setting_enable_tray">System-Infobereich aktivieren</string>
     <string name="setting_enable_tray_description">Ein Infobereichs-Symbol mit Schnellaktionen anzeigen. Deaktivieren, wenn der Infobereich auf deinem System abstürzt</string>
     <string name="setting_enter_sends_message_description">Wenn aktiviert, sendet Enter die Nachricht; Shift, Strg oder Cmd + Enter fügt eine neue Zeile ein</string>
+    <string name="setting_developer_mode">Entwicklermodus</string>
+    <string name="setting_developer_mode_description">Beeinflusst derzeit nur Slash-Befehle. Weitere Verwendungen folgen später.</string>
     <string name="setting_edit_latest_with_up_arrow">Letzte Nachricht mit Pfeil nach oben bearbeiten</string>
     <string name="setting_edit_latest_with_up_arrow_description">Wenn aktiviert, startet ein Druck auf die Pfeiltaste nach oben im leeren Nachrichtenfeld die Bearbeitung der letzten bearbeitbaren Nachricht oder ihres Untertitels</string>
     <string name="setting_use_proxy_description">Gesamten Datenverkehr über einen SOCKS5- oder HTTP-Proxy leiten</string>
