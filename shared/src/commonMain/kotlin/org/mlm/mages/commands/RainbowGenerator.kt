@@ -1,5 +1,6 @@
 package org.mlm.mages.commands
 
+import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -8,7 +9,7 @@ import kotlin.math.sin
 object RainbowGenerator {
     fun generate(text: String): String {
         val parts = splitGraphemes(text)
-        val frequency = 2 * Math.PI / parts.size.coerceAtLeast(1)
+        val frequency = 2 * PI / parts.size.coerceAtLeast(1)
         return parts.mapIndexed { index, part ->
             if (part == " ") {
                 part
