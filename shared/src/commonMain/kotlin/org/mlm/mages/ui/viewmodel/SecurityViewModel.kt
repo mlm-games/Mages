@@ -83,6 +83,7 @@ class SecurityViewModel(
         ActionRegistry.registerAction(OpenWallpaperAction::class, OpenWallpaperAction)
         ActionRegistry.registerAction(OpenMessageMenuSettingsAction::class, OpenMessageMenuSettingsAction)
         ActionRegistry.registerAction(OpenQuickReactionsAction::class, OpenQuickReactionsAction)
+        ActionRegistry.registerAction(OpenAboutAction::class, OpenAboutAction)
 
         viewModelScope.launch {
             service.activeAccount.collectLatest { account ->

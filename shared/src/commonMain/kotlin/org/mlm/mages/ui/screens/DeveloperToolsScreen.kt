@@ -1,10 +1,12 @@
 package org.mlm.mages.ui.screens
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,10 +40,10 @@ import org.mlm.mages.GitInfo
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.PushRuleInfo
 import org.mlm.mages.matrix.PushRuleKind
+import org.mlm.mages.platform.rememberClipboardCopy
 import org.mlm.mages.platform.appVersion
 import org.mlm.mages.push.PushHistoryEntry
 import org.mlm.mages.push.PushHistoryStore
-import org.mlm.mages.platform.rememberClipboardCopy
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.ui.components.settings.SettingSwitchRow
 import org.mlm.mages.ui.components.settings.SettingsSection
@@ -50,6 +52,16 @@ import org.mlm.mages.ui.util.crashApp
 import org.mlm.mages.ui.util.formatBytes
 
 private val logLevels = listOf("Verbose", "Debug", "Info", "Warn", "Error", "Assert")
+
+private data class CopyTarget(val title: String, val value: String, val sensitive: Boolean = false)
+private data class ActionTarget(val title: String, val value: String? = null, val onClick: () -> Unit)
+
+private fun LazyListScope.devSection(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    item { SettingsSection(title = title, content = content) }
+}
 
 @Composable
 private fun ClickableInfoRow(
@@ -69,6 +81,82 @@ private fun ClickableInfoRow(
             }
         }
     }
+}
+
+@Composable
+private fun InfoRow(title: String, value: String) {
+    ListItem(
+        headlineContent = { Text(title) },
+        supportingContent = { Text(value) },
+    )
+}
+
+@Composable
+private fun CopyTargetRow(target: CopyTarget, onCopy: (String, Boolean) -> Unit) {
+    ClickableInfoRow(
+        title = target.title,
+        value = target.value,
+        onClick = { onCopy(target.value, target.sensitive) },
+    )
+}
+
+@Composable
+private fun LogLevelRow(
+    logLevel: String,
+    expanded: Boolean,
+    onExpand: () -> Unit,
+    onDismiss: () -> Unit,
+    onChange: (String) -> Unit,
+) {
+    ListItem(
+        headlineContent = { Text(stringResource(Res.string.developer_tools_log_level)) },
+        supportingContent = { Text(logLevel) },
+        trailingContent = {
+            TextButton(onClick = onExpand) {
+                Text(stringResource(Res.string.developer_tools_change))
+            }
+        },
+    )
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        logLevels.forEach { level ->
+            DropdownMenuItem(
+                text = { Text(level) },
+                onClick = {
+                    onChange(level)
+                    onDismiss()
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun PushRuleRow(
+    rule: PushRuleInfo,
+    onToggle: (PushRuleKind, String, Boolean) -> Unit,
+) {
+    ListItem(
+        headlineContent = { Text(rule.ruleId) },
+        supportingContent = { Text("${rule.kind.name} · ${rule.actions.joinToString(", ")}") },
+        trailingContent = {
+            Switch(
+                checked = rule.enabled,
+                onCheckedChange = { enabled -> onToggle(rule.kind, rule.ruleId, enabled) },
+            )
+        },
+    )
+}
+
+@Composable
+private fun PushHistoryRow(
+    entry: PushHistoryEntry,
+    onCopy: (String, Boolean) -> Unit,
+) {
+    ClickableInfoRow(
+        title = "${entry.platform} · ${entry.summary}",
+        value = entry.raw.take(160),
+        onClick = { onCopy(entry.raw, true) },
+    )
 }
 
 @Composable
@@ -168,6 +256,28 @@ fun DeveloperToolsScreen(
 ) {
     var logLevelExpanded by remember { mutableStateOf(false) }
 
+    val sessionTargets = listOfNotNull(
+        userId?.let { CopyTarget(stringResource(Res.string.user_id), it, sensitive = true) },
+        deviceId?.let { CopyTarget(stringResource(Res.string.developer_tools_device_id), it, sensitive = true) },
+        homeserver?.let { CopyTarget(stringResource(Res.string.homeserver), it) },
+    )
+    val buildTargets = listOf(
+        CopyTarget(stringResource(Res.string.developer_tools_git_branch), gitBranch),
+        CopyTarget(stringResource(Res.string.developer_tools_git_sha), gitSha),
+    )
+    val cacheActions = listOf(
+        ActionTarget(stringResource(Res.string.developer_tools_media_cache), cacheSize, onOpenMediaCache),
+        ActionTarget(stringResource(Res.string.developer_tools_clear_cache), onClick = onClearCache),
+        ActionTarget(stringResource(Res.string.developer_tools_vacuum), onClick = onOptimizeStores),
+    )
+    val preferencesTitle = stringResource(Res.string.developer_tools_preferences)
+    val sessionTitle = stringResource(Res.string.developer_tools_session)
+    val buildTitle = stringResource(Res.string.developer_tools_build)
+    val cacheTitle = stringResource(Res.string.developer_tools_cache)
+    val pushRulesTitle = stringResource(Res.string.developer_tools_push_rules)
+    val pushHistoryTitle = stringResource(Res.string.developer_tools_push_history)
+    val crashTitle = stringResource(Res.string.developer_tools_crash)
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -190,149 +300,51 @@ fun DeveloperToolsScreen(
                 .padding(padding),
             contentPadding = PaddingValues(vertical = Spacing.sm),
         ) {
-            item {
-                SettingsSection(title = stringResource(Res.string.developer_tools_preferences)) {
-                    SettingSwitchRow(
-                        icon = painterResource(Res.drawable.ic_admin_panel_settings),
-                        title = stringResource(Res.string.setting_developer_mode),
-                        subtitle = stringResource(Res.string.setting_developer_mode_description),
-                        checked = developerMode,
-                        onCheckedChange = onDeveloperModeChange,
-                    )
-                    ListItem(
-                        headlineContent = { Text(stringResource(Res.string.developer_tools_log_level)) },
-                        supportingContent = { Text(logLevel) },
-                        trailingContent = {
-                            TextButton(onClick = { logLevelExpanded = true }) {
-                                Text(stringResource(Res.string.developer_tools_change))
-                            }
-                        },
-                    )
-                    DropdownMenu(
-                        expanded = logLevelExpanded,
-                        onDismissRequest = { logLevelExpanded = false },
-                    ) {
-                        logLevels.forEach { level ->
-                            DropdownMenuItem(
-                                text = { Text(level) },
-                                onClick = {
-                                    onLogLevelChange(level)
-                                    logLevelExpanded = false
-                                },
-                            )
-                        }
-                    }
+            devSection(preferencesTitle) {
+                SettingSwitchRow(
+                    icon = painterResource(Res.drawable.ic_admin_panel_settings),
+                    title = stringResource(Res.string.setting_developer_mode),
+                    subtitle = stringResource(Res.string.setting_developer_mode_description),
+                    checked = developerMode,
+                    onCheckedChange = onDeveloperModeChange,
+                )
+                LogLevelRow(
+                    logLevel = logLevel,
+                    expanded = logLevelExpanded,
+                    onExpand = { logLevelExpanded = true },
+                    onDismiss = { logLevelExpanded = false },
+                    onChange = onLogLevelChange,
+                )
+            }
+            devSection(sessionTitle) {
+                sessionTargets.forEach { CopyTargetRow(it, onCopy) }
+            }
+            devSection(buildTitle) {
+                InfoRow(
+                    title = stringResource(Res.string.about_version, version),
+                    value = stringResource(Res.string.developer_tools_platform, platform),
+                )
+                buildTargets.forEach { CopyTargetRow(it, onCopy) }
+            }
+            devSection(cacheTitle) {
+                cacheActions.forEach { target ->
+                    ClickableInfoRow(target.title, target.value, target.onClick)
                 }
             }
-            item {
-                SettingsSection(title = stringResource(Res.string.developer_tools_session)) {
-                    if (userId != null) {
-                        ClickableInfoRow(
-                            title = stringResource(Res.string.user_id),
-                            value = userId,
-                            onClick = { onCopy(userId, true) },
-                        )
-                    }
-                    if (deviceId != null) {
-                        ClickableInfoRow(
-                            title = stringResource(Res.string.developer_tools_device_id),
-                            value = deviceId,
-                            onClick = { onCopy(deviceId, true) },
-                        )
-                    }
-                    if (homeserver != null) {
-                        ClickableInfoRow(
-                            title = stringResource(Res.string.homeserver),
-                            value = homeserver,
-                            onClick = { onCopy(homeserver, false) },
-                        )
-                    }
+            devSection(pushRulesTitle) {
+                pushRules.forEach { rule -> PushRuleRow(rule, onTogglePushRule) }
+            }
+            devSection(pushHistoryTitle) {
+                if (pushHistory.isEmpty()) {
+                    ListItem(headlineContent = {
+                        Text(stringResource(Res.string.developer_tools_no_push_history))
+                    })
+                } else {
+                    pushHistory.take(20).forEach { entry -> PushHistoryRow(entry, onCopy) }
                 }
             }
-            item {
-                SettingsSection(title = stringResource(Res.string.developer_tools_build)) {
-                    ListItem(
-                        headlineContent = { Text(stringResource(Res.string.about_version, version)) },
-                        supportingContent = { Text(stringResource(Res.string.developer_tools_platform, platform)) },
-                    )
-                    ClickableInfoRow(
-                        title = stringResource(Res.string.developer_tools_git_branch),
-                        value = gitBranch,
-                        onClick = { onCopy(gitBranch, false) },
-                    )
-                    ClickableInfoRow(
-                        title = stringResource(Res.string.developer_tools_git_sha),
-                        value = gitSha,
-                        onClick = { onCopy(gitSha, false) },
-                    )
-                }
-            }
-            item {
-                SettingsSection(title = stringResource(Res.string.developer_tools_cache)) {
-                    ClickableInfoRow(
-                        title = stringResource(Res.string.developer_tools_media_cache),
-                        value = cacheSize,
-                        onClick = onOpenMediaCache,
-                    )
-                    ClickableInfoRow(
-                        title = stringResource(Res.string.developer_tools_clear_cache),
-                        value = null,
-                        onClick = onClearCache,
-                    )
-                    ClickableInfoRow(
-                        title = stringResource(Res.string.developer_tools_vacuum),
-                        value = null,
-                        onClick = onOptimizeStores,
-                    )
-                }
-            }
-            item {
-                SettingsSection(title = stringResource(Res.string.developer_tools_push_rules)) {
-                    pushRules.forEach { rule ->
-                        ListItem(
-                            headlineContent = { Text(rule.ruleId) },
-                            supportingContent = {
-                                Text("${rule.kind.name} · ${rule.actions.joinToString(", ")}")
-                            },
-                            trailingContent = {
-                                Switch(
-                                    checked = rule.enabled,
-                                    onCheckedChange = { enabled ->
-                                        onTogglePushRule(rule.kind, rule.ruleId, enabled)
-                                    },
-                                )
-                            },
-                        )
-                    }
-                }
-            }
-            item {
-                SettingsSection(title = stringResource(Res.string.developer_tools_push_history)) {
-                    if (pushHistory.isEmpty()) {
-                        ListItem(
-                            headlineContent = {
-                                Text(stringResource(Res.string.developer_tools_no_push_history))
-                            },
-                        )
-                    } else {
-                        pushHistory.take(20).forEach { entry ->
-                            ClickableInfoRow(
-                                title = "${entry.platform} · ${entry.summary}",
-                                value = entry.raw.take(160),
-                                onClick = { onCopy(entry.raw, true) },
-                            )
-                        }
-                    }
-                }
-            }
-            item {
-                SettingsSection(title = stringResource(Res.string.developer_tools_crash)) {
-                    ClickableInfoRow(
-                        title = stringResource(Res.string.developer_tools_crash),
-                        value = null,
-                        onClick = onCrash,
-                    )
-                }
+            devSection(crashTitle) {
+                ClickableInfoRow(stringResource(Res.string.developer_tools_crash), null, onCrash)
             }
         }
     }
