@@ -238,7 +238,9 @@ fun DeveloperToolsScreen(
 
     val sessionTargets = listOfNotNull(
         userId?.let { CopyTarget(stringResource(Res.string.user_id), it, sensitive = true) },
-        deviceId?.let { CopyTarget(stringResource(Res.string.developer_tools_device_id), it, sensitive = true) },
+        deviceId?.takeIf { it.isNotBlank() }?.let {
+            CopyTarget(stringResource(Res.string.developer_tools_device_id), it, sensitive = true)
+        },
         homeserver?.let { CopyTarget(stringResource(Res.string.homeserver), it) },
     )
     val buildTargets = listOf(

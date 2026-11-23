@@ -1027,6 +1027,8 @@ interface MatrixPort {
 
     suspend fun setTyping(roomId: String, typing: Boolean): Result<Unit>
     fun whoami(): String?
+
+    suspend fun currentDeviceId(): String?
     suspend fun accountManagementUrl(): String?
     fun setupRecovery(observer: RecoveryObserver): Boolean
     suspend fun resetRecoveryKey(): Result<String>

@@ -371,6 +371,10 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
         return withClient { it.whoami() }
     }
 
+    override suspend fun currentDeviceId(): String? = withContext(matrixDispatcher) {
+        runWithFfiResult { withClient { it.deviceId() } }.getOrNull()
+    }
+
     override suspend fun accountManagementUrl(): String? {
         return withContext(matrixDispatcher) {
             withClient { it.accountManagementUrl() }

@@ -586,6 +586,9 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
 
     override fun whoami(): String? = client?.whoami()
 
+    override suspend fun currentDeviceId(): String? =
+        listMyDevices().firstOrNull { it.isOwn }?.deviceId?.takeIf { it.isNotBlank() }
+
     override suspend fun accountManagementUrl(): String? =
         requireClient().accountManagementUrl().await<JsAny?>()?.toString()?.takeIf { it != "null" }
 

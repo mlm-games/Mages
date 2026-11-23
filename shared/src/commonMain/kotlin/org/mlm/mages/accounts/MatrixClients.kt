@@ -193,7 +193,17 @@ class MatrixClients(
 
             if (shouldResumeSession) {
                 _activePort = port
-                _activeAccount.value = account
+                val resumedAccount = if (account.deviceId.isBlank()) {
+                    val deviceId = port.currentDeviceId()?.takeIf { it.isNotBlank() }
+                    if (deviceId != null) {
+                        account.copy(deviceId = deviceId).also { accountStore.updateAccount(it) }
+                    } else {
+                        account
+                    }
+                } else {
+                    account
+                }
+                _activeAccount.value = resumedAccount
                 accountStore.setActiveAccountId(account.id)
                 _isReady.value = true
                 true
