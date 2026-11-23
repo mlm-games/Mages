@@ -627,8 +627,8 @@ fun ThreadScreen(
                             }
                         }
                     },
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ) {
                     Icon(painterResource(Res.drawable.ic_keyboard_arrow_down), stringResource(Res.string.scroll_to_bottom))
                     Spacer(Modifier.width(Spacing.sm))

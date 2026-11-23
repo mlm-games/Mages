@@ -10,13 +10,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -153,7 +153,7 @@ fun App(
 
 @Composable
 private fun SessionRestoreScreen(onRetry: () -> Unit, onSignIn: () -> Unit) {
-    Surface(color = darkColorScheme().background) {
+    Surface(color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier.fillMaxSize().padding(24.dp),
             verticalArrangement = Arrangement.Center,
@@ -239,21 +239,45 @@ private fun AppContent(
     val verification: VerificationCoordinator = koinInject()
     val verState by verification.state.collectAsState()
 
+    val isDark = when (settings.themeMode) {
+        ThemeMode.System -> isSystemInDarkTheme()
+        ThemeMode.Dark -> true
+        ThemeMode.Light -> false
+    }
+
+    @Composable
+    fun AppTheme(content: @Composable () -> Unit) {
+        ProvideAppLocale(settings.appLanguageTagOrNull()) {
+            MainTheme(
+                darkTheme = isDark,
+                dynamicColors = settings.dynamicColors,
+                oledBlack = settings.oledBlack,
+                use24HourTime = settings.use24HourTime,
+                fontFamily = appFontFamily(settings.appFont, settings.appFontWidth, settings.appFontRoundness),
+                reduceMotion = settings.reduceMotion,
+            ) { content() }
+        }
+    }
+
     if (!initDone) {
-        Surface(color = darkColorScheme().background) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) { CircularWavyProgressIndicator() }
+        AppTheme {
+            Surface(color = MaterialTheme.colorScheme.background) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) { CircularWavyProgressIndicator() }
+            }
         }
         return
     }
 
     if (!showLogin && restoreFailed && activeAccount == null && (savedAccounts.isNotEmpty() || !accountsLoaded)) {
-        SessionRestoreScreen(
-            onRetry = { restoreAttempt++ },
-            onSignIn = { showLogin = true }
-        )
+        AppTheme {
+            SessionRestoreScreen(
+                onRetry = { restoreAttempt++ },
+                onSignIn = { showLogin = true }
+            )
+        }
         return
     }
 
@@ -266,11 +290,6 @@ private fun AppContent(
     val backStack: NavBackStack<NavKey> =
         rememberNavBackStack(navSavedStateConfiguration, initialRoute)
 
-    val isDark = when (settings.themeMode) {
-        ThemeMode.System -> isSystemInDarkTheme()
-        ThemeMode.Dark -> true
-        ThemeMode.Light -> false
-    }
     val widgetTheme = if (isDark) "dark" else "light"
     val elementCallUrl = settings.elementCallUrl.trim().ifBlank {
         runCatching { platformEmbeddedElementCallUrlOrNull() }.getOrNull()
@@ -280,16 +299,8 @@ private fun AppContent(
     // Must live outside ProvideAppLocale: its key(languageTag) disposes the subtree.
     val navEntryViewModelStore = rememberViewModelStoreProvider()
 
-    ProvideAppLocale(settings.appLanguageTagOrNull()) {
-        MainTheme(
-            darkTheme = isDark,
-            dynamicColors = settings.dynamicColors,
-            oledBlack = settings.oledBlack,
-            use24HourTime = settings.use24HourTime,
-            fontFamily = appFontFamily(settings.appFont, settings.appFontWidth, settings.appFontRoundness),
-            reduceMotion = settings.reduceMotion,
-        ) {
-            val languageTag = LocalAppLocale.current
+    AppTheme {
+        val languageTag = LocalAppLocale.current
             val scope = rememberCoroutineScope()
             LaunchedEffect(settings.developerLogLevel) {
                 val severity = runCatching { Severity.valueOf(settings.developerLogLevel) }.getOrDefault(Severity.Info)
@@ -1511,7 +1522,6 @@ private fun AppContent(
                     onDismiss = { showAccountSwitcher = false }
                 )
             }
-        }
     }
 }
 
