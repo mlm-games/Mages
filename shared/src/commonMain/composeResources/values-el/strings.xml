@@ -161,9 +161,11 @@
     <string name="setting_developer_mode_description">Προς το παρόν επηρεάζει μόνο τις εντολές. Περισσότερες χρήσεις αργότερα.</string>
     <string name="setting_about">Σχετικά</string>
     <string name="setting_about_description">Έκδοση εφαρμογής και νομικές πληροφορίες</string>
-    <string name="about_description">Το Mages είναι ένα πειραματικό πρόγραμμα συνομιλίας Matrix, χτισμένο με Compose Multiplatform και matrix-rust-sdk.</string>
     <string name="about_version">Έκδοση %1$s</string>
-    <string name="about_license">Με άδεια GNU AGPL v3</string>
+    <string name="about_build_info">Πληροφορίες έκδοσης</string>
+    <string name="about_links">Σύνδεσμοι</string>
+    <string name="about_source_code">Πηγαίος κώδικας</string>
+    <string name="about_report_bug">Αναφορά σφάλματος</string>
     <string name="developer_tools_title">Εργαλεία προγραμματιστή</string>
     <string name="developer_tools_preferences">Προτιμήσεις</string>
     <string name="developer_tools_build">Κατασκευή</string>
@@ -175,8 +177,6 @@
     <string name="developer_tools_git_branch">Κλάδος Git</string>
     <string name="developer_tools_git_sha">Git SHA</string>
     <string name="developer_tools_cache">Κρυφή μνήμη</string>
-    <string name="developer_tools_media_cache">Κρυφή μνήμη πολυμέσων</string>
-    <string name="developer_tools_clear_cache">Εκκαθάριση κρυφής μνήμης</string>
     <string name="developer_tools_crash">Σφάλμα εφαρμογής 💥</string>
     <string name="developer_tools_vacuum">Βελτιστοποίηση χώρου αποθήκευσης</string>
     <string name="developer_tools_push_rules">Κανόνες push</string>

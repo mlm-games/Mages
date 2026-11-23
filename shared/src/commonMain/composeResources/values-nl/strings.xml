@@ -161,9 +161,11 @@
     <string name="setting_developer_mode_description">Beïnvloedt momenteel alleen slash-commando's. Meer toepassingen volgen later.</string>
     <string name="setting_about">Over</string>
     <string name="setting_about_description">App-versie en juridische informatie</string>
-    <string name="about_description">Mages is een experimentele Matrix-chatclient gebouwd met Compose Multiplatform en matrix-rust-sdk.</string>
     <string name="about_version">Versie %1$s</string>
-    <string name="about_license">Gelicentieerd onder GNU AGPL v3</string>
+    <string name="about_build_info">Buildinformatie</string>
+    <string name="about_links">Links</string>
+    <string name="about_source_code">Broncode</string>
+    <string name="about_report_bug">Bug melden</string>
     <string name="developer_tools_title">Ontwikkelaarstools</string>
     <string name="developer_tools_preferences">Voorkeuren</string>
     <string name="developer_tools_build">Build</string>
@@ -175,8 +177,6 @@
     <string name="developer_tools_git_branch">Git-branch</string>
     <string name="developer_tools_git_sha">Git-SHA</string>
     <string name="developer_tools_cache">Cache</string>
-    <string name="developer_tools_media_cache">Mediacache</string>
-    <string name="developer_tools_clear_cache">Cache wissen</string>
     <string name="developer_tools_crash">App laten crashen 💥</string>
     <string name="developer_tools_vacuum">Opslag optimaliseren</string>
     <string name="developer_tools_push_rules">Pushregels</string>

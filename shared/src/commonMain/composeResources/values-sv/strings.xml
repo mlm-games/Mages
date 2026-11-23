@@ -161,9 +161,11 @@
     <string name="setting_developer_mode_description">Påverkar bara slash-kommandon just nu. Fler användningar kommer senare.</string>
     <string name="setting_about">Om</string>
     <string name="setting_about_description">Appversion och juridisk information</string>
-    <string name="about_description">Mages är en experimentell Matrix-chatklient byggd med Compose Multiplatform och matrix-rust-sdk.</string>
     <string name="about_version">Version %1$s</string>
-    <string name="about_license">Licensierad under GNU AGPL v3</string>
+    <string name="about_build_info">Bygginformation</string>
+    <string name="about_links">Länkar</string>
+    <string name="about_source_code">Källkod</string>
+    <string name="about_report_bug">Rapportera bugg</string>
     <string name="developer_tools_title">Utvecklarverktyg</string>
     <string name="developer_tools_preferences">Inställningar</string>
     <string name="developer_tools_build">Bygge</string>
@@ -175,8 +177,6 @@
     <string name="developer_tools_git_branch">Git-gren</string>
     <string name="developer_tools_git_sha">Git-SHA</string>
     <string name="developer_tools_cache">Cache</string>
-    <string name="developer_tools_media_cache">Mediacache</string>
-    <string name="developer_tools_clear_cache">Rensa cache</string>
     <string name="developer_tools_crash">Krascha appen 💥</string>
     <string name="developer_tools_vacuum">Optimera lagring</string>
     <string name="developer_tools_push_rules">Pushregler</string>

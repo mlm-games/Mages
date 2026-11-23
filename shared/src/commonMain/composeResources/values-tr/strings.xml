@@ -161,9 +161,11 @@
     <string name="setting_developer_mode_description">Şu an sadece eğik çizgi komutlarını etkiler. Daha fazla kullanım alanı sonra eklenecek.</string>
     <string name="setting_about">Hakkında</string>
     <string name="setting_about_description">Uygulama sürümü ve yasal bilgiler</string>
-    <string name="about_description">Mages, Compose Multiplatform ve matrix-rust-sdk ile oluşturulmuş deneysel bir Matrix sohbet istemcisidir.</string>
     <string name="about_version">Sürüm %1$s</string>
-    <string name="about_license">GNU AGPL v3 lisansı altında</string>
+    <string name="about_build_info">Derleme bilgisi</string>
+    <string name="about_links">Bağlantılar</string>
+    <string name="about_source_code">Kaynak kod</string>
+    <string name="about_report_bug">Hata bildir</string>
     <string name="developer_tools_title">Geliştirici araçları</string>
     <string name="developer_tools_preferences">Tercihler</string>
     <string name="developer_tools_build">Derleme</string>
@@ -175,8 +177,6 @@
     <string name="developer_tools_git_branch">Git dalı</string>
     <string name="developer_tools_git_sha">Git SHA</string>
     <string name="developer_tools_cache">Önbellek</string>
-    <string name="developer_tools_media_cache">Medya önbelleği</string>
-    <string name="developer_tools_clear_cache">Önbelleği temizle</string>
     <string name="developer_tools_crash">Uygulamayı çökert 💥</string>
     <string name="developer_tools_vacuum">Depolamayı optimize et</string>
     <string name="developer_tools_push_rules">Anlık bildirim kuralları</string>

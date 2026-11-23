@@ -161,9 +161,11 @@
     <string name="setting_developer_mode_description">در حال حاضر فقط بر دستورات اسلش تأثیر میگذارد. کاربردهای بیشتر بعداً اضافه میشوند.</string>
     <string name="setting_about">درباره</string>
     <string name="setting_about_description">نسخه برنامه و اطلاعات قانونی</string>
-    <string name="about_description">Mages یک کلاینت چت Matrix آزمایشی است که با Compose Multiplatform و matrix-rust-sdk ساخته شده است.</string>
     <string name="about_version">نسخه %1$s</string>
-    <string name="about_license">دارای مجوز GNU AGPL v3</string>
+    <string name="about_build_info">اطلاعات ساخت</string>
+    <string name="about_links">پیوندها</string>
+    <string name="about_source_code">کد منبع</string>
+    <string name="about_report_bug">گزارش اشکال</string>
     <string name="developer_tools_title">ابزارهای توسعهدهنده</string>
     <string name="developer_tools_preferences">تنظیمات</string>
     <string name="developer_tools_build">ساخت</string>
@@ -175,8 +177,6 @@
     <string name="developer_tools_git_branch">شاخه Git</string>
     <string name="developer_tools_git_sha">هش Git</string>
     <string name="developer_tools_cache">حافظه پنهان</string>
-    <string name="developer_tools_media_cache">حافظه پنهان رسانه</string>
-    <string name="developer_tools_clear_cache">پاک کردن حافظه پنهان</string>
     <string name="developer_tools_crash">خراب کردن برنامه 💥</string>
     <string name="developer_tools_vacuum">بهینهسازی ذخیرهساز</string>
     <string name="developer_tools_push_rules">قواعد اعلان</string>

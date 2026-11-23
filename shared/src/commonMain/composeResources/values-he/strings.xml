@@ -161,9 +161,11 @@
     <string name="setting_developer_mode_description">כרגע משפיע רק על פקודות. שימושים נוספים יתווספו בהמשך.</string>
     <string name="setting_about">אודות</string>
     <string name="setting_about_description">גרסת האפליקציה ומידע משפטי</string>
-    <string name="about_description">Mages הוא לקוח צ'אט Matrix ניסיוני שנבנה עם Compose Multiplatform ו-matrix-rust-sdk.</string>
     <string name="about_version">גרסה %1$s</string>
-    <string name="about_license">ברישיון GNU AGPL v3</string>
+    <string name="about_build_info">מידע בנייה</string>
+    <string name="about_links">קישורים</string>
+    <string name="about_source_code">קוד מקור</string>
+    <string name="about_report_bug">דיווח על באג</string>
     <string name="developer_tools_title">כלי מפתחים</string>
     <string name="developer_tools_preferences">העדפות</string>
     <string name="developer_tools_build">בנייה</string>
@@ -175,8 +177,6 @@
     <string name="developer_tools_git_branch">ענף Git</string>
     <string name="developer_tools_git_sha">SHA של Git</string>
     <string name="developer_tools_cache">מטמון</string>
-    <string name="developer_tools_media_cache">מטמון מדיה</string>
-    <string name="developer_tools_clear_cache">ניקוי מטמון</string>
     <string name="developer_tools_crash">קריסת האפליקציה 💥</string>
     <string name="developer_tools_vacuum">אופטימיזציה של אחסון</string>
     <string name="developer_tools_push_rules">כללי דחיפה</string>

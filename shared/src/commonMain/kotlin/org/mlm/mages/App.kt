@@ -1342,7 +1342,6 @@ private fun AppContent(
                         entry<Route.DeveloperTools> {
                             DeveloperToolsRoute(
                                 onBack = backStack::popBack,
-                                onOpenMediaCache = { backStack.add(Route.MediaCache) },
                             )
                         }
                     }

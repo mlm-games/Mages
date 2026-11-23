@@ -161,9 +161,11 @@
     <string name="setting_developer_mode_description">Saat ini hanya memengaruhi perintah slash. Kegunaan lain menyusul kemudian.</string>
     <string name="setting_about">Tentang</string>
     <string name="setting_about_description">Versi aplikasi dan informasi hukum</string>
-    <string name="about_description">Mages adalah klien obrolan Matrix eksperimental yang dibangun dengan Compose Multiplatform dan matrix-rust-sdk.</string>
     <string name="about_version">Versi %1$s</string>
-    <string name="about_license">Dilisensikan di bawah GNU AGPL v3</string>
+    <string name="about_build_info">Info build</string>
+    <string name="about_links">Tautan</string>
+    <string name="about_source_code">Kode sumber</string>
+    <string name="about_report_bug">Laporkan bug</string>
     <string name="developer_tools_title">Alat pengembang</string>
     <string name="developer_tools_preferences">Preferensi</string>
     <string name="developer_tools_build">Build</string>
@@ -175,8 +177,6 @@
     <string name="developer_tools_git_branch">Cabang Git</string>
     <string name="developer_tools_git_sha">SHA Git</string>
     <string name="developer_tools_cache">Cache</string>
-    <string name="developer_tools_media_cache">Cache media</string>
-    <string name="developer_tools_clear_cache">Hapus cache</string>
     <string name="developer_tools_crash">Buat aplikasi crash 💥</string>
     <string name="developer_tools_vacuum">Optimalkan penyimpanan</string>
     <string name="developer_tools_push_rules">Aturan push</string>

@@ -161,9 +161,11 @@
     <string name="setting_developer_mode_description">現在はスラッシュコマンドにのみ影響します。他の用途は後ほど追加されます。</string>
     <string name="setting_about">概要</string>
     <string name="setting_about_description">アプリのバージョンと法的情報</string>
-    <string name="about_description">Mages は Compose Multiplatform と matrix-rust-sdk で構築された実験的な Matrix チャットクライアントです。</string>
     <string name="about_version">バージョン %1$s</string>
-    <string name="about_license">GNU AGPL v3 のライセンスです</string>
+    <string name="about_build_info">ビルド情報</string>
+    <string name="about_links">リンク</string>
+    <string name="about_source_code">ソースコード</string>
+    <string name="about_report_bug">バグを報告</string>
     <string name="developer_tools_title">開発者ツール</string>
     <string name="developer_tools_preferences">設定</string>
     <string name="developer_tools_build">ビルド</string>
@@ -175,8 +177,6 @@
     <string name="developer_tools_git_branch">Git ブランチ</string>
     <string name="developer_tools_git_sha">Git SHA</string>
     <string name="developer_tools_cache">キャッシュ</string>
-    <string name="developer_tools_media_cache">メディアキャッシュ</string>
-    <string name="developer_tools_clear_cache">キャッシュをクリア</string>
     <string name="developer_tools_crash">アプリをクラッシュ 💥</string>
     <string name="developer_tools_vacuum">ストレージ最適化</string>
     <string name="developer_tools_push_rules">プッシュルール</string>

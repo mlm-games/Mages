@@ -161,9 +161,11 @@
     <string name="setting_developer_mode_description">Hiện chỉ ảnh hưởng đến các lệnh gạch chéo. Sẽ có thêm mục đích sử dụng sau.</string>
     <string name="setting_about">Giới thiệu</string>
     <string name="setting_about_description">Phiên bản ứng dụng và thông tin pháp lý</string>
-    <string name="about_description">Mages là một ứng dụng trò chuyện Matrix thử nghiệm được xây dựng bằng Compose Multiplatform và matrix-rust-sdk.</string>
     <string name="about_version">Phiên bản %1$s</string>
-    <string name="about_license">Được cấp phép theo GNU AGPL v3</string>
+    <string name="about_build_info">Thông tin bản dựng</string>
+    <string name="about_links">Liên kết</string>
+    <string name="about_source_code">Mã nguồn</string>
+    <string name="about_report_bug">Báo lỗi</string>
     <string name="developer_tools_title">Công cụ dành cho nhà phát triển</string>
     <string name="developer_tools_preferences">Tùy chọn</string>
     <string name="developer_tools_build">Bản dựng</string>
@@ -175,8 +177,6 @@
     <string name="developer_tools_git_branch">Nhánh Git</string>
     <string name="developer_tools_git_sha">SHA Git</string>
     <string name="developer_tools_cache">Bộ nhớ đệm</string>
-    <string name="developer_tools_media_cache">Bộ nhớ đệm phương tiện</string>
-    <string name="developer_tools_clear_cache">Xóa bộ nhớ đệm</string>
     <string name="developer_tools_crash">Làm ứng dụng crash 💥</string>
     <string name="developer_tools_vacuum">Tối ưu bộ nhớ</string>
     <string name="developer_tools_push_rules">Quy tắc đẩy</string>

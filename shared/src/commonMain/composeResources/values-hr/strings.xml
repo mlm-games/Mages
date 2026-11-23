@@ -161,9 +161,11 @@
     <string name="setting_developer_mode_description">Trenutno utječe samo na naredbe. Više namjena kasnije.</string>
     <string name="setting_about">O aplikaciji</string>
     <string name="setting_about_description">Verzija aplikacije i pravne informacije</string>
-    <string name="about_description">Mages je eksperimentalni Matrix klijent za razgovor izgrađen s Compose Multiplatform i matrix-rust-sdk.</string>
     <string name="about_version">Verzija %1$s</string>
-    <string name="about_license">Licencirano pod GNU AGPL v3</string>
+    <string name="about_build_info">Informacije o izradi</string>
+    <string name="about_links">Veze</string>
+    <string name="about_source_code">Izvorni kod</string>
+    <string name="about_report_bug">Prijavi grešku</string>
     <string name="developer_tools_title">Alati za programere</string>
     <string name="developer_tools_preferences">Postavke</string>
     <string name="developer_tools_build">Build</string>
@@ -175,8 +177,6 @@
     <string name="developer_tools_git_branch">Git grana</string>
     <string name="developer_tools_git_sha">Git SHA</string>
     <string name="developer_tools_cache">Predmemorija</string>
-    <string name="developer_tools_media_cache">Predmemorija medija</string>
-    <string name="developer_tools_clear_cache">Očisti predmemoriju</string>
     <string name="developer_tools_crash">Sruši aplikaciju 💥</string>
     <string name="developer_tools_vacuum">Optimizacija spremišta</string>
     <string name="developer_tools_push_rules">Pravila push obavijesti</string>

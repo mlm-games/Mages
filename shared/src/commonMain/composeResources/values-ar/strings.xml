@@ -161,9 +161,11 @@
     <string name="setting_developer_mode_description">يؤثر حالياً على أوامر الشرطة المائلة فقط. ستضاف استخدامات أخرى لاحقاً.</string>
     <string name="setting_about">حول</string>
     <string name="setting_about_description">إصدار التطبيق والمعلومات القانونية</string>
-    <string name="about_description">Mages هو عميل دردشة Matrix تجريبي مبني باستخدام Compose Multiplatform و matrix-rust-sdk.</string>
     <string name="about_version">الإصدار %1$s</string>
-    <string name="about_license">مرخص بموجب GNU AGPL v3</string>
+    <string name="about_build_info">معلومات البناء</string>
+    <string name="about_links">روابط</string>
+    <string name="about_source_code">الشيفرة المصدرية</string>
+    <string name="about_report_bug">الإبلاغ عن خطأ</string>
     <string name="developer_tools_title">أدوات المطور</string>
     <string name="developer_tools_preferences">التفضيلات</string>
     <string name="developer_tools_build">البناء</string>
@@ -175,8 +177,6 @@
     <string name="developer_tools_git_branch">فرع Git</string>
     <string name="developer_tools_git_sha">تجزئة Git</string>
     <string name="developer_tools_cache">الذاكرة المؤقتة</string>
-    <string name="developer_tools_media_cache">ذاكرة الوسائط المؤقتة</string>
-    <string name="developer_tools_clear_cache">مسح الذاكرة المؤقتة</string>
     <string name="developer_tools_crash">تعطيل التطبيق 💥</string>
     <string name="developer_tools_vacuum">تحسين المخازن</string>
     <string name="developer_tools_push_rules">قواعد الدفع</string>

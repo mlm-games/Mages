@@ -161,9 +161,11 @@
     <string name="setting_developer_mode_description">Jelenleg csak a parancsokat befolyásolja. Több felhasználási terület később jön.</string>
     <string name="setting_about">Névjegy</string>
     <string name="setting_about_description">Az alkalmazás verziója és jogi információk</string>
-    <string name="about_description">A Mages egy kísérleti Matrix csevegőkliens, amely a Compose Multiplatform és a matrix-rust-sdk segítségével készült.</string>
     <string name="about_version">Verzió: %1$s</string>
-    <string name="about_license">GNU AGPL v3 licenc alatt</string>
+    <string name="about_build_info">Build információ</string>
+    <string name="about_links">Hivatkozások</string>
+    <string name="about_source_code">Forráskód</string>
+    <string name="about_report_bug">Hiba jelentése</string>
     <string name="developer_tools_title">Fejlesztői eszközök</string>
     <string name="developer_tools_preferences">Beállítások</string>
     <string name="developer_tools_build">Build</string>
@@ -175,8 +177,6 @@
     <string name="developer_tools_git_branch">Git ág</string>
     <string name="developer_tools_git_sha">Git SHA</string>
     <string name="developer_tools_cache">Gyorsítótár</string>
-    <string name="developer_tools_media_cache">Média gyorsítótár</string>
-    <string name="developer_tools_clear_cache">Gyorsítótár törlése</string>
     <string name="developer_tools_crash">Alkalmazás összeomlása 💥</string>
     <string name="developer_tools_vacuum">Tárhely optimalizálás</string>
     <string name="developer_tools_push_rules">Push szabályok</string>

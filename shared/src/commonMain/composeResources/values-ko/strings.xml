@@ -161,9 +161,11 @@
     <string name="setting_developer_mode_description">현재는 슬래시 명령에만 영향을 줍니다. 추후 더 많은 용도로 사용됩니다.</string>
     <string name="setting_about">정보</string>
     <string name="setting_about_description">앱 버전 및 법적 정보</string>
-    <string name="about_description">Mages는 Compose Multiplatform와 matrix-rust-sdk로 만든 실험적인 Matrix 채팅 클라이언트입니다.</string>
     <string name="about_version">버전 %1$s</string>
-    <string name="about_license">GNU AGPL v3 라이선스</string>
+    <string name="about_build_info">빌드 정보</string>
+    <string name="about_links">링크</string>
+    <string name="about_source_code">소스 코드</string>
+    <string name="about_report_bug">버그 신고</string>
     <string name="developer_tools_title">개발자 도구</string>
     <string name="developer_tools_preferences">환경 설정</string>
     <string name="developer_tools_build">빌드</string>
@@ -175,8 +177,6 @@
     <string name="developer_tools_git_branch">Git 브랜치</string>
     <string name="developer_tools_git_sha">Git SHA</string>
     <string name="developer_tools_cache">캐시</string>
-    <string name="developer_tools_media_cache">미디어 캐시</string>
-    <string name="developer_tools_clear_cache">캐시 지우기</string>
     <string name="developer_tools_crash">앱 충돌 💥</string>
     <string name="developer_tools_vacuum">저장소 최적화</string>
     <string name="developer_tools_push_rules">푸시 규칙</string>

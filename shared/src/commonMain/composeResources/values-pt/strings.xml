@@ -161,9 +161,11 @@
     <string name="setting_developer_mode_description">Por enquanto afeta apenas os comandos. Mais usos depois.</string>
     <string name="setting_about">Sobre</string>
     <string name="setting_about_description">Versão do aplicativo e informações legais</string>
-    <string name="about_description">Mages é um cliente de chat Matrix experimental construído com Compose Multiplatform e matrix-rust-sdk.</string>
     <string name="about_version">Versão %1$s</string>
-    <string name="about_license">Licenciado sob GNU AGPL v3</string>
+    <string name="about_build_info">Informações da build</string>
+    <string name="about_links">Links</string>
+    <string name="about_source_code">Código-fonte</string>
+    <string name="about_report_bug">Relatar um bug</string>
     <string name="developer_tools_title">Ferramentas de desenvolvedor</string>
     <string name="developer_tools_preferences">Preferências</string>
     <string name="developer_tools_build">Build</string>
@@ -175,8 +177,6 @@
     <string name="developer_tools_git_branch">Branch do Git</string>
     <string name="developer_tools_git_sha">SHA do Git</string>
     <string name="developer_tools_cache">Cache</string>
-    <string name="developer_tools_media_cache">Cache de mídia</string>
-    <string name="developer_tools_clear_cache">Limpar cache</string>
     <string name="developer_tools_crash">Travar o app 💥</string>
     <string name="developer_tools_vacuum">Otimizar armazenamento</string>
     <string name="developer_tools_push_rules">Regras de push</string>

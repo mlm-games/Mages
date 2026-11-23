@@ -161,9 +161,11 @@
     <string name="setting_developer_mode_description">目前僅影響斜線指令，日後會有更多用途。</string>
     <string name="setting_about">關於</string>
     <string name="setting_about_description">應用程式版本與法律資訊</string>
-    <string name="about_description">Mages 是一個使用 Compose Multiplatform 與 matrix-rust-sdk 建構的實驗性 Matrix 聊天用戶端。</string>
     <string name="about_version">版本 %1$s</string>
-    <string name="about_license">採用 GNU AGPL v3 授權</string>
+    <string name="about_build_info">組建資訊</string>
+    <string name="about_links">連結</string>
+    <string name="about_source_code">原始碼</string>
+    <string name="about_report_bug">回報問題</string>
     <string name="developer_tools_title">開發者工具</string>
     <string name="developer_tools_preferences">偏好設定</string>
     <string name="developer_tools_build">組建</string>
@@ -175,8 +177,6 @@
     <string name="developer_tools_git_branch">Git 分支</string>
     <string name="developer_tools_git_sha">Git SHA</string>
     <string name="developer_tools_cache">快取</string>
-    <string name="developer_tools_media_cache">媒體快取</string>
-    <string name="developer_tools_clear_cache">清除快取</string>
     <string name="developer_tools_crash">讓應用程式崩潰 💥</string>
     <string name="developer_tools_vacuum">最佳化儲存</string>
     <string name="developer_tools_push_rules">推送規則</string>

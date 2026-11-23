@@ -161,9 +161,11 @@
     <string name="setting_developer_mode_description">Зараз впливає лише на команди. Більше застосувань пізніше.</string>
     <string name="setting_about">Про застосунок</string>
     <string name="setting_about_description">Версія застосунку та юридична інформація</string>
-    <string name="about_description">Mages — це експериментальний клієнт Matrix, створений за допомогою Compose Multiplatform та matrix-rust-sdk.</string>
     <string name="about_version">Версія %1$s</string>
-    <string name="about_license">Ліцензія GNU AGPL v3</string>
+    <string name="about_build_info">Інформація про збірку</string>
+    <string name="about_links">Посилання</string>
+    <string name="about_source_code">Вихідний код</string>
+    <string name="about_report_bug">Повідомити про помилку</string>
     <string name="developer_tools_title">Інструменти розробника</string>
     <string name="developer_tools_preferences">Налаштування</string>
     <string name="developer_tools_build">Збірка</string>
@@ -175,8 +177,6 @@
     <string name="developer_tools_git_branch">Гілка Git</string>
     <string name="developer_tools_git_sha">SHA Git</string>
     <string name="developer_tools_cache">Кеш</string>
-    <string name="developer_tools_media_cache">Кеш медіа</string>
-    <string name="developer_tools_clear_cache">Очистити кеш</string>
     <string name="developer_tools_crash">Аварійне завершення застосунку 💥</string>
     <string name="developer_tools_vacuum">Оптимізація сховища</string>
     <string name="developer_tools_push_rules">Правила push-сповіщень</string>

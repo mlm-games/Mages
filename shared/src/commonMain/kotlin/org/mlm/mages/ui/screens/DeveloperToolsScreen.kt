@@ -49,12 +49,10 @@ import org.mlm.mages.ui.components.settings.SettingSwitchRow
 import org.mlm.mages.ui.components.settings.SettingsSection
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.crashApp
-import org.mlm.mages.ui.util.formatBytes
 
 private val logLevels = listOf("Verbose", "Debug", "Info", "Warn", "Error", "Assert")
 
 private data class CopyTarget(val title: String, val value: String, val sensitive: Boolean = false)
-private data class ActionTarget(val title: String, val value: String? = null, val onClick: () -> Unit)
 
 private fun LazyListScope.devSection(
     title: String,
@@ -160,10 +158,7 @@ private fun PushHistoryRow(
 }
 
 @Composable
-fun DeveloperToolsRoute(
-    onBack: () -> Unit,
-    onOpenMediaCache: () -> Unit,
-) {
+fun DeveloperToolsRoute(onBack: () -> Unit) {
     val settingsRepository: SettingsRepository<AppSettings> = koinInject()
     val service: MatrixService = koinInject()
     val settings by settingsRepository.flow.collectAsState(initial = AppSettings())
@@ -171,13 +166,11 @@ fun DeveloperToolsRoute(
     val scope = rememberCoroutineScope()
     val copy = rememberClipboardCopy()
     val version = remember { appVersion() }
-    var cacheBytes by remember { mutableStateOf<ULong?>(null) }
     var pushRules by remember { mutableStateOf<List<PushRuleInfo>>(emptyList()) }
     val pushHistory by PushHistoryStore.entries.collectAsState()
 
     LaunchedEffect(Unit) {
         val port = service.portOrNull ?: return@LaunchedEffect
-        cacheBytes = runCatching { port.mediaCacheOverview()?.totalBytes }.getOrNull()
         pushRules = port.pushRules().getOrDefault(emptyList())
     }
 
@@ -191,7 +184,6 @@ fun DeveloperToolsRoute(
         userId = account?.userId,
         deviceId = account?.deviceId,
         homeserver = account?.homeserver,
-        cacheSize = cacheBytes?.let { formatBytes(it.toLong()) },
         onDeveloperModeChange = { enabled ->
             scope.launch { settingsRepository.update { it.copy(developerMode = enabled) } }
         },
@@ -199,15 +191,6 @@ fun DeveloperToolsRoute(
             scope.launch { settingsRepository.update { it.copy(developerLogLevel = level) } }
         },
         onCopy = copy,
-        onClearCache = {
-            scope.launch {
-                val port = service.portOrNull ?: return@launch
-                if (port.clearMediaCache().isSuccess) {
-                    cacheBytes = runCatching { port.mediaCacheOverview()?.totalBytes }.getOrNull()
-                }
-            }
-        },
-        onOpenMediaCache = onOpenMediaCache,
         onOptimizeStores = {
             scope.launch { service.portOrNull?.optimizeStores() }
         },
@@ -240,14 +223,11 @@ fun DeveloperToolsScreen(
     userId: String?,
     deviceId: String?,
     homeserver: String?,
-    cacheSize: String?,
     pushRules: List<PushRuleInfo>,
     pushHistory: List<PushHistoryEntry>,
     onDeveloperModeChange: (Boolean) -> Unit,
     onLogLevelChange: (String) -> Unit,
     onCopy: (String, Boolean) -> Unit,
-    onClearCache: () -> Unit,
-    onOpenMediaCache: () -> Unit,
     onOptimizeStores: () -> Unit,
     onTogglePushRule: (PushRuleKind, String, Boolean) -> Unit,
     onCrash: () -> Unit,
@@ -264,11 +244,6 @@ fun DeveloperToolsScreen(
     val buildTargets = listOf(
         CopyTarget(stringResource(Res.string.developer_tools_git_branch), gitBranch),
         CopyTarget(stringResource(Res.string.developer_tools_git_sha), gitSha),
-    )
-    val cacheActions = listOf(
-        ActionTarget(stringResource(Res.string.developer_tools_media_cache), cacheSize, onOpenMediaCache),
-        ActionTarget(stringResource(Res.string.developer_tools_clear_cache), onClick = onClearCache),
-        ActionTarget(stringResource(Res.string.developer_tools_vacuum), onClick = onOptimizeStores),
     )
     val preferencesTitle = stringResource(Res.string.developer_tools_preferences)
     val sessionTitle = stringResource(Res.string.developer_tools_session)
@@ -327,9 +302,11 @@ fun DeveloperToolsScreen(
                 buildTargets.forEach { CopyTargetRow(it, onCopy) }
             }
             devSection(cacheTitle) {
-                cacheActions.forEach { target ->
-                    ClickableInfoRow(target.title, target.value, target.onClick)
-                }
+                ClickableInfoRow(
+                    stringResource(Res.string.developer_tools_vacuum),
+                    null,
+                    onOptimizeStores,
+                )
             }
             devSection(pushRulesTitle) {
                 pushRules.forEach { rule -> PushRuleRow(rule, onTogglePushRule) }
