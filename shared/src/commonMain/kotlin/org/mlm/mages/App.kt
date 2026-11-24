@@ -22,7 +22,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.rememberViewModelStoreProvider
@@ -298,6 +300,11 @@ private fun AppContent(
     val backStack: NavBackStack<NavKey> =
         rememberNavBackStack(navSavedStateConfiguration, initialRoute)
 
+    val topRoute = backStack.lastOrNull()
+    LaunchedEffect(topRoute) {
+        if (topRoute is Route.Room && chatSelection != null) chatSelection = null
+    }
+
     val widgetTheme = if (isDark) "dark" else "light"
     val elementCallUrl = settings.elementCallUrl.trim().ifBlank {
         runCatching { platformEmbeddedElementCallUrlOrNull() }.getOrNull()
@@ -333,7 +340,15 @@ private fun AppContent(
                     chatSelection = null
                 }
             }
-            val activeChatRoomId = if (settings.splitPanes) chatSelection?.roomId else null
+            val isCompact = with(LocalDensity.current) {
+                LocalWindowInfo.current.containerSize.width.toDp() < 840.dp
+            }
+            val singleScreen = isCompact || !settings.splitPanes
+            val activeChatRoomId = if (!singleScreen) {
+                chatSelection?.roomId
+            } else {
+                (topRoute as? Route.Room)?.roomId
+            }
             // Lives above the nav host so the open conversation keeps its view model
             // when a thread or sheet route is pushed over the split view.
             val chatDetailStoreOwner = remember(activeChatRoomId) {
@@ -605,7 +620,7 @@ private fun AppContent(
                     val splitPaneBackState = rememberNavigationEventState<NavigationEventInfo>(NavigationEventInfo.None)
                     NavigationBackHandler(
                         state = splitPaneBackState,
-                        isBackEnabled = settings.splitPanes && chatSelection != null &&
+                        isBackEnabled = !singleScreen && chatSelection != null &&
                             backStack.lastOrNull() == Route.Rooms,
                         onBackCompleted = { chatSelection = null },
                     )
@@ -638,7 +653,7 @@ private fun AppContent(
                             }
 
                             isRoomsRoot -> {
-                                if (settings.splitPanes && chatSelection != null) chatSelection = null
+                                if (!singleScreen && chatSelection != null) chatSelection = null
                             }
 
                             backStack.size > 1 -> {
@@ -672,15 +687,20 @@ private fun AppContent(
 
                         entry<Route.Rooms> {
                             val viewModel: RoomsViewModel = koinViewModel()
-                            val chatMode = settings.splitPanes
+                            val chatMode = !singleScreen
                             val latestChatMode by rememberUpdatedState(chatMode)
+                            val latestSingleScreen by rememberUpdatedState(singleScreen)
 
                             LaunchedEffect(Unit) {
                                 viewModel.events.collect { event ->
                                     when (event) {
                                         is RoomsViewModel.Event.OpenRoom -> {
-                                            if (latestChatMode) chatSelection = ChatSelection(event.roomId, event.name)
-                                            else backStack.add(Route.Room(event.roomId, event.name))
+                                            if (latestChatMode && !latestSingleScreen) {
+                                                chatSelection = ChatSelection(event.roomId, event.name)
+                                            } else {
+                                                chatSelection = null
+                                                backStack.add(Route.Room(event.roomId, event.name))
+                                            }
                                         }
 
                                         is RoomsViewModel.Event.OpenSpace -> {
@@ -778,8 +798,11 @@ private fun AppContent(
                                                 if (roomId == null) return@onSuccess
                                                 showCreateRoom = false
                                                 showStartChat = false
-                                                if (chatMode) chatSelection = ChatSelection(roomId, name ?: roomId)
-                                                else backStack.add(Route.Room(roomId, name ?: roomId))
+                                                if (chatMode) {
+                                                    chatSelection = ChatSelection(roomId, name ?: roomId)
+                                                } else {
+                                                    backStack.add(Route.Room(roomId, name ?: roomId))
+                                                }
                                             }.onFailure { e ->
                                                 snackbarManager.showError(
                                                     e.message ?: getString(Res.string.failed_to_create_room)
