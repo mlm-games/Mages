@@ -33,6 +33,7 @@ import org.mlm.mages.settings.ThemeMode
 import org.mlm.mages.ui.screens.RoomScreen
 import org.mlm.mages.ui.theme.MainTheme
 import org.mlm.mages.ui.theme.appFontFamily
+import org.mlm.mages.ui.util.crashApp
 import org.mlm.mages.ui.viewmodel.RoomViewModel
 
 private const val SESSION_READY_ATTEMPTS = 10
@@ -139,6 +140,8 @@ class BubbleConversationActivity : ComponentActivity() {
                         onOpenInfo = { },
                         onNavigateToRoom = { _, _ -> },
                         onNavigateToThread = { _, _, _, _ -> },
+                        onOpenDeveloperTools = { },
+                        onCrashApp = ::crashApp,
                         onStartCall = { },
                         onStartVoiceCall = { },
                         onJoinCall = { },
