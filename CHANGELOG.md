@@ -1,3 +1,10 @@
+## v5.4.7
+
+- slash commands support
+- make enter to send, and split pane be true by default
+- m.emote rendering fix
+
+
 ## v5.4.6
 
 - slash commands support

@@ -46,6 +46,15 @@
     <content_attribute id="social-audio">intense</content_attribute>
   </content_rating>
   <releases>
+    <release version="5.4.7" date="2026-11-24" type="stable">
+      <description>
+        <ul>
+          <li>slash commands support</li>
+          <li>make enter to send, and split pane be true by default</li>
+          <li>m.emote rendering fix</li>
+        </ul>
+      </description>
+    </release>
     <release version="5.4.6" date="2026-11-23" type="stable">
       <description>
         <ul>

@@ -1,0 +1,3 @@
+- slash commands support
+- make enter to send, and split pane be true by default
+- m.emote rendering fix
