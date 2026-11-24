@@ -1,3 +1,8 @@
+## v5.4.10
+
+- No user-facing changes were mentioned since previous release
+
+
 ## v5.4.9
 
 - No user-facing changes were mentioned since previous release
