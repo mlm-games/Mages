@@ -250,6 +250,7 @@ delegate! { option FfiRoomNotificationMode; room_notification_mode(room_id: Stri
 delegate! { option FfiRoomNotificationMode; user_defined_room_notification_mode(room_id: String); }
 delegate! { result bool; is_push_rule_enabled(kind: FfiPushRuleKind, rule_id: String); }
 delegate! { result Vec<FfiPushRule>; push_rules(); }
+delegate! { result FfiStoreSizes; store_sizes(); }
 delegate! { result Vec<String>; get_notification_keywords(); }
 delegate! { unit; add_notification_keyword(keyword: String); remove_notification_keyword(keyword: String); }
 delegate! { option String; event_at_timestamp(room_id: String, ts_ms: i64, backward: bool); }

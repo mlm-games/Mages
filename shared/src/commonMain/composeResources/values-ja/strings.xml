@@ -182,6 +182,8 @@
     <string name="developer_tools_push_rules">プッシュルール</string>
     <string name="developer_tools_push_history">プッシュ履歴</string>
     <string name="developer_tools_no_push_history">プッシュはまだ記録されていません</string>
+    <string name="developer_tools_store_sizes">ストアサイズ</string>
+    <string name="developer_tools_trace_logs">トレースログ</string>
     <string name="setting_edit_latest_with_up_arrow">上矢印で最新のメッセージを編集</string>
     <string name="setting_edit_latest_with_up_arrow_description">有効にすると、メッセージ欄が空の状態で上矢印を押すと、編集可能な最新のメッセージまたはキャプションの編集が始まります</string>
     <string name="setting_use_proxy_description">すべてのトラフィックを SOCKS5 または HTTP プロキシ経由でルーティング</string>

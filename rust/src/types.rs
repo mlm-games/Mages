@@ -648,6 +648,18 @@ pub struct MediaCacheOverview {
     pub event_bytes: Option<u64>,
 }
 
+#[derive(Clone, Debug, Default, Serialize, Deserialize, Record)]
+pub struct FfiStoreSizes {
+    #[serde(default)]
+    pub crypto_store_bytes: Option<u64>,
+    #[serde(default)]
+    pub state_store_bytes: Option<u64>,
+    #[serde(default)]
+    pub event_cache_store_bytes: Option<u64>,
+    #[serde(default)]
+    pub media_store_bytes: Option<u64>,
+}
+
 #[derive(Clone, Serialize, Deserialize, Record)]
 pub struct RoomStorageUsage {
     pub messages: u64,

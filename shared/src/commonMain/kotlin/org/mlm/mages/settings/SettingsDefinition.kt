@@ -1148,6 +1148,9 @@ data class AppSettings(
     @Persisted(key = "developer_log_level")
     val developerLogLevel: String = "Info",
 
+    @Persisted(key = "developer_trace_log_packs")
+    val developerTraceLogPacks: String = "",
+
     @Setting(
         titleKey = MagesSettingsKeys.EDIT_LATEST_WITH_UP_ARROW,
         descriptionKey = MagesSettingsKeys.EDIT_LATEST_WITH_UP_ARROW_DESCRIPTION,

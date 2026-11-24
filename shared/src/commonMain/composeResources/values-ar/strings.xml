@@ -182,6 +182,8 @@
     <string name="developer_tools_push_rules">قواعد الدفع</string>
     <string name="developer_tools_push_history">سجل الدفع</string>
     <string name="developer_tools_no_push_history">لم يتم تسجيل أي دفع بعد</string>
+    <string name="developer_tools_store_sizes">أحجام المخازن</string>
+    <string name="developer_tools_trace_logs">سجلات التتبع</string>
     <string name="setting_edit_latest_with_up_arrow">تعديل آخر رسالة بالسهم للأعلى</string>
     <string name="setting_edit_latest_with_up_arrow_description">عند تفعيله، يبدأ الضغط على السهم للأعلى عندما يكون مربع الرسالة فارغًا بتعديل آخر رسالة قابلة للتعديل أو التسمية التوضيحية لها</string>
     <string name="setting_use_proxy_description">توجيه جميع حركة المرور من خلال وكيل SOCKS5 أو HTTP</string>

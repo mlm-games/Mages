@@ -665,6 +665,8 @@
     <string name="developer_tools_push_rules">Reglas de notificaciones push</string>
     <string name="developer_tools_push_history">Historial de notificaciones push</string>
     <string name="developer_tools_no_push_history">Aún no hay notificaciones registradas</string>
+    <string name="developer_tools_store_sizes">Tamaños de almacenamiento</string>
+    <string name="developer_tools_trace_logs">Registros de trazas</string>
     <string name="setting_edit_latest_with_up_arrow">Editar el último mensaje con la flecha hacia arriba</string>
     <string name="setting_edit_latest_with_up_arrow_description">Si está activado, pulsar la flecha hacia arriba cuando el campo de mensaje está vacío comienza a editar el último mensaje editable o su pie de foto</string>
     <string name="setting_use_proxy">Usar proxy</string>

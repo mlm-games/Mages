@@ -40,6 +40,7 @@ import org.mlm.mages.GitInfo
 import org.mlm.mages.MatrixService
 import org.mlm.mages.matrix.PushRuleInfo
 import org.mlm.mages.matrix.PushRuleKind
+import org.mlm.mages.matrix.StoreSizes
 import org.mlm.mages.platform.rememberClipboardCopy
 import org.mlm.mages.platform.appVersion
 import org.mlm.mages.push.PushHistoryEntry
@@ -49,8 +50,22 @@ import org.mlm.mages.ui.components.settings.SettingSwitchRow
 import org.mlm.mages.ui.components.settings.SettingsSection
 import org.mlm.mages.ui.theme.Spacing
 import org.mlm.mages.ui.util.crashApp
+import org.mlm.mages.ui.util.formatBytes
 
 private val logLevels = listOf("Verbose", "Debug", "Info", "Warn", "Error", "Assert")
+
+private enum class TraceLogPack(val key: String, val title: String) {
+    EventCache("event_cache", "Event Cache"),
+    SendQueue("send_queue", "Send Queue"),
+    Timeline("timeline", "Timeline"),
+    NotificationClient("notification_client", "Notification Client"),
+    SyncProfiling("sync_profiling", "Sync Profiling"),
+    LatestEvents("latest_events", "Latest Events"),
+    Sync("sync", "Sync"),
+    Crypto("crypto", "Crypto"),
+    SlidingSync("sliding_sync", "Sliding Sync"),
+    SsoLogin("sso_login", "Sso Login"),
+}
 
 private data class CopyTarget(val title: String, val value: String, val sensitive: Boolean = false)
 
@@ -167,11 +182,18 @@ fun DeveloperToolsRoute(onBack: () -> Unit) {
     val copy = rememberClipboardCopy()
     val version = remember { appVersion() }
     var pushRules by remember { mutableStateOf<List<PushRuleInfo>>(emptyList()) }
+    var storeSizes by remember { mutableStateOf<StoreSizes?>(null) }
     val pushHistory by PushHistoryStore.entries.collectAsState()
+    val traceLogPacks = settings.developerTraceLogPacks
+        .split(',')
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .toSet()
 
     LaunchedEffect(Unit) {
         val port = service.portOrNull ?: return@LaunchedEffect
         pushRules = port.pushRules().getOrDefault(emptyList())
+        storeSizes = port.storeSizes()
     }
 
     DeveloperToolsScreen(
@@ -181,6 +203,8 @@ fun DeveloperToolsRoute(onBack: () -> Unit) {
         gitSha = GitInfo.SHA,
         developerMode = settings.developerMode,
         logLevel = settings.developerLogLevel,
+        traceLogPacks = traceLogPacks,
+        storeSizes = storeSizes,
         userId = account?.userId,
         deviceId = account?.deviceId,
         homeserver = account?.homeserver,
@@ -189,6 +213,14 @@ fun DeveloperToolsRoute(onBack: () -> Unit) {
         },
         onLogLevelChange = { level ->
             scope.launch { settingsRepository.update { it.copy(developerLogLevel = level) } }
+        },
+        onToggleTraceLogPack = { key, enabled ->
+            scope.launch {
+                val updated = if (enabled) traceLogPacks + key else traceLogPacks - key
+                settingsRepository.update {
+                    it.copy(developerTraceLogPacks = updated.sorted().joinToString(","))
+                }
+            }
         },
         onCopy = copy,
         onOptimizeStores = {
@@ -220,6 +252,8 @@ fun DeveloperToolsScreen(
     gitSha: String,
     developerMode: Boolean,
     logLevel: String,
+    traceLogPacks: Set<String>,
+    storeSizes: StoreSizes?,
     userId: String?,
     deviceId: String?,
     homeserver: String?,
@@ -227,6 +261,7 @@ fun DeveloperToolsScreen(
     pushHistory: List<PushHistoryEntry>,
     onDeveloperModeChange: (Boolean) -> Unit,
     onLogLevelChange: (String) -> Unit,
+    onToggleTraceLogPack: (String, Boolean) -> Unit,
     onCopy: (String, Boolean) -> Unit,
     onOptimizeStores: () -> Unit,
     onTogglePushRule: (PushRuleKind, String, Boolean) -> Unit,
@@ -248,6 +283,7 @@ fun DeveloperToolsScreen(
         CopyTarget(stringResource(Res.string.developer_tools_git_sha), gitSha),
     )
     val preferencesTitle = stringResource(Res.string.developer_tools_preferences)
+    val traceLogsTitle = stringResource(Res.string.developer_tools_trace_logs)
     val sessionTitle = stringResource(Res.string.developer_tools_session)
     val buildTitle = stringResource(Res.string.developer_tools_build)
     val cacheTitle = stringResource(Res.string.developer_tools_cache)
@@ -293,6 +329,19 @@ fun DeveloperToolsScreen(
                     onChange = onLogLevelChange,
                 )
             }
+            devSection(traceLogsTitle) {
+                TraceLogPack.entries.forEach { pack ->
+                    ListItem(
+                        headlineContent = { Text(pack.title) },
+                        trailingContent = {
+                            Switch(
+                                checked = pack.key in traceLogPacks,
+                                onCheckedChange = { onToggleTraceLogPack(pack.key, it) },
+                            )
+                        },
+                    )
+                }
+            }
             devSection(sessionTitle) {
                 sessionTargets.forEach { CopyTargetRow(it, onCopy) }
             }
@@ -304,6 +353,17 @@ fun DeveloperToolsScreen(
                 buildTargets.forEach { CopyTargetRow(it, onCopy) }
             }
             devSection(cacheTitle) {
+                InfoRow(
+                    title = stringResource(Res.string.developer_tools_store_sizes),
+                    value = listOf(
+                        "state" to storeSizes?.stateStoreBytes,
+                        "events" to storeSizes?.eventCacheStoreBytes,
+                        "media" to storeSizes?.mediaStoreBytes,
+                        "crypto" to storeSizes?.cryptoStoreBytes,
+                    ).joinToString(" · ") { (name, bytes) ->
+                        "$name ${bytes?.let { formatBytes(it.toLong()) } ?: "—"}"
+                    },
+                )
                 ClickableInfoRow(
                     stringResource(Res.string.developer_tools_vacuum),
                     null,

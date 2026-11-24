@@ -38,9 +38,16 @@ fun SearchScreen(
     val pagingItems = viewModel.searchResults.collectAsLazyPagingItems()
     val listState = rememberLazyListState()
     val focusRequester = remember { FocusRequester() }
+    var cachedResults by remember { mutableStateOf<List<SearchHit>>(emptyList()) }
 
-    val isActuallySearching = state.query.length >= 2 && 
+    val isActuallySearching = state.query.length >= 2 &&
         pagingItems.loadState.refresh is LoadState.Loading
+
+    LaunchedEffect(pagingItems.itemCount, pagingItems.loadState.refresh) {
+        if (pagingItems.itemCount > 0 && pagingItems.loadState.refresh is LoadState.NotLoading) {
+            cachedResults = (0 until pagingItems.itemCount).mapNotNull { pagingItems[it] }
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -106,7 +113,7 @@ fun SearchScreen(
                     )
                 }
 
-                isActuallySearching -> {
+                isActuallySearching && cachedResults.isEmpty() -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -116,38 +123,66 @@ fun SearchScreen(
                 }
 
                 else -> {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(vertical = 8.dp)
-                    ) {
-                        items(
-                            count = pagingItems.itemCount,
-                            key = pagingItems.itemKey { "${it.roomId}_${it.eventId}" }
-                        ) { index ->
-                            val hit = pagingItems[index] ?: return@items
-                            SearchResultItem(
-                                hit = hit,
-                                showRoomName = state.scopedRoomId == null,
-                                onClick = { viewModel.openResult(hit) }
-                            )
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = Spacing.lg),
-                                color = MaterialTheme.colorScheme.outlineVariant
-                            )
-                        }
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(vertical = 8.dp)
+                        ) {
+                            if (isActuallySearching) {
+                                items(
+                                    items = cachedResults,
+                                    key = { "${it.roomId}_${it.eventId}" }
+                                ) { hit ->
+                                    SearchResultItem(
+                                        hit = hit,
+                                        showRoomName = state.scopedRoomId == null,
+                                        onClick = { viewModel.openResult(hit) }
+                                    )
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(horizontal = Spacing.lg),
+                                        color = MaterialTheme.colorScheme.outlineVariant
+                                    )
+                                }
+                            } else {
+                                items(
+                                    count = pagingItems.itemCount,
+                                    key = pagingItems.itemKey { "${it.roomId}_${it.eventId}" }
+                                ) { index ->
+                                    val hit = pagingItems[index] ?: return@items
+                                    SearchResultItem(
+                                        hit = hit,
+                                        showRoomName = state.scopedRoomId == null,
+                                        onClick = { viewModel.openResult(hit) }
+                                    )
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(horizontal = Spacing.lg),
+                                        color = MaterialTheme.colorScheme.outlineVariant
+                                    )
+                                }
 
-                        if (pagingItems.loadState.append is LoadState.Loading) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(Spacing.lg),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    LoadingIndicator(modifier = Modifier.size(24.dp))
+                                if (pagingItems.loadState.append is LoadState.Loading) {
+                                    item {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(Spacing.lg),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            LoadingIndicator(modifier = Modifier.size(24.dp))
+                                        }
+                                    }
                                 }
                             }
+                        }
+
+                        if (isActuallySearching) {
+                            LinearProgressIndicator(
+                                modifier = Modifier
+                                    .align(Alignment.TopCenter)
+                                    .fillMaxWidth()
+                                    .height(2.dp)
+                            )
                         }
                     }
                 }

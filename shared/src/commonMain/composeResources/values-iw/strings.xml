@@ -182,6 +182,8 @@
     <string name="developer_tools_push_rules">כללי דחיפה</string>
     <string name="developer_tools_push_history">היסטוריית דחיפות</string>
     <string name="developer_tools_no_push_history">עדיין לא נרשמו דחיפות</string>
+    <string name="developer_tools_store_sizes">גדלי מאגרים</string>
+    <string name="developer_tools_trace_logs">יומני מעקב</string>
     <string name="setting_edit_latest_with_up_arrow">עריכת ההודעה האחרונה עם החץ למעלה</string>
     <string name="setting_edit_latest_with_up_arrow_description">כאשר מופעל, לחיצה על החץ למעלה כשתיבת ההודעה ריקה מתחילה לערוך את ההודעה האחרונה שניתן לערוך או את הכותרת שלה</string>
     <string name="setting_use_proxy_description">ניתוב כל התעבורה דרך פרוקסי SOCKS5 או HTTP</string>

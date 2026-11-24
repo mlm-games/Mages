@@ -67,7 +67,7 @@ use tracing::warn;
 
 use crate::{
     ActionAvailability, ActionPresentation, AttachmentInfo, AttachmentKind, DirectoryUser,
-    FfiError, FfiPushRule, FfiPushRuleKind, FfiRoomNotificationMode, ForwardResult, ImagePackSummary,
+    FfiError, FfiPushRule, FfiPushRuleKind, FfiRoomNotificationMode, FfiStoreSizes, ForwardResult, ImagePackSummary,
     KnockRequestSummary, LinkPreview, MediaPreviewMode, MemberActionState, MemberSummary,
     MessageActionState, MessageEvent, MessageSendType, MutualRooms, OwnProfile, OwnReceipt, PasswordLoginKind,
     PollDefinition, PredecessorRoomInfo, Presence, PresenceInfo, ProfileCard, ProfileField,
@@ -2786,6 +2786,16 @@ impl CoreClient {
 
     pub async fn optimize_stores(&self) -> Result<(), FfiError> {
         self.sdk.optimize_stores().await.ffi()
+    }
+
+    pub async fn store_sizes(&self) -> Result<FfiStoreSizes, FfiError> {
+        let sizes = self.sdk.get_store_sizes().await.ffi()?;
+        Ok(FfiStoreSizes {
+            crypto_store_bytes: sizes.crypto_store.map(|value| value as u64),
+            state_store_bytes: sizes.state_store.map(|value| value as u64),
+            event_cache_store_bytes: sizes.event_cache_store.map(|value| value as u64),
+            media_store_bytes: sizes.media_store.map(|value| value as u64),
+        })
     }
 
     pub async fn is_push_rule_enabled(

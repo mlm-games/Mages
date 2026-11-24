@@ -1682,6 +1682,7 @@ interface MatrixPort {
     fun stopElementCall(sessionId: ULong): Boolean
 
     suspend fun mediaCacheOverview(): MediaCacheOverview?
+    suspend fun storeSizes(): StoreSizes?
 
     suspend fun mediaTypeMetrics(): MediaTypeMetrics
     suspend fun roomStorageUsage(roomId: String): RoomStorageUsage
@@ -1746,6 +1747,14 @@ data class MediaCacheOverview(
 ) {
     val totalBytes: ULong get() = (storeBytes ?: 0u) + thumbnailBytes + (eventBytes ?: 0u)
 }
+
+@Serializable
+data class StoreSizes(
+    val cryptoStoreBytes: ULong? = null,
+    val stateStoreBytes: ULong? = null,
+    val eventCacheStoreBytes: ULong? = null,
+    val mediaStoreBytes: ULong? = null,
+)
 
 @Serializable
 data class MediaRetentionPolicyInfo(

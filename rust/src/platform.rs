@@ -27,6 +27,9 @@ static FILTER_HANDLE: std::sync::OnceLock<
     tracing_subscriber::reload::Handle<tracing_subscriber::EnvFilter, tracing_subscriber::Registry>,
 > = std::sync::OnceLock::new();
 
+#[cfg(not(target_family = "wasm"))]
+static EXPLICIT_TRACING_CONFIG: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, uniffi::Enum)]
 pub enum LogLevel {
     Error,
@@ -57,6 +60,9 @@ pub enum TraceLogPacks {
     SendQueue,
     SlidingSync,
     SsoLogin,
+    NotificationClient,
+    SyncProfiling,
+    LatestEvents,
 }
 
 impl TraceLogPacks {
@@ -75,6 +81,22 @@ impl TraceLogPacks {
             TraceLogPacks::SendQueue => &[("matrix_sdk::send_queue", LogLevel::Trace)],
             TraceLogPacks::SlidingSync => &[("matrix_sdk::sliding_sync", LogLevel::Trace)],
             TraceLogPacks::SsoLogin => &[("matrix_sdk::authentication::oauth", LogLevel::Trace)],
+            TraceLogPacks::NotificationClient => {
+                &[("matrix_sdk_ui::notification_client", LogLevel::Trace)]
+            }
+            TraceLogPacks::SyncProfiling => &[
+                ("matrix_sdk::sliding_sync", LogLevel::Trace),
+                ("matrix_sdk_base::sliding_sync", LogLevel::Trace),
+                ("matrix_sdk_base::response_processors", LogLevel::Trace),
+                ("matrix_sdk_crypto", LogLevel::Trace),
+                ("matrix_sdk_common::cross_process_lock", LogLevel::Trace),
+                ("matrix_sdk_common::deserialized_responses", LogLevel::Trace),
+            ],
+            TraceLogPacks::LatestEvents => &[
+                ("matrix_sdk::latest_events", LogLevel::Trace),
+                ("matrix_sdk::send_queue", LogLevel::Trace),
+                ("matrix_sdk::event_cache", LogLevel::Trace),
+            ],
         }
     }
 }
@@ -120,7 +142,9 @@ fn init_logging_once(config: &TracingConfiguration) {
     let filter_string = build_tracing_filter(config);
 
     let first_install = TRACING_INIT.get().is_none();
-    let filter_string = if first_install {
+    let filter_string = if first_install
+        && !EXPLICIT_TRACING_CONFIG.load(std::sync::atomic::Ordering::Relaxed)
+    {
         std::env::var("RUST_LOG").unwrap_or(filter_string)
     } else {
         filter_string
@@ -171,7 +195,9 @@ fn init_logging_once(config: &TracingConfiguration) {
 pub(crate) fn init_tracing() {
     #[cfg(not(target_family = "wasm"))]
     {
-        init_logging(TracingConfiguration::default());
+        if TRACING_INIT.get().is_none() {
+            init_logging(TracingConfiguration::default());
+        }
     }
 
     #[cfg(target_family = "wasm")]
@@ -183,6 +209,7 @@ pub(crate) fn init_tracing() {
 #[cfg(not(target_family = "wasm"))]
 #[uniffi::export]
 pub fn init_logging(config: TracingConfiguration) {
+    EXPLICIT_TRACING_CONFIG.store(true, std::sync::atomic::Ordering::Relaxed);
     init_logging_once(&config);
 }
 

@@ -2044,6 +2044,9 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     override suspend fun mediaCacheOverview(): MediaCacheOverview? =
         requireClientOrNull()?.mediaCacheOverview()?.awaitValue("mediaCacheOverview")
 
+    override suspend fun storeSizes(): StoreSizes? =
+        requireClientOrNull()?.storeSizes()?.awaitValue("storeSizes")
+
     override suspend fun roomStorageUsage(roomId: String): RoomStorageUsage =
         requireClientOrNull()?.roomStorageUsage(roomId)?.awaitValue("roomStorageUsage") ?: RoomStorageUsage()
 

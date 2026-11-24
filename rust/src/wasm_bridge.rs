@@ -2767,6 +2767,14 @@ impl WasmClient {
         }))
     }
 
+    #[wasm_bindgen(js_name = storeSizes)]
+    pub async fn store_sizes(&self) -> JsValue {
+        let Some(state) = self.state() else {
+            return webffi_not_init();
+        };
+        webffi_value(state.core.store_sizes().await)
+    }
+
     #[wasm_bindgen(js_name = roomStorageUsage)]
     pub async fn room_storage_usage(&self, room_id: String) -> JsValue {
         let Some(state) = self.state() else {

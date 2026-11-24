@@ -2598,6 +2598,17 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
         }
     }
 
+    override suspend fun storeSizes(): StoreSizes? = withContext(matrixDispatcher) {
+        runWithFfiResult { withClient { it.storeSizes() } }.getOrNull()?.let { sizes ->
+            StoreSizes(
+                cryptoStoreBytes = sizes.cryptoStoreBytes,
+                stateStoreBytes = sizes.stateStoreBytes,
+                eventCacheStoreBytes = sizes.eventCacheStoreBytes,
+                mediaStoreBytes = sizes.mediaStoreBytes,
+            )
+        }
+    }
+
     override suspend fun roomStorageUsage(roomId: String): RoomStorageUsage =
         withContext(matrixDispatcher) {
             withClient {

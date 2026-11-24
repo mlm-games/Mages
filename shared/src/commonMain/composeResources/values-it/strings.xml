@@ -182,6 +182,8 @@
     <string name="developer_tools_push_rules">Regole push</string>
     <string name="developer_tools_push_history">Cronologia push</string>
     <string name="developer_tools_no_push_history">Ancora nessuna notifica registrata</string>
+    <string name="developer_tools_store_sizes">Dimensioni degli archivi</string>
+    <string name="developer_tools_trace_logs">Log di tracciamento</string>
     <string name="setting_edit_latest_with_up_arrow">Modifica l&apos;ultimo messaggio con la freccia su</string>
     <string name="setting_edit_latest_with_up_arrow_description">Se attivato, premere la freccia su quando il campo del messaggio è vuoto modifica l&apos;ultimo messaggio modificabile o la sua didascalia</string>
     <string name="setting_use_proxy_description">Instrada tutto il traffico attraverso un proxy SOCKS5 o HTTP</string>

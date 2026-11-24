@@ -87,6 +87,7 @@ import org.mlm.mages.ui.components.rememberLocalNetworkPermissionGate
 import org.mlm.mages.platform.ProvideAppLocale
 import org.mlm.mages.platform.platformEmbeddedElementCallParentUrlOrNull
 import org.mlm.mages.platform.platformEmbeddedElementCallUrlOrNull
+import org.mlm.mages.platform.applyTracingConfiguration
 import org.mlm.mages.platform.rememberFileOpener
 import org.mlm.mages.platform.rememberQuitApp
 import org.mlm.mages.platform.toTransferItem
@@ -302,9 +303,15 @@ private fun AppContent(
     AppTheme {
         val languageTag = LocalAppLocale.current
             val scope = rememberCoroutineScope()
-            LaunchedEffect(settings.developerLogLevel) {
+            LaunchedEffect(settings.developerLogLevel, settings.developerTraceLogPacks) {
                 val severity = runCatching { Severity.valueOf(settings.developerLogLevel) }.getOrDefault(Severity.Info)
                 Logger.setMinSeverity(severity)
+                val packs = settings.developerTraceLogPacks
+                    .split(',')
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .toSet()
+                applyTracingConfiguration(settings.developerLogLevel, packs)
             }
             var showStartChat by remember { mutableStateOf(false) }
             var showCreateRoom by remember { mutableStateOf(false) }

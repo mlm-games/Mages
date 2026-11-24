@@ -182,6 +182,8 @@
     <string name="developer_tools_push_rules">Правила push-уведомлений</string>
     <string name="developer_tools_push_history">История push-уведомлений</string>
     <string name="developer_tools_no_push_history">Push-уведомлений пока нет</string>
+    <string name="developer_tools_store_sizes">Размеры хранилищ</string>
+    <string name="developer_tools_trace_logs">Журналы трассировки</string>
     <string name="setting_edit_latest_with_up_arrow">Изменить последнее сообщение стрелкой вверх</string>
     <string name="setting_edit_latest_with_up_arrow_description">Если включено, нажатие стрелки вверх при пустом поле сообщения начнёт изменение последнего доступного для изменения сообщения или его подписи</string>
     <string name="setting_use_proxy_description">Направлять весь трафик через SOCKS5- или HTTP-прокси</string>
