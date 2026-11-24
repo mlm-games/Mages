@@ -29,6 +29,9 @@ import androidx.lifecycle.viewmodel.compose.rememberViewModelStoreProvider
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
@@ -594,6 +597,14 @@ private fun AppContent(
                             }
                         }
                     }
+
+                    val splitPaneBackState = rememberNavigationEventState<NavigationEventInfo>(NavigationEventInfo.None)
+                    NavigationBackHandler(
+                        state = splitPaneBackState,
+                        isBackEnabled = settings.splitPanes && chatSelection != null &&
+                            backStack.lastOrNull() == Route.Rooms,
+                        onBackCompleted = { chatSelection = null },
+                    )
 
                     NavDisplay(
                     backStack = backStack,
