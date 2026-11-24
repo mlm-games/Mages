@@ -4905,12 +4905,31 @@ fn enc_to_record(ef: &EncryptedFile) -> EncFile {
     }
 }
 
+fn mentions_me_from_raw(
+    raw: &matrix_sdk::ruma::serde::Raw<matrix_sdk::ruma::events::AnySyncTimelineEvent>,
+    me: &str,
+) -> bool {
+    if me.is_empty() {
+        return false;
+    }
+    let Ok(value) = raw.deserialize_as::<serde_json::Value>() else {
+        return false;
+    };
+    let mentions = &value["content"]["m.mentions"];
+    if mentions["room"].as_bool() == Some(true) {
+        return true;
+    }
+    mentions["user_ids"]
+        .as_array()
+        .is_some_and(|ids| ids.iter().any(|id| id.as_str() == Some(me)))
+}
+
 async fn map_event_id_via_timeline(
     mgr: &TimelineManager,
     client: &SdkClient,
     rid: &ruma::OwnedRoomId,
     eid: &ruma::OwnedEventId,
-) -> Option<MessageEvent> {
+) -> Option<(MessageEvent, bool)> {
     let tl = mgr.timeline_for(rid).await?;
     let _ = tl.fetch_details_for_event(eid.as_ref()).await;
 
@@ -4923,12 +4942,16 @@ async fn map_event_id_via_timeline(
     let event = item.as_event()?;
     let item_id = item.unique_id().0.to_string();
     let me = client.user_id().map(|u| u.to_string()).unwrap_or_default();
-    map_timeline_event(event, rid.as_str(), Some(&item_id), &me)
+    let mentions_me = event
+        .original_json()
+        .is_some_and(|raw| mentions_me_from_raw(raw, &me));
+    map_timeline_event(event, rid.as_str(), Some(&item_id), &me).map(|message| (message, mentions_me))
 }
 
 fn search_hit_from_event(
     ev: &matrix_sdk_base::deserialized_responses::TimelineEvent,
     room_id: &str,
+    me: &str,
 ) -> Option<SearchHit> {
     let event: AnySyncTimelineEvent = ev.raw().deserialize().ok()?;
     let body = match event {
@@ -4952,6 +4975,7 @@ fn search_hit_from_event(
         timestamp_ms,
         thread_root_event_id: matrix_sdk_base::serde_helpers::extract_thread_root(ev.raw())
             .map(|id| id.to_string()),
+        mentions_me: mentions_me_from_raw(ev.raw(), me),
     })
 }
 

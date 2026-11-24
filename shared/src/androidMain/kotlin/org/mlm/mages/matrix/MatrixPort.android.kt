@@ -3199,7 +3199,8 @@ private fun mages.SearchHit.toKotlin(): SearchHit =
         sender = sender,
         body = body,
         timestampMs = timestampMs,
-        threadRootEventId = threadRootEventId
+        threadRootEventId = threadRootEventId,
+        mentionsMe = mentionsMe,
     )
 
 //private fun mages.DownloadResult.toKotlin(): DownloadResult =

@@ -45,7 +45,8 @@ data class SearchHit (
     var sender: String,
     var body: String,
     var timestampMs: ULong,
-    var threadRootEventId: String? = null
+    var threadRootEventId: String? = null,
+    var mentionsMe: Boolean = false,
 )
 
 @Serializable

@@ -1,3 +1,8 @@
 package org.mlm.mages.platform
 
-actual fun applyTracingConfiguration(logLevel: String, packs: Set<String>) = Unit
+@JsModule("./wasm/mages_ffi.js")
+external fun setLogConfig(level: String, packs: String)
+
+actual fun applyTracingConfiguration(logLevel: String, packs: Set<String>) {
+    setLogConfig(logLevel, packs.sorted().joinToString(","))
+}

@@ -24,7 +24,8 @@ class SearchPagingSource(
                     offset = params.key
                 )
                 LoadResult.Page(
-                    data = page.hits,
+                    data = page.hits.sortedWith(compareByDescending<SearchHit> { it.mentionsMe }
+                        .thenByDescending { it.timestampMs.toLong() }),
                     prevKey = null,
                     nextKey = page.nextOffset?.toInt()
                 )
@@ -44,7 +45,10 @@ class SearchPagingSource(
                 }.getOrNull()
 
                 LoadResult.Page(
-                    data = page?.hits.orEmpty().sortedByDescending { it.timestampMs.toLong() },
+                    data = page?.hits.orEmpty().sortedWith(
+                        compareByDescending<SearchHit> { it.mentionsMe }
+                            .thenByDescending { it.timestampMs.toLong() }
+                    ),
                     prevKey = (index - 1).takeIf { it >= 0 },
                     nextKey = (index + 1).takeIf { it < rooms.size }
                 )

@@ -384,6 +384,14 @@ private fun SearchResultItem(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                if (hit.mentionsMe) {
+                    Text(
+                        text = stringResource(Res.string.mentions),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
                 if (hit.timestampMs > 0U) {
                     Text(
                         text = formatTime(hit.timestampMs.toLong()),

@@ -991,6 +991,8 @@ pub struct SearchHit {
     pub body: String,
     pub timestamp_ms: u64,
     pub thread_root_event_id: Option<String>,
+    #[serde(default)]
+    pub mentions_me: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize, Record)]

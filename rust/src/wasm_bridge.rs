@@ -712,6 +712,24 @@ fn parse_send_type(value: &str) -> Result<MessageSendType, JsValue> {
     }
 }
 
+#[wasm_bindgen(js_name = setLogConfig)]
+pub fn set_log_config(level: String, packs: String) {
+    use crate::platform::{LogLevel, TraceLogPacks, TracingConfiguration, init_wasm_logging};
+    let log_level = match level.as_str() {
+        "Verbose" => LogLevel::Trace,
+        "Debug" => LogLevel::Debug,
+        "Warn" => LogLevel::Warn,
+        "Error" | "Assert" => LogLevel::Error,
+        _ => LogLevel::Info,
+    };
+    let trace_log_packs = packs.split(',').filter_map(TraceLogPacks::from_key).collect();
+    init_wasm_logging(TracingConfiguration {
+        log_level,
+        trace_log_packs,
+        extra_targets: vec!["mages_ffi".to_owned()],
+    });
+}
+
 #[wasm_bindgen]
 impl WasmClient {
     #[wasm_bindgen(js_name = sendMessageTyped)]

@@ -5746,10 +5746,11 @@ impl CoreClient {
             .search(query.trim(), limit_usize, offset.map(|o| o as usize))
             .await
             .ffi()?;
+        let me = self.sdk.user_id().map(|user| user.to_string()).unwrap_or_default();
         let mut slots: Vec<Option<SearchHit>> = vec![None; event_ids.len()];
         let mut pending: Vec<(usize, OwnedEventId)> = Vec::new();
         for (index, (_score, eid)) in event_ids.iter().enumerate() {
-            if let Some(mev) =
+            if let Some((mev, mentions_me)) =
                 map_event_id_via_timeline(&self.timeline_mgr, &self.sdk, &rid, eid).await
             {
                 slots[index] = Some(SearchHit {
@@ -5759,6 +5760,7 @@ impl CoreClient {
                     body: mev.body.clone(),
                     timestamp_ms: mev.timestamp_ms,
                     thread_root_event_id: mev.thread_root_event_id.clone(),
+                    mentions_me,
                 });
             } else {
                 pending.push((index, eid.clone()));
@@ -5769,9 +5771,10 @@ impl CoreClient {
             let resolved = futures_util::stream::iter(pending.into_iter().map(|(index, eid)| {
                 let room = room.clone();
                 let rid_text = rid_text.clone();
+                let me = me.clone();
                 async move {
                     let event = room.load_or_fetch_event(&eid, None).await.ok()?;
-                    search_hit_from_event(&event, &rid_text).map(|hit| (index, hit))
+                    search_hit_from_event(&event, &rid_text, &me).map(|hit| (index, hit))
                 }
             }))
             .buffered(SEARCH_HIT_LOAD_CONCURRENCY)

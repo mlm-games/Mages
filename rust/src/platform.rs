@@ -6,6 +6,8 @@ use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 #[cfg(all(not(target_family = "wasm"), not(target_os = "android")))]
 use tracing_subscriber::{EnvFilter, fmt};
+#[cfg(target_family = "wasm")]
+use tracing_subscriber::EnvFilter;
 
 pub(crate) fn ensure_dir(path: &Path) {
     #[cfg(not(target_family = "wasm"))]
@@ -29,6 +31,14 @@ static FILTER_HANDLE: std::sync::OnceLock<
 
 #[cfg(not(target_family = "wasm"))]
 static EXPLICIT_TRACING_CONFIG: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+#[cfg(target_family = "wasm")]
+static WASM_TRACING_INIT: std::sync::OnceLock<()> = std::sync::OnceLock::new();
+
+#[cfg(target_family = "wasm")]
+static WASM_FILTER_HANDLE: std::sync::OnceLock<
+    tracing_subscriber::reload::Handle<tracing_subscriber::EnvFilter, tracing_subscriber::Registry>,
+> = std::sync::OnceLock::new();
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, uniffi::Enum)]
 pub enum LogLevel {
@@ -66,6 +76,22 @@ pub enum TraceLogPacks {
 }
 
 impl TraceLogPacks {
+    pub fn from_key(key: &str) -> Option<Self> {
+        match key.trim().to_lowercase().as_str() {
+            "sync" => Some(Self::Sync),
+            "timeline" => Some(Self::Timeline),
+            "crypto" => Some(Self::Crypto),
+            "event_cache" => Some(Self::EventCache),
+            "send_queue" => Some(Self::SendQueue),
+            "sliding_sync" => Some(Self::SlidingSync),
+            "sso_login" => Some(Self::SsoLogin),
+            "notification_client" => Some(Self::NotificationClient),
+            "sync_profiling" => Some(Self::SyncProfiling),
+            "latest_events" => Some(Self::LatestEvents),
+            _ => None,
+        }
+    }
+
     fn targets(self) -> &'static [(&'static str, LogLevel)] {
         match self {
             TraceLogPacks::Sync => &[
@@ -118,7 +144,6 @@ impl Default for TracingConfiguration {
     }
 }
 
-#[cfg(not(target_family = "wasm"))]
 fn build_tracing_filter(config: &TracingConfiguration) -> String {
     let mut filters = vec!["panic=error".to_owned()];
     for (target, pack_level) in config
@@ -202,7 +227,30 @@ pub(crate) fn init_tracing() {
 
     #[cfg(target_family = "wasm")]
     {
-        tracing_wasm::set_as_global_default();
+        if WASM_TRACING_INIT.get().is_none() {
+            init_wasm_logging(TracingConfiguration::default());
+        }
+    }
+}
+
+#[cfg(target_family = "wasm")]
+pub fn init_wasm_logging(config: TracingConfiguration) {
+    use tracing_subscriber::layer::SubscriberExt as _;
+    use tracing_subscriber::util::SubscriberInitExt as _;
+
+    let filter = EnvFilter::try_new(build_tracing_filter(&config))
+        .unwrap_or_else(|_| "mages_ffi=info".parse().unwrap());
+
+    if WASM_TRACING_INIT.get().is_none() {
+        let (layer, handle) = tracing_subscriber::reload::Layer::new(filter);
+        let _ = WASM_FILTER_HANDLE.set(handle);
+        tracing_subscriber::registry()
+            .with(layer)
+            .with(tracing_wasm::WASMLayer::new(tracing_wasm::WASMLayerConfig::default()))
+            .init();
+        let _ = WASM_TRACING_INIT.set(());
+    } else if let Some(handle) = WASM_FILTER_HANDLE.get() {
+        let _ = handle.reload(filter);
     }
 }
 
