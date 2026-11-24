@@ -3,6 +3,9 @@
 
 <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="pragma" content="no-cache" />
+    <meta http-equiv="expires" content="0" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="favicon.ico">
     <title>Mages</title>
@@ -46,6 +49,26 @@
             animation: spin 1s linear infinite;
         }
 
+        .boot-error {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            max-width: 420px;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .boot-error button {
+            padding: 8px 16px;
+            color: #eee;
+            background: #342f9a;
+            border: 0;
+            border-radius: 6px;
+            font: inherit;
+            cursor: pointer;
+        }
+
         @keyframes spin {
             to {
                 transform: rotate(360deg);
@@ -56,8 +79,13 @@
 
 <body>
     <div id="boot">
-        <div class="boot-inner">
+        <div class="boot-inner" id="boot-loading">
             <div class="spinner"></div>
+            <span>Loading Mages…</span>
+        </div>
+        <div class="boot-error" id="boot-error">
+            <span>The app files could not be loaded. This usually means a newer version was just deployed.</span>
+            <button id="boot-reload">Reload</button>
         </div>
     </div>
 
@@ -72,8 +100,35 @@
             }
         });
         Object.defineProperty(Navigator.prototype, "languages", newLanguagesImplementation);
+
+        const reloadWithBust = () => {
+            const url = new URL(location.href);
+            url.searchParams.set("_mages_reload", Date.now().toString());
+            location.replace(url.toString());
+        };
+        const showBootError = () => {
+            document.getElementById("boot-loading").style.display = "none";
+            document.getElementById("boot-error").style.display = "flex";
+        };
+        document.getElementById("boot-reload").addEventListener("click", reloadWithBust);
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = (input, init) => originalFetch(input, init).then((response) => {
+            const url = typeof input === "string" ? input : input.url;
+            if (url.includes(".wasm") && response.headers.get("Content-Type") !== "application/wasm") {
+                throw new Error("WebAssembly asset returned " + response.headers.get("Content-Type"));
+            }
+            return response;
+        });
+        window.addEventListener("unhandledrejection", (event) => {
+            if (String(event.reason).includes("WebAssembly") || String(event.reason).includes("wasm")) {
+                showBootError();
+            }
+        });
+        setTimeout(() => {
+            if (!window.__magesBooted) showBootError();
+        }, 20000);
     </script>
-    <script src="mages.js"></script>
+    <script src="mages.js" onerror="showBootError()"></script>
 </body>
 
 </html>

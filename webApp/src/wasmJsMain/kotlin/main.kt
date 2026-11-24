@@ -18,8 +18,11 @@ import org.mlm.mages.settings.RequestNotificationPermissionAction
 import org.mlm.mages.settings.TestNotificationAction
 import org.mlm.mages.ui.util.nowMs
 
+private fun markBooted(): Unit = js("window.__magesBooted = true")
+
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
+    markBooted()
     installWebImageLoader()
 
     val settingsRepo = SettingsProvider.get()
