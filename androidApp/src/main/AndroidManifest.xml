@@ -40,7 +40,7 @@
         android:name=".MagesApp"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"
+        android:theme="@style/Theme.Mages.Splash"
         android:enableOnBackInvokedCallback="true"
         tools:targetApi="33">
 

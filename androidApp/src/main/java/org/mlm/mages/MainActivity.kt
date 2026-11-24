@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.util.Rational
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.mutableStateOf
 import androidx.activity.result.contract.ActivityResultContracts
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -15,6 +16,7 @@ import android.os.Build
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import io.github.mlmgames.settings.core.SettingsRepository
@@ -193,8 +195,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        val appReady = mutableStateOf(false)
+        splashScreen.setKeepOnScreenCondition { !appReady.value }
         CurrentActivityHolder.activity = this
         WidgetRefresh.request(this)
 
@@ -229,6 +234,7 @@ class MainActivity : AppCompatActivity() {
                 App(
                     settingsRepository,
                     deepLinks,
+                    onReady = { appReady.value = true },
                     onRequestLocationPermissions = { action -> requestLocationPermissions(action) },
                     onRequestVideoCallPermissions = { action -> requestVideoCallPermissions(action) },
                     onRequestVoiceCallPermissions = { action -> requestVoiceCallPermissions(action) }

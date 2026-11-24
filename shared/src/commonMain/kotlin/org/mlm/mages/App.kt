@@ -137,6 +137,7 @@ val LocalMessageFontSize = staticCompositionLocalOf { 16f }
 fun App(
     settingsRepository: SettingsRepository<AppSettings>,
     deepLinks: Flow<DeepLinkAction>? = null,
+    onReady: () -> Unit = {},
     onRequestLocationPermissions: ((() -> Unit) -> Unit)? = null,
     onRequestVideoCallPermissions: ((() -> Unit) -> Unit)? = null,
     onRequestVoiceCallPermissions: ((() -> Unit) -> Unit)? = null
@@ -148,6 +149,7 @@ fun App(
     ) {
         AppContent(
             deepLinks = deepLinks,
+            onReady = onReady,
             onRequestLocationPermissions = onRequestLocationPermissions,
             onRequestVideoCallPermissions = onRequestVideoCallPermissions,
             onRequestVoiceCallPermissions = onRequestVoiceCallPermissions,
@@ -183,6 +185,7 @@ private fun SessionRestoreScreen(onRetry: () -> Unit, onSignIn: () -> Unit) {
 @Composable
 private fun AppContent(
     deepLinks: Flow<DeepLinkAction>?,
+    onReady: () -> Unit,
     onRequestLocationPermissions: ((() -> Unit) -> Unit)? = null,
     onRequestVideoCallPermissions: ((() -> Unit) -> Unit)? = null,
     onRequestVoiceCallPermissions: ((() -> Unit) -> Unit)? = null
@@ -233,6 +236,7 @@ private fun AppContent(
         }
         restoreFailed = !restored
         initDone = true
+        onReady()
     }
 
     val activeAccount by service.activeAccount.collectAsState()
