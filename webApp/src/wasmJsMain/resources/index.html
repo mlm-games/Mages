@@ -128,6 +128,10 @@
             if (!window.__magesBooted) showBootError();
         }, 20000);
     </script>
+    <script type="module">
+        import { setLogConfig } from "./wasm/mages_ffi.js";
+        window.__magesSetLogConfig = setLogConfig;
+    </script>
     <script src="mages.js" onerror="showBootError()"></script>
 </body>
 
