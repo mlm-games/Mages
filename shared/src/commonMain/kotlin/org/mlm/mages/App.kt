@@ -301,9 +301,6 @@ private fun AppContent(
         rememberNavBackStack(navSavedStateConfiguration, initialRoute)
 
     val topRoute = backStack.lastOrNull()
-    LaunchedEffect(topRoute) {
-        if (topRoute is Route.Room && chatSelection != null) chatSelection = null
-    }
 
     val widgetTheme = if (isDark) "dark" else "light"
     val elementCallUrl = settings.elementCallUrl.trim().ifBlank {
@@ -340,15 +337,19 @@ private fun AppContent(
                     chatSelection = null
                 }
             }
-            val isCompact = with(LocalDensity.current) {
-                LocalWindowInfo.current.containerSize.width.toDp() < 840.dp
+            val windowWidthPx = LocalWindowInfo.current.containerSize.width
+            val isCompact = windowWidthPx > 0 && with(LocalDensity.current) {
+                windowWidthPx.toDp() < 840.dp
             }
             val singleScreen = isCompact || !settings.splitPanes
-            val activeChatRoomId = if (!singleScreen) {
-                chatSelection?.roomId
-            } else {
-                (topRoute as? Route.Room)?.roomId
+            val latestSingleScreen by rememberUpdatedState(singleScreen)
+            LaunchedEffect(topRoute) {
+                if (latestSingleScreen && topRoute is Route.Room && chatSelection != null) {
+                    chatSelection = null
+                }
             }
+            val activeChatRoomId = chatSelection?.roomId
+                ?: (topRoute as? Route.Room)?.roomId
             // Lives above the nav host so the open conversation keeps its view model
             // when a thread or sheet route is pushed over the split view.
             val chatDetailStoreOwner = remember(activeChatRoomId) {
@@ -688,14 +689,12 @@ private fun AppContent(
                         entry<Route.Rooms> {
                             val viewModel: RoomsViewModel = koinViewModel()
                             val chatMode = !singleScreen
-                            val latestChatMode by rememberUpdatedState(chatMode)
-                            val latestSingleScreen by rememberUpdatedState(singleScreen)
 
                             LaunchedEffect(Unit) {
                                 viewModel.events.collect { event ->
                                     when (event) {
                                         is RoomsViewModel.Event.OpenRoom -> {
-                                            if (latestChatMode && !latestSingleScreen) {
+                                            if (!latestSingleScreen) {
                                                 chatSelection = ChatSelection(event.roomId, event.name)
                                             } else {
                                                 chatSelection = null
