@@ -7,6 +7,13 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -18,6 +25,7 @@ import org.mlm.mages.MatrixService
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.readReceiptsForRoom
 import org.mlm.mages.shared.R
+import java.util.concurrent.TimeUnit
 
 class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
 
@@ -102,14 +110,28 @@ class NotificationActionReceiver : BroadcastReceiver(), KoinComponent {
 
                     ACTION_DECLINE_INVITE -> {
                         if (roomId != null) {
-                            runCatching { service.initFromDisk() }
-                            val port = service.portOrNull
-                            if (port != null && service.isLoggedIn()) {
-                                runCatching { port.leaveRoom(roomId) }
-                            }
                             if (notifId != 0) {
                                 nm.cancel(notifId)
                             }
+                            val request = OneTimeWorkRequestBuilder<DeclineInviteWorker>()
+                                .setConstraints(
+                                    Constraints.Builder()
+                                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                                        .build()
+                                )
+                                .setBackoffCriteria(
+                                    BackoffPolicy.EXPONENTIAL,
+                                    10,
+                                    TimeUnit.SECONDS
+                                )
+                                .setInputData(workDataOf(DeclineInviteWorker.KEY_ROOM_ID to roomId))
+                                .addTag(DeclineInviteWorker.uniqueName(roomId))
+                                .build()
+                            WorkManager.getInstance(context).enqueueUniqueWork(
+                                DeclineInviteWorker.uniqueName(roomId),
+                                ExistingWorkPolicy.REPLACE,
+                                request
+                            )
                         }
                     }
 
