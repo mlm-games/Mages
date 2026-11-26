@@ -128,10 +128,16 @@
         }, 20000);
     </script>
     <script type="module">
-        import { setLogConfig } from "./wasm/mages_ffi.js";
+        import wasmInit, { setLogConfig } from "./wasm/mages_ffi.js";
         window.__magesSetLogConfig = setLogConfig;
+        try {
+            await wasmInit();
+        } catch (error) {
+            showBootError();
+            throw error;
+        }
+        await import("./mages.js");
     </script>
-    <script src="mages.js" onerror="showBootError()"></script>
 </body>
 
 </html>

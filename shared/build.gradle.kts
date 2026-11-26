@@ -357,7 +357,7 @@ abstract class GenerateRustWasmBindingsTask @Inject constructor(
             commandLine(
                 "wasm-bindgen",
                 "target/wasm32-unknown-unknown/release/mages_ffi.wasm",
-                "--target", "bundler",
+                "--target", "web",
                 "--out-dir", outputDir.get().asFile.absolutePath,
                 "--out-name", "mages_ffi",
                 "--typescript",
