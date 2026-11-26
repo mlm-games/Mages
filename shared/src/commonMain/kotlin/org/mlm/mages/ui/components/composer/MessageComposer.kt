@@ -4,7 +4,6 @@ import org.jetbrains.compose.resources.painterResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,12 +12,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextRange
+import androidx.compose.foundation.text.input.OutputTransformation
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import mages.shared.generated.resources.*
 import org.mlm.mages.MessageEvent
@@ -82,13 +84,45 @@ fun MessageComposer(
     maxLinesUnfocused: Int = 5,
 ) {
     val scope = rememberCoroutineScope()
-    var fieldValue by remember { mutableStateOf(TextFieldValue(value)) }
+    val fieldState = remember { TextFieldState() }
+    var reportedText by remember { mutableStateOf(value) }
 
-    LaunchedEffect(value) {
-        if (value != fieldValue.text) {
-            fieldValue = TextFieldValue(value, selection = TextRange(value.length))
+    fun currentFieldValue(): TextFieldValue =
+        TextFieldValue(fieldState.text.toString(), fieldState.selection)
+
+    fun applyFieldValue(updated: TextFieldValue) {
+        fieldState.edit {
+            replace(0, length, updated.text)
+            selection = updated.selection
+        }
+        if (updated.text != reportedText) {
+            reportedText = updated.text
+            onValueChange(updated.text)
         }
     }
+
+    LaunchedEffect(Unit) {
+        snapshotFlow { fieldState.text.toString() }
+            .distinctUntilChanged()
+            .collect { text ->
+                if (text != reportedText) {
+                    reportedText = text
+                    onValueChange(text)
+                }
+            }
+    }
+
+    LaunchedEffect(value) {
+        if (value != fieldState.text.toString()) {
+            reportedText = value
+            fieldState.edit {
+                replace(0, length, value)
+                selection = TextRange(value.length)
+            }
+        }
+    }
+
+    val fieldValue = currentFieldValue()
 
     val mentionQuery = remember(fieldValue) { findMentionQueryInternal(fieldValue) }
     val mentionSuggestions = remember(mentionQuery, roomMembers) {
@@ -122,8 +156,7 @@ fun MessageComposer(
     fun applySlashSuggestion(suggestion: SlashCommandSuggestion) {
         val query = slashQuery ?: return
         val updated = insertSlashCommandInternal(fieldValue, suggestion, query)
-        fieldValue = updated
-        onValueChange(updated.text)
+        applyFieldValue(updated)
     }
 
     val slashPopupVisible = mentionQuery == null && emoteQuery == null &&
@@ -132,7 +165,7 @@ fun MessageComposer(
         { applySlashSuggestion(slashSuggestions.first()) }
     } else null
 
-    val visualTransformation = remember { ComposerVisualTransformation() }
+    val outputTransformation = remember { ComposerOutputTransformation() }
 
     if (isRecordingVoice && onStartVoiceRecording != null && onCancelVoiceRecording != null && onVoiceRecordingComplete != null) {
         VoiceRecorderBar(
@@ -165,8 +198,7 @@ fun MessageComposer(
                     onMemberSelected = { member ->
                         val query = mentionQuery ?: return@ComposerMentionPopup
                         val updated = insertMentionInternal(fieldValue, member, query)
-                        fieldValue = updated
-                        onValueChange(updated.text)
+                        applyFieldValue(updated)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -196,14 +228,12 @@ fun MessageComposer(
                     onEmoteSelected = { suggestion ->
                         val query = emoteQuery ?: return@ComposerEmotePopup
                         val updated = insertEmoteInternal(fieldValue, suggestion, query)
-                        fieldValue = updated
-                        onValueChange(updated.text)
+                        applyFieldValue(updated)
                     },
                     onEmojiSelected = { emoji ->
                         val query = emoteQuery ?: return@ComposerEmotePopup
                         val updated = insertEmojiInternal(fieldValue, emoji, query)
-                        fieldValue = updated
-                        onValueChange(updated.text)
+                        applyFieldValue(updated)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -213,14 +243,14 @@ fun MessageComposer(
             }
 
             ComposerInputRow(
-                fieldValue = fieldValue,
+                fieldState = fieldState,
                 enabled = enabled,
                 isUploadingAttachment = isUploadingAttachment,
                 attachments = attachments,
                 onAttach = onAttach,
-                onValueChange = { updated ->
-                    fieldValue = updated
-                    onValueChange(updated.text)
+                onEdit = ::applyFieldValue,
+                onClearText = {
+                    applyFieldValue(TextFieldValue(""))
                 },
                 onSend = onSend,
                 enterSendsMessage = enterSendsMessage,
@@ -234,7 +264,7 @@ fun MessageComposer(
                 editing = editing,
                 replyingTo = replyingTo,
                 onStartVoiceRecording = onStartVoiceRecording,
-                visualTransformation = visualTransformation,
+                outputTransformation = outputTransformation,
                 maxLines = maxLines,
                 maxLinesUnfocused = maxLinesUnfocused,
             )
@@ -244,12 +274,13 @@ fun MessageComposer(
 
 @Composable
 private fun ComposerInputRow(
-    fieldValue: TextFieldValue,
+    fieldState: TextFieldState,
     enabled: Boolean,
     isUploadingAttachment: Boolean,
     attachments: List<AttachmentData>,
     onAttach: (() -> Unit)?,
-    onValueChange: (TextFieldValue) -> Unit,
+    onEdit: (TextFieldValue) -> Unit,
+    onClearText: () -> Unit,
     onSend: () -> Unit,
     enterSendsMessage: Boolean,
     onAcceptSuggestion: (() -> Unit)? = null,
@@ -262,11 +293,12 @@ private fun ComposerInputRow(
     editing: MessageEvent?,
     replyingTo: MessageEvent?,
     onStartVoiceRecording: (() -> Unit)?,
-    visualTransformation: VisualTransformation,
+    outputTransformation: OutputTransformation,
     maxLines: Int,
     maxLinesUnfocused: Int,
 ) {
     var fieldFocused by remember { mutableStateOf(false) }
+    val fieldValue = TextFieldValue(fieldState.text.toString(), fieldState.selection)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -295,7 +327,7 @@ private fun ComposerInputRow(
         val submit: () -> Unit = {
             if (canSend) {
                 onSend()
-                if (editing == null) onValueChange(TextFieldValue(""))
+                if (editing == null) onClearText()
             }
         }
 
@@ -321,7 +353,7 @@ private fun ComposerInputRow(
                 onAcceptSuggestion = onAcceptSuggestion,
                 onInsertNewline = {
                     val newValue = insertNewlineInternal(fieldValue)
-                    onValueChange(newValue)
+                    onEdit(newValue)
                 },
                 onSend = submit
             )
@@ -332,12 +364,11 @@ private fun ComposerInputRow(
             .onFocusChanged { fieldFocused = it.isFocused }
 
         OutlinedTextField(
-            value = fieldValue,
-            onValueChange = onValueChange,
+            state = fieldState,
+            outputTransformation = outputTransformation,
             modifier = textFieldModifier,
             // Disabling a focused field lets the IME commit a caption that was just cleared.
             enabled = enabled,
-            visualTransformation = visualTransformation,
             placeholder = {
                 ComposerPlaceholder(isUploadingAttachment, isOffline, editing, replyingTo)
             },
@@ -348,14 +379,14 @@ private fun ComposerInputRow(
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface
             ),
             shape = RoundedCornerShape(24.dp),
-            maxLines = if (fieldFocused) maxLines else maxLinesUnfocused,
+            lineLimits = TextFieldLineLimits.MultiLine(
+                maxHeightInLines = if (fieldFocused) maxLines else maxLinesUnfocused
+            ),
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Sentences,
                 imeAction = if (enterSendsMessage && !isUploadingAttachment) ImeAction.Send else ImeAction.Default
             ),
-            keyboardActions = KeyboardActions(
-                onSend = { submit() }
-            )
+            onKeyboardAction = { submit() }
         )
 
         Spacer(Modifier.width(Spacing.sm))

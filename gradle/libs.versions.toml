@@ -1,8 +1,8 @@
 [versions]
-composeMultiplatform = "1.12.1"
+composeMultiplatform = "1.13.0-rc01"
 compass = "3.3.0"
 
-composeBom = "2026.09.00"
+composeBom = "2026.11.00"
 
 agp = "9.4.1"
 android-compileSdk = "37"
@@ -21,7 +21,7 @@ jcefmaven = "146.0.10"
 json = "20260814"
 koinComposeNavigation3 = "4.2.2"
 ksoup = "0.2.6"
-material3 = "1.12.0-alpha03"
+material3 = "1.13.0-rc01"
 markdown = "0.7.14"
 multiplatformMarkdownRenderer = "0.45.0"
 multiplatformMarkdownRendererM3 = "0.45.0"
