@@ -352,7 +352,7 @@ private fun AppContent(
                 ?: (topRoute as? Route.Room)?.roomId
             // Lives above the nav host so the open conversation keeps its view model
             // when a thread or sheet route is pushed over the split view.
-            val chatDetailStoreOwner = remember(activeChatRoomId) {
+            val chatDetailStoreOwner = remember(activeId) {
                 object : ViewModelStoreOwner {
                     override val viewModelStore: ViewModelStore = ViewModelStore()
                 }
