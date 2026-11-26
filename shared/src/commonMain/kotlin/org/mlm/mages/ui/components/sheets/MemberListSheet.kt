@@ -18,7 +18,6 @@ import mages.shared.generated.resources.*
 import org.mlm.mages.matrix.MemberRole
 import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.ui.components.core.Avatar
-import org.mlm.mages.ui.components.core.memberRoleColor
 import org.mlm.mages.ui.components.core.memberRoleLabel
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
@@ -186,9 +185,11 @@ private fun MemberListItem(
                     InCallBadge()
                 }
                 if (member.role != MemberRole.User) {
-                    RoleBadge(member.role)
+                    RoleText(member.role)
                 }
-                MembershipBadge(member.membership)
+                if (member.membership.lowercase() != "join") {
+                    MembershipBadge(member.membership)
+                }
             }
         },
         modifier = Modifier.clickable(enabled = !isMe) { onClick() }
@@ -222,19 +223,12 @@ private fun InCallBadge() {
 }
 
 @Composable
-private fun RoleBadge(role: MemberRole) {
-    val color = memberRoleColor(role)
-    Surface(
-        color = color.copy(alpha = 0.1f),
-        shape = MaterialTheme.shapes.small
-    ) {
-        Text(
-            memberRoleLabel(role),
-            style = MaterialTheme.typography.labelSmall,
-            color = color,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        )
-    }
+private fun RoleText(role: MemberRole) {
+    Text(
+        memberRoleLabel(role),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 }
 
 @Composable
