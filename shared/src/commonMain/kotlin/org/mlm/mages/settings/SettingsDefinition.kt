@@ -242,6 +242,14 @@ data class AppSettings(
     val showMessageAvatars: Boolean = true,
 
     @Setting(
+        titleKey = MagesSettingsKeys.COLORED_APP_BAR,
+        descriptionKey = MagesSettingsKeys.COLORED_APP_BAR_DESCRIPTION,
+        category = Appearance::class,
+        type = Toggle::class
+    )
+    val coloredAppBar: Boolean = true,
+
+    @Setting(
         titleKey = MagesSettingsKeys.SHOW_SENDER_ROLE,
         descriptionKey = MagesSettingsKeys.SHOW_SENDER_ROLE_DESCRIPTION,
         category = Appearance::class,

@@ -662,6 +662,8 @@
     <string name="setting_drag_to_scroll_description">Scroll lists by dragging instead of the mouse wheel</string>
     <string name="setting_show_message_avatars">Show message avatars</string>
     <string name="setting_show_message_avatars_description">Display user avatars next to messages</string>
+    <string name="setting_colored_app_bar">Colored app bar</string>
+    <string name="setting_colored_app_bar_description">Use your theme colour for the conversation list app bar</string>
     <string name="setting_show_sender_role">Show sender role</string>
     <string name="setting_show_sender_role_description">Show the sender's permission level next to their name</string>
     <string name="setting_show_reaction_avatars">Show reaction avatars</string>

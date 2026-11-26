@@ -132,6 +132,7 @@ fun RoomsScreen(
                     unreadDmsCount = state.unreadDmsCount,
                     spacesUnreadCount = state.spacesUnreadCount,
                     showSwitchAccountButton = settings.showSwitchAccountButton,
+                    coloredAppBar = settings.coloredAppBar,
                     onOpenSpaces = onOpenSpaces,
                     onOpenSecurity = onOpenSecurity,
                     onOpenStartChat = onOpenStartChat,
@@ -501,6 +502,7 @@ private fun RoomSelectionTopBar(
 
 @Composable
 private fun RoomsTopBar(
+    coloredAppBar: Boolean,
     offlineBanner: StringResource?,
     syncBanner: String?,
     isLoading: Boolean,
@@ -526,7 +528,23 @@ private fun RoomsTopBar(
     Column {
         TopAppBar(
             title = {
-                Text(stringResource(Res.string.rooms), fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    stringResource(Res.string.rooms),
+                    style = if (coloredAppBar) MaterialTheme.typography.headlineSmall else LocalTextStyle.current,
+                    fontWeight = if (coloredAppBar) FontWeight.Bold else FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
+            colors = if (coloredAppBar) {
+                TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            } else {
+                TopAppBarDefaults.topAppBarColors()
             },
             actions = {
                 IconButton(onClick = onOpenSpaces) {
