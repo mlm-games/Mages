@@ -12,8 +12,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
+import org.mlm.mages.matrix.MemberRole
 import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.matrix.RoomPowerLevels
+import org.mlm.mages.ui.components.core.memberRoleColor
+import org.mlm.mages.ui.components.core.memberRoleLabel
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.runtime.Composable
@@ -78,7 +81,8 @@ fun PowerLevelsSheet(
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 items(members) { member ->
-                    val memberPowerLevel = powerLevels?.users?.get(member.userId) ?: 0L
+                    val memberPowerLevel = member.powerLevel
+                    val memberRole = member.role
                     val canEdit = myPowerLevel > memberPowerLevel && myPowerLevel >= 100
 
                     ElevatedCard(
@@ -103,17 +107,14 @@ fun PowerLevelsSheet(
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                             ) {
                                 Icon(
-                                    painter = when {
-                                        memberPowerLevel >= 100 -> painterResource(Res.drawable.ic_admin_panel_settings)
-                                        memberPowerLevel >= 50 -> painterResource(Res.drawable.ic_shield)
-                                        else -> painterResource(Res.drawable.ic_person)
+                                    painter = when (memberRole) {
+                                        MemberRole.Creator, MemberRole.Owner, MemberRole.Admin ->
+                                            painterResource(Res.drawable.ic_admin_panel_settings)
+                                        MemberRole.Moderator -> painterResource(Res.drawable.ic_shield)
+                                        MemberRole.User -> painterResource(Res.drawable.ic_person)
                                     },
                                     contentDescription = null,
-                                    tint = when {
-                                        memberPowerLevel >= 100 -> MaterialTheme.colorScheme.primary
-                                        memberPowerLevel >= 50 -> MaterialTheme.colorScheme.tertiary
-                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                    }
+                                    tint = memberRoleColor(memberRole)
                                 )
                                 Column(Modifier.weight(1f)) {
                                     Text(
@@ -123,7 +124,7 @@ fun PowerLevelsSheet(
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
-                                        getRoleLabel(memberPowerLevel),
+                                        memberRoleLabel(memberRole),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         maxLines = 1,
@@ -159,7 +160,6 @@ fun PowerLevelsSheet(
     // Role selection dialog
     if (showRoleDialog && selectedMember != null) {
         val member = selectedMember!!
-        val currentLevel = powerLevels?.users?.get(member.userId) ?: 0L
 
         AlertDialog(
             onDismissRequest = {
@@ -171,7 +171,7 @@ fun PowerLevelsSheet(
                 Column {
                     RoleOption(
                         label = stringResource(Res.string.admin_100),
-                        selected = currentLevel >= 100,
+                        selected = member.role == MemberRole.Admin,
                         onClick = {
                             onUpdatePowerLevel(member.userId, 100)
                             showRoleDialog = false
@@ -179,15 +179,23 @@ fun PowerLevelsSheet(
                     )
                     RoleOption(
                         label = stringResource(Res.string.moderator_50),
-                        selected = currentLevel in 50..99,
+                        selected = member.role == MemberRole.Moderator,
                         onClick = {
                             onUpdatePowerLevel(member.userId, 50)
                             showRoleDialog = false
                         }
                     )
                     RoleOption(
+                        label = stringResource(Res.string.owner),
+                        selected = member.role == MemberRole.Owner,
+                        onClick = {
+                            onUpdatePowerLevel(member.userId, 150)
+                            showRoleDialog = false
+                        }
+                    )
+                    RoleOption(
                         label = stringResource(Res.string.user_0),
-                        selected = currentLevel < 50,
+                        selected = member.role == MemberRole.User,
                         onClick = {
                             onUpdatePowerLevel(member.userId, 0)
                             showRoleDialog = false
@@ -195,7 +203,8 @@ fun PowerLevelsSheet(
                     )
                     RoleOption(
                         label = stringResource(Res.string.custom),
-                        selected = currentLevel > 0 && currentLevel != 50L && currentLevel != 100L,
+                        selected = member.role != MemberRole.Creator &&
+                            member.powerLevel !in setOf(0L, 50L, 100L, 150L),
                         onClick = {
                             showRoleDialog = false
                             showCustomLevelDialog = true
@@ -218,7 +227,7 @@ fun PowerLevelsSheet(
     if (showCustomLevelDialog && selectedMember != null) {
         val member = selectedMember!!
         var customLevel by remember {
-            mutableStateOf((powerLevels?.users?.get(member.userId) ?: 0L).toFloat())
+            mutableStateOf(member.powerLevel.toFloat().coerceIn(0f, 100f))
         }
 
         AlertDialog(
@@ -248,7 +257,11 @@ fun PowerLevelsSheet(
                     )
                     Spacer(Modifier.height(Spacing.sm))
                     Text(
-                        stringResource(Res.string.level_with_label, customLevel.toInt(), getRoleLabel(customLevel.toLong())),
+                        stringResource(
+                            Res.string.level_with_label,
+                            customLevel.toInt(),
+                            memberRoleLabel(MemberRole.forPowerLevel(customLevel.toLong()))
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -296,12 +309,4 @@ private fun RoleOption(
         } else null,
         modifier = Modifier.clickable(onClick = onClick)
     )
-}
-
-@Composable
-private fun getRoleLabel(powerLevel: Long): String = when {
-    powerLevel >= 100 -> stringResource(Res.string.admin)
-    powerLevel >= 50 -> stringResource(Res.string.moderator)
-    powerLevel > 0 -> stringResource(Res.string.role_custom_level, powerLevel)
-    else -> stringResource(Res.string.user)
 }

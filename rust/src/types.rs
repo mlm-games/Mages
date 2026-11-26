@@ -509,6 +509,15 @@ pub struct RoomProfile {
     pub room_version: Option<String>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Enum)]
+pub enum MemberRole {
+    Creator,
+    Owner,
+    Admin,
+    Moderator,
+    User,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, Record)]
 pub struct MemberSummary {
     pub user_id: String,
@@ -519,6 +528,8 @@ pub struct MemberSummary {
     pub status_emoji: Option<String>,
     pub status_text: Option<String>,
     pub call_joined_ts_ms: Option<i64>,
+    pub power_level: i64,
+    pub role: MemberRole,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Enum)]

@@ -1125,6 +1125,7 @@
     <string name="create_a_launcher_shortcut_for_this_room">Create a launcher shortcut for this room</string>
     <string name="create_a_room_inside_this_space">Create a room inside this space</string>
     <string name="create_poll">Create poll</string>
+    <string name="creator">Creator</string>
     <string name="custom">Custom</string>
     <string name="decline_invite">Decline invite</string>
     <string name="decline_the_invite_to">Decline the invite to </string>
@@ -1368,6 +1369,7 @@
     <string name="only_notify_when_mentioned_or_keywords_match">Only notify when mentioned or keywords match</string>
     <string name="options_minimum_2">Options (minimum 2)</string>
     <string name="other">Other</string>
+    <string name="owner">Owner</string>
     <string name="partial_success">Partial success</string>
     <string name="paste_your_recovery_key_to_restore_end_to_end_encryption_and_verify_this_session">Paste your recovery key to restore end-to-end encryption and verify this session.</string>
     <string name="pause">Pause</string>

@@ -55,6 +55,7 @@ use matrix_sdk::{
         serde::Raw,
     },
 };
+use matrix_sdk::room::RoomMemberRole;
 use matrix_sdk_ui::{
     eyeball_im::{Vector, VectorDiff},
     room_list_service::RoomListItem,
@@ -68,7 +69,7 @@ use tracing::warn;
 use crate::{
     ActionAvailability, ActionPresentation, AttachmentInfo, AttachmentKind, DirectoryUser,
     FfiError, FfiPushRule, FfiPushRuleKind, FfiRoomNotificationMode, FfiStoreSizes, ForwardResult, ImagePackSummary,
-    KnockRequestSummary, LinkPreview, MediaPreviewMode, MemberActionState, MemberSummary,
+    KnockRequestSummary, LinkPreview, MediaPreviewMode, MemberActionState, MemberRole, MemberSummary,
     MessageActionState, MessageEvent, MessageSendType, MutualRooms, OwnProfile, OwnReceipt, PasswordLoginKind,
     PollDefinition, PredecessorRoomInfo, Presence, PresenceInfo, ProfileCard, ProfileField,
     PublicRoom,
@@ -102,6 +103,16 @@ const PROFILE_PRONOUNS_MAX: usize = 8;
 type ProfileResponse = matrix_sdk::ruma::api::client::profile::get_profile::v3::Response;
 
 fn ffi_member_summary(m: &matrix_sdk::BaseRoomMember, me: Option<&UserId>) -> MemberSummary {
+    let sdk_power_level = m.power_level();
+    let power_level = match sdk_power_level {
+        UserPowerLevel::Infinite => INFINITE_POWER_LEVEL,
+        UserPowerLevel::Int(value) => ui_power_level(value.into()),
+        _ => 0,
+    };
+    let role = map_member_role(
+        RoomMemberRole::suggested_role_for_power_level(sdk_power_level),
+        power_level,
+    );
     MemberSummary {
         user_id: m.user_id().to_string(),
         display_name: m.display_name().map(|n| n.to_string()),
@@ -114,6 +125,8 @@ fn ffi_member_summary(m: &matrix_sdk::BaseRoomMember, me: Option<&UserId>) -> Me
             .call()
             .and_then(|c| c.call_joined_ts)
             .map(|ts| i64::from(ts.get()) * 1000),
+        power_level,
+        role,
     }
 }
 
@@ -165,9 +178,34 @@ where
 }
 
 pub(crate) const INFINITE_POWER_LEVEL: i64 = i32::MAX as i64;
+const SUPERADMIN_POWER_LEVEL: i64 = 150;
 
 fn ui_power_level(level: i64) -> i64 {
     level.clamp(i32::MIN as i64, INFINITE_POWER_LEVEL)
+}
+
+pub(crate) fn map_member_role(role: RoomMemberRole, power_level: i64) -> MemberRole {
+    match role {
+        RoomMemberRole::Creator => MemberRole::Creator,
+        RoomMemberRole::Administrator if power_level >= SUPERADMIN_POWER_LEVEL => MemberRole::Owner,
+        RoomMemberRole::Administrator => MemberRole::Admin,
+        RoomMemberRole::Moderator => MemberRole::Moderator,
+        RoomMemberRole::User => MemberRole::User,
+    }
+}
+
+#[cfg(test)]
+mod member_role_tests {
+    use super::*;
+
+    #[test]
+    fn suggested_role_stays_authoritative() {
+        assert_eq!(MemberRole::User, map_member_role(RoomMemberRole::User, 123));
+        assert_eq!(MemberRole::Moderator, map_member_role(RoomMemberRole::Moderator, 1));
+        assert_eq!(MemberRole::Admin, map_member_role(RoomMemberRole::Administrator, 100));
+        assert_eq!(MemberRole::Owner, map_member_role(RoomMemberRole::Administrator, 150));
+        assert_eq!(MemberRole::Creator, map_member_role(RoomMemberRole::Creator, 0));
+    }
 }
 
 /// The power level to treat `user_id` as having in `room`.

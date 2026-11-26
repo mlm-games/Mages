@@ -17,6 +17,7 @@ import org.mlm.mages.matrix.RoomDirectoryVisibility
 import org.mlm.mages.matrix.RoomHistoryVisibility
 import org.mlm.mages.matrix.RoomJoinRule
 import org.mlm.mages.matrix.RoomPowerLevelChanges
+import org.mlm.mages.matrix.MemberRole
 import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.ui.components.dialogs.ConfirmationDialog
 import org.mlm.mages.ui.components.dialogs.InviteUserDialog
@@ -31,6 +32,7 @@ import org.mlm.mages.ui.components.sheets.RoomAliasesSheet
 import org.mlm.mages.ui.components.sheets.RoomNotificationSheet
 import org.mlm.mages.ui.components.settings.*
 import org.mlm.mages.ui.components.core.Avatar
+import org.mlm.mages.ui.components.core.memberRoleLabel
 import org.mlm.mages.ui.components.core.EditableAvatar
 import org.mlm.mages.ui.components.core.TopicText
 import org.mlm.mages.ui.theme.AppColors
@@ -583,7 +585,10 @@ fun RoomInfoScreen(
                             SettingsInfoRow(
                                 icon = painterResource(Res.drawable.ic_badge),
                                 title = stringResource(Res.string.your_role),
-                                value = getRoleName(state.myPowerLevel)
+                                value = memberRoleLabel(
+                                    state.members.firstOrNull { it.userId == state.myUserId }?.role
+                                        ?: MemberRole.forPowerLevel(state.myPowerLevel)
+                                )
                             )
                             HorizontalDivider(Modifier.padding(horizontal = Spacing.md))
                             SettingsNavRow(
@@ -1260,14 +1265,6 @@ private fun <T> SettingsDropdownRow(
     }
 }
 
-
-@Composable
-private fun getRoleName(powerLevel: Long): String = when {
-    powerLevel >= 100 -> stringResource(Res.string.admin)
-    powerLevel >= 50 -> stringResource(Res.string.moderator)
-    powerLevel > 0 -> stringResource(Res.string.role_custom_level, powerLevel)
-    else -> stringResource(Res.string.user)
-}
 
 @Composable
 private fun RoomJoinRule.displayName(): String = when (this) {

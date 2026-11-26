@@ -687,6 +687,8 @@ data class MemberSummary(
     val statusEmoji: String? = null,
     val statusText: String? = null,
     val callJoinedTsMs: Long? = null,
+    val powerLevel: Long = 0L,
+    val role: MemberRole = MemberRole.User,
 )
 
 @Serializable

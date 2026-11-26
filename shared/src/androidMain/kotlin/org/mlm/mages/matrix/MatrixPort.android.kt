@@ -3209,6 +3209,14 @@ private fun mages.SearchHit.toKotlin(): SearchHit =
 //        bytes
 //    )
 
+private fun mages.MemberRole.toModel() = when (this) {
+    mages.MemberRole.CREATOR -> MemberRole.Creator
+    mages.MemberRole.OWNER -> MemberRole.Owner
+    mages.MemberRole.ADMIN -> MemberRole.Admin
+    mages.MemberRole.MODERATOR -> MemberRole.Moderator
+    mages.MemberRole.USER -> MemberRole.User
+}
+
 private fun mages.MemberSummary.toModel() = MemberSummary(
     userId = userId,
     displayName = displayName,
@@ -3218,6 +3226,8 @@ private fun mages.MemberSummary.toModel() = MemberSummary(
     statusEmoji = statusEmoji,
     statusText = statusText,
     callJoinedTsMs = callJoinedTsMs,
+    powerLevel = powerLevel,
+    role = role.toModel(),
 )
 
 private fun mages.RoomListMembership.toKotlin(): RoomListMembership = when (this) {

@@ -10,8 +10,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
+import org.mlm.mages.matrix.MemberRole
 import org.mlm.mages.matrix.RoomPowerLevelChanges
 import org.mlm.mages.matrix.RoomPowerLevels
+import org.mlm.mages.ui.components.core.memberRoleColor
+import org.mlm.mages.ui.components.core.memberRoleLabel
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
 
@@ -282,19 +285,15 @@ private fun PermissionSliderRow(
 
 @Composable
 private fun RoleBadge(level: Long) {
-    val (text, color) = when {
-        level >= 100 -> stringResource(Res.string.admin) to MaterialTheme.colorScheme.primary
-        level >= 50 -> stringResource(Res.string.mod) to MaterialTheme.colorScheme.tertiary
-        level > 0 -> stringResource(Res.string.custom) to MaterialTheme.colorScheme.secondary
-        else -> stringResource(Res.string.user) to MaterialTheme.colorScheme.onSurfaceVariant
-    }
+    val role = MemberRole.forPowerLevel(level)
+    val color = memberRoleColor(role)
 
     Surface(
         color = color.copy(alpha = 0.1f),
         shape = MaterialTheme.shapes.small
     ) {
         Text(
-            stringResource(Res.string.role_chip, text, level),
+            stringResource(Res.string.role_chip, memberRoleLabel(role), level),
             style = MaterialTheme.typography.labelSmall,
             color = color,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)

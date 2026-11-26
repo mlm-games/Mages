@@ -1,6 +1,8 @@
 package org.mlm.mages.ui.components.sheets
 
 import org.jetbrains.compose.resources.painterResource
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,8 +15,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import mages.shared.generated.resources.*
+import org.mlm.mages.matrix.MemberRole
 import org.mlm.mages.matrix.MemberSummary
 import org.mlm.mages.ui.components.core.Avatar
+import org.mlm.mages.ui.components.core.memberRoleColor
+import org.mlm.mages.ui.components.core.memberRoleLabel
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
@@ -139,7 +144,9 @@ private fun MemberListItem(
             }
         },
         supportingContent = {
-            Column {
+            Column(
+                modifier = Modifier.animateContentSize(spring(dampingRatio = 0.8f, stiffness = 300f))
+            ) {
                 val status = listOfNotNull(
                     member.statusEmoji?.takeIf { it.isNotBlank() },
                     member.statusText?.takeIf { it.isNotBlank() }
@@ -178,6 +185,9 @@ private fun MemberListItem(
                 if (isInCall || member.callJoinedTsMs != null) {
                     InCallBadge()
                 }
+                if (member.role != MemberRole.User) {
+                    RoleBadge(member.role)
+                }
                 MembershipBadge(member.membership)
             }
         },
@@ -208,6 +218,22 @@ private fun InCallBadge() {
                 color = MaterialTheme.colorScheme.primary
             )
         }
+    }
+}
+
+@Composable
+private fun RoleBadge(role: MemberRole) {
+    val color = memberRoleColor(role)
+    Surface(
+        color = color.copy(alpha = 0.1f),
+        shape = MaterialTheme.shapes.small
+    ) {
+        Text(
+            memberRoleLabel(role),
+            style = MaterialTheme.typography.labelSmall,
+            color = color,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
     }
 }
 
