@@ -25,6 +25,7 @@ class AccountStore(
 
     suspend fun init() {
         val settings = settingsRepository.flow.first()
+        Logger.i { "AccountStore: accountsJson length=${settings.accountsJson?.length ?: 0}, activeAccountId=${settings.activeAccountId}" }
 
         _accounts.value = decodeAccounts(settings.accountsJson)
         _activeAccountId.value = settings.activeAccountId

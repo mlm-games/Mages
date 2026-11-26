@@ -62,6 +62,7 @@ class MatrixClients(
         accountStore.init()
 
         val activeId = accountStore.activeAccountId.value
+        Logger.i { "MatrixClients: restore activeId=$activeId, storedAccounts=${accountStore.accounts.value.size}" }
         val account = if (activeId != null) {
             accountStore.getAccountById(activeId)
         } else {

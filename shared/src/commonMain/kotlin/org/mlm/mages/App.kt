@@ -237,6 +237,7 @@ private fun AppContent(
             restored = runCatching { service.initFromDisk(proxyUrl) }.getOrDefault(false) || restored
         }
         restoreFailed = !restored
+        Logger.i { "App: restore=$restored, accounts=${accountStore.accounts.value.size}, accountsLoaded=${accountStore.isInitialized.value}" }
         initDone = true
         onReady()
     }
