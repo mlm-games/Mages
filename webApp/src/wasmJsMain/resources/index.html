@@ -112,7 +112,7 @@
         document.getElementById("boot-reload").addEventListener("click", reloadWithBust);
         const originalFetch = window.fetch.bind(window);
         window.fetch = (input, init) => originalFetch(input, init).then((response) => {
-            const url = typeof input === "string" ? input : input.url;
+            const url = typeof input === "string" ? input : input instanceof URL ? input.href : input?.url ?? "";
             if (url.includes(".wasm") && response.headers.get("Content-Type") !== "application/wasm") {
                 throw new Error("WebAssembly asset returned " + response.headers.get("Content-Type"));
             }
