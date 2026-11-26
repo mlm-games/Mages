@@ -47,6 +47,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.mlm.mages.ReplyPreview
 import org.mlm.mages.ReplyPreviewKind
 import org.mlm.mages.SendFailureReason
+import org.mlm.mages.matrix.MemberRole
 import org.mlm.mages.matrix.SendState
 import org.mlm.mages.settings.ThreadUnreadIndicator
 import org.mlm.mages.ui.theme.Limits
@@ -54,6 +55,8 @@ import org.mlm.mages.ui.components.blurHashBackground
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.FormattedBodyText
 import org.mlm.mages.ui.components.core.MentionRef
+import org.mlm.mages.ui.components.core.memberRoleColor
+import org.mlm.mages.ui.components.core.memberRoleLabel
 import org.mlm.mages.ui.components.core.formatDisplayName
 import org.mlm.mages.ui.components.composer.escapeHtml
 import org.mlm.mages.platform.isTgsSticker
@@ -97,6 +100,7 @@ private fun SenderName(
     senderId: String = "",
     avatarPath: String? = null,
     showAvatar: Boolean = false,
+    role: MemberRole? = null,
 ) {
     var truncated by remember { mutableStateOf(false) }
     var showingFullName by remember { mutableStateOf(false) }
@@ -124,16 +128,30 @@ private fun SenderName(
     }
 
     val label: @Composable (Modifier) -> Unit = { labelModifier ->
-        Text(
-            text = name,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            onTextLayout = { truncated = it.hasVisualOverflow },
-            modifier = labelModifier
-        )
+        Row(
+            modifier = labelModifier,
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+        ) {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                onTextLayout = { truncated = it.hasVisualOverflow },
+                modifier = if (showAvatar) Modifier.weight(1f, fill = false) else Modifier
+            )
+            if (role != null && role != MemberRole.User) {
+                Text(
+                    text = memberRoleLabel(role),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = memberRoleColor(role),
+                    maxLines = 1
+                )
+            }
+        }
     }
 
     if (showingFullName) {
@@ -285,6 +303,7 @@ fun MessageBubble(
                 senderId = sender?.id.orEmpty(),
                 avatarPath = sender?.avatarPath,
                 showAvatar = showSenderAvatar,
+                role = sender?.role.takeIf { model.showSenderRole },
                 modifier = Modifier.padding(horizontal = Spacing.md, vertical = 2.dp)
             )
         }
@@ -1119,6 +1138,7 @@ private fun StickerMessage(
                     onSenderClick = onSenderClick,
                     senderId = sender.id.orEmpty(),
                     avatarPath = sender.avatarPath,
+                    role = sender.role.takeIf { model.showSenderRole },
                     modifier = Modifier.padding(bottom = 2.dp)
                 )
             }

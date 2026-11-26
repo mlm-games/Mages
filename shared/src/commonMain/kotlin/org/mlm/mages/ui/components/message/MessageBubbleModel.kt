@@ -3,6 +3,7 @@ package org.mlm.mages.ui.components.message
 import org.mlm.mages.LinkPreview
 import org.mlm.mages.ReplyPreview
 import org.mlm.mages.SendFailureReason
+import org.mlm.mages.matrix.MemberRole
 import org.mlm.mages.matrix.PollData
 import org.mlm.mages.matrix.ReactionSummary
 import org.mlm.mages.matrix.SendState
@@ -20,6 +21,7 @@ data class MessageSenderUi(
     val id: String?,
     val displayName: String?,
     val avatarPath: String?,
+    val role: MemberRole? = null,
 )
 
 data class MessageGroupingUi(
@@ -104,7 +106,9 @@ data class MessageBubbleRenderContext(
     val avatarPath: String?,
     val groupedWithPrev: Boolean,
     val groupedWithNext: Boolean,
+    val senderRoles: Map<String, MemberRole> = emptyMap(),
     val showMessageAvatars: Boolean = true,
+    val showSenderRole: Boolean = false,
     val showUsernameInDms: Boolean = false,
     val reactions: List<ReactionSummary> = emptyList(),
     val reactionAvatarsByUserId: Map<String, String> = emptyMap(),
@@ -140,6 +144,7 @@ data class MessageBubbleModel(
     val isDm: Boolean,
     val showMessageAvatars: Boolean = true,
     val showUsernameInDms: Boolean = false,
+    val showSenderRole: Boolean = false,
     val grouping: MessageGroupingUi = MessageGroupingUi(),
     val reactions: List<ReactionSummary> = emptyList(),
     val reactionAvatarsByUserId: Map<String, String> = emptyMap(),

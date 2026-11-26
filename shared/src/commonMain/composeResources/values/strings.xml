@@ -662,6 +662,8 @@
     <string name="setting_drag_to_scroll_description">Scroll lists by dragging instead of the mouse wheel</string>
     <string name="setting_show_message_avatars">Show message avatars</string>
     <string name="setting_show_message_avatars_description">Display user avatars next to messages</string>
+    <string name="setting_show_sender_role">Show sender role</string>
+    <string name="setting_show_sender_role_description">Show the sender's permission level next to their name</string>
     <string name="setting_show_reaction_avatars">Show reaction avatars</string>
     <string name="setting_show_reaction_avatars_description">Display user avatars on reaction chips</string>
     <string name="setting_show_read_receipt_avatars">Show read receipt avatars</string>

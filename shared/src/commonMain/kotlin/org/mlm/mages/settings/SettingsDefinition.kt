@@ -242,6 +242,14 @@ data class AppSettings(
     val showMessageAvatars: Boolean = true,
 
     @Setting(
+        titleKey = MagesSettingsKeys.SHOW_SENDER_ROLE,
+        descriptionKey = MagesSettingsKeys.SHOW_SENDER_ROLE_DESCRIPTION,
+        category = Appearance::class,
+        type = Toggle::class
+    )
+    val showSenderRole: Boolean = false,
+
+    @Setting(
         titleKey = MagesSettingsKeys.SHOW_REACTION_AVATARS,
         descriptionKey = MagesSettingsKeys.SHOW_REACTION_AVATARS_DESCRIPTION,
         category = Appearance::class,

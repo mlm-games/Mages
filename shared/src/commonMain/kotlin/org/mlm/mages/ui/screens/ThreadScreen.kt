@@ -65,6 +65,8 @@ import org.mlm.mages.ui.components.attachment.AttachmentProgress
 import org.mlm.mages.ui.components.toMagesAttachment
 import org.mlm.mages.ui.components.voice.VoicePreviewDialog
 import org.mlm.mages.ui.components.core.Avatar
+import org.mlm.mages.ui.components.core.memberRoleColor
+import org.mlm.mages.ui.components.core.memberRoleLabel
 import org.mlm.mages.ui.components.core.LoadMoreButton
 import org.mlm.mages.ui.components.core.StatusBanner
 import org.mlm.mages.ui.components.core.BannerType
@@ -111,6 +113,7 @@ import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import org.mlm.mages.settings.AppSettings
 import org.mlm.mages.settings.AutoMarkReadTrigger
 import org.mlm.mages.settings.MessageMenuAction
+import org.mlm.mages.matrix.MemberRole
 import org.mlm.mages.settings.MessageSwipeAction
 import org.mlm.mages.settings.parseMessageMenuOrder
 import org.mlm.mages.settings.parseQuickReactions
@@ -276,6 +279,7 @@ fun ThreadRoute(
         enableSlashCommands = settings.enableSlashCommands,
         developerMode = settings.developerMode,
         showReactionAvatars = settings.showReactionAvatars,
+        showSenderRole = settings.showSenderRole,
         markReadTrigger = settings.autoMarkReadTrigger,
         onMarkThreadSeen = viewModel::markThreadSeen,
         canEditLatest = settings.editLatestWithUpArrow && state.editingEvent == null && viewModel.hasEditableLatest(),
@@ -439,6 +443,7 @@ fun ThreadScreen(
     onIgnore: (String) -> Unit = { },
     onOpenAvatar: (MemberSummary) -> Unit = { },
     showReactionAvatars: Boolean = true,
+    showSenderRole: Boolean = false,
     markReadTrigger: AutoMarkReadTrigger = AutoMarkReadTrigger.WhileOpen,
     onMarkThreadSeen: () -> Unit = {},
     emoteSuggestions: List<EmoteSuggestion> = emptyList(),
@@ -704,6 +709,8 @@ fun ThreadScreen(
                                         linkPreviewByEvent = state.linkPreviewByEvent,
                                         linkPreviewImageByEvent = state.linkPreviewImageByEvent,
                                         mentionProfilesByUserId = state.mentionProfilesByUserId,
+                                        senderRoles = state.roomMembers.associate { it.userId to it.role },
+                                        showSenderRole = showSenderRole,
                                         showReactionAvatars = showReactionAvatars,
                                         isSelected = bubbleItem.event.eventId in state.selectedEventIds,
                                         onMentionClick = onMentionClick,
@@ -839,6 +846,7 @@ fun ThreadScreen(
                                             isMine = bubbleItem.event.sender == myUserId,
                                             reactionShortcodes = reactionShortcodes,
                                             showReactionAvatars = showReactionAvatars,
+                                            showSenderRole = showSenderRole,
                                             onMentionClick = onMentionClick,
                                             onClick = if (state.isSelectionMode) {
                                                 {
@@ -1090,6 +1098,7 @@ private fun ThreadRootMessage(
     isMine: Boolean,
     reactionShortcodes: Map<String, String>,
     showReactionAvatars: Boolean,
+    showSenderRole: Boolean = false,
     onMentionClick: ((String) -> Unit)?,
     onClick: (() -> Unit)?,
     highlighted: Boolean,
@@ -1171,15 +1180,28 @@ private fun ThreadRootMessage(
                 )
                 Spacer(Modifier.width(Spacing.md))
                 Column(Modifier.weight(1f)) {
-                    Text(
-                        senderName,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (isMine) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            senderName,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isMine) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        val role = state.roomMembers.firstOrNull { it.userId == event.sender }?.role
+                        if (showSenderRole && role != null && role != MemberRole.User) {
+                            Spacer(Modifier.width(Spacing.xs))
+                            Text(
+                                memberRoleLabel(role),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = memberRoleColor(role),
+                                maxLines = 1
+                            )
+                        }
+                    }
                 }
             }
 
@@ -1192,6 +1214,8 @@ private fun ThreadRootMessage(
                     avatarPath = state.avatarByUserId[event.sender],
                     groupedWithPrev = false,
                     groupedWithNext = false,
+                    senderRoles = state.roomMembers.associate { it.userId to it.role },
+                    showSenderRole = showSenderRole,
                     reactions = event.reactions,
                     reactionAvatarsByUserId = state.avatarByUserId,
                     showReactionAvatars = showReactionAvatars,
@@ -1286,6 +1310,8 @@ private fun ThreadReplyMessage(
     linkPreviewByEvent: Map<String, LinkPreview?>,
     linkPreviewImageByEvent: Map<String, String>,
     showReactionAvatars: Boolean,
+    senderRoles: Map<String, MemberRole> = emptyMap(),
+    showSenderRole: Boolean = false,
     mentionProfilesByUserId: Map<String, MentionProfileUi> = emptyMap(),
     onMentionClick: ((String) -> Unit)? = null,
     onClick: (() -> Unit)?,
@@ -1411,6 +1437,8 @@ private fun ThreadReplyMessage(
                     avatarPath = if (grouped) null else avatarByUserId[event.sender],
                     groupedWithPrev = grouped,
                     groupedWithNext = groupedWithNext,
+                    senderRoles = senderRoles,
+                    showSenderRole = showSenderRole,
                     reactions = reactionSummaries,
                     reactionAvatarsByUserId = avatarByUserId,
                     showReactionAvatars = showReactionAvatars,

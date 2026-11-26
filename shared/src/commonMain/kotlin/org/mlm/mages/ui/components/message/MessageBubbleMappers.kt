@@ -115,11 +115,13 @@ internal fun TimelineContent.Bubble.toBubbleModel(
             id = event.sender,
             displayName = event.senderDisplayName,
             avatarPath = ctx.avatarPath,
+            role = ctx.senderRoles[event.sender],
         ) else null,
         timestamp = event.timestampMs,
         isDm = ctx.isDm,
         showMessageAvatars = ctx.showMessageAvatars,
         showUsernameInDms = ctx.showUsernameInDms,
+        showSenderRole = ctx.showSenderRole,
         grouping = MessageGroupingUi(
             groupedWithPrev = ctx.groupedWithPrev,
             groupedWithNext = ctx.groupedWithNext,
