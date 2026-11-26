@@ -1131,7 +1131,7 @@ data class AppSettings(
         category = Advanced::class,
         type = Toggle::class
     )
-    val enterSendsMessage: Boolean = true,
+    val enterSendsMessage: Boolean = false,
 
     @Setting(
         titleKey = MagesSettingsKeys.ENABLE_SLASH_COMMANDS,
