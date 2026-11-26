@@ -55,7 +55,6 @@ import org.mlm.mages.ui.components.blurHashBackground
 import org.mlm.mages.ui.components.core.Avatar
 import org.mlm.mages.ui.components.core.FormattedBodyText
 import org.mlm.mages.ui.components.core.MentionRef
-import org.mlm.mages.ui.components.core.memberRoleColor
 import org.mlm.mages.ui.components.core.memberRoleLabel
 import org.mlm.mages.ui.components.core.formatDisplayName
 import org.mlm.mages.ui.components.composer.escapeHtml
@@ -147,7 +146,7 @@ private fun SenderName(
                 Text(
                     text = memberRoleLabel(role),
                     style = MaterialTheme.typography.labelSmall,
-                    color = memberRoleColor(role),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     maxLines = 1
                 )
             }

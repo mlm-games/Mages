@@ -65,7 +65,6 @@ import org.mlm.mages.ui.components.attachment.AttachmentProgress
 import org.mlm.mages.ui.components.toMagesAttachment
 import org.mlm.mages.ui.components.voice.VoicePreviewDialog
 import org.mlm.mages.ui.components.core.Avatar
-import org.mlm.mages.ui.components.core.memberRoleColor
 import org.mlm.mages.ui.components.core.memberRoleLabel
 import org.mlm.mages.ui.components.core.LoadMoreButton
 import org.mlm.mages.ui.components.core.StatusBanner
@@ -1197,7 +1196,7 @@ private fun ThreadRootMessage(
                             Text(
                                 memberRoleLabel(role),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = memberRoleColor(role),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                 maxLines = 1
                             )
                         }
