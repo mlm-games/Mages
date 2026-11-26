@@ -136,7 +136,10 @@
             showBootError();
             throw error;
         }
-        await import("./mages.js");
+        const appScript = document.createElement("script");
+        appScript.src = "./mages.js";
+        appScript.onerror = () => showBootError();
+        document.body.appendChild(appScript);
     </script>
 </body>
 
