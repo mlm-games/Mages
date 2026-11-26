@@ -1,6 +1,11 @@
 package org.mlm.mages.ui.screens
 
 import org.jetbrains.compose.resources.painterResource
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -19,7 +24,10 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import mages.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
+import org.mlm.mages.ui.animation.AnimationSpecs
+import org.mlm.mages.ui.animation.LocalReduceMotion
 import org.mlm.mages.ui.components.core.EmptyState
+import org.mlm.mages.ui.theme.Durations
 import org.mlm.mages.ui.viewmodel.RoomsViewModel
 
 private const val MIN_ROOM_LIST_PERCENT = 15
@@ -51,6 +59,7 @@ fun DesktopChatHost(
     roomListPercent: Int = 40,
     detailContent: @Composable (ChatSelection) -> Unit,
 ) {
+    val reduceMotion = LocalReduceMotion.current
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         if (maxWidth < 840.dp) {
             if (selection != null) {
@@ -97,18 +106,31 @@ fun DesktopChatHost(
                         .fillMaxHeight(),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (selection != null) {
-                        ChatDetailPane(
-                            selection = selection,
-                            storeOwner = detailViewModelStoreOwner,
-                            detailContent = detailContent
-                        )
-                    } else {
-                        EmptyState(
-                            icon = painterResource(Res.drawable.ic_chat_bubble),
-                            title = stringResource(Res.string.select_conversation_title),
-                            subtitle = stringResource(Res.string.select_conversation_subtitle)
-                        )
+                    AnimatedContent(
+                        targetState = selection,
+                        transitionSpec = {
+                            if (reduceMotion) {
+                                fadeIn(tween(Durations.short)) togetherWith
+                                    fadeOut(tween(Durations.short))
+                            } else {
+                                AnimationSpecs.contentTransform()
+                            }
+                        },
+                        label = "chatDetailPane"
+                    ) { currentSelection ->
+                        if (currentSelection != null) {
+                            ChatDetailPane(
+                                selection = currentSelection,
+                                storeOwner = detailViewModelStoreOwner,
+                                detailContent = detailContent
+                            )
+                        } else {
+                            EmptyState(
+                                icon = painterResource(Res.drawable.ic_chat_bubble),
+                                title = stringResource(Res.string.select_conversation_title),
+                                subtitle = stringResource(Res.string.select_conversation_subtitle)
+                            )
+                        }
                     }
                 }
             }
