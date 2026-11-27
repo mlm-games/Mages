@@ -117,13 +117,6 @@ fun RoomsScreen(
                     onLeave = { showLeaveConfirm = true },
                 )
             } else {
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    shape = RoundedCornerShape(
-                        bottomStart = 16.dp,
-                        bottomEnd = 16.dp
-                    )
-                ) {
                 RoomsTopBar(
                     offlineBanner = state.offlineBanner,
                     syncBanner = state.syncBanner,
@@ -147,7 +140,6 @@ fun RoomsScreen(
                     onOpenSearch = onOpenSearch,
                     onOpenAccountSwitcher = onOpenAccountSwitcher,
                 )
-                }
             }
         },
         floatingActionButton = {
@@ -533,6 +525,10 @@ private fun RoomsTopBar(
     onOpenAccountSwitcher: () -> Unit
 ) {
     Column {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp)
+        ) {
         TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -574,6 +570,7 @@ private fun RoomsTopBar(
                 }
             }
         )
+        }
 
         // Connection banners
         StatusBanner(

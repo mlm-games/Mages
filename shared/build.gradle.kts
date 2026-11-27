@@ -366,10 +366,17 @@ abstract class GenerateRustWasmBindingsTask @Inject constructor(
 
         val glue = outputDir.get().asFile.resolve("mages_ffi.js")
         val original = glue.readText()
-        val namedInit = original.replace(
-            "__wbg_init as default",
-            "__wbg_init as default, __wbg_init as initWasmBindings",
-        )
+        val namedInit = if ("__wbg_init as initWasmBindings" in original) {
+            original
+        } else {
+            original.replace(
+                "__wbg_init as default",
+                "__wbg_init as default, __wbg_init as initWasmBindings",
+            )
+        }
+        if (namedInit == original && "__wbg_init as initWasmBindings" !in original) {
+            error("wasm-bindgen default export for __wbg_init not found in generated glue")
+        }
         if (namedInit != original) glue.writeText(namedInit)
     }
 }
@@ -444,7 +451,6 @@ abstract class GenerateWasmExternsTask : DefaultTask() {
         sb.appendLine("}")
 
         sb.appendLine()
-        sb.appendLine("external fun asWasmClient(value: JsAny?): WasmClient")
         sb.appendLine("external fun initWasmBindings(): Promise<JsAny?>")
         sb.appendLine("external fun setLogConfig(level: String, packs: String)")
 

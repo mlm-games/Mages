@@ -311,6 +311,14 @@ private fun AppContent(
 
     // Must live outside ProvideAppLocale: its key(languageTag) disposes the subtree.
     val navEntryViewModelStore = rememberViewModelStoreProvider()
+    val chatDetailStoreOwner = remember(activeId) {
+        object : ViewModelStoreOwner {
+            override val viewModelStore: ViewModelStore = ViewModelStore()
+        }
+    }
+    DisposableEffect(chatDetailStoreOwner) {
+        onDispose { chatDetailStoreOwner.viewModelStore.clear() }
+    }
 
     AppTheme {
         val languageTag = LocalAppLocale.current
@@ -351,16 +359,6 @@ private fun AppContent(
             }
             val activeChatRoomId = chatSelection?.roomId
                 ?: (topRoute as? Route.Room)?.roomId
-            // Lives above the nav host so the open conversation keeps its view model
-            // when a thread or sheet route is pushed over the split view.
-            val chatDetailStoreOwner = remember(activeId) {
-                object : ViewModelStoreOwner {
-                    override val viewModelStore: ViewModelStore = ViewModelStore()
-                }
-            }
-            DisposableEffect(chatDetailStoreOwner) {
-                onDispose { chatDetailStoreOwner.viewModelStore.clear() }
-            }
             val clearChatSelection: (Set<String>) -> Unit = { roomIds ->
                 val selectedRoomId = chatSelection?.roomId
                 if (selectedRoomId != null && selectedRoomId in roomIds) chatSelection = null

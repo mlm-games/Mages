@@ -17,9 +17,10 @@ class DeclineInviteWorker(
     override suspend fun doWork(): Result {
         val roomId = inputData.getString(KEY_ROOM_ID) ?: return Result.failure()
 
-        runCatching { service.initFromDisk() }
+        val initialized = runCatching { service.initFromDisk() }.getOrDefault(false)
         val port = service.portOrNull
-        if (port == null || !service.isLoggedIn()) return Result.success()
+        if (!initialized || port == null) return Result.retry()
+        if (!service.isLoggedIn()) return Result.success()
 
         return if (runCatching { port.leaveRoom(roomId) }.isSuccess) {
             Result.success()
