@@ -42,7 +42,7 @@ internal val verifJson = Json {
 }
 
 internal suspend fun ensureWasmBridgeReady() {
-    init().await()
+    initWasmBindings().await()
     markWasmReady()
 }
 
