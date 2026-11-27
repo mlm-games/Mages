@@ -69,6 +69,7 @@ fun MessageComposer(
     enableSlashCommands: Boolean = true,
     developerMode: Boolean = false,
     isInThread: Boolean = false,
+    canMentionRoom: Boolean = true,
     canEditLatest: Boolean = false,
     onEditLatest: () -> Unit = {},
     roomMembers: List<MemberSummary> = emptyList(),
@@ -128,7 +129,7 @@ fun MessageComposer(
     val mentionSuggestions = remember(mentionQuery, roomMembers) {
         if (mentionQuery == null) emptyList() else filterMentionSuggestionsInternal(roomMembers, mentionQuery.query)
     }
-    val showRoomMention = mentionQuery != null &&
+    val showRoomMention = canMentionRoom && mentionQuery != null &&
         "room".startsWith(mentionQuery.query, ignoreCase = true)
 
     val emoteQuery = remember(fieldValue) { findEmoteQueryInternal(fieldValue) }

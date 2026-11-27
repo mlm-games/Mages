@@ -1818,6 +1818,7 @@ private fun RoomBottomBar(
             emoteSuggestions = emoteSuggestions,
             resolveEmotePreview = resolveEmotePreview,
             isEncryptedRoom = state.isRoomEncrypted,
+            canMentionRoom = !state.isDm && state.myPowerLevel >= 50,
         )
     }
 }
