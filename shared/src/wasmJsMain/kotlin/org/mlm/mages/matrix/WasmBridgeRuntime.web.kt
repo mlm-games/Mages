@@ -3,6 +3,7 @@
 package org.mlm.mages.matrix
 
 import kotlinx.coroutines.await
+import org.mlm.mages.platform.markWasmReady
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
@@ -41,7 +42,8 @@ internal val verifJson = Json {
 }
 
 internal suspend fun ensureWasmBridgeReady() {
-    // wasm-bindgen auto-initializes when the module is loaded
+    init().await()
+    markWasmReady()
 }
 
 internal suspend fun createWasmClient(

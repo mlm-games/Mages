@@ -363,6 +363,14 @@ abstract class GenerateRustWasmBindingsTask @Inject constructor(
                 "--typescript",
             )
         }
+
+        val glue = outputDir.get().asFile.resolve("mages_ffi.js")
+        val original = glue.readText()
+        val namedInit = original.replace(
+            "__wbg_init as default",
+            "__wbg_init as default, __wbg_init as init",
+        )
+        if (namedInit != original) glue.writeText(namedInit)
     }
 }
 
@@ -437,6 +445,8 @@ abstract class GenerateWasmExternsTask : DefaultTask() {
 
         sb.appendLine()
         sb.appendLine("external fun asWasmClient(value: JsAny?): WasmClient")
+        sb.appendLine("external fun init(): Promise<JsAny?>")
+        sb.appendLine("external fun wasmSetLogConfig(level: String, packs: String)")
 
         outputKt.get().asFile.parentFile?.mkdirs()
         outputKt.get().asFile.writeText(sb.toString())
