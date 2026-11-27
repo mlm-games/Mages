@@ -1819,6 +1819,7 @@ private fun RoomBottomBar(
             resolveEmotePreview = resolveEmotePreview,
             isEncryptedRoom = state.isRoomEncrypted,
             canMentionRoom = !state.isDm && state.myPowerLevel >= 50,
+            roomAvatarPath = state.roomAvatarUrl,
         )
     }
 }

@@ -70,6 +70,7 @@ fun MessageComposer(
     developerMode: Boolean = false,
     isInThread: Boolean = false,
     canMentionRoom: Boolean = true,
+    roomAvatarPath: String? = null,
     canEditLatest: Boolean = false,
     onEditLatest: () -> Unit = {},
     roomMembers: List<MemberSummary> = emptyList(),
@@ -199,6 +200,7 @@ fun MessageComposer(
                     members = mentionSuggestions,
                     avatarPathByUserId = avatarPathByUserId,
                     showRoomMention = showRoomMention,
+                    roomAvatarPath = roomAvatarPath,
                     onRoomMentionSelected = {
                         val query = mentionQuery ?: return@ComposerMentionPopup
                         applyFieldValue(insertRoomMentionInternal(fieldValue, query))

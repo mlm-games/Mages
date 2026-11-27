@@ -103,7 +103,8 @@ fun composerToPlainBody(parsed: ComposerMarkdown, spoilerImage: String? = null):
     unescapeMarkdown(
         MENTION_ANCHOR
             .replace(redactSpoilers(parsed.text, parsed.spoilerRanges, spoilerImage)) {
-                unescapeHtml(it.groupValues[1])
+                val label = unescapeHtml(it.groupValues[1])
+                if (label == "@room") "$label\u200B" else label
             }
             .replace(EMOTE_MARKDOWN) { it.groupValues[1] }
     )

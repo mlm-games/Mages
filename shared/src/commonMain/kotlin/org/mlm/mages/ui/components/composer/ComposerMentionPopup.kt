@@ -24,6 +24,7 @@ fun ComposerMentionPopup(
     members: List<MemberSummary>,
     avatarPathByUserId: Map<String, String>,
     showRoomMention: Boolean,
+    roomAvatarPath: String? = null,
     onRoomMentionSelected: () -> Unit,
     onMemberSelected: (MemberSummary) -> Unit,
     modifier: Modifier = Modifier,
@@ -43,7 +44,10 @@ fun ComposerMentionPopup(
         ) {
             if (showRoomMention) {
                 item(key = "@room") {
-                    RoomMentionItem(onClick = onRoomMentionSelected)
+                    RoomMentionItem(
+                        avatarPath = roomAvatarPath,
+                        onClick = onRoomMentionSelected
+                    )
                 }
             }
             items(members, key = { it.userId }) { member ->
@@ -58,7 +62,7 @@ fun ComposerMentionPopup(
 }
 
 @Composable
-private fun RoomMentionItem(onClick: () -> Unit) {
+private fun RoomMentionItem(avatarPath: String?, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -68,7 +72,7 @@ private fun RoomMentionItem(onClick: () -> Unit) {
     ) {
         Avatar(
             name = "@room",
-            avatarPath = null,
+            avatarPath = avatarPath,
             size = Sizes.iconLarge,
             colorKey = "@room"
         )
