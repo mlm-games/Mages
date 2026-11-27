@@ -446,7 +446,7 @@ abstract class GenerateWasmExternsTask : DefaultTask() {
         sb.appendLine()
         sb.appendLine("external fun asWasmClient(value: JsAny?): WasmClient")
         sb.appendLine("external fun initWasmBindings(): Promise<JsAny?>")
-        sb.appendLine("external fun wasmSetLogConfig(level: String, packs: String)")
+        sb.appendLine("external fun setLogConfig(level: String, packs: String)")
 
         outputKt.get().asFile.parentFile?.mkdirs()
         outputKt.get().asFile.writeText(sb.toString())
