@@ -128,6 +128,8 @@ fun MessageComposer(
     val mentionSuggestions = remember(mentionQuery, roomMembers) {
         if (mentionQuery == null) emptyList() else filterMentionSuggestionsInternal(roomMembers, mentionQuery.query)
     }
+    val showRoomMention = mentionQuery != null &&
+        "room".startsWith(mentionQuery.query, ignoreCase = true)
 
     val emoteQuery = remember(fieldValue) { findEmoteQueryInternal(fieldValue) }
     val visibleEmotes = remember(emoteQuery, emoteSuggestions) {
@@ -191,10 +193,15 @@ fun MessageComposer(
                 )
             }
 
-            AnimatedVisibility(visible = mentionQuery != null && mentionSuggestions.isNotEmpty()) {
+            AnimatedVisibility(visible = mentionQuery != null && (showRoomMention || mentionSuggestions.isNotEmpty())) {
                 ComposerMentionPopup(
                     members = mentionSuggestions,
                     avatarPathByUserId = avatarPathByUserId,
+                    showRoomMention = showRoomMention,
+                    onRoomMentionSelected = {
+                        val query = mentionQuery ?: return@ComposerMentionPopup
+                        applyFieldValue(insertRoomMentionInternal(fieldValue, query))
+                    },
                     onMemberSelected = { member ->
                         val query = mentionQuery ?: return@ComposerMentionPopup
                         val updated = insertMentionInternal(fieldValue, member, query)
@@ -500,6 +507,16 @@ private fun filterMentionSuggestionsInternal(members: List<MemberSummary>, query
     }
     return (prefix.sortedForDisplay() + contains.sortedForDisplay())
         .take(MEMBER_SUGGESTION_LIMIT)
+}
+
+private fun insertRoomMentionInternal(current: TextFieldValue, mentionQuery: MentionQueryInternal): TextFieldValue {
+    val mentionText = "@room "
+    val newText = buildString {
+        append(current.text.substring(0, mentionQuery.start))
+        append(mentionText)
+        append(current.text.substring(mentionQuery.end))
+    }
+    return TextFieldValue(newText, selection = TextRange(mentionQuery.start + mentionText.length))
 }
 
 private fun insertMentionInternal(current: TextFieldValue, member: MemberSummary, mentionQuery: MentionQueryInternal): TextFieldValue {

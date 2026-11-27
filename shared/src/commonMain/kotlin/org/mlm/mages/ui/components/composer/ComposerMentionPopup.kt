@@ -23,10 +23,12 @@ import mages.shared.generated.resources.Res
 fun ComposerMentionPopup(
     members: List<MemberSummary>,
     avatarPathByUserId: Map<String, String>,
+    showRoomMention: Boolean,
+    onRoomMentionSelected: () -> Unit,
     onMemberSelected: (MemberSummary) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    if (members.isEmpty()) return
+    if (members.isEmpty() && !showRoomMention) return
 
     Surface(
         modifier = modifier,
@@ -39,6 +41,11 @@ fun ComposerMentionPopup(
             modifier = Modifier.heightIn(max = 240.dp),
             contentPadding = PaddingValues(vertical = Spacing.xs)
         ) {
+            if (showRoomMention) {
+                item(key = "@room") {
+                    RoomMentionItem(onClick = onRoomMentionSelected)
+                }
+            }
             items(members, key = { it.userId }) { member ->
                 MentionSuggestionItem(
                     member = member,
@@ -46,6 +53,40 @@ fun ComposerMentionPopup(
                     onClick = { onMemberSelected(member) }
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun RoomMentionItem(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Avatar(
+            name = "@room",
+            avatarPath = null,
+            size = Sizes.iconLarge,
+            colorKey = "@room"
+        )
+        Spacer(Modifier.width(Spacing.sm))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(Res.string.everyone),
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = "@room",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
