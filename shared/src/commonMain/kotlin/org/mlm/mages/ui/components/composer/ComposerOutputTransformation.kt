@@ -23,6 +23,10 @@ internal fun composerReplacements(source: String): List<Pair<IntRange, String>> 
         found += Pair(match.range, if (label.startsWith("@")) label else "@$label")
     }
 
+    for (match in ROOM_MENTION_MARKDOWN.findAll(source)) {
+        found += Pair(match.range, "@room")
+    }
+
     for (match in EMOTE_WITH_SHORTCODE.findAll(source)) {
         val shortcode = match.groupValues[1]
         if (shortcode.isNotBlank()) found += Pair(match.range, ":$shortcode:")

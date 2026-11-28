@@ -273,15 +273,40 @@ fn mentioned_user_ids(formatted_body: Option<&str>) -> BTreeSet<OwnedUserId> {
     user_ids
 }
 
-/// `@room` must stand alone as a word, so `bob@room.com` does not notify everybody.
-fn mentions_room(body: &str) -> bool {
-    body.split(|c: char| !c.is_alphanumeric() && c != '_' && c != '@')
-        .any(|word| word == "@room")
+const ROOM_MENTION_MARKER: &str = "mages://room-mention";
+
+fn clean_room_mention(html: &str) -> String {
+    let marker = "<a href=\"mages://room-mention\">";
+    let mut out = String::with_capacity(html.len());
+    let mut rest = html;
+    while let Some(index) = rest.find(marker) {
+        out.push_str(&rest[..index]);
+        let after = &rest[index + marker.len()..];
+        if let Some(end) = after.find("</a>") {
+            out.push_str(&after[..end]);
+            rest = &after[end + 4..];
+        } else {
+            out.push_str(after);
+            rest = "";
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
+fn cleaned_formatted_body(formatted_body: Option<&str>) -> Option<String> {
+    formatted_body.map(clean_room_mention)
+}
+
+fn mentions_room(formatted_body: Option<&str>) -> bool {
+    formatted_body
+        .map(|body| body.contains(ROOM_MENTION_MARKER))
+        .unwrap_or(false)
 }
 
 fn mentions_for(body: &str, formatted_body: Option<&str>) -> Option<Mentions> {
     let user_ids = mentioned_user_ids(formatted_body);
-    let room = mentions_room(body);
+    let room = mentions_room(formatted_body);
     if user_ids.is_empty() && !room {
         return None;
     }
@@ -291,7 +316,8 @@ fn mentions_for(body: &str, formatted_body: Option<&str>) -> Option<Mentions> {
 }
 
 fn text_content_no_rel(body: &str, formatted_body: Option<&str>) -> MsgNoRel {
-    let mut content = match formatted_body {
+    let cleaned = cleaned_formatted_body(formatted_body);
+    let mut content = match cleaned.as_deref() {
         Some(fmt) => MsgNoRel::text_html(body, fmt),
         None => MsgNoRel::text_plain(body),
     };
@@ -306,7 +332,8 @@ fn typed_content(
     formatted_body: Option<&str>,
     send_type: MessageSendType,
 ) -> RoomMessageEventContent {
-    let mut content = match (formatted_body, send_type) {
+    let cleaned = cleaned_formatted_body(formatted_body);
+    let mut content = match (cleaned.as_deref(), send_type) {
         (Some(fmt), MessageSendType::Text) => RoomMessageEventContent::text_html(body, fmt),
         (None, MessageSendType::Text) => RoomMessageEventContent::text_plain(body),
         (Some(fmt), MessageSendType::Emote) => RoomMessageEventContent::emote_html(body, fmt),
@@ -323,7 +350,8 @@ fn typed_content_no_rel(
     formatted_body: Option<&str>,
     send_type: MessageSendType,
 ) -> MsgNoRel {
-    let mut content = match (formatted_body, send_type) {
+    let cleaned = cleaned_formatted_body(formatted_body);
+    let mut content = match (cleaned.as_deref(), send_type) {
         (Some(fmt), MessageSendType::Text) => MsgNoRel::text_html(body, fmt),
         (None, MessageSendType::Text) => MsgNoRel::text_plain(body),
         (Some(fmt), MessageSendType::Emote) => MsgNoRel::emote_html(body, fmt),
@@ -1316,8 +1344,9 @@ impl CoreClient {
             .ok_or_else(|| FfiError::Msg("room not found".into()))?;
         let eid = EventId::parse(&target_event_id)
             .map_err(|_| FfiError::Msg("invalid event id".into()))?;
+        let cleaned = cleaned_formatted_body(formatted_body.as_deref());
         let content = if is_emote {
-            let mut emote = match formatted_body.as_deref() {
+            let mut emote = match cleaned.as_deref() {
                 Some(html) => MsgNoRel::emote_html(&new_body, html),
                 None => MsgNoRel::emote_plain(&new_body),
             };
@@ -1356,9 +1385,10 @@ impl CoreClient {
             caption.as_deref().unwrap_or(""),
             formatted_caption.as_deref(),
         );
+        let cleaned_caption = cleaned_formatted_body(formatted_caption.as_deref());
         let edited = EditedContent::MediaCaption {
             caption,
-            formatted_caption: formatted_caption.map(FormattedBody::html),
+            formatted_caption: cleaned_caption.map(FormattedBody::html),
             mentions,
         };
         tl.edit(&item.identifier(), edited).await.ffi()

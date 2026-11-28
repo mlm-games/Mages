@@ -513,7 +513,7 @@ private fun filterMentionSuggestionsInternal(members: List<MemberSummary>, query
 }
 
 private fun insertRoomMentionInternal(current: TextFieldValue, mentionQuery: MentionQueryInternal): TextFieldValue {
-    val mentionText = "@room "
+    val mentionText = "$ROOM_MENTION_LINK "
     val newText = buildString {
         append(current.text.substring(0, mentionQuery.start))
         append(mentionText)

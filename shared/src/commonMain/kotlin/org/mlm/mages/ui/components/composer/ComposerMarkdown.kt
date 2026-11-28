@@ -16,6 +16,9 @@ private val markdownFlavour = SpoilerFlavour()
 val MENTION_MARKDOWN =
     Regex("""\[((?:\\.|[^\]])+)]\(https://matrix\.to/#/(@[^)]+)\)""")
 
+const val ROOM_MENTION_LINK = "[@room](mages://room-mention)"
+val ROOM_MENTION_MARKDOWN = Regex("""\[@room\]\(mages://room-mention\)""")
+
 /** The composer text for a mention, which [MENTION_MARKDOWN] turns back into an anchor. */
 internal fun mentionMarkdown(label: String, userId: String): String {
     val display = if (label.startsWith("@")) label else "@$label"
@@ -103,9 +106,9 @@ fun composerToPlainBody(parsed: ComposerMarkdown, spoilerImage: String? = null):
     unescapeMarkdown(
         MENTION_ANCHOR
             .replace(redactSpoilers(parsed.text, parsed.spoilerRanges, spoilerImage)) {
-                val label = unescapeHtml(it.groupValues[1])
-                if (label == "@room") "$label\u200B" else label
+                unescapeHtml(it.groupValues[1])
             }
+            .replace(ROOM_MENTION_MARKDOWN) { "@room" }
             .replace(EMOTE_MARKDOWN) { it.groupValues[1] }
     )
 
