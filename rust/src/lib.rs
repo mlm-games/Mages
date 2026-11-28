@@ -840,6 +840,7 @@ impl Client {
         account_id: Option<String>,
         proxy: Option<String>,
         enable_share_history_on_invite: Option<bool>,
+        restore_session: bool,
     ) -> Result<Self, FfiError> {
         platform::init_tracing();
         #[cfg(target_os = "android")]
@@ -849,7 +850,8 @@ impl Client {
         }
 
         let raw = homeserver_url.trim();
-        let server_name_or_url = if let Ok(url) = Url::parse(raw) {
+        let parsed_url = Url::parse(raw).ok();
+        let server_name_or_url = if let Some(url) = parsed_url.clone() {
             strip_matrix_path(url).to_string()
         } else {
             raw.to_owned()
@@ -867,7 +869,8 @@ impl Client {
             .as_deref()
             .is_some_and(|id| id.starts_with(PROBE_ACCOUNT_PREFIX));
 
-        let use_direct_homeserver_url = !is_probe && platform::has_session_file(&store_dir_path);
+        let use_direct_homeserver_url =
+            !is_probe && (restore_session || platform::has_session_file(&store_dir_path));
 
         #[cfg(not(target_family = "wasm"))]
         if !is_probe {

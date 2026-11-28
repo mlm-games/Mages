@@ -857,18 +857,7 @@ impl CoreClient {
     }
 
     pub fn is_logged_in(&self) -> bool {
-        if self.sdk.session_meta().is_some() {
-            return true;
-        }
-        // If session tokens exist, the user is logged in
-        if self.sdk.session_tokens().is_some() {
-            return true;
-        }
-        // Should mean that restore was called with session file even if network failed
-        if self.sdk.user_id().is_some() {
-            return true;
-        }
-        false
+        self.sdk.user_id().is_some()
     }
 
     pub fn room(&self, room_id: &str) -> Option<Room> {

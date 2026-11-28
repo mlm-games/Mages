@@ -289,13 +289,22 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
     private var currentHs: String? = null
     private var currentAccountId: String? = null
     private var currentProxyUrl: String? = null
+    private var currentRestoreSession: Boolean = false
     private var isInForeground: Boolean = true
 
     private var nextConnectionObserverToken: ULong = 1uL
     private val connectionObserverStops = mutableMapOf<ULong, () -> Unit>()
 
-    override suspend fun init(hs: String, accountId: String?, proxyUrl: String?, enableShareHistoryOnInvite: Boolean) {
-        if (currentHs == hs && currentAccountId == accountId && currentProxyUrl == proxyUrl && client != null) return
+    override suspend fun init(
+        hs: String,
+        accountId: String?,
+        proxyUrl: String?,
+        enableShareHistoryOnInvite: Boolean,
+        restoreSession: Boolean,
+    ) {
+        if (currentHs == hs && currentAccountId == accountId && currentProxyUrl == proxyUrl &&
+            currentRestoreSession == restoreSession && client != null
+        ) return
 
         ensureWasmBridgeReady()
         val old = client
@@ -303,6 +312,7 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
         currentHs = null
         currentAccountId = null
         currentProxyUrl = null
+        currentRestoreSession = false
         try { old?.free() } catch (e: Exception) { e.printStackTrace() }
         val created = createWasmClient(
             hs,
@@ -310,11 +320,13 @@ class WebStubMatrixPort : MatrixPort, VerificationService {
             accountId,
             proxyUrl,
             enableShareHistoryOnInvite,
+            restoreSession,
         )
         client = created
         currentHs = hs
         currentAccountId = accountId
         currentProxyUrl = proxyUrl
+        currentRestoreSession = restoreSession
     }
 
     private fun requireClient(): WasmClient {

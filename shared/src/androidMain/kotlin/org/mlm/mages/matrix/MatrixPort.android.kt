@@ -75,23 +75,32 @@ class RustMatrixPort(private val isProbe: Boolean = false) : MatrixPort, Verific
     private var currentHs: String? = null
     private var currentAccountId: String? = null
     private var currentProxyUrl: String? = null
+    private var currentRestoreSession: Boolean = false
 
-    override suspend fun init(hs: String, accountId: String?, proxyUrl: String?, enableShareHistoryOnInvite: Boolean) =
-        withContext(callDispatcher) {
-            synchronized(clientLock) {
-                if (currentHs == hs && currentAccountId == accountId && currentProxyUrl == proxyUrl && client != null) return@synchronized
+    override suspend fun init(
+        hs: String,
+        accountId: String?,
+        proxyUrl: String?,
+        enableShareHistoryOnInvite: Boolean,
+        restoreSession: Boolean,
+    ) = withContext(callDispatcher) {
+        synchronized(clientLock) {
+            if (currentHs == hs && currentAccountId == accountId && currentProxyUrl == proxyUrl &&
+                currentRestoreSession == restoreSession && client != null
+            ) return@synchronized
 
-                client?.let { c ->
-                    runCatching { c.shutdown() }
-                    runCatching { c.close() }
-                }
-
-                client = FfiClient(hs, MagesPaths.storeDir(), accountId, proxyUrl, enableShareHistoryOnInvite)
-                currentHs = hs
-                currentAccountId = accountId
-                currentProxyUrl = proxyUrl
+            client?.let { c ->
+                runCatching { c.shutdown() }
+                runCatching { c.close() }
             }
+
+            client = FfiClient(hs, MagesPaths.storeDir(), accountId, proxyUrl, enableShareHistoryOnInvite, restoreSession)
+            currentHs = hs
+            currentAccountId = accountId
+            currentProxyUrl = proxyUrl
+            currentRestoreSession = restoreSession
         }
+    }
 
     private inline fun <T> withClient(block: (FfiClient) -> T): T {
         val c = client ?: error("Matrix client not initialized. Wait for init call.")

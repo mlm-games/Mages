@@ -807,9 +807,11 @@ impl WasmClient {
         account_id: Option<String>,
         _proxy: Option<String>,
         enable_share_history_on_invite: Option<bool>,
+        restore_session: bool,
     ) -> Result<WasmClient, JsValue> {
         let raw = homeserver_url.trim();
-        let server_name_or_url = if let Ok(url) = matrix_sdk::reqwest::Url::parse(raw) {
+        let parsed_url = matrix_sdk::reqwest::Url::parse(raw).ok();
+        let server_name_or_url = if let Some(url) = parsed_url.clone() {
             strip_matrix_path(url).to_string()
         } else {
             raw.to_owned()
@@ -825,7 +827,8 @@ impl WasmClient {
                 .map(|id| format!("mages_store_{id}"))
                 .unwrap_or_else(|| "mages_store".to_owned())
         };
-        let use_direct_homeserver_url = !is_probe && load_wasm_session(&store_name).is_some();
+        let use_direct_homeserver_url =
+            !is_probe && (restore_session || load_wasm_session(&store_name).is_some());
         let mut builder = if use_direct_homeserver_url {
             SdkClient::builder().homeserver_url(server_name_or_url)
         } else {

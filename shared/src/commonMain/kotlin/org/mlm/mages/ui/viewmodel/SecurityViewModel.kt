@@ -98,6 +98,7 @@ class SecurityViewModel(
 
     fun loadSecurityData() {
         hasLoadedSecurityData = true
+        if (!service.isLoggedIn()) return
         if (recoveryStateSub == null) subscribeRecoveryState()
         refreshDevices()
         refreshIgnored()

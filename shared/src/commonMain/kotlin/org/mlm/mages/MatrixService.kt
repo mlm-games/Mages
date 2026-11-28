@@ -71,8 +71,12 @@ class MatrixService(
             return ProfileCache(currentPort).also { _profiles = it }
         }
 
-    suspend fun initFromDisk(proxyUrl: String? = null): Boolean =
-        clients.initFromDisk(proxyUrl)
+    suspend fun initFromDisk(proxyUrl: String? = null): Boolean {
+        val previousPort = clients.portOrNull
+        val result = clients.initFromDisk(proxyUrl)
+        if (previousPort !== clients.portOrNull) resetClientCaches()
+        return result
+    }
 
     suspend fun init(hs: String) {
         port.init(hs.trim())
@@ -117,7 +121,7 @@ class MatrixService(
         _syncStatus.value = null
     }
 
-    suspend fun switchAccount(account: MatrixAccount): Result<Unit> {
+    private fun resetClientCaches() {
         resetSyncState()
         ThreadReplyIndex.clear()
         _avatars?.shutdown()
@@ -126,6 +130,10 @@ class MatrixService(
         _linkPreviews = null
         _profiles?.shutdown()
         _profiles = null
+    }
+
+    suspend fun switchAccount(account: MatrixAccount): Result<Unit> {
+        resetClientCaches()
         val ok = clients.switchTo(account)
         return if (ok) {
             Result.success(Unit)
@@ -136,14 +144,7 @@ class MatrixService(
 
     suspend fun removeAccount(accountId: String) {
         if (clients.activeAccount.value?.id == accountId) {
-            resetSyncState()
-            ThreadReplyIndex.clear()
-            _avatars?.shutdown()
-            _avatars = null
-            _linkPreviews?.shutdown()
-            _linkPreviews = null
-            _profiles?.shutdown()
-            _profiles = null
+            resetClientCaches()
         }
         clients.removeAccount(accountId)
     }

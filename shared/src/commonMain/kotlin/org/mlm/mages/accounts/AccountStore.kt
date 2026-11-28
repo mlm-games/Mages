@@ -24,6 +24,7 @@ class AccountStore(
     val isInitialized: StateFlow<Boolean> = _isInitialized.asStateFlow()
 
     suspend fun init() {
+        if (_isInitialized.value) return
         val settings = settingsRepository.flow.first()
         Logger.i { "AccountStore: accountsJson length=${settings.accountsJson?.length ?: 0}, activeAccountId=${settings.activeAccountId}" }
 

@@ -53,12 +53,6 @@ class MatrixClients(
      * Restores the previously active account if available.
      */
     suspend fun initFromDisk(proxyUrl: String? = null): Boolean = mutex.withLock {
-        // Already initialized
-        _activePort?.let {
-            _isReady.value = true
-            return@withLock hasActiveClient()
-        }
-
         accountStore.init()
 
         val activeId = accountStore.activeAccountId.value
@@ -69,13 +63,21 @@ class MatrixClients(
             accountStore.accounts.value.firstOrNull()
         }
 
-        if (account != null) {
-            return@withLock initAccountInternal(account, proxyUrl)
+        if (account == null) {
+            _activePort?.let { runCatching { it.release() } }
+            _activePort = null
+            _activeAccount.value = null
+            _isReady.value = true
+            return@withLock false
         }
 
-        // No accounts, so log in
-        _isReady.value = true
-        false
+        val current = _activePort
+        if (current != null && _activeAccount.value?.id == account.id && runCatching { current.isLoggedIn() }.getOrDefault(false)) {
+            _isReady.value = true
+            return@withLock true
+        }
+
+        return@withLock initAccountInternal(account, proxyUrl)
     }
 
     suspend fun switchTo(account: MatrixAccount, proxyUrl: String? = null): Boolean = mutex.withLock {
@@ -163,9 +165,7 @@ class MatrixClients(
 
     fun hasActiveClient(): Boolean {
         val port = _activePort ?: return false
-        val sdkLoggedIn = runCatching { port.isLoggedIn() }.getOrDefault(false)
-        if (sdkLoggedIn) return true
-        return _activeAccount.value?.isTokenValid == true
+        return runCatching { port.isLoggedIn() }.getOrDefault(false)
     }
 
     fun getAccounts(): List<MatrixAccount> = accountStore.accounts.value
@@ -179,7 +179,13 @@ class MatrixClients(
         val effectiveProxy = proxyUrl ?: account.proxyUrl
 
         return try {
-            port.init(account.homeserver, account.id, effectiveProxy, account.enableShareHistoryOnInvite)
+            port.init(
+                hs = account.homeserver,
+                accountId = account.id,
+                proxyUrl = effectiveProxy,
+                enableShareHistoryOnInvite = account.enableShareHistoryOnInvite,
+                restoreSession = true,
+            )
             applyStoredPresence(port)
 
             val loggedIn = try {
@@ -190,29 +196,28 @@ class MatrixClients(
                 false
             }
 
-            val shouldResumeSession = loggedIn || account.isTokenValid
+            if (!loggedIn) {
+                Logger.w { "MatrixClients: SDK session unavailable for ${account.userId}, restore failed" }
+                runCatching { port.release() }
+                _isReady.value = true
+                return false
+            }
 
-            if (shouldResumeSession) {
-                _activePort = port
-                val resumedAccount = if (account.deviceId.isBlank()) {
-                    val deviceId = port.currentDeviceId()?.takeIf { it.isNotBlank() }
-                    if (deviceId != null) {
-                        account.copy(deviceId = deviceId).also { accountStore.updateAccount(it) }
-                    } else {
-                        account
-                    }
+            _activePort = port
+            val resumedAccount = if (account.deviceId.isBlank()) {
+                val deviceId = port.currentDeviceId()?.takeIf { it.isNotBlank() }
+                if (deviceId != null) {
+                    account.copy(deviceId = deviceId).also { accountStore.updateAccount(it) }
                 } else {
                     account
                 }
-                _activeAccount.value = resumedAccount
-                accountStore.setActiveAccountId(account.id)
-                _isReady.value = true
-                true
             } else {
-                runCatching { port.release() }
-                _isReady.value = true
-                false
+                account
             }
+            _activeAccount.value = resumedAccount
+            accountStore.setActiveAccountId(account.id)
+            _isReady.value = true
+            true
         } catch (e: CancellationException) {
             withContext(NonCancellable) { runCatching { port.release() } }
             _isReady.value = true
