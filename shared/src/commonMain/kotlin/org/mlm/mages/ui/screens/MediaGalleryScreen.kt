@@ -115,6 +115,7 @@ fun MediaGalleryScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         topBar = {
             if (state.isSelectionMode) {
                 SelectionTopBar(
@@ -151,7 +152,7 @@ fun MediaGalleryScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .screenContentSurface(padding)
         ) {
             SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
                 MediaTab.entries.forEach { tab ->

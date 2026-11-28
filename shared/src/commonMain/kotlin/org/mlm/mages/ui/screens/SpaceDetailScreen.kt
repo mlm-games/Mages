@@ -146,12 +146,8 @@ fun SpaceDetailScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .screenContentSurface(padding)
         ) {
-            AnimatedVisibility(visible = state.isLoading && state.hierarchy.isEmpty()) {
-                LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
-
             state.space?.let { space ->
                 SpaceHeaderCard(space = space, avatarPath = state.spaceAvatarPath)
             }

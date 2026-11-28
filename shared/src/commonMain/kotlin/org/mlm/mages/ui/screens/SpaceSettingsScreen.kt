@@ -95,6 +95,7 @@ fun SpaceSettingsScreen(
 
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(Res.string.space_settings), fontWeight = FontWeight.SemiBold) },
@@ -121,7 +122,7 @@ fun SpaceSettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .screenContentSurface(padding)
         ) {
             // Loading indicator
             AnimatedVisibility(visible = state.isLoading || state.isSaving || actionsState.isSaving) {

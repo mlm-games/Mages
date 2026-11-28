@@ -170,6 +170,7 @@ fun SecurityScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         modifier = Modifier.onPreviewKeyEvent { event ->
             if (searchOpen && event.type == KeyEventType.KeyDown && event.key == Key.Escape) {
                 closeSearch()
@@ -267,7 +268,7 @@ fun SecurityScreen(
     ) { padding ->
         AnimatedContent(
             targetState = state.selectedTab,
-            modifier = Modifier.padding(padding),
+            modifier = Modifier.screenContentSurface(padding),
             label = "TabContent"
         ) { tab ->
             when (tab) {

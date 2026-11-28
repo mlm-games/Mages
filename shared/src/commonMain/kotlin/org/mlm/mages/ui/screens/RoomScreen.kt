@@ -646,7 +646,7 @@ fun RoomScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.92f),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top),
         topBar = {
             if (state.isSelectionMode) {
@@ -810,7 +810,7 @@ fun RoomScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .screenContentSurface(innerPadding)
                 .consumeWindowInsets(innerPadding)
                 .fileDrop(
                     enabled = true,

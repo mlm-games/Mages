@@ -99,6 +99,7 @@ fun RoomsScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         topBar = {
             if (state.selectionMode) {
                 RoomSelectionTopBar(
@@ -161,7 +162,7 @@ fun RoomsScreen(
     ) { innerPadding ->
         val listModifier = Modifier
             .fillMaxSize()
-            .padding(innerPadding)
+            .screenContentSurface(innerPadding)
         when {
             state.isLoading && state.allItems.isEmpty() -> {
                 ShimmerList(modifier = listModifier)
@@ -172,7 +173,7 @@ fun RoomsScreen(
                     icon = painterResource(Res.drawable.ic_cloud_off),
                     title = state.offlineBanner?.let { stringResource(it) } ?: stringResource(Res.string.offline),
                     subtitle = stringResource(Res.string.connect_to_internet),
-                    modifier = Modifier.padding(innerPadding),
+                    modifier = Modifier.screenContentSurface(innerPadding),
                     action = {
                         Button(onClick = viewModel::refresh) {
                             Icon(painterResource(Res.drawable.ic_refresh), null)
@@ -192,7 +193,7 @@ fun RoomsScreen(
                     icon = painterResource(Res.drawable.ic_workspaces),
                     title = stringResource(Res.string.rooms_hidden_in_spaces),
                     subtitle = stringResource(Res.string.rooms_hidden_in_spaces_subtitle),
-                    modifier = Modifier.padding(innerPadding),
+                    modifier = Modifier.screenContentSurface(innerPadding),
                     action = {
                         Button(onClick = onOpenSpaces) {
                             Icon(painterResource(Res.drawable.ic_workspaces), null)
@@ -211,7 +212,7 @@ fun RoomsScreen(
                         stringResource(Res.string.join_a_room)
                     else
                         stringResource(Res.string.no_rooms_match, state.roomSearchQuery),
-                    modifier = Modifier.padding(innerPadding),
+                    modifier = Modifier.screenContentSurface(innerPadding),
                     action = if (state.roomSearchQuery.isBlank()) {
                         {
                             Button(onClick = onOpenStartChat) {

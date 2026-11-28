@@ -44,6 +44,7 @@ import org.mlm.mages.ui.components.sheets.filterEmojiEntries
 import org.mlm.mages.ui.components.voice.VoiceRecorderBar
 import org.mlm.mages.ui.theme.Sizes
 import org.mlm.mages.ui.theme.Spacing
+import org.mlm.mages.ui.screens.ScreenBottomBarShape
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -185,6 +186,7 @@ fun MessageComposer(
     Surface(
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 3.dp,
+        shape = ScreenBottomBarShape,
         modifier = modifier.fillMaxWidth()
     ) {
         Column {
