@@ -645,48 +645,91 @@ fun RoomScreen(
         viewModel.seekEvent(target)
     }
 
+    val headerNames = remember(state.allEvents) {
+        state.allEvents.asReversed()
+            .associate { event -> event.sender to (event.senderDisplayName ?: event.sender) }
+    }
+    val roomLabel = stringResource(Res.string.room)
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top),
         topBar = {
-            if (state.isSelectionMode) {
-                SelectionTopBar(
-                    selectedCount = state.selectedEventIds.size,
-                    onClearSelection = viewModel::clearSelection,
-                    onSelectAll = viewModel::selectAllVisible
+            Column {
+                when {
+                    state.isSelectionMode -> SelectionTopBar(
+                        selectedCount = state.selectedEventIds.size,
+                        onClearSelection = viewModel::clearSelection,
+                        onSelectAll = viewModel::selectAllVisible
+                    )
+
+                    isBubbleMode -> BubbleTopBar(
+                        roomName = state.roomName,
+                        avatarUrl = state.roomAvatarUrl,
+                        isVerified = state.allUsersVerified,
+                        isSyncing = state.isCatchingUp && state.hasTimelineSnapshot
+                    )
+
+                    else -> RoomTopBar(
+                        roomName = state.roomName,
+                        roomId = state.roomId,
+                        avatarUrl = state.roomAvatarUrl,
+                        isVerified = state.allUsersVerified,
+                        typingNames = state.typingNames,
+                        isSyncing = state.isCatchingUp && state.hasTimelineSnapshot,
+                        hasActiveCall = state.hasActiveCallForRoom,
+                        activeCallIsAudio = state.activeCallIsAudioForRoom,
+                        isDm = state.isDm,
+                        memberCount = state.memberCount,
+                        voiceCallAction = state.voiceCallAction,
+                        videoCallAction = state.videoCallAction,
+                        onBack = onBack,
+                        onOpenInfo = onOpenInfo,
+                        onOpenSearch = viewModel::showRoomSearch,
+                        onStartCall = onStartCall,
+                        onStartVoiceCall = onStartVoiceCall,
+                        onJoinCall = onJoinCall,
+                    )
+                }
+
+                if (state.pinnedMessages.isNotEmpty()) {
+                    PinnedMessageBanner(
+                        pinnedMessages = state.pinnedMessages,
+                        onViewAll = viewModel::showPinnedMessagesSheet,
+                        onEventClick = { eventId -> viewModel.jumpToEvent(eventId) },
+                    )
+                }
+
+                AnimatedVisibility(visible = state.isOffline) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            stringResource(Res.string.offline_queued),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.padding(vertical = 4.dp, horizontal = Spacing.lg)
+                        )
+                    }
+                }
+
+                RoomUpgradeBanner(
+                    successor = state.successor,
+                    predecessor = state.predecessor,
+                    onNavigateToRoom = { id -> onNavigateToRoom(id, roomLabel) }
                 )
-            } else if (isBubbleMode) {
-                BubbleTopBar(
-                    roomName = state.roomName,
-                    avatarUrl = state.roomAvatarUrl,
-                    isVerified = state.allUsersVerified,
-                    isSyncing = state.isCatchingUp && state.hasTimelineSnapshot
-                )
-            } else {
-                RoomTopBar(
-                    roomName = state.roomName,
-                    roomId = state.roomId,
-                    avatarUrl = state.roomAvatarUrl,
-                    isVerified = state.allUsersVerified,
-                    typingNames = state.typingNames,
-                    isOffline = state.isOffline,
-                    isSyncing = state.isCatchingUp && state.hasTimelineSnapshot,
-                    hasActiveCall = state.hasActiveCallForRoom,
-                    activeCallIsAudio = state.activeCallIsAudioForRoom,
-                    isDm = state.isDm,
-                    memberCount = state.memberCount,
-                    voiceCallAction = state.voiceCallAction,
-                    videoCallAction = state.videoCallAction,
-                    pinnedMessages = state.pinnedMessages,
-                    onViewPinnedMessages = viewModel::showPinnedMessagesSheet,
-                    onPinnedEventClick = { eventId -> viewModel.jumpToEvent(eventId) },
-                    onBack = onBack,
-                    onOpenInfo = onOpenInfo,
-                    onOpenSearch = viewModel::showRoomSearch,
-                    onStartCall = onStartCall,
-                    onStartVoiceCall = onStartVoiceCall,
-                    onJoinCall = onJoinCall,
-                )
+
+                if (state.liveLocationShares.values.any { it.isLive }) {
+                    LiveLocationBanner(
+                        shares = state.liveLocationShares,
+                        avatarPathByUserId = state.avatarByUserId,
+                        displayNameByUserId = headerNames,
+                        myUserId = state.myUserId,
+                        onViewAll = viewModel::showLiveLocationMap,
+                        onStopSharing = if (viewModel.isCurrentlySharingLocation) viewModel::stopLiveLocation else null,
+                    )
+                }
             }
         },
         bottomBar = {
@@ -830,34 +873,9 @@ fun RoomScreen(
                     }
                 )
         ) {
-            val displayNameByUserId = remember(state.allEvents) {
-                state.allEvents
-                    .asReversed()
-                    .associate { event -> event.sender to (event.senderDisplayName ?: event.sender) }
-            }
-
-            val roomLabel = stringResource(Res.string.room)
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // Room upgrade banner
-                RoomUpgradeBanner(
-                    successor = state.successor,
-                    predecessor = state.predecessor,
-                    onNavigateToRoom = { roomId -> onNavigateToRoom(roomId, roomLabel) }
-                )
-
-                if (state.liveLocationShares.values.any { it.isLive }) {
-                    LiveLocationBanner(
-                        shares = state.liveLocationShares,
-                        avatarPathByUserId = state.avatarByUserId,
-                        displayNameByUserId = displayNameByUserId,
-                        myUserId = state.myUserId,
-                        onViewAll = viewModel::showLiveLocationMap,
-                        onStopSharing = if (viewModel.isCurrentlySharingLocation) viewModel::stopLiveLocation else null,
-                    )
-                }
-
                 // Message list. Gated on identity + persisted settings as well
                 // as the timeline snapshot so sender names/avatars never paint
                 // with default isDm/visibility flags while those load.
@@ -1509,7 +1527,6 @@ private fun RoomTopBar(
     avatarUrl: String?,
     isVerified: Boolean,
     typingNames: List<String>,
-    isOffline: Boolean,
     isSyncing: Boolean,
     hasActiveCall: Boolean,
     activeCallIsAudio: Boolean?,
@@ -1517,9 +1534,6 @@ private fun RoomTopBar(
     memberCount: Long,
     voiceCallAction: ActionAvailabilityUi,
     videoCallAction: ActionAvailabilityUi,
-    pinnedMessages: List<PinnedMessageUi>,
-    onViewPinnedMessages: () -> Unit,
-    onPinnedEventClick: (String) -> Unit,
     onBack: () -> Unit,
     onOpenInfo: () -> Unit,
     onOpenSearch: () -> Unit,
@@ -1527,7 +1541,7 @@ private fun RoomTopBar(
     onStartVoiceCall: () -> Unit,
     onJoinCall: (isAudio: Boolean) -> Unit,
 ) {
-    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shadowElevation = 2.dp) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shadowElevation = 0.dp) {
         Column {
             TopAppBar(
                 title = {
@@ -1651,32 +1665,9 @@ private fun RoomTopBar(
                         Icon(painterResource(Res.drawable.ic_search), stringResource(Res.string.search_room))
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                )
+                colors = screenAppBarColors()
             )
 
-            if (pinnedMessages.isNotEmpty()) {
-                PinnedMessageBanner(
-                    pinnedMessages = pinnedMessages,
-                    onViewAll = onViewPinnedMessages,
-                    onEventClick = onPinnedEventClick,
-                )
-            }
-
-            AnimatedVisibility(visible = isOffline) {
-                Surface(
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        stringResource(Res.string.offline_queued),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(vertical = 4.dp, horizontal = Spacing.lg)
-                    )
-                }
-            }
         }
     }
 }

@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.key.Key
@@ -182,6 +183,7 @@ fun SecurityScreen(
         topBar = {
             Column {
                 TopAppBar(
+                    colors = screenAppBarColors(),
                     title = {
                         AnimatedContent(
                             targetState = searchOpen,
@@ -230,7 +232,11 @@ fun SecurityScreen(
                 )
 
                 AnimatedVisibility(visible = !searchOpen) {
-                    PrimaryTabRow(selectedTabIndex = state.selectedTab) {
+                    PrimaryTabRow(
+                        selectedTabIndex = state.selectedTab,
+                        containerColor = Color.Transparent,
+                        divider = {},
+                    ) {
                         Tab(
                             selected = state.selectedTab == 0,
                             onClick = { viewModel.setSelectedTab(0) },

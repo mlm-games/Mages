@@ -126,7 +126,11 @@ fun SpaceSettingsScreen(
         ) {
             // Loading indicator
             AnimatedVisibility(visible = state.isLoading || state.isSaving || actionsState.isSaving) {
-                LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
+                LinearWavyProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = ScreenContentRadius)
+                )
             }
 
             LazyColumn(

@@ -94,8 +94,10 @@ fun SpaceDetailScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         topBar = {
             TopAppBar(
+                colors = screenAppBarColors(),
                 title = {
                     Text(
                         state.space?.name ?: state.spaceName,

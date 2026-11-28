@@ -16,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
@@ -125,6 +126,7 @@ fun MediaGalleryScreen(
                 )
             } else {
                 TopAppBar(
+                    colors = screenAppBarColors(),
                     title = { Text(stringResource(Res.string.media_files)) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
@@ -154,7 +156,18 @@ fun MediaGalleryScreen(
                 .fillMaxSize()
                 .screenContentSurface(padding)
         ) {
-            SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
+            SecondaryTabRow(
+                selectedTabIndex = selectedTab.ordinal,
+                containerColor = Color.Transparent,
+                divider = {},
+                indicator = {
+                    TabRowDefaults.SecondaryIndicator(
+                        modifier = Modifier
+                            .tabIndicatorOffset(selectedTab.ordinal)
+                            .padding(horizontal = ScreenContentRadius)
+                    )
+                }
+            ) {
                 MediaTab.entries.forEach { tab ->
                     val count = when (tab) {
                         MediaTab.Images -> state.images.size
@@ -170,6 +183,12 @@ fun MediaGalleryScreen(
                 }
             }
 
+            AnimatedVisibility(
+                visible = !state.isLoading && state.previewsBlocked && selectedTab.showsThumbnails()
+            ) {
+                BlockedPreviewsBanner(onLoad = viewModel::loadBlockedPreviews)
+            }
+
             when {
                 state.isLoading -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -177,12 +196,6 @@ fun MediaGalleryScreen(
                     }
                 }
                 else -> {
-                    AnimatedVisibility(
-                        visible = state.previewsBlocked && selectedTab.showsThumbnails()
-                    ) {
-                        BlockedPreviewsBanner(onLoad = viewModel::loadBlockedPreviews)
-                    }
-
                     when (selectedTab) {
                         MediaTab.Images -> MediaGrid(
                             items = state.images,

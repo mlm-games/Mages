@@ -118,9 +118,6 @@ fun RoomsScreen(
                 )
             } else {
                 RoomsTopBar(
-                    offlineBanner = state.offlineBanner,
-                    syncBanner = state.syncBanner,
-                    isLoading = state.isLoading && state.allItems.isNotEmpty(),
                     searchQuery = state.roomSearchQuery,
                     unreadOnly = state.unreadOnly,
                     typeFilter = state.typeFilter,
@@ -160,9 +157,28 @@ fun RoomsScreen(
             }
         }
     ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .screenContentSurface(innerPadding)
+        ) {
+        StatusBanner(
+            message = state.offlineBanner?.let { stringResource(it) },
+            type = BannerType.OFFLINE
+        )
+        if (state.offlineBanner == null) {
+            StatusBanner(message = state.syncBanner, type = BannerType.LOADING)
+        }
+        AnimatedVisibility(visible = state.isLoading && state.allItems.isNotEmpty()) {
+            LinearWavyProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = ScreenContentRadius),
+            )
+        }
         val listModifier = Modifier
             .fillMaxSize()
-            .screenContentSurface(innerPadding)
+            .weight(1f)
         when {
             state.isLoading && state.allItems.isEmpty() -> {
                 ShimmerList(modifier = listModifier)
@@ -173,7 +189,7 @@ fun RoomsScreen(
                     icon = painterResource(Res.drawable.ic_cloud_off),
                     title = state.offlineBanner?.let { stringResource(it) } ?: stringResource(Res.string.offline),
                     subtitle = stringResource(Res.string.connect_to_internet),
-                    modifier = Modifier.screenContentSurface(innerPadding),
+                    modifier = Modifier,
                     action = {
                         Button(onClick = viewModel::refresh) {
                             Icon(painterResource(Res.drawable.ic_refresh), null)
@@ -193,7 +209,7 @@ fun RoomsScreen(
                     icon = painterResource(Res.drawable.ic_workspaces),
                     title = stringResource(Res.string.rooms_hidden_in_spaces),
                     subtitle = stringResource(Res.string.rooms_hidden_in_spaces_subtitle),
-                    modifier = Modifier.screenContentSurface(innerPadding),
+                    modifier = Modifier,
                     action = {
                         Button(onClick = onOpenSpaces) {
                             Icon(painterResource(Res.drawable.ic_workspaces), null)
@@ -212,7 +228,7 @@ fun RoomsScreen(
                         stringResource(Res.string.join_a_room)
                     else
                         stringResource(Res.string.no_rooms_match, state.roomSearchQuery),
-                    modifier = Modifier.screenContentSurface(innerPadding),
+                    modifier = Modifier,
                     action = if (state.roomSearchQuery.isBlank()) {
                         {
                             Button(onClick = onOpenStartChat) {
@@ -397,6 +413,7 @@ fun RoomsScreen(
             }
         }
     }
+    }
 
     selectedRoom?.let { (name, roomId) ->
         RoomActionsSheet(
@@ -502,9 +519,6 @@ private fun RoomSelectionTopBar(
 
 @Composable
 private fun RoomsTopBar(
-    offlineBanner: StringResource?,
-    syncBanner: String?,
-    isLoading: Boolean,
     searchQuery: String,
     unreadOnly: Boolean,
     typeFilter: RoomTypeFilter,
@@ -526,6 +540,7 @@ private fun RoomsTopBar(
 ) {
     Column {
         TopAppBar(
+            colors = screenAppBarColors(),
             title = {
                 Text(stringResource(Res.string.rooms), fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             },
@@ -563,23 +578,6 @@ private fun RoomsTopBar(
                 }
             }
         )
-
-        // Connection banners
-        StatusBanner(
-            message = offlineBanner?.let { stringResource(it) },
-            type = BannerType.OFFLINE
-        )
-
-        if (offlineBanner == null) {
-            StatusBanner(
-                message = syncBanner,
-                type = BannerType.LOADING
-            )
-        }
-
-        AnimatedVisibility(visible = isLoading) {
-            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
-        }
 
         // Search bar
         OutlinedTextField(
