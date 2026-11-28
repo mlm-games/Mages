@@ -524,64 +524,62 @@ private fun RoomsTopBar(
     onOpenAccountSwitcher: () -> Unit
 ) {
     Column {
-        RoundedScreenHeader(
-            bar = {
-                TopAppBar(
-                    colors = screenHeaderAppBarColors(),
-                    title = {
-                        Text(stringResource(Res.string.rooms), fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    },
-                    actions = {
-                        IconButton(onClick = onOpenSpaces) {
-                            Box {
-                                Icon(painterResource(Res.drawable.ic_workspaces), stringResource(Res.string.spaces))
-                                if (spacesUnreadCount > 0) {
-                                    Badge(
-                                        modifier = Modifier
-                                            .align(Alignment.TopEnd)
-                                            .offset(x = 4.dp, y = (-4).dp)
-                                    ) {
-                                        Text(
-                                            if (spacesUnreadCount > Limits.unreadBadgeCap) "${Limits.unreadBadgeCap}+" else spacesUnreadCount.toString(),
-                                            style = MaterialTheme.typography.labelSmall
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        IconButton(onClick = onOpenSecurity) {
-                            Icon(painterResource(Res.drawable.ic_settings), stringResource(Res.string.settings))
-                        }
-                        IconButton(onClick = onOpenStartChat) {
-                            Icon(painterResource(Res.drawable.ic_add), stringResource(Res.string.find_users_and_public_rooms))
-                        }
-                        IconButton(onClick = onOpenSearch) {
-                            Icon(painterResource(Res.drawable.ic_search), stringResource(Res.string.search_messages))
-                        }
-                        if (showSwitchAccountButton) {
-                            IconButton(onClick = onOpenAccountSwitcher) {
-                                Icon(painterResource(Res.drawable.ic_switch_account), stringResource(Res.string.account))
+        TopAppBar(
+            title = {
+                Text(stringResource(Res.string.rooms), fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            },
+            actions = {
+                IconButton(onClick = onOpenSpaces) {
+                    Box {
+                        Icon(painterResource(Res.drawable.ic_workspaces), stringResource(Res.string.spaces))
+                        if (spacesUnreadCount > 0) {
+                            Badge(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 4.dp, y = (-4).dp)
+                            ) {
+                                Text(
+                                    if (spacesUnreadCount > Limits.unreadBadgeCap) "${Limits.unreadBadgeCap}+" else spacesUnreadCount.toString(),
+                                    style = MaterialTheme.typography.labelSmall
+                                )
                             }
                         }
                     }
-                )
-            },
-        ) {
-            // Connection banners
-            StatusBanner(
-                message = offlineBanner?.let { stringResource(it) },
-                type = BannerType.OFFLINE
-            )
-
-            if (offlineBanner == null) {
-                StatusBanner(
-                    message = syncBanner,
-                    type = BannerType.LOADING
-                )
+                }
+                IconButton(onClick = onOpenSecurity) {
+                    Icon(painterResource(Res.drawable.ic_settings), stringResource(Res.string.settings))
+                }
+                IconButton(onClick = onOpenStartChat) {
+                    Icon(painterResource(Res.drawable.ic_add), stringResource(Res.string.find_users_and_public_rooms))
+                }
+                IconButton(onClick = onOpenSearch) {
+                    Icon(painterResource(Res.drawable.ic_search), stringResource(Res.string.search_messages))
+                }
+                if (showSwitchAccountButton) {
+                    IconButton(onClick = onOpenAccountSwitcher) {
+                        Icon(painterResource(Res.drawable.ic_switch_account), stringResource(Res.string.account))
+                    }
+                }
             }
+        )
 
-            ScreenHeaderProgress(isLoading)
+        // Connection banners
+        StatusBanner(
+            message = offlineBanner?.let { stringResource(it) },
+            type = BannerType.OFFLINE
+        )
+
+        if (offlineBanner == null) {
+            StatusBanner(
+                message = syncBanner,
+                type = BannerType.LOADING
+            )
         }
+
+        AnimatedVisibility(visible = isLoading) {
+            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
+
         // Search bar
         OutlinedTextField(
             value = searchQuery,
