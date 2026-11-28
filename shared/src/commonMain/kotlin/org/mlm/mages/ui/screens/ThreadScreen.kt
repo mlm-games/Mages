@@ -613,7 +613,8 @@ fun ThreadScreen(
                         emoteSuggestions = emoteSuggestions,
                         resolveEmotePreview = resolveEmotePreview,
                         isEncryptedRoom = state.isRoomEncrypted,
-                        canMentionRoom = !state.isDm,
+                        canMentionRoom = !state.isDm &&
+                            (state.roomMembers.firstOrNull { it.isMe }?.powerLevel ?: 0L) >= 50L,
                     )
                 }
             }

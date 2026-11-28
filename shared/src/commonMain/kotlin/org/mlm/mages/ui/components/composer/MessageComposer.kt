@@ -69,7 +69,7 @@ fun MessageComposer(
     enableSlashCommands: Boolean = true,
     developerMode: Boolean = false,
     isInThread: Boolean = false,
-    canMentionRoom: Boolean = true,
+    canMentionRoom: Boolean = false,
     roomAvatarPath: String? = null,
     canEditLatest: Boolean = false,
     onEditLatest: () -> Unit = {},
@@ -132,6 +132,8 @@ fun MessageComposer(
     }
     val showRoomMention = canMentionRoom && mentionQuery != null &&
         "room".startsWith(mentionQuery.query, ignoreCase = true)
+    val insertQuery = mentionQuery
+    val insertValue = fieldValue
 
     val emoteQuery = remember(fieldValue) { findEmoteQueryInternal(fieldValue) }
     val visibleEmotes = remember(emoteQuery, emoteSuggestions) {
@@ -202,13 +204,16 @@ fun MessageComposer(
                     showRoomMention = showRoomMention,
                     roomAvatarPath = roomAvatarPath,
                     onRoomMentionSelected = {
-                        val query = mentionQuery ?: return@ComposerMentionPopup
-                        applyFieldValue(insertRoomMentionInternal(fieldValue, query))
+                        val query = insertQuery
+                        if (query != null) {
+                            applyFieldValue(insertRoomMentionInternal(insertValue, query))
+                        }
                     },
                     onMemberSelected = { member ->
-                        val query = mentionQuery ?: return@ComposerMentionPopup
-                        val updated = insertMentionInternal(fieldValue, member, query)
-                        applyFieldValue(updated)
+                        val query = insertQuery
+                        if (query != null) {
+                            applyFieldValue(insertMentionInternal(insertValue, member, query))
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()

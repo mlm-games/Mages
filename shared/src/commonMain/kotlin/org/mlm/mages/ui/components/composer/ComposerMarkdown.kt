@@ -16,7 +16,8 @@ private val markdownFlavour = SpoilerFlavour()
 val MENTION_MARKDOWN =
     Regex("""\[((?:\\.|[^\]])+)]\(https://matrix\.to/#/(@[^)]+)\)""")
 
-const val ROOM_MENTION_LINK = "[@room](mages://room-mention)"
+const val ROOM_MENTION_MARKER = "mages://room-mention"
+const val ROOM_MENTION_LINK = "[@room]($ROOM_MENTION_MARKER)"
 val ROOM_MENTION_MARKDOWN = Regex("""\[@room\]\(mages://room-mention\)""")
 
 /** The composer text for a mention, which [MENTION_MARKDOWN] turns back into an anchor. */

@@ -26,6 +26,22 @@ class ComposerOutputTransformationTest {
     }
 
     @Test
+    fun displaysRoomMentionAsPlainAtRoom() {
+        val source = "Hey $ROOM_MENTION_LINK everyone"
+        val display = buildString {
+            var cursor = 0
+            for ((range, replacement) in composerReplacements(source)) {
+                append(source, cursor, range.first)
+                append(replacement)
+                cursor = range.last + 1
+            }
+            append(source, cursor, source.length)
+        }
+
+        assertEquals("Hey @room everyone", display)
+    }
+
+    @Test
     fun leavesPlainTextAlone() {
         assertEquals(emptyList(), composerReplacements("just text @Alice"))
     }

@@ -16,7 +16,13 @@ import org.mlm.mages.ui.mediaCaption
  * `m.mentions` from the anchors. Rebuilding the draft from the HTML therefore
  * keeps both what the user sees and what the next send produces.
  */
-fun MessageEvent.editComposerText(): String = draftFrom(body, formattedBody)
+fun MessageEvent.editComposerText(): String {
+    val draft = draftFrom(body, formattedBody)
+    if (!mentionsRoom || ROOM_MENTION_MARKER in draft) return draft
+    return draft.replace(EVERYONE_MENTION, ROOM_MENTION_LINK)
+}
+
+private val EVERYONE_MENTION = Regex("(?<![\\w@])@room(?![\\w@])")
 
 fun MessageEvent.captionEditComposerText(): String =
     draftFrom(mediaCaption() ?: "", formattedBody)
