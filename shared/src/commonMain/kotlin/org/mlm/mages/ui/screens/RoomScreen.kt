@@ -119,7 +119,6 @@ import org.mlm.mages.settings.parseMessageMenuOrder
 import org.mlm.mages.settings.parseQuickReactions
 import org.mlm.mages.ui.AttachmentUploadStage
 import org.mlm.mages.ui.isEditableBy
-import org.mlm.mages.ui.PinnedMessageUi
 import org.mlm.mages.ui.RoomUiState
 import org.mlm.mages.ui.components.message.MessageBubbleRenderContext
 import org.mlm.mages.ui.components.message.MessageBubbleVariant
@@ -649,44 +648,94 @@ fun RoomScreen(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.92f),
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top),
         topBar = {
-            if (state.isSelectionMode) {
-                SelectionTopBar(
-                    selectedCount = state.selectedEventIds.size,
-                    onClearSelection = viewModel::clearSelection,
-                    onSelectAll = viewModel::selectAllVisible
+            RoundedScreenHeader(
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                bar = {
+                    if (state.isSelectionMode) {
+                        SelectionTopBar(
+                            selectedCount = state.selectedEventIds.size,
+                            onClearSelection = viewModel::clearSelection,
+                            onSelectAll = viewModel::selectAllVisible
+                        )
+                    } else if (isBubbleMode) {
+                        BubbleTopBar(
+                            roomName = state.roomName,
+                            avatarUrl = state.roomAvatarUrl,
+                            isVerified = state.allUsersVerified,
+                            isSyncing = state.isCatchingUp && state.hasTimelineSnapshot
+                        )
+                    } else {
+                        RoomTopBar(
+                            roomName = state.roomName,
+                            roomId = state.roomId,
+                            avatarUrl = state.roomAvatarUrl,
+                            isVerified = state.allUsersVerified,
+                            typingNames = state.typingNames,
+                            isSyncing = state.isCatchingUp && state.hasTimelineSnapshot,
+                            hasActiveCall = state.hasActiveCallForRoom,
+                            activeCallIsAudio = state.activeCallIsAudioForRoom,
+                            isDm = state.isDm,
+                            memberCount = state.memberCount,
+                            voiceCallAction = state.voiceCallAction,
+                            videoCallAction = state.videoCallAction,
+                            onBack = onBack,
+                            onOpenInfo = onOpenInfo,
+                            onOpenSearch = viewModel::showRoomSearch,
+                            onStartCall = onStartCall,
+                            onStartVoiceCall = onStartVoiceCall,
+                            onJoinCall = onJoinCall,
+                        )
+                    }
+                },
+            ) {
+                if (!state.isSelectionMode && !isBubbleMode) {
+                    if (state.pinnedMessages.isNotEmpty()) {
+                        PinnedMessageBanner(
+                            pinnedMessages = state.pinnedMessages,
+                            onViewAll = viewModel::showPinnedMessagesSheet,
+                            onEventClick = { viewModel.jumpToEvent(it) },
+                        )
+                    }
+
+                    AnimatedVisibility(visible = state.isOffline) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                stringResource(Res.string.offline_queued),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(vertical = 4.dp, horizontal = Spacing.lg)
+                            )
+                        }
+                    }
+                }
+                val roomLabel = stringResource(Res.string.room)
+                // Room upgrade banner
+                RoomUpgradeBanner(
+                    successor = state.successor,
+                    predecessor = state.predecessor,
+                    onNavigateToRoom = { roomId -> onNavigateToRoom(roomId, roomLabel) }
                 )
-            } else if (isBubbleMode) {
-                BubbleTopBar(
-                    roomName = state.roomName,
-                    avatarUrl = state.roomAvatarUrl,
-                    isVerified = state.allUsersVerified,
-                    isSyncing = state.isCatchingUp && state.hasTimelineSnapshot
-                )
-            } else {
-                RoomTopBar(
-                    roomName = state.roomName,
-                    roomId = state.roomId,
-                    avatarUrl = state.roomAvatarUrl,
-                    isVerified = state.allUsersVerified,
-                    typingNames = state.typingNames,
-                    isOffline = state.isOffline,
-                    isSyncing = state.isCatchingUp && state.hasTimelineSnapshot,
-                    hasActiveCall = state.hasActiveCallForRoom,
-                    activeCallIsAudio = state.activeCallIsAudioForRoom,
-                    isDm = state.isDm,
-                    memberCount = state.memberCount,
-                    voiceCallAction = state.voiceCallAction,
-                    videoCallAction = state.videoCallAction,
-                    pinnedMessages = state.pinnedMessages,
-                    onViewPinnedMessages = viewModel::showPinnedMessagesSheet,
-                    onPinnedEventClick = { eventId -> viewModel.jumpToEvent(eventId) },
-                    onBack = onBack,
-                    onOpenInfo = onOpenInfo,
-                    onOpenSearch = viewModel::showRoomSearch,
-                    onStartCall = onStartCall,
-                    onStartVoiceCall = onStartVoiceCall,
-                    onJoinCall = onJoinCall,
-                )
+
+                if (state.liveLocationShares.values.any { it.isLive }) {
+                    val displayNameByUserId = remember(state.allEvents) {
+                        state.allEvents
+                            .asReversed()
+                            .associate { event -> event.sender to (event.senderDisplayName ?: event.sender) }
+                    }
+
+                    LiveLocationBanner(
+                        shares = state.liveLocationShares,
+                        avatarPathByUserId = state.avatarByUserId,
+                        displayNameByUserId = displayNameByUserId,
+                        myUserId = state.myUserId,
+                        onViewAll = viewModel::showLiveLocationMap,
+                        onStopSharing = if (viewModel.isCurrentlySharingLocation) viewModel::stopLiveLocation else null,
+                    )
+                }
+
             }
         },
         bottomBar = {
@@ -830,34 +879,9 @@ fun RoomScreen(
                     }
                 )
         ) {
-            val displayNameByUserId = remember(state.allEvents) {
-                state.allEvents
-                    .asReversed()
-                    .associate { event -> event.sender to (event.senderDisplayName ?: event.sender) }
-            }
-
-            val roomLabel = stringResource(Res.string.room)
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // Room upgrade banner
-                RoomUpgradeBanner(
-                    successor = state.successor,
-                    predecessor = state.predecessor,
-                    onNavigateToRoom = { roomId -> onNavigateToRoom(roomId, roomLabel) }
-                )
-
-                if (state.liveLocationShares.values.any { it.isLive }) {
-                    LiveLocationBanner(
-                        shares = state.liveLocationShares,
-                        avatarPathByUserId = state.avatarByUserId,
-                        displayNameByUserId = displayNameByUserId,
-                        myUserId = state.myUserId,
-                        onViewAll = viewModel::showLiveLocationMap,
-                        onStopSharing = if (viewModel.isCurrentlySharingLocation) viewModel::stopLiveLocation else null,
-                    )
-                }
-
                 // Message list. Gated on identity + persisted settings as well
                 // as the timeline snapshot so sender names/avatars never paint
                 // with default isDm/visibility flags while those load.
@@ -1509,7 +1533,6 @@ private fun RoomTopBar(
     avatarUrl: String?,
     isVerified: Boolean,
     typingNames: List<String>,
-    isOffline: Boolean,
     isSyncing: Boolean,
     hasActiveCall: Boolean,
     activeCallIsAudio: Boolean?,
@@ -1517,9 +1540,6 @@ private fun RoomTopBar(
     memberCount: Long,
     voiceCallAction: ActionAvailabilityUi,
     videoCallAction: ActionAvailabilityUi,
-    pinnedMessages: List<PinnedMessageUi>,
-    onViewPinnedMessages: () -> Unit,
-    onPinnedEventClick: (String) -> Unit,
     onBack: () -> Unit,
     onOpenInfo: () -> Unit,
     onOpenSearch: () -> Unit,
@@ -1527,39 +1547,38 @@ private fun RoomTopBar(
     onStartVoiceCall: () -> Unit,
     onJoinCall: (isAudio: Boolean) -> Unit,
 ) {
-    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shadowElevation = 2.dp) {
-        Column {
-            TopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(Spacing.sm))
-                            .clickable(
-                                role = Role.Button,
-                                onClick = onOpenInfo,
-                            )
-                            .padding(vertical = Spacing.xs)
+    TopAppBar(
+        colors = screenHeaderAppBarColors(),
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(Spacing.sm))
+                    .clickable(
+                        role = Role.Button,
+                        onClick = onOpenInfo,
+                    )
+                    .padding(vertical = Spacing.xs)
+            ) {
+                Box(
+                    modifier = Modifier.size(40.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = CircleShape,
+                        modifier = Modifier.fillMaxSize()
                     ) {
-                        Box(
-                            modifier = Modifier.size(40.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = CircleShape,
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Avatar(
-                                        name = roomName,
-                                        avatarPath = avatarUrl,
-                                        size = 40.dp
-                                    )
-                                }
-                            }
-                            // Not needed / test-only for notifs incase the issue still exists
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Avatar(
+                                name = roomName,
+                                avatarPath = avatarUrl,
+                                size = 40.dp
+                            )
+                        }
+                    }
+                    // Not needed / test-only for notifs incase the issue still exists
 //                            if (isSyncing) {
 //                                CircularProgressIndicator(
 //                                    modifier = Modifier.fillMaxSize(),
@@ -1568,158 +1587,9 @@ private fun RoomTopBar(
 //                                    trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
 //                                )
 //                            }
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (isVerified) {
-                                    VerifiedBadge()
-                                    Spacer(Modifier.width(4.dp))
-                                }
-                                Text(
-                                    roomName,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                            AnimatedVisibility(
-                                visible = typingNames.isNotEmpty(),
-                                enter = fadeIn(),
-                                exit = fadeOut(),
-                                label = "typing"
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    TypingDots()
-                                    Spacer(Modifier.width(4.dp))
-                                    Text(
-                                        formatTypingText(typingNames),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        overflow = TextOverflow.Ellipsis,
-                                        maxLines = 1,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(painterResource(Res.drawable.ic_arrow_back), stringResource(Res.string.back))
-                    }
-                },
-                actions = {
-                    if (hasActiveCall) {
-                        IconButton(onClick = { onJoinCall(activeCallIsAudio == true) }) {
-                            Icon(
-                                painterResource(Res.drawable.ic_call_merge),
-                                contentDescription = stringResource(Res.string.join_call)
-                            )
-                        }
-                    } else {
-                        if (isDm && memberCount > 1 && voiceCallAction.presentation != ActionPresentationUi.Hidden) {
-                            IconButton(
-                                onClick = onStartVoiceCall,
-                                enabled = voiceCallAction.isEnabled,
-                            ) {
-                                Icon(
-                                    painterResource(Res.drawable.ic_call),
-                                    contentDescription = stringResource(Res.string.voice_call)
-                                )
-                            }
-                        }
-//                        if (videoCallAction.presentation != ActionPresentationUi.Hidden) { // TODO: Broken, Allow for rooms with high enough perms, when mod perm for it are added.?
-                        if (!isDm || memberCount > 1) {
-                            IconButton(
-                                onClick = onStartCall,
-//                                enabled = videoCallAction.isEnabled,
-                            ) {
-                                Icon(
-                                    painterResource(Res.drawable.ic_videocam),
-                                    contentDescription = stringResource(Res.string.video_call)
-                                )
-                            }
-                        }
-//                        }
-                    }
-
-                    IconButton(onClick = onOpenInfo) {
-                        Icon(painterResource(Res.drawable.ic_info), stringResource(Res.string.room_info_short))
-                    }
-                    IconButton(onClick = onOpenSearch) {
-                        Icon(painterResource(Res.drawable.ic_search), stringResource(Res.string.search_room))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                )
-            )
-
-            if (pinnedMessages.isNotEmpty()) {
-                PinnedMessageBanner(
-                    pinnedMessages = pinnedMessages,
-                    onViewAll = onViewPinnedMessages,
-                    onEventClick = onPinnedEventClick,
-                )
-            }
-
-            AnimatedVisibility(visible = isOffline) {
-                Surface(
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        stringResource(Res.string.offline_queued),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(vertical = 4.dp, horizontal = Spacing.lg)
-                    )
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun BubbleTopBar(
-    roomName: String,
-    avatarUrl: String?,
-    isVerified: Boolean,
-    isSyncing: Boolean = false,
-) {
-    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shadowElevation = 2.dp) {
-        TopAppBar(
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier.size(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = CircleShape,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Avatar(
-                                    name = roomName,
-                                    avatarPath = avatarUrl,
-                                    size = 32.dp
-                                )
-                            }
-                        }
-                        // same as above
-//                        if (isSyncing) {
-//                            CircularProgressIndicator(
-//                                modifier = Modifier.fillMaxSize(),
-//                                strokeWidth = 2.dp,
-//                                color = MaterialTheme.colorScheme.primary,
-//                                trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-//                            )
-//                        }
-                    }
-                    Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(12.dp))
+                Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (isVerified) {
                             VerifiedBadge()
@@ -1732,13 +1602,132 @@ private fun BubbleTopBar(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
+                    AnimatedVisibility(
+                        visible = typingNames.isNotEmpty(),
+                        enter = fadeIn(),
+                        exit = fadeOut(),
+                        label = "typing"
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            TypingDots()
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                formatTypingText(typingNames),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                overflow = TextOverflow.Ellipsis,
+                                maxLines = 1,
+                            )
+                        }
+                    }
                 }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-            )
-        )
-    }
+            }
+        },
+        navigationIcon = {
+            IconButton(onClick = onBack) {
+                Icon(painterResource(Res.drawable.ic_arrow_back), stringResource(Res.string.back))
+            }
+        },
+        actions = {
+            if (hasActiveCall) {
+                IconButton(onClick = { onJoinCall(activeCallIsAudio == true) }) {
+                    Icon(
+                        painterResource(Res.drawable.ic_call_merge),
+                        contentDescription = stringResource(Res.string.join_call)
+                    )
+                }
+            } else {
+                if (isDm && memberCount > 1 && voiceCallAction.presentation != ActionPresentationUi.Hidden) {
+                    IconButton(
+                        onClick = onStartVoiceCall,
+                        enabled = voiceCallAction.isEnabled,
+                    ) {
+                        Icon(
+                            painterResource(Res.drawable.ic_call),
+                            contentDescription = stringResource(Res.string.voice_call)
+                        )
+                    }
+                }
+//                        if (videoCallAction.presentation != ActionPresentationUi.Hidden) { // TODO: Broken, Allow for rooms with high enough perms, when mod perm for it are added.?
+                if (!isDm || memberCount > 1) {
+                    IconButton(
+                        onClick = onStartCall,
+//                                enabled = videoCallAction.isEnabled,
+                    ) {
+                        Icon(
+                            painterResource(Res.drawable.ic_videocam),
+                            contentDescription = stringResource(Res.string.video_call)
+                        )
+                    }
+                }
+//                        }
+            }
+
+            IconButton(onClick = onOpenInfo) {
+                Icon(painterResource(Res.drawable.ic_info), stringResource(Res.string.room_info_short))
+            }
+            IconButton(onClick = onOpenSearch) {
+                Icon(painterResource(Res.drawable.ic_search), stringResource(Res.string.search_room))
+            }
+        },
+    )
+
+}
+
+@Composable
+private fun BubbleTopBar(
+    roomName: String,
+    avatarUrl: String?,
+    isVerified: Boolean,
+    isSyncing: Boolean = false,
+) {
+    TopAppBar(
+        colors = screenHeaderAppBarColors(),
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier.size(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = CircleShape,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Avatar(
+                                name = roomName,
+                                avatarPath = avatarUrl,
+                                size = 32.dp
+                            )
+                        }
+                    }
+                    // same as above
+//                        if (isSyncing) {
+//                            CircularProgressIndicator(
+//                                modifier = Modifier.fillMaxSize(),
+//                                strokeWidth = 2.dp,
+//                                color = MaterialTheme.colorScheme.primary,
+//                                trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+//                            )
+//                        }
+                }
+                Spacer(Modifier.width(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (isVerified) {
+                        VerifiedBadge()
+                        Spacer(Modifier.width(4.dp))
+                    }
+                    Text(
+                        roomName,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        },
+    )
 }
 
 @Composable

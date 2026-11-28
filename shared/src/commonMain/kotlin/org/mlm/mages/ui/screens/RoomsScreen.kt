@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshotFlow
@@ -525,70 +524,64 @@ private fun RoomsTopBar(
     onOpenAccountSwitcher: () -> Unit
 ) {
     Column {
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp)
-        ) {
-        TopAppBar(
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer
-            ),
-            title = {
-                Text(stringResource(Res.string.rooms), fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            },
-            actions = {
-                IconButton(onClick = onOpenSpaces) {
-                    Box {
-                        Icon(painterResource(Res.drawable.ic_workspaces), stringResource(Res.string.spaces))
-                        if (spacesUnreadCount > 0) {
-                            Badge(
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .offset(x = 4.dp, y = (-4).dp)
-                            ) {
-                                Text(
-                                    if (spacesUnreadCount > Limits.unreadBadgeCap) "${Limits.unreadBadgeCap}+" else spacesUnreadCount.toString(),
-                                    style = MaterialTheme.typography.labelSmall
-                                )
+        RoundedScreenHeader(
+            bar = {
+                TopAppBar(
+                    colors = screenHeaderAppBarColors(),
+                    title = {
+                        Text(stringResource(Res.string.rooms), fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    },
+                    actions = {
+                        IconButton(onClick = onOpenSpaces) {
+                            Box {
+                                Icon(painterResource(Res.drawable.ic_workspaces), stringResource(Res.string.spaces))
+                                if (spacesUnreadCount > 0) {
+                                    Badge(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .offset(x = 4.dp, y = (-4).dp)
+                                    ) {
+                                        Text(
+                                            if (spacesUnreadCount > Limits.unreadBadgeCap) "${Limits.unreadBadgeCap}+" else spacesUnreadCount.toString(),
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        IconButton(onClick = onOpenSecurity) {
+                            Icon(painterResource(Res.drawable.ic_settings), stringResource(Res.string.settings))
+                        }
+                        IconButton(onClick = onOpenStartChat) {
+                            Icon(painterResource(Res.drawable.ic_add), stringResource(Res.string.find_users_and_public_rooms))
+                        }
+                        IconButton(onClick = onOpenSearch) {
+                            Icon(painterResource(Res.drawable.ic_search), stringResource(Res.string.search_messages))
+                        }
+                        if (showSwitchAccountButton) {
+                            IconButton(onClick = onOpenAccountSwitcher) {
+                                Icon(painterResource(Res.drawable.ic_switch_account), stringResource(Res.string.account))
                             }
                         }
                     }
-                }
-                IconButton(onClick = onOpenSecurity) {
-                    Icon(painterResource(Res.drawable.ic_settings), stringResource(Res.string.settings))
-                }
-                IconButton(onClick = onOpenStartChat) {
-                    Icon(painterResource(Res.drawable.ic_add), stringResource(Res.string.find_users_and_public_rooms))
-                }
-                IconButton(onClick = onOpenSearch) {
-                    Icon(painterResource(Res.drawable.ic_search), stringResource(Res.string.search_messages))
-                }
-                if (showSwitchAccountButton) {
-                    IconButton(onClick = onOpenAccountSwitcher) {
-                        Icon(painterResource(Res.drawable.ic_switch_account), stringResource(Res.string.account))
-                    }
-                }
-            }
-        )
-        }
-
-        // Connection banners
-        StatusBanner(
-            message = offlineBanner?.let { stringResource(it) },
-            type = BannerType.OFFLINE
-        )
-
-        if (offlineBanner == null) {
+                )
+            },
+        ) {
+            // Connection banners
             StatusBanner(
-                message = syncBanner,
-                type = BannerType.LOADING
+                message = offlineBanner?.let { stringResource(it) },
+                type = BannerType.OFFLINE
             )
-        }
 
-        AnimatedVisibility(visible = isLoading) {
-            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
-        }
+            if (offlineBanner == null) {
+                StatusBanner(
+                    message = syncBanner,
+                    type = BannerType.LOADING
+                )
+            }
 
+            ScreenHeaderProgress(isLoading)
+        }
         // Search bar
         OutlinedTextField(
             value = searchQuery,

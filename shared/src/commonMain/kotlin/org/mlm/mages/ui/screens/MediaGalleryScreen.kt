@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
@@ -116,21 +117,59 @@ fun MediaGalleryScreen(
 
     Scaffold(
         topBar = {
-            if (state.isSelectionMode) {
-                SelectionTopBar(
-                    selectedCount = state.selectedCount,
-                    onClearSelection = viewModel::clearSelection,
-                    onSelectAll = { viewModel.selectAll(selectedTab) }
-                )
-            } else {
-                TopAppBar(
-                    title = { Text(stringResource(Res.string.media_files)) },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(painterResource(Res.drawable.ic_arrow_back), contentDescription = stringResource(Res.string.back))
-                        }
+            RoundedScreenHeader(
+                bar = {
+                    if (state.isSelectionMode) {
+                        SelectionTopBar(
+                            selectedCount = state.selectedCount,
+                            onClearSelection = viewModel::clearSelection,
+                            onSelectAll = { viewModel.selectAll(selectedTab) }
+                        )
+                    } else {
+                        TopAppBar(
+                            colors = screenHeaderAppBarColors(),
+                            title = { Text(stringResource(Res.string.media_files)) },
+                            navigationIcon = {
+                                IconButton(onClick = onBack) {
+                                    Icon(painterResource(Res.drawable.ic_arrow_back), contentDescription = stringResource(Res.string.back))
+                                }
+                            }
+                        )
                     }
-                )
+                },
+            ) {
+                SecondaryTabRow(
+                    selectedTabIndex = selectedTab.ordinal,
+                    containerColor = Color.Transparent,
+                    divider = {},
+                    indicator = {
+                        TabRowDefaults.SecondaryIndicator(
+                            modifier = Modifier.tabIndicatorOffset(selectedTab.ordinal)
+                                .padding(horizontal = ScreenHeaderRadius),
+                        )
+                    },
+                ) {
+                    MediaTab.entries.forEach { tab ->
+                        val count = when (tab) {
+                            MediaTab.Images -> state.images.size
+                            MediaTab.Videos -> state.videos.size
+                            MediaTab.Files -> state.files.size
+                            MediaTab.Links -> state.links.size
+                        }
+                        Tab(
+                            selected = selectedTab == tab,
+                            onClick = { selectedTab = tab },
+                            text = { Text(stringResource(Res.string.media_tab_count, tab.name, count)) }
+                        )
+                    }
+                }
+
+                AnimatedVisibility(
+                    visible = !state.isLoading && state.previewsBlocked && selectedTab.showsThumbnails()
+                ) {
+                    BlockedPreviewsBanner(onLoad = viewModel::loadBlockedPreviews)
+                }
+
             }
         },
         bottomBar = {
@@ -153,22 +192,6 @@ fun MediaGalleryScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
-                MediaTab.entries.forEach { tab ->
-                    val count = when (tab) {
-                        MediaTab.Images -> state.images.size
-                        MediaTab.Videos -> state.videos.size
-                        MediaTab.Files -> state.files.size
-                        MediaTab.Links -> state.links.size
-                    }
-                    Tab(
-                        selected = selectedTab == tab,
-                        onClick = { selectedTab = tab },
-                        text = { Text(stringResource(Res.string.media_tab_count, tab.name, count)) }
-                    )
-                }
-            }
-
             when {
                 state.isLoading -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -176,12 +199,6 @@ fun MediaGalleryScreen(
                     }
                 }
                 else -> {
-                    AnimatedVisibility(
-                        visible = state.previewsBlocked && selectedTab.showsThumbnails()
-                    ) {
-                        BlockedPreviewsBanner(onLoad = viewModel::loadBlockedPreviews)
-                    }
-
                     when (selectedTab) {
                         MediaTab.Images -> MediaGrid(
                             items = state.images,

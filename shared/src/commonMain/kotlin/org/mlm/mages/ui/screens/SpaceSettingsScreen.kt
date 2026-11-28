@@ -1,7 +1,6 @@
 package org.mlm.mages.ui.screens
 
 import org.jetbrains.compose.resources.painterResource
-import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -96,25 +95,34 @@ fun SpaceSettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(Res.string.space_settings), fontWeight = FontWeight.SemiBold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(painterResource(Res.drawable.ic_arrow_back), contentDescription = stringResource(Res.string.back))
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = {
-                            viewModel.refresh()
-                            actionsViewModel.refresh()
+            RoundedScreenHeader(
+                bar = {
+                    TopAppBar(
+                        colors = screenHeaderAppBarColors(),
+                        title = { Text(stringResource(Res.string.space_settings), fontWeight = FontWeight.SemiBold) },
+                        navigationIcon = {
+                            IconButton(onClick = onBack) {
+                                Icon(painterResource(Res.drawable.ic_arrow_back), contentDescription = stringResource(Res.string.back))
+                            }
                         },
-                        enabled = !state.isLoading
-                    ) {
-                        Icon(painterResource(Res.drawable.ic_refresh), contentDescription = stringResource(Res.string.refresh))
-                    }
-                }
-            )
+                        actions = {
+                            IconButton(
+                                onClick = {
+                                    viewModel.refresh()
+                                    actionsViewModel.refresh()
+                                },
+                                enabled = !state.isLoading
+                            ) {
+                                Icon(painterResource(Res.drawable.ic_refresh), contentDescription = stringResource(Res.string.refresh))
+                            }
+                        }
+                    )
+                },
+            ) {
+                ScreenHeaderProgress(
+                    visible = state.isLoading || state.isSaving || actionsState.isSaving,
+                )
+            }
         },
         snackbarHost = { snackbarManager.snackbarHost() }
     ) { padding ->
@@ -123,11 +131,6 @@ fun SpaceSettingsScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Loading indicator
-            AnimatedVisibility(visible = state.isLoading || state.isSaving || actionsState.isSaving) {
-                LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
-
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(vertical = Spacing.md)

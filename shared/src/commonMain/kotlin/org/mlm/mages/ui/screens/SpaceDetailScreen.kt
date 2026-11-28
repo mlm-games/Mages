@@ -1,7 +1,6 @@
 package org.mlm.mages.ui.screens
 
 import org.jetbrains.compose.resources.painterResource
-import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -148,10 +147,6 @@ fun SpaceDetailScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            AnimatedVisibility(visible = state.isLoading && state.hierarchy.isEmpty()) {
-                LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
-
             state.space?.let { space ->
                 SpaceHeaderCard(space = space, avatarPath = state.spaceAvatarPath)
             }

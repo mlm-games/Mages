@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.key.Key
@@ -179,57 +180,65 @@ fun SecurityScreen(
             }
         },
         topBar = {
-            Column {
-                TopAppBar(
-                    title = {
-                        AnimatedContent(
-                            targetState = searchOpen,
-                            label = "SettingsSearchTitle"
-                        ) { searching ->
-                            if (searching) {
-                                SettingsSearchField(
-                                    query = searchQuery,
-                                    onQueryChange = { searchQuery = it }
-                                )
-                            } else {
-                                Text(
-                                    stringResource(Res.string.security_settings),
-                                    fontWeight = FontWeight.SemiBold
-                                )
+            RoundedScreenHeader(
+                bar = {
+                    TopAppBar(
+                        colors = screenHeaderAppBarColors(),
+                        title = {
+                            AnimatedContent(
+                                targetState = searchOpen,
+                                label = "SettingsSearchTitle"
+                            ) { searching ->
+                                if (searching) {
+                                    SettingsSearchField(
+                                        query = searchQuery,
+                                        onQueryChange = { searchQuery = it }
+                                    )
+                                } else {
+                                    Text(
+                                        stringResource(Res.string.security_settings),
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
                             }
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(
-                            onClick = {
-                                if (searchOpen) closeSearch() else backStack.popBack()
+                        },
+                        navigationIcon = {
+                            IconButton(
+                                onClick = {
+                                    if (searchOpen) closeSearch() else backStack.popBack()
+                                }
+                            ) {
+                                Icon(painterResource(Res.drawable.ic_arrow_back), stringResource(Res.string.back))
                             }
-                        ) {
-                            Icon(painterResource(Res.drawable.ic_arrow_back), stringResource(Res.string.back))
-                        }
-                    },
-                    actions = {
-                        AnimatedVisibility(visible = !searchOpen) {
-                            if (!settings.showSwitchAccountButton) {
-                                IconButton(onClick = onOpenAccountSwitcher) {
-                                    Icon(painterResource(Res.drawable.ic_switch_account), stringResource(Res.string.account))
+                        },
+                        actions = {
+                            AnimatedVisibility(visible = !searchOpen) {
+                                if (!settings.showSwitchAccountButton) {
+                                    IconButton(onClick = onOpenAccountSwitcher) {
+                                        Icon(painterResource(Res.drawable.ic_switch_account), stringResource(Res.string.account))
+                                    }
+                                }
+                            }
+                            AnimatedVisibility(
+                                visible = state.selectedTab == SETTINGS_TAB_INDEX && !searchOpen,
+                                enter = fadeIn() + scaleIn(initialScale = 0.6f) + expandHorizontally(),
+                                exit = fadeOut() + scaleOut(targetScale = 0.6f) + shrinkHorizontally()
+                            ) {
+                                IconButton(onClick = { searchOpen = true }) {
+                                    Icon(painterResource(Res.drawable.ic_search), stringResource(Res.string.search_settings))
                                 }
                             }
                         }
-                        AnimatedVisibility(
-                            visible = state.selectedTab == SETTINGS_TAB_INDEX && !searchOpen,
-                            enter = fadeIn() + scaleIn(initialScale = 0.6f) + expandHorizontally(),
-                            exit = fadeOut() + scaleOut(targetScale = 0.6f) + shrinkHorizontally()
-                        ) {
-                            IconButton(onClick = { searchOpen = true }) {
-                                Icon(painterResource(Res.drawable.ic_search), stringResource(Res.string.search_settings))
-                            }
-                        }
-                    }
-                )
+                    )
 
+                },
+            ) {
                 AnimatedVisibility(visible = !searchOpen) {
-                    PrimaryTabRow(selectedTabIndex = state.selectedTab) {
+                    PrimaryTabRow(
+                        selectedTabIndex = state.selectedTab,
+                        containerColor = Color.Transparent,
+                        divider = {},
+                    ) {
                         Tab(
                             selected = state.selectedTab == 0,
                             onClick = { viewModel.setSelectedTab(0) },
